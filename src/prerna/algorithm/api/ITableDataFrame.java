@@ -28,7 +28,6 @@
 package prerna.algorithm.api;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -44,9 +43,23 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
 
-public interface ITableDataFrame extends IDataMaker {
+public interface ITableDataFrame {
+
+	/**
+	 * Sets the id of the user who created this frame. H2Frame uses it to pick the
+	 * schema for its in-memory tables.
+	 * 
+	 * @param userId the user id
+	 */
+	void setUserId(String userId);
+
+	/**
+	 * Returns the id of the user who created this frame.
+	 * 
+	 * @return the user id
+	 */
+	String getUserId();
 
 	/**
 	 * Adds a row to the data-frame
@@ -87,16 +100,6 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @return The column header names for the data-frame
 	 */
 	String[] getQsHeaders();
-
-	/**
-	 * * Returns the iterator that will iterate through a numeric column the
-	 * iterator will return the each unique value in the column as a function -> x'
-	 * = (x - min(columnHeader))/(max(columnHeader) - min(columnHeader)) * @param
-	 * columnHeader
-	 * 
-	 * @return
-	 */
-	Iterator<List<Object[]>> scaledUniqueIterator(String uniqueHeaderName, List<String> attributeUniqueHeaderName);
 
 	/**
 	 * Get the values for a specific column in the data-frame

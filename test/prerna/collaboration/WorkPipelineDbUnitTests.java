@@ -70,12 +70,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.IntFunction;
 
 import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+
+import com.google.common.util.concurrent.MoreExecutors;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -112,14 +115,17 @@ class WorkPipelineDbUnitTests {
 	private final Map<String, String> bodies = new HashMap<>();
 	private final Set<String> failing = new HashSet<>();
 	private Executor pool;
+	private IntFunction<ExecutorService> readPool;
 
 	@BeforeEach
 	void setUp() throws Exception {
 		// the tries below come seconds apart; one test checks the real floor
 		WorkPipeline.giveUpAfter = Duration.ZERO;
-		// lane jobs run on the test thread, where the static mocks are
+		// lane jobs and their thread reads run on the test thread, where the static mocks are
 		pool = WorkPipeline.pool;
 		WorkPipeline.pool = Runnable::run;
+		readPool = WorkPipeline.readPool;
+		WorkPipeline.readPool = size -> MoreExecutors.newDirectExecutorService();
 		connection = DriverManager.getConnection("jdbc:h2:mem:collab_work_" + UUID.randomUUID());
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
 		IRDBMSEngine engine = mock(IRDBMSEngine.class);
@@ -180,6 +186,7 @@ class WorkPipelineDbUnitTests {
 	void tearDown() throws Exception {
 		WorkPipeline.giveUpAfter = Duration.ofHours(6);
 		WorkPipeline.pool = pool;
+		WorkPipeline.readPool = readPool;
 		source.close();
 		registry.close();
 		connection.close();
@@ -293,6 +300,10 @@ class WorkPipelineDbUnitTests {
 				+ "'active')", ownerId, ownerType);
 		thread("ask", at, null);
 		thread("answer", at, null);
+		for (String threadId : List.of("ask", "answer")) {
+			sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE, IS_PRIMARY) VALUES "
+					+ "(?, ?, ?, 'budget', 'you', TRUE)", ownerId, ownerType, threadId);
+		}
 		step("budget-step", "ask", "budget", "Review the budget");
 		candidate("reviewed", "answer", "budget", "Reviewed the budget", at.plusMinutes(2));
 		// in each topic's batch the loose step is s1

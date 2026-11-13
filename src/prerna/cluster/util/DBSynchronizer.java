@@ -261,7 +261,7 @@ public class DBSynchronizer extends ZKClient {
 				File[] curDirFiles = curDir.listFiles();
 				for (int curDirFileIndex = 0; curDirFileIndex < curDirFiles.length; curDirFileIndex++) {
 					File curDirFile = curDirFiles[curDirFileIndex];
-					String path = curDirFile.getAbsolutePath().replace("\\\\", "/");
+					String path = curDirFile.getAbsolutePath().replace("\\", "/");
 
 					classLogger.debug("Adding path for next level  {}", path);
 					if (curDirFile.isDirectory()) {
@@ -308,7 +308,7 @@ public class DBSynchronizer extends ZKClient {
 	}
 
 	private String getNodeName(String input) {
-		input = input.replace("\\\\", "/");
+		input = input.replace("\\", "/");
 		input = input.replace(semossHome + "/db", "");
 		return input;
 	}

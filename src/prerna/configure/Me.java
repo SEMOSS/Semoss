@@ -111,7 +111,7 @@ public class Me {
 		System.out.println("Found port.. " + port);
 		// RDF Map is sitting in
 		// args[0] / semosshome
-		cm.changeRDFMap(homePath, port);
+		cm.changeRDFMap(homePath);
 
 		// the web.xml is sitting in
 		// args[0]/webapps/monolith/webcontent/web-inf
@@ -305,26 +305,24 @@ public class Me {
 		return portStr;
 	}
 
-	public void changeRDFMap(String homePath, String port, String rdfHome) {
+	public void changeRDFMap(String homePath, String rdfHome) {
 		System.out.println("Configuring RDF Map.. ");
 
-		String[] stringToReplace = { "BaseFolder", "LOG4J", "SMSSWebWatcher_DIR", "SMSSWatcher_DIR",
-				"SMSSStorageWatcher_DIR", "SMSSModelWatcher_DIR", "SMSSVectorWatcher_DIR", "SMSSFunctionWatcher_DIR",
-				"SMSSGuardrailWatcher_DIR", "SMSSVenvWatcher_DIR", "ProjectWatcher_DIR", "CSVInsightsWebWatcher_DIR",
-				"INSIGHT_CACHE_DIR", "SOLR_BASE_URL", "ADDITIONAL_REACTORS", "SOCIAL", "JobSchedulerWatcher_DIR",
-				"rpa.config.directory", "EMAIL_TEMPLATES" };
-		String[] stringToReplaceWith = { homePath, homePath + "/log4j.prop", homePath + "/db", homePath + "/db",
-				homePath + "/storage", homePath + "/model", homePath + "/vector", homePath + "/function",
-				homePath + "/guardrail", homePath + "/venv", homePath + "/project",
-				homePath + "/InsightCache/CSV_Insights", homePath + "/InsightCache",
-				"http://localhost:" + port + "/solr", homePath + "/reactors.json", homePath + "/social.properties",
-				homePath + "/rpa/json", homePath + "/rpa", homePath + "/emailTemplates/" };
+		String[] stringToReplace = { "BaseFolder", "LOG4J", "SMSSWebWatcher_DIR", "SMSSStorageWatcher_DIR",
+				"SMSSModelWatcher_DIR", "SMSSVectorWatcher_DIR", "SMSSFunctionWatcher_DIR", "SMSSGuardrailWatcher_DIR",
+				"SMSSVenvWatcher_DIR", "ProjectWatcher_DIR", "CSVInsightsWebWatcher_DIR", "INSIGHT_CACHE_DIR",
+				"ADDITIONAL_REACTORS", "SOCIAL", "JobSchedulerWatcher_DIR", "EMAIL_TEMPLATES" };
+		String[] stringToReplaceWith = { homePath, homePath + "/log4j.prop", homePath + "/db", homePath + "/storage",
+				homePath + "/model", homePath + "/vector", homePath + "/function", homePath + "/guardrail",
+				homePath + "/venv", homePath + "/project", homePath + "/InsightCache/CSV_Insights",
+				homePath + "/InsightCache", homePath + "/reactors.json", homePath + "/social.properties",
+				homePath + "/rpa/json", homePath + "/emailTemplates/" };
 
 		replaceProp(rdfHome, stringToReplace, stringToReplaceWith);
 	}
 
-	public void changeRDFMap(String homePath, String port) {
-		changeRDFMap(homePath, port, homePath + "/RDF_Map.prop");
+	public void changeRDFMap(String homePath) {
+		changeRDFMap(homePath, homePath + "/RDF_Map.prop");
 
 	}
 

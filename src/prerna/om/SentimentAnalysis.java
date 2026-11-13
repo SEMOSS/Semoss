@@ -27,40 +27,14 @@
  *******************************************************************************/
 package prerna.om;
 
-public class SentimentAnalysis {
+/**
+ * The sentiment of a sentence, as returned by the Google natural language API.
+ *
+ * @param sentence  the text of the sentence
+ * @param magnitude the strength of the emotion in the sentence
+ * @param score     the sentiment of the sentence, from -1 (negative) to 1
+ *                  (positive)
+ */
+public record SentimentAnalysis(String sentence, double magnitude, double score) {
 
-	private String sentence;
-	private double magnitude;
-	private double score;
-	
-	public SentimentAnalysis() {
-		
-	}
-	
-	/*
-	 * This is just a struct
-	 * Define setters and getters for the class variables
-	 */
-	
-	public String getSentence() {
-		return sentence;
-	}
-	public void setSentence(String sentence) {
-		this.sentence = sentence;
-	}
-	public double getMagnitude() {
-		return magnitude;
-	}
-	public void setMagnitude(double magnitude) {
-		this.magnitude = magnitude;
-	}
-	public double getScore() {
-		return score;
-	}
-	public void setScore(double score) {
-		this.score = score;
-	}
-	
-	
-	
 }

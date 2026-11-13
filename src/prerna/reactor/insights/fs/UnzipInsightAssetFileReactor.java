@@ -29,21 +29,25 @@ package prerna.reactor.insights.fs;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+
+import org.json.JSONObject;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
 public class UnzipInsightAssetFileReactor extends AbstractReactor {
 
 	public UnzipInsightAssetFileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -66,8 +70,10 @@ public class UnzipInsightAssetFileReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Cannot find zip file '" + fileRelativePath + "'");
 		}
 
+		Map<String, String> extractedNames;
 		try {
-			ZipUtils.unzip(zipFileLocation, zipFile.getParent());
+			extractedNames = ZipUtils.unzip(zipFileLocation, zipFile.getParent(),
+					getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to unzip file. Detailed error = " + e.getMessage());
 		}
@@ -77,14 +83,24 @@ public class UnzipInsightAssetFileReactor extends AbstractReactor {
 			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		return FileSystemUtil.savedAssetsAsNounMetadata(FileSystemUtil.unzippedAssets(fileRelativePath, extractedNames));
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
+		return properties;
 	}
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("Unzips a zip file located in the current insight folder").key(
 				ReactorKeysEnum.FILE_PATH,
-				"The relative file path of the zip file within the current insight folder to extract");
+				"The relative file path of the zip file within the current insight folder to extract")
+				.key(ReactorKeysEnum.OVERRIDE,
+						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_UNZIP_DESCRIPTION))
+				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
 	}
 
 }

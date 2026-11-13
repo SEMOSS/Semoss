@@ -38,14 +38,13 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 
 public class DetoxifyGuardrailEngine extends AbstractPythonGuardrailReactorFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(DetoxifyGuardrailEngine.class);
 
 	private static final String DEFAULT_THRESHOLD_KEY = "DEFAULT_THRESHOLD";
 	private Double defaultThreshold = .7;

@@ -46,29 +46,30 @@ import prerna.sablecc2.om.task.AbstractTaskOperation;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 
 public class ApplyFormattingReactor extends TaskBuilderReactor {
-	
+
 	private Map<String, String> colIndexFormatMap;
-	private static final DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-	private static final DateFormat stf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	
+	private final DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+	private final DateFormat stf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
 	public ApplyFormattingReactor() {
-		this.keysToGet = new String[]{};
+		this.keysToGet = new String[] {};
 	}
-	
+
 	@Override
 	protected void buildTask() {
-		if(this.task instanceof BasicIteratorTask) {
+		if (this.task instanceof BasicIteratorTask) {
 			SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
 			ITableDataFrame frame = qs.getFrame();
 			Map<String, String> additionalDataTypeMap = frame.getMetaData().getHeaderToAdtlTypeMap();
-			
+
 			if (!additionalDataTypeMap.isEmpty()) {
-				//populate the colIndexFormatMap, which will indicate the column index and the format requested for a column
+				// populate the colIndexFormatMap, which will indicate the column index and the
+				// format requested for a column
 				Map<String, SemossDataType> dataTypeMap = frame.getMetaData().getHeaderToTypeMap();
 				List<IQuerySelector> selectors = qs.getSelectors();
 				populateColIndexFormatMap(selectors, additionalDataTypeMap, dataTypeMap, frame.getName());
-				
-				//create a new iterator task and attach it to the previous iterator
+
+				// create a new iterator task and attach it to the previous iterator
 				ApplyFormattingTask newTask = new ApplyFormattingTask();
 				newTask.setInnerTask(this.task);
 				newTask.setApplyFormattingReactor(this);
@@ -77,14 +78,14 @@ public class ApplyFormattingReactor extends TaskBuilderReactor {
 			}
 		}
 	}
-	
-	private void populateColIndexFormatMap(List<IQuerySelector> selectors, Map<String, String> additionalDataTypeMap, 
-		Map<String, SemossDataType> dataTypeMap, String frame){
-		Map<String,String> map = new HashMap<String,String>();
-		for (IQuerySelector s : selectors){
+
+	private void populateColIndexFormatMap(List<IQuerySelector> selectors, Map<String, String> additionalDataTypeMap,
+			Map<String, SemossDataType> dataTypeMap, String frame) {
+		Map<String, String> map = new HashMap<String, String>();
+		for (IQuerySelector s : selectors) {
 			String col = s.getQueryStructName();
 			if (!col.contains("__")) {
-				col = frame + "__" + col; 
+				col = frame + "__" + col;
 			}
 			if (additionalDataTypeMap.containsKey(col)) {
 				int indx = selectors.indexOf(s);
@@ -95,29 +96,24 @@ public class ApplyFormattingReactor extends TaskBuilderReactor {
 		}
 		this.colIndexFormatMap = map;
 	}
-	
-	
+
 	public IHeadersDataRow process(IHeadersDataRow row) {
 		String[] headers = row.getHeaders();
-		Object[] values = row.getValues(); 
-		for (String key : this.colIndexFormatMap.keySet()){
+		Object[] values = row.getValues();
+		for (String key : this.colIndexFormatMap.keySet()) {
 			int pos = Integer.parseInt(key.split("\\|")[0]);
 			String type = key.split("\\|")[1];
 			String val = values[pos].toString();
-			
+
 			try {
-				//convert the value to a java Date
+				// convert the value to a java Date
 				Date valAsDateTime = null;
 				if (type.equals("DATE")) {
-					synchronized(sdf) {
 					valAsDateTime = sdf.parse(val);
-					}
-				} else if (type.equals("TIMESTAMP")){
-					synchronized(stf) {
+				} else if (type.equals("TIMESTAMP")) {
 					valAsDateTime = stf.parse(val);
-					}
 				}
-				//format the date per requested format
+				// format the date per requested format
 				DateFormat df = new SimpleDateFormat(this.colIndexFormatMap.get(key));
 				values[pos] = df.format(valAsDateTime);
 			} catch (ParseException e1) {
@@ -126,61 +122,22 @@ public class ApplyFormattingReactor extends TaskBuilderReactor {
 		}
 		return new HeadersDataRow(headers, values);
 	}
-	
-//	  private synchronized Date parseSDFDate(String date) {
-//		    try {
-//				return sdf.parse(date);
-//			} catch (ParseException e) {
-//				// TODO Auto-generated catch block
-//				classLogger.error(Constants.STACKTRACE, e);
-//			} // OK
-//		  }
-//	
-//
-//	  private synchronized Date parseSTFDate(String date) {
-//		    return stf.parse(date); // OK
-//		  }
-	  
-//	public static void main(String[] args) throws ParseException {		
-////		String dateColV = "2018-05-31";
-////		DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-////		Date d = sdf.parse(dateColV);
-////		DateFormat df= new SimpleDateFormat("yyyy-MMM-dd");
-////		System.out.println(df.format(d));
-////		
-////		String dTV = "2018-05-31 13:22:00";
-////		DateFormat stf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-////		Date t = stf.parse(dTV);
-////		DateFormat tf= new SimpleDateFormat("yyyy/MM/dd'T'HH:mm:ss");
-////		System.out.println(tf.format(t));
-//		
-////		String tV = "13:22";
-//		String tV = "11:09:01.001";
-//		DateFormat stf1 = new SimpleDateFormat("HH:mm:ss.SSS"); //HH:mm:ss won't work
-//		Date t1 = stf1.parse(tV);
-//		DateFormat tf1= new SimpleDateFormat("HH:mm:ss:SSS");
-//		System.out.println(tf1.format(t1));	
-//	}
 }
-
-
 
 /**
  * Inner class to apply the formatting
  */
 class ApplyFormattingTask extends AbstractTaskOperation {
-	
+
 	private ApplyFormattingReactor applyFormattingReactor;
-	
+
 	@Override
 	public IHeadersDataRow next() {
 		IHeadersDataRow row = this.innerTask.next();
 		return applyFormattingReactor.process(row);
 	}
-	
+
 	public void setApplyFormattingReactor(ApplyFormattingReactor applyFormattingReactor) {
 		this.applyFormattingReactor = applyFormattingReactor;
 	}
 }
-
-

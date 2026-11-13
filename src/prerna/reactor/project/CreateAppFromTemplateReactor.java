@@ -110,6 +110,10 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		if (!SecurityProjectUtils.userCanCloneProject(this.insight.getUser(), projectTemplateId)) {
 			throw new IllegalArgumentException("This project is not a template, so only its owners can clone it.");
 		}
+		if (SecurityProjectUtils.isDigitalTwin(projectTemplateId)) {
+			// the clone would be an ordinary project holding every file of the twin
+			throw new IllegalArgumentException("A Digital Twin cannot be cloned.");
+		}
 
 		// Create new project
 		IProject newProject = ProjectHelper.generateNewProject(newProjectName, projectEnumType, global, gitProvider,

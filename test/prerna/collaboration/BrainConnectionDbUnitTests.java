@@ -104,8 +104,8 @@ class BrainConnectionDbUnitTests {
 		Pair<String, String> owner = User.getPrimaryUserIdAndTypePair(user);
 		ownerId = owner.getValue0();
 		ownerType = owner.getValue1();
-		// the import finished; the owner then closed the tab on People
-		Timestamp started = Timestamp.valueOf("2026-11-05 09:00:00");
+		// the import finished, on a server that records the end of setup; the owner then closed the tab on People
+		Timestamp started = Timestamp.valueOf("2026-11-20 09:00:00");
 		sql("INSERT INTO COLLAB_JOB (OWNER_ID, OWNER_TYPE, JOB_ID, KIND, STATUS, STARTED_AT, FINISHED_AT) "
 				+ "VALUES (?, ?, ?, 'import', 'done', ?, ?)", ownerId, ownerType, "job-import", started, started);
 	}
@@ -121,6 +121,18 @@ class BrainConnectionDbUnitTests {
 		Map<String, Object> status = BrainConnection.status(user);
 		assertEquals(true, status.get("imported"));
 		assertEquals(false, status.get("setupDone"));
+	}
+
+	@Test
+	void anImportFromBeforeTheEndOfSetupWasRecordedIsAFinishedSetup() throws Exception {
+		// onboarded before SETUP_DONE_AT existed, so nothing recorded that their setup ended
+		Timestamp before = Timestamp.valueOf("2026-11-05 09:00:00");
+		sql("INSERT INTO COLLAB_JOB (OWNER_ID, OWNER_TYPE, JOB_ID, KIND, STATUS, STARTED_AT, FINISHED_AT) "
+				+ "VALUES (?, ?, ?, 'import', 'failed', ?, ?)", ownerId, ownerType, "job-failed", before, before);
+		assertEquals(false, BrainConnection.status(user).get("setupDone"));
+		sql("INSERT INTO COLLAB_JOB (OWNER_ID, OWNER_TYPE, JOB_ID, KIND, STATUS, STARTED_AT, FINISHED_AT) "
+				+ "VALUES (?, ?, ?, 'import', 'done', ?, ?)", ownerId, ownerType, "job-before", before, before);
+		assertEquals(true, BrainConnection.status(user).get("setupDone"));
 	}
 
 	@Test

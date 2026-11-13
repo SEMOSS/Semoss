@@ -137,6 +137,21 @@ public final class PermissionErrorRules {
 	}
 
 	/**
+	 * Adds the rule for one type of problem as a function of the problems found,
+	 * for a method whose exception depends on them, such as on which target
+	 * refused a change.
+	 *
+	 * @param errorCode the type of problem
+	 * @param exception makes the exception from every problem found
+	 * @return these rules
+	 */
+	public PermissionErrorRules rule(PermissionProblem.ErrorCode errorCode,
+			Function<List<PermissionProblem>, Exception> exception) {
+		rules.put(errorCode, exception);
+		return this;
+	}
+
+	/**
 	 * Picks the exception for the problems: the first rule, in the order added,
 	 * that any problem matches, or else the shared messages for admin-only adds,
 	 * people listed twice, people who do not exist, and end dates that cannot be

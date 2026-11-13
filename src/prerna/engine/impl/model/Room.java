@@ -780,7 +780,10 @@ public class Room implements Serializable {
 					toolResultsMessage.setParts(parts);
 					toolResultsMessage.normalizeForWrite();
 				}
+				// A provider tool the model called beside ours is still waiting: the provider runs
+				// it only when the message carrying our results holds nothing else.
 				if (runtimeContext != null && !runtimeContext.isBlank()
+						&& !hasPendingProviderToolCall(context.toolResponse)
 						&& toolResultsMessage.getParts().stream().noneMatch(part -> part instanceof TextMessagePart text
 								&& runtimeContext.equals(text.getText()))) {
 					// TEXT must follow every TOOL_RESULT: provider adapters emit it as trailing
@@ -1004,6 +1007,31 @@ public class Room implements Serializable {
 		} finally {
 			lock.unlock();
 		}
+	}
+
+	/**
+	 * Whether the provider has yet to run one of its own tools from this response,
+	 * such as a web search the model called together with our tools. The provider
+	 * returns that call unanswered, and its result arrives in a later response.
+	 */
+	private boolean hasPendingProviderToolCall(ResponseMessage toolResponse) {
+		Set<String> pendingIds = new HashSet<>();
+		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
+			if (MessageUtils.isServerToolCall(tc)) {
+				pendingIds.add(String.valueOf(tc.get("id")));
+			}
+		}
+		for (AbstractMessage m : messages) {
+			if (pendingIds.isEmpty()) {
+				break;
+			}
+			for (MessagePart p : m.getParts()) {
+				if (p instanceof ToolResultMessagePart && ((ToolResultMessagePart) p).getToolResult() != null) {
+					pendingIds.remove(((ToolResultMessagePart) p).getToolResult().getToolCallId());
+				}
+			}
+		}
+		return !pendingIds.isEmpty();
 	}
 
 	private boolean allToolCallsAnswered(ResponseMessage toolResponse, int toolResponseIdx, String newToolCallId) {

@@ -37,7 +37,6 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
-import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -131,7 +130,7 @@ public class ImageCaptureReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error("Failed to load insight {} of project {} for its image", insightId, appId, e);
 		}
-		if (insight instanceof OldInsight) {
+		if (insight == null) {
 			return;
 		}
 		List<String> recipe = insight.getPixelList().getPixelRecipe();

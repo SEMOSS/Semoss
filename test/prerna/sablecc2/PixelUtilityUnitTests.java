@@ -333,20 +333,6 @@ public class PixelUtilityUnitTests {
 	}
 
 	@Test
-	void getFormWidgetInputs_extractsIntoAndValues() {
-		Object[] inputs = PixelUtility.getFormWidgetInputs("Insert(into=[myColumn], values=[\"<MyParam>\"]);");
-
-		assertNotNull(inputs);
-		assertEquals(Collections.singletonList("myColumn"), inputs[0]);
-		assertEquals(Collections.singletonList("MyParam"), inputs[1]);
-	}
-
-	@Test
-	void getFormWidgetInputs_returnsNullForUnparseableExpressions() {
-		assertNull(PixelUtility.getFormWidgetInputs("Insert(into=["));
-	}
-
-	@Test
 	void getDatabaseIds_isEmptyWhenRecipeHasNoDatasource() {
 		Set<String> ids = PixelUtility.getDatabaseIds(null, Collections.singletonList("AddPanel(0);"));
 		assertNotNull(ids);

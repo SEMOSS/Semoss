@@ -39,7 +39,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.MalformedURLException;
@@ -134,7 +133,6 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IReactorFunctionEngine;
-import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
@@ -154,10 +152,6 @@ import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
 import prerna.tcp.workers.EngineSocketWrapper;
-import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented
@@ -456,51 +450,6 @@ public final class Utility {
 			retHash.put(instanceName, uriValue);
 		}
 		return retHash;
-	}
-
-	/**
-	 * Executes a query on a specific engine, iterates through variables from the
-	 * sesame wrapper, and uses logic to obtain the concept URI.
-	 * 
-	 * @param Specified engine.
-	 * @param Subject   URI.
-	 * 
-	 * @return Concept URI.
-	 */
-	public static String getConceptType(IDatabaseEngine engine, String subjectURI) {
-		if (!subjectURI.startsWith("http://")) {
-			return "";
-		}
-
-		String query = Utility.getDIHelperProperty(Constants.SUBJECT_TYPE_QUERY);
-		Map<String, List<Object>> paramHash = new Hashtable<>();
-		List<Object> values = new ArrayList<>();
-		values.add(subjectURI);
-		paramHash.put("ENTITY", values);
-		query = Utility.fillParam(query, paramHash);
-
-		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, query);
-
-		/*
-		 * SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
-		 * sjw.setEngine(engine); sjw.setEngineType(engine.getEngineType());
-		 * sjw.setQuery(query); sjw.executeQuery();
-		 */
-		String[] vars = sjw.getVariables();
-		String returnType = null;
-		while (sjw.hasNext()) {
-			ISelectStatement stmt = sjw.next();
-			String objURI = stmt.getRawVar(vars[0]) + "";
-			if (!objURI.equals(Utility.getDIHelperProperty(Constants.SEMOSS_URI) + "/Concept")) {
-				returnType = objURI;
-			}
-
-		}
-		if (returnType == null) {
-			returnType = Utility.getDIHelperProperty(Constants.SEMOSS_URI) + "/Concept";
-		}
-
-		return returnType;
 	}
 
 	/**
@@ -1002,21 +951,11 @@ public final class Utility {
 			}
 		}
 
-		FileOutputStream newExcelFile = null;
-		try {
-			newExcelFile = new FileOutputStream(fileLocation);
+		try (FileOutputStream newExcelFile = new FileOutputStream(fileLocation)) {
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
 			classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
-		} finally {
-			try {
-				if (newExcelFile != null) {
-					newExcelFile.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
-			}
 		}
 	}
 
@@ -1036,9 +975,7 @@ public final class Utility {
 	 */
 	public static Vector<String> getVectorOfReturn(String query, IDatabaseEngine engine, Boolean raw) {
 		Vector<String> retArray = new Vector<>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query)) {
 			while (wrapper.hasNext()) {
 				Object[] values = null;
 				if (raw) {
@@ -1055,14 +992,6 @@ public final class Utility {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
-				}
-			}
 		}
 
 		return retArray;
@@ -1078,9 +1007,7 @@ public final class Utility {
 	 */
 	public static Vector<String[]> getVectorArrayOfReturn(String query, IDatabaseEngine engine, Boolean raw) {
 		Vector<String[]> retArray = new Vector<>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query)) {
 			while (wrapper.hasNext()) {
 				Object[] values = null;
 				if (raw) {
@@ -1099,14 +1026,6 @@ public final class Utility {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
-				}
-			}
 		}
 
 		return retArray;
@@ -1134,108 +1053,13 @@ public final class Utility {
 		return paramHash;
 	}
 
-	public static IPlaySheet getPlaySheet(IDatabaseEngine engine, String psName) {
-		classLogger.info("Trying to get playsheet for {}", Utility.cleanLogString(psName));
-		String psClassName = null;
-		if (engine != null) {
-			psClassName = engine.getProperty(psName);
-		}
-		if (psClassName == null) {
-			psClassName = (String) DIHelper.getInstance().getLocalProp(psName);
-		}
-		if (psClassName == null) {
-			psClassName = Utility.getDIHelperProperty(psName);
-		}
-		if (psClassName == null) {
-			psClassName = PlaySheetRDFMapBasedEnum.getClassFromName(psName);
-		}
-		if (psClassName == null || psClassName.isEmpty()) {
-			psClassName = psName;
-		}
-
-		IPlaySheet playSheet = (IPlaySheet) getClassFromString(psClassName);
-
-		return playSheet;
-	}
-
-	public static IDataMaker getDataMaker(IDatabaseEngine engine, String dataMakerName) {
-		classLogger.info("Trying to get data maker for {}", Utility.cleanLogString(dataMakerName));
-		String dmClassName = null;
-		if (engine != null) {
-			dmClassName = engine.getProperty(dataMakerName);
-		}
-		if (dmClassName == null) {
-			dmClassName = (String) DIHelper.getInstance().getLocalProp(dataMakerName);
-		}
-		if (dmClassName == null) {
-			dmClassName = Utility.getDIHelperProperty(dataMakerName);
-		}
-		if (dmClassName == null) {
-			dmClassName = PlaySheetRDFMapBasedEnum.getClassFromName(dataMakerName);
-		}
-		if (dmClassName == null || dmClassName.isEmpty()) {
-			dmClassName = dataMakerName;
-		}
-
-		IDataMaker dm = (IDataMaker) getClassFromString(dmClassName);
-
-		return dm;
-	}
-
-	public static ISEMOSSTransformation getTransformation(IDatabaseEngine engine, String transName) {
-		classLogger.info("Trying to get transformation for {}", Utility.cleanLogString(transName));
-		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
-		if (transClassName == null) {
-			transClassName = Utility.getDIHelperProperty(transName);
-		}
-		if (transClassName == null || transClassName.isEmpty()) {
-			transClassName = transName;
-		}
-
-		ISEMOSSTransformation transformation = (ISEMOSSTransformation) getClassFromString(transClassName);
-		return transformation;
-	}
-
-	public static ISEMOSSAction getAction(IDatabaseEngine engine, String actionName) {
-		classLogger.info("Trying to get action for {}", Utility.cleanLogString(actionName));
-		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
-		if (actionClassName == null) {
-			actionClassName = Utility.getDIHelperProperty(actionName);
-		}
-		if (actionClassName == null || actionClassName.isEmpty()) {
-			actionClassName = actionName;
-		}
-
-		ISEMOSSAction action = (ISEMOSSAction) getClassFromString(actionClassName);
-		return action;
-	}
-
 	public static Object getClassFromString(String className) {
 		Object obj = null;
 		try {
-			classLogger.debug("Dataframe name is {}", Utility.cleanLogString(className));
+			classLogger.debug("Instantiating class {}", Utility.cleanLogString(className));
 			obj = Class.forName(className).getDeclaredConstructor().newInstance();
-		} catch (ClassNotFoundException cnfe) {
-			classLogger.error("Failed to instantiate class from name: {}", cnfe.getMessage(), cnfe);
-			classLogger.fatal("No such class: " + Utility.cleanLogString(className));
-		} catch (InstantiationException ie) {
-			classLogger.error("Failed to instantiate class from name: {}", ie.getMessage(), ie);
-			classLogger.fatal("Failed instantiation: " + Utility.cleanLogString(className));
-		} catch (IllegalAccessException iae) {
-			classLogger.error("Failed to instantiate class from name: {}", iae.getMessage(), iae);
-			classLogger.fatal("Illegal Access: " + Utility.cleanLogString(className));
-		} catch (IllegalArgumentException iare) {
-			classLogger.error("Failed to instantiate class from name: {}", iare.getMessage(), iare);
-			classLogger.fatal("Illegal argument: " + Utility.cleanLogString(className));
-		} catch (InvocationTargetException ite) {
-			classLogger.error("Failed to instantiate class from name: {}", ite.getMessage(), ite);
-			classLogger.fatal("Invocation exception: " + Utility.cleanLogString(className));
-		} catch (NoSuchMethodException nsme) {
-			classLogger.error("Failed to instantiate class from name: {}", nsme.getMessage(), nsme);
-			classLogger.fatal("No constructor: " + Utility.cleanLogString(className));
-		} catch (SecurityException se) {
-			classLogger.error("Failed to instantiate class from name: {}", se.getMessage(), se);
-			classLogger.fatal("Security exception: " + Utility.cleanLogString(className));
+		} catch (ReflectiveOperationException | IllegalArgumentException | SecurityException e) {
+			classLogger.error("Failed to instantiate class {}", Utility.cleanLogString(className), e);
 		}
 		return obj;
 	}
@@ -2481,14 +2305,9 @@ public final class Utility {
 			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 		}
 
-		FileOutputStream fos = null;
-		OutputStreamWriter osw = null;
-		BufferedWriter bufferedWriter = null;
-
-		try {
-			fos = new FileOutputStream(f);
-			osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-			bufferedWriter = new BufferedWriter(osw);
+		try (FileOutputStream fos = new FileOutputStream(f);
+				OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+				BufferedWriter bufferedWriter = new BufferedWriter(osw)) {
 
 			// store some variables and just reset
 			// should be faster than creating new ones each time
@@ -2628,28 +2447,6 @@ public final class Utility {
 
 		} catch (IOException ioe) {
 			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
-			}
-			try {
-				if (osw != null) {
-					osw.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
-			}
-			try {
-				if (fos != null) {
-					fos.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
-			}
 		}
 
 		long end = System.currentTimeMillis();
@@ -2693,14 +2490,9 @@ public final class Utility {
 			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 		}
 
-		FileOutputStream fos = null;
-		OutputStreamWriter osw = null;
-		BufferedWriter bufferedWriter = null;
-
-		try {
-			fos = new FileOutputStream(f);
-			osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-			bufferedWriter = new BufferedWriter(osw);
+		try (FileOutputStream fos = new FileOutputStream(f);
+				OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+				BufferedWriter bufferedWriter = new BufferedWriter(osw)) {
 			bufferedWriter.write("[");
 			// store some variables and just reset
 			// should be faster than creating new ones each time
@@ -2817,28 +2609,6 @@ public final class Utility {
 
 		} catch (IOException ioe) {
 			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
-			}
-			try {
-				if (osw != null) {
-					osw.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
-			}
-			try {
-				if (fos != null) {
-					fos.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
-			}
 		}
 
 		long end = System.currentTimeMillis();
@@ -4324,73 +4094,38 @@ public final class Utility {
 		}
 	}
 
-	public static String getCP(String specificJars, String insightFolder) {
-		StringBuffer envClassPath = new StringBuffer();
-		String osName = System.getProperty("os.name").toLowerCase();
-		boolean win = osName.indexOf("win") >= 0;
+	/**
+	 * Builds the classpath for a spawned Java worker: the insight folder, the
+	 * webapp's {@code WEB-INF/lib/*} and each class folder on the webapp class
+	 * loader, such as {@code WEB-INF/classes}.
+	 *
+	 * @param insightFolder the worker's working directory, placed first on the
+	 *                      classpath
+	 * @return the classpath in double quotes, joined with the platform path
+	 *         separator
+	 */
+	public static String getCP(String insightFolder) {
+		boolean win = System.getProperty("os.name").toLowerCase().contains("win");
+		List<String> entries = new ArrayList<>();
+		entries.add(insightFolder);
 
-		try {
-			StringBuffer retClassPath = new StringBuffer("");
-			Class utilClass = Class.forName("prerna.util.Utility");
-			ClassLoader cl = utilClass.getClassLoader();
-
-			URL[] urls = ((URLClassLoader) cl).getURLs();
-
-			String webinfLib = null;
-			boolean webinfTagged = false;
-
-			for (URL url : urls) {
-				String jarName = Paths.get(url.getPath()).getFileName().toString();
-				String thisURL = URLDecoder.decode(url.getFile().replaceFirst("/", ""), StandardCharsets.UTF_8);
-
-				String separator = ";";
-				if (!win) {
-					thisURL = "/" + thisURL;
-					separator = ":";
-				}
-
-				if (thisURL.endsWith(".jar") && thisURL.contains("WEB-INF/lib") && webinfLib == null) {
-					String thisJarName = getInstanceName(thisURL);
-					thisURL = thisURL.replace("/" + thisJarName, "");
-					webinfLib = thisURL + "/*";
-					if (!webinfTagged) {
-						retClassPath.append(webinfLib).append(separator);
-						webinfTagged = true;
-					}
-
-				}
-
-				// add the folder
-				else if (!thisURL.endsWith(".jar") && specificJars.contains(jarName)
-						&& !thisURL.contains("WEB-INF/lib")) {
-					if (thisURL.endsWith("/")) {
-						thisURL = thisURL.substring(0, thisURL.length() - 1);
-					}
-					retClassPath.append(thisURL).append(separator);
-				}
-				// address the issue when you are running outside of semoss
-				else if (thisURL.endsWith(".jar") && specificJars.contains(jarName)
-						&& !thisURL.contains("WEB-INF/lib")) {
-					if (thisURL.endsWith("/")) {
-						thisURL = thisURL.substring(0, thisURL.length() - 1);
-					}
-					retClassPath.append(thisURL).append(separator);
-				}
-
-			}
-			// remove the last one
-			String cp = retClassPath.toString();
-			String curPath = insightFolder + ";";
+		boolean webinfLibAdded = false;
+		URL[] urls = ((URLClassLoader) Utility.class.getClassLoader()).getURLs();
+		for (URL url : urls) {
+			String path = URLDecoder.decode(url.getFile().replaceFirst("/", ""), StandardCharsets.UTF_8);
 			if (!win) {
-				curPath = insightFolder + ":";
+				path = "/" + path;
 			}
-
-			envClassPath = new StringBuffer("\"" + curPath + cp.substring(0, cp.length() - 1) + "\"");
-		} catch (ClassNotFoundException cnfe) {
-			classLogger.error("Failed to build runtime classpath: {}", cnfe.getMessage(), cnfe);
+			if (path.endsWith(".jar")) {
+				if (!webinfLibAdded && path.contains("WEB-INF/lib")) {
+					entries.add(path.substring(0, path.lastIndexOf('/')) + "/*");
+					webinfLibAdded = true;
+				}
+			} else if (!path.contains("WEB-INF/lib")) {
+				entries.add(path.endsWith("/") ? path.substring(0, path.length() - 1) : path);
+			}
 		}
-
-		return envClassPath.toString();
+		return "\"" + String.join(win ? ";" : ":", entries) + "\"";
 	}
 
 	private static boolean fileInRelativeHiddenDirectory(Path file, Path folder) {
@@ -4487,15 +4222,15 @@ public final class Utility {
 			DiagnosticCollector<JavaFileObject> diagnostics, List<String> options,
 			Iterable<? extends JavaFileObject> compilationUnits) throws IOException {
 
-		try (PrintWriter pw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8)))) {
+		try (fileManager;
+				PrintWriter pw = new PrintWriter(
+						new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8)))) {
 			boolean hold = compiler.getTask(pw, fileManager, diagnostics, options, null, compilationUnits).call();
 
 			pw.flush();
 			logDiagnostics(diagnostics.getDiagnostics(), pw);
 
 			return hold ? 0 : -1;
-		} finally {
-			fileManager.close();
 		}
 	}
 
@@ -4824,8 +4559,9 @@ public final class Utility {
 	}
 
 	/**
-	 * Determine if the web search platform MCP is enabled. It needs a SearXNG service
-	 * that not every instance runs, so it stays off unless RDF_Map turns it on.
+	 * Determine if the web search platform MCP is enabled. It needs a SearXNG
+	 * service that not every instance runs, so it stays off unless RDF_Map turns it
+	 * on.
 	 *
 	 * @return
 	 */

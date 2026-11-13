@@ -125,6 +125,20 @@ public final class HttpHelperUtility {
 	 */
 	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass,
 			String keyPass) {
+		return getCustomClient(cookieStore, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #getCustomClient(CookieStore, String, String, String)}, with a
+	 * limit on how long a request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return configured {@link CloseableHttpClient}
+	 */
+	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass,
+			String keyPass, Timeout timeout) {
 		TrustStrategy trustStrategy = new TrustStrategy() {
 			@Override
 			public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
@@ -167,15 +181,15 @@ public final class HttpHelperUtility {
 				.setTlsSocketStrategy(tlsStrategy).build();
 
 		connectionManager
-				.setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(Timeout.DISABLED).build());
+				.setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(timeout).build());
 
 		HttpClientBuilder builder = HttpClients.custom();
 		if (cookieStore != null) {
 			builder.setDefaultCookieStore(cookieStore);
 		}
 		builder.setConnectionManager(connectionManager);
-		builder.setDefaultRequestConfig(RequestConfig.custom().setConnectionRequestTimeout(Timeout.DISABLED)
-				.setResponseTimeout(Timeout.DISABLED).build());
+		builder.setDefaultRequestConfig(RequestConfig.custom().setConnectionRequestTimeout(timeout)
+				.setResponseTimeout(timeout).build());
 		return builder.build();
 	}
 
@@ -194,8 +208,25 @@ public final class HttpHelperUtility {
 	 */
 	public static String getRequest(String url, Map<String, String> headerMap, String keyStore, String keyStorePass,
 			String keyPass) {
+		return getRequest(url, headerMap, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #getRequest(String, Map, String, String, String)}, with a limit
+	 * on how long the request waits to connect and for each read of the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String getRequest(String url, Map<String, String> headerMap, String keyStore, String keyStorePass,
+			String keyPass, Timeout timeout) {
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+				keyPass, timeout)) {
 			HttpGet httpGet = new HttpGet(url);
 			if (headerMap != null && !headerMap.isEmpty()) {
 				for (String key : headerMap.keySet()) {
@@ -442,8 +473,28 @@ public final class HttpHelperUtility {
 	 */
 	public static String postRequestStringBody(String url, Map<String, String> headersMap, String body,
 			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		return postRequestStringBody(url, headersMap, body, contentType, keyStore, keyStorePass, keyPass,
+				Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as
+	 * {@link #postRequestStringBody(String, Map, String, ContentType, String, String, String)},
+	 * with a limit on how long the request waits to connect and for each read of
+	 * the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String postRequestStringBody(String url, Map<String, String> headersMap, String body,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass, Timeout timeout) {
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+				keyPass, timeout)) {
 			HttpPost httpPost = new HttpPost(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
@@ -1054,7 +1105,7 @@ public final class HttpHelperUtility {
 		for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
 			String thisToken = tokens[tokenIndex];
 			if (thisToken.startsWith(nameOfToken)) {
-				accessToken = thisToken.replaceAll(nameOfToken + "=", "");
+				accessToken = thisToken.replace(nameOfToken + "=", "");
 			} else if (thisToken.startsWith("refresh_token=")) {
 				refreshToken = thisToken.replace("refresh_token=", "");
 			}

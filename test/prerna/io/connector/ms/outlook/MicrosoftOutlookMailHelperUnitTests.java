@@ -476,6 +476,7 @@ class MicrosoftOutlookMailHelperUnitTests {
 		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
 				.thenAnswer(call -> {
 					String url = URLDecoder.decode(call.getArgument(0), StandardCharsets.UTF_8);
+					request = url;
 					if (url.contains("/mailFolders/inbox-id/childFolders")) {
 						return folders(Map.of("id", "projects-id", "displayName", "Projects", "childFolderCount", 1));
 					}

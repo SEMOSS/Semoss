@@ -56,12 +56,12 @@ class PandasSyntaxHelperUnitTests {
         @Test
         void makeWrapper_producesCorrectSyntax() {
             String result = PandasSyntaxHelper.makeWrapper("myWrapper", "df");
-            assertEquals("myWrapper = PyFrame.makefm(df)", result);
+            assertEquals("from clean import PyFrame\nmyWrapper = PyFrame.makefm(df)", result);
         }
         @Test
         void makeWrapper_withDifferentNames() {
             String result = PandasSyntaxHelper.makeWrapper("w1", "table1");
-            assertEquals("w1 = PyFrame.makefm(table1)", result);
+            assertEquals("from clean import PyFrame\nw1 = PyFrame.makefm(table1)", result);
         }
     }
 

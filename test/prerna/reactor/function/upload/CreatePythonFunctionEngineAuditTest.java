@@ -50,6 +50,7 @@ import org.junit.jupiter.api.io.TempDir;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
@@ -101,6 +102,7 @@ class CreatePythonFunctionEngineAuditTest {
 		};
 		reactor.setInsight(insight);
 		try (var security = mockStatic(AbstractSecurityUtils.class);
+				var publishers = mockStatic(SecurityQueryUtils.class);
 				var engines = mockStatic(SecurityEngineUtils.class);
 				var utility = mockStatic(Utility.class);
 				var uploads = mockStatic(UploadUtilities.class);
@@ -108,6 +110,7 @@ class CreatePythonFunctionEngineAuditTest {
 				var cluster = mockStatic(ClusterUtil.class);
 				var audit = mockStatic(UserAuditTrailUtils.class);
 				var functions = mockConstruction(LocalPythonFunctionEngine.class)) {
+			publishers.when(() -> SecurityQueryUtils.userIsPublisher(user)).thenReturn(true);
 			utility.when(() -> Utility.validateName(anyString())).thenReturn(true);
 			uploads.when(() -> UploadUtilities.generateSpecificEngineAssetsFolder(eq(IEngine.CATALOG_TYPE.FUNCTION),
 					anyString(), anyString())).thenReturn(directory.toFile());

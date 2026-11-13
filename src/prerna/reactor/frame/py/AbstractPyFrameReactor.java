@@ -81,7 +81,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName,
 				additionalDataTypes, sources, complexSelectors);
 		if (override) {
-			this.insight.setDataMaker(newFrame);
+			this.insight.setCurrentFrame(newFrame);
 		}
 		// update varStore
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME);
@@ -130,16 +130,16 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		// at this point try to see if something has changed and if so
 		// trigger smart sync
 		boolean frameChanged = false;
-		if (this.insight.getCurFrame() != null && this.insight.getCurFrame() instanceof PandasFrame) {
+		if (this.insight.getCurrentFrame() != null && this.insight.getCurrentFrame() instanceof PandasFrame) {
 			StringBuffer script = new StringBuffer();
 			// source the script
-			script.append(this.insight.getCurFrame().getName() + "w.hasFrameChanged()");
+			script.append(this.insight.getCurrentFrame().getName() + "w.hasFrameChanged()");
 			String sync = pyt.runScript(script.toString()) + "";
 			frameChanged = sync.equalsIgnoreCase("true");
 			// changing this to always on
 			// frameChanged = true;
 			if (frameChanged) {
-				recreateMetadata((PandasFrame) insight.getCurFrame(), true);
+				recreateMetadata((PandasFrame) insight.getCurrentFrame(), true);
 			}
 		}
 		return frameChanged;

@@ -32,14 +32,16 @@ import java.util.List;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 
 public class SaveInsightAssetsBase64Reactor extends AbstractSaveInsightAssetsReactor {
 
 	private static final String DECODE = "decode";
 
 	public SaveInsightAssetsBase64Reactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(), DECODE };
-		this.keyRequired = new int[] { 1, 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(), DECODE,
+				ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 
 //		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
 //		ReactorKeysEnum.COMMENT_KEY.getKey(), DECODE };
@@ -47,9 +49,10 @@ public class SaveInsightAssetsBase64Reactor extends AbstractSaveInsightAssetsRea
 	}
 
 	@Override
-	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
+	protected List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents,
+			boolean override) {
 		boolean decode = getBoolean(DECODE, true);
-		FileSystemUtil.saveAssetFilesBase64(assetFolder, filePaths, contents, decode);
+		return FileSystemUtil.saveAssetFilesBase64(assetFolder, filePaths, contents, decode, override);
 	}
 
 	@Override

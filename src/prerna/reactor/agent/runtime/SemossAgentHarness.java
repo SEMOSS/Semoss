@@ -27,11 +27,17 @@
  *******************************************************************************/
 package prerna.reactor.agent.runtime;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,6 +50,7 @@ import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.WorkRoutinePreferences;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -122,6 +129,8 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final int COMPACTION_MARGIN_TOKENS = 20_000;
 	private static final int DEFAULT_MAX_OUTPUT_TOKENS = 16_000;
 	private static final double MAX_RESERVE_RATIO = 0.25;
+	/** How many of the agent's own files the prompt names before pointing at the tool that lists the rest. */
+	private static final int MAX_AGENT_FILES_IN_PROMPT = 50;
 
 	private static final String PARAM_FILE_PATH = "file_path";
 	private static final String PARAM_FILE_PATH_CAMEL = "filePath";
@@ -163,6 +172,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
 				agentConfig.getDisabledDefaultTools());
+		if (agentConfig.getAgentFilesDir() == null) {
+			// an agent without files of its own has nothing to copy
+			defaultAndExplicitTools.removeIf(tool -> "CopyAgentFile".equals(tool.get("name")));
+		}
 		boolean pptxOnDemand = PptxWorkflow.onDemand(ctx);
 		if (agentConfig.hasPptxWorkflow()) {
 			defaultAndExplicitTools
@@ -251,6 +264,13 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (!availableSkillsBlock.isEmpty()) {
 			composed.append("\n\n").append(availableSkillsBlock);
 		}
+		// The agent's own files, which only the default read tools reach.
+		String agentFilesBlock = agentConfig.useDefaultAgentTools()
+				? buildAgentFilesPromptBlock(agentConfig.getAgentFilesDir())
+				: "";
+		if (!agentFilesBlock.isEmpty()) {
+			composed.append("\n\n").append(agentFilesBlock);
+		}
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
@@ -265,6 +285,11 @@ public class SemossAgentHarness implements IAgentHarness {
 			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(), room);
 			if (memoryBlock != null) {
 				composed.append("\n\n").append(memoryBlock);
+			}
+			// the owner's chat: the routines that read preferences, never memories, and their current text
+			String routineBlock = WorkRoutinePreferences.promptBlock(ctx.getInsight().getUser(), room);
+			if (routineBlock != null) {
+				composed.append("\n\n").append(routineBlock);
 			}
 		}
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
@@ -1550,6 +1575,54 @@ public class SemossAgentHarness implements IAgentHarness {
 				Loading a skill that turns out not to apply costs one tool call, so load it \
 				when unsure rather than guessing. This list is already complete -- you do not \
 				need ListSkill to discover these.\
+				""");
+		return sb.toString();
+	}
+
+	/**
+	 * Tells the model which files the agent comes with and how to reach them.
+	 * Returns an empty string when the agent has none, so the caller can skip the
+	 * block. Names starting with a dot are bookkeeping, as is the placeholder.txt
+	 * the file explorer puts into every folder it creates, and a link can point
+	 * anywhere, so none of these is listed.
+	 *
+	 * @param agentFilesDir the folder of the agent's own files, or {@code null}
+	 */
+	static String buildAgentFilesPromptBlock(String agentFilesDir) {
+		if (agentFilesDir == null) {
+			return "";
+		}
+		Path root = Path.of(agentFilesDir);
+		List<String> files = new ArrayList<>();
+		try (Stream<Path> walk = Files.walk(root)) {
+			walk.filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS))
+					.map(p -> root.relativize(p).toString().replace('\\', '/'))
+					.filter(file -> !file.startsWith(".") && !file.contains("/.")
+							&& !file.equals("placeholder.txt") && !file.endsWith("/placeholder.txt"))
+					.sorted().forEach(files::add);
+		} catch (IOException | UncheckedIOException e) {
+			logger.warn("SemossAgentHarness: could not list the agent files in {}: {}", agentFilesDir, e.getMessage());
+			return "";
+		}
+		if (files.isEmpty()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder("""
+				## Agent files
+				This agent comes with files of its own. They are read-only and sit outside the working \
+				directory, under the prefix agent:/ :
+				""");
+		for (String file : files.subList(0, Math.min(files.size(), MAX_AGENT_FILES_IN_PROMPT))) {
+			sb.append("- agent:/").append(file).append('\n');
+		}
+		if (files.size() > MAX_AGENT_FILES_IN_PROMPT) {
+			sb.append("- and ").append(files.size() - MAX_AGENT_FILES_IN_PROMPT)
+					.append(" more; list them with GlobFiles(pattern=\"*\", path=\"agent:/\")\n");
+		}
+		sb.append("""
+				ReadFile, GlobFiles, GrepFiles and ListDirectory take agent:/ paths. No other tool can see these \
+				files: to change one, or to use one in code or a shell command, first copy it into the working \
+				directory with CopyAgentFile and work on the copy.\
 				""");
 		return sb.toString();
 	}

@@ -44,14 +44,13 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 
 public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReactorFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(PromptInjectionGuardrailEngine.class);
 
 	private static final String MODEL_NAME_KEY = "MODEL_NAME";
 	private static final String LABEL_DECISION_MAP_KEY = "LABEL_DECISION_MAP";

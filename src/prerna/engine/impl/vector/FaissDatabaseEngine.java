@@ -739,25 +739,20 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 */
 	@Override
 	protected void startServer(int port) {
-		this.startServerLock.lock();
-		try {
-			// Detect any legacy .pkl files BEFORE Python starts;
-			// FAISSSearcher.__init__ will
-			// auto-migrate them to .parquet/.npy (and delete the .pkl) as part of the init
-			// script.
-			Map<String, String> pendingPickleMigrations = detectLegacyPickleFiles();
+		// Detect any legacy .pkl files BEFORE Python starts;
+		// FAISSSearcher.__init__ will
+		// auto-migrate them to .parquet/.npy (and delete the .pkl) as part of the init
+		// script.
+		Map<String, String> pendingPickleMigrations = detectLegacyPickleFiles();
 
-			super.startServer(port);
+		super.startServer(port);
 
-			// In cluster mode the engine folder was just hydrated from cloud and likely
-			// still contains the legacy .pkl entries we just converted locally. Push the
-			// migrated counterparts up and remove the obsolete .pkl from cloud so peers
-			// don't re-pull them.
-			if (!pendingPickleMigrations.isEmpty()) {
-				syncMigratedFilesToCloud(pendingPickleMigrations);
-			}
-		} finally {
-			this.startServerLock.unlock();
+		// In cluster mode the engine folder was just hydrated from cloud and likely
+		// still contains the legacy .pkl entries we just converted locally. Push the
+		// migrated counterparts up and remove the obsolete .pkl from cloud so peers
+		// don't re-pull them.
+		if (!pendingPickleMigrations.isEmpty()) {
+			syncMigratedFilesToCloud(pendingPickleMigrations);
 		}
 	}
 

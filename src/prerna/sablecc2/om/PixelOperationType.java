@@ -200,11 +200,7 @@ public enum PixelOperationType {
 	
 	// MCP
 	MCP_TOOL_EXECUTION,
-	
-	// OLD INSIGHT
-	OLD_INSIGHT,
-	PLAYSHEET_PARAMS,
-	
+
 	// GIT_MARKET
 	MARKET_PLACE, // general market routine
 	MARKET_PLACE_INIT,

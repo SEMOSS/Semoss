@@ -50,11 +50,27 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 	private boolean insightSet = false;
 
 	/**
-	 * 
-	 * @param nc
+	 * Sets the socket client that reaches the Java worker. A different client is a
+	 * different worker, so the R environment and the insight are set up again on
+	 * the next start.
+	 *
+	 * @param nc the socket client
 	 */
 	public void setClient(SocketClient nc) {
+		if (this.nc != nc) {
+			this.started = false;
+			this.insightSet = false;
+		}
 		this.nc = nc;
+	}
+
+	/**
+	 * Returns whether the socket client is still connected to the Java worker.
+	 *
+	 * @return true when there is a connected client
+	 */
+	public boolean isConnected() {
+		return this.nc != null && this.nc.isConnected();
 	}
 
 	@Override
@@ -158,6 +174,9 @@ public class TCPRTranslator extends AbstractRJavaTranslator {
 			ps.longRunning = true;
 			ps.payloadClasses = new Class[] { String.class };
 			PayloadStruct retPS = (PayloadStruct) nc.executeCommand(ps);
+			if (retPS == null) {
+				return " Script " + ps.payload[0] + " Failed with no response from the Java worker";
+			}
 			if (retPS.processed) {
 				return retPS.payload[0] + "";
 			} else {

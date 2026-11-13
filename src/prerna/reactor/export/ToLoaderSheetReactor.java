@@ -75,7 +75,7 @@ import prerna.util.Utility;
 
 public class ToLoaderSheetReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(QueryRowCountReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(ToLoaderSheetReactor.class);
 	private static final String CLASS_NAME = ToLoaderSheetReactor.class.getName();
 
 	public ToLoaderSheetReactor() {

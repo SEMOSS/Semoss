@@ -105,8 +105,11 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 	}
 
 	/**
-	 * 
-	 * @param project
+	 * Clears and recompiles a project's reactors, and pushes the compiled reactors
+	 * to the cluster when they are released.
+	 *
+	 * @param project the project whose reactors to recompile
+	 * @param release true to push the compiled reactors and record the compilation
 	 */
 	private void clearProjectAssets(IProject project, boolean release) {
 		User user = this.insight.getUser();
@@ -144,23 +147,22 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 		}
 
 		// if we are doing reactors on socket side
-		boolean executeOnSocket = false;
-		if (Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
-			executeOnSocket = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) + "");
-		}
+		boolean executeOnSocket = "SOCKET"
+				.equalsIgnoreCase(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION));
 
 		if (executeOnSocket && this.insight.getUser() != null
-				&& this.insight.getUser().getPythonSocketClient(false) != null) {
+				&& this.insight.getUser().getJavaSocketClient(false) != null) {
 			PayloadStruct ps = new PayloadStruct();
 			ps.operation = PayloadStruct.OPERATION.PROJECT;
 			ps.projectId = insight.getContextProjectId();
 			ps.methodName = "clearClassCache";
 			ps.hasReturn = false;
 
-			this.insight.getUser().getPythonSocketClient(false).executeCommand(ps);
+			this.insight.getUser().getJavaSocketClient(false).executeCommand(ps);
 		}
 	}
 
+	@Deprecated
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(

@@ -32,10 +32,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
+import java.io.File;
+import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -55,7 +58,10 @@ import com.google.gson.Gson;
 
 import prerna.security.HttpHelperUtility;
 
-/** Channel files are listed across Graph's pages, and checked against the size cap before one is fetched. */
+/**
+ * Channel files are listed across Graph's pages, and checked against the size
+ * cap before one is fetched. An upload Graph refuses leaves no session open.
+ */
 class MicrosoftTeamsHelperUnitTests {
 
 	@TempDir
@@ -130,6 +136,30 @@ class MicrosoftTeamsHelperUnitTests {
 		assertEquals(List.of("f1"), ids(MicrosoftTeamsHelper.listChannelFiles("token", "t1", "c1", null, 1)));
 		// a limit met on the first page reads no further
 		assertEquals(2, read.size());
+	}
+
+	@Test
+	void aLargeChannelFileGraphRefusesHasItsUploadSessionCancelledAndItsLinkLeftOutOfTheFailure() throws Exception {
+		String link = "https://upload.example/session?tempauth=secret";
+		// a deck past the 4 MB a single request takes; sparse, so nothing that size is written
+		File deck = folder.resolve("Deck.pptx").toFile();
+		try (RandomAccessFile sized = new RandomAccessFile(deck, "rw")) {
+			sized.setLength(5L * 1024L * 1024L);
+		}
+		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
+				.thenReturn(new Gson().toJson(Map.of("id", "root", "parentReference", Map.of("driveId", "d1"))));
+		http.when(() -> HttpHelperUtility.postRequestStringBody(anyString(), anyMap(), anyString(), any(), isNull(),
+				isNull(), isNull())).thenReturn(new Gson().toJson(Map.of("uploadUrl", link)));
+		// somebody has the deck open in PowerPoint
+		http.when(() -> HttpHelperUtility.putRequestBytesBody(eq(link), anyMap(), any(), any(), isNull(), isNull(),
+				isNull())).thenThrow(new IllegalArgumentException("PUT request to " + link + " returned HTTP 423."));
+
+		IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, () -> MicrosoftTeamsHelper
+				.uploadFile("token", "t1", "c1", null, "Deck.pptx", deck.getAbsolutePath(), "replace"));
+		// the link signs the upload, so the failure, which is logged and shown, does not quote it
+		assertEquals("PUT request to the upload session returned HTTP 423.", refused.getMessage());
+		// left open, the session has Graph refuse every later upload of the deck with a 409
+		http.verify(() -> HttpHelperUtility.deleteRequestStringBody(eq(link), isNull(), isNull(), isNull(), isNull()));
 	}
 
 	private static List<Object> ids(List<Map<String, Object>> items) {

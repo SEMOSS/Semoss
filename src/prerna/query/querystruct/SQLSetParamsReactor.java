@@ -44,7 +44,6 @@ public class SQLSetParamsReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(SQLSetParamsReactor.class);
 
 	public SQLSetParamsReactor() {
-		// id _type can be column, column_table, colum_table_operator
 		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.VALUE.getKey(),
 				ReactorKeysEnum.ID_TYPE.getKey() };
 	}
@@ -63,7 +62,7 @@ public class SQLSetParamsReactor extends AbstractReactor {
 
 		Object obj = insight.getVar(SQLGetParamsReactor.QS_WRAPPER);
 		String query = "No such id found";
-		ITableDataFrame frame = insight.getCurFrame();
+		ITableDataFrame frame = insight.getCurrentFrame();
 		SelectQueryStruct sqs = null;
 		if (frame != null && frame instanceof NativeFrame) {
 			sqs = ((NativeFrame) frame).getQueryStruct(); // this.insight.getLastQS(insight.getLastPanelId());
