@@ -1068,6 +1068,74 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
+	/// setProjectUserDiscoverable
+	///
+
+	@Test
+	void testSetProjectUserDiscoverable_noAccess() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+
+		IllegalAccessException ex = assertThrows(IllegalAccessException.class,
+				() -> SecurityProjectUtils.setProjectUserDiscoverable(user2, "testProjectId", true));
+		assertEquals(
+				"The user doesn't have the permission to change whether this project is discoverable to their agents.",
+				ex.getMessage());
+	}
+
+	@Test
+	void testSetProjectUserDiscoverable_offUntilTurnedOn() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createProject("testProjectId2", "testProjectName2", user);
+
+		// no preference saved yet, so it is off
+		assertEquals("0", SecurityProjectUtils.getUserProjectList(user, "testProjectId").getFirst()
+				.get("project_user_discoverable").toString());
+		// another preference on the row leaves it off
+		SecurityProjectUtils.setProjectFavorite(user, "testProjectId", true);
+		assertEquals("0", SecurityProjectUtils.getUserProjectList(user, "testProjectId").getFirst()
+				.get("project_user_discoverable").toString());
+
+		SecurityProjectUtils.setProjectUserDiscoverable(user, "testProjectId", true);
+		for (Map<String, Object> project : SecurityProjectUtils.getUserProjectList(user, null, null, false, null,
+				null, null, null, null)) {
+			String expected = "testProjectId".equals(project.get("project_id")) ? "1" : "0";
+			assertEquals(expected, project.get("project_user_discoverable").toString());
+		}
+		// turning it on keeps the favorite
+		assertEquals("1", SecurityProjectUtils.getUserProjectList(user, "testProjectId").getFirst()
+				.get("project_favorite").toString());
+
+		SecurityProjectUtils.setProjectUserDiscoverable(user, "testProjectId", false);
+		assertEquals("0", SecurityProjectUtils.getUserProjectList(user, "testProjectId").getFirst()
+				.get("project_user_discoverable").toString());
+	}
+
+	@Test
+	void testSetProjectUserDiscoverable_publicProjectWithoutAccess() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		SecurityProjectUtils.setProjectGlobal(user, "testProjectId", true);
+
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		String user2Id = user2.getPrimaryLoginToken().getId();
+		SecurityProjectUtils.setProjectUserDiscoverable(user2, "testProjectId", true);
+
+		assertEquals("1", SecurityProjectUtils.getUserProjectList(user2, "testProjectId").getFirst()
+				.get("project_user_discoverable").toString());
+		// the preference belongs to user2 alone
+		assertEquals("0", SecurityProjectUtils.getUserProjectList(user, "testProjectId").getFirst()
+				.get("project_user_discoverable").toString());
+		// kept apart from the permissions, so no access row is added
+		assertEquals(0L,
+				((Number) UnitTestGroupTables.queryValue(securityDb,
+						"SELECT COUNT(*) FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?", user2Id,
+						"testProjectId")).longValue());
+	}
+
+	///
 	/// getAllMetakeys
 	///
 

@@ -249,6 +249,10 @@ public class MyProjectsReactor extends AbstractReactor {
 				new JSONObject().put("type", "integer").put("enum", new JSONArray().put(0).put(1)).put("description",
 						"1 if user has favorited this project, 0 otherwise"));
 
+		itemProperties.put("project_user_discoverable",
+				new JSONObject().put("type", "integer").put("enum", new JSONArray().put(0).put(1)).put("description",
+						"1 if the user has made this project discoverable to their agents, 0 otherwise (the default)"));
+
 		itemProperties.put("project_cost",
 				new JSONObject().put("type", "string").put("description", "Cost metadata, may be empty string"));
 

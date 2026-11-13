@@ -1175,6 +1175,65 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	}
 
 	///
+	/// setEngineUserDiscoverable
+	///
+
+	@Test
+	void testEngineUserDiscoverable() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		UnitTestSecurityAuthUtils.createEngine("testId2", "testAlias2", user);
+
+		User user2 = UnitTestSecurityAuthUtils.createUser("admin2", true);
+
+		IllegalAccessException ex = assertThrows(IllegalAccessException.class,
+				() -> SecurityEngineUtils.setEngineUserDiscoverable(user2, "testId", true));
+		assertEquals(
+				"The user doesn't have the permission to change whether this engine is discoverable to their agents.",
+				ex.getMessage());
+
+		// no preference saved yet, so it is off
+		for (Map<String, Object> engine : SecurityEngineUtils.getUserEngineList(user, null, null, false, null, null,
+				null, null, null, null)) {
+			assertEquals("0", engine.get("engine_user_discoverable").toString());
+		}
+
+		SecurityEngineUtils.setEngineFavorite(user, "testId", true);
+		SecurityEngineUtils.setEngineUserDiscoverable(user, "testId", true);
+		for (Map<String, Object> engine : SecurityEngineUtils.getUserEngineList(user, null, null, false, null, null,
+				null, null, null, null)) {
+			boolean changed = "testId".equals(engine.get("engine_id"));
+			assertEquals(changed ? "1" : "0", engine.get("engine_user_discoverable").toString());
+			// turning it on keeps the favorite
+			assertEquals(changed ? "1" : "0", engine.get("engine_favorite").toString());
+		}
+
+		SecurityEngineUtils.setEngineUserDiscoverable(user, "testId", false);
+		for (Map<String, Object> engine : SecurityEngineUtils.getUserEngineList(user, null, null, false, null, null,
+				null, null, null, null)) {
+			assertEquals("0", engine.get("engine_user_discoverable").toString());
+		}
+	}
+
+	@Test
+	void testEngineUserDiscoverable_publicEngineWithoutAccess() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		SecurityEngineUtils.setEngineGlobal(user, "testId", true);
+
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		SecurityEngineUtils.setEngineUserDiscoverable(user2, "testId", true);
+
+		List<Map<String, Object>> user2Engines = SecurityEngineUtils.getUserEngineList(user2, null, null, false, null,
+				null, null, null, null, null);
+		assertEquals(1, user2Engines.size());
+		assertEquals("1", user2Engines.getFirst().get("engine_user_discoverable").toString());
+		// the preference belongs to user2 alone
+		assertEquals("0", SecurityEngineUtils.getUserEngineList(user, null, null, false, null, null, null, null, null,
+				null).getFirst().get("engine_user_discoverable").toString());
+	}
+
+	///
 	/// setEngineFavorite
 	///
 

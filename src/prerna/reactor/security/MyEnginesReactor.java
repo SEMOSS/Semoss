@@ -203,7 +203,7 @@ public class MyEnginesReactor extends AbstractReactor {
 								Returns a list of engines that the user has access to.
 
 								Inputs: filterWord, limit, offset, onlyFavorites, engineType, engine, permissionFilters, metaKeys, metaFilters, noMeta, includeUserTracking, sort.
-								Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name, engine_user_permission, engine_group_permission, engine_favorite).
+								Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name, engine_user_permission, engine_group_permission, engine_favorite, engine_user_discoverable).
 								Model engines also include a capabilities object containing modelId, capability, inputModalities, outputModalities, contextWindow, maxOutputTokens, and builtinTools when model metadata is available and noMeta is false.
 								Any response key prefixed with app_* or database_* is legacy and should not be used.
 								""")
@@ -260,6 +260,9 @@ public class MyEnginesReactor extends AbstractReactor {
 				"Group-derived permission level for this engine"));
 		itemProperties.put("engine_favorite", new JSONObject().put("type", "integer")
 				.put("enum", new JSONArray().put(0).put(1)).put("description", "1 if favorited, otherwise 0"));
+		itemProperties.put("engine_user_discoverable", new JSONObject().put("type", "integer")
+				.put("enum", new JSONArray().put(0).put(1)).put("description",
+						"1 if the user has made this engine discoverable to their agents, otherwise 0 (the default)"));
 		itemProperties.put("permission", new JSONObject().put("type", "integer").put("description",
 				"Effective permission level for this engine"));
 		itemProperties.put("upvotes",

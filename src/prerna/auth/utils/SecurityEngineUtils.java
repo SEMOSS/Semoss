@@ -1408,6 +1408,29 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Let agents find and use an engine for the user, or stop them, for each of
+	 * the user's logins. The choice is saved in USERENGINEPREFERENCE, apart from
+	 * the user's permissions, and changes only this engine. An engine is not
+	 * discoverable to the user's agents until the user turns this on.
+	 *
+	 * @param user         the user
+	 * @param engineId     the engine
+	 * @param discoverable true to let the user's agents find the engine, false to
+	 *                     stop them
+	 * @throws IllegalAccessException when the engine is not public and the user
+	 *                                cannot view it
+	 * @throws Exception              when the preference cannot be saved
+	 */
+	public static void setEngineUserDiscoverable(User user, String engineId, boolean discoverable) throws Exception {
+		if (!engineIsGlobal(engineId) && !userCanViewEngine(user, engineId)) {
+			throw new IllegalAccessException(
+					"The user doesn't have the permission to change whether this engine is discoverable to their agents.");
+		}
+		setUserPreference(user, "USERENGINEPREFERENCE", List.of(Pair.with("ENGINEID", engineId)), "USERDISCOVERABLE",
+				discoverable);
+	}
+
+	/**
 	 * update the database name
 	 * 
 	 * @param user
@@ -2003,6 +2026,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "engine_group_permission"));
 		qs1.addSelector(
 				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "engine_favorite"));
+		qs1.addSelector(QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__USERDISCOVERABLE", 0,
+				"engine_user_discoverable"));
 
 		// Legacy aliases, every one of which repeats a column already selected above
 		// under its engine_* name. The commented entries are unused by either client.
@@ -2076,7 +2101,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			qs1.addRelation(subQuery);
 		}
 
-		// add a join to get if favorite and the visibility
+		// add a join to get if favorite, the visibility and if discoverable to agents
 		{
 			SelectQueryStruct prefQs = new SelectQueryStruct();
 			prefQs.addSelector(new QueryColumnSelector("USERENGINEPREFERENCE__ENGINEID", "ENGINEID"));
@@ -2091,6 +2116,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			castVisibility.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
 			prefQs.addSelector(
 					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castVisibility, "VISIBILITY"));
+			QueryFunctionSelector castUserDiscoverable = QueryFunctionSelector.makeFunctionSelector(
+					QueryFunctionHelper.CAST, "USERENGINEPREFERENCE__USERDISCOVERABLE", "castUserDiscoverable");
+			castUserDiscoverable.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+			prefQs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
+					castUserDiscoverable, "USERDISCOVERABLE"));
 			prefQs.addGroupBy(new QueryColumnSelector("USERENGINEPREFERENCE__ENGINEID", "ENGINEID"));
 			prefQs.addExplicitFilter(
 					getUserIdAndTypeFilter(user, "USERENGINEPREFERENCE__USERID", "USERENGINEPREFERENCE__TYPE"));
