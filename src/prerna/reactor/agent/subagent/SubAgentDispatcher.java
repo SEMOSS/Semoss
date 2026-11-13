@@ -134,8 +134,6 @@ public final class SubAgentDispatcher {
 				spec.getAlias(), req.parentJobId, parentJobId, parentRoom.getId(), inheritParentWorkdir);
 		req.parentRoomId = parentRoom.getId();
 		req.alias = spec.getAlias();
-		// Issue 3857: optional per-job label; the subagent's configured name is the fallback.
-		req.label = stringArg(args, "label");
 		req.workspaceId = spec.getWorkspaceId();
 		req.prompt = prompt;
 		req.parentAuthoredSystemPrompt = parentAuthoredSystemPrompt;
@@ -199,9 +197,6 @@ public final class SubAgentDispatcher {
 				req.parentJobId, parentJobId, parentRoom.getId(), inheritParentWorkdir);
 		req.parentRoomId = parentRoom.getId();
 		req.alias = null;
-		// Issue 3857: the short job label the model set on the spawn call, so the UI can show a
-		// real name instead of "Child agent".
-		req.label = stringArg(args, "label");
 		req.workspaceId = null;
 		req.prompt = prompt;
 		req.additionalContext = context;

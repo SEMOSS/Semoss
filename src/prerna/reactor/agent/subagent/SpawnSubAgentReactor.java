@@ -81,8 +81,6 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 	 * own roomId / jobId). Default: false -> child uses its own room folder.
 	 */
 	private static final String INHERIT_PARENT_WORKDIR_KEY = "inherit_parent_workdir";
-	// Issue 3857: a short job label (a few words) the model sets so the UI shows a real name.
-	private static final String LABEL_KEY = "label";
 	private static final Gson GSON = new Gson();
 
 	public SpawnSubAgentReactor() {
@@ -106,7 +104,6 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 		String roomId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
 		boolean inheritParentWorkdir = Boolean
 				.parseBoolean(StringUtils.trimToEmpty(this.keyValue.get(INHERIT_PARENT_WORKDIR_KEY)));
-		String label = StringUtils.trimToNull(this.keyValue.get(LABEL_KEY));
 
 		if (prompt == null || prompt.trim().isEmpty()) {
 			throw new IllegalArgumentException("prompt is required for SpawnSubAgent");
