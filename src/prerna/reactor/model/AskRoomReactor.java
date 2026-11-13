@@ -47,6 +47,7 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
+import prerna.reactor.agent.runtime.PreChatContext;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -102,12 +103,24 @@ public class AskRoomReactor extends AbstractReactor {
 		if (projectIdOverride != null) {
 			room.setProjectId(projectIdOverride);
 		}
+		// Run the pre-chat tool and prepend its result to the first user message as
+		// a hidden prefix: the model sees it, the UI shows only the user's question.
+		// Nothing is added to room history.
+		String preChatNote = responseParts == null
+				? PreChatContext.runForSystemPrompt(room, this.insight, getPreChatTool())
+				: null;
 		String givenSystemPrompt = room.getSystemPromptForModel();
 		List<String> copiedMedia = RoomUtils.copyFilesToRoomFolder(inputMedia, room, insight);
 
-		InputMessage inputMessage = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
-				.withMediaInputs(copiedMedia, room).withMediaUrls(inputMediaURLs).withText(question)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+		InputMessage.Builder msgBuilder = InputMessage.builder(room).withSystemPrompt(givenSystemPrompt)
+				.withMediaInputs(copiedMedia, room).withMediaUrls(inputMediaURLs)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap);
+		if (preChatNote != null) {
+			msgBuilder.withText(preChatNote + "\n\n" + question, question);
+		} else {
+			msgBuilder.withText(question);
+		}
+		InputMessage inputMessage = msgBuilder.build();
 
 		List<AbstractMessage> extraMessages = new ArrayList<>();
 		ResponseMessage responseMessage;
@@ -148,6 +161,14 @@ public class AskRoomReactor extends AbstractReactor {
 	 * creation derive the project from the current insight.
 	 */
 	protected String getProjectIdOverride() {
+		return null;
+	}
+
+	/**
+	 * Returns the tool to run once, before a new room's first message, or
+	 * {@code null} for none. Its result is stored as a hidden note for the model.
+	 */
+	protected PreChatContext.Spec getPreChatTool() {
 		return null;
 	}
 
