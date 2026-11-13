@@ -566,6 +566,19 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         else:
             request_config.thinking = {**thinking, "budget_tokens": budget}
 
+    def count_request_tokens(self, semoss_messages) -> Optional[PromptCount]:
+        """Count the request these messages build, with the same counter as the usage ceiling."""
+        copies = [message.model_copy(deep=True) for message in semoss_messages]
+        built = AnthropicMessageBuilder().build_messages(
+            copies,
+            self.model_settings,
+            self.model_name,
+            self.use_beta_header,
+            self.beta_feature_name,
+            self.thinking_signature,
+        )
+        return self._count_prompt_tokens(built.request_config)
+
     def _count_prompt_tokens(
         self, request_config: AnthropicRequestConfig
     ) -> PromptCount:

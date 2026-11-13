@@ -12,9 +12,10 @@ from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path, PurePath
 from threading import RLock
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Optional
 from urllib.parse import urlparse
 
+from ...usage_ceiling import ESTIMATE_BYTES_PER_TOKEN
 from .media_types import (
     decode_base64_text,
     is_text_mime_type,
@@ -114,6 +115,7 @@ class DocumentInputProcessor:
         input_modalities: list[str] | None = None,
         cache_scope: str | None = None,
         source_messages: list[dict] | None = None,
+        count_request_tokens: Optional[Callable[[list["SEMOSSMessage"]], Any]] = None,
     ) -> list["SEMOSSMessage"]:
         """Replace unsupported input documents, including those in prior turns.
 
@@ -217,7 +219,7 @@ class DocumentInputProcessor:
                 )
 
         if converted:
-            self._check_context_budget(prepared, settings)
+            self._check_context_budget(prepared, settings, count_request_tokens)
         return prepared
 
     def _prepare_media(
@@ -443,13 +445,16 @@ class DocumentInputProcessor:
 
     @staticmethod
     def _check_context_budget(
-        messages: list["SEMOSSMessage"], settings: "ModelSettings"
+        messages: list["SEMOSSMessage"],
+        settings: "ModelSettings",
+        count_request_tokens: Optional[Callable[[list["SEMOSSMessage"]], Any]] = None,
     ) -> None:
         """Conservative text-byte preflight; the endpoint's tokenizer is authoritative.
 
         Include history, system text, tool definitions/results and the requested
         output allowance. Never silently truncate attachments or conversation.
         Native media token costs remain the serving endpoint's responsibility.
+        Uses the client's tokenizer count when it has one, else bytes / 3.
         """
         if not settings.context_window:
             return
@@ -475,7 +480,15 @@ class DocumentInputProcessor:
                     part for part in payload["parts"] if part["type"] != "MEDIA"
                 ]
             text_bytes += len(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
-        if text_bytes + int(output_tokens) > settings.context_window:
+        prompt_tokens = text_bytes // ESTIMATE_BYTES_PER_TOKEN
+        if count_request_tokens is not None:
+            try:
+                count = count_request_tokens(messages)
+                if count is not None:
+                    prompt_tokens = count.tokens
+            except Exception:
+                pass  # counting never fails the request; keep the estimate
+        if prompt_tokens + int(output_tokens) > settings.context_window:
             raise ContextBudgetError(
                 "The extracted documents and conversation exceed the conservative "
                 "text budget for this model. Attach fewer pages, start a new conversation, "
