@@ -2806,24 +2806,36 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// Insert default row for DEFAULTMODEL into USERMETAKEYS if not exists, in one
-			// transaction
+			// Insert the metakeys the platform defines into USERMETAKEYS, in one
+			// transaction. Each key is inserted only when it is missing, so a key added
+			// in a later release reaches a deployment whose table is already populated,
+			// and a key an admin has reconfigured is left as they set it.
 			{
 				String[] userMetaKeyColNames = colNames;
 				String[] userMetaKeyTypes = types;
+				String[] platformMetakeys = new String[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY,
+						Constants.DEFAULT_CODE_GENERATION_MODEL_KEY,
+						Constants.PLAYGROUND_DEFAULT_INPUT_TEXT_MODEL_KEY, Constants.PLAYGROUND_DEFAULT_CHAT_MODE_KEY,
+						Constants.PLAYGROUND_DEFAULT_CHAT_AGENT_KEY };
 				try {
 					QueryExecutionUtility.write(securityDb, connection -> {
-						Long count = QueryExecutionUtility.queryOne(connection,
-								"select count(*) from " + Constants.USER_METAKEYS, QueryExecutionUtility.NO_PARAMETERS,
-								rs -> rs.getLong(1));
-						if (count != null && count == 0) {
-							int order = 0;
+						List<String> existingKeys = QueryExecutionUtility.queryList(connection,
+								"select METAKEY from " + Constants.USER_METAKEYS, QueryExecutionUtility.NO_PARAMETERS,
+								rs -> rs.getString(1));
+						Integer maxOrder = QueryExecutionUtility.queryOne(connection,
+								"select max(DISPLAYORDER) from " + Constants.USER_METAKEYS,
+								QueryExecutionUtility.NO_PARAMETERS, rs -> {
+									int value = rs.getInt(1);
+									return rs.wasNull() ? null : value;
+								});
+						int order = maxOrder == null ? 0 : maxOrder + 1;
+						for (String metakey : platformMetakeys) {
+							if (existingKeys.contains(metakey)) {
+								continue;
+							}
 							insertRows(connection, queryUtil, Constants.USER_METAKEYS, userMetaKeyColNames,
 									userMetaKeyTypes,
-									new Object[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "single", order++,
-											"select-box", null },
-									new Object[] { Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "single", order++,
-											"select-box", null });
+									new Object[] { metakey, "single", order++, "select-box", null });
 						}
 						return null;
 					});

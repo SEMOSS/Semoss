@@ -1101,6 +1101,11 @@ public class Constants {
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
 
+	// playground user preference keys
+	public static final String PLAYGROUND_DEFAULT_INPUT_TEXT_MODEL_KEY = "playground--default-input-text-model";
+	public static final String PLAYGROUND_DEFAULT_CHAT_MODE_KEY = "playground--default-chat-mode";
+	public static final String PLAYGROUND_DEFAULT_CHAT_AGENT_KEY = "playground--default-chat-agent";
+
 	// system (platform) app names
 	public static final String APP_REACT_TEMPLATE = "react-template";
 
