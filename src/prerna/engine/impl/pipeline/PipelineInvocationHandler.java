@@ -98,6 +98,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.tcp.client.ResponseTimeoutException;
 import prerna.usertracking.GuardrailAudit;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZoneIdTypeAdapter;
@@ -141,6 +142,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private static final String GUARDRAIL_ACTION_MASK = "MASK";
 	private static final String GUARDRAIL_ACTION_BLOCK = "BLOCK";
 	private static final String GUARDRAIL_ACTION_RESPOND = "RESPOND";
+	private static final String GUARDRAIL_ACTION_TIMEOUT = "TIMEOUT";
+
+	/**
+	 * The engines whose guardrail checks are running on this thread. A call one of
+	 * those checks makes back into its own engine, such as to a judge model that is
+	 * also the guarded engine, runs without the engine's pipeline, so a check never
+	 * runs itself again.
+	 */
+	private static final ThreadLocal<Set<String>> ENGINES_RUNNING_CHECKS = new ThreadLocal<>();
 
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
@@ -236,6 +246,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		}
 
 		boolean success = true;
+		Set<String> enginesRunningChecks = ENGINES_RUNNING_CHECKS.get();
+		boolean calledFromOwnCheck = enginesRunningChecks != null && enginesRunningChecks.contains(this.engineId);
 
 		try (CloseableThreadContext.Instance ctc = CloseableThreadContext.putAll(newMdc)) {
 			Object result = null;
@@ -243,16 +255,19 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			// Every call but an @IgnoreEngineLogging one is refused here for a locked
 			// out user or a closed room, whether or not the method has checks, and
 			// before any check runs, so a refused call costs no guardrail calls
-			if (!this.hitLimits.isEmpty()) {
+			if (!calledFromOwnCheck && !this.hitLimits.isEmpty()) {
 				Insight insight = contextInsight(args);
 				this.hitLimits.refuseIfLockedOrRoomClosed(guardedCall(method, args, insight, keepInputOutput), insight,
 						callerOf(insight));
 			}
 
 			// Find the correct pipeline for the called method
-			Pipeline specificPipeline = this.pipelinesMap.get(methodName);
-			if (specificPipeline == null) {
-				specificPipeline = this.pipelinesMap.get("*");
+			Pipeline specificPipeline = null;
+			if (!calledFromOwnCheck) {
+				specificPipeline = this.pipelinesMap.get(methodName);
+				if (specificPipeline == null) {
+					specificPipeline = this.pipelinesMap.get("*");
+				}
 			}
 
 			List<IInputReactor> inputPipelines = null;
@@ -331,7 +346,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					reactor.setNounStore(inputNouns);
 
 					Instant start = Instant.now();
-					NounMetadata resultNoun = reactor.execute();
+					NounMetadata resultNoun;
+					try {
+						resultNoun = runCheck(reactor);
+					} catch (ResponseTimeoutException e) {
+						logEngineCall(engineSpecificLogger, start, Instant.now(), false,
+								serializeAuditPayload(method, args, null, false), e.getMessage(),
+								reactor.getClass().getSimpleName(), null, null, null, GUARDRAIL_ACTION_TIMEOUT);
+						throw e;
+					}
 					Instant end = Instant.now();
 
 					// Reactors return a NounMetadata whose value is the
@@ -461,7 +484,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					reactor.setNounStore(outputNouns);
 
 					Instant start = Instant.now();
-					NounMetadata resultNoun = reactor.execute();
+					NounMetadata resultNoun;
+					try {
+						resultNoun = runCheck(reactor);
+					} catch (ResponseTimeoutException e) {
+						logEngineCall(engineSpecificLogger, start, Instant.now(), false,
+								serializeAuditPayload(method, args, result, true), e.getMessage(), null,
+								reactor.getClass().getSimpleName(), null, null, GUARDRAIL_ACTION_TIMEOUT);
+						throw e;
+					}
 					Instant end = Instant.now();
 
 					processedArguments = (Map<String, Object>) resultNoun.getValue();
@@ -503,6 +534,33 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			}
 
 			return result;
+		}
+	}
+
+	/**
+	 * Run one of this engine's guardrail checks, with the engine marked as running
+	 * its checks on this thread, so that a call the check makes back into this
+	 * engine runs without the pipeline instead of running the check again.
+	 *
+	 * @param reactor the check to run
+	 * @return the check's result
+	 */
+	private NounMetadata runCheck(IReactor reactor) {
+		Set<String> running = ENGINES_RUNNING_CHECKS.get();
+		if (running == null) {
+			running = new HashSet<>();
+			ENGINES_RUNNING_CHECKS.set(running);
+		}
+		boolean marked = running.add(this.engineId);
+		try {
+			return reactor.execute();
+		} finally {
+			if (marked) {
+				running.remove(this.engineId);
+				if (running.isEmpty()) {
+					ENGINES_RUNNING_CHECKS.remove();
+				}
+			}
 		}
 	}
 

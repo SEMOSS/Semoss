@@ -136,7 +136,7 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 		String script = "model.predict_entities(" + PyUtils.determineStringType(prompt) + ", "
 				+ PyUtils.determineStringType(labels) + ")";
 		List<Map<String, Object>> predictions = (List<Map<String, Object>>) pyTranslator
-				.runDirectPyNoCancelTrace(script);
+				.runDirectPyNoCancelTrace(null, this.timeout, this.timeoutMessage, script);
 		boolean pass = true;
 		// collect the entities that breach the threshold so we can build a masked
 		// variant of the prompt for interceptors that mask rather than block
@@ -170,10 +170,24 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 
 	/**
 	 * Build a masked copy of the prompt where every flagged entity span is replaced
-	 * with the configured mask template (default {@code [label]}). Spans are
-	 * replaced from right to left so the character offsets returned by GLiNER stay
-	 * valid as the string is rewritten. Overlapping spans are skipped defensively.
-	 * When there are no flagged entities the original prompt is returned unchanged.
+	 * with the configured mask template (default {@code [label]}). When there are
+	 * no flagged entities the original prompt is returned unchanged. It works in
+	 * three steps:
+	 * <ol>
+	 * <li>Keep the spans with usable offsets: a start of 0 or more, before the
+	 * end, and an end inside the prompt.</li>
+	 * <li>Sort them by start, the widest first when several start together, and
+	 * merge each span that starts before the previous one ends into that one. The
+	 * merged span covers both and keeps the first span's label, so no part of an
+	 * overlapping entity is left unmasked.</li>
+	 * <li>Replace the merged spans from the last to the first. GLiNER's offsets
+	 * point into the original prompt, and replacing from the end leaves the text
+	 * before each span, and so every earlier offset, as it was.</li>
+	 * </ol>
+	 * For example, in {@code call Adam now} GLiNER may flag {@code Adam}
+	 * (characters 5 to 9) and the {@code da} inside it (6 to 8). The two merge into
+	 * one span from 5 to 9, and the result is {@code call [person] now} rather than
+	 * {@code call A[person]m now}.
 	 *
 	 * @param prompt  the original prompt
 	 * @param flagged the entity predictions (each a map with start/end/label) that
@@ -184,28 +198,51 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 		if (prompt == null || flagged == null || flagged.isEmpty()) {
 			return prompt;
 		}
-		// sort a copy by start offset descending so right-to-left splicing keeps
-		// offsets valid
-		List<Map<String, Object>> ordered = new ArrayList<>(flagged);
-		ordered.sort((a, b) -> Integer.compare(getInt(b.get("start")), getInt(a.get("start"))));
-
-		StringBuilder masked = new StringBuilder(prompt);
-		// tracks the left edge of the last span we replaced; the next span must end at
-		// or before this to be a non-overlapping, still-valid region of the original
-		// text
-		int lastStart = prompt.length();
-		for (Map<String, Object> entity : ordered) {
+		// 1. keep only the spans whose offsets fall inside the prompt
+		List<MaskSpan> spans = new ArrayList<>();
+		for (Map<String, Object> entity : flagged) {
 			int start = getInt(entity.get("start"));
 			int end = getInt(entity.get("end"));
-			if (start < 0 || start >= end || end > lastStart) {
+			if (start < 0 || start >= end || end > prompt.length()) {
 				continue;
 			}
 			Object label = entity.get("label");
-			String replacement = this.maskTemplate.replace("{label}", label == null ? "" : label.toString());
-			masked.replace(start, end, replacement);
-			lastStart = start;
+			spans.add(new MaskSpan(start, end, label == null ? "" : label.toString()));
+		}
+
+		// 2. sort by start, the widest first on a tie, then merge each span that
+		// starts before the previous one ends into it, keeping the first span's label
+		spans.sort((a, b) -> a.start() != b.start() ? Integer.compare(a.start(), b.start())
+				: Integer.compare(b.end(), a.end()));
+		List<MaskSpan> merged = new ArrayList<>();
+		for (MaskSpan span : spans) {
+			int last = merged.size() - 1;
+			if (last >= 0 && span.start() < merged.get(last).end()) {
+				MaskSpan group = merged.get(last);
+				merged.set(last, new MaskSpan(group.start(), Math.max(group.end(), span.end()), group.label()));
+			} else {
+				merged.add(span);
+			}
+		}
+
+		// 3. replace from the last span to the first, so the offsets of the spans
+		// still to replace keep pointing at the right characters
+		StringBuilder masked = new StringBuilder(prompt);
+		for (int i = merged.size() - 1; i >= 0; i--) {
+			MaskSpan span = merged.get(i);
+			masked.replace(span.start(), span.end(), this.maskTemplate.replace("{label}", span.label()));
 		}
 		return masked.toString();
+	}
+
+	/**
+	 * A flagged span of the prompt to mask, by its character offsets.
+	 *
+	 * @param start the first character of the span
+	 * @param end   the character after the span
+	 * @param label the entity label the span is masked with
+	 */
+	private record MaskSpan(int start, int end, String label) {
 	}
 
 	/**

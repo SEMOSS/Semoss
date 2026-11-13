@@ -29,6 +29,7 @@ package prerna.engine.impl.function;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -55,6 +56,11 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 
 	protected static final String INIT_FUNCTION_ENGINE = "INIT_FUNCTION_ENGINE";
 	protected static final String PYTHON_FILE_NAME = "PYTHON_FILE_NAME";
+	/** The settings file key for how many seconds a call waits for python. */
+	protected static final String TIMEOUT_SECONDS_KEY = "TIMEOUT_SECONDS";
+	/** The settings file key for the error a call gets when python does not answer in time. */
+	protected static final String TIMEOUT_MESSAGE_KEY = "TIMEOUT_MESSAGE";
+	private static final Duration MAX_TIMEOUT = Duration.ofHours(24);
 
 	protected String pythonFileName;
 	protected String engineDirectoryPath = null;
@@ -62,6 +68,10 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 
 	protected final ClientProcessWrapper cpw = new ClientProcessWrapper();
 	protected PyTranslator pyTranslator = null;
+	/** How long a call waits for python, at most 24 hours. */
+	protected Duration timeout = MAX_TIMEOUT;
+	/** The error a call gets when python does not answer in time; null uses the default one. */
+	protected String timeoutMessage = null;
 
 	// string substitute vars
 	protected Map<String, String> vars = new HashMap<>();
@@ -85,6 +95,31 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		for (Object smssKey : this.smssProp.keySet()) {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
+		}
+
+		String timeoutSeconds = this.smssProp.getProperty(TIMEOUT_SECONDS_KEY);
+		if (timeoutSeconds != null && !(timeoutSeconds = timeoutSeconds.trim()).isEmpty()) {
+			long seconds = -1;
+			try {
+				seconds = Long.parseLong(timeoutSeconds);
+			} catch (NumberFormatException e) {
+				seconds = -1;
+			}
+			if (seconds <= 0) {
+				classLogger.warn("Ignoring invalid {} value '{}' for function {}; waiting up to {} hours",
+						TIMEOUT_SECONDS_KEY, timeoutSeconds, getEngineId(), MAX_TIMEOUT.toHours());
+			} else if (seconds >= MAX_TIMEOUT.toSeconds()) {
+				classLogger.warn("{} for function {} is more than the {} hour maximum; waiting {} hours",
+						TIMEOUT_SECONDS_KEY, getEngineId(), MAX_TIMEOUT.toHours(), MAX_TIMEOUT.toHours());
+			} else {
+				this.timeout = Duration.ofSeconds(seconds);
+				this.timeoutMessage = "The function did not finish within " + seconds
+						+ " seconds. Its python process keeps running in the background.";
+			}
+		}
+		String message = this.smssProp.getProperty(TIMEOUT_MESSAGE_KEY);
+		if (message != null && !(message = message.trim()).isEmpty()) {
+			this.timeoutMessage = message;
 		}
 	}
 
@@ -210,7 +245,8 @@ public class LocalPythonFunctionEngine extends AbstractFunctionEngine {
 		StringBuilder callMaker = new StringBuilder(this.functionName);
 		callMaker.append("(**").append(PyUtils.determineStringType(parameterValues)).append(")");
 
-		return pyTranslator.runScriptNoCancelTrace(executingInsight, callMaker.toString());
+		return pyTranslator.runDirectPyNoCancelTrace(executingInsight, this.timeout, this.timeoutMessage,
+				callMaker.toString());
 	}
 
 	@Override

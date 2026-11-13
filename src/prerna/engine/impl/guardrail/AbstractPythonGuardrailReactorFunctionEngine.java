@@ -29,6 +29,7 @@ package prerna.engine.impl.guardrail;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Properties;
 
 import org.apache.logging.log4j.LogManager;
@@ -54,10 +55,21 @@ public abstract class AbstractPythonGuardrailReactorFunctionEngine extends Abstr
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonGuardrailReactorFunctionEngine.class);
 
+	/** The settings file key for how many seconds a check waits for python. */
+	public static final String TIMEOUT_SECONDS_KEY = "TIMEOUT_SECONDS";
+	/** The settings file key for the reason a call gets when its check times out. */
+	public static final String TIMEOUT_MESSAGE_KEY = "TIMEOUT_MESSAGE";
+	private static final Duration DEFAULT_TIMEOUT = Duration.ofMinutes(15);
+	private static final String DEFAULT_TIMEOUT_MESSAGE = "The guardrail did not respond in time, so the request was blocked.";
+
 	protected String engineDirectoryPath = null;
 	protected File cacheFolder;
 	protected final ClientProcessWrapper cpw = new ClientProcessWrapper();
 	protected PyTranslator pyTranslator = null;
+	/** How long a check waits for python before the guarded call is blocked. */
+	protected Duration timeout = DEFAULT_TIMEOUT;
+	/** The reason the guarded call gets when a check times out. */
+	protected String timeoutMessage = DEFAULT_TIMEOUT_MESSAGE;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -67,6 +79,26 @@ public abstract class AbstractPythonGuardrailReactorFunctionEngine extends Abstr
 				this.getEngineId(), this.getEngineName());
 		this.engineDirectoryPath = this.engineDirectoryPath.replace("\\", "/");
 		this.cacheFolder = new File(this.engineDirectoryPath + "/py");
+
+		String timeoutSeconds = this.smssProp.getProperty(TIMEOUT_SECONDS_KEY);
+		if (timeoutSeconds != null && !(timeoutSeconds = timeoutSeconds.trim()).isEmpty()) {
+			long seconds = -1;
+			try {
+				seconds = Long.parseLong(timeoutSeconds);
+			} catch (NumberFormatException e) {
+				seconds = -1;
+			}
+			if (seconds > 0) {
+				this.timeout = Duration.ofSeconds(seconds);
+			} else {
+				classLogger.warn("Ignoring invalid {} value '{}' for guardrail {}; waiting {} seconds",
+						TIMEOUT_SECONDS_KEY, timeoutSeconds, getEngineId(), DEFAULT_TIMEOUT.toSeconds());
+			}
+		}
+		String message = this.smssProp.getProperty(TIMEOUT_MESSAGE_KEY);
+		if (message != null && !(message = message.trim()).isEmpty()) {
+			this.timeoutMessage = message;
+		}
 	}
 
 	/**

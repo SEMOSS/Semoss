@@ -53,6 +53,21 @@ right away, with no reload.
 
 - **Pipelines.** `pipelines` maps an engine method, or `*` for every method, to its `input` checks
   (run before the method) and `output` checks (run on its result).
+- **What a check reads.** `inputMapping` maps each guardrail parameter to a method argument
+  (`arg0`, `arg1`, ...), an earlier check's result (`interim_result`) or, for an output check, the
+  call's `result`, each optionally followed by a dotted path such as `arg0.message`.
+  `UpdateEngineGuardrailConfig` refuses a mapping that reads anything else.
+- **The pipeline file.** An engine with no pipeline file has no checks. An engine whose pipeline
+  file exists but cannot be read does not load, so it never runs without its checks.
+- **A check that takes too long.** A check backed by a python model (Detoxify, GLiNER, Prompt
+  Injection and local python guardrails) waits for its model for `TIMEOUT_SECONDS` from the
+  guardrail's SMSS, 15 minutes by default. A check that runs past it blocks the call with
+  `TIMEOUT_MESSAGE` from the same SMSS, or a default message, and python keeps running. The guarded
+  engine's audit log records the check with the guardrail action `TIMEOUT`, as a failure whose
+  response is that message. A timeout is not a hit, so it never counts toward a hit limit.
+- **A check never runs itself.** `UpdateEngineGuardrailConfig` refuses a check whose guardrail
+  judges with the engine it guards. A call that a check makes back into its own engine, through
+  any chain of engines, runs without that engine's checks.
 - **What a failed check does.** It blocks the call. An input check can instead mask the argument
   and let the call run (`maskOnGuardrailFailure`). On a call that returns a model response, an
   input check can answer with the guardrail's message (`respondWithGuardrailMessage`).

@@ -81,7 +81,7 @@ public class UploadEngineReactor extends AbstractReactor {
 
 	public UploadEngineReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
-				ReactorKeysEnum.GLOBAL.getKey() };
+				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.ENGINE_TYPE.getKey() };
 	}
 
 	@Override
@@ -168,6 +168,16 @@ public class UploadEngineReactor extends AbstractReactor {
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
 		Object[] typeAndSubtypeAndCost = SecurityEngineUtils.getEngineTypeAndSubTypeAndCost(prop);
 		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtypeAndCost[0];
+
+		String expectedEngineType = this.keyValue.get(ReactorKeysEnum.ENGINE_TYPE.getKey());
+		if (expectedEngineType != null && !(expectedEngineType = expectedEngineType.trim()).isEmpty()
+				&& (engineType == null || !expectedEngineType.equalsIgnoreCase(engineType.name()))) {
+			cleanUpFolders(randomTempUnzipF);
+			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("The file holds a "
+					+ engineType + " engine, but this upload expects a " + expectedEngineType.toUpperCase() + " engine"));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
 		// check if admin only
 		if (AbstractSecurityUtils.adminOnlyEngineAdd(engineType) && !SecurityAdminUtils.userIsAdmin(user)) {
@@ -395,7 +405,9 @@ public class UploadEngineReactor extends AbstractReactor {
 				.key(ReactorKeysEnum.SPACE,
 						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
 				.key(ReactorKeysEnum.GLOBAL,
-						"This is a required value to determine if the engine is public or private");
+						"This is a required value to determine if the engine is public or private")
+				.key(ReactorKeysEnum.ENGINE_TYPE,
+						"An optional engine type, such as MODEL or GUARDRAIL. When it is given, the upload is refused unless the file holds an engine of that type. Without it, the engine is uploaded as the type its file holds.");
 	}
 
 }

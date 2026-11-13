@@ -59,7 +59,8 @@ import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
  * {@code respondWithGuardrailMessage=true}. Output pipelines can block a
  * failing response but cannot rewrite it.</li>
  * <li>{@code JUDGE_ERROR_VERDICT} - {@code BLOCK} or {@code PASS}: the verdict
- * when the judge call fails. Defaults to {@code BLOCK}. Set it to {@code PASS}
+ * when the judge call fails or its answer names neither SAFE nor UNSAFE.
+ * Defaults to {@code BLOCK}. Set it to {@code PASS}
  * only where availability matters more than enforcement.</li>
  * </ul>
  *
@@ -142,7 +143,7 @@ public class PolicyComplianceGuardrailEngine extends PromptGuardrailEngine {
 
 				This guardrail sends selected text and a policy to the configured model engine. The judge must answer `SAFE` or `UNSAFE`; an unsafe result prevents the guarded result from being returned.
 
-				The SMSS `POLICY_DESCRIPTION` is the default policy. A pipeline may supply a `policy` in `directParameters` for one use case. `SYSTEM_PROMPT` can replace the default judge instructions; include `${POLICY_DESCRIPTION}` where the policy should be inserted. `BLOCKED_MESSAGE` and `JUDGE_ERROR_VERDICT` are also optional. `JUDGE_ERROR_VERDICT` is `BLOCK` or `PASS`, the verdict when the judge call fails, and defaults to `BLOCK`; set `PASS` only where availability matters more than enforcement.
+				The SMSS `POLICY_DESCRIPTION` is the default policy. A pipeline may supply a `policy` in `directParameters` for one use case. `SYSTEM_PROMPT` can replace the default judge instructions; include `${POLICY_DESCRIPTION}` where the policy should be inserted. `BLOCKED_MESSAGE` and `JUDGE_ERROR_VERDICT` are also optional. `JUDGE_ERROR_VERDICT` is `BLOCK` or `PASS`, the verdict when the judge call fails or its answer names neither `SAFE` nor `UNSAFE`, and defaults to `BLOCK`; set `PASS` only where availability matters more than enforcement.
 
 				## Example: review model responses
 
