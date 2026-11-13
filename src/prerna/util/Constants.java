@@ -1080,6 +1080,9 @@ public class Constants {
 	// minutes a routine's agent step may run before the routine stops (default 10)
 	public static final String COLLAB_ROUTINE_TIMEOUT_MINUTES = "COLLAB_ROUTINE_TIMEOUT_MINUTES";
 
+	// largest file in MB the agents' ReadFile tool extracts as a document: pdf, docx, pptx, xlsx (default 100)
+	public static final String DOCUMENT_READ_MAX_FILE_MB = "DOCUMENT_READ_MAX_FILE_MB";
+
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
