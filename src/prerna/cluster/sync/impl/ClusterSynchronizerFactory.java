@@ -139,7 +139,7 @@ public class ClusterSynchronizerFactory {
 		// Check if the SMSS file exists locally it is only written here by
 		// pullUserAsset, meaning this pod has previously fetched this
 		// user's data and may have a stale copy.
-		String userFolder = EngineUtility.USER_FOLDER;
+		String userFolder = EngineUtility.getUserFolder();
 		String assetSmss = userFolder + "/" + SmssUtilities.getUniqueName(UserAssetUtils.ASSET_APP_NAME, projectId)
 				+ ".smss";
 		if (new File(assetSmss).exists()) {

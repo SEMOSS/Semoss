@@ -128,7 +128,7 @@ public class GitAssetUtils {
 			if (f.isFile()) {
 				String path = f.getAbsolutePath().replace("\\", "/");
 				if (replacer != null) {
-					path = path.replaceAll(replacer, repString);
+					path = path.replace(replacer, repString);
 				}
 				path = path.replaceFirst("/", "");
 				fileMap.put("type", FilenameUtils.getExtension(path));
@@ -137,7 +137,7 @@ public class GitAssetUtils {
 				// no hidden files
 				if (!path.startsWith(".")) {
 					if (replacer != null) {
-						path = path.replaceAll(replacer, repString);
+						path = path.replace(replacer, repString);
 					}
 				}
 				fileMap.put("type", "directory");
@@ -205,7 +205,7 @@ public class GitAssetUtils {
 				path = path.replace("\\", "/");
 				if (isMatch(Utility.getInstanceName(path), extn)) {
 					if (replacer != null) {
-						path = path.replaceAll(replacer, "");
+						path = path.replace(replacer, "");
 					}
 
 					path.replaceFirst("/", "");
@@ -317,7 +317,7 @@ public class GitAssetUtils {
 				// no hidden files
 				if (!path.startsWith(".")) {
 					if (replacer != null) {
-						path = path.replaceAll(replacer, repString);
+						path = path.replace(replacer, repString);
 					}
 					directories.add(path);
 				}

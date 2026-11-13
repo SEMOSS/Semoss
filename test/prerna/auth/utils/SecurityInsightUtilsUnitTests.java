@@ -81,7 +81,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-		assertNull(SecurityInsightUtils.getInsight("testProjectId", "nonExistentId"));
+		assertThrows(IllegalArgumentException.class,
+				() -> SecurityInsightUtils.getInsight("testProjectId", "nonExistentId"));
 	}
 
 	///

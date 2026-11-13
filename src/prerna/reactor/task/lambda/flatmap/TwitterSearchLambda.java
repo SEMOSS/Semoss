@@ -37,119 +37,117 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.io.connector.twitter.TwitterSearcher;
-import prerna.om.Viewpoint;
-import prerna.util.Constants;
+import prerna.om.TwitterTweet;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 
 public class TwitterSearchLambda extends AbstractFlatMapLambda {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(TwitterSearchLambda.class);
 
 	// col index we care about to get lat/long from
 	private int colIndex;
 	// total number of columns
 	private int totalCols;
-	
+
 	@Override
 	public List<IHeadersDataRow> process(IHeadersDataRow row) {
 		Object value = row.getValues()[colIndex];
-		if(value == null || value.toString().isEmpty()) {
+		if (value == null || value.toString().isEmpty()) {
 			return new Vector<IHeadersDataRow>();
 		}
 		// construct new values to append onto the row
 		// add new headers
-		String[] newHeaders = new String[]{"review", "author", "retweet_count"};
-		
+		String[] newHeaders = new String[] { "review", "author", "retweet_count" };
+
 		Map<String, Object> params = new HashMap<>();
 		params.put("q", value.toString().replace("_", " "));
 		params.put("lang", "en");
-		if(this.params.containsKey("output"))
-			params.put("count", this.params.get("output"));		
+		if (this.params.containsKey("output"))
+			params.put("count", this.params.get("output"));
 		else
 			params.put("count", "10");
-		
-		if(this.params.containsKey("result_type"))
+
+		if (this.params.containsKey("result_type"))
 			params.put("result_type", this.params.get("result_type"));
 		else
 			params.put("result_type", "mixed");
-		
+
 		List<IHeadersDataRow> retList = new Vector<IHeadersDataRow>();
 		// add new values
 		try {
 			// loop through the results
 			TwitterSearcher ts = new TwitterSearcher();
 			Object resultObj = ts.execute(this.user, params);
-			if(resultObj instanceof List) {
-				List<Viewpoint> results = (List<Viewpoint>) resultObj;
-				for(int i = 0; i < results.size(); i++) {
-					Viewpoint view = results.get(i);
-					processView(view, newHeaders, row, retList);
+			if (resultObj instanceof List<?> results) {
+				for (Object result : results) {
+					processView((TwitterTweet) result, newHeaders, row, retList);
 				}
 			} else {
-				Viewpoint view = (Viewpoint) resultObj;
-				processView(view, newHeaders, row, retList);
+				processView((TwitterTweet) resultObj, newHeaders, row, retList);
 			}
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to search Twitter for the row text", e);
 		}
-		
+
 		return retList;
 	}
-	
+
 	/**
-	 * Process a view point
+	 * Adds a copy of the row with the text, author and retweet count of the tweet.
+	 * 
 	 * @param view
 	 * @param newHeaders
 	 * @param curRow
 	 * @param retList
 	 */
-	private void processView(Viewpoint view, String[] newHeaders, IHeadersDataRow curRow, List<IHeadersDataRow> retList) {
+	private void processView(TwitterTweet view, String[] newHeaders, IHeadersDataRow curRow,
+			List<IHeadersDataRow> retList) {
 		Object[] newValues = new Object[3];
-		newValues[0] = view.getReview();
-		if(newValues[0] != null) {
-			newValues[0] = newValues[0].toString()
-					.replace("\n", " *LINE BREAK* ")
-					.replace("\r", " *LINE BREAK* ")
-					.replace("\t", " ")
-					.replace("\"", "");
+		newValues[0] = view.review();
+		if (newValues[0] != null) {
+			newValues[0] = newValues[0].toString().replace("\n", " *LINE BREAK* ").replace("\r", " *LINE BREAK* ")
+					.replace("\t", " ").replace("\"", "");
 		}
-		newValues[1] = view.getAuthorId();
-		newValues[2] = view.getRepeatCount();
-		
+		newValues[1] = view.authorId();
+		newValues[2] = view.repeatCount();
+
 		// copy the row so we dont mess up references
 		IHeadersDataRow rowCopy = curRow.copy();
 		rowCopy.addFields(newHeaders, newValues);
 		retList.add(rowCopy);
 	}
-	
-	
+
 	@Override
 	public void init(List<Map<String, Object>> headerInfo, List<String> columns) {
 		this.headerInfo = headerInfo;
 		this.totalCols = headerInfo.size();
-		
+
 		String headerToConvert = columns.get(0);
-		for(int j = 0; j < totalCols; j++) {
+		for (int j = 0; j < totalCols; j++) {
 			Map<String, Object> headerMap = headerInfo.get(j);
 			String alias = headerMap.get("alias").toString();
-			if(alias.equals(headerToConvert)) {
+			if (alias.equals(headerToConvert)) {
 				// we found the index
 				this.colIndex = j;
 			}
 		}
-		
+
 		// this modifies the header info map by reference
 		Map<String, Object> reviewHeader = getBaseHeader("review", "STRING");
 		this.headerInfo.add(reviewHeader);
-		
+
 		Map<String, Object> authHeader = getBaseHeader("author", "STRING");
 		this.headerInfo.add(authHeader);
-		
+
 		Map<String, Object> repeatHeader = getBaseHeader("retweet_count", "NUMBER");
 		this.headerInfo.add(repeatHeader);
 	}
-	
+
 	/**
 	 * Grab a base header object
+	 * 
 	 * @param name
 	 * @param type
 	 * @return

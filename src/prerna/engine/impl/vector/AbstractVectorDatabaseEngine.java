@@ -36,7 +36,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -131,11 +130,10 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	// maintain details in the log database
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
-	protected ClientProcessWrapper cpw = null;
+	protected final ClientProcessWrapper cpw = new ClientProcessWrapper();
 	// python server
 	protected PyTranslator pyTranslator = null;
 	protected File pyDirectoryBasePath = null;
-	protected final ReentrantLock startServerLock = new ReentrantLock();
 
 	protected File schemaFolder;
 
@@ -754,9 +752,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	 * 
 	 */
 	protected void checkSocketStatus() {
-		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
-		}
+		this.cpw.getOrStartSocketClient(() -> startServer(-1));
 	}
 
 	/**
@@ -781,110 +777,95 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	}
 
 	/**
+	 * Starts the python process for this vector database and runs its init
+	 * commands. Called through
+	 * {@link ClientProcessWrapper#getOrStartSocketClient(Runnable)}, which holds
+	 * the wrapper's create lock, when the process is not running.
 	 * 
-	 * @param port
+	 * @param port the port to connect on; negative to auto-allocate, or to attach
+	 *             to the smss FORCE_PORT when it is set
 	 */
 	protected void startServer(int port) {
-		this.startServerLock.lock();
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		if (!this.pyDirectoryBasePath.exists()) {
+			this.pyDirectoryBasePath.mkdirs();
+		}
+
+		String timeout = "30";
+		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+		}
+
+		boolean debug = false;
+
+		// pull the relevant values from the smss
+		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+
+		if (port < 0) {
+			// port has not been forced
+			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+				try {
+					port = Integer.parseInt(forcePort);
+					debug = true;
+				} catch (NumberFormatException e) {
+					// ignore
+					classLogger.warn("Vector Database '{}' has an invalid FORCE_PORT value", this.engineName);
+				}
+			}
+		}
+
+		// if we have a python specific user, make sure that user can access the schema
+		// folder
+		setVectorFolderPermissions();
+
+		String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
+		boolean nativePyServer = true;
 		try {
-			// already created by another thread
-			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-				return;
-			}
-			if (!modelPropsLoaded) {
-				verifyModelProps();
-			}
-			if (!this.pyDirectoryBasePath.exists()) {
-				this.pyDirectoryBasePath.mkdirs();
-			}
+			this.cpw.setEngineOwned(true);
+			this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, debug, timeout,
+					loggerLevel);
+		} catch (Exception e) {
+			classLogger.error("Failed to create python process client for vector database: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			throw new IllegalArgumentException("Unable to connect to server for vector databse.");
+		}
 
-			// check if we have already created a process wrapper
-			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-			if (this.cpw != null) {
-				this.cpw.shutdown(false);
-			}
+		// create the py translator
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(this.cpw.getSocketClient(), processInsight);
 
-			String timeout = "30";
-			if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-				timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-			}
-
-			boolean debug = false;
-
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-
-			if (port < 0) {
-				// port has not been forced
-				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch (NumberFormatException e) {
-						// ignore
-						classLogger.warn("Vector Database '{}' has an invalid FORCE_PORT value", this.engineName);
-					}
-				}
+		try {
+			// this is engine specific... or can be
+			String[] commands = getServerStartCommands();
+			// replace the vars
+			StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+				String resolvedString = substitutor.replace(commands[commandIndex]);
+				commands[commandIndex] = resolvedString;
 			}
 
-			// if we have a python specific user, make sure that user can access the schema
-			// folder
-			setVectorFolderPermissions();
+			// for debugging...
+			classLogger.info("Initializing '{}' python process with commands >>> {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
 
-			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			boolean nativePyServer = true;
-			try {
-				cpwToInit.setEngineOwned(true);
-				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, debug, timeout,
-						loggerLevel);
-			} catch (Exception e) {
-				classLogger.error("Failed to create python process client for vector database: {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-				throw new IllegalArgumentException("Unable to connect to server for vector databse.");
-			}
-
-			// create the py translator
-			Insight processInsight = new Insight();
-			InsightStore.getInstance().put(processInsight);
-			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-			try {
-				// this is engine specific... or can be
-				String[] commands = getServerStartCommands();
-				// replace the vars
-				StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-					String resolvedString = substitutor.replace(commands[commandIndex]);
-					commands[commandIndex] = resolvedString;
-				}
-
-				// for debugging...
-				classLogger.info("Initializing '{}' python process with commands >>> {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
-
-				this.pyTranslator.runEmptyPyNoCancelTrace(commands);
-
-				// finally set the cpw in the class
-				this.cpw = cpwToInit;
-			} catch (Exception e) {
-				// set the model props to false
-				// incase those values were incorrect
-				modelPropsLoaded = false;
-				classLogger.error("Failed to initialize python start commands for vector database: '{}'",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-				if (cpwToInit != null) {
-					classLogger.warn(
-							"Able to start the python process for the vector database '{}' but the start script failed.",
-							SmssUtilities.getUniqueName(this.engineName, this.engineId));
-					cpwToInit.shutdown(false);
-				}
-				throw e;
-			}
-		} finally {
-			this.startServerLock.unlock();
+			this.pyTranslator.runEmptyPyNoCancelTrace(commands);
+		} catch (Exception e) {
+			// set the model props to false
+			// incase those values were incorrect
+			modelPropsLoaded = false;
+			classLogger.error("Failed to initialize python start commands for vector database: '{}'",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			classLogger.warn(
+					"Able to start the python process for the vector database '{}' but the start script failed.",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			this.cpw.shutdown(false);
+			throw e;
 		}
 	}
 
@@ -951,9 +932,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 	@Override
 	public void close() throws IOException {
 		this.modelPropsLoaded = false;
-		if (this.cpw != null) {
-			this.cpw.shutdown(true);
-		}
+		this.cpw.shutdown(true);
 	}
 
 	@Override

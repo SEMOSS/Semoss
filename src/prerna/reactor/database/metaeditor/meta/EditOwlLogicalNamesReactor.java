@@ -37,7 +37,6 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.database.metaeditor.AbstractMetaEditorReactor;
-import prerna.reactor.database.metaeditor.concepts.EditOwlConceptConceptualNameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -49,7 +48,7 @@ import prerna.util.Utility;
 
 public class EditOwlLogicalNamesReactor extends AbstractMetaEditorReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(EditOwlConceptConceptualNameReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(EditOwlLogicalNamesReactor.class);
 
 	public EditOwlLogicalNamesReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(), ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.LOGICAL_NAME.getKey()};

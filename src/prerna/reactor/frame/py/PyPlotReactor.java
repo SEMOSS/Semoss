@@ -74,11 +74,8 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 
 	@Override
 	public NounMetadata execute() {
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
+			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 		}
 
 		if (!PyUtils.pyEnabled()) {
@@ -86,11 +83,8 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		}
 
 		// check if py terminal is disabled
-		String disable_py_terminal = Utility.getDIHelperProperty(Constants.DISABLE_PY_TERMINAL);
-		if (disable_py_terminal != null && !disable_py_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_py_terminal)) {
-				throw new IllegalArgumentException("Python terminal has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_PY_TERMINAL))) {
+			throw new IllegalArgumentException("Python terminal has been disabled.");
 		}
 
 		this.code = this.curRow.get(0).toString();

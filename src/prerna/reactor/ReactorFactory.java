@@ -289,7 +289,6 @@ import prerna.reactor.panel.rules.RetrievePanelColorByValueReactor;
 import prerna.reactor.panel.sort.AddPanelSortReactor;
 import prerna.reactor.panel.sort.SetPanelSortReactor;
 import prerna.reactor.panel.sort.UnsortPanelReactor;
-import prerna.reactor.planner.GraphPlanReactor;
 import prerna.reactor.project.AddDefaultInsightsReactor;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.reactor.qs.DistinctReactor;
@@ -360,8 +359,6 @@ import prerna.reactor.task.modifiers.FlatMapLambdaReactor;
 import prerna.reactor.task.modifiers.ToNumericTypeReactor;
 import prerna.reactor.task.modifiers.ToUrlTypeReactor;
 import prerna.reactor.task.modifiers.TransposeRowsReactor;
-import prerna.reactor.tax.RetrieveValue;
-import prerna.reactor.tax.StoreValue;
 import prerna.reactor.test.LSASpaceColumnLearnedReactor;
 import prerna.reactor.test.RunLSILearnedReactor;
 import prerna.reactor.utils.AddOperationAliasReactor;
@@ -943,11 +940,6 @@ public class ReactorFactory {
 		reactorHash.put("RunMatrixRegression", RunMatrixRegressionReactor.class);
 		reactorHash.put("RunClassification", RunClassificationReactor.class);
 		reactorHash.put("RunAssociatedLearning", RunAssociatedLearningReactor.class);
-
-		// In mem storage of data
-		reactorHash.put("StoreValue", StoreValue.class);
-		reactorHash.put("RetrieveValue", RetrieveValue.class);
-		reactorHash.put("GraphPlan", GraphPlanReactor.class);
 
 		// App Metadata
 //		reactorHash.put("MyApps", MyAppsReactor.class);

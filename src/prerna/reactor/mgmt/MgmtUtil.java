@@ -27,13 +27,14 @@
  *******************************************************************************/
 package prerna.reactor.mgmt;
 
-import java.io.File;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,9 +57,6 @@ public class MgmtUtil {
 	static GlobalMemory gm = si.getHardware().getMemory();
 	static AtomicLong freeMemory = new AtomicLong(-1);
 	static AtomicLong userCount = new AtomicLong(0);
-
-	private static final String TEMP_FOLDER = (Utility.getBaseFolder() + "/" + "R" + "/" + "Temp" + "/").replace('\\',
-			'/');
 
 	public static void diskUtilizationPerProcess(int pid) {
 		/**
@@ -153,55 +151,74 @@ public class MgmtUtil {
 		return gm.getTotal();
 	}
 
-	public static int getPidByPort(int port) {
-//		SecurityManager priorManager = System.getSecurityManager();
-//		System.setSecurityManager(null);
-		File tempFile = new File(TEMP_FOLDER + Utility.getRandomString(12) + ".txt");
+	/**
+	 * Returns the ids of the processes listening on a port, read from the output of
+	 * netstat on Windows and lsof elsewhere.
+	 *
+	 * @param port the port
+	 * @return the process ids, empty when nothing listens on the port or they
+	 *         cannot be read
+	 */
+	public static List<Integer> getPidsByPort(int port) {
+		List<String> command = SystemUtils.IS_OS_WINDOWS ? List.of("netstat", "-ano")
+				: List.of("lsof", "-t", "-i:" + port, "-sTCP:LISTEN");
+		List<Integer> pids = new ArrayList<>();
 		try {
-			if (SystemUtils.IS_OS_WINDOWS) {
-
-				// Dump the output of netstat to a file
-				ProcessBuilder pbNetstat = new ProcessBuilder("netstat", "-ano");
-				pbNetstat.redirectOutput(tempFile);
-				Process processNetstat = pbNetstat.start();
-				processNetstat.waitFor(7L, TimeUnit.SECONDS);
-
-				// Parse netstat output to get the PIDs of processes running on Rserve's port
-				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
-				List<String> pids = lines.stream().filter(l -> l.contains("LISTENING")) // Only grab processes in
-																						// LISTENING state
-						.map(l -> l.trim().split("\\s+")) // Trim the empty characters and split into rows
-						.filter(r -> r[1].contains(":" + port)) // Only use those that are listening on the right port
-						.map(r -> r[4]) // Grab the pid
-						.collect(Collectors.toList());
-				for (String pid : pids) {
-					return Integer.parseInt(pid.trim());
+			Process process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+			List<String> lines;
+			try (BufferedReader reader = process.inputReader(StandardCharsets.UTF_8)) {
+				lines = reader.lines().toList();
+			}
+			process.waitFor(7L, TimeUnit.SECONDS);
+			for (String line : lines) {
+				String pid = SystemUtils.IS_OS_WINDOWS ? getWindowsListenerPid(line, port) : line.trim();
+				if (pid == null || pid.isEmpty()) {
+					continue;
 				}
-
-			} else {
-
-				// Dump the output of lsof to a file
-				ProcessBuilder pbLsof = new ProcessBuilder("lsof", "-t", "-i:" + port, "-sTCP:LISTEN");
-				pbLsof.redirectOutput(tempFile);
-				Process processLsof = pbLsof.start();
-				processLsof.waitFor(7L, TimeUnit.SECONDS);
-
-				// Parse lsof output to get the PIDs of processes (in this case each line is
-				// just the pid)
-				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
-				for (String pid : lines) {
-					return Integer.parseInt(pid.trim());
+				try {
+					pids.add(Integer.parseInt(pid));
+				} catch (NumberFormatException e) {
+					classLogger.warn("Skipping '{}', which is not a process id, in the listeners of port {}",
+							Utility.cleanLogString(pid), port);
 				}
 			}
-		} catch (Exception e) {
-			classLogger.error("Failed to find the process listening on port {}", port, e);
-		} finally {
-			tempFile.delete();
-
-			// Restore the prior security manager
-//			System.setSecurityManager(priorManager);
+		} catch (IOException e) {
+			classLogger.error("Failed to find the processes listening on port {}", port, e);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			classLogger.error("Interrupted while finding the processes listening on port {}", port, e);
 		}
-		return -1;
+		return pids;
+	}
+
+	/**
+	 * Returns the id of the first process listening on a port.
+	 *
+	 * @param port the port
+	 * @return the process id, or -1 when nothing listens on the port
+	 */
+	public static int getPidByPort(int port) {
+		List<Integer> pids = getPidsByPort(port);
+		return pids.isEmpty() ? -1 : pids.get(0);
+	}
+
+	/**
+	 * Returns the process id in a line of Windows netstat output when the line is a
+	 * listener on the port.
+	 *
+	 * @param line the netstat line
+	 * @param port the port
+	 * @return the process id, or null when the line is not a listener on the port
+	 */
+	private static String getWindowsListenerPid(String line, int port) {
+		if (!line.contains("LISTENING")) {
+			return null;
+		}
+		String[] columns = line.trim().split("\\s+");
+		if (columns.length < 5 || !columns[1].endsWith(":" + port)) {
+			return null;
+		}
+		return columns[4];
 	}
 
 	public static void removeMemory4User(long memoryInGigs) {
@@ -225,22 +242,5 @@ public class MgmtUtil {
 	public static long getUserCount() {
 		return userCount.longValue();
 	}
-
-//	public static void main(String[] args) {
-//		// TODO Auto-generated method stub
-//		int pid=9696;
-//		pid = 7672;
-//		printChild(pid);
-//		
-//		getFreeMemory();
-//		
-//		/*
-//        for (int i = 0; i < 10; i++) {
-//            diskUtilizationPerProcess(pid);
-//            memoryUtilizationPerProcess(pid);
-//            Util.sleep(5000);
-//        }
-//        */
-//    }
 
 }

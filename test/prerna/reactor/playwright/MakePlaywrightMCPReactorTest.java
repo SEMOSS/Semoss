@@ -55,6 +55,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -63,6 +64,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -185,6 +187,7 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 				MockedStatic<Utility> utilityMock = Mockito.mockStatic(Utility.class);
 				MockedStatic<PlaywrightUtility> playwrightUtility = Mockito.mockStatic(PlaywrightUtility.class);
 				MockedStatic<AssetUtility> assetUtility = Mockito.mockStatic(AssetUtility.class);
+				MockedStatic<EngineUtility> engineUtility = Mockito.mockStatic(EngineUtility.class);
 				MockedStatic<MCPUtility> mcpUtility = Mockito.mockStatic(MCPUtility.class, Mockito.CALLS_REAL_METHODS);
 				MockedStatic<GitRepoUtils> gitRepoUtils = Mockito.mockStatic(GitRepoUtils.class);
 				MockedStatic<ClusterUtil> clusterUtil = Mockito.mockStatic(ClusterUtil.class)) {
@@ -192,11 +195,12 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 			securityUtils.when(() -> SecurityProjectUtils.userCanEditProject(user, projectId)).thenReturn(true);
 			utilityMock.when(() -> Utility.getProject(projectId)).thenReturn(project);
 			playwrightUtility.when(() -> PlaywrightUtility.initRecordingsDir(projectId)).thenReturn(recordingsDir);
+			playwrightUtility.when(() -> PlaywrightUtility.readStepsEnvelope(any(File.class))).thenCallRealMethod();
 			assetUtility.when(() -> AssetUtility.getProjectAssetsFolder(projectId)).thenReturn(assetsDir.toString());
-			assetUtility.when(() -> AssetUtility.getProjectVersionFolder(projectName, projectId))
-					.thenReturn(versionDir.toString());
-			assetUtility.when(() -> AssetUtility.getProjectAssetsFolder(projectName, projectId))
-					.thenReturn(assetsDir.toString());
+			engineUtility.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
+					projectId, projectName)).thenReturn(versionDir.toString());
+			engineUtility.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
+					projectId, projectName)).thenReturn(assetsDir.toString());
 			mcpUtility.when(() -> MCPUtility.addMCPTag(project)).then(invocation -> null);
 
 			gitRepoUtils.when(() -> GitRepoUtils.addSpecificFiles(anyString(), anyList())).then(invocation -> null);

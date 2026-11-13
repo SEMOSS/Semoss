@@ -33,8 +33,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -64,7 +65,7 @@ public class AppTokens extends AbstractValueObject {
 	private static AccessToken googAppToken = null;
 
 	// need to have an access token store
-	private Hashtable<AuthProvider, AccessToken> accessTokens = new Hashtable<AuthProvider, AccessToken>();
+	private Map<AuthProvider, AccessToken> accessTokens = new ConcurrentHashMap<>();
 
 	private AppTokens() {
 

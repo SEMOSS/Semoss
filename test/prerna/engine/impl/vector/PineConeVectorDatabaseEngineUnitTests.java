@@ -497,7 +497,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 						assertEquals(testModality, metadata.get(VectorDatabaseCSVTable.MODALITY));
 						assertEquals(testDivider, metadata.get(VectorDatabaseCSVTable.DIVIDER));
 						assertEquals(testPart, metadata.get(VectorDatabaseCSVTable.PART));
-						assertEquals(testTokens, ((Double)metadata.get(VectorDatabaseCSVTable.TOKENS)).intValue());
+						assertEquals(Long.valueOf(testTokens), metadata.get(VectorDatabaseCSVTable.TOKENS));
 						assertEquals(testContent, metadata.get(VectorDatabaseCSVTable.CONTENT));
 						assertEquals(testScore, metadata.get("Score"));
 						assertEquals(testId, metadata.get("Id"));

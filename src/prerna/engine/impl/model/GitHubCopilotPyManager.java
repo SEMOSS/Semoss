@@ -35,7 +35,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.text.StringSubstitutor;
@@ -81,8 +80,7 @@ public class GitHubCopilotPyManager {
 
 	protected PyTranslator pyTranslator = null;
 	protected File cacheFolder;
-	private ClientProcessWrapper cpw = null;
-	private final ReentrantLock startServerLock = new ReentrantLock();
+	private final ClientProcessWrapper cpw = new ClientProcessWrapper();
 
 	protected String varName = null;
 	protected Map<String, String> vars = new HashMap<>();
@@ -149,7 +147,7 @@ public class GitHubCopilotPyManager {
 		// register this CLI sidecar socket for the current jobId so stop($JOB_ID) can
 		// route the interrupt opcode here
 		String jobId = ThreadStore.getJobId();
-		AgentCliSocketRegistry.register(jobId, cpw != null ? cpw.getSocketClient() : null);
+		AgentCliSocketRegistry.register(jobId, cpw.getSocketClient());
 		try {
 			Object output = pyTranslator.runDirectPyNoCancelTrace(insight, queryScript);
 			return String.valueOf(output);
@@ -250,95 +248,75 @@ public class GitHubCopilotPyManager {
 
 	// Sidecar process plumbing - copied from ClaudeCodeManager.
 
+	/**
+	 * Starts the python sidecar for the GitHub Copilot agent, runs the init script
+	 * and sends it the process prefix. Called through
+	 * {@link ClientProcessWrapper#getOrStartSocketClient(Runnable)}, which holds
+	 * the wrapper's create lock, when the process is not running.
+	 *
+	 * @param port       the port to connect on; negative to auto-allocate
+	 * @param initScript the python commands that set up the sidecar
+	 */
 	protected void startServer(int port, String initScript) {
-		this.startServerLock.lock();
+		if (this.workingDirectoryBasePath == null) {
+			this.createCacheFolder();
+		}
+
+		String timeout = "30";
+
+		boolean debug = false;
+		String forcePort = null;
+
+		if (port < 0) {
+			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+				try {
+					port = Integer.parseInt(forcePort);
+					debug = true;
+				} catch (NumberFormatException e) {
+					classLogger.warn("GitHub Copilot Py has an invalid FORCE_PORT value");
+				}
+			}
+		}
+
+		String serverDirectory = this.cacheFolder.getAbsolutePath();
 		try {
-			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-				return;
+			this.cpw.createProcessAndClient(true, null, port, null, serverDirectory, debug, timeout, "INFO");
+		} catch (Exception e) {
+			classLogger.error("Failed to create python process for GitHub Copilot Py agent", e);
+			throw new IllegalArgumentException("Unable to connect to server for python GitHub Copilot Py Agent.");
+		}
+
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(this.cpw.getSocketClient(), processInsight);
+
+		try {
+			String[] commands = initScript.split(PyUtils.PY_COMMAND_SEPARATOR);
+			for (int i = 0; i < commands.length; i++) {
+				commands[i] = fillVars(commands[i]);
 			}
-			if (this.workingDirectoryBasePath == null) {
-				this.createCacheFolder();
-			}
-
-			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-			if (this.cpw != null) {
-				this.cpw.shutdown(false);
-			}
-
-			String timeout = "30";
-
-			if (cpwToInit.getSocketClient() == null) {
-				boolean debug = false;
-				String forcePort = null;
-
-				if (port < 0) {
-					if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-						try {
-							port = Integer.parseInt(forcePort);
-							debug = true;
-						} catch (NumberFormatException e) {
-							classLogger.warn("GitHub Copilot Py has an invalid FORCE_PORT value");
-						}
-					}
-				}
-
-				String serverDirectory = this.cacheFolder.getAbsolutePath();
-				try {
-					cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, debug, timeout, "INFO");
-				} catch (Exception e) {
-					classLogger.error("Failed to create python process for GitHub Copilot Py agent", e);
-					throw new IllegalArgumentException(
-							"Unable to connect to server for python GitHub Copilot Py Agent.");
-				}
-			} else if (!cpwToInit.getSocketClient().isConnected()) {
-				cpwToInit.shutdown(false);
-				try {
-					cpwToInit.reconnect();
-				} catch (Exception e) {
-					classLogger.error("Failed to reconnect python process for GitHub Copilot Py agent", e);
-					throw new IllegalArgumentException("Failed to start TCP Server for GitHub Copilot Py Agent: {}", e);
-				}
-			}
-
-			Insight processInsight = new Insight();
-			InsightStore.getInstance().put(processInsight);
-			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-			try {
-				String[] commands = initScript.split(PyUtils.PY_COMMAND_SEPARATOR);
-				for (int i = 0; i < commands.length; i++) {
-					commands[i] = fillVars(commands[i]);
-				}
-				this.pyTranslator.runEmptyPyNoCancelTrace(commands);
-				classLogger.info("Initializing GitHub Copilot Py python process with commands >>> {}",
-						String.join("\n", commands));
-				setPrefix(cpwToInit);
-				this.cpw = cpwToInit;
-			} catch (Exception e) {
-				classLogger.error("Failed to initialize GitHub Copilot Py python process with startup commands", e);
-				if (cpwToInit != null) {
-					classLogger.warn("Started python process for GitHub Copilot Py but the init script failed");
-					cpwToInit.shutdown(false);
-				}
-				throw e;
-			}
-		} finally {
-			this.startServerLock.unlock();
+			this.pyTranslator.runEmptyPyNoCancelTrace(commands);
+			classLogger.info("Initializing GitHub Copilot Py python process with commands >>> {}",
+					String.join("\n", commands));
+			setPrefix();
+		} catch (Exception e) {
+			classLogger.error("Failed to initialize GitHub Copilot Py python process with startup commands", e);
+			classLogger.warn("Started python process for GitHub Copilot Py but the init script failed");
+			this.cpw.shutdown(false);
+			throw e;
 		}
 	}
 
 	protected void checkSocketStatus(String initScript) {
-		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1, initScript);
-		}
+		this.cpw.getOrStartSocketClient(() -> startServer(-1, initScript));
 	}
 
-	private void setPrefix(ClientProcessWrapper cpwToInit) {
-		this.prefix = cpwToInit.getPrefix();
+	private void setPrefix() {
+		this.prefix = this.cpw.getPrefix();
 		PayloadStruct prefixPayload = new PayloadStruct();
 		prefixPayload.payload = new String[] { "prefix", this.prefix };
 		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
-		cpwToInit.getSocketClient().executeCommand(prefixPayload);
+		this.cpw.getSocketClient().executeCommand(prefixPayload);
 	}
 
 	private void createCacheFolder() {
