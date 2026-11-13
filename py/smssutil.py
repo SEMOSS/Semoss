@@ -24,7 +24,7 @@ def _ensure_home_dir() -> None:
 def get_document_markdown(
     file_path: str | os.PathLike,
     *,
-    max_file_bytes: int = 20 * 1024 * 1024,
+    max_file_bytes: int = 100 * 1024 * 1024,
     max_pages: int = 200,
     max_chars: int = 1_000_000,
 ) -> str:
