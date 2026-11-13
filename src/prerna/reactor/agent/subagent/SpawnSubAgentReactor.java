@@ -80,14 +80,16 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 	 * own roomId / jobId). Default: false -> child uses its own room folder.
 	 */
 	private static final String INHERIT_PARENT_WORKDIR_KEY = "inherit_parent_workdir";
+	// Issue 3857: a short job label (a few words) the model sets so the UI shows a real name.
+	private static final String LABEL_KEY = "label";
 	private static final Gson GSON = new Gson();
 
 	public SpawnSubAgentReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROMPT.getKey(), ALIAS_KEY,
 				ReactorKeysEnum.WORKSPACE_ID.getKey(), CONTEXT_KEY, ReactorKeysEnum.ENGINE.getKey(), HARNESS_TYPE_KEY,
 				ReactorKeysEnum.ROOM_ID.getKey(), // room defaults to insight's current room
-				INHERIT_PARENT_WORKDIR_KEY };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0 };
+				INHERIT_PARENT_WORKDIR_KEY, LABEL_KEY };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -102,6 +104,7 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 		String roomId = StringUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
 		boolean inheritParentWorkdir = Boolean
 				.parseBoolean(StringUtils.trimToEmpty(this.keyValue.get(INHERIT_PARENT_WORKDIR_KEY)));
+		String label = StringUtils.trimToNull(this.keyValue.get(LABEL_KEY));
 
 		if (prompt == null || prompt.trim().isEmpty()) {
 			throw new IllegalArgumentException("prompt is required for SpawnSubAgent");
@@ -132,6 +135,7 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 		req.parentJobId = ThreadStore.getJobId();
 		req.parentRoomId = roomId;
 		req.alias = alias;
+		req.label = label;
 		req.workspaceId = workspaceId;
 		req.prompt = prompt;
 		req.additionalContext = context;
@@ -177,6 +181,8 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 						"The name of the agent harness the subagent runs with; semoss when not given. An unknown name is rejected.")
 				.key(INHERIT_PARENT_WORKDIR_KEY, key -> key.type(Boolean.class).description(
 						"When true, the subagent works in the parent room's working directory instead of its own room folder; false when not given."))
+				.key(LABEL_KEY,
+						"A short, human-readable name for the subagent's job, a few words only, shown to the user as the subagent's name in the chat. When not given, the subagent's configured name is used.")
 				.key(ReactorKeysEnum.ROOM_ID,
 						"The parent room to spawn the subagent from; the calling insight's current room when not given.");
 	}
