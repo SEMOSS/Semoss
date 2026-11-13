@@ -763,8 +763,8 @@ public final class AgentRunService {
 		streams.markTerminal(runId);
 		SubAgentMeta meta = AgentSubAgentRegistry.getManager().lookup(runId);
 		if (meta != null && meta.getParentJobId() != null && !meta.getParentJobId().isBlank()) {
-			Map<String, Object> item = AgentStreamItems.subagentItem(runId, meta.getAlias(), meta.getChildRoomId(),
-					meta.getWorkspaceId(), AgentRunStatus.CANCELLED.name());
+			Map<String, Object> item = AgentStreamItems.subagentItem(runId, meta.getAlias(), meta.getLabel(),
+					meta.getChildRoomId(), meta.getWorkspaceId(), AgentRunStatus.CANCELLED.name());
 			item.put("error", AgentStreamItems.truncate(message, AgentStreamItems.MAX_RESULT_PREVIEW_CHARS));
 			streams.publishSubagentCompleted(meta.getParentJobId(), item);
 		}

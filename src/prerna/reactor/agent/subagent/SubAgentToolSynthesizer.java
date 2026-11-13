@@ -134,6 +134,8 @@ public final class SubAgentToolSynthesizer {
         properties.put("prompt", schemaString(
                 "Task, instructions, and all task-specific context or data for the "
                         + spec.getAlias() + " subagent. The named subagent always uses its configured system prompt."));
+        properties.put("label", schemaString(
+                "A concise, human-readable name for this specific task, a few words based on the prompt. Set this when spawning."));
         properties.put("inherit_parent_workdir", schemaBool(
                 "When true, the subagent operates on YOUR resolved working directory (shared filesystem -- any "
                         + "WriteFile/EditFile calls land in YOUR working directory). Stream + history stay isolated. "
@@ -151,9 +153,10 @@ public final class SubAgentToolSynthesizer {
         inputSchema.put("required", Collections.singletonList("prompt"));
 
         String description = spec.getDescription() != null && !spec.getDescription().isBlank()
-                ? spec.getDescription() + " (Returns a jobId handle; completionMode says how the result comes back.)"
+                ? spec.getDescription() + " Set label to a concise name for this task. "
+                        + "(Returns a jobId handle; completionMode says how the result comes back.)"
                 : "Delegate to the '" + spec.getAlias() + "' subagent. Returns a jobId handle; completionMode says "
-                        + "how the result comes back.";
+                        + "how the result comes back. Set label to a concise name for this task.";
 
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", spec.getAlias());
@@ -175,6 +178,8 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("prompt", schemaString(
                 "Task / instructions for the spawned anonymous subagent."));
+        properties.put("label", schemaString(
+                "A concise, human-readable name for this specific task, a few words based on the prompt. Set this when spawning."));
         properties.put("context", schemaString(
                 "Optional override system prompt for the spawned subagent."));
         properties.put("inherit_parent_workdir", schemaBool(
@@ -197,6 +202,7 @@ public final class SubAgentToolSynthesizer {
         tool.put("name", TOOL_SPAWN_SUBAGENT);
         tool.put("description",
                 "Spawn an anonymous subagent (clone of yourself: same model, MCP tools, system prompt). "
+                        + "Set label to a concise name for the task. "
                         + "Returns a jobId handle IMMEDIATELY. With the default completionMode=WAIT, call "
                         + "WaitForSubAgent(jobId) to collect the final answer. "
                         + "You may spawn multiple subagents in parallel before waiting on any.");
