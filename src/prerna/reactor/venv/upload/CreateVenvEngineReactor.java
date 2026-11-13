@@ -64,8 +64,10 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateVenvEngineReactor.class);
 
+	private static final String CATALOG_NAME_KEYS = ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.VENV.getKey();
+
 	public CreateVenvEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.VENV.getKey(), ReactorKeysEnum.VENV_DETAILS.getKey(),
+		this.keysToGet = new String[] { CATALOG_NAME_KEYS, ReactorKeysEnum.VENV_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
@@ -188,15 +190,12 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getVenvName() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VENV.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if (strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
+		List<String> strValues = getListStringForAliasedKey(CATALOG_NAME_KEYS);
+		if (!strValues.isEmpty()) {
+			return strValues.get(0).trim();
 		}
 
-		List<String> strValues = this.curRow.getAllStrValues();
+		strValues = this.curRow.getAllStrValues();
 		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}

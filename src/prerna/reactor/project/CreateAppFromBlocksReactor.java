@@ -71,7 +71,8 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 	 * template are also copied to the new project
 	 */
 	public CreateAppFromBlocksReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.GLOBAL.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.GLOBAL.getKey(),
 				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.JSON.getKey() };
 	}
 
@@ -80,9 +81,9 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		organizeKeys();
-		int index = 0;
+		int index = 1;
 
-		String newProjectName = this.keyValue.get(this.keysToGet[index++]);
+		String newProjectName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 		// if project name is not valid, throw error
 		if (!Utility.validateName(newProjectName)) {
 			// error and redirect to try again
@@ -166,7 +167,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		return super.getReactorDefinition().description(
 				"Creates a new BLOCKS app with the given name from a blocks JSON, commits the JSON as the app's first version, and returns the new app's details.")
 				.key(ReactorKeysEnum.GLOBAL, key -> key.type(Boolean.class))
-				.key(ReactorKeysEnum.PROJECT,
+				.key(ReactorKeysEnum.CATALOG_NAME,
 						"The name for this project. Note: the project ID is randomly generated and is not passed into this method")
 				.key(ReactorKeysEnum.PROVIDER,
 						"The GIT provider - user must be logged in with this provider for credentials")

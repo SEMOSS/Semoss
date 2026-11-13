@@ -79,7 +79,7 @@ class CreateProjectReactorTest {
 	}
 
 	private void setKeys(String name, String projectType) {
-		reactor.keyValue.put(ReactorKeysEnum.PROJECT.getKey(), name);
+		reactor.keyValue.put(ReactorKeysEnum.CATALOG_NAME.getKey(), name);
 		if (projectType != null) {
 			reactor.keyValue.put(ReactorKeysEnum.PROJECT_TYPE.getKey(), projectType);
 		}

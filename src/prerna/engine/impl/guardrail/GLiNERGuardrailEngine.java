@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.sablecc2.om.GenRowStruct;
@@ -132,7 +133,8 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 			threshold = Double.parseDouble(keyValue.get(this.keysToGet[2]));
 		}
 
-		String script = "model.predict_entities(\"\"\"" + prompt + "\"\"\", " + new Gson().toJson(labels) + ")";
+		String script = "model.predict_entities(" + PyUtils.determineStringType(prompt) + ", "
+				+ PyUtils.determineStringType(labels) + ")";
 		List<Map<String, Object>> predictions = (List<Map<String, Object>>) pyTranslator
 				.runDirectPyNoCancelTrace(script);
 		boolean pass = true;
@@ -231,7 +233,7 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 	protected String getStartupScript() {
 		// @formatter:off
 		return "from gliner import GLiNER\n" 
-				+ "model = GLiNER.from_pretrained(\"" + this.modelName + "\")";
+				+ "model = GLiNER.from_pretrained(" + PyUtils.determineStringType(this.modelName) + ")";
 		// @formatter:on
 	}
 
@@ -247,7 +249,7 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 
 				This guardrail detects named entities with the configured GLiNER model. Any entity whose score is greater than the threshold fails the check. Its returned prompt replaces flagged spans with `MASK_TEMPLATE`, which defaults to `[{label}]`.
 
-				`MODEL_NAME` is required in the guardrail SMSS. `NER_LABELS` may hold the default JSON label list, while `DEFAULT_THRESHOLD` and `MASK_TEMPLATE` control matching and replacement. Labels and the threshold can also be supplied by a pipeline for a specific use case.
+				`MODEL_NAME` is required in the guardrail SMSS: the Hugging Face repository of the GLiNER model to load, for example `urchade/gliner_multi-v2.1`. `NER_LABELS` may hold the default JSON label list, while `DEFAULT_THRESHOLD` and `MASK_TEMPLATE` control matching and replacement. Labels and the threshold can also be supplied by a pipeline for a specific use case.
 
 				## Example: mask sensitive entities before model inference
 

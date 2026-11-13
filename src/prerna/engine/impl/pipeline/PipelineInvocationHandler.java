@@ -229,7 +229,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				newMdc.put(SemossLogUtils.PROJECT_NAME, insight.getContextProjectName());
 				newMdc.put(SemossLogUtils.ROOM_ID, insight.getRoomId());
 			}
-			// the request context has no user off a browser request (pooled threads, jobs, routine steps): name the
+			// the request context has no user off a browser request (pooled threads, jobs,
+			// routine steps): name the
 			// caller from the call's own insight so the audit log shows who it was
 			callerContext(newMdc, contextInsight(args));
 		}
@@ -738,29 +739,33 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	}
 
 	/**
-	 * 
-	 * @param pipelineFile
-	 * @return
+	 * Read an engine's pipeline configuration. A missing file is an engine with no
+	 * guardrails, since a new engine names its pipeline.json before any guardrail
+	 * is configured. A file that exists but cannot be read holds guardrails that
+	 * cannot be applied, so the engine is refused rather than run without them.
+	 *
+	 * @param pipelineFile the engine's pipeline.json
+	 * @return the file's contents, or an empty string when there is no file
+	 * @throws IllegalStateException when the file exists but cannot be read
 	 */
 	private static String getJsonData(File pipelineFile) {
 		if (pipelineFile == null || !pipelineFile.exists() || !pipelineFile.isFile()) {
 			return "";
 		}
-		String jsonString = null;
 		try {
-			jsonString = FileUtils.readFileToString(pipelineFile, "UTF-8");
+			return FileUtils.readFileToString(pipelineFile, "UTF-8");
 		} catch (IOException e) {
-			classLogger.error(
-					"Unable to read pipeline configuration file '{}'; pipeline interceptors will not be loaded.",
-					pipelineFile.getAbsolutePath(), e);
+			classLogger.error("Unable to read pipeline configuration file '{}': {}", pipelineFile.getAbsolutePath(),
+					e.getMessage(), e);
+			throw new IllegalStateException(
+					"Unable to read the guardrail configuration for this engine, so it will not run without its guardrails",
+					e);
 		}
-		return jsonString;
 	}
 
 	private static boolean isEngineLoggerConfigured() {
 		try {
-			LoggerContext context = (LoggerContext) LogManager.getContext(false);
-			Configuration config = context.getConfiguration();
+			Configuration config = ((LoggerContext) LogManager.getContext(false)).getConfiguration();
 			LoggerConfig engineLoggerConfig = config.getLoggerConfig("EngineLogger");
 			return engineLoggerConfig != null && "EngineLogger".equals(engineLoggerConfig.getName());
 		} catch (Exception e) {
@@ -944,8 +949,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param args the call's arguments
 	 * @return the insight, or null when there is none
 	 */
-	// fills user id, type and name when the context lacks them or has the UNKNOWN placeholder
 	static void callerContext(Map<String, String> mdc, Insight insight) {
+		// fills user id, type and name when the context lacks them or has the UNKNOWN
+		// placeholder
 		User user = insight == null ? null : insight.getUser();
 		if (user == null || user.getPrimaryLogin() == null) {
 			return;
