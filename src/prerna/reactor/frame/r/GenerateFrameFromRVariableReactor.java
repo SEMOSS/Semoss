@@ -69,7 +69,7 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 		if (getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true)) {
-			this.insight.setDataMaker(newTable);
+			this.insight.setCurrentFrame(newTable);
 		}
 		// add the alias as a noun by default
 		if (varName != null && !varName.isEmpty()) {

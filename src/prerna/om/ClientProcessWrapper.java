@@ -62,6 +62,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.base.Strings;
 import com.google.gson.GsonBuilder;
 
+import prerna.tcp.SocketServer;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
@@ -78,8 +79,8 @@ public class ClientProcessWrapper {
 	private static final Logger pyLogger = LogManager.getLogger(Constants.PY_LOGGER_NAME);
 
 	private static final String ENGINE_OWNED_FLAG = "--engine_owned";
-	private static final String[] NAMESPACE_DEFAULT_RO_PATHS = new String[] { "/usr", "/bin", "/sbin", "/lib",
-			"/lib64", "/lib32", "/libx32", "/etc" };
+	private static final String[] NAMESPACE_DEFAULT_RO_PATHS = new String[] { "/usr", "/bin", "/sbin", "/lib", "/lib64",
+			"/lib32", "/libx32", "/etc" };
 
 	// After spawning a python server process, poll briefly to catch an immediate
 	// crash (import / syntax errors surface within a few ms) without blocking long
@@ -94,14 +95,6 @@ public class ClientProcessWrapper {
 	// clear error instead of blocking the caller forever.
 	private static final long SOCKET_CLIENT_READY_WAIT_INTERVAL_MS = 1_000L;
 	private static final long SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS = 60_000L;
-
-	// Fallback classpath entries for the spawned SocketServer worker, used when the
-	// caller does not pass an explicit cp.
-	private static final String[] DEFAULT_CP_ENTRIES = new String[] { "fst-3.0.4-jdk17.jar", "objenesis-3.3.jar",
-			"javassist-3.30.2-GA.jar", "log4j-api-2.25.4.jar", "log4j-core-2.25.4.jar", "gson-2.13.2.jar",
-			"jackson-core-2.22.0.jar", "commons-io-2.21.0.jar", "commons-lang3-3.20.0.jar",
-			"jakarta.ws.rs-api-4.0.0.jar", "netty-handler-4.1.137.Final.jar", "netty-common-4.1.137.Final.jar",
-			"netty-buffer-4.1.137.Final.jar", "netty-transport-4.1.137.Final.jar", "classes" };
 
 	private final ReentrantLock lockCreate = new ReentrantLock();
 	private final ReentrantLock lockDestroy = new ReentrantLock();
@@ -127,7 +120,6 @@ public class ClientProcessWrapper {
 	// the same JSON protocol, so it reuses NativePySocketClient.
 	private boolean nodeServer = false;
 	private SymlinkHelper chrootSymlinkHelper;
-	private String classPath;
 	private boolean debug;
 	private String timeout;
 	private String loggerLevel;
@@ -145,7 +137,7 @@ public class ClientProcessWrapper {
 
 	/**
 	 * Convenience overload of
-	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, String, boolean, String, String, Map)}
+	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, boolean, String, String, Map)}
 	 * that uses an empty thread-logger context.
 	 *
 	 * @param nativePyServer      true to launch the native Python TCP server
@@ -158,8 +150,6 @@ public class ClientProcessWrapper {
 	 * @param venvPath            path to the Python venv executable, or null to use
 	 *                            the configured base Python
 	 * @param serverDirectory     working/scratch directory for the server process
-	 * @param classPath           classpath override for the Java server, or null
-	 *                            for the default
 	 * @param debug               true to attach to an already-running server on the
 	 *                            given port instead of spawning one
 	 * @param timeout             idle timeout in minutes (null/"-1" for none)
@@ -168,10 +158,10 @@ public class ClientProcessWrapper {
 	 *                   becomes ready
 	 */
 	public void createProcessAndClient(boolean nativePyServer, SymlinkHelper chrootSymlinkHelper, int port,
-			String venvPath, String serverDirectory, String classPath, boolean debug, String timeout,
-			String loggerLevel) throws Exception {
-		this.createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath,
-				debug, timeout, loggerLevel, new HashMap<>());
+			String venvPath, String serverDirectory, boolean debug, String timeout, String loggerLevel)
+			throws Exception {
+		this.createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, debug,
+				timeout, loggerLevel, new HashMap<>());
 	}
 
 	/**
@@ -192,8 +182,6 @@ public class ClientProcessWrapper {
 	 * @param venvPath            path to the Python venv executable, or null to use
 	 *                            the configured base Python
 	 * @param serverDirectory     working/scratch directory for the server process
-	 * @param classPath           classpath override for the Java server, or null
-	 *                            for the default
 	 * @param debug               true to attach to an already-running server on the
 	 *                            given port instead of spawning one
 	 * @param timeout             idle timeout in minutes (null/"-1" for none)
@@ -204,13 +192,12 @@ public class ClientProcessWrapper {
 	 *                   becomes ready
 	 */
 	public void createProcessAndClient(boolean nativePyServer, SymlinkHelper chrootSymlinkHelper, int port,
-			String venvPath, String serverDirectory, String classPath, boolean debug, String timeout,
-			String loggerLevel, Map<String, String> threadLoggerCtx) throws Exception {
+			String venvPath, String serverDirectory, boolean debug, String timeout, String loggerLevel,
+			Map<String, String> threadLoggerCtx) throws Exception {
 		lockCreate.lock();
 		try {
 			this.nativePyServer = nativePyServer;
 			this.chrootSymlinkHelper = chrootSymlinkHelper;
-			this.classPath = classPath;
 			this.port = calculatePort(port);
 			this.venvPath = venvPath;
 			this.serverDirectory = serverDirectory;
@@ -306,13 +293,12 @@ public class ClientProcessWrapper {
 						}
 						ClientProcessWrapper.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
 
-						this.process = ClientProcessWrapper.startTCPServerChroot(classPath,
+						this.process = ClientProcessWrapper.startTCPServerChroot(
 								this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port + "");
 					} else {
 						// write the log4j file in the server directory
 						ClientProcessWrapper.writeLogConfigurationFile(this.serverDirectory);
-						this.process = ClientProcessWrapper.startTCPServer(classPath, this.serverDirectory,
-								this.port + "");
+						this.process = ClientProcessWrapper.startTCPServer(this.serverDirectory, this.port + "");
 					}
 				}
 			}
@@ -473,8 +459,8 @@ public class ClientProcessWrapper {
 			createNodeProcessAndClient(port, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
 			return;
 		}
-		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug,
-				timeout, loggerLevel, threadLoggerCtx);
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, debug, timeout,
+				loggerLevel, threadLoggerCtx);
 	}
 
 	/**
@@ -493,8 +479,8 @@ public class ClientProcessWrapper {
 			return;
 		}
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug,
-				timeout, loggerLevel, threadLoggerCtx);
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, debug, timeout,
+				loggerLevel, threadLoggerCtx);
 	}
 
 	/**
@@ -607,18 +593,13 @@ public class ClientProcessWrapper {
 	 * Spawn the Java {@code SocketServer} worker process (via a generated starter
 	 * script), applying the configured memory and ulimit settings.
 	 *
-	 * @param cp            classpath to use, or null for the built-in default jar
-	 *                      list
 	 * @param insightFolder working directory for the process
 	 * @param port          port to bind, or null to omit the port argument
 	 * @return the spawned process, or null if it failed to start
 	 */
-	public static Process startTCPServer(String cp, String insightFolder, String port) {
+	public static Process startTCPServer(String insightFolder, String port) {
 		Process thisProcess = null;
-		if (cp == null) {
-			cp = getDefaultCP();
-		}
-		String specificPath = Utility.getCP(cp, insightFolder);
+		String specificPath = Utility.getCP(insightFolder);
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
@@ -638,10 +619,6 @@ public class ClientProcessWrapper {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
-				tcpWorker = prerna.tcp.SocketServer.class.getName();
-			}
 			List<String> commands = new ArrayList<>();
 			String finalDir = insightFolder.replace("\\", "/");
 			commands.add(java);
@@ -653,7 +630,7 @@ public class ClientProcessWrapper {
 			if (xms != null && xmx != null) {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
 			}
-			Collections.addAll(commands, memory + " -cp", specificPath, tcpWorker, finalDir,
+			Collections.addAll(commands, memory + " -cp", specificPath, SocketServer.class.getName(), finalDir,
 					DIHelper.getInstance().getRDFMapFileLocation());
 			if (port != null) {
 				commands.add(port);
@@ -697,24 +674,19 @@ public class ClientProcessWrapper {
 	}
 
 	/**
-	 * Chroot variant of {@link #startTCPServer(String, String, String)}: spawns the
-	 * Java {@code SocketServer} worker inside the given chroot directory via a
-	 * generated starter script.
+	 * Chroot variant of {@link #startTCPServer(String, String)}: spawns the Java
+	 * {@code SocketServer} worker inside the given chroot directory via a generated
+	 * starter script.
 	 *
-	 * @param cp            classpath to use, or null for the built-in default jar
-	 *                      list
 	 * @param chrootDir     the chroot root the process is launched inside
 	 * @param insightFolder working directory for the process (relative to the
 	 *                      chroot)
 	 * @param port          port to bind, or null to omit the port argument
 	 * @return the spawned process, or null if it failed to start
 	 */
-	public static Process startTCPServerChroot(String cp, String chrootDir, String insightFolder, String port) {
+	public static Process startTCPServerChroot(String chrootDir, String insightFolder, String port) {
 		Process thisProcess = null;
-		if (cp == null) {
-			cp = getDefaultCP();
-		}
-		String specificPath = Utility.getCP(cp, insightFolder);
+		String specificPath = Utility.getCP(insightFolder);
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
@@ -734,10 +706,6 @@ public class ClientProcessWrapper {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
-				tcpWorker = prerna.tcp.SocketServer.class.getName();
-			}
 			List<String> commands = new ArrayList<>();
 			String finalDir = insightFolder.replace("\\", "/");
 			commands.add(java);
@@ -750,7 +718,7 @@ public class ClientProcessWrapper {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
 			}
 
-			Collections.addAll(commands, memory + " -cp", specificPath, tcpWorker, finalDir,
+			Collections.addAll(commands, memory + " -cp", specificPath, SocketServer.class.getName(), finalDir,
 					DIHelper.getInstance().getRDFMapFileLocation());
 			if (port != null) {
 				commands.add(port);
@@ -1024,9 +992,8 @@ public class ClientProcessWrapper {
 				commands.add("PATH=" + sandboxPath);
 			}
 			Collections.addAll(commands, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase,
-					"--insight_folder",
-					finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level", loggerLevel,
-					"--userChrootFolder", chrootDir);
+					"--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level",
+					loggerLevel, "--userChrootFolder", chrootDir);
 			if (engineOwned) {
 				commands.add(ENGINE_OWNED_FLAG);
 			}
@@ -1225,7 +1192,7 @@ public class ClientProcessWrapper {
 	 * Spawn the agent node.js worker (js/gaas_node_worker.js) and connect a socket
 	 * client to it, blocking until the client reports ready. This is the node
 	 * analog of
-	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, String, boolean, String, String, Map)}.
+	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, boolean, String, String, Map)}.
 	 * On non-Windows hosts with {@code SANDBOX_MODE=NAMESPACE} (or legacy
 	 * {@code NSJAIL}) the worker is launched inside its own unprivileged namespace
 	 * jail; otherwise it is launched as a plain child process.
@@ -1250,7 +1217,6 @@ public class ClientProcessWrapper {
 			this.nativePyServer = true;
 			this.nodeServer = true;
 			this.chrootSymlinkHelper = null;
-			this.classPath = null;
 			this.venvPath = null;
 			this.port = calculatePort(port);
 			this.serverDirectory = serverDirectory;
@@ -1817,19 +1783,5 @@ public class ClientProcessWrapper {
 		} catch (IOException e) {
 			classLogger.error("Failed to write the log4j2.properties file for the socket server", e);
 		}
-	}
-
-	/**
-	 * Build the fallback worker classpath from {@link #DEFAULT_CP_ENTRIES}.
-	 *
-	 * <p>
-	 * The separator is cosmetic: {@code Utility.getCP} substring-matches jar names
-	 * against this value rather than splitting it, so the same string works on
-	 * Windows and Linux.
-	 *
-	 * @return the default classpath string for the spawned SocketServer worker
-	 */
-	private static String getDefaultCP() {
-		return String.join(";", DEFAULT_CP_ENTRIES);
 	}
 }

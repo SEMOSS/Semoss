@@ -987,11 +987,6 @@ public class ReactorFactory {
 		// Forms
 		reactorHash.put("UpdateForm", UpdateFormReactor.class);
 
-		// Pixels for legacy playsheets
-		reactorHash.put("RunPlaysheetMethod", prerna.reactor.legacy.playsheets.RunPlaysheetMethodReactor.class);
-		reactorHash.put("RunPlaysheet", prerna.reactor.legacy.playsheets.RunPlaysheetReactor.class);
-		reactorHash.put("GetPlaysheetParams", prerna.reactor.legacy.playsheets.GetPlaysheetParamsReactor.class);
-
 		// LSA
 		reactorHash.put("LSASpaceColumnLearned", LSASpaceColumnLearnedReactor.class);
 		reactorHash.put("RunLSILearned", RunLSILearnedReactor.class);
@@ -1219,7 +1214,7 @@ public class ReactorFactory {
 			}
 		}
 		if (frame == null && insight != null) {
-			frame = (ITableDataFrame) insight.getDataMaker();
+			frame = insight.getCurrentFrame();
 		}
 
 		return getReactor(reactorId, frame, parentReactor);

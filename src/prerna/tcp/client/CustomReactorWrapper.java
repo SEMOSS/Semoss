@@ -48,7 +48,7 @@ public class CustomReactorWrapper extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		sc = this.insight.getUser().getPythonSocketClient(true);
+		sc = this.insight.getUser().getJavaSocketClient(true);
 
 		InsightSerializer is = new InsightSerializer(this.insight);
 		is.serializeInsight(false);
@@ -64,7 +64,7 @@ public class CustomReactorWrapper extends AbstractReactor {
 		ps.insightId = this.insight.getInsightId();
 
 		PayloadStruct retStruct = (PayloadStruct) sc.executeCommand(ps);
-		classLogger.info("Got the response for reactor " + ps.payload[0]);
+		classLogger.info("Got the response for reactor {}", reactorCallName);
 
 		// did we have an error?
 		if (retStruct.ex != null) {

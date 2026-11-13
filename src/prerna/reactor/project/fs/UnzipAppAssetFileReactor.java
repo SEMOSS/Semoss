@@ -29,6 +29,9 @@ package prerna.reactor.project.fs;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+
+import org.json.JSONObject;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -38,10 +41,11 @@ import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
+import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 import prerna.util.git.GitRepoUtils;
@@ -49,8 +53,9 @@ import prerna.util.git.GitRepoUtils;
 public class UnzipAppAssetFileReactor extends AbstractReactor {
 
 	public UnzipAppAssetFileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -82,8 +87,10 @@ public class UnzipAppAssetFileReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Cannot find zip file '" + fileRelativePath + "'");
 		}
 
+		Map<String, String> extractedNames;
 		try {
-			ZipUtils.unzip(zipFileLocation, zipFile.getParent());
+			extractedNames = ZipUtils.unzip(zipFileLocation, zipFile.getParent(),
+					getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false));
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to unzip file. Detailed error = " + e.getMessage());
 		}
@@ -100,7 +107,14 @@ public class UnzipAppAssetFileReactor extends AbstractReactor {
 		// handle synchronization to the cloud
 		ClusterUtil.pushProjectFolder(project, zipFile.getParent());
 
-		return new NounMetadata(true, PixelDataType.BOOLEAN);
+		return FileSystemUtil.savedAssetsAsNounMetadata(FileSystemUtil.unzippedAssets(fileRelativePath, extractedNames));
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
+		return properties;
 	}
 
 	@Override
@@ -108,7 +122,10 @@ public class UnzipAppAssetFileReactor extends AbstractReactor {
 		return super.getReactorDefinition().description(
 				"Unzips a zip file located in the projects assets folder and commits the extracted files to git")
 				.key(ReactorKeysEnum.PROJECT, "The unique id for the project/app").key(ReactorKeysEnum.FILE_PATH,
-						"The relative file path of the zip file within the project's assets folder to extract");
+						"The relative file path of the zip file within the project's assets folder to extract")
+				.key(ReactorKeysEnum.OVERRIDE,
+						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_UNZIP_DESCRIPTION))
+				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
 	}
 
 }

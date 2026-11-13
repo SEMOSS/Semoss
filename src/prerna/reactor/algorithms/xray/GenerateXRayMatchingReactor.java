@@ -191,8 +191,8 @@ public class GenerateXRayMatchingReactor extends AbstractRFrameReactor {
 		// store the frame in the insight for use
 		this.insight.getVarStore().put(rFrameName, noun);
 		// set as default frame
-		if (this.insight.getDataMaker() == null) {
-			this.insight.setDataMaker(matchingFrame);
+		if (this.insight.getCurrentFrame() == null) {
+			this.insight.setCurrentFrame(matchingFrame);
 		}
 
 		return noun;

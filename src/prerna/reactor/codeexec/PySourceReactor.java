@@ -113,7 +113,7 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		if (smartSync) {
 			// if this returns true
 			if (smartSync(pyt)) {
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
+				outputs.add(new NounMetadata(this.insight.getCurrentFrame(), PixelDataType.FRAME,
 						PixelOperationType.FRAME_HEADERS_CHANGE));
 			}
 		}

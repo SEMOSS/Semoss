@@ -104,7 +104,7 @@ public class RunDocCosSimilarityReactor extends AbstractRFrameReactor {
 		rsb.append(tempFrame + "$column<- as.character(" + tempFrame + "$column);");
 		rsb.append(tempFrame + "$description<- as.character(" + tempFrame + "$description);");
 		String similarityFrame = "SimFrame" + Utility.getRandomString(5);
-		if(override) {
+		if (override) {
 			similarityFrame = dataFrame;
 		}
 		rsb.append(similarityFrame + "<- getDocumentCosineSimilarity(" + tempFrame + ");");
@@ -129,8 +129,9 @@ public class RunDocCosSimilarityReactor extends AbstractRFrameReactor {
 		NounMetadata retNoun = new NounMetadata(returnTable, PixelDataType.FRAME);
 		// replace existing frame
 		if (override) {
-			this.insight.setDataMaker(returnTable);
-			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
+			this.insight.setCurrentFrame(returnTable);
+			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
+					PixelOperationType.FRAME_HEADERS_CHANGE);
 		}
 
 		return retNoun;

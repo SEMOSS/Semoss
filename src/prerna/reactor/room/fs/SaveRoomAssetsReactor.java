@@ -25,56 +25,48 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.io.connector.producthunt;
+package prerna.reactor.room.fs;
 
-import prerna.io.connector.AbstractOAuthTokenFiller;
+import java.util.List;
 
-/**
- * Product Hunt OAuth2 provider (API v1). Uses the fixed Product Hunt
- * authorize/token endpoints with a scope and no
- * {@code response_mode}/{@code state}, and reads the profile from the v1
- * {@code /me} endpoint.
- */
-public class ProductHuntTokenFiller extends AbstractOAuthTokenFiller {
+import org.json.JSONObject;
 
-	private static final String AUTH_URL = "https://api.producthunt.com/v1/oauth/authorize";
-	private static final String TOKEN_URL = "https://api.producthunt.com/v1/oauth/token";
-	// v1 /me returns { "user": { id, name, username, ... } }
-	private static final String USER_INFO_URL = "https://api.producthunt.com/v1/me";
-	// jsonPattern: JMESPath query projecting values out of the /me JSON (nested
-	// under "user").
-	// beanProps: AccessToken property each projected value maps to, by position.
-	private static final String DEFAULT_JSON_PATTERN = "[user.name, user.username, user.id]";
-	private static final String[] DEFAULT_BEAN_PROPS = { "name", "username", "id" };
+import prerna.reactor.ReactorDefinition;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 
-	@Override
-	protected String getDefaultAuthorizeUrl(String prefix) {
-		return AUTH_URL;
+public class SaveRoomAssetsReactor extends AbstractSaveRoomAssetsReactor {
+
+	public SaveRoomAssetsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
-	protected String getDefaultTokenUrl(String prefix) {
-		return TOKEN_URL;
+	protected List<SavedAsset> saveAssetFiles(String roomFolder, List<String> filePaths, List<String> contents,
+			boolean override) {
+		return FileSystemUtil.saveAssetFiles(roomFolder, filePaths, contents, override);
 	}
 
 	@Override
-	protected String getDefaultUserInfoUrl(String prefix) {
-		return USER_INFO_URL;
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.CONTENT.getKey()).put("description",
+				"Contents of the file(s) to save.");
+		return properties;
 	}
 
 	@Override
-	protected String getDefaultJsonPattern() {
-		return DEFAULT_JSON_PATTERN;
-	}
-
-	@Override
-	protected String[] getDefaultBeanProps() {
-		return DEFAULT_BEAN_PROPS;
-	}
-
-	@Override
-	protected boolean includeResponseMode() {
-		return false;
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Saves one or more files to a room's folder.")
+				.key(ReactorKeysEnum.FILE_PATH, "Names of the file(s) to save, relative to the room's folder.")
+				.key(ReactorKeysEnum.CONTENT, """
+						Contents of the file(s) to save. \
+						For convenience, instead of escaping quotes or backslashes you can wrap \
+						the input within "<encode>your_text</encode>" and the system will encode it for you.
+						""");
 	}
 
 }
