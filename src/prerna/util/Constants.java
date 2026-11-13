@@ -1107,6 +1107,7 @@ public class Constants {
 	// system (platform) skill names
 	public static final String SKILL_AGENT_RUN = "agent-run";
 	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
+	public static final String SKILL_APP_REGRESSION_TESTING = "app-regression-testing";
 	public static final String SKILL_APP_DATA = "app-data";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
 	public static final String SKILL_COLLABORATION = "collaboration";
@@ -1131,6 +1132,7 @@ public class Constants {
 
 	// system (platform) mcp names
 	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
+	public static final String MCP_APP_TESTS = "app-tests";
 	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
 	public static final String MCP_DATABASE_MAKER = "database-maker";
 	public static final String MCP_NODE_BUILDER = "node-builder";

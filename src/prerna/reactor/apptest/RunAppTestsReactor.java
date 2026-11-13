@@ -31,19 +31,19 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.User;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.reactor.AbstractReactor;
+import prerna.om.ThreadStore;
 import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 // RunAppTests(project=["..."], scenario=["page_fails"], pages=["orders"]);
 // Starts the regression tests of an app and returns a run id to poll with GetAppTestRun
-public class RunAppTestsReactor extends AbstractReactor {
+public class RunAppTestsReactor extends AbstractAppTestReactor {
 
 	static final String SCENARIO = "scenario";
 	static final String SUITE = "suite";
@@ -51,31 +51,28 @@ public class RunAppTestsReactor extends AbstractReactor {
 
 	public RunAppTestsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO };
-		this.keyRequired = new int[] { 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = requireUser();
-
-		String projectId = resolveContextEngineId(getString(ReactorKeysEnum.PROJECT.getKey()));
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException(
-					"Project does not exist or the user does not have access to run its tests");
-		}
+		String projectId = targetProject();
 
 		String suite = getString(SUITE);
 		List<String> pages = getNounAsStringList(PAGES);
-		String scenario = getString(SCENARIO, AppTestRuns.DEFAULT_SCENARIO);
+		String scenario = getString(SCENARIO);
+		Object configuredCookie = DIHelper.getInstance().getLocalProp(Constants.SESSION_ID_KEY);
+		String cookieName = configuredCookie == null ? "JSESSIONID" : String.valueOf(configuredCookie);
+		String owner = AppTestRuns.ownerOf(requireUser());
 
-		String runId = AppTestRuns.start(AppTestRuns.ownerOf(user), projectId, scenario.trim(), suite, pages);
+		String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName);
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("runId", runId);
 		result.put("target", projectId);
-		result.put("status", "RUNNING");
+		result.put("status", AppTestRuns.get(owner, runId).get("status"));
+		result.put("scope", AppTestRuns.PLATFORM_SMOKE_SUITE.equals(suite) ? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSIONS");
 		result.put("maxFixAttempts", AppTestRuns.maxFixAttempts());
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
@@ -90,12 +87,13 @@ public class RunAppTestsReactor extends AbstractReactor {
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Start the regression tests of an app. Call it after you change the app, then call GetAppTestRun with the returned runId until its status is COMPLETED or ERROR. "
+				"Replay saved app recordings or an explicit limited __platform_smoke__ page visibility check with isolated Playwright. Explicit target project is required. Poll GetAppTestRun until status is COMPLETED, ERROR or NO_TESTS. Action-only recordings are SKIPPED/NO_ASSERTIONS. "
 						+ "maxFixAttempts is how many times you may fix a failure and run again before you only report it.")
-				.key(ReactorKeysEnum.PROJECT, "The app to test. If not passed, the current app context is used.")
-				.key(SUITE, "Optional name of the test suite. All tests of the app run when omitted.")
+				.key(ReactorKeysEnum.PROJECT, "Required target app project id. Never use the toolbox id or infer it from tool context.")
+				.key(SUITE, "Optional saved recording id/name, or reserved __platform_smoke__ for a limited page visibility/runtime-error check without workflow coverage. Omitted means saved recordings only.")
 				.key(PAGES, k -> k.description("Optional list of page names; only the tests of those pages run.")
 						.list(String.class))
-				.key(SCENARIO, "Development only: name of the fixed result to return until real test runs exist.");
+				.key(SCENARIO, "Development fixture only, requires APP_TEST_ALLOW_MOCKS=true; never verifies an app.")
+				.output(Map.class, "Run id, explicit target, initial status and maximum repair attempts");
 	}
 }

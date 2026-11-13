@@ -29,16 +29,23 @@ package prerna.reactor.apptest;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
@@ -47,93 +54,131 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.util.Utility;
 
-/**
- * Runs of the app regression tests, kept in memory per signed-in user. The
- * results come from fixed scenario files until the Playwright runner replaces
- * {@link #loadScenario}; the result shape is the contract the agent relies on.
- */
+/** Bounded asynchronous runs; credentials remain only in a worker's ephemeral closure. */
 final class AppTestRuns {
+    static final String STUB_DIR_PROP = "APP_TEST_STUB_DIR";
+    static final String MAX_FIX_ATTEMPTS_PROP = "APP_TEST_MAX_FIX_ATTEMPTS";
+    static final String ALLOW_MOCKS_PROP = "APP_TEST_ALLOW_MOCKS";
+    static final String PLATFORM_SMOKE_SUITE = "__platform_smoke__";
+    private static final Pattern SCENARIO_NAME = Pattern.compile("[A-Za-z0-9_-]{1,64}");
+    private static final Map<String, Run> RUNS = new LinkedHashMap<>();
+    private static final int MAX_RUNS = 50;
+    private static final ThreadPoolExecutor WORKERS = new ThreadPoolExecutor(2, 2, 0, TimeUnit.MILLISECONDS,
+            new ArrayBlockingQueue<>(8), runnable -> {
+                Thread thread = new Thread(runnable, "app-regression-test");
+                thread.setDaemon(true);
+                return thread;
+            }, new ThreadPoolExecutor.AbortPolicy());
 
-	/** Folder of scenario files; defaults to app-test-stubs under the base folder. */
-	static final String STUB_DIR_PROP = "APP_TEST_STUB_DIR";
+    private static final class Run {
+        final String owner;
+        volatile Map<String, Object> result;
+        Run(String owner, Map<String, Object> result) { this.owner = owner; this.result = result; }
+    }
 
-	/** How many fix-and-rerun cycles an agent may try before it only reports. */
-	static final String MAX_FIX_ATTEMPTS_PROP = "APP_TEST_MAX_FIX_ATTEMPTS";
+    private AppTestRuns() { }
 
-	static final String DEFAULT_SCENARIO = "all_pass";
+    static int maxFixAttempts() {
+        String value = Utility.getDIHelperProperty(MAX_FIX_ATTEMPTS_PROP);
+        try {
+            int parsed = Integer.parseInt(value == null ? "3" : value.trim());
+            return parsed >= 0 ? Math.min(parsed, 20) : 3;
+        } catch (NumberFormatException e) { return 3; }
+    }
 
-	private static final int DEFAULT_MAX_FIX_ATTEMPTS = 3;
-	private static final int MAX_RUNS = 200;
-	// the scenario name becomes a file name, so no separators or dots
-	private static final Pattern SCENARIO_NAME = Pattern.compile("[A-Za-z0-9_-]{1,64}");
+    static String ownerOf(User user) {
+        AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+        if (token == null || token.getId() == null) throw new IllegalArgumentException("Must be signed in to run app tests");
+        return user.getPrimaryLogin().getLabel() + ":" + token.getId();
+    }
 
-	private static final Map<String, Run> RUNS = Collections.synchronizedMap(new LinkedHashMap<String, Run>() {
-		private static final long serialVersionUID = 1L;
+    static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
+            String applicationUrl, String sessionId, String cookieName) {
+        String runId = UUID.randomUUID().toString();
+        Map<String, Object> pending = new LinkedHashMap<>();
+        pending.put("runId", runId);
+        pending.put("target", projectId);
+        pending.put("status", "RUNNING");
+        Run run = new Run(owner, pending);
+        if (scenario != null && !scenario.isBlank()) {
+            if (!Boolean.parseBoolean(Utility.getDIHelperProperty(ALLOW_MOCKS_PROP))) {
+                throw new IllegalArgumentException("Fixture scenarios require explicit APP_TEST_ALLOW_MOCKS=true development configuration");
+            }
+            Map<String, Object> result = loadScenario(scenario);
+            result.put("runId", runId);
+            result.put("target", projectId);
+            result.put("suite", suite);
+            result.put("mode", "MOCK");
+            result.put("warning", "Development fixture only. No browser or app was tested.");
+            filterPages(result, pages);
+            if (result.get("tests") instanceof List<?> tests && tests.isEmpty()) result.put("status", "NO_TESTS");
+            run.result = result;
+            register(runId, run);
+            return runId;
+        }
+        Path folder = AppTestRecordings.folder(projectId);
+        List<Map<String, Object>> recordings;
+        try { recordings = PLATFORM_SMOKE_SUITE.equals(suite) ? List.of() : AppTestRecordings.list(folder); }
+        catch (IOException e) { throw new IllegalArgumentException("Unable to read app test recordings", e); }
+        recordings = selectRecordings(recordings, suite, pages);
+        if (recordings.isEmpty()) {
+            run.result = AppTestRunner.report(runId, projectId, List.of());
+            register(runId, run);
+            return runId;
+        }
+        if (sessionId == null || sessionId.isBlank()) {
+            throw new IllegalArgumentException("A signed-in browser session is required to replay app tests. Run from the app editor after signing in.");
+        }
+        URI root = AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId);
+        List<Map<String, Object>> selected = recordings;
+        register(runId, run);
+        long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * 1_000_000;
+        try {
+            Path reportFolder = folder.resolve("reports").resolve(ownerDirectory(owner));
+            WORKERS.execute(() -> run.result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected, reportFolder, deadline));
+        } catch (RejectedExecutionException e) {
+            synchronized (RUNS) { RUNS.remove(runId); }
+            throw new IllegalArgumentException("App test runner is busy. Try again after an active run finishes.");
+        }
+        return runId;
+    }
 
-		@Override
-		protected boolean removeEldestEntry(Map.Entry<String, Run> eldest) {
-			return size() > MAX_RUNS;
-		}
-	});
+    static List<Map<String, Object>> selectRecordings(List<Map<String, Object>> recordings, String suite, List<String> pages) {
+        if (PLATFORM_SMOKE_SUITE.equals(suite)) {
+            return List.of(Map.of("id", PLATFORM_SMOKE_SUITE, "name", "Page visibility smoke check; no workflow coverage",
+                    "scope", "PAGE_VISIBILITY_SMOKE", "startPath", "", "steps",
+                    List.of(Map.of("type", "ASSERT_VISIBLE", "selector", "body", "framePath", List.of()))));
+        }
+        return recordings.stream()
+                .filter(r -> suite == null || suite.isBlank() || suite.equals(r.get("id")) || suite.equals(r.get("name")))
+                .filter(r -> pages == null || pages.isEmpty() || pages.contains(r.get("name")) || pages.contains(r.get("startPath")))
+                .toList();
+    }
 
-	private record Run(String owner, Map<String, Object> result) {
-	}
+    static String ownerDirectory(String owner) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(owner.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
+    }
 
-	private AppTestRuns() {
+    private static void register(String id, Run run) {
+        synchronized (RUNS) {
+            if (RUNS.size() >= MAX_RUNS) {
+                String terminal = RUNS.entrySet().stream().filter(e -> !"RUNNING".equals(e.getValue().result.get("status")))
+                        .map(Map.Entry::getKey).findFirst().orElse(null);
+                if (terminal == null) throw new IllegalArgumentException("Too many active app test runs");
+                RUNS.remove(terminal);
+            }
+            RUNS.put(id, run);
+        }
+    }
 
-	}
-
-	static int maxFixAttempts() {
-		String value = Utility.getDIHelperProperty(MAX_FIX_ATTEMPTS_PROP);
-		if (value != null) {
-			try {
-				int parsed = Integer.parseInt(value.trim());
-				if (parsed >= 0) {
-					return parsed;
-				}
-			} catch (NumberFormatException e) {
-				// fall through to the default
-			}
-		}
-		return DEFAULT_MAX_FIX_ATTEMPTS;
-	}
-
-	/** The signed-in user's key; runs are only visible to the user who started them. */
-	static String ownerOf(User user) {
-		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-		if (token == null || token.getId() == null) {
-			throw new IllegalArgumentException("Must be signed in to run app tests");
-		}
-		return user.getPrimaryLogin() + ":" + token.getId();
-	}
-
-	static String start(String owner, String projectId, String scenario, String suite, List<String> pages) {
-		Map<String, Object> result = loadScenario(scenario);
-		String runId = UUID.randomUUID().toString();
-
-		Map<String, Object> run = new LinkedHashMap<>();
-		run.put("runId", runId);
-		run.put("target", projectId);
-		run.put("suite", suite);
-		run.putAll(result);
-		// the scenario file must not override the identity of the run
-		run.put("runId", runId);
-		run.put("target", projectId);
-		run.putIfAbsent("status", "COMPLETED");
-		filterPages(run, pages);
-
-		RUNS.put(runId, new Run(owner, run));
-		return runId;
-	}
-
-	static Map<String, Object> get(String owner, String runId) {
-		Run run = runId == null ? null : RUNS.get(runId);
-		// the same answer for another user's run, so ids cannot be probed
-		if (run == null || !run.owner().equals(owner)) {
-			throw new IllegalArgumentException("Unknown run id " + runId);
-		}
-		return run.result();
-	}
+    static Map<String, Object> get(String owner, String runId) {
+        Run run;
+        synchronized (RUNS) { run = RUNS.get(runId); }
+        if (run == null || !run.owner.equals(owner)) throw new IllegalArgumentException("Unknown run id");
+        return new LinkedHashMap<>(run.result);
+    }
 
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> loadScenario(String scenario) {

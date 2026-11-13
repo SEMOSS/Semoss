@@ -1,0 +1,153 @@
+{
+  "tools": [
+    {
+      "name": "RunAppTests",
+      "description": "Replay saved app recordings, or explicit reserved suite __platform_smoke__ for page visibility and immediate JavaScript errors only, without workflow coverage. Explicit project required. Poll GetAppTestRun; NO_TESTS and skipped workflows never count as passes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "suite": {
+            "type": "string",
+            "description": "Saved recording UUID/name, or __platform_smoke__ for a limited platform-owned page visibility check; omitted only runs saved recordings"
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "project"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "RunAppTests",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "runId, explicit target, status and maxFixAttempts"
+      }
+    },
+    {
+      "name": "GetAppTestRun",
+      "description": "Read a caller-owned run. RUNNING, COMPLETED, ERROR or NO_TESTS. Check counts/classifications; action-only recordings are SKIPPED/NO_ASSERTIONS. scope PAGE_VISIBILITY_SMOKE verifies page visibility only and provides no saved workflow coverage; always report this limited scope.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "runId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "runId"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "GetAppTestRun",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Caller-owned report with target, status, summary, tests and optional reason/evidence"
+      }
+    },
+    {
+      "name": "ListAppTestRecordings",
+      "description": "List recorded workflows and their checks for an explicit app.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "ListAppTestRecordings",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "target and recordings array"
+      }
+    },
+    {
+      "name": "SaveAppTestRecording",
+      "description": "Save a recorded workflow with optional assertions. Do not change tests merely to hide app failures.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "recording": {
+            "type": "object",
+            "description": "version 1: optional id, name, startPath, steps"
+          }
+        },
+        "required": [
+          "project",
+          "recording"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "SaveAppTestRecording",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Saved id, version, name, startPath, steps, updatedAt"
+      }
+    },
+    {
+      "name": "DeleteAppTestRecording",
+      "description": "Delete a recording only when explicitly requested; never remove tests to make a run pass.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "recordingId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "recordingId"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "DeleteAppTestRecording",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "deleted boolean"
+      }
+    }
+  ]
+}
