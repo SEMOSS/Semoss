@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -237,6 +238,37 @@ class AppCreationAuditTest {
 						times(1));
 				audit.verifyNoMoreInteractions();
 			}
+		}
+	}
+
+	@Test
+	void aDigitalTwinIsNotCloned() {
+		User user = mock(User.class);
+		Insight insight = mock(Insight.class);
+		when(insight.getUser()).thenReturn(user);
+		IProject twin = mock(IProject.class);
+		when(twin.getProjectType()).thenReturn(IProject.PROJECT_TYPE.WORKSPACE);
+		var reactor = new CreateAppFromTemplateReactor() {
+			@Override
+			protected void organizeKeys() {
+				keyValue.put("project", "Copy of my twin");
+				keyValue.put("projectTemplate", "twin");
+			}
+		};
+		reactor.setInsight(insight);
+		try (var helper = mockStatic(ProjectHelper.class);
+				var utility = mockStatic(Utility.class);
+				var security = mockStatic(SecurityProjectUtils.class)) {
+			// even its owner, who may clone any project of theirs
+			security.when(() -> SecurityProjectUtils.userCanViewProject(user, "twin")).thenReturn(true);
+			security.when(() -> SecurityProjectUtils.userCanCloneProject(user, "twin")).thenReturn(true);
+			security.when(() -> SecurityProjectUtils.isDigitalTwin("twin")).thenReturn(true);
+			utility.when(() -> Utility.getProject("twin")).thenReturn(twin);
+
+			IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, reactor::execute);
+
+			assertEquals("A Digital Twin cannot be cloned.", refused.getMessage());
+			helper.verifyNoInteractions();
 		}
 	}
 

@@ -2475,46 +2475,6 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// TOKEN
-			colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
-			types = new String[] { VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255 };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("TOKEN", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "TOKEN", database, schema)) {
-					// make the table
-					String sql = queryUtil.createTable("TOKEN", colNames, types);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-			// MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "TOKEN", database, schema);
-				// this should return in all upper case
-				// ... but sometimes it is not -_- i.e. postgres always lowercases
-				if (!allCols.contains("CLIENTID") && !allCols.contains("clientid")) {
-					String addIdColumn = queryUtil.alterTableAddColumn("TOKEN", "CLIENTID", VARCHAR_255);
-					classLogger.info("Running sql {}", addIdColumn);
-					securityDb.insertData(addIdColumn);
-				}
-			}
-			if (allowIfExistsIndexs) {
-				String sql = queryUtil.createIndexIfNotExists("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				// see if index exists
-				if (!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", database, schema)) {
-					String sql = queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-
 			// PERMISSION
 			colNames = new String[] { "ID", "NAME" };
 			types = new String[] { INTEGER_DATATYPE_NAME, VARCHAR_255 };

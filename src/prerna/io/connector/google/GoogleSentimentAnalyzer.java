@@ -27,10 +27,13 @@
  *******************************************************************************/
 package prerna.io.connector.google;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
@@ -40,7 +43,6 @@ import prerna.util.BeanFiller;
 
 public class GoogleSentimentAnalyzer implements IConnectorIOp {
 
-	String[] beanProps = { "sentence", "magnitude", "score" };
 	String jsonPattern = "sentences[].{sentence: text.content, magnitude: sentiment.magnitude, score:sentiment.score}";
 
 	@Override
@@ -50,16 +52,22 @@ public class GoogleSentimentAnalyzer implements IConnectorIOp {
 			params = new HashMap<>();
 		}
 
-		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE);
-		String accessToken = googToken.getAccess_token();
+		String accessToken = IConnectorIOp.requireAccessToken(user, AuthProvider.GOOGLE).getAccess_token();
 
 		// make the API call
 		String url = "https://language.googleapis.com/v1/documents:analyzeSentiment";
 		String jsonString = HttpHelperUtility.makePostCall(url, accessToken, params, true);
 
-		// fill the bean with the return
-		Object returnObj = BeanFiller.fillFromJson(jsonString, jsonPattern, beanProps, new SentimentAnalysis());
-		return returnObj;
+		List<JsonNode> nodes = BeanFiller.getJmesObjects(jsonString, jsonPattern);
+		if (nodes.isEmpty()) {
+			return new SentimentAnalysis(null, 0, 0);
+		}
+		List<SentimentAnalysis> sentiments = new ArrayList<>();
+		for (JsonNode node : nodes) {
+			sentiments.add(new SentimentAnalysis(BeanFiller.getText(node, "sentence"),
+					BeanFiller.getDouble(node, "magnitude"), BeanFiller.getDouble(node, "score")));
+		}
+		return sentiments;
 	}
 
 }

@@ -34,18 +34,20 @@ import org.json.JSONObject;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 
 public class SaveUserAssetsReactor extends AbstractSaveUserAssetsReactor {
 
 	public SaveUserAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
-	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
-		FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents);
+	protected List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents,
+			boolean override) {
+		return FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents, override);
 	}
 
 	@Override

@@ -203,7 +203,7 @@ public class ExportToPPTReactor extends AbstractReactor {
 					qs.addOrderBy(firstSelector.getAlias(), null, "ASC");
 				}
 				ITask task = InsightUtility.constructTaskFromQs(this.insight, qs);
-				task.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
+				task.setLogger(this.getLogger(ExportToPPTReactor.class.getName()));
 				task.setTaskOptions(taskOptions);
 
 				processTask(user, slideshow, task, panel);

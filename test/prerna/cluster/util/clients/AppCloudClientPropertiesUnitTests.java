@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mockStatic;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -47,12 +46,9 @@ class AppCloudClientPropertiesUnitTests {
 	private Map<String, String> envMap;
 
 	@BeforeEach
-	void setUp() throws Exception {
-		props = AppCloudClientProperties.build();
+	void setUp() {
 		envMap = new HashMap<>();
-		Field envField = AppCloudClientProperties.class.getDeclaredField("env");
-		envField.setAccessible(true);
-		envField.set(props, envMap);
+		props = new AppCloudClientProperties(envMap);
 	}
 
 	@Test
@@ -83,7 +79,8 @@ class AppCloudClientPropertiesUnitTests {
 	}
 
 	@Test
-	void testFallsThroughToDIHelper() {
+	void testDIHelperTakesPrecedenceOverEnv() {
+		envMap.put("MY_KEY", "envValue");
 		try (MockedStatic<Utility> ms = mockStatic(Utility.class)) {
 			ms.when(() -> Utility.getDIHelperProperty("MY_KEY")).thenReturn("diValue");
 			String result = props.get("MY_KEY");
@@ -136,22 +133,39 @@ class AppCloudClientPropertiesUnitTests {
 	}
 
 	@Test
-	void testEmptyEnvValueFallsThrough() {
-		envMap.put("EMPTY_KEY", "");
+	void testEmptyDIHelperValueFallsThroughToEnv() {
+		envMap.put("EMPTY_KEY", "envValue");
 		try (MockedStatic<Utility> ms = mockStatic(Utility.class)) {
-			ms.when(() -> Utility.getDIHelperProperty("EMPTY_KEY")).thenReturn("diValue");
+			ms.when(() -> Utility.getDIHelperProperty("EMPTY_KEY")).thenReturn("");
 			String result = props.get("EMPTY_KEY");
-			assertEquals("diValue", result);
+			assertEquals("envValue", result);
 		}
 	}
 
 	@Test
-	void testWhitespaceOnlyEnvValueFallsThrough() {
+	void testWhitespaceOnlyDIHelperValueFallsThroughToEnv() {
+		envMap.put("WS_KEY", "fromEnv");
+		try (MockedStatic<Utility> ms = mockStatic(Utility.class)) {
+			ms.when(() -> Utility.getDIHelperProperty("WS_KEY")).thenReturn("   ");
+			String result = props.get("WS_KEY");
+			assertEquals("fromEnv", result);
+		}
+	}
+
+	@Test
+	void testWhitespaceOnlyEnvValueReturnsNull() {
 		envMap.put("WS_KEY", "   ");
 		try (MockedStatic<Utility> ms = mockStatic(Utility.class)) {
-			ms.when(() -> Utility.getDIHelperProperty("WS_KEY")).thenReturn("fromDI");
 			String result = props.get("WS_KEY");
-			assertEquals("fromDI", result);
+			assertNull(result);
+		}
+	}
+
+	@Test
+	void testContainerIpReadsHostIpFromEnv() {
+		envMap.put(AppCloudClientProperties.HOST_IP, "10.0.0.7");
+		try (MockedStatic<Utility> ms = mockStatic(Utility.class)) {
+			assertEquals("10.0.0.7", props.getContainerIp());
 		}
 	}
 

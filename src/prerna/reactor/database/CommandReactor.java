@@ -78,18 +78,12 @@ public class CommandReactor extends GitBaseReactor {
 					"Terminal/Shell operations are not allowed if chroot is not enabled on the instance");
 		}
 
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal/Shell and user code execution has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
+			throw new IllegalArgumentException("Terminal/Shell and user code execution has been disabled.");
 		}
 
-		String disable_git_terminal = Utility.getDIHelperProperty(Constants.DISABLE_GIT_TERMINAL);
-		if (disable_git_terminal != null && !disable_git_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_git_terminal)) {
-				throw new IllegalArgumentException("Terminal/Shell has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_GIT_TERMINAL))) {
+			throw new IllegalArgumentException("Terminal/Shell has been disabled.");
 		}
 
 		String gitProvider = Utility.getDIHelperProperty(Constants.GIT_PROVIDER);

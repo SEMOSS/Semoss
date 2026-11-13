@@ -50,28 +50,29 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 		// see if a frame is passed in
 		if (grs != null && !grs.isEmpty()) {
 			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
-	        if (frameInputs != null && !frameInputs.isEmpty()) {
-	            return (ITableDataFrame) frameInputs.get(0);
-	        }
+			if (frameInputs != null && !frameInputs.isEmpty()) {
+				return (ITableDataFrame) frameInputs.get(0);
+			}
 		}
-		
+
 		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(curNouns != null && !curNouns.isEmpty()) {
+		if (curNouns != null && !curNouns.isEmpty()) {
 			return (ITableDataFrame) curNouns.get(0).getValue();
 		}
-		
+
 		// else, grab the default frame from the insight
 		// put this into the noun store
 		// so that we can pull it for other pipeline
-		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame defaultFrame = this.insight.getCurrentFrame();
 		if (defaultFrame != null) {
-			this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+			this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey())
+					.add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 			return defaultFrame;
 		}
 
 		throw new NullPointerException("No frame found");
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -83,34 +84,35 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 			List<Object> frameInputs = grs.getValuesOfType(PixelDataType.FRAME);
 			return (ITableDataFrame) frameInputs.get(0);
 		}
-		
+
 		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(curNouns != null && !curNouns.isEmpty()) {
+		if (curNouns != null && !curNouns.isEmpty()) {
 			return (ITableDataFrame) curNouns.get(0).getValue();
 		}
-		
+
 		ITableDataFrame defaultFrame = null;
 		// get the last frame
 		SelectQueryStruct qs = this.insight.getLastQS(this.insight.getLastPanelId());
-		if(qs != null) {
+		if (qs != null) {
 			defaultFrame = qs.getFrame();
 		}
-		if(defaultFrame != null) {
+		if (defaultFrame != null) {
 			return defaultFrame;
 		}
-		
+
 		// else, grab the default frame from the insight
 		// put this into the noun store
 		// so that we can pull it for other pipeline
-		defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+		defaultFrame = this.insight.getCurrentFrame();
 		if (defaultFrame != null) {
-			this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey()).add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
+			this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey())
+					.add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 			return defaultFrame;
 		}
 
 		throw new NullPointerException("No frame found");
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -118,9 +120,10 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	protected Set<ITableDataFrame> getAllFrames() {
 		return this.insight.getVarStore().getAllCreatedFrames();
 	}
-	
+
 	/**
 	 * Replace all the references in the noun store to point to a specific frame
+	 * 
 	 * @param frameNoun
 	 */
 	protected void setFrameInNounStore(NounMetadata frameNoun) {
@@ -130,17 +133,18 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 			grs.removeValuesOfType(PixelDataType.FRAME);
 			grs.add(frameNoun);
 		}
-		
+
 		List<NounMetadata> curNouns = this.curRow.getNounsOfType(PixelDataType.FRAME);
-		if(curNouns != null && !curNouns.isEmpty()) {
+		if (curNouns != null && !curNouns.isEmpty()) {
 			this.curRow.removeValuesOfType(PixelDataType.FRAME);
 			this.curRow.add(frameNoun);
 		}
 	}
-	
+
 	/**
 	 * Quick method for {@link #getCleanNewColName(ITableDataFrame, String, String)}
 	 * using passed in frame
+	 * 
 	 * @param frameName
 	 * @param colName
 	 * @return
@@ -148,10 +152,11 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	protected String getCleanNewColName(String colName) {
 		return getCleanNewColName(getFrame(), colName);
 	}
-	
+
 	/**
-	 * Quick method for {@link #getColNames(ITableDataFrame, String)}
-	 * using passed in frame
+	 * Quick method for {@link #getColNames(ITableDataFrame, String)} using passed
+	 * in frame
+	 * 
 	 * @param frameName
 	 * @param colName
 	 * @return
@@ -159,7 +164,7 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 	protected String[] getColNames() {
 		return getColNames(getFrame());
 	}
-	
+
 	protected String getCleanNewColName(ITableDataFrame frame, String colName) {
 		// make the new column name valid
 		HeadersException colNameChecker = HeadersException.getInstance();
@@ -167,7 +172,7 @@ public abstract class AbstractFrameReactor extends AbstractReactor {
 		String validNewHeader = colNameChecker.recursivelyFixHeaders(colName, currentColumnNames);
 		return validNewHeader;
 	}
-	
+
 	protected String[] getColNames(ITableDataFrame frame) {
 		List<String> colNames = frame.getMetaData().getOrderedAliasOrUniqueNames();
 		String[] colString = new String[colNames.size()];

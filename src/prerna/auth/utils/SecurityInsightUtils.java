@@ -49,6 +49,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.PermissionBatch;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
@@ -93,13 +94,20 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	private static final String INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this insight's permissions.";
 	private static final String NOT_HIGH_ENOUGH = "The user doesn't have the high enough permissions to modify this users insight permission.";
 	private static final String CANNOT_GIVE_OWNER = "Cannot give owner level access to this insight since you are not currently an owner.";
+	private static final String PROJECT_INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this project's permissions.";
 	private static final String NO_ACCESS = "Attempting to modify user permission for a user who does not currently have access to the insight";
 
 	/**
-	 * Get an insight
-	 * 
-	 * @param questionIDs
-	 * @return
+	 * Returns an insight built from the pixel recipe saved in the security
+	 * database. An insight with no recipe there is loaded from its project.
+	 *
+	 * @param projectId the id of the project that holds the insight
+	 * @param insightId the id of the insight
+	 * @return the insight
+	 * @throws IllegalArgumentException when the security database has no such
+	 *                                  insight, the insight was saved in the
+	 *                                  retired playsheet format, or it cannot be
+	 *                                  read
 	 */
 	public static Insight getInsight(String projectId, String insightId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -169,9 +177,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					in.setPixelRecipe(pixelList);
 					insight = in;
 				}
+			} else {
+				throw new IllegalArgumentException("Could not find insight with given insight id");
 			}
-		} catch (Exception e1) {
-			classLogger.error("Unable to retrieve insight.", e1);
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Unable to retrieve insight {} in project {}", insightId, projectId, e);
+			throw new IllegalArgumentException("Unable to retrieve the insight", e);
 		}
 		return insight;
 	}
@@ -1397,6 +1410,61 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
 						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred adding user permissions for this insight"));
+	}
+
+	/**
+	 * Gives a person access to an insight and, when they have no access to its
+	 * project, Read-Only access to the project, as one save: both grants are made
+	 * or neither is. The endpoints check the admin-only add settings first.
+	 *
+	 * @param user       the user giving the access
+	 * @param newUserId  the person
+	 * @param projectId  the project the insight belongs to
+	 * @param insightId  the insight
+	 * @param permission the level on the insight, by name
+	 * @param endDate    when the access ends, or null for never
+	 * @throws IllegalAccessException when the user cannot give people access to
+	 *                                the project
+	 */
+	public static void addInsightUserWithProjectAccess(User user, String newUserId, String projectId,
+			String insightId, String permission, String endDate) throws IllegalAccessException {
+		List<PermissionBatch> batches = new ArrayList<>();
+		if (SecurityProjectUtils.getUserProjectPermission(newUserId, projectId) == null) {
+			batches.add(new PermissionBatch(PermissionTargetResource.project(projectId),
+					List.of(PermissionChange.add(PermissionSubject.ofUser(newUserId, null),
+							new PermissionGrant(AccessPermissionEnum.READ_ONLY.getPermission(), endDate)))));
+		}
+		batches.add(new PermissionBatch(PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange.add(PermissionSubject.ofUser(newUserId, null),
+						new PermissionGrant(permission, endDate)))));
+		PermissionBatchUtils.saveChanges(user, batches, PermissionBatchOptions.userMode(),
+				new PermissionErrorRules(endDate)
+						.rule(PermissionProblem.ErrorCode.NO_PERMISSION,
+								problems -> refusedOnProject(problems)
+										? new IllegalAccessException(PROJECT_INSUFFICIENT_PRIVILEGES)
+										: new IllegalArgumentException(INSUFFICIENT_PRIVILEGES))
+						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+								"This user already has access to this insight. Please edit the existing permission level.")
+						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+								"An error occurred adding user permissions for this insight"));
+	}
+
+	/**
+	 * Whether the user's lack of permission is on a project rather than on the
+	 * insight.
+	 *
+	 * @param problems the problems a save found
+	 * @return whether a project refused the user
+	 */
+	private static boolean refusedOnProject(List<PermissionProblem> problems) {
+		for (PermissionProblem problem : problems) {
+			if (problem.getErrorCode() == PermissionProblem.ErrorCode.NO_PERMISSION && problem.getTarget() != null
+					&& problem.getTarget().getResourceType() == PermissionTargetResource.TargetResourceType.PROJECT) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

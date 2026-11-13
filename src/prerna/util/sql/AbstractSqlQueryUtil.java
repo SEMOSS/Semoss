@@ -1143,6 +1143,16 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String getDoubleDataTypeName();
 
 	/**
+	 * Get the RDBMS type that arithmetic selectors cast both operands to, so the
+	 * result keeps the fractional digits of its inputs
+	 * 
+	 * @return the type name used in the CAST of each arithmetic operand
+	 */
+	public String getArithmeticDataTypeName() {
+		return "DECIMAL";
+	}
+
+	/**
 	 * Get the RDBMS type equivalent for image data type
 	 * 
 	 * @return

@@ -144,7 +144,8 @@ public class MakeRoomPlaywrightMCPReactor extends AbstractReactor {
 		JSONObject mcpJson = PlaywrightMCPToolBuilder.wrapMcpJson(mergedTools);
 
 		String prettyJson = mcpJson.toString(4);
-		FileSystemUtil.saveAssetFiles(assetFolder, List.of(MCPUtility.PIXEL_MCP_RELATIVE_PATH), List.of(prettyJson));
+		FileSystemUtil.saveAssetFiles(assetFolder, List.of(MCPUtility.PIXEL_MCP_RELATIVE_PATH), List.of(prettyJson),
+				true);
 
 		classLogger.info("Saved room MCP to {}{} ({} playback tool(s) generated, {} other tool(s) preserved)",
 				assetFolder, MCPUtility.PIXEL_MCP_RELATIVE_PATH, toolsArray.length(),

@@ -124,6 +124,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			+ "FROM INSIGHTMETA WHERE PROJECTID=?";
 
 	/**
+	 * Marks a project as a Digital Twin: an agent that holds copies of its owner's
+	 * emails, chats and files, so it is shared with named people only. Only
+	 * {@link #markDigitalTwin} writes it; {@link #updateProjectMetadata} never
+	 * sets or clears it.
+	 */
+	public static final String DIGITAL_TWIN_METAKEY = "digital_twin";
+	/** Why sharing a Digital Twin beyond named people is refused. */
+	public static final String DIGITAL_TWIN_PEOPLE_ONLY = "A Digital Twin can only be shared with named people";
+
+	/**
 	 * Add an entire project into the security db - Expectation is not to call this
 	 * method but addProject(projectId, boolean global = true)
 	 * 
@@ -1643,6 +1653,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set this project as global. Only the owner or an admin can perform this action.");
 		}
+		if (global) {
+			requireNotDigitalTwin(projectId);
+		}
 
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?", ps -> {
@@ -1671,6 +1684,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have permission to set this project as a template. Only the owner or an admin can perform this action.");
+		}
+		if (isTemplate) {
+			// a template can be cloned by anyone who can view it
+			requireNotDigitalTwin(projectId);
 		}
 		boolean updated = setProjectTemplate(projectId, isTemplate);
 		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_TEMPLATE_UPDATE, projectId, null,
@@ -1767,6 +1784,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set this project as discoverable. Only the owner or an admin can perform this action.");
+		}
+		if (discoverable) {
+			requireNotDigitalTwin(projectId);
 		}
 
 		try {
@@ -2643,6 +2663,23 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether only admins can give people access to an engine or project a project
+	 * depends on. A dependency whose setting cannot be read counts as admin-only.
+	 *
+	 * @param isEngine whether the dependency is an engine rather than a project
+	 * @param id       the dependency's id
+	 * @return whether its admin-only add setting is on
+	 */
+	private static boolean dependencyAddsAreAdminOnly(boolean isEngine, String id) {
+		try {
+			return isEngine ? adminOnlyEngineAddAccess(id) : adminOnlyProjectAddAccess(id);
+		} catch (IllegalArgumentException e) {
+			classLogger.warn("Could not read the admin-only add setting of {}", id, e);
+			return true;
+		}
+	}
+
+	/**
 	 * Does the work of both propagateProjectPermission methods: for each engine and
 	 * project the project depends on, it gives the person the requested level, or
 	 * files an access request for its owners when the requester is Read-Only or has
@@ -2659,6 +2696,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// get the requested permission as a numeric -- it was passed as a string
 		Integer requestedPermissionNumeric = AccessPermissionEnum.getIdByPermission(requestedPermission);
+		boolean requesterIsAdmin = SecurityAdminUtils.userIsAdmin(requester);
 
 		List<String> alreadyHaveAccess = new ArrayList<>();
 		List<String> requestAlreadyExists = new ArrayList<>();
@@ -2729,6 +2767,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 				// if the newUser has permissions on the engine but not to the level requested,
 				// edit the existing record
+			} else if (!requesterIsAdmin && dependencyAddsAreAdminOnly(isEngine, dependentEngineId)) {
+				// these grants skip the endpoints, so each dependency's own setting is checked
+				couldNotAddRequest.add(dependentEngineId);
+				classLogger.info("Only admins can give {} access to {}", newUserId, dependentEngineId);
 			} else if (requesterEnginePermission < 3 && currentNewUserPermission != null
 					&& currentNewUserPermission > requestedPermissionNumeric) {
 				try {
@@ -2814,19 +2856,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Update the project metadata Will delete existing values and then perform a
-	 * bulk insert
-	 * 
+	 * bulk insert. The Digital Twin mark is left as it is, whatever the metadata
+	 * says about it.
+	 *
 	 * @param projectId
 	 * @param metadata
 	 */
 	public static void updateProjectMetadata(String projectId, Map<String, Object> metadata) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		// the mark is not metadata: nothing that sets a project's metadata, an
+		// uploaded project's metadata file included, may set or clear it
+		Map<String, Object> writable = new HashMap<>(metadata);
+		writable.remove(DIGITAL_TWIN_METAKEY);
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				// first do a delete
 				String deleteQ = "DELETE FROM PROJECTMETA WHERE METAKEY=? AND PROJECTID=?";
 
-				QueryExecutionUtility.executeBatch(connection, deleteQ, metadata.keySet(), (deletePs, field) -> {
+				QueryExecutionUtility.executeBatch(connection, deleteQ, writable.keySet(), (deletePs, field) -> {
 					int parameterIndex = 1;
 					deletePs.setString(parameterIndex++, field);
 					deletePs.setString(parameterIndex++, projectId);
@@ -2837,8 +2884,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" });
 
 				QueryExecutionUtility.executeBatch(connection, query, ps -> {
-					for (String field : metadata.keySet()) {
-						Object val = metadata.get(field);
+					for (String field : writable.keySet()) {
+						Object val = writable.get(field);
 						List<Object> values = new ArrayList<>();
 						if (val instanceof List) {
 							values = (List<Object>) val;
@@ -2924,6 +2971,60 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error("Failed to read projects by metadata value", e);
 			throw new IllegalStateException("Unable to read project metadata", e);
+		}
+	}
+
+	/**
+	 * Whether a project is a Digital Twin, by the presence of its mark. Only the
+	 * key is matched, since METAVALUE is a CLOB.
+	 *
+	 * @throws IllegalStateException when the mark cannot be read, so a check that
+	 *                               depends on it never passes by mistake
+	 */
+	public static boolean isDigitalTwin(String projectId) {
+		try {
+			return !QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
+					"SELECT PROJECTID FROM PROJECTMETA WHERE METAKEY = ? AND PROJECTID = ?", ps -> {
+						ps.setString(1, DIGITAL_TWIN_METAKEY);
+						ps.setString(2, projectId);
+					}, rs -> rs.getString(1)).isEmpty();
+		} catch (Exception e) {
+			classLogger.error("Failed to read whether a project is a Digital Twin", e);
+			throw new IllegalStateException("Unable to read project metadata", e);
+		}
+	}
+
+	/**
+	 * Refuses a way of sharing a Digital Twin beyond named people, such as making
+	 * it public, discoverable or a template, or giving a team or everyone access.
+	 *
+	 * @throws IllegalArgumentException when the project is a Digital Twin
+	 */
+	public static void requireNotDigitalTwin(String projectId) {
+		if (isDigitalTwin(projectId)) {
+			throw new IllegalArgumentException(DIGITAL_TWIN_PEOPLE_ONLY);
+		}
+	}
+
+	/**
+	 * Marks a new project as a Digital Twin. Nothing takes the mark off; it goes
+	 * when the project is deleted.
+	 */
+	public static void markDigitalTwin(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb,
+					securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTMETA",
+							new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" }),
+					ps -> {
+						ps.setString(1, projectId);
+						ps.setString(2, DIGITAL_TWIN_METAKEY);
+						ps.setString(3, "true");
+						ps.setInt(4, 0);
+					});
+		} catch (Exception e) {
+			classLogger.error("Failed to mark a project as a Digital Twin", e);
+			throw new IllegalStateException("Unable to mark the project as a Digital Twin", e);
 		}
 	}
 

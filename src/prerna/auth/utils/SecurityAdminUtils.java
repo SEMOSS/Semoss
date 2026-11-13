@@ -1057,17 +1057,28 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		 */
 
 		String[] whereCol = { "ID", "TYPE" };
-		String[] columnsToUpdate = null;
+		// a role changes only when the edit names it, so an edit that leaves one out
+		// (for example, renaming the last admin) keeps the role as it is
+		final boolean updateAdmin = userInfo.containsKey("admin");
+		final boolean updatePublisher = userInfo.containsKey("publisher");
+		final boolean updateExporter = userInfo.containsKey("exporter");
+		List<String> columnsToUpdate = new ArrayList<>(List.of("EMAIL", "USERNAME", "NAME"));
+		if (updateAdmin) {
+			columnsToUpdate.add("ADMIN");
+		}
+		if (updatePublisher) {
+			columnsToUpdate.add("PUBLISHER");
+		}
+		if (updateExporter) {
+			columnsToUpdate.add("EXPORTER");
+		}
+		columnsToUpdate.addAll(List.of("PHONE", "PHONEEXTENSION", "COUNTRYCODE"));
 		if (updatePassword) {
-			columnsToUpdate = new String[] { "EMAIL", "USERNAME", "NAME", "ADMIN", "PUBLISHER", "EXPORTER", "PHONE",
-					"PHONEEXTENSION", "COUNTRYCODE", "PASSWORD", "SALT" };
-		} else {
-			columnsToUpdate = new String[] { "EMAIL", "USERNAME", "NAME", "ADMIN", "PUBLISHER", "EXPORTER", "PHONE",
-					"PHONEEXTENSION", "COUNTRYCODE" };
+			columnsToUpdate.addAll(List.of("PASSWORD", "SALT"));
 		}
 
 		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER",
-				columnsToUpdate, whereCol);
+				columnsToUpdate.toArray(new String[0]), whereCol);
 		Map<String, Object> auditBefore = getUserAuditSnapshot(userId, type);
 		// read before the write, so the audit trail records the limit it replaces
 		ModelUsageLimit allModelsBefore = changeAllModelsDefault ? SecurityModelUsageLimitUtils.getLimit(allModelsKey)
@@ -1085,9 +1096,15 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 					editUserPs.setString(i++, email);
 					editUserPs.setString(i++, username);
 					editUserPs.setString(i++, name);
-					editUserPs.setBoolean(i++, boundAdminValue);
-					editUserPs.setBoolean(i++, boundPublisherValue);
-					editUserPs.setBoolean(i++, boundExporterValue);
+					if (updateAdmin) {
+						editUserPs.setBoolean(i++, boundAdminValue);
+					}
+					if (updatePublisher) {
+						editUserPs.setBoolean(i++, boundPublisherValue);
+					}
+					if (updateExporter) {
+						editUserPs.setBoolean(i++, boundExporterValue);
+					}
 					editUserPs.setString(i++, boundPhone);
 					editUserPs.setString(i++, phoneExtension);
 					editUserPs.setString(i++, countryCode);
@@ -1233,21 +1250,41 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Delete a user and all its relationships, including their model usage limits:
-	 * the ones on their grants and their all-models default.
+	 * Delete a user, an id and a login type, and all its relationships, including
+	 * their model usage limits: the ones on their grants and their all-models
+	 * default. The engine, project and insight permissions name a person by id
+	 * alone, so they are shared by every login with the id and are deleted only
+	 * with the last one.
 	 * 
-	 * @param userIdToDelete
-	 * @param userTypeToDelete
-	 * @return
+	 * @param userIdToDelete   the user's id
+	 * @param userTypeToDelete the user's login type
+	 * @return true once the user is deleted
+	 * @throws IllegalArgumentException when the id or the type is missing, or the
+	 *                                  user's other logins cannot be read
 	 */
 	public boolean deleteUser(String userIdToDelete, String userTypeToDelete) {
+		if (userIdToDelete == null || userIdToDelete.isBlank()) {
+			throw new IllegalArgumentException("The user id cannot be null or empty");
+		}
+		if (userTypeToDelete == null || userTypeToDelete.isBlank()) {
+			throw new IllegalArgumentException("The login type cannot be null or empty");
+		}
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// TODO: need to start binding on userId + type
-		{
+		boolean otherLoginsRemain;
+		try {
+			otherLoginsRemain = !QueryExecutionUtility.queryList(securityDb,
+					"SELECT TYPE FROM SMSS_USER WHERE ID=? AND TYPE<>?", ps -> {
+						ps.setString(1, userIdToDelete);
+						ps.setString(2, userTypeToDelete);
+					}, rs -> rs.getString(1)).isEmpty();
+		} catch (Exception e) {
+			classLogger.error("Failed to read the other logins of the user to delete", e);
+			throw new IllegalArgumentException("An error occurred deleting this user");
+		}
+		if (!otherLoginsRemain) {
 			String[] deleteQueries = new String[] { "DELETE FROM ENGINEPERMISSION WHERE USERID=?",
-					"DELETE FROM PROJECTPERMISSION WHERE USERID=?", "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?",
-					"DELETE FROM SMSS_USER_ACCESS_KEYS WHERE USERID=?", "DELETE FROM USERMETA WHERE USERID=?",
-					"DELETE FROM SMSS_USER WHERE ID=?", };
+					"DELETE FROM PROJECTPERMISSION WHERE USERID=?",
+					"DELETE FROM USERINSIGHTPERMISSION WHERE USERID=?", };
 			for (String query : deleteQueries) {
 				try {
 					String boundQuery = query;
@@ -1263,7 +1300,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 		}
 		{
-			String[] deleteQueries = new String[] { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE USERID=? AND TYPE=?",
+			String[] deleteQueries = new String[] { "DELETE FROM SMSS_USER_ACCESS_KEYS WHERE USERID=? AND TYPE=?",
+					"DELETE FROM USERMETA WHERE USERID=? AND TYPE=?", "DELETE FROM SMSS_USER WHERE ID=? AND TYPE=?",
+					"DELETE FROM CUSTOMGROUPASSIGNMENT WHERE USERID=? AND TYPE=?",
 					"DELETE FROM GROUPMANAGERS WHERE USERID=? AND TYPE=?",
 					"DELETE FROM USERENGINEPREFERENCE WHERE USERID=? AND TYPE=?",
 					"DELETE FROM USERPROJECTPREFERENCE WHERE USERID=? AND TYPE=?",
@@ -1358,20 +1397,22 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Set the user's publishing rights
+	 * Sets the publishing rights of the user with this id and login type.
 	 * 
-	 * @param userId
-	 * @param isPublisher
+	 * @param userId      the user's id
+	 * @param userType    the user's login type
+	 * @param isPublisher whether the user can publish
 	 */
-	public void setUserPublisher(String userId, boolean isPublisher) {
+	public void setUserPublisher(String userId, String userType, boolean isPublisher) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String query = "UPDATE SMSS_USER SET PUBLISHER=? WHERE ID=?";
+		String query = "UPDATE SMSS_USER SET PUBLISHER=? WHERE ID=? AND TYPE=?";
 		try {
 			String boundQuery = query;
 			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
 				int parameterIndex = 1;
 				ps.setBoolean(parameterIndex++, isPublisher);
 				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, userType);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1379,25 +1420,27 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user publisher privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as a publisher");
 		}
-		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, null, null, Map.of("publisher", isPublisher),
-				null);
+		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, userType, null,
+				Map.of("publisher", isPublisher), null);
 	}
 
 	/**
-	 * Set the user's exporting rights
+	 * Sets the exporting rights of the user with this id and login type.
 	 * 
-	 * @param userId
-	 * @param isExporter
+	 * @param userId     the user's id
+	 * @param userType   the user's login type
+	 * @param isExporter whether the user can export
 	 */
-	public void setUserExporter(String userId, boolean isExporter) {
+	public void setUserExporter(String userId, String userType, boolean isExporter) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String query = "UPDATE SMSS_USER SET EXPORTER=? WHERE ID=?";
+		String query = "UPDATE SMSS_USER SET EXPORTER=? WHERE ID=? AND TYPE=?";
 		try {
 			String boundQuery = query;
 			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
 				int parameterIndex = 1;
 				ps.setBoolean(parameterIndex++, isExporter);
 				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, userType);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1405,7 +1448,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user exporter privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as an exporter");
 		}
-		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, null, null, Map.of("exporter", isExporter), null);
+		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, userType, null, Map.of("exporter", isExporter),
+				null);
 	}
 
 	/**
@@ -2015,6 +2059,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param isPublic
 	 */
 	public boolean setProjectGlobal(String projectId, boolean global) {
+		if (global) {
+			SecurityProjectUtils.requireNotDigitalTwin(projectId);
+		}
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?", ps -> {
@@ -2038,6 +2085,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @return {@code true} when the flag is updated
 	 */
 	public boolean setProjectTemplate(String projectId, boolean isTemplate) {
+		if (isTemplate) {
+			SecurityProjectUtils.requireNotDigitalTwin(projectId);
+		}
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		try {
@@ -2075,6 +2125,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public boolean setProjectDiscoverable(String projectId, boolean discoverable) {
+		if (discoverable) {
+			SecurityProjectUtils.requireNotDigitalTwin(projectId);
+		}
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET DISCOVERABLE=? WHERE PROJECTID=?",
@@ -2323,6 +2376,9 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (isAddNew) {
 			// rows with no level are no access, so those projects are added
 			Set<String> current = new HashSet<>(getProjectIdsUserCanUse(userId));
+			// a Digital Twin is left out: its owner names the people who can use it
+			current.addAll(SecurityProjectUtils
+					.getProjectIdsWithMetaValue(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
 			for (String projectId : SecurityProjectUtils.getAllProjectIds()) {
 				if (!current.contains(projectId)) {
 					batches.add(new PermissionBatch(PermissionTargetResource.project(projectId),
@@ -2448,6 +2504,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param endDate    when the access ends, or null
 	 */
 	public void grantNewUsersProjectAccess(String projectId, String permission, User user, String endDate) {
+		SecurityProjectUtils.requireNotDigitalTwin(projectId);
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
 				PermissionChange.forPeople(PermissionChange.Action.ADD,
 						distinctIds(getProjectUsersNoCredentials(projectId, null, -1, -1)),
@@ -3203,6 +3260,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (projectId == null || permission == null) {
 			return;
 		}
+		SecurityProjectUtils.requireNotDigitalTwin(projectId);
 		List<PermissionChange> changes = PermissionChange.forPeople(PermissionChange.Action.ADD,
 				distinctIds(getProjectUsersNoCredentials(projectId, null, -1, -1)),
 				new PermissionGrant(permission, endDate));

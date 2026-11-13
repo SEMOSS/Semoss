@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -52,6 +53,8 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ModelInferenceLogsOwlCreatorUnitTests {
+	private static final String CONTAINS_URI = "http://semoss.org/ontologies/Relation/Contains/";
+
 	IRDBMSEngine engine;
 	WriteOWLEngine owlEngine;
 	OWLEngineFactory owlFactory;
@@ -66,6 +69,12 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 		queryUtil = mock(AbstractSqlQueryUtil.class);
 
 		when(engine.getQueryUtil()).thenReturn(queryUtil);
+		when(queryUtil.getBlobDataTypeName()).thenReturn("BLOB");
+		when(queryUtil.getClobDataTypeName()).thenReturn("CLOB");
+		when(queryUtil.getBooleanDataTypeName()).thenReturn("BOOLEAN");
+		when(queryUtil.getDateWithTimeDataType()).thenReturn("TIMESTAMP");
+		when(queryUtil.getIntegerDataTypeName()).thenReturn("INT");
+		when(queryUtil.getDoubleDataTypeName()).thenReturn("DOUBLE");
 
 		reactor = new ModelInferenceLogsOwlCreator(engine.getQueryUtil());
 	}
@@ -87,26 +96,13 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 
 	@Test
 	void needsRemakeTrue2() {
-		List<String> concepts = new ArrayList<>();
-		concepts.add("http://semoss.org/ontologies/Concept");
-		concepts.add("AGENT");
-		concepts.add("ROOM");
-		concepts.add("MESSAGE");
-		concepts.add("FEEDBACK");
-		concepts.add("WORKSPACE");
-		concepts.add("WORKSPACE_RESOURCE");
-
+		List<String> concepts = schemaConcepts();
 		List<String> props = new ArrayList<>();
 
 		when(engine.getPhysicalConcepts()).thenReturn(concepts);
 
 		try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
-			util.when(() -> Utility.getInstanceName("AGENT")).thenReturn("AGENT");
-			util.when(() -> Utility.getInstanceName("ROOM")).thenReturn("ROOM");
-			util.when(() -> Utility.getInstanceName("MESSAGE")).thenReturn("MESSAGE");
-			util.when(() -> Utility.getInstanceName("FEEDBACK")).thenReturn("FEEDBACK");
-			util.when(() -> Utility.getInstanceName("WORKSPACE")).thenReturn("WORKSPACE");
-			util.when(() -> Utility.getInstanceName("WORKSPACE_RESOURCE")).thenReturn("WORKSPACE_RESOURCE");
+			util.when(() -> Utility.getInstanceName(anyString())).thenAnswer(inv -> inv.getArgument(0));
 
 			when(engine.getPropertyUris4PhysicalUri(anyString())).thenReturn(props);
 
@@ -116,95 +112,34 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 
 	@Test
 	void needsRemakeFalse() {
-		List<String> concepts = new ArrayList<>();
-		concepts.add("http://semoss.org/ontologies/Concept");
-		concepts.add("AGENT");
-		concepts.add("ROOM");
-		concepts.add("MESSAGE");
-		concepts.add("FEEDBACK");
-		concepts.add("WORKSPACE");
-		concepts.add("WORKSPACE_RESOURCE");
-
-		List<String> props = new ArrayList<>();
-		props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_ID/AGENT");
-		props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_NAME/AGENT");
-		props.add("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/AGENT");
-		props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/AGENT");
-		props.add("http://semoss.org/ontologies/Relation/Contains/AUTHOR/AGENT");
-		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/AGENT");
-
-		props.add("http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/ROOM_ID/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/ROOM_NAME/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/ROOM_CONTEXT/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/USER_NAME/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/USER_EMAIL_ID/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_TYPE/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_ID/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/UPDATED_AT/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/PROJECT_NAME/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/MODEL_ID/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGES/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/PINNED/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/OPTIONS/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/SHARE_ID/ROOM");
-		props.add("http://semoss.org/ontologies/Relation/Contains/WORKSPACE_ID/ROOM");
-
-		props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_DATA/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_TOKENS/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_METHOD/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/RESPONSE_TIME/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_ID/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/MODEL_ID/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/INSIGHT_ID/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/ROOM_ID/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/SESSIONID/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/USER_NAME/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/USER_EMAIL_ID/MESSAGE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/TRANSACTION_ID/MESSAGE");
-
-		props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_ID/FEEDBACK");
-		props.add("http://semoss.org/ontologies/Relation/Contains/MESSAGE_TYPE/FEEDBACK");
-		props.add("http://semoss.org/ontologies/Relation/Contains/FEEDBACK_TEXT/FEEDBACK");
-		props.add("http://semoss.org/ontologies/Relation/Contains/FEEDBACK_DATE/FEEDBACK");
-		props.add("http://semoss.org/ontologies/Relation/Contains/RATING/FEEDBACK");
-
-		props.add("http://semoss.org/ontologies/Relation/Contains/WORKSPACE_ID/WORKSPACE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/OWNER/WORKSPACE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/NAME/WORKSPACE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/DESCRIPTION/WORKSPACE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/SYSTEM_PROMPT/WORKSPACE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/IS_ACTIVE/WORKSPACE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/WORKSPACE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_UPDATED/WORKSPACE");
-
-		props.add("http://semoss.org/ontologies/Relation/Contains/WORKSPACE_RESOURCE_ID/WORKSPACE_RESOURCE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/WORKSPACE_ID/WORKSPACE_RESOURCE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/RESOURCE_ID/WORKSPACE_RESOURCE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/RESOURCE_TYPE/WORKSPACE_RESOURCE");
-		props.add("http://semoss.org/ontologies/Relation/Contains/RESOURCE_SUBTYPE/WORKSPACE_RESOURCE");
+		List<String> concepts = schemaConcepts();
+		List<String> props = schemaProperties();
 
 		when(engine.getPhysicalConcepts()).thenReturn(concepts);
 
 		try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
-			util.when(() -> Utility.getInstanceName("AGENT")).thenReturn("AGENT");
-			util.when(() -> Utility.getInstanceName("ROOM")).thenReturn("ROOM");
-			util.when(() -> Utility.getInstanceName("MESSAGE")).thenReturn("MESSAGE");
-			util.when(() -> Utility.getInstanceName("FEEDBACK")).thenReturn("FEEDBACK");
-			util.when(() -> Utility.getInstanceName("WORKSPACE")).thenReturn("WORKSPACE");
-			util.when(() -> Utility.getInstanceName("WORKSPACE_RESOURCE")).thenReturn("WORKSPACE_RESOURCE");
+			util.when(() -> Utility.getInstanceName(anyString())).thenAnswer(inv -> inv.getArgument(0));
 
 			when(engine.getPropertyUris4PhysicalUri(anyString())).thenReturn(props);
 
 			assertFalse(reactor.needsRemake(engine));
+		}
+	}
+
+	@Test
+	void needsRemakeTrueWhenOneColumnMissing() {
+		List<String> concepts = schemaConcepts();
+		List<String> props = schemaProperties();
+		props.remove(CONTAINS_URI + "COST_MICROS/MESSAGE");
+
+		when(engine.getPhysicalConcepts()).thenReturn(concepts);
+
+		try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
+			util.when(() -> Utility.getInstanceName(anyString())).thenAnswer(inv -> inv.getArgument(0));
+
+			when(engine.getPropertyUris4PhysicalUri(anyString())).thenReturn(props);
+
+			assertTrue(reactor.needsRemake(engine));
 		}
 	}
 
@@ -215,11 +150,51 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 
 		reactor.remakeOwl(engine);
 
+		List<Pair<String, List<Pair<String, String>>>> schema = reactor.getDBSchema();
+		int columnCount = 0;
 		verify(owlEngine).createEmptyOWLFile();
-		verify(owlEngine, times(6)).addConcept(anyString(), eq(null), eq(null));
-		verify(owlEngine, times(40)).addProp(anyString(), anyString(), anyString());
+		for (Pair<String, List<Pair<String, String>>> table : schema) {
+			verify(owlEngine).addConcept(table.getValue0(), null, null);
+			for (Pair<String, String> column : table.getValue1()) {
+				verify(owlEngine).addProp(table.getValue0(), column.getValue0(), column.getValue1());
+				columnCount++;
+			}
+		}
+		verify(owlEngine, times(schema.size())).addConcept(anyString(), eq(null), eq(null));
+		verify(owlEngine, times(columnCount)).addProp(anyString(), anyString(), anyString());
 		verify(owlEngine).commit();
 		verify(owlEngine).export();
+	}
+
+	/**
+	 * Builds the physical concept list an up to date OWL reports: the base concept
+	 * followed by every table the creator declares.
+	 *
+	 * @return the base concept URI and each declared table name
+	 */
+	private List<String> schemaConcepts() {
+		List<String> concepts = new ArrayList<>();
+		concepts.add("http://semoss.org/ontologies/Concept");
+		for (Pair<String, List<Pair<String, String>>> table : reactor.getDBSchema()) {
+			concepts.add(table.getValue0());
+		}
+		return concepts;
+	}
+
+	/**
+	 * Builds the property URI list an up to date OWL reports for every declared
+	 * column.
+	 *
+	 * @return one contains relation URI per declared table column
+	 */
+	private List<String> schemaProperties() {
+		List<String> props = new ArrayList<>();
+		for (Pair<String, List<Pair<String, String>>> table : reactor.getDBSchema()) {
+			for (Pair<String, String> column : table.getValue1()) {
+				props.add(CONTAINS_URI + column.getValue0() + "/" + table.getValue0());
+			}
+		}
+		return props;
 	}
 
 	@Test

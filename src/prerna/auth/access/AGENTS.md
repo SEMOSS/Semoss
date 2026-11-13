@@ -107,6 +107,11 @@ What validating a batch finds (built while saving; saving works from these)
 | `TEAM_MANAGERS` | custom group id | people only | none | `GROUPMANAGERS` |
 
 - Levels are `OWNER`, `EDIT` and `READ_ONLY`. The UI calls `OWNER` Author.
+  An endpoint checks each level it is sent before it calls a single or bulk
+  permission method: `AccessPermissionEnum.require` for one level,
+  `requireEach` for the rows of a bulk request, and `requireById` for a team
+  level sent as 1 to 3. Each refuses a missing or unknown level with an
+  `IllegalArgumentException`, which the endpoint answers with 400.
 - End dates are ISO dates and times with a zone, or null for never.
 - A person needs a login type only on `TEAM` and `TEAM_MANAGERS`, since the
   other tables keep only the id. A type that is given must match an account.
@@ -159,6 +164,28 @@ Where those permissions come from, as
   owner; anything else says it needs an editor.
 
 Admin mode allows every change the batch's shape and the current rows allow.
+
+## Digital Twins
+
+A Digital Twin is an agent that holds copies of its owner's emails, chats and
+files, so it is shared with named people only, by its owners and in admin mode
+alike. It is a project with the server-only metadata key
+`SecurityProjectUtils.DIGITAL_TWIN_METAKEY`, which `AddDigitalTwin` writes
+(`markDigitalTwin`) and `updateProjectMetadata` never sets or clears, whatever an
+uploaded project's metadata file or a metadata reactor sends.
+
+- **Teams.** `readPermissionAllowedChanges` reads `canChangeTeams` as false on a
+  twin, with the reason "A Digital Twin can only be shared with named people",
+  so every team change is refused and `getPermissions` tells the access screens
+  to leave teams out. The mark is read only for someone who could change teams,
+  so nobody else learns the project is a twin.
+- **Everyone.** `SecurityProjectUtils` and `SecurityAdminUtils` refuse to make a
+  twin public, discoverable or a template (`requireNotDigitalTwin`), and to give
+  everyone access to it (`grantNewUsersProjectAccess`, `addAllProjectUsers`);
+  `grantAllProjects` leaves twins out. `CreateAppFromTemplate` does not clone one.
+- People are added and removed as on any project.
+
+`test/prerna/auth/utils/DigitalTwinUnitTests` covers these.
 
 ## Who can call it
 

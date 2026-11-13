@@ -110,7 +110,7 @@ public class MakeUserPixelMCPReactor extends AbstractReactor {
 		JSONArray mergedTools = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(assetFolder + "/" + filePath),
 				toolsArray, generatorId, true);
 		JSONObject mcpJson = PixelMCPToolBuilder.wrapMcpJson(mergedTools);
-		FileSystemUtil.saveAssetFiles(assetFolder, List.of(filePath), List.of(mcpJson.toString(4)));
+		FileSystemUtil.saveAssetFiles(assetFolder, List.of(filePath), List.of(mcpJson.toString(4)), true);
 
 		// recorded and synchronized the way saving any user asset is
 		String gitFolder = AssetUtility.getUserAssetVersionFolder(project.getProjectName(), project.getProjectId());

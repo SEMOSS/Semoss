@@ -132,7 +132,7 @@ public class MakeRoomPixelMCPReactor extends AbstractReactor {
 
 		JSONObject mcpJson = PixelMCPToolBuilder.wrapMcpJson(mergedTools);
 		FileSystemUtil.saveAssetFiles(assetFolder, List.of(MCPUtility.PIXEL_MCP_RELATIVE_PATH),
-				List.of(mcpJson.toString(4)));
+				List.of(mcpJson.toString(4)), true);
 
 		classLogger.info("Saved room MCP to {}{} ({} tool(s) generated, {} other tool(s) preserved)", assetFolder,
 				MCPUtility.PIXEL_MCP_RELATIVE_PATH, toolsArray.length(), mergedTools.length() - toolsArray.length());

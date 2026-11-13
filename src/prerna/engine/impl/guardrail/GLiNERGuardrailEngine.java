@@ -41,14 +41,13 @@ import com.google.gson.Gson;
 
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 
 public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(GLiNERGuardrailEngine.class);
 
 	private static final String MODEL_NAME = "MODEL_NAME";
 	private static final String NER_LABELS = "NER_LABELS";

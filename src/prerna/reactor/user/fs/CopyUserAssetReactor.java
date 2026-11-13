@@ -30,6 +30,8 @@ package prerna.reactor.user.fs;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONObject;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
@@ -41,6 +43,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -48,8 +51,8 @@ public class CopyUserAssetReactor extends AbstractReactor {
 
 	public CopyUserAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -79,16 +82,18 @@ public class CopyUserAssetReactor extends AbstractReactor {
 		String versionGitFolder = AssetUtility.getUserAssetVersionFolder(project.getProjectName(),
 				project.getProjectId());
 		String assetFolder = AssetUtility.getUserAssetFolder(project.getProjectName(), project.getProjectId());
+
+		SavedAsset savedAsset = FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName,
+				getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false));
+
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "copy: Copying " + sourceFileName + " to " + destFileName;
+			comment = "copy: Copying " + sourceFileName + " to " + savedAsset.savedPath();
 		}
-
-		FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName);
 
 		// handle pushing to git and the cloud
 		List<String> toAdd = new ArrayList<>();
-		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + destFileName);
+		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + savedAsset.savedPath());
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
@@ -101,8 +106,14 @@ public class CopyUserAssetReactor extends AbstractReactor {
 		// handle synchronization to the cloud
 		ClusterUtil.pushUserAsset(project.getProjectId());
 
-		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		return retNoun;
+		return FileSystemUtil.savedAssetsAsNounMetadata(List.of(savedAsset));
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
+		return properties;
 	}
 
 	@Override
@@ -112,9 +123,12 @@ public class CopyUserAssetReactor extends AbstractReactor {
 				.key(ReactorKeysEnum.FILE_PATH,
 						"The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
 				.key(ReactorKeysEnum.NEW_VALUE,
-						"The destination path for the copy. This cannot be an existing file or directory and has the same character restrictions you would expect on a typical file system.")
+						"The destination path for the copy, with the same character restrictions you would expect on a typical file system. When something already exists there, override decides whether it is replaced or the copy is written beside it under the next copy number.")
 				.key(ReactorKeysEnum.COMMENT_KEY,
-						"Comment to add while saving the files within the git repository for the user's asset project");
+						"Comment to add while saving the files within the git repository for the user's asset project")
+				.key(ReactorKeysEnum.OVERRIDE,
+						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_KEEP_DESCRIPTION))
+				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
 	}
 
 }
