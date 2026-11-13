@@ -1093,7 +1093,7 @@ public final class WorkPipeline {
 		String ownerType = owner.getValue1();
 		String engine = engine(user);
 		List<String> taskIds = new ArrayList<>();
-		for (Map<String, Object> t : list(WorkTaskUtils.listMyWork(user, Map.of()).get("workItems"))) {
+		for (Map<String, Object> t : list(WorkTaskUtils.listMyWork(user, Map.of("includeInactive", true)).get("workItems"))) {
 			taskIds.add((String) t.get("id"));
 		}
 		Map<String, Object> status = new ConcurrentHashMap<>();

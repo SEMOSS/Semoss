@@ -670,6 +670,8 @@ public class CollaborationDbUtils {
 
 					// work items
 					OwlIndex.of("WORK_TASK_TASK_ID_INDEX", "WORK_TASK", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+					OwlIndex.of("WORK_TASK_ROOM_TASK_INDEX", "WORK_TASK_ROOM", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+					OwlIndex.of("WORK_TASK_ROOM_ROOM_INDEX", "WORK_TASK_ROOM", "OWNER_ID", "OWNER_TYPE", "ROOM_ID"),
 					OwlIndex.of("WORK_TASK_TOPIC_TASK_ID_INDEX", "WORK_TASK_TOPIC", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
 					OwlIndex.of("WORK_TASK_TOPIC_TOPIC_ID_INDEX", "WORK_TASK_TOPIC", "OWNER_ID", "OWNER_TYPE",
 							"TOPIC_ID"),
@@ -683,6 +685,14 @@ public class CollaborationDbUtils {
 							"THREAD_ID"),
 					OwlIndex.of("WORK_STEP_EVIDENCE_STEP_ID_INDEX", "WORK_STEP_EVIDENCE", "OWNER_ID", "OWNER_TYPE",
 							"STEP_ID")));
+
+			BrainTopicLifecycle.upgrade(conn);
+			// Backfill the latest room retained by earlier versions; older room history was not stored.
+			update(conn, "INSERT INTO WORK_TASK_ROOM (OWNER_ID, OWNER_TYPE, TASK_ID, ROOM_ID, LINKED_AT) "
+					+ "SELECT t.OWNER_ID, t.OWNER_TYPE, t.TASK_ID, t.ROOM_ID, COALESCE(t.UPDATED_AT, t.CREATED_AT) "
+					+ "FROM WORK_TASK t WHERE t.ROOM_ID IS NOT NULL AND NOT EXISTS (SELECT 1 FROM WORK_TASK_ROOM r "
+					+ "WHERE r.OWNER_ID = t.OWNER_ID AND r.OWNER_TYPE = t.OWNER_TYPE AND r.TASK_ID = t.TASK_ID "
+					+ "AND r.ROOM_ID = t.ROOM_ID)");
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();

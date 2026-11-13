@@ -333,7 +333,7 @@ public final class WorkReconcile {
 			}
 		}
 		int other = 0;
-		for (Map<String, Object> task : (List<Map<String, Object>>) WorkTaskUtils.listMyWork(user, Map.of())
+		for (Map<String, Object> task : (List<Map<String, Object>>) WorkTaskUtils.listMyWork(user, Map.of("includeInactive", true))
 				.get("workItems")) {
 			if (other >= MAX_OTHER) {
 				break;

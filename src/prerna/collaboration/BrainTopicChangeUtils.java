@@ -48,7 +48,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// Undo for topic delete and merge: each one saves a before/after copy of the rows it touches in
+// Undo for topic merge: each one saves a before/after copy of the rows it touches in
 // BRAIN_CHANGE.SNAPSHOT_JSON; undo puts the before rows back if nothing changed them since.
 public final class BrainTopicChangeUtils {
 
@@ -91,7 +91,7 @@ public final class BrainTopicChangeUtils {
 	}
 
 	/**
-	 * Rows a delete or merge is about to change, read inside its transaction before
+	 * Rows a merge is about to change, read inside its transaction before
 	 * any write.
 	 */
 	static final class Snapshot {
@@ -183,7 +183,7 @@ public final class BrainTopicChangeUtils {
 		return changeId;
 	}
 
-	// puts back the rows from before a topic delete or merge; refused if any of
+	// puts back the rows from before a topic merge; refused if any of
 	// them changed since
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> undo(User user, String changeId) {
@@ -205,7 +205,7 @@ public final class BrainTopicChangeUtils {
 					row.put("snapshot", CollaborationDbUtils.getString(rs, "SNAPSHOT_JSON"));
 					return row;
 				}, ownerId, ownerType, changeId, ENTITY_TOPIC);
-		if (change == null || !List.of(DELETE, MERGE).contains(change.get("field"))) {
+		if (change == null || !MERGE.equals(change.get("field"))) {
 			throw new IllegalArgumentException("Topic change not found");
 		}
 		if (change.get("snapshot") == null) {

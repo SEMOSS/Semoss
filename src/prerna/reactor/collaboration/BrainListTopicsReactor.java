@@ -72,7 +72,7 @@ public class BrainListTopicsReactor extends AbstractCollaborationReactor {
 						+ "in full instead: its description, open action items, notes, and people with their names, "
 						+ "roles, and state. "
 						+ "Its notes are the owner's memories about the topic, listed while the owner has memory on")
-				.key(STATUS, "Topic statuses to include: suggested, active, dormant, archived; all when omitted")
+				.key(STATUS, "Topic statuses to include: suggested, active, hibernated, archived (dormant is a legacy alias); all when omitted")
 				.key(ACCOUNT_ID, "Only topics in this account").key(LIMIT, "Page size, default 30")
 				.key(OFFSET, "Rows to skip, default 0").key(TOPIC_ID, "Return this one topic in full")
 				.key(TOPIC, "Topic name, when the id is not known; must match one topic");

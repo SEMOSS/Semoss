@@ -268,7 +268,7 @@ public final class BrainThreadRoomUtils {
 	}
 
 	// chats opened from a thread before BRAIN_THREAD_ROOM existed, once per owner on this server
-	private static void seedOlderChats(User user, String ownerId, String ownerType) {
+	static void seedOlderChats(User user, String ownerId, String ownerType) {
 		String key = ownerType + ":" + ownerId;
 		if (SEEDED_OWNERS.contains(key)) {
 			return;

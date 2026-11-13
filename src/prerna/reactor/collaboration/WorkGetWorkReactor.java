@@ -34,15 +34,22 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 // WorkGetWork(taskId=["..."]);
 public class WorkGetWorkReactor extends AbstractWorkTaskReactor {
 	private static final String TASK_ID = "taskId";
+	private static final String ROOM_ID = "roomId";
 
 	public WorkGetWorkReactor() {
-		this.keysToGet = new String[] { TASK_ID };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { TASK_ID, ROOM_ID };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		return mapResult(WorkTaskUtils.getWork(getUser(), getString(TASK_ID)));
+		String taskId = getString(TASK_ID);
+		String roomId = getString(ROOM_ID);
+		if ((taskId == null || taskId.isBlank()) && (roomId == null || roomId.isBlank())) {
+			throw new IllegalArgumentException("Pass taskId or roomId");
+		}
+		return mapResult(taskId != null && !taskId.isBlank() ? WorkTaskUtils.getWork(getUser(), taskId)
+				: WorkTaskUtils.getWorkForRoom(getUser(), roomId));
 	}
 
 	@Override
@@ -51,6 +58,7 @@ public class WorkGetWorkReactor extends AbstractWorkTaskReactor {
 				.description(
 						"One of the owner's work items in full: every step and its status, the timeline of updates and "
 								+ "decisions, the threads that moved it, and its topics")
-				.key(TASK_ID, "The work item's id, from ListMyWork");
+				.key(TASK_ID, "The work item's id, from ListMyWork")
+				.key(ROOM_ID, "An owned assistant room; resolves its linked work item, or an empty map");
 	}
 }

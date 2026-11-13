@@ -56,7 +56,7 @@ public class BrainSetTopicStatusReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Sets a Brain topic to active, dormant, or archived")
-				.key(TOPIC_ID, "Topic id").key(STATUS, "active, dormant, or archived");
+		return super.getReactorDefinition().description("Sets a Brain topic to active, hibernated, or archived")
+				.key(TOPIC_ID, "Topic id").key(STATUS, "active, hibernated, or archived");
 	}
 }
