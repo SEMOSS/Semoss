@@ -117,7 +117,7 @@ final class AutomationRunExecutionService {
 
 	private enum Handler {
 		START, CONDITION, JEV, LOOP, WAIT, APP_PIXEL, FUNCTION, STORAGE_LIST, DATABASE_WRITE, VECTOR_WRITE, MODEL,
-		STORAGE, AGENT, DATABASE_QUERY, VECTOR_SEARCH, STORAGE_DOWNLOAD, DATA_EXTRACT, PYTHON
+		STORAGE, AGENT, DATABASE_QUERY, VECTOR_SEARCH, STORAGE_DOWNLOAD, DATA_EXTRACT, PYTHON, API_REQUEST
 	}
 
 	private final Insight requestInsight;
@@ -346,6 +346,7 @@ final class AutomationRunExecutionService {
 			case WAIT -> executeWaitNode(projectId, runId, node, context);
 			case APP_PIXEL -> executeAppPixelNode(projectId, runId, node, context, pixelExecutor);
 			case FUNCTION -> executeFunctionNode(projectId, runId, node, context, pixelExecutor);
+			case API_REQUEST -> executeApiRequestNode(projectId, runId, node, context);
 			case STORAGE_LIST -> executeStorageListNode(projectId, runId, node, context, pixelExecutor);
 			case DATABASE_WRITE -> executeDatabaseWriteNode(projectId, runId, node, context, pixelExecutor);
 			case VECTOR_WRITE -> executeVectorWriteNode(projectId, runId, node, context, pixelExecutor);
@@ -403,6 +404,7 @@ final class AutomationRunExecutionService {
 		case AutomationConstants.NODE_CONTROL_WAIT -> Handler.WAIT;
 		case AutomationConstants.NODE_APP_PIXEL -> Handler.APP_PIXEL;
 		case AutomationConstants.NODE_FUNCTION_EXECUTE -> Handler.FUNCTION;
+		case AutomationConstants.NODE_API_REQUEST -> Handler.API_REQUEST;
 		case AutomationConstants.NODE_STORAGE_LIST -> Handler.STORAGE_LIST;
 		case AutomationConstants.NODE_DATABASE_INSERT, AutomationConstants.NODE_DATABASE_UPDATE,
 				AutomationConstants.NODE_DATABASE_DELETE ->
@@ -577,6 +579,8 @@ final class AutomationRunExecutionService {
 							executeAppPixelNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
 						case FUNCTION ->
 							executeFunctionNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case API_REQUEST ->
+							executeApiRequestNode(projectId, runId, executionNode, iterationContext);
 						case STORAGE_LIST ->
 							executeStorageListNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
 						case DATABASE_WRITE ->
@@ -1488,6 +1492,29 @@ final class AutomationRunExecutionService {
 			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
 			String expression = AutomationPixelExpressionRenderer.functionExecute(config, context.values(), nodeId);
 			Object value = pixelExecutor.execute(expression);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeApiRequestNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			Map<String, Object> value = AutomationApiRequestExecutor.execute(config, context.values(),
+					context.insight().getUser(), nodeId);
 			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
 					context.values(), null);
 		} catch (Exception e) {

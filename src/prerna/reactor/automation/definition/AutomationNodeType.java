@@ -86,13 +86,14 @@ public enum AutomationNodeType {
 	CONTROL_JEV(AutomationConstants.NODE_CONTROL_JEV, Category.CONTROL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW,
 			false, false),
 	CONTROL_LOOP(AutomationConstants.NODE_CONTROL_LOOP, Category.CONTROL, null, Permission.NONE, true, false),
-	DEVELOPER_PYTHON(AutomationConstants.NODE_DEVELOPER_PYTHON, Category.DEVELOPER, null, Permission.NONE, true, true);
+	DEVELOPER_PYTHON(AutomationConstants.NODE_DEVELOPER_PYTHON, Category.DEVELOPER, null, Permission.NONE, true, true),
+	API_REQUEST(AutomationConstants.NODE_API_REQUEST, Category.API, null, Permission.NONE, true, false);
 
 	/**
 	 * Logical grouping used by clients without parsing the persisted type string.
 	 */
 	public enum Category {
-		TRIGGER, DATABASE, MODEL, STORAGE, DATA, VECTOR, FUNCTION, APP, AGENT, CONTROL, DEVELOPER
+		TRIGGER, DATABASE, MODEL, STORAGE, DATA, VECTOR, FUNCTION, APP, AGENT, CONTROL, DEVELOPER, API
 	}
 
 	/** Minimum resource permission required by the node when it references one. */
