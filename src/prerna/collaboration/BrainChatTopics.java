@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -65,6 +66,8 @@ public final class BrainChatTopics {
 	// characters of the newest turns the classifier reads
 	private static final int MAX_CHARS = 12000;
 	private static final int MAX_TURN_CHARS = 2000;
+	// the subject of a chat that has no name of its own yet
+	static final String SUBJECT = "Chat with the owner's assistant";
 
 	private static final ScheduledExecutorService TIMER = Executors.newSingleThreadScheduledExecutor(r -> {
 		Thread t = new Thread(r, "collaboration-chat-topics-timer");
@@ -122,15 +125,20 @@ public final class BrainChatTopics {
 			return result;
 		}
 		List<Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
+		// a topic the owner took off this chat is not offered: it could still win, and then the next best topic
+		// would never be tagged
+		Set<String> dismissed = BrainTopicRoomUtils.dismissed(ownerId, ownerType, roomId);
 		List<BrainClassifier.TopicOption> topics = new ArrayList<>();
 		for (BrainClassifier.TopicOption topic : BrainThreadClassifier.topicOptions(ownerId, ownerType)) {
-			if (!BrainTopicBrief.keptOut(rules, topic.id())) {
+			if (!BrainTopicBrief.keptOut(rules, topic.id()) && !dismissed.contains(topic.id())) {
 				topics.add(topic);
 			}
 		}
 		if (topics.size() < 2) {
 			return result;
 		}
+		// what is filed under each topic, as mail filing shows it
+		topics = BrainTopicEvidence.describe(topics, BrainTopicEvidence.load(ownerId, ownerType, topics, rules), null);
 
 		String engine = BrainThreadClassifier.requireEngine(user);
 		IModelEngine model = Utility.getModel(engine);
@@ -147,7 +155,7 @@ public final class BrainChatTopics {
 					List.of(), "", turn.text(), null));
 		}
 		BrainClassifier.Scores scores = classifier.score(new BrainClassifier.ThreadInput(roomId, "me",
-				"Chat with the owner's assistant", List.of("me", "Assistant"), messages, false,
+				subject(chat.name()), List.of("me", "Assistant"), messages, false,
 				RuntimeTimeContext.capture(BrainProfileUtils.timeZone(user))), topics, insight);
 
 		// the best topic and how sure, read the way mail filing reads it
@@ -178,11 +186,24 @@ public final class BrainChatTopics {
 		return result;
 	}
 
-	// the newest turns that fit, oldest first; a long turn is cut to its start
-	private static List<Turn> window(List<Turn> turns) {
+	// the chat's name says what it is about (a short title, or the owner's first words), unless it is empty or still
+	// the start of a work-context envelope
+	static String subject(String name) {
+		return name == null || name.isBlank() || name.startsWith(BrainMemoryReview.HEADER.strip()) ? SUBJECT
+				: name.strip();
+	}
+
+	// the newest turns that fit, oldest first, ending at the owner's latest turn: a model that reads only the
+	// newest message (Jev) then reads what the owner wrote, not the assistant's reply to it. A long turn is cut to
+	// its start
+	static List<Turn> window(List<Turn> turns) {
+		int last = turns.size() - 1;
+		while (last >= 0 && !BrainMemoryReview.OWNER.equals(turns.get(last).role())) {
+			last--;
+		}
 		List<Turn> kept = new ArrayList<>();
 		int used = 0;
-		for (int i = turns.size() - 1; i >= 0; i--) {
+		for (int i = last; i >= 0; i--) {
 			Turn turn = turns.get(i);
 			String text = turn.text().length() > MAX_TURN_CHARS ? turn.text().substring(0, MAX_TURN_CHARS) + "..."
 					: turn.text();
