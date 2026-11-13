@@ -81,18 +81,48 @@ public final class AutomationScopeCatalog {
 				if (!possibleNodes.contains(sourceId)) {
 					continue;
 				}
+				String availability = guaranteedNodes.contains(sourceId) ? "guaranteed" : "conditional";
 				String outputVar = string(source.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR));
-				if (outputVar == null || outputVar.isBlank()) {
-					continue;
+				if (outputVar != null && !outputVar.isBlank()) {
+					variablesByName.put(outputVar,
+							variable(outputVar, "node", string(source.get(AutomationConstants.NODE_FIELD_LABEL)),
+									"Output from an earlier step.", sourceId, null, availability));
 				}
-				variablesByName.put(outputVar,
-						variable(outputVar, "node", string(source.get(AutomationConstants.NODE_FIELD_LABEL)),
-								"Output from an earlier step.", sourceId, null,
-								guaranteedNodes.contains(sourceId) ? "guaranteed" : "conditional"));
+				if (AutomationConstants.NODE_DATA_DECLARE_VARIABLE
+						.equals(source.get(AutomationConstants.NODE_FIELD_TYPE))) {
+					for (String name : declareVariableNames(source)) {
+						variablesByName.put(name,
+								variable(name, "node", string(source.get(AutomationConstants.NODE_FIELD_LABEL)),
+										"Variable declared by an earlier step.", sourceId, null, availability));
+					}
+				}
 			}
 			result.put(targetId, new ArrayList<>(variablesByName.values()));
 		}
 		return result;
+	}
+
+	/**
+	 * Reads the top-level variable names a {@code data.declare-variable} node
+	 * would save into scope, from its {@code data.transform}-style field tree.
+	 * Only top-level names are individually addressable, since Java spreads only
+	 * the resolved object's own keys, not nested paths.
+	 */
+	private static List<String> declareVariableNames(Map<String, Object> node) {
+		if (!(node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> config)
+				|| !(config.get("fields") instanceof List<?> fields)) {
+			return List.of();
+		}
+		List<String> names = new ArrayList<>();
+		for (Object fieldObj : fields) {
+			if (fieldObj instanceof Map<?, ?> field) {
+				String name = string(field.get("name"));
+				if (name != null && !name.isBlank()) {
+					names.add(name);
+				}
+			}
+		}
+		return names;
 	}
 
 	private static List<Map<String, Object>> sharedVariables(
