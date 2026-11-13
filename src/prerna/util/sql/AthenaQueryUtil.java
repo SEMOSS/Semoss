@@ -54,16 +54,16 @@ public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
 
-		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		this.region = (String) configMap.get(AbstractSqlQueryUtil.REGION);
-		this.accessKey = (String) configMap.get(AbstractSqlQueryUtil.ACCESS_KEY);
-		this.secretKey = (String) configMap.get(AbstractSqlQueryUtil.SECRET_KEY);
-		this.output = (String) configMap.get(AbstractSqlQueryUtil.OUTPUT);
-		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
+		this.connectionUrl = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CONNECTION_URL, null);
+		this.region = getOptionalStringValue(configMap, AbstractSqlQueryUtil.REGION, null);
+		this.accessKey = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ACCESS_KEY, null);
+		this.secretKey = getOptionalStringValue(configMap, AbstractSqlQueryUtil.SECRET_KEY, null);
+		this.output = getOptionalStringValue(configMap, AbstractSqlQueryUtil.OUTPUT, null);
+		this.schema = getOptionalStringValue(configMap, AbstractSqlQueryUtil.SCHEMA, null);
 		if (this.schema == null || this.schema.isEmpty()) {
 			this.schema = "default";
 		}
-		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ADDITIONAL, null);
 		return buildConnectionString();
 	}
 
@@ -73,16 +73,16 @@ public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 
-		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		this.region = (String) prop.get(AbstractSqlQueryUtil.REGION);
-		this.accessKey = (String) prop.get(AbstractSqlQueryUtil.ACCESS_KEY);
-		this.secretKey = (String) prop.get(AbstractSqlQueryUtil.SECRET_KEY);
-		this.output = (String) prop.get(AbstractSqlQueryUtil.OUTPUT);
-		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
+		this.connectionUrl = getOptionalStringValue(prop, AbstractSqlQueryUtil.CONNECTION_URL, null);
+		this.region = getOptionalStringValue(prop, AbstractSqlQueryUtil.REGION, null);
+		this.accessKey = getOptionalStringValue(prop, AbstractSqlQueryUtil.ACCESS_KEY, null);
+		this.secretKey = getOptionalStringValue(prop, AbstractSqlQueryUtil.SECRET_KEY, null);
+		this.output = getOptionalStringValue(prop, AbstractSqlQueryUtil.OUTPUT, null);
+		this.schema = getOptionalStringValue(prop, AbstractSqlQueryUtil.SCHEMA, null);
 		if (this.schema == null || this.schema.isEmpty()) {
 			this.schema = "default";
 		}
-		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(prop, AbstractSqlQueryUtil.ADDITIONAL, null);
 		return buildConnectionString();
 	}
 

@@ -63,20 +63,20 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
 
-		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (hostname == null || hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 
-		this.database = (String) configMap.get(AbstractSqlQueryUtil.DATABASE);
+		this.database = getOptionalStringValue(configMap, AbstractSqlQueryUtil.DATABASE, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.database == null || this.database.isEmpty())) {
 			throw new RuntimeException("Must pass in database name");
 		}
 
-		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
@@ -94,20 +94,20 @@ public class TeradataQueryUtil extends AnsiSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 
-		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
+		this.connectionUrl = getOptionalStringValue(prop, AbstractSqlQueryUtil.CONNECTION_URL, null);
 
-		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
+		this.hostname = getOptionalStringValue(prop, AbstractSqlQueryUtil.HOSTNAME, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty()) && (hostname == null || hostname.isEmpty())) {
 			throw new RuntimeException("Must pass in a hostname");
 		}
 
-		this.database = (String) prop.get(AbstractSqlQueryUtil.DATABASE);
+		this.database = getOptionalStringValue(prop, AbstractSqlQueryUtil.DATABASE, null);
 		if ((this.connectionUrl == null || this.connectionUrl.isEmpty())
 				&& (this.database == null || this.database.isEmpty())) {
 			throw new RuntimeException("Must pass in database name");
 		}
 
-		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
+		this.additionalProps = getOptionalStringValue(prop, AbstractSqlQueryUtil.ADDITIONAL, null);
 
 		// do we need to make the connection url?
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
