@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -51,7 +50,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 
 public class InsightUsageStatisticsReactor extends AbstractReactor {
@@ -101,8 +99,8 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Error occurred trying to create frame of the default type", e);
 		}
 		// set as default frame if none available
-		if (this.insight.getDataMaker() == null) {
-			this.insight.setDataMaker(newFrame);
+		if (this.insight.getCurrentFrame() == null) {
+			this.insight.setCurrentFrame(newFrame);
 		}
 
 		// get results
@@ -110,23 +108,13 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 				searchTerm, tagFilters);
 
 		IDatabaseEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			IImporter importer = ImportFactory.getImporter(newFrame, qs, wrapper);
 			importer.insertData();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to load the insight usage statistics into frame {}", newFrame.getName(), e);
 			throw new IllegalArgumentException(
 					"There was an error in executing the retrieving and loading the insight query statistics", e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME,

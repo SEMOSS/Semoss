@@ -38,7 +38,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import javax.crypto.Cipher;
 
@@ -64,30 +63,28 @@ import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Utility;
 
 public class RDataTable extends AbstractTableDataFrame {
 
 	private static final Logger classLogger = LogManager.getLogger(RDataTable.class);
 
-	public static final String DATA_MAKER_NAME = "RDataTable";
-
 	private RFrameBuilder builder;
-	Map<String, Object> rJMap = null;
+	private Map<String, Class<?>> rJMap = null;
 
 	// THIS CONSTRUCTOR IS USED FOR TESTING
-//	public RDataTable(String name) {
-//		this.frameName = name;
-//		this.originalName = name;
-//	}
-//	
-//	public RDataTable() {
-//		AbstractRJavaTranslator rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(new Insight(), this.logger);
-//		this.builder = new RFrameBuilder(rJavaTranslator);
-//		this.frameName = getName();
-//		this.originalName = this.frameName;
-//	}
+	// public RDataTable(String name) {
+	// this.frameName = name;
+	// this.originalName = name;
+	// }
+	//
+	// public RDataTable() {
+	// AbstractRJavaTranslator rJavaTranslator =
+	// RJavaTranslatorFactory.getRJavaTranslator(new Insight(), this.logger);
+	// this.builder = new RFrameBuilder(rJavaTranslator);
+	// this.frameName = getName();
+	// this.originalName = this.frameName;
+	// }
 
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator) {
 		this.builder = new RFrameBuilder(rJavaTranslator);
@@ -212,7 +209,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
-//		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
+		// interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
 		// need to do this for subqueries where we flush the values into a filter
 		interp.setRDataTable(this);
@@ -262,31 +259,6 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setDataTableName(this.getName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
 		return interp;
-	}
-
-	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnName, List<String> attributeUniqueHeaderName) {
-		int numSelectors = attributeUniqueHeaderName.size();
-		List<SemossDataType> dataTypes = new Vector<SemossDataType>();
-		Double[] max = new Double[numSelectors];
-		Double[] min = new Double[numSelectors];
-
-		for (int i = 0; i < numSelectors; i++) {
-			String uniqueHeader = this.metaData.getUniqueNameFromAlias(attributeUniqueHeaderName.get(i));
-			if (uniqueHeader == null) {
-				uniqueHeader = attributeUniqueHeaderName.get(i);
-			}
-			SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
-			dataTypes.add(dataType);
-			if (dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
-				max[i] = getMax(uniqueHeader);
-				min[i] = getMin(uniqueHeader);
-			}
-		}
-
-		RScaledUniqueFrameIterator iterator = new RScaledUniqueFrameIterator(this, this.builder, columnName, max, min,
-				dataTypes, attributeUniqueHeaderName);
-		return iterator;
 	}
 
 	public Set<String> getColumnsWithIndexes() {
@@ -397,11 +369,6 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public String getDataMakerName() {
-		return DATA_MAKER_NAME;
-	}
-
-	@Override
 	protected Boolean calculateIsUnqiueColumn(String columnName) {
 		// we override this method because it is faster to get the unique count
 		// using the below syntax which works for only a single column
@@ -450,13 +417,13 @@ public class RDataTable extends AbstractTableDataFrame {
 	public void closeConnection() {
 		// now we only hold 1 connection
 		// do not do this...
-//		if(this.builder.getConnection() != null) {
-//			try {
-//				this.builder.getConnection().shutdown();
-//			} catch (RserveException e) {
-//				logger.info("R Connection is already closed...");
-//			}
-//		}
+		// if(this.builder.getConnection() != null) {
+		// try {
+		// this.builder.getConnection().shutdown();
+		// } catch (RserveException e) {
+		// logger.info("R Connection is already closed...");
+		// }
+		// }
 	}
 
 	/**
@@ -507,7 +474,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		// types
 		// data
 		if (sql.trim().toUpperCase().startsWith("SELECT")) {
-			Map retMap = new HashMap();
+			Map<String, Object> retMap = new HashMap<>();
 
 			String tempFrameName = Utility.getRandomString(5);
 			String makeNewFrame = tempFrameName + " <- as.data.table(sqldf(\"" + sql.replace("\"", "\\\"") + "\"));";
@@ -519,20 +486,20 @@ public class RDataTable extends AbstractTableDataFrame {
 			String[] columns = getColumnNames(tempFrameName);
 			String[] types = getColumnTypes(tempFrameName);
 
-			List<Object[]> retObject = getBulkDataRow(tempFrameName, columns); // (frameName + "_dict"); // get the
-																				// dictionary back
+			// (frameName + "_dict"); get the dictionary back
+			List<Object[]> retObject = getBulkDataRow(tempFrameName, columns);
 			// will delete later
 			this.builder.getRJavaTranslator().executeEmptyR(deleteAll);
 			Object[] convertedTypeArray = new Object[columns.length];
 			// https://www.tutorialspoint.com/r/r_data_types.htm
-			getRJMap();
+			Map<String, Class<?>> rJMap = getRJMap();
 			for (int columnIndex = 0; columnIndex < columns.length; columnIndex++) {
 				String thisColumn = columns[columnIndex];
 				String thisType = types[columnIndex];
 
 				// convert this to type array
 				// for now will just move this all to string
-				Object javaType = rJMap.get(thisType);
+				Class<?> javaType = rJMap.get(thisType);
 				if (javaType != null) {
 					convertedTypeArray[columnIndex] = javaType;
 				} else {
@@ -689,9 +656,9 @@ public class RDataTable extends AbstractTableDataFrame {
 		}
 	}
 
-	private Map getRJMap() {
+	private Map<String, Class<?>> getRJMap() {
 		if (this.rJMap == null) {
-			rJMap = new HashMap();
+			rJMap = new HashMap<>();
 			rJMap.put("integer", java.lang.Integer.class);
 			rJMap.put("character", java.lang.String.class);
 			rJMap.put("numeric", java.lang.Double.class);
@@ -712,7 +679,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setQueryStruct(qs);
 		interp.setDataTableName(this.getName());
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
-//		interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
+		// interp.setAdditionalTypes(this.metaData.getHeaderToAdtlTypeMap());
 		interp.setLogger(this.logger);
 		// need to do this for subqueries where we flush the values into a filter
 		interp.setRDataTable(this);
@@ -723,73 +690,6 @@ public class RDataTable extends AbstractTableDataFrame {
 		// create the frame
 		builder.getRJavaTranslator().executeEmptyR(command);
 		return newFrame;
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * Deprecated DataMakerComponent stuff
-	 */
-
-//	@Override
-//	@Deprecated
-//	public Map<String, String> getScriptReactors() {
-//		Map<String, String> reactorNames = super.getScriptReactors();
-//		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.RImportDataReactor");
-//		reactorNames.put(PKQLEnum.DATA_FRAME_DUPLICATES, "prerna.sablecc.RDuplicatesReactor");
-//
-//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-//		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
-//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-//		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
-//		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-//		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-//		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-//		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-//		reactorNames.put(PKQLEnum.DASHBOARD_JOIN, "prerna.sablecc.DashboardJoinReactor");
-//		reactorNames.put(PKQLEnum.OPEN_DATA, "prerna.sablecc.OpenDataReactor");
-//		reactorNames.put(PKQLEnum.DATA_TYPE, "prerna.sablecc.DataTypeReactor");
-//		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-//		reactorNames.put(PKQLEnum.JAVA_OP, "prerna.sablecc.JavaReactorWrapper");
-//		reactorNames.put(PKQLEnum.NETWORK_CONNECT, "prerna.sablecc.ConnectReactor");
-//		reactorNames.put(PKQLEnum.NETWORK_DISCONNECT, "prerna.sablecc.DisConnectReactor");
-//
-//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.RVizReactor");
-//
-//		reactorNames.put(PKQLEnum.SUM, "prerna.sablecc.expressions.r.RSumReactor");
-//		reactorNames.put(PKQLEnum.MAX, "prerna.sablecc.expressions.r.RMaxReactor");
-//		reactorNames.put(PKQLEnum.MIN, "prerna.sablecc.expressions.r.RMinReactor");
-//		reactorNames.put(PKQLEnum.AVERAGE, "prerna.sablecc.expressions.r.RAverageReactor");
-//		reactorNames.put(PKQLEnum.STANDARD_DEVIATION, "prerna.sablecc.expressions.r.RStandardDeviationReactor");
-//		reactorNames.put(PKQLEnum.MEDIAN, "prerna.sablecc.expressions.r.RMedianReactor");
-//		reactorNames.put(PKQLEnum.COUNT, "prerna.sablecc.expressions.r.RCountReactor");
-//		reactorNames.put(PKQLEnum.COUNT_DISTINCT, "prerna.sablecc.expressions.r.RUniqueCountReactor");
-//
-//		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-//		reactorNames.put(PKQLEnum.CSV_API, "prerna.sablecc.RCsvApiReactor");
-//		reactorNames.put(PKQLEnum.EXCEL_API, "prerna.sablecc.RExcelApiReactor");
-//		reactorNames.put(PKQLEnum.WEB_API, "prerna.sablecc.WebApiReactor");
-//
-//		return reactorNames;
-//	}
-
-	@Override
-	@Deprecated
-	public void processDataMakerComponent(DataMakerComponent component) {
-		// we have only had RDataTable since PKQL was introduced
-		// lets not try to expand this to cover the old stuff
-		// assuming only pkql is used
-		long startTime = System.currentTimeMillis();
-		logger.info("Processing Component..................................");
-		processPostTransformations(component, component.getPostTrans());
-		long endTime = System.currentTimeMillis();
-		logger.info("Component Processed: " + (endTime - startTime) + " ms");
 	}
 
 	@Override

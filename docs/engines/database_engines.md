@@ -66,7 +66,7 @@ The `SelectQueryStruct` allows developers to specify what data to select, how to
         ```
     *   Associate with a frame (if querying an in-memory frame):
         ```java
-        // ITableDataFrame dataFrame = insight.getCurFrame();
+        // ITableDataFrame dataFrame = insight.getCurrentFrame();
         // qs.setFrame(dataFrame);
         ```
     *   Set Query Structure Type:

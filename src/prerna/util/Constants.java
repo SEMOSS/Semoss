@@ -39,7 +39,6 @@ public class Constants {
 	public static final String TECH_ERROR_MESSAGE = "techErrorMessage";
 
 	public static final String DIHELPER_PROP_FILE_LOCATION = "DIHELPER_PROP_FILE_LOCATION";
-	public static final String PLAYSHEETS_DEFINED = "PLAYSHEETS_DEFINED";
 	public static final String SUBJECT = "SUBJECT";
 	public static final String OBJECT = "OBJECT";
 	public static final String TRANSPARENT = "TRANSPARENT";
@@ -98,17 +97,6 @@ public class Constants {
 	public static final String LOCAL_MASTER_DB = "LocalMasterDatabase";
 
 	public static final String OWL_TEMPORAL_ENGINE_META = "OWL_TEMPORAL_ENGINE_META";
-
-	// graphplaysheet option constants
-	// layouts
-	public static final String GPSSudowl = "GPS_SUDOWL_DEFAULT";
-	public static final String GPSSearch = "GPS_SEARCH_DEFAULT";
-	public static final String GPSProp = "GPS_PROPERTIES_DEFAULT";
-	public static final String highQualityExport = "GPSHighQualityExport";
-	public static final String sudowlCheck = "sudowlCheck";
-	public static final String searchCheck = "searchCheck";
-	public static final String propertyCheck = "propertyCheck";
-	public static final String highQualityExportCheck = "highQualityExportCheck";
 
 	// Used by POIReader
 	public static final String RELATION_URI_CONCATENATOR = ":"; // used in
@@ -237,7 +225,6 @@ public class Constants {
 	public static final String URI = "URI";
 	public static final String CALC_NAMES_LIST = "_Names";
 	public static final String CALC_NAMES_TECH_STD_LIST = "_Names_Tech_Std";
-	public static final String GRID_VIEW = "prerna.ui.components.playsheets.GridPlaySheet";
 	public static final String PROP_HASH = "_PropHash";
 	public static final String TRAVERSE_JENA_MODEL = "traverseJenaModel";
 	public static final String UNDO_BOOLEAN = "undoBoolean";
@@ -287,7 +274,6 @@ public class Constants {
 	public static final String TRAVERSE_FREELY_QUERY_MULTI_TYPE = "TRAVERSE_FREELY_QUERY_MULTI_TYPE";
 	public static final String TRAVERSE_FREELY_QUERY_JENA = "TRAVERSE_FREELY_QUERY_JENA";
 	public static final String TRAVERSE_INSTANCE_FREELY_QUERY = "TRAVERSE_INSTANCE_FREELY_QUERY";
-	public static final String SUBJECT_TYPE_QUERY = "SUBJECT_TYPE_QUERY";
 	public static final String PREDICATE = "PREDICATE";
 	public static final String IGNORE_URI = "IGNORE_URI";
 
@@ -683,8 +669,8 @@ public class Constants {
 	public static final String SCHEDULER_FORCE_DISABLE = "SCHEDULER_FORCE_DISABLE";
 
 	// RDBMS specific
-	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of
-																	// inner joins
+	// if present and true use outer joins instead of inner joins
+	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
 	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@"
 			+ System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"

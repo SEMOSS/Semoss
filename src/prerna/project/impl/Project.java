@@ -91,7 +91,6 @@ import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookBuilder;
@@ -102,7 +101,6 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
 import prerna.reactor.ProjectCustomReactorCompilator;
 import prerna.reactor.frame.r.util.TCPRTranslator;
-import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
@@ -533,11 +531,6 @@ public class Project implements IProject {
 
 					String rdbmsId = values[0] + "";
 					String insightName = values[1] + "";
-
-					String insightMakeup = (String) values[2];
-					String layout = values[4] + "";
-					String dataTableAlign = values[6] + "";
-					String dataMakerName = values[7] + "";
 					boolean cacheable = (boolean) values[8];
 					Integer cacheMinutes = (Integer) values[9];
 					if (cacheMinutes == null) {
@@ -562,42 +555,27 @@ public class Project implements IProject {
 						pixel = gson.fromJson(reader, String[].class);
 					}
 
-					String perspective = values[3] + "";
-					String order = values[5] + "";
-
-					Insight in = null;
 					if (pixel == null || pixel.length == 0) {
-						in = new OldInsight(this, dataMakerName, layout);
-						in.setRdbmsId(rdbmsId);
-						in.setInsightName(insightName);
-						((OldInsight) in).setOutput(layout);
-						((OldInsight) in).setMakeup(insightMakeup);
-						// in.setPerspective(perspective);
-						// in.setOrder(order);
-						((OldInsight) in).setDataTableAlign(dataTableAlign);
-						// adding semoss parameters to insight
-						((OldInsight) in).setInsightParameters(
-								LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRdbms, rdbmsId));
-						in.setIsOldInsight(true);
-					} else {
-						in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, cacheMinutes, cacheCron,
-								cacheEncrypt, pixel.length);
-						in.setInsightName(insightName);
-						List<String> pixelList = new Vector<String>(pixel.length);
-						for (int i = 0; i < pixel.length; i++) {
-							String pixelString = pixel[i].toString();
-							List<String> breakdown;
-							try {
-								breakdown = PixelUtility.parsePixel(pixelString);
-								pixelList.addAll(breakdown);
-							} catch (ParserException | LexerException | IOException e) {
-								classLogger.error("Error parsing pixel expression '{}' for insight id '{}'",
-										pixelString, rdbmsId, e);
-								throw new IllegalArgumentException("Error occurred parsing the pixel expression");
-							}
-						}
-						in.setPixelRecipe(pixelList);
+						throw new IllegalArgumentException("Insight '" + insightName
+								+ "' was saved in the retired playsheet format and can no longer be opened");
 					}
+					Insight in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, cacheMinutes,
+							cacheCron, cacheEncrypt, pixel.length);
+					in.setInsightName(insightName);
+					List<String> pixelList = new Vector<String>(pixel.length);
+					for (int i = 0; i < pixel.length; i++) {
+						String pixelString = pixel[i].toString();
+						List<String> breakdown;
+						try {
+							breakdown = PixelUtility.parsePixel(pixelString);
+							pixelList.addAll(breakdown);
+						} catch (ParserException | LexerException | IOException e) {
+							classLogger.error("Error parsing pixel expression '{}' for insight id '{}'", pixelString,
+									rdbmsId, e);
+							throw new IllegalArgumentException("Error occurred parsing the pixel expression");
+						}
+					}
+					in.setPixelRecipe(pixelList);
 					insightV.insertElementAt(in, counts.remove(0));
 				}
 			} catch (IllegalArgumentException e) {
@@ -1385,8 +1363,9 @@ public class Project implements IProject {
 			}
 
 			String serverDirectory = this.cacheFolder.getAbsolutePath();
-			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
-											// python
+			// it has to be -- don't change this unless you can send engine calls from
+			// python
+			boolean nativePyServer = true;
 			try {
 				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, debug, timeout,
 						loggerLevel);

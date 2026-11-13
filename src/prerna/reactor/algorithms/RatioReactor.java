@@ -129,20 +129,14 @@ public class RatioReactor extends AbstractFrameReactor {
 		Map<String, Double> weights = getWeights();
 
 		// set up csv path
-		FileWriter writer = null;
-		BufferedWriter bufferedWriter = null;
-
 		String insightCacheDir = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 		final String LINE_SEPARATOR = "\n";
 		String csvCache = Utility.getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		String path = Utility.normalizePath(insightCacheDir) + DIR_SEPARATOR + Utility.normalizePath(csvCache)
 				+ DIR_SEPARATOR + Utility.getRandomString(10) + ".csv";
 		StringBuilder sb = new StringBuilder();
-		boolean fileError = false;
 		// write headers to csv file
-		try {
-			writer = new FileWriter(path);
-			bufferedWriter = new BufferedWriter(writer);
+		try (FileWriter writer = new FileWriter(path); BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			for (int i = 0; i < this.ratioFrameHeaders.length; i++) {
 				sb.append("\"").append(this.ratioFrameHeaders[i].toString()).append("\"");
 				if (i < this.ratioFrameHeaders.length - 1) {
@@ -150,98 +144,138 @@ public class RatioReactor extends AbstractFrameReactor {
 				}
 			}
 			bufferedWriter.write(sb.append(LINE_SEPARATOR).toString());
-		} catch (IOException ex) {
-			fileError = true;
-			throw new IllegalArgumentException("Unable to write to file");
-		} finally {
-			if (fileError) {
-				try {
-					if (bufferedWriter != null) {
-						bufferedWriter.close();
+
+			int counter = 0;
+
+			// grab all unique instance values for instance column
+			List<Object> instanceValuesList = getInstanceValues(frame, instanceColumn);
+
+			// iterate through combinations
+			Configurator.setLevel(logger.getName(), Level.OFF);
+			try {
+				for (int sourceIndex = 0; sourceIndex < instanceValuesList.size(); sourceIndex++) {
+					Object sourceInstance = instanceValuesList.get(sourceIndex);
+
+					// so we do not need to calculate this so many times
+					// we will grab and store all the values for the source
+					// and just grab for each target
+					List<List<String>> sourceAttributesStore = new Vector<List<String>>();
+					for (int attributeIndex = 0; attributeIndex < attributeColumns.size(); attributeIndex++) {
+						String attribute = attributeColumns.get(attributeIndex);
+						List<String> sourceAttributes = getAttributeValuesForInstance(frame, instanceColumn,
+								sourceInstance, attribute);
+						sourceAttributesStore.add(sourceAttributes);
 					}
-				} catch (IOException e) {
-					classLogger.error("Failed to close buffered writer for ratio CSV file {}", path, e);
-				}
-				try {
-					if (writer != null) {
-						writer.close();
+
+					for (int targetIndex = sourceIndex + 1; targetIndex < instanceValuesList.size(); targetIndex++) {
+						Object targetInstance = instanceValuesList.get(targetIndex);
+
+						Object[] cells = new Object[this.ratioFrameHeaders.length];
+						cells[0] = sourceInstance;
+						cells[1] = targetInstance;
+
+						int cellsIndex = 3;
+						// get instance values for first attribute
+						double ratio = 0;
+						for (int attributeIndex = 0; attributeIndex < attributeColumns.size(); attributeIndex++) {
+							String attribute = attributeColumns.get(attributeIndex);
+							// we have the source and target ... lets calculate the similarity
+							List<String> sourceAttributes = sourceAttributesStore.get(attributeIndex);
+							List<String> targetAttributes = getAttributeValuesForInstance(frame, instanceColumn,
+									targetInstance, attribute);
+
+							// get the union size
+							Set<String> union = new HashSet<>(sourceAttributes);
+							union.addAll(targetAttributes);
+							int unionSize = union.size();
+							double score = 0.0;
+							// if the union size is 0
+							// then there is no similarity
+							if (unionSize != 0) {
+								// now determine the intersect
+								union.retainAll(sourceAttributes);
+								union.retainAll(targetAttributes);
+								int intersectSize = union.size();
+
+								score = (double) intersectSize / (double) unionSize;
+							}
+							// clean Attribute
+							String cleanAttribute = attribute;
+							if (attribute.contains("__")) {
+								String[] split = attribute.split("__");
+								cleanAttribute = split[1];
+							}
+							// multiply by weight
+							cells[cellsIndex] = score;
+							ratio += score * weights.get(cleanAttribute);
+							cellsIndex++;
+						}
+
+						cells[2] = ratio;
+
+						// write data in CSV format
+						// A - B, score
+						sb = new StringBuilder();
+						sb.append("\"").append(cells[0].toString()).append("\",");
+						sb.append("\"").append(cells[1].toString()).append("\",");
+						for (int i = 2; i < cells.length; i++) {
+							sb.append(cells[i].toString());
+							if (i < cells.length - 1) {
+								sb.append(",");
+							}
+						}
+						counter++;
+						sb.append(LINE_SEPARATOR);
+						bufferedWriter.write(sb.toString());
+
+						// B - A, score
+						sb = new StringBuilder();
+						sb.append("\"").append(cells[1].toString()).append("\",");
+						sb.append("\"").append(cells[0].toString()).append("\",");
+						for (int i = 2; i < cells.length; i++) {
+							sb.append(cells[i].toString());
+							if (i < cells.length - 1) {
+								sb.append(",");
+							}
+						}
+						sb.append(LINE_SEPARATOR);
+						bufferedWriter.write(sb.toString());
+
+						counter++;
+						if (counter % 5000 == 0) {
+							Configurator.setLevel(logger.getName(), Level.INFO);
+							logger.info("Added row #{}", counter);
+							Configurator.setLevel(logger.getName(), Level.OFF);
+						}
 					}
-				} catch (IOException e) {
-					classLogger.error("Failed to close file writer for ratio CSV file {}", path, e);
-				}
-			}
-		}
-
-		int counter = 0;
-
-		// grab all unique instance values for instance column
-		List<Object> instanceValuesList = getInstanceValues(frame, instanceColumn);
-
-		// iterate through combinations
-		Configurator.setLevel(logger.getName(), Level.OFF);
-		try {
-			for (int sourceIndex = 0; sourceIndex < instanceValuesList.size(); sourceIndex++) {
-				Object sourceInstance = instanceValuesList.get(sourceIndex);
-
-				// so we do not need to calculate this so many times
-				// we will grab and store all the values for the source
-				// and just grab for each target
-				List<List<String>> sourceAttributesStore = new Vector<List<String>>();
-				for (int attributeIndex = 0; attributeIndex < attributeColumns.size(); attributeIndex++) {
-					String attribute = attributeColumns.get(attributeIndex);
-					List<String> sourceAttributes = getAttributeValuesForInstance(frame, instanceColumn, sourceInstance,
-							attribute);
-					sourceAttributesStore.add(sourceAttributes);
-				}
-
-				for (int targetIndex = sourceIndex + 1; targetIndex < instanceValuesList.size(); targetIndex++) {
-					Object targetInstance = instanceValuesList.get(targetIndex);
-
+					// write ratio match to itself A-A
+					Object targetInstance = sourceInstance;
 					Object[] cells = new Object[this.ratioFrameHeaders.length];
 					cells[0] = sourceInstance;
 					cells[1] = targetInstance;
 
 					int cellsIndex = 3;
-					// get instance values for first attribute
 					double ratio = 0;
-					for (int attributeIndex = 0; attributeIndex < attributeColumns.size(); attributeIndex++) {
-						String attribute = attributeColumns.get(attributeIndex);
-						// we have the source and target ... lets calculate the similarity
-						List<String> sourceAttributes = sourceAttributesStore.get(attributeIndex);
-						List<String> targetAttributes = getAttributeValuesForInstance(frame, instanceColumn,
-								targetInstance, attribute);
-
-						// get the union size
-						Set<String> union = new HashSet<>(sourceAttributes);
-						union.addAll(targetAttributes);
-						int unionSize = union.size();
-						double score = 0.0;
-						// if the union size is 0
-						// then there is no similarity
-						if (unionSize != 0) {
-							// now determine the intersect
-							union.retainAll(sourceAttributes);
-							union.retainAll(targetAttributes);
-							int intersectSize = union.size();
-
-							score = (double) intersectSize / (double) unionSize;
-						}
+					for (int i = 0; i < attributeColumns.size(); i++) {
+						String attribute = attributeColumns.get(0);
+						int unionSize = 1;
+						int intersectSize = 1;
+						double score = (double) intersectSize / (double) unionSize;
 						// clean Attribute
 						String cleanAttribute = attribute;
 						if (attribute.contains("__")) {
 							String[] split = attribute.split("__");
 							cleanAttribute = split[1];
 						}
-						// multiply by weight
 						cells[cellsIndex] = score;
+						// multiply by weight
 						ratio += score * weights.get(cleanAttribute);
 						cellsIndex++;
 					}
-
 					cells[2] = ratio;
 
 					// write data in CSV format
-					// A - B, score
+					// A - A, ratio, attribute score
 					sb = new StringBuilder();
 					sb.append("\"").append(cells[0].toString()).append("\",");
 					sb.append("\"").append(cells[1].toString()).append("\",");
@@ -254,88 +288,15 @@ public class RatioReactor extends AbstractFrameReactor {
 					counter++;
 					sb.append(LINE_SEPARATOR);
 					bufferedWriter.write(sb.toString());
-
-					// B - A, score
-					sb = new StringBuilder();
-					sb.append("\"").append(cells[1].toString()).append("\",");
-					sb.append("\"").append(cells[0].toString()).append("\",");
-					for (int i = 2; i < cells.length; i++) {
-						sb.append(cells[i].toString());
-						if (i < cells.length - 1) {
-							sb.append(",");
-						}
-					}
-					sb.append(LINE_SEPARATOR);
-					bufferedWriter.write(sb.toString());
-
-					counter++;
-					if (counter % 5000 == 0) {
-						Configurator.setLevel(logger.getName(), Level.INFO);
-						logger.info("Added row #{}", counter);
-						Configurator.setLevel(logger.getName(), Level.OFF);
-					}
-				}
-				// write ratio match to itself A-A
-				Object targetInstance = sourceInstance;
-				Object[] cells = new Object[this.ratioFrameHeaders.length];
-				cells[0] = sourceInstance;
-				cells[1] = targetInstance;
-
-				int cellsIndex = 3;
-				double ratio = 0;
-				for (int i = 0; i < attributeColumns.size(); i++) {
-					String attribute = attributeColumns.get(0);
-					int unionSize = 1;
-					int intersectSize = 1;
-					double score = (double) intersectSize / (double) unionSize;
-					// clean Attribute
-					String cleanAttribute = attribute;
-					if (attribute.contains("__")) {
-						String[] split = attribute.split("__");
-						cleanAttribute = split[1];
-					}
-					cells[cellsIndex] = score;
-					// multiply by weight
-					ratio += score * weights.get(cleanAttribute);
-					cellsIndex++;
-				}
-				cells[2] = ratio;
-
-				// write data in CSV format
-				// A - A, ratio, attribute score
-				sb = new StringBuilder();
-				sb.append("\"").append(cells[0].toString()).append("\",");
-				sb.append("\"").append(cells[1].toString()).append("\",");
-				for (int i = 2; i < cells.length; i++) {
-					sb.append(cells[i].toString());
-					if (i < cells.length - 1) {
-						sb.append(",");
-					}
-				}
-				counter++;
-				sb.append(LINE_SEPARATOR);
-				bufferedWriter.write(sb.toString());
-			}
-			bufferedWriter.close();
-		} catch (IOException e) {
-			classLogger.error("Failed to write ratio data to CSV file {}", path, e);
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
 				}
 			} catch (IOException e) {
-				classLogger.error("Failed to close buffered writer for ratio CSV file {}", path, e);
+				classLogger.error("Failed to write ratio data to CSV file {}", path, e);
+			} finally {
+				Configurator.setLevel(logger.getName(), Level.INFO);
 			}
-			try {
-				if (writer != null) {
-					writer.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close file writer for ratio CSV file {}", path, e);
-			}
+		} catch (IOException ex) {
+			throw new IllegalArgumentException("Unable to write to file", ex);
 		}
-		Configurator.setLevel(logger.getName(), Level.INFO);
 
 		// add data to R frame
 		CsvQueryStruct csvQS = new CsvQueryStruct();
@@ -356,20 +317,7 @@ public class RatioReactor extends AbstractFrameReactor {
 		RImporter importer = new RImporter(newFrame, csvQS);
 		importer.insertData();
 
-		// //testing
-		// it = newFrame.iterator();
-		// counter = 0;
-		// while(it.hasNext()) {
-		// it.next();
-		// counter++;
-		// }
-		// System.out.println(counter);
-		// System.out.println(counter);
-		// System.out.println(counter);
-		// System.out.println(counter);
-		// return null;
-
-		this.insight.setDataMaker(newFrame);
+		this.insight.setCurrentFrame(newFrame);
 		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE);
 	}
 
@@ -388,24 +336,13 @@ public class RatioReactor extends AbstractFrameReactor {
 
 		Set<Object> instancValues = new HashSet<>();
 		// execute query to get all the unique values
-		IRawSelectWrapper it = null;
-		try {
-			it = frame.query(qs);
+		try (IRawSelectWrapper it = frame.query(qs)) {
 			// flush out the unique values
 			while (it.hasNext()) {
 				instancValues.add(it.next().getRawValues()[0]);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to query unique instance values for column {}", instanceColumn, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to close instance values query iterator for column {}", instanceColumn,
-							e);
-				}
-			}
 		}
 
 		List<Object> instanceValuesList = new Vector<>();
@@ -432,9 +369,7 @@ public class RatioReactor extends AbstractFrameReactor {
 				new NounMetadata(new QueryColumnSelector(instanceColumn), PixelDataType.COLUMN), "==",
 				new NounMetadata(sourceInstance, PixelDataType.CONST_STRING));
 		qs.addExplicitFilter(instanceFilter);
-		IRawSelectWrapper it = null;
-		try {
-			it = frame.query(qs);
+		try (IRawSelectWrapper it = frame.query(qs)) {
 			while (it.hasNext()) {
 				Object val = it.next().getValues()[0];
 				if (val != null) {
@@ -444,14 +379,6 @@ public class RatioReactor extends AbstractFrameReactor {
 		} catch (Exception e) {
 			classLogger.error("Failed to query attribute values for column {} and instance {}", attributeCol,
 					sourceInstance, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to close attribute values query iterator for column {}", attributeCol, e);
-				}
-			}
 		}
 
 		return uniqueAttributes;
@@ -517,7 +444,6 @@ public class RatioReactor extends AbstractFrameReactor {
 	 * @return weights Map {"attributeCol" : weight value, ...}
 	 */
 	private Map<String, Double> getWeights() {
-		// TODO get weights from user
 		GenRowStruct columnGrs = this.store.getGenRowStruct(WEIGHTS_KEY);
 		HashMap<String, Double> weightMap = null;
 		if (columnGrs != null && !columnGrs.isEmpty()) {

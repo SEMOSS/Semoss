@@ -223,7 +223,7 @@ public class RJavaTranslatorFactory {
 			// if we have an r data table
 			if (insight != null) {
 				newInstance.setInsight(insight);
-				ITableDataFrame dm = (ITableDataFrame) insight.getDataMaker();
+				ITableDataFrame dm = insight.getCurrentFrame();
 				if (dm != null && dm instanceof RDataTable) {
 					newInstance.setConnection(((RDataTable) dm).getConnection());
 					newInstance.setPort(((RDataTable) dm).getPort());

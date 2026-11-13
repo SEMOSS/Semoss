@@ -295,7 +295,7 @@ public class MergeFramesReactor extends AbstractReactor {
 					this.insight.getVarStore().put(targetFrame.getName(), noun);
 				}
 				if (targetFrame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
-					this.insight.setDataMaker(mergeFrame);
+					this.insight.setCurrentFrame(mergeFrame);
 				}
 			}
 
