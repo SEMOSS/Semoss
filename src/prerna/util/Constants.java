@@ -1068,6 +1068,10 @@ public class Constants {
 	// a general text model for topic grouping and naming, thread summaries and work
 	// items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
+	// true shows Digital Twin avatar options (default false), made by this image
+	// model; both are also read from an environment variable of the same name
+	public static final String COLLAB_AVATAR_GENERATION_ENABLED = "COLLAB_AVATAR_GENERATION_ENABLED";
+	public static final String COLLAB_AVATAR_ENGINE_ID = "COLLAB_AVATAR_ENGINE_ID";
 	// work items runs at once across owners; each owner's own runs still go one at
 	// a time (default 3)
 	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";

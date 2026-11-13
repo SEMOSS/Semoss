@@ -47,7 +47,7 @@ public class BrainGetSettingsReactor extends AbstractCollaborationReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
 				"The signed-in user's Brain settings: classifier, filing bands, sources, memory, background sync interval, "
-						+ "version, assistant agent")
+						+ "version, assistant agent, whether Digital Twin avatars can be generated")
 				.noKeys();
 	}
 }

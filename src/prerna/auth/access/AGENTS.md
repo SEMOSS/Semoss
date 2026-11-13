@@ -184,6 +184,12 @@ uploaded project's metadata file or a metadata reactor sends.
   everyone access to it (`grantNewUsersProjectAccess`, `addAllProjectUsers`);
   `grantAllProjects` leaves twins out. `CreateAppFromTemplate` does not clone one.
 - People are added and removed as on any project.
+- **Avatars.** Where `COLLAB_AVATAR_GENERATION_ENABLED` is true,
+  `WorkGenerateTwinAvatar` makes avatar options with the image model in
+  `COLLAB_AVATAR_ENGINE_ID` for anyone in Collaboration, with no catalog check
+  on that model: it takes no engine key, so nobody chooses the model, and the
+  model's usage limits still apply. Do not add an engine key to it. The reactor
+  refuses when the setting is off; hiding the button is not the check.
 
 `test/prerna/auth/utils/DigitalTwinUnitTests` covers these.
 
