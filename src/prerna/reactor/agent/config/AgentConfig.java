@@ -83,6 +83,7 @@ public final class AgentConfig {
 
 	// Filesystem
 	private final String workingDir;
+	private final String agentFilesDir;
 
 	// MCP tool projects (union of WORKSPACE_RESOURCE + room.options.mcp[])
 	private final List<Map<String, String>> mcps;
@@ -136,6 +137,7 @@ public final class AgentConfig {
 		this.disabledDefaultTools = b.disabledDefaultTools != null ? Set.copyOf(b.disabledDefaultTools)
 				: Collections.emptySet();
 		this.workingDir = b.workingDir;
+		this.agentFilesDir = b.agentFilesDir;
 		this.mcps = b.mcps != null ? Collections.unmodifiableList(new ArrayList<>(b.mcps)) : Collections.emptyList();
 		this.skills = b.skills != null ? Collections.unmodifiableList(new ArrayList<>(b.skills))
 				: Collections.emptyList();
@@ -320,6 +322,16 @@ public final class AgentConfig {
 		return workingDir;
 	}
 
+	/**
+	 * The folder holding the agent's own files: the public assets folder of its
+	 * project, which everyone who can use the agent can already read. A run reads
+	 * it in place and never writes it. {@code null} when the run has no stored
+	 * agent or the agent has no such folder.
+	 */
+	public String getAgentFilesDir() {
+		return agentFilesDir;
+	}
+
 	// MCP tool projects
 	/**
 	 * Resolved MCP project refs for this run.
@@ -408,6 +420,7 @@ public final class AgentConfig {
 		private int finishingTurns;
 		private Map<String, Object> pptxWorkflow;
 		private String workingDir;
+		private String agentFilesDir;
 		private List<Map<String, String>> mcps;
 		private List<Map<String, String>> skills;
 		private Budgets budgets;
@@ -508,6 +521,11 @@ public final class AgentConfig {
 
 		public Builder workingDir(String v) {
 			this.workingDir = v;
+			return this;
+		}
+
+		public Builder agentFilesDir(String v) {
+			this.agentFilesDir = v;
 			return this;
 		}
 

@@ -260,7 +260,7 @@ public class ImportReactor extends AbstractReactor {
 
 		// put this into the noun store
 		// so that we can pull it for other pipeline
-		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame defaultFrame = this.insight.getCurrentFrame();
 		this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey())
 				.add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 		return defaultFrame;

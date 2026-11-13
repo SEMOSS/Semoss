@@ -119,7 +119,7 @@ public class MicrosoftOneDriveDownloadFileReactor extends AbstractMicrosoftOneDr
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Download a OneDrive file into the insight folder, from the signed in user's own drive, from a drive shared with them, or from a sharing link.")
+				"Download a OneDrive file into the insight folder, from the signed in user's own drive, from a drive shared with them, or from a sharing link. A copy of the same file that is already there and was not changed there is brought up to date in place, so the result's filePath can name that copy rather than the name asked for. A copy that was changed there is written over only when the file name names it; otherwise the download lands beside it. The result says when and by whom the file was last changed in OneDrive.")
 				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION).key(SHARE_URL, SHARE_URL_DESCRIPTION)
 				.key(ITEM_ID,
 						"Id of the file to download, as returned by the OneDrive listings. Not needed when a path or a sharing link is given.")

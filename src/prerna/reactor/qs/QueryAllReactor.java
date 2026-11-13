@@ -37,7 +37,7 @@ public class QueryAllReactor extends AbstractQueryStructReactor {
 	protected AbstractQueryStruct createQueryStruct() {
 		ITableDataFrame frame = this.qs.getFrame();
 		if (frame == null) {
-			frame = (ITableDataFrame) this.insight.getDataMaker();
+			frame = this.insight.getCurrentFrame();
 			this.qs.setFrame(frame);
 		}
 		if (frame != null) {

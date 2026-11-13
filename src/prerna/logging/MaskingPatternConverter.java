@@ -70,6 +70,9 @@ public class MaskingPatternConverter extends LogEventPatternConverter {
 		List<String> valuesToMask = new ArrayList<>();
 		valuesToMask.addAll(SmssUtilities.SENSITIVE_KEYWORDS);
 		valuesToMask.add("private_key");
+		valuesToMask.add("secret_key");
+		valuesToMask.add("access_key");
+		valuesToMask.add("client_secret");
 
 		valuesToMask.forEach(key -> {
 			String escapedKey = Pattern.quote(key);

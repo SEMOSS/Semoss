@@ -70,16 +70,12 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
-import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class PandasFrame extends AbstractTableDataFrame {
 
 	private static final Logger classLogger = LogManager.getLogger(PandasFrame.class);
-
-	public static final String DATA_MAKER_NAME = "PandasFrame";
 
 	public static final String PANDAS_IMPORT_VAR = "pd";
 	public static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
@@ -100,14 +96,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	static {
 		pyS.put("object", SemossDataType.STRING);
-		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA variant)
+		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA
+		// variant)
 		pyS.put("str", SemossDataType.STRING);
 		pyS.put("string", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
 		pyS.put("datetime64", SemossDataType.DATE);
-		// real pandas dtype names always carry a resolution, so the bare key above never matched
+		// real pandas dtype names always carry a resolution, so the bare key above
+		// never matched
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[us]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[ms]", SemossDataType.TIMESTAMP);
@@ -126,7 +124,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		spy.put(SemossDataType.DOUBLE, "np.float64");
 		spy.put(SemossDataType.DATE, "np.datetime32");
 		spy.put(SemossDataType.TIMESTAMP, "np.datetime32");
-//		spy.put(SemossDataType.BOOLEAN, "np.bool");
+		// spy.put(SemossDataType.BOOLEAN, "np.bool");
 
 		spy.put("float64", "np.float32");
 		spy.put("int64", "np.int32");
@@ -136,9 +134,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		spy.put("dtype('float64')", "float32");
 	}
 
-//	public PandasFrame() {
-//		this(null);
-//	} 
+	// public PandasFrame() {
+	// this(null);
+	// }
 
 	public PandasFrame(PyTranslator pyTranslator) {
 		this(null, pyTranslator);
@@ -534,7 +532,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 			if (proposedType != null && pyproposedType != null && !pyproposedType.equalsIgnoreCase(colType)) {
 				// create and execute the type
 				if (proposedType == SemossDataType.DATE || proposedType == SemossDataType.TIMESTAMP) {
-					// pandas 3 removed to_datetime(errors='ignore'), so leave the column as-is when it will not parse
+					// pandas 3 removed to_datetime(errors='ignore'), so leave the column as-is when
+					// it will not parse
 					String dateSuffix = proposedType == SemossDataType.DATE ? ".dt.date" : "";
 					String typeChanger = "try:\n    " + tableName + "['" + colName + "'] = pd.to_datetime(" + tableName
 							+ "['" + colName + "'])" + dateSuffix + "\nexcept (ValueError, TypeError):\n    pass";
@@ -733,10 +732,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// run the query
 			Object output = pyTranslator.runDirectPy(query);
 
-			// if using native py server, and cant'structure output, try convert.
-			if (Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER) != null
-					&& Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true")
-					&& output instanceof String) {
+			if (output instanceof String) {
 				output = PandasTimestampDeserializer.MAPPER.convertValue(output, Object.class);
 			}
 
@@ -943,11 +939,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 	@Override
 	public DataFrameTypeEnum getFrameType() {
 		return DataFrameTypeEnum.PYTHON;
-	}
-
-	@Override
-	public String getDataMakerName() {
-		return DATA_MAKER_NAME;
 	}
 
 	/**
@@ -1274,10 +1265,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public void removeColumn(String columnHeader) {
-	}
-
-	@Override
-	public void processDataMakerComponent(DataMakerComponent component) {
 	}
 
 }

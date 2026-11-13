@@ -31,20 +31,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
-import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Hashtable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -60,7 +57,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.OwlTemporalEngineMeta;
-import prerna.ds.TinkerFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -69,10 +65,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.gson.GenRowFiltersAdapter;
 
@@ -81,13 +73,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	private static final Logger classLogger = LogManager.getLogger(AbstractTableDataFrame.class);
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-
-	@Deprecated
-	public static final String SELECTORS = "selectors";
-	@Deprecated
-	public static final String DE_DUP = "dedup";
-	@Deprecated
-	public static final String TEMPORAL_BINDINGS = "temporalBindings";
 
 	// the meta data for the frame
 	protected OwlTemporalEngineMeta metaData;
@@ -114,10 +99,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	// this has a lot of use for the specific implementation of H2Frame
 	// H2Frame determines the schema to add the in-memory tables based on the userId
 	protected transient String userId;
-
-	// used to determine if the data id has been altered
-	// this is only being updated when logic goes through pkql
-	protected transient BigInteger dataId = BigInteger.valueOf(0);
 
 	// this is used to persist filters within a frame
 	protected transient GenRowFilters grf = new GenRowFilters();
@@ -238,21 +219,11 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 
 		long nRow = 0;
-		IRawSelectWrapper nRowIt = null;
-		try {
-			nRowIt = query(qs1);
+		try (IRawSelectWrapper nRowIt = query(qs1)) {
 			nRow = ((Number) nRowIt.next().getValues()[0]).longValue();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to count the rows of column {} in frame {}", columnName, this.frameName, e);
 			throw new SemossPixelException(e.getMessage());
-		} finally {
-			if (nRowIt != null) {
-				try {
-					nRowIt.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		// calculate the unique count of a column
@@ -275,21 +246,12 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 
 		long uniqueNRow = 0;
-		IRawSelectWrapper uniqueNRowIt = null;
-		try {
-			uniqueNRowIt = query(qs2);
+		try (IRawSelectWrapper uniqueNRowIt = query(qs2)) {
 			uniqueNRow = ((Number) uniqueNRowIt.next().getValues()[0]).longValue();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to count the unique values of column {} in frame {}", columnName, this.frameName,
+					e);
 			throw new SemossPixelException(e.getMessage());
-		} finally {
-			if (uniqueNRowIt != null) {
-				try {
-					uniqueNRowIt.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		// if they are not equal, we have duplicates!
@@ -351,23 +313,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		qs.setExplicitFilters(this.grf);
 
 		List<Object> values = new ArrayList<Object>();
-		IRawSelectWrapper it = null;
-		try {
-			it = query(qs);
+		try (IRawSelectWrapper it = query(qs)) {
 			while (it.hasNext()) {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read the values of column {} in frame {}", columnHeader, this.frameName, e);
 			throw new SemossPixelException(e.getMessage());
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return values.toArray();
@@ -381,23 +333,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		qs.setExplicitFilters(this.grf);
 
 		List<Double> values = new ArrayList<Double>();
-		IRawSelectWrapper it = null;
-		try {
-			it = query(qs);
+		try (IRawSelectWrapper it = query(qs)) {
 			while (it.hasNext()) {
 				values.add(((Number) it.next().getValues()[0]).doubleValue());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read the numeric values of column {} in frame {}", columnHeader,
+					this.frameName, e);
 			throw new SemossPixelException(e.getMessage());
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return values.toArray(new Double[values.size()]);
@@ -441,22 +384,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			// dont forget to add the current frame filters!
 			mathQS.setExplicitFilters(this.grf);
 
-			IRawSelectWrapper it = null;
-			try {
-				it = query(mathQS);
+			try (IRawSelectWrapper it = query(mathQS)) {
 				while (it.hasNext()) {
 					return ((Number) it.next().getValues()[0]).doubleValue();
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error("Failed to calculate the max of column {} in frame {}", columnHeader, this.frameName,
+						e);
 			}
 
 		}
@@ -501,22 +435,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			// dont forget to add the current frame filters!
 			mathQS.setExplicitFilters(this.grf);
 
-			IRawSelectWrapper it = null;
-			try {
-				it = query(mathQS);
+			try (IRawSelectWrapper it = query(mathQS)) {
 				while (it.hasNext()) {
 					return ((Number) it.next().getValues()[0]).doubleValue();
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error("Failed to calculate the min of column {} in frame {}", columnHeader, this.frameName,
+						e);
 			}
 		}
 		return null;
@@ -544,21 +469,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public String getUserId() {
 		return this.userId;
-	}
-
-	@Override
-	public void updateDataId() {
-		this.dataId = this.dataId.add(BigInteger.valueOf(1));
-	}
-
-	@Override
-	public int getDataId() {
-		return this.dataId.intValue();
-	}
-
-	@Override
-	public void resetDataId() {
-		this.dataId = BigInteger.valueOf(0);
 	}
 
 	@Override
@@ -661,22 +571,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		List<IQueryFilter> filters = this.grf.getFilters();
 		if (!filters.isEmpty()) {
 			String frameStateFileName = folderDir + DIR_SEPARATOR + "FRAME_STATE__" + fileName + ".json";
-			Writer writer = null;
-			if (cipher != null) {
-				writer = new OutputStreamWriter(new CipherOutputStream(
-						new FileOutputStream(new File(Utility.normalizePath(frameStateFileName))), cipher));
-			} else {
-				writer = new OutputStreamWriter(
-						new FileOutputStream(new File(Utility.normalizePath(frameStateFileName))));
-			}
-			JsonWriter jWriter = new JsonWriter(writer);
 			GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
-			try {
+			try (OutputStream fileStream = new FileOutputStream(new File(Utility.normalizePath(frameStateFileName)));
+					Writer writer = new OutputStreamWriter(
+							cipher != null ? new CipherOutputStream(fileStream, cipher) : fileStream);
+					JsonWriter jWriter = new JsonWriter(writer)) {
 				adapter.write(jWriter, this.grf);
 			} catch (IOException e) {
-				throw new IOException("Error occurred trying to save filter state on frame");
-			} finally {
-				jWriter.close();
+				throw new IOException("Failed to save the filter state of frame " + this.frameName, e);
 			}
 			cf.setFrameStateCacheLocation(frameStateFileName);
 		}
@@ -699,27 +601,15 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 		String frameStateFileName = cf.getFrameStateCacheLocation();
 		if (frameStateFileName != null) {
-			Reader reader = null;
-			try {
-				if (cipher != null) {
-					reader = new InputStreamReader(
-							new CipherInputStream(new FileInputStream(new File(frameStateFileName)), cipher));
-				} else {
-					reader = new InputStreamReader(new FileInputStream(new File(frameStateFileName)));
-				}
-				JsonReader jReader = new JsonReader(reader);
-				GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
+			GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
+			try (InputStream fileStream = new FileInputStream(new File(frameStateFileName));
+					Reader reader = new InputStreamReader(
+							cipher != null ? new CipherInputStream(fileStream, cipher) : fileStream);
+					JsonReader jReader = new JsonReader(reader)) {
 				this.grf = adapter.read(jReader);
 			} catch (IOException e) {
-				logger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (reader != null) {
-					try {
-						reader.close();
-					} catch (IOException e) {
-						logger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error("Failed to read the cached filters for frame {} from {}", this.frameName,
+						frameStateFileName, e);
 			}
 		}
 	}
@@ -728,7 +618,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public void close() {
 		this.metaData.close();
 		this.isClosed = true;
-		logger.debug("Successfully dropped frame metadata");
+		logger.debug("Closed the metadata for frame {}", this.frameName);
 	}
 
 	@Override
@@ -738,7 +628,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 
 	@Override
 	protected void finalize() throws Throwable {
-		logger.info("ITableDataFrame " + this.frameName + " is being gc'd");
+		logger.info("Frame {} is being garbage collected", this.frameName);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -768,23 +658,13 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		qs.mergeImplicitFilters(this.grf);
 
 		List<Object[]> data = new ArrayList<Object[]>();
-		IRawSelectWrapper it = null;
-		try {
-			it = this.query(qs);
+		try (IRawSelectWrapper it = this.query(qs)) {
 			while (it.hasNext()) {
 				data.add(it.next().getValues());
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to collect the data of frame {}", this.frameName, e);
 			throw new SemossPixelException(e.getMessage());
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
 		}
 
 		return data;
@@ -803,34 +683,9 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		try {
 			return this.query(qs);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the iterator for frame {}", this.frameName, e);
 		}
 		return null;
-	}
-
-	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String columnName, List<String> attributeUniqueHeaderName) {
-		int numSelectors = attributeUniqueHeaderName.size();
-		List<SemossDataType> dataTypes = new Vector<SemossDataType>();
-		Double[] max = new Double[numSelectors];
-		Double[] min = new Double[numSelectors];
-
-		for (int i = 0; i < numSelectors; i++) {
-			String uniqueHeader = this.metaData.getUniqueNameFromAlias(attributeUniqueHeaderName.get(i));
-			if (uniqueHeader == null) {
-				uniqueHeader = attributeUniqueHeaderName.get(i);
-			}
-			SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
-			dataTypes.add(dataType);
-			if (dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
-				max[i] = getMax(uniqueHeader);
-				min[i] = getMin(uniqueHeader);
-			}
-		}
-
-		ScaledUniqueFrameIterator iterator = new ScaledUniqueFrameIterator(this, columnName, max, min, dataTypes,
-				attributeUniqueHeaderName);
-		return iterator;
 	}
 
 	@Override
@@ -850,23 +705,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		}
 		count.addInnerSelector(inner);
 		qs.addSelector(count);
-		IRawSelectWrapper it = null;
-		try {
-			it = query(qs);
+		try (IRawSelectWrapper it = query(qs)) {
 			while (it.hasNext()) {
 				Object numUnique = it.next().getValues()[0];
 				return ((Number) numUnique).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Failed to count the unique values of column {} in frame {}", columnName, this.frameName,
+					e);
 		}
 		return 0;
 	}
@@ -887,96 +733,6 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		if (it.hasNext()) {
 			queryCache.put(it.getQuery(), it);
 		}
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * Even worse... deprecated DataMakerComponent stuff
-	 */
-
-	@Override
-	@Deprecated
-	public Map<String, String> getScriptReactors() {
-		Map<String, String> reactorNames = new HashMap<String, String>();
-//		reactorNames.put(PKQLReactor.DATA_FRAME_HEADER.toString(), "prerna.sablecc.DataFrameHeaderReactor");
-//		reactorNames.put(PKQLEnum.COL_RENAME, "prerna.sablecc.ColRenameReactor");
-//		reactorNames.put(PKQLEnum.REMOTE_RDBMS_QUERY_API, "prerna.sablecc.RemoteRdbmsQueryApiReactor");
-		return reactorNames;
-	}
-
-	@Override
-	@Deprecated
-	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms) {
-		logger.info("We are processing " + transforms.size() + " pre transformations");
-		for (ISEMOSSTransformation transform : transforms) {
-			transform.setDataMakers(this);
-			transform.setDataMakerComponent(dmc);
-			transform.runMethod();
-		}
-	}
-
-	@Override
-	@Deprecated
-	public void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms,
-			IDataMaker... dataFrame) {
-		logger.info("We are processing " + transforms.size() + " post transformations");
-		// if other data frames present, create new array with this at position 0
-		IDataMaker[] extendedArray = new IDataMaker[] { this };
-		if (dataFrame.length > 0) {
-			extendedArray = new IDataMaker[dataFrame.length + 1];
-			extendedArray[0] = this;
-			for (int i = 0; i < dataFrame.length; i++) {
-				extendedArray[i + 1] = dataFrame[i];
-			}
-		}
-		for (ISEMOSSTransformation transform : transforms) {
-			transform.setDataMakers(extendedArray);
-			transform.setDataMakerComponent(dmc);
-			transform.runMethod();
-			// this.join(dataFrame, transform.getOptions().get(0).getSelected()+"",
-			// transform.getOptions().get(1).getSelected()+"", 1.0,
-			// (IAnalyticRoutine)transform);
-			// LOGGER.info("welp... we've got our new table... ");
-		}
-	}
-
-	@Override
-	@Deprecated
-	public Map<String, Object> getDataMakerOutput(String... selectors) {
-		Hashtable retHash = new Hashtable();
-		if (selectors.length == 0) {
-			List<Object[]> retVector = new Vector<Object[]>();
-			String[] headers = new String[1];
-			if (this.qsNames != null && this.qsNames.length > 0) {
-				// retVector = this.getData();
-				headers = this.qsNames;
-			}
-			retHash.put("data", retVector);
-			retHash.put("headers", headers);
-		} else {
-			long startTime = System.currentTimeMillis();
-
-			Vector<Object[]> retVector = new Vector<Object[]>();
-			Map<String, Object> options = new HashMap<String, Object>();
-			options.put(TinkerFrame.SELECTORS, Arrays.asList(selectors));
-			options.put(TinkerFrame.DE_DUP, true);
-			// Iterator<Object[]> iterator = this.iterator(options);
-			// while(iterator.hasNext()) {
-			// retVector.add(iterator.next());
-			// }
-			retHash.put("data", retVector);
-			retHash.put("headers", selectors);
-
-			logger.info("Collected Raw Data: " + (System.currentTimeMillis() - startTime));
-		}
-		return retHash;
-	}
-
-	@Deprecated
-	public String getFilterString() {
-		return "";
 	}
 
 	// need to be overridden by specific frame
@@ -1002,38 +758,5 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	public String createVarFrame() {
 		throw new IllegalArgumentException("Method not implemented for frame = " + this.getClass().getSimpleName());
 	}
-
-//	@Override
-//	@Deprecated
-//	public List<Object> processActions(DataMakerComponent dmc, List<ISEMOSSAction> actions, IDataMaker... dataMaker) {
-//		LOGGER.info("We are processing " + actions.size() + " actions");
-//		List<Object> outputs = new ArrayList<Object>();
-//		for(ISEMOSSAction action : actions){
-//			action.setDataMakers(this);
-//			action.setDataMakerComponent(dmc);
-//			outputs.add(action.runMethod());
-//		}
-//		algorithmOutput.addAll(outputs);
-//		return outputs;
-//	}
-//
-//	@Override
-//	@Deprecated
-//	public List<Object> getActionOutput() {
-//		return this.algorithmOutput;
-//	}
-
-	/*
-	 * @Override
-	 * 
-	 * @Deprecated public void
-	 * performAnalyticTransformation(IAnalyticTransformationRoutine routine) throws
-	 * RuntimeException { routine.runAlgorithm(this); }
-	 * 
-	 * @Override
-	 * 
-	 * @Deprecated public void performAnalyticAction(IAnalyticActionRoutine routine)
-	 * throws RuntimeException { routine.runAlgorithm(this); }
-	 */
 
 }

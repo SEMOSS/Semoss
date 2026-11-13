@@ -299,7 +299,7 @@ public class FuzzyMatchesReactor extends AbstractRFrameReactor {
 				|| qsType == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_FRAME_QUERY) {
 			ITableDataFrame frame = qs.getFrame();
 			if (frame == null) {
-				frame = (ITableDataFrame) this.insight.getDataMaker();
+				frame = this.insight.getCurrentFrame();
 			}
 			qs.setFrame(frame);
 			qs.mergeImplicitFilters(frame.getFrameFilters());

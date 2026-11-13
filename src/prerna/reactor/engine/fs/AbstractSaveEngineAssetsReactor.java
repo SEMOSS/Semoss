@@ -30,16 +30,21 @@ package prerna.reactor.engine.fs;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONObject;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -82,16 +87,14 @@ public abstract class AbstractSaveEngineAssetsReactor extends AbstractReactor {
 		// Check strict script source settings once
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 		FileSystemUtil.validateAssetFiles(filePaths, strictScriptSource);
-		saveAssetFiles(assetFolder, filePaths, contents);
+		List<SavedAsset> savedAssets = saveAssetFiles(assetFolder, filePaths, contents,
+				getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true));
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		for (String fileName : filePaths) {
-			while (fileName.startsWith("/")) {
-				fileName = fileName.substring(1);
-			}
+		for (SavedAsset savedAsset : savedAssets) {
 			// for git, we need to add the assets folder which is assumed in the path
-			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + savedAsset.savedPath());
 		}
 
 		// Get the user's email
@@ -105,16 +108,33 @@ public abstract class AbstractSaveEngineAssetsReactor extends AbstractReactor {
 		// handle synchronization to the cloud
 		ClusterUtil.pushEngineFolder(engine, assetFolder);
 
-		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		return retNoun;
+		return FileSystemUtil.savedAssetsAsNounMetadata(savedAssets);
 	}
 
 	/**
-	 * 
-	 * @param assetFolder
-	 * @param filePaths
-	 * @param contents
+	 * Writes the files into the asset folder.
+	 *
+	 * @param assetFolder the engine's assets folder
+	 * @param filePaths   the normalized file paths
+	 * @param contents    the content for each path
+	 * @param override    whether an existing file at a path is replaced
+	 * @return where each file was saved
 	 */
-	protected abstract void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents);
+	protected abstract List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths,
+			List<String> contents, boolean override);
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", true);
+		return properties;
+	}
+
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().key(ReactorKeysEnum.OVERRIDE,
+				key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_SAVE_DESCRIPTION))
+				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
+	}
 
 }

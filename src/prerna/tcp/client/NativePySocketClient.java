@@ -403,10 +403,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	}
 
 	/**
-	 * 
-	 * @param ps
+	 * Runs a database query the Python process asks for, as the user of the
+	 * execution insight when there is one, or else as the insight's user.
+	 *
+	 * @param ps the request from the Python process
 	 */
-	private void processEngineRequest(PayloadStruct ps) {
+	void processEngineRequest(PayloadStruct ps) {
 		String insightId = ps.insightId;
 		if (insightId == null || (insightId = insightId.trim()).isEmpty() || insightId.equals("${i}")) {
 			ps.response = true;
@@ -423,16 +425,13 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			executeCommand(ps);
 			return;
 		}
-		User user = null;
+		User user = insight.getUser();
 		String executionInsightId = ps.executionInsightId;
 		if (executionInsightId != null) {
 			Insight executionInsight = InsightStore.getInstance().get(executionInsightId);
-			if (executionInsight != null) {
-				ThreadStore.setUser(executionInsight.getUser());
+			if (executionInsight != null && executionInsight.getUser() != null) {
+				user = executionInsight.getUser();
 			}
-		}
-		if (user == null) {
-			user = insight.getUser();
 		}
 		if (user == null) {
 			ps.response = true;
@@ -440,11 +439,19 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			// return the error
 			executeCommand(ps);
 			return;
-		} else {
-			NativePyEngineWorker worker = new NativePyEngineWorker(user, ps, insight);
-			worker.run();
-			executeCommand(worker.getOutput());
 		}
+		NativePyEngineWorker worker = new NativePyEngineWorker(user, ps, insight);
+		// a per-user engine such as MultiRDBMSNativeEngine picks its database from the
+		// thread's user, and this is the socket's reader thread, which every user of
+		// the
+		// process shares
+		ThreadStore.setUser(user);
+		try {
+			worker.run();
+		} finally {
+			ThreadStore.remove();
+		}
+		executeCommand(worker.getOutput());
 	}
 
 	/**

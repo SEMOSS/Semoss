@@ -183,7 +183,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				}
 			} else {
 				thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
-						this.insight.getCurFrame());
+						this.insight.getCurrentFrame());
 				reactorTool = thisReactor.asMcpTool();
 			}
 			try {

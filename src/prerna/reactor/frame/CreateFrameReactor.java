@@ -100,7 +100,7 @@ public class CreateFrameReactor extends AbstractReactor {
 		// store it as the result and push it to the planner to override
 		// any existing frame that was in use
 		if (override) {
-			this.insight.setDataMaker(newFrame);
+			this.insight.setCurrentFrame(newFrame);
 		}
 		// add the alias as a noun by default
 		if (alias != null && !alias.isEmpty()) {

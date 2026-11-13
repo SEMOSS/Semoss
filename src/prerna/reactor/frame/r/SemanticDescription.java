@@ -92,7 +92,7 @@ public class SemanticDescription extends AbstractRFrameReactor {
 		}
 
 		RDataTable returnTable = createNewFrameFromVariable(rFrame);
-		this.insight.setDataMaker(returnTable);
+		this.insight.setCurrentFrame(returnTable);
 		return new NounMetadata(returnTable, PixelDataType.FRAME);
 	}
 

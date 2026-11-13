@@ -48,7 +48,7 @@ public class ApiSemossTestPropsUtils {
 		Files.copy(ApiTestsSemossConstants.BASE_RDF_MAP, ApiTestsSemossConstants.TEST_RDF_MAP,
 				StandardCopyOption.REPLACE_EXISTING);
 		Me configurationManager = new Me();
-		configurationManager.changeRDFMap(ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'), "80",
+		configurationManager.changeRDFMap(ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'),
 				ApiTestsSemossConstants.TEST_RDF_MAP.toAbsolutePath().toString());
 		DIHelper.getInstance().loadCoreProp(ApiTestsSemossConstants.TEST_RDF_MAP.toAbsolutePath().toString());
 
@@ -80,7 +80,7 @@ public class ApiSemossTestPropsUtils {
 		try {
 			Files.delete(ApiTestsSemossConstants.TEST_RDF_MAP);
 		} catch (IOException e) {
-			classLogger.warn("Unable to delete " + ApiTestsSemossConstants.TEST_RDF_MAP, e);
+			classLogger.warn("Unable to delete {}", ApiTestsSemossConstants.TEST_RDF_MAP, e);
 		}
 	}
 

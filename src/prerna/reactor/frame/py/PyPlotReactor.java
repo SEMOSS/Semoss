@@ -114,7 +114,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		// there is a third scenario that needs to be addressed i..e when the frame type
 		// is R
 
-		ITableDataFrame thisFrame = insight.getCurFrame();
+		ITableDataFrame thisFrame = insight.getCurrentFrame();
 
 		NounMetadata newFrameVar = null;
 		if (thisFrame == null) {
@@ -134,7 +134,7 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 			gfrv.In();
 			newFrameVar = gfrv.execute();
 
-			thisFrame = insight.getCurFrame();
+			thisFrame = insight.getCurrentFrame();
 		} else if (thisFrame != null && thisFrame.getFrameType() == DataFrameTypeEnum.R) {
 			// need to do the synchronization routine
 

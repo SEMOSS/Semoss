@@ -540,31 +540,50 @@ public final class BrainMemoryUtils {
 		return result;
 	}
 
-	/** One memory the review of a finished chat proposes; refs and replaces are already resolved and checked. */
+	/** One memory the review of a chat proposes; refs and replaces are already resolved and checked. */
 	record Suggestion(String kind, String text, List<Ref> about, String replacesId, String messageId) {
 	}
 
 	/**
-	 * Saves the review's proposals as suggestions, which nothing uses until the owner accepts them. One that says
-	 * what a memory already says, a pending suggestion, or one the owner turned down is skipped.
+	 * Saves what the review of a chat learned, as Remember does in a chat. A new memory, or a correction of one the
+	 * assistant learned, is in use right away and stays unconfirmed. A correction of a memory the owner wrote or
+	 * confirmed waits as a suggestion, which nothing uses until they keep it. One that says what a memory already
+	 * says, a pending suggestion, or one the owner turned down is skipped.
 	 */
-	static List<Memory> suggest(String ownerId, String ownerType, List<Suggestion> suggestions, String threadId,
+	static List<Memory> learn(String ownerId, String ownerType, List<Suggestion> suggestions, String threadId,
 			String roomId) {
 		List<Memory> created = new ArrayList<>();
 		Timestamp now = CollaborationDbUtils.now();
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
 			List<Memory> known = new ArrayList<>(load(ownerId, ownerType, Set.of(ACTIVE, SUGGESTED, DISMISSED)));
 			for (Suggestion suggestion : suggestions) {
+				// only a memory still in use can be corrected; otherwise this is a new memory
+				Memory target = known.stream()
+						.filter(m -> m.id().equals(suggestion.replacesId()) && ACTIVE.equals(m.state())).findFirst()
+						.orElse(null);
+				// a correction keeps the old links unless it names its own
+				List<Ref> about = target != null && suggestion.about().isEmpty() ? target.about() : suggestion.about();
 				// a correction is alike the memory it replaces; only the others can make it a repeat
-				List<Memory> others = known.stream().filter(m -> !m.id().equals(suggestion.replacesId())).toList();
-				if (alike(others, suggestion.text(), suggestion.about()) != null) {
+				List<Memory> others = known.stream().filter(m -> m != target).toList();
+				if (alike(others, suggestion.text(), about) != null
+						|| (target != null && identical(List.of(target), suggestion.text(), about) != null)) {
 					continue;
 				}
-				Memory memory = new Memory(newId(ownerId, ownerType), suggestion.kind(), suggestion.text(), SUGGESTED,
-						WorkThreadInsights.BRAIN, false, false, suggestion.replacesId(), null,
+				boolean ask = target != null && target.ownerWrote();
+				Memory memory = new Memory(newId(ownerId, ownerType), suggestion.kind(), suggestion.text(),
+						ask ? SUGGESTED : ACTIVE, WorkThreadInsights.BRAIN, false, target != null && target.pinned(),
+						target == null ? null : target.id(), null,
 						new Source(FROM_CHAT_REVIEW, threadId, roomId, suggestion.messageId(), null, null), now, now,
-						null, suggestion.about());
-				CollaborationDbUtils.inTransaction(conn -> insert(conn, ownerId, ownerType, memory));
+						null, about);
+				CollaborationDbUtils.inTransaction(conn -> {
+					insert(conn, ownerId, ownerType, memory);
+					if (!ask) {
+						supersede(conn, ownerId, ownerType, memory, now);
+					}
+				});
+				if (!ask) {
+					known.remove(target);
+				}
 				known.add(memory);
 				created.add(memory);
 			}

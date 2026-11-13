@@ -268,11 +268,6 @@ class PandasFrameUnitTests {
 	class ConstantsTests {
 
 		@Test
-		void dataMakerNameConstant() {
-			assertEquals("PandasFrame", PandasFrame.DATA_MAKER_NAME);
-		}
-
-		@Test
 		void pandasImportVarConstant() {
 			assertEquals("pandas_import_var", PandasFrame.PANDAS_IMPORT_VAR);
 		}
@@ -622,22 +617,6 @@ class PandasFrameUnitTests {
 		void getFrameType_isNotNull() {
 			PandasFrame frame = new PandasFrame("test", mockTranslator);
 			assertNotNull(frame.getFrameType());
-		}
-	}
-
-	@Nested
-	class GetDataMakerNameTests {
-
-		@Test
-		void getDataMakerName_returnsPandasFrame() {
-			PandasFrame frame = new PandasFrame("test", mockTranslator);
-			assertEquals("PandasFrame", frame.getDataMakerName());
-		}
-
-		@Test
-		void getDataMakerName_matchesConstant() {
-			PandasFrame frame = new PandasFrame("test", mockTranslator);
-			assertEquals(PandasFrame.DATA_MAKER_NAME, frame.getDataMakerName());
 		}
 	}
 
@@ -1112,18 +1091,6 @@ class PandasFrameUnitTests {
 			verifyNoInteractions(mockTranslator);
 		}
 
-		@Test
-		void processDataMakerComponent_doesNotThrow() {
-			PandasFrame frame = new PandasFrame("test", mockTranslator);
-			assertDoesNotThrow(() -> frame.processDataMakerComponent(null));
-		}
-
-		@Test
-		void processDataMakerComponent_doesNotInteractWithTranslator() {
-			PandasFrame frame = new PandasFrame("test", mockTranslator);
-			frame.processDataMakerComponent(null);
-			verifyNoInteractions(mockTranslator);
-		}
 	}
 
 	@Nested
