@@ -35,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -54,8 +53,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -84,7 +85,6 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
-import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 
 public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
@@ -92,13 +92,43 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 	private FaissDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
 
+	private MockedConstruction<ClientProcessWrapper> wrapperConstruction;
+
 	@BeforeEach
 	void setUp() throws IOException {
 		FileUtils.cleanDirectory(tempDir.toFile());
 
+		wrapperConstruction = mockWorkerWrapper();
 		engine = new FaissDatabaseEngine();
 		insight = mock(Insight.class);
 		modelEmbedder = mock(IModelEngine.class);
+	}
+
+	@AfterEach
+	void closeWrapperConstruction() {
+		wrapperConstruction.close();
+	}
+
+	/**
+	 * Makes the engine's process wrapper a mock whose python process starts once,
+	 * on the first call that needs it, and stays connected. The engine creates its
+	 * wrapper when it is constructed, so this runs before the engine is created.
+	 *
+	 * @return the construction mock, closed after each test
+	 */
+	private static MockedConstruction<ClientProcessWrapper> mockWorkerWrapper() {
+		SocketClient workerClient = mock(SocketClient.class);
+		when(workerClient.isConnected()).thenReturn(true);
+		return Mockito.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
+			AtomicBoolean started = new AtomicBoolean();
+			when(mock.getSocketClient()).thenReturn(workerClient);
+			when(mock.getOrStartSocketClient(any())).thenAnswer(invocation -> {
+				if (started.compareAndSet(false, true)) {
+					invocation.getArgument(0, Runnable.class).run();
+				}
+				return workerClient;
+			});
+		});
 	}
 
 	@Test
@@ -218,22 +248,10 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 		Path indexFilesDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "indexed_files");
 		Path docDirPath = Paths.get(engineFolder.toString(), "assets", "schema", indexClass, "documents");
 
-		SocketClient scMock = mock(SocketClient.class);
-		when(scMock.isConnected()).thenReturn(true);
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
 				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito
-						.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
-							doNothing().when(mock).createProcessAndClient(any(boolean.class),
-									nullable(SymlinkHelper.class), any(int.class), nullable(String.class),
-									nullable(String.class), any(boolean.class), any(String.class), any(String.class));
-							doNothing().when(mock).shutdown(false);
-							when(mock.getSocketClient()).thenReturn(scMock);
-
-						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
-							// doNothing().when(mock).setSocketClient(scMock);
 							when(mock.runDirectPy(any(Insight.class), anyString())).thenReturn(null).thenReturn(false);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runScript(any())).thenReturn("true");
@@ -314,23 +332,10 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 		allPaths.add(file3);
 		allPaths.add(file4);
 
-		SocketClient scMock = mock(SocketClient.class);
-		when(scMock.isConnected()).thenReturn(true);
-
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
 				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito
-						.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
-							doNothing().when(mock).createProcessAndClient(any(boolean.class),
-									nullable(SymlinkHelper.class), any(int.class), nullable(String.class),
-									nullable(String.class), any(boolean.class), any(String.class), any(String.class));
-							doNothing().when(mock).shutdown(false);
-							when(mock.getSocketClient()).thenReturn(scMock);
-
-						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
-							// doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runScript(any())).thenReturn("true");
 						})) {
@@ -378,22 +383,10 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 			expectedOutput.add(output1);
 		}
 
-		SocketClient scMock = mock(SocketClient.class);
-		when(scMock.isConnected()).thenReturn(true);
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
 				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito
-						.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
-							doNothing().when(mock).createProcessAndClient(any(boolean.class),
-									nullable(SymlinkHelper.class), any(int.class), nullable(String.class),
-									nullable(String.class), any(boolean.class), any(String.class), any(String.class));
-							doNothing().when(mock).shutdown(false);
-							when(mock.getSocketClient()).thenReturn(scMock);
-
-						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
-							// doNothing().when(mock).setSocketClient(scMock);
 							when(mock.runDirectPy(any(Insight.class), anyString())).thenReturn(expectedOutput);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runScript(any())).thenReturn("true");
@@ -457,22 +450,10 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 			scriptOutput.put(key1, value1);
 		}
 
-		SocketClient scMock = mock(SocketClient.class);
-		when(scMock.isConnected()).thenReturn(true);
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
 				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito
-						.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
-							doNothing().when(mock).createProcessAndClient(any(boolean.class),
-									nullable(SymlinkHelper.class), any(int.class), nullable(String.class),
-									nullable(String.class), any(boolean.class), any(String.class), any(String.class));
-							doNothing().when(mock).shutdown(false);
-							when(mock.getSocketClient()).thenReturn(scMock);
-
-						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
-							// doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runDirectPy(anyString())).thenReturn(scriptOutput);
 						})) {
@@ -524,22 +505,10 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 			Files.createFile(newFilePath);
 		}
 
-		SocketClient scMock = mock(SocketClient.class);
-		when(scMock.isConnected()).thenReturn(true);
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
 				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
-				MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito
-						.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
-							doNothing().when(mock).createProcessAndClient(any(boolean.class),
-									nullable(SymlinkHelper.class), any(int.class), nullable(String.class),
-									nullable(String.class), any(boolean.class), any(String.class), any(String.class));
-							doNothing().when(mock).shutdown(false);
-							when(mock.getSocketClient()).thenReturn(scMock);
-
-						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
-							// doNothing().when(mock).setSocketClient(scMock);
 							when(mock.runDirectPy(anyString())).thenReturn(fileNames);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runSmssWrapperEval(any(String.class))).thenReturn(fileNames);
@@ -589,9 +558,6 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
 
-		SocketClient scMock = mock(SocketClient.class);
-		when(scMock.isConnected()).thenReturn(true);
-
 		String key1 = "key1";
 		String value1 = "value1";
 		List<Map<String, Object>> expectedOutput = new Vector<>();
@@ -606,18 +572,8 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 		}
 
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
-				MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito
-						.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
-							doNothing().when(mock).createProcessAndClient(any(boolean.class),
-									nullable(SymlinkHelper.class), any(int.class), nullable(String.class),
-									nullable(String.class), any(boolean.class), any(String.class), any(String.class));
-							doNothing().when(mock).shutdown(false);
-							when(mock.getSocketClient()).thenReturn(scMock);
-
-						});
 				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class,
 						(mock, context) -> {
-							// doNothing().when(mock).setSocketClient(scMock);
 							doNothing().when(mock).runEmptyPy(any());
 							when(mock.runScript(any())).thenReturn("true");
 							when(mock.runSmssWrapperEval(any(String.class))).thenReturn(expectedOutput);

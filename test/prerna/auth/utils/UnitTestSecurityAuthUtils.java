@@ -265,12 +265,22 @@ public class UnitTestSecurityAuthUtils {
 	}
 
 	static void createProject(String id, String name, User user) {
-		createProject(id, name, user, false);
-	}
-
-	static void createProject(String id, String name, User user, boolean hasPortal) {
 		String userId = user.getPrimaryLoginToken().getId();
 		SecurityProjectUtils.addProject(id, name, "APP", null, false, user);
+		SecurityProjectUtils.addProjectOwner(user, id, userId);
+	}
+
+	/**
+	 * Creates a project of the given type owned by the user.
+	 *
+	 * @param id   the project id
+	 * @param name the project name
+	 * @param type the project type, such as CODE or BLOCKS
+	 * @param user the owner
+	 */
+	static void createProjectOfType(String id, String name, String type, User user) {
+		String userId = user.getPrimaryLoginToken().getId();
+		SecurityProjectUtils.addProject(id, name, type, null, false, user);
 		SecurityProjectUtils.addProjectOwner(user, id, userId);
 	}
 

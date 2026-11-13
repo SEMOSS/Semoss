@@ -45,7 +45,7 @@ import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
 
 public class ImagePPTProcessor extends AbstractFileImageProcessor {
 
-	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
+	private static final Logger classLogger = LogManager.getLogger(ImagePPTProcessor.class);
 
 	public ImagePPTProcessor(String filePath, VectorDatabaseCSVWriter writer) {
 		super(filePath, writer);

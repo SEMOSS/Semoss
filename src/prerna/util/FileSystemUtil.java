@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.util;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -53,6 +55,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.sablecc2.om.PixelDataType;
@@ -123,7 +126,13 @@ public final class FileSystemUtil {
 	 * @param renamed       whether the saved path carries a copy number because
 	 *                      the requested path was taken
 	 */
-	public record SavedAsset(String requestedPath, String savedPath, boolean renamed) {
+	public record SavedAsset(
+			@Schema(description = "The path asked for, relative to the asset folder",
+					requiredMode = REQUIRED) String requestedPath,
+			@Schema(description = "The path written, relative to the asset folder",
+					requiredMode = REQUIRED) String savedPath,
+			@Schema(description = "Whether savedPath carries a copy number because requestedPath was taken",
+					requiredMode = REQUIRED) boolean renamed) {
 
 		/**
 		 * Records a write, renamed when the saved path differs from the requested

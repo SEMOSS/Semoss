@@ -45,7 +45,7 @@ import prerna.util.Utility;
 
 public class FrameFilterWithSQLReactor extends AbstractFrameReactor {
 
-	private static final String CLASS_NAME = ResetFrameToOriginalNameReactor.class.getName();
+	private static final String CLASS_NAME = FrameFilterWithSQLReactor.class.getName();
 
 	public FrameFilterWithSQLReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FRAME.getKey(), ReactorKeysEnum.QUERY_KEY.getKey() };

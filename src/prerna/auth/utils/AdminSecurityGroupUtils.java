@@ -61,7 +61,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.QueryExecutionUtility;
@@ -734,18 +733,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	/**
 	 * Lists the projects the team holds a grant on, with the grant's level and end
 	 * date and the project's details, sorted by name, one page at a time. The
-	 * search matches project id or name, and onlyApps keeps only the projects with
-	 * a portal.
+	 * search matches project id or name.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
-	 * @param onlyApps
+	 * @param projectTypes keep only the projects of these types; null or empty for
+	 *                     every type
 	 * @return
 	 */
 	public List<Map<String, Object>> getProjectsForGroup(String groupId, String groupType, String searchTerm,
-			long limit, long offset, boolean onlyApps) {
+			long limit, long offset, List<String> projectTypes) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
@@ -797,10 +796,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
-
-		if (onlyApps) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
-					PixelDataType.BOOLEAN));
+		if (projectTypes != null && !projectTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
 		}
 
 		// join
@@ -819,14 +816,16 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Counts the projects the team holds a grant on, with the same search and
-	 * onlyApps filters as getProjectsForGroup, for paging that list.
+	 * Counts the projects the team holds a grant on, with the same search as
+	 * getProjectsForGroup, for paging that list.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
+	 * @param projectTypes keep only the projects of these types; null or empty for
+	 *                     every type
 	 * @return
 	 */
-	public Long getNumProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
+	public Long getNumProjectsForGroup(String groupId, String groupType, String searchTerm, List<String> projectTypes) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
@@ -842,8 +841,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", groupType));
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
+		boolean hasProjectTypes = projectTypes != null && !projectTypes.isEmpty();
 
-		if (hasSearchTerm || onlyApps) {
+		if (hasSearchTerm || hasProjectTypes) {
 			qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
 		}
 
@@ -855,11 +855,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
-
-		if (onlyApps) {
-			qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
-					PixelDataType.BOOLEAN));
+		if (hasProjectTypes) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
 		}
 
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
@@ -868,17 +865,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	/**
 	 * Lists the projects the team holds no grant on yet, so an admin can pick ones
 	 * to add, sorted by name, one page at a time. The search matches project id or
-	 * name, and onlyApps keeps only the projects with a portal.
+	 * name.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
-	 * @param onlyApps
+	 * @param projectTypes keep only the projects of these types; null or empty for
+	 *                     every type
 	 * @return
 	 */
 	public List<Map<String, Object>> getAvailableProjectsForGroup(String groupId, String groupType, String searchTerm,
-			long limit, long offset, boolean onlyApps) {
+			long limit, long offset, List<String> projectTypes) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
@@ -921,6 +919,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
+		if (projectTypes != null && !projectTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
+		}
 
 		// filter out projects that are already added
 		{
@@ -932,11 +933,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", groupType));
 			// filter out from engine list
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
-		}
-
-		if (onlyApps) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
-					PixelDataType.BOOLEAN));
 		}
 
 		// add the sort
@@ -1058,7 +1054,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
-	 * @param onlyApps
 	 * @return
 	 */
 	public List<Map<String, Object>> getEnginesForGroup(String groupId, String groupType, String searchTerm, long limit,
@@ -1166,7 +1161,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
-	 * @param onlyApps
 	 * @return
 	 */
 	public List<Map<String, Object>> getAvailableEnginesForGroup(String groupId, String groupType, String searchTerm,

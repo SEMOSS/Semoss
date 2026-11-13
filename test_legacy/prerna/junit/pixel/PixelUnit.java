@@ -98,8 +98,8 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.forms.AbstractFormBuilder;
-import prerna.nameserver.DeleteFromMasterDB;
-import prerna.nameserver.utility.MasterDatabaseUtility;
+import prerna.masterdatabase.DeleteFromMasterDB;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
@@ -116,7 +116,7 @@ import prerna.util.gson.GsonUtility;
 
 public class PixelUnit {
 
-	protected static final Logger classLogger = LogManager.getLogger(JUnit.class.getName());
+	protected static final Logger classLogger = LogManager.getLogger(PixelUnit.class.getName());
 
 	protected static final String BASE_DIRECTORY = new File("").getAbsolutePath();
 	protected static final String BASE_DB_DIRECTORY = Paths.get(BASE_DIRECTORY, "db").toAbsolutePath().toString();

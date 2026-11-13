@@ -478,13 +478,21 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 	}
 
 	@Test
-	void testValidateProjectAlreadyContains() {
+	void testValidateProjectAllowsExistingProjectName() throws IOException {
+		Path base = tempDir.resolve("Semoss");
+		Files.createDirectories(base);
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		DIHelper.getInstance().setCoreProp(coreProp);
+
 		User u = new User();
 		try (MockedStatic<AbstractSecurityUtils> mockedStatic = Mockito.mockStatic(AbstractSecurityUtils.class)) {
 			mockedStatic.when(() -> AbstractSecurityUtils.containsProjectName("pname")).thenReturn(true);
 
-			IOException e = assertThrows(IOException.class, () -> SmssUtilities.validateProject(u, "pname", "id"));
-			assertEquals("Project name already exists. Please provide a unique project name", e.getMessage());
+			File f = SmssUtilities.validateProject(u, "pname", "id");
+
+			assertFalse(f.exists());
+			assertEquals("pname__id", f.getName());
 		}
 	}
 

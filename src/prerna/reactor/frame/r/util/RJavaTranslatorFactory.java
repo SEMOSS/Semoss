@@ -132,6 +132,19 @@ public class RJavaTranslatorFactory {
 	}
 
 	/**
+	 * Returns whether R runs in each user's Java worker, over TCP, rather than in
+	 * this process or an Rserve process.
+	 *
+	 * @return true when R is on and runs in the Java worker
+	 */
+	public static boolean runsInJavaWorker() {
+		if (!INIT) {
+			init();
+		}
+		return USE_R && translatorClass == TCPRTranslator.class;
+	}
+
+	/**
 	 * Starts the R connection this instance is configured for, using a translator
 	 * that is not tied to a user's insight.
 	 *
@@ -195,6 +208,9 @@ public class RJavaTranslatorFactory {
 	 * @param logger  the logger the translator writes to
 	 * @return the translator, or null when the translator class cannot be
 	 *         instantiated
+	 * @throws IllegalArgumentException when R is off for this instance, R cannot be
+	 *                                  found, or the R environment for the
+	 *                                  insight's frame cannot be set up
 	 */
 	public static AbstractRJavaTranslator getRJavaTranslator(Insight insight, Logger logger) {
 		AbstractRJavaTranslator newInstance = null;
@@ -233,7 +249,7 @@ public class RJavaTranslatorFactory {
 
 				}
 			}
-		} catch (ReflectiveOperationException | IllegalArgumentException | SecurityException e) {
+		} catch (ReflectiveOperationException | SecurityException e) {
 			classLogger.error("Failed to create the R translator {}", translatorClass.getName(), e);
 		}
 		return newInstance;

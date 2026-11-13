@@ -269,22 +269,22 @@ class PandasFrameUnitTests {
 
 		@Test
 		void pandasImportVarConstant() {
-			assertEquals("pandas_import_var", PandasFrame.PANDAS_IMPORT_VAR);
+			assertEquals("pd", PandasFrame.PANDAS_IMPORT_VAR);
 		}
 
 		@Test
 		void pandasImportStringConstant() {
-			assertEquals("import pandas as pandas_import_var", PandasFrame.PANDAS_IMPORT_STRING);
+			assertEquals("import pandas as pd", PandasFrame.PANDAS_IMPORT_STRING);
 		}
 
 		@Test
 		void numpyImportVarConstant() {
-			assertEquals("np_import_var", PandasFrame.NUMPY_IMPORT_VAR);
+			assertEquals("np", PandasFrame.NUMPY_IMPORT_VAR);
 		}
 
 		@Test
 		void numpyImportStringConstant() {
-			assertEquals("import numpy as np_import_var", PandasFrame.NUMPY_IMPORT_STRING);
+			assertEquals("import numpy as np", PandasFrame.NUMPY_IMPORT_STRING);
 		}
 
 		@Test

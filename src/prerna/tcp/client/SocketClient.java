@@ -82,6 +82,12 @@ public class SocketClient implements Runnable, Closeable {
 	Map<String, Set<String>> jobToEpoc = new ConcurrentHashMap<>();
 	Set<String> cancelledEpocs = ConcurrentHashMap.<String>newKeySet();
 
+	protected static final String ENGINE_UNAVAILABLE_MESSAGE = "The analytic engine for this session is no longer running. Run the step again to start a new one.";
+	protected static final String ENGINE_NOT_CONNECTED_MESSAGE = "The analytic engine is not connected yet. Run the step again in a moment.";
+	protected static final String SERVER_CRASHED_MESSAGE = "The analytic engine stopped unexpectedly while running this step, usually because it ran out of memory or the code crashed it. Run the step again to start a new engine.";
+	protected static final String SERVER_STOPPED_MESSAGE = "The analytic engine was stopped before this step finished, because the session ended or the engine was restarted.";
+	private static final long RELEASE_LOCK_WAIT_MS = 200L;
+
 	// Hard cap on how long a caller blocks waiting for a python response before it
 	// gives up. We never wait forever: after this the caller surfaces a timeout,
 	// but
@@ -96,6 +102,7 @@ public class SocketClient implements Runnable, Closeable {
 	long averageMillis = 200;
 	// use this if the server is dead
 	volatile boolean killAll = false;
+	volatile boolean stopRequested = false;
 	User user;
 
 	Map<String, String> startMdc = null;
@@ -258,12 +265,11 @@ public class SocketClient implements Runnable, Closeable {
 	 */
 	public Object executeCommand(PayloadStruct ps) {
 		if (killAll) {
-			throw new SemossPixelException(
-					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+			throw new SemossPixelException(ENGINE_UNAVAILABLE_MESSAGE);
 		}
 
 		if (!connected) {
-			throw new SemossPixelException("Your micro-process is not available. Please logout and try again. !");
+			throw new SemossPixelException(ENGINE_NOT_CONNECTED_MESSAGE);
 		}
 
 		String id = ps.epoc;
@@ -313,16 +319,27 @@ public class SocketClient implements Runnable, Closeable {
 						throw new SemossPixelException("The request was interrupted", e);
 					}
 				}
+				if (!responseMap.containsKey(ps.epoc) && killAll) {
+					this.requestMap.remove(ps.epoc);
+					if (this.stopRequested) {
+						classLogger.info("The analytic engine was stopped before answering epoc {} method {}", ps.epoc,
+								ps.methodName);
+					} else {
+						classLogger.warn("The analytic engine stopped before answering epoc {} method {}", ps.epoc,
+								ps.methodName);
+					}
+					throw new SemossPixelException(ps.ex != null ? ps.ex : SERVER_CRASHED_MESSAGE);
+				}
 				if (!responseMap.containsKey(ps.epoc) && System.nanoTime() >= waitDeadline) {
 					// hit the hard cap - stop waiting but leave python running so a script
 					// that persists its own results can still finish
 					this.requestMap.remove(ps.epoc);
 					classLogger.warn(
-							"Stopped waiting for epoc {} method {} after the {}h max wait; python continues running in the background",
+							"Stopped waiting for epoc {} method {} after the {}h max wait; the analytic engine keeps running it",
 							ps.epoc, ps.methodName, MAX_RESPONSE_WAIT.toHours());
-					throw new SemossPixelException("This execution exceeded the maximum wait time of "
+					throw new SemossPixelException("This step ran longer than the maximum wait of "
 							+ MAX_RESPONSE_WAIT.toHours()
-							+ " hours. The python process is still running in the background - if your script persists its results, you can retrieve them later.");
+							+ " hours. The analytic engine keeps running it, so results the code saves can still be retrieved later.");
 				} else if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {
 					classLogger.info("Timed out waiting for epoc {} method {}", ps.epoc, ps.methodName);
 				}
@@ -344,8 +361,7 @@ public class SocketClient implements Runnable, Closeable {
 		try {
 			os.write(psBytes);
 		} catch (IOException ex) {
-			classLogger.error("Failed to write payload to socket output stream for epoc: {}", ps.epoc, ex);
-			crash();
+			connectionEnded(ex);
 		} finally {
 			WRITE_LOCK.unlock();
 		}
@@ -362,10 +378,13 @@ public class SocketClient implements Runnable, Closeable {
 	}
 
 	/**
-	 * 
-	 * @return
+	 * Asks the server to stop, then releases every caller still waiting on a
+	 * response and closes the connection.
+	 *
+	 * @return true when the stop request was sent, or there was no connection
 	 */
 	public boolean stopServer() {
+		this.stopRequested = true;
 		try {
 			if (isConnected()) {
 				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
@@ -396,49 +415,86 @@ public class SocketClient implements Runnable, Closeable {
 				return true;
 			}
 		} finally {
-			// always call close on the IO
+			this.killAll = true;
+			this.connected = false;
+			releasePendingRequests(SERVER_STOPPED_MESSAGE);
 			close();
 		}
 	}
 
 	/**
-	 * 
+	 * Marks the server as lost and releases every caller waiting on a response, so
+	 * each one fails with the crash message instead of waiting out the maximum
+	 * wait, then closes the connection.
 	 */
 	public void crash() {
-		// the client has lost the server - release everything waiting on a response.
-		// run on a separate executor so a stuck signal can't block us; we close and
-		// kill the process regardless
-		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-			Callable<String> callableTask = () -> {
-				try {
-					for (Object k : this.requestMap.keySet()) {
-						PayloadStruct ps = this.requestMap.get(k);
-						classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
-						ps.ex = "Server has crashed. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe";
-						ps.signalResponse();
-					}
-				} catch (Exception e) {
-					classLogger.error("Error releasing pending payload structs during crash", e);
-				}
-				return "Successfully released the payload structs";
-			};
+		this.killAll = true;
+		this.connected = false;
+		releasePendingRequests(SERVER_CRASHED_MESSAGE);
+		this.close();
+	}
 
-			Future<String> future = executor.submit(callableTask);
+	/**
+	 * Handles the end of the connection to the server. After a stop this client
+	 * asked for, such as a logout or the end of the session, or once the client is
+	 * already closed, the end is expected and only logged. Otherwise the server was
+	 * lost, which is handled as a crash.
+	 *
+	 * @param cause the error that ended the connection, or null when the server
+	 *              closed it
+	 */
+	void connectionEnded(Exception cause) {
+		if (this.stopRequested || this.killAll) {
+			classLogger.debug("The connection to the analytic engine at {} ended after it was stopped",
+					transportTarget());
+			return;
+		}
+		if (cause == null) {
+			classLogger.error("The analytic engine at {} closed the connection unexpectedly", transportTarget());
+		} else {
+			classLogger.error("Lost the connection to the analytic engine at {}", transportTarget(), cause);
+		}
+		crash();
+	}
+
+	/**
+	 * Returns whether this client was asked to stop its server, such as on logout
+	 * or when the session ends, rather than losing it.
+	 *
+	 * @return true after {@link #stopServer()} was called
+	 */
+	public boolean isStopRequested() {
+		return this.stopRequested;
+	}
+
+	/**
+	 * Wakes every caller waiting on a response, giving each request the reason when
+	 * it has no error yet. The callers then see that the server is gone and fail
+	 * with the reason. A caller that holds its request's lock is not waiting yet,
+	 * so it is skipped after a short wait and sees the closed client on its next
+	 * check.
+	 *
+	 * @param reason the error for each request that is still waiting
+	 */
+	protected void releasePendingRequests(String reason) {
+		if (this.requestMap == null) {
+			return;
+		}
+		for (Map.Entry<String, PayloadStruct> entry : this.requestMap.entrySet()) {
+			PayloadStruct ps = entry.getValue();
+			if (ps.ex == null) {
+				ps.ex = reason;
+			}
 			try {
-				// wait 1 minute at most
-				String result = future.get(60, TimeUnit.SECONDS);
-				classLogger.info(result);
-			} catch (TimeoutException e) {
-				classLogger.warn("Not able to release the payload structs within a timely fashion");
-				future.cancel(true);
-			} catch (InterruptedException | ExecutionException e) {
-				classLogger.error("Error waiting for crash cleanup to complete", e);
+				if (!ps.trySignalResponse(RELEASE_LOCK_WAIT_MS, TimeUnit.MILLISECONDS)) {
+					classLogger.debug("Epoc {} is busy and sees the closed client on its next check", entry.getKey());
+				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				classLogger.warn("Interrupted while releasing the callers waiting on the analytic engine");
+				return;
 			}
 		}
-
-		this.close();
-		throw new SemossPixelException(
-				"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
 	}
 
 	@Override

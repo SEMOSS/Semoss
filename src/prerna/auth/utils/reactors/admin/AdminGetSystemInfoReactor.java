@@ -82,7 +82,8 @@ public class AdminGetSystemInfoReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("""
 					Admin Only: Returns a map with properties about the instance including:
-					hostname, ipaddress, isCluster, storageProvider, isClusterScheduler, isClusterZK
+					hostname, ipaddress, isCluster, storageProvider, isClusterScheduler, clusterContainerIp,
+					isClusterSync
 				""").noKeys();
 	}
 

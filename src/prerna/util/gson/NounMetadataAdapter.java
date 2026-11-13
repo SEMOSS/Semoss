@@ -49,7 +49,6 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata> {
 
@@ -62,36 +61,36 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 			in.nextNull();
 			return null;
 		}
-		
+
 		boolean isNull = false;
 		boolean isArray = false;
-		
+
 		// components of noun meta
 		List<String> classNames = new Vector<>();
 		List<Object> objList = new Vector<>();
-		
+
 		// data type and op types
 		PixelDataType type = null;
 		List<PixelOperationType> ops = new Vector<PixelOperationType>();
 
 		in.beginObject();
-		while(in.hasNext()) {
-			if(in.peek() != JsonToken.NAME) {
+		while (in.hasNext()) {
+			if (in.peek() != JsonToken.NAME) {
 				throw new IllegalArgumentException("NounMetadata requires the root to be a map");
 			}
 			String name = in.nextName();
-			if(name.equals("pixelType")) {
+			if (name.equals("pixelType")) {
 				String typeStr = in.nextString();
 				type = PixelDataType.valueOf(typeStr);
-			} else if(name.equals("class")) {
-				if(in.peek() == JsonToken.NULL) {
+			} else if (name.equals("class")) {
+				if (in.peek() == JsonToken.NULL) {
 					in.nextNull();
 					isNull = true;
-				} else if(in.peek() == JsonToken.BEGIN_ARRAY) {
+				} else if (in.peek() == JsonToken.BEGIN_ARRAY) {
 					isArray = true;
 					in.beginArray();
-					while(in.hasNext()) {
-						if(in.peek() == JsonToken.NULL) {
+					while (in.hasNext()) {
+						if (in.peek() == JsonToken.NULL) {
 							in.nextNull();
 							classNames.add(null);
 						} else {
@@ -104,11 +103,11 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 					String className = in.nextString();
 					classNames.add(className);
 				}
-			} else if(name.equals("value")) {
+			} else if (name.equals("value")) {
 				in.beginArray();
 				int counter = 0;
-				while(in.hasNext()) {
-					if(in.peek() == JsonToken.NULL) {
+				while (in.hasNext()) {
+					if (in.peek() == JsonToken.NULL) {
 						in.nextNull();
 						objList.add(null);
 					} else {
@@ -120,45 +119,56 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 							TypeAdapter adapter = GSON.getAdapter(c);
 							objList.add(adapter.read(in));
 						} catch (ClassNotFoundException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error(
+									"Could not find the class {} of a stored noun value, so it is read as null",
+									className, e);
+							in.skipValue();
+							objList.add(null);
 						}
 					}
 					// increase the index
 					counter++;
 				}
 				in.endArray();
-			} else if(name.equals("opType")) {
+			} else if (name.equals("opType")) {
 				in.beginArray();
-				while(in.hasNext()) {
-					ops.add(PixelOperationType.valueOf(in.nextString()));
+				while (in.hasNext()) {
+					String opName = in.nextString();
+					try {
+						ops.add(PixelOperationType.valueOf(opName));
+					} catch (IllegalArgumentException e) {
+						classLogger.warn("Skipping the stored pixel operation type {}, which no longer exists", opName);
+					}
 				}
 				in.endArray();
 			}
 		}
 		in.endObject();
-		
-		if(isNull) {
+
+		if (isNull) {
 			return new NounMetadata(null, type, ops);
-		} else if(type == PixelDataType.LAMBDA) {
+		} else if (type == PixelDataType.LAMBDA) {
 			Map<String, Object> reactorMap = (Map<String, Object>) objList.get(0);
 			String className = (String) reactorMap.get("reactorType");
-			Map<String, List<Map<String, Object>>> nounStoreMap = (Map<String, List<Map<String, Object>>>) reactorMap.get("value");
-			
+			Map<String, List<Map<String, Object>>> nounStoreMap = (Map<String, List<Map<String, Object>>>) reactorMap
+					.get("value");
+
 			try {
 				IReactor thisClass = (IReactor) Class.forName(className).newInstance();
 				thisClass.setNounStore(NounStore.generateNounFromMap(nounStoreMap));
-				
+
 				return new NounMetadata(thisClass, PixelDataType.LAMBDA);
 			} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
 				throw new IllegalArgumentException("Unable to create lambda " + className);
 			}
-		} if(isArray) {
+		}
+		if (isArray) {
 			return new NounMetadata(objList, type, ops);
 		} else {
 			return new NounMetadata(objList.get(0), type, ops);
 		}
 	}
-	
+
 	@Override
 	public void write(JsonWriter out, NounMetadata value) throws IOException {
 		if (value == null) {
@@ -168,22 +178,22 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 
 		PixelDataType type = value.getNounType();
 		Object obj = value.getValue();
-		
+
 		out.beginObject();
 		out.name("pixelType").value(type.toString());
-		if(obj == null) {
+		if (obj == null) {
 			out.name("class").nullValue();
 			out.name("value");
 			out.beginArray();
 			out.nullValue();
 			out.endArray();
-		} else if(obj instanceof Collection) {
+		} else if (obj instanceof Collection) {
 			// first grab all the values
 			Collection<Object> collectionObj = (Collection<Object>) obj;
 			out.name("class");
 			out.beginArray();
-			for(Object o : collectionObj) {
-				if(o == null) {
+			for (Object o : collectionObj) {
+				if (o == null) {
 					out.nullValue();
 				} else {
 					out.value(o.getClass().getName());
@@ -192,10 +202,10 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 			out.endArray();
 			out.name("value");
 			out.beginArray();
-			for(Object o : collectionObj) {
-				if(o == null) {
+			for (Object o : collectionObj) {
+				if (o == null) {
 					out.nullValue();
-				} else if(o instanceof ITableDataFrame) {
+				} else if (o instanceof ITableDataFrame) {
 					writeFrame((ITableDataFrame) obj, out);
 				} else {
 					TypeAdapter adapter = GSON.getAdapter(o.getClass());
@@ -203,20 +213,20 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 				}
 			}
 			out.endArray();
-			
-		} else if(obj instanceof IReactor){
+
+		} else if (obj instanceof IReactor) {
 			// you are probably doing something wrong here
-			// but i do not want to break serliaizing an object that we 
+			// but i do not want to break serliaizing an object that we
 			// are unable to dos
 			Map<String, Object> lambdaMap = new HashMap<>();
-	    	lambdaMap.put("reactorType", obj.getClass().getName());
-	    	if(((IReactor) obj).getNounStore() != null) {
-	    		lambdaMap.put("value", ((IReactor) obj).getStoreMap() );
-	    	} else {
-	    		lambdaMap.put("value", new HashMap<>());
-	    	}
+			lambdaMap.put("reactorType", obj.getClass().getName());
+			if (((IReactor) obj).getNounStore() != null) {
+				lambdaMap.put("value", ((IReactor) obj).getStoreMap());
+			} else {
+				lambdaMap.put("value", new HashMap<>());
+			}
 			out.name("class").value(lambdaMap.getClass().getName());
-	    	out.name("value");
+			out.name("value");
 			out.beginArray();
 			TypeAdapter adapter = GSON.getAdapter(lambdaMap.getClass());
 			adapter.write(out, lambdaMap);
@@ -226,7 +236,7 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 			out.name("value");
 			out.beginArray();
 			// do not break on frames
-			if(obj instanceof ITableDataFrame) {
+			if (obj instanceof ITableDataFrame) {
 				writeFrame((ITableDataFrame) obj, out);
 			} else {
 				TypeAdapter adapter = GSON.getAdapter(obj.getClass());
@@ -234,22 +244,23 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 			}
 			out.endArray();
 		}
-		
+
 		// write the op types
 		out.name("opType");
 		out.beginArray();
 		List<PixelOperationType> opTypes = value.getOpType();
-		for(PixelOperationType opType : opTypes) {
+		for (PixelOperationType opType : opTypes) {
 			out.value(opType.toString());
 		}
 		out.endArray();
-		
+
 		// end the object
 		out.endObject();
 	}
-	
+
 	/**
 	 * Write the frame as a map
+	 * 
 	 * @param frame
 	 * @param out
 	 * @throws IOException
@@ -258,29 +269,15 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 		Map<String, String> mapValue = new HashMap<String, String>();
 		mapValue.put("type", frame.getFrameType().getTypeAsString());
 		String name = frame.getOriginalName();
-		if(name != null) {
+		if (name != null) {
 			mapValue.put("name", name);
-			if(!name.equals(frame.getName())) {
+			if (!name.equals(frame.getName())) {
 				mapValue.put("queryName", frame.getName());
 			}
 		}
-		
+
 		TypeAdapter adapter = GSON.getAdapter(mapValue.getClass());
 		adapter.write(out, mapValue);
 	}
-	
-//	public static void main(String[] args) {
-//		
-//		DateManipulationReactor reactor = new DateManipulationReactor();
-//		reactor.In();
-//		GenRowStruct grs = new GenRowStruct();
-//        grs.add(new NounMetadata("subtraction", PixelDataType.CONST_STRING));
-//        reactor.getNounStore().addNoun("type", grs);
-//
-//		NounMetadata noun = new NounMetadata(reactor, PixelDataType.LAMBDA);
-//		Gson gson = GsonUtility.getDefaultGson();
-//		String jsonString = gson.toJson(noun);
-//		gson.fromJson(jsonString, NounMetadata.class);
-//	}
 
 }
