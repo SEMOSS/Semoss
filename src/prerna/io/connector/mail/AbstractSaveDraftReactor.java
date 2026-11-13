@@ -89,8 +89,7 @@ public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReacto
 				draft = saveReply(this.insight.getUser(), readReply(repliedTo));
 			} else {
 				OutgoingMail mail = readOutgoing(false, "save a draft");
-				if (Arrays.asList(this.keysToGet).contains(REPLY_TO) && mail.body() != null
-						&& PASTED_HISTORY.matcher(mail.body()).find()) {
+				if (takesReply() && mail.body() != null && PASTED_HISTORY.matcher(mail.body()).find()) {
 					throw new IllegalArgumentException("The body quotes an original message. Do not type the original into "
 							+ "the body: pass " + REPLY_TO + " (the id or emailRef of the message being answered) and write "
 							+ "only your new text, and the original is quoted in the thread for you.");
@@ -121,6 +120,16 @@ public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReacto
 				readBoolean(REPLY_ALL, false), recipients, readInsightFiles(ATTACHMENTS));
 	}
 
+	/**
+	 * Whether this reactor saves a reply in the thread it answers, which its
+	 * {@code replyTo} key offers.
+	 *
+	 * @return true when the reactor takes {@code replyTo}
+	 */
+	private boolean takesReply() {
+		return Arrays.asList(this.keysToGet).contains(REPLY_TO);
+	}
+
 	@Override
 	protected final MCPExecution getExecution() {
 		return MCPExecution.AUTO;
@@ -133,9 +142,13 @@ public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReacto
 
 	@Override
 	protected final String describe() {
-		return "Save an email as a draft in the signed in user's own " + mailbox() + ", for them to review and send. "
-				+ "To answer an email, pass " + REPLY_TO + ": the draft is then a real reply in that thread, with the "
-				+ "original quoted and the recipients chosen for you.";
+		String description = "Save an email as a draft in the signed in user's own " + mailbox()
+				+ ", for them to review and send.";
+		if (!takesReply()) {
+			return description;
+		}
+		return description + " To answer an email, pass " + REPLY_TO + ": the draft is then a real reply in that "
+				+ "thread, with the original quoted and the recipients chosen for you.";
 	}
 
 	@Override
@@ -145,8 +158,14 @@ public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReacto
 			return "Optional recipients of the draft, as a list of email addresses, which can be left for the "
 					+ "person reviewing it to fill in.";
 		case SUBJECT:
+			if (!takesReply()) {
+				return "Optional subject line of the draft.";
+			}
 			return "Optional subject line of the draft. Ignored with " + REPLY_TO + ", which keeps the thread's subject.";
 		case BODY:
+			if (!takesReply()) {
+				return "Optional body of the draft.";
+			}
 			return "Optional body of the draft. With " + REPLY_TO + ", only your new text: never type the original "
 					+ "message or its From/Sent lines, which are added for you.";
 		case REPLY_TO:

@@ -44,12 +44,11 @@ import org.openqa.selenium.chrome.ChromeOptions;
 
 import prerna.om.ThreadStore;
 import prerna.security.HttpHelperUtility;
-import prerna.util.insight.InsightUtility;
 
 public class ChromeDriverUtility {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	protected static final Logger classLogger = LogManager.getLogger(InsightUtility.class.getName());
+	protected static final Logger classLogger = LogManager.getLogger(ChromeDriverUtility.class.getName());
 
 	protected static String contextPath = null;
 	protected static String sessionCookie = null;

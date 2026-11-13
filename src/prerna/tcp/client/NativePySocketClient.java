@@ -378,11 +378,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								}
 							}
 						} else {
-							crash();
+							connectionEnded(null);
 							break SOCKET_LISTENER;
 						}
 					} catch (SocketException ex1) {
-						crash();
+						connectionEnded(ex1);
 						break SOCKET_LISTENER;
 					} catch (Exception ex) {
 						classLogger.error("Unexpected error in socket listener loop", ex);
@@ -390,11 +390,15 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				}
 			}
 		} finally {
-			classLogger.info("Attemping to gracefully shutdown the socket server");
-			if (this.cpw != null) {
-				this.cpw.shutdown(true);
+			if (this.stopRequested) {
+				classLogger.debug("Stopped reading from the python server after it was stopped");
+			} else {
+				classLogger.info("Attemping to gracefully shutdown the socket server");
+				if (this.cpw != null) {
+					this.cpw.shutdown(true);
+				}
+				classLogger.warn("NativePySocketClient is disconnected");
 			}
-			classLogger.warn("NativePySocketClient is disconnected");
 			// this will set connected to false
 			// note shutdown must happen before we flip to connected false
 			// in order to properly force cleanup of streams
@@ -549,12 +553,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 		long threadId = Thread.currentThread().threadId();
 		classLogger.debug("Entering executeCommand for epoc: {} on thread: {} (ID: {})", ps.epoc, threadName, threadId);
 		if (killAll) {
-			throw new SemossPixelException(
-					"Analytic engine is no longer available. This happened because you exceeded the memory limits provided or performed an illegal operation. Please relook at your recipe");
+			throw new SemossPixelException(ENGINE_UNAVAILABLE_MESSAGE);
 		}
 
 		if (!connected) {
-			throw new SemossPixelException("Your micro-process is not available. Please logout and try again. !");
+			throw new SemossPixelException(ENGINE_NOT_CONNECTED_MESSAGE);
 		}
 
 		String id = ps.epoc;
@@ -647,6 +650,16 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						cancelledEpocs.remove(ps.epoc);
 						classLogger.info("Cancelled epoc {} {}", ps.epoc, ps.methodName);
 						throw new SemossPixelException("The request was cancelled by the user");
+					} else if (!responseMap.containsKey(ps.epoc) && killAll) {
+						this.requestMap.remove(ps.epoc);
+						if (this.stopRequested) {
+							classLogger.info("The python server was stopped before answering epoc {} {}", ps.epoc,
+									ps.methodName);
+						} else {
+							classLogger.warn("The python server stopped before answering epoc {} {}", ps.epoc,
+									ps.methodName);
+						}
+						throw new SemossPixelException(ps.ex != null ? ps.ex : SERVER_CRASHED_MESSAGE);
 					} else if (!responseMap.containsKey(ps.epoc) && System.nanoTime() >= waitDeadline) {
 						// hit the hard cap - stop waiting but leave python running so a script
 						// that persists its own results can still finish
@@ -750,11 +763,14 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	}
 
 	/**
-	 * 
-	 * @return
+	 * Asks the python server to stop, then releases every caller still waiting on a
+	 * response and closes the connection.
+	 *
+	 * @return true when the stop request was sent, or there was no connection
 	 */
 	@Override
 	public boolean stopServer() {
+		this.stopRequested = true;
 		try {
 			if (isConnected()) {
 				try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
@@ -788,52 +804,24 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				return true;
 			}
 		} finally {
-			// always call close on the IO
+			this.killAll = true;
+			this.connected = false;
+			releasePendingRequests(SERVER_STOPPED_MESSAGE);
 			close();
 		}
 	}
 
 	/**
-	 * 
+	 * Marks the python server as lost and releases every caller waiting on a
+	 * response, so each one fails with the crash message, then closes the
+	 * connection.
 	 */
 	@Override
 	public void crash() {
-		// this happens when the client losses connection to the server
-		classLogger.warn("NativePySocketClient is disconnected from server");
-
-		// run as executor since it is synchronized
-		// and dont want to get stuck if an issue occurs and the notify never happens
-		// we will close and kill process anyway
-
-		try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
-			Callable<String> callableTask = () -> {
-				try {
-					for (Object k : this.requestMap.keySet()) {
-						PayloadStruct ps = this.requestMap.get(k);
-						classLogger.debug("Releasing <{}> <{}>", k, ps.methodName);
-						ps.ex = "Client is disconnected from the server.";
-						ps.signalResponse();
-					}
-				} catch (Exception e) {
-					classLogger.error("Error releasing pending payload structs during crash", e);
-				}
-				return "Successfully released the payload structs";
-			};
-
-			Future<String> future = executor.submit(callableTask);
-			try {
-				// wait 1 minute at most
-				String result = future.get(60, TimeUnit.SECONDS);
-				classLogger.info(result);
-			} catch (TimeoutException e) {
-				classLogger.warn("Not able to release the payload structs within a timely fashion");
-				future.cancel(true);
-			} catch (InterruptedException | ExecutionException e) {
-				Thread.currentThread().interrupt();
-				classLogger.error("Interrupted or execution failure during crash", e);
-			}
-		}
-
+		classLogger.warn("NativePySocketClient lost the connection to the python server");
+		this.killAll = true;
+		this.connected = false;
+		releasePendingRequests(SERVER_CRASHED_MESSAGE);
 		this.close();
 	}
 

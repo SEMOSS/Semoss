@@ -47,7 +47,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.impl.r.IRUserConnection;
-import prerna.engine.impl.r.RUserConnectionDedicated;
 import prerna.engine.impl.r.RserveUtil;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
@@ -104,12 +103,6 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 				}
 			}
 			throw new IllegalArgumentException("Failed to start R: " + e.getMessage(), e);
-		}
-
-		// need to set the rprocess in the user
-		if (this.insight != null && this.insight.getUser() != null && rcon instanceof RUserConnectionDedicated) {
-			this.insight.getUser().setrProcess(rcon.getProcess());
-			this.insight.getUser().setrPort(((RUserConnectionDedicated) rcon).getPort());
 		}
 	}
 

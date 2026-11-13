@@ -58,9 +58,11 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
+import prerna.engine.impl.r.RUserConnectionDedicated;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.LocalUserStore;
 import prerna.project.api.IProject;
+import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
@@ -99,9 +101,6 @@ public class User implements Serializable {
 
 	private transient ClientProcessWrapper javaCPW = new ClientProcessWrapper();
 
-	// r
-	private transient Process rProcess = null;
-
 	private String chrootPath = null;
 	private transient volatile SymlinkHelper symlinkHelper = null;
 
@@ -117,12 +116,9 @@ public class User implements Serializable {
 	// setup)
 	private transient ReentrantLock userLock = new ReentrantLock();
 
-	private int rPort = -1;
-	private int pyPort = -1;
-
 	// need to move everything here
 	// since on reconnect we need to redo serialization.
-	private Map<String, Boolean> insightSerializedMap = new HashMap<>();
+	private Map<String, Boolean> insightSerializedMap = new ConcurrentHashMap<>();
 
 	// this is a unique identifier for this user instance
 	private String userEpoch = null;
@@ -511,20 +507,13 @@ public class User implements Serializable {
 			}
 			return this.pythonCPW.getSocketClient();
 		}
-		if (this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
-			startPythonSocketServerAndClient(-1, venvEngineId);
-			this.pythonCPW.getSocketClient().setUser(this);
-		} else if (!this.pythonCPW.getSocketClient().isConnected()) {
-			this.pythonCPW.shutdown(false);
-			try {
-				this.pythonCPW.reconnect();
-			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to user python process", e);
-				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-			}
+		if (this.pythonCPW == null) {
+			this.pythonCPW = new ClientProcessWrapper();
 		}
-
-		return this.pythonCPW.getSocketClient();
+		SocketClient client = this.pythonCPW
+				.getOrStartSocketClient(() -> startPythonSocketServerAndClient(-1, venvEngineId));
+		client.setUser(this);
+		return client;
 	}
 
 	/**
@@ -616,7 +605,7 @@ public class User implements Serializable {
 				}
 			} else {
 				try {
-					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
+					serverDirectoryPath = getWorkerDirectory(this.pythonCPW, serverDirectory, "a");
 				} catch (IOException e) {
 					classLogger.error("Failed to create temp directory for non-chroot python process under {}",
 							serverDirectory, e);
@@ -626,7 +615,7 @@ public class User implements Serializable {
 				classLogger.info("Starting Non-chroot TCP Server for User = {}", User.getSingleLogginName(this));
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable()
-							: null;
+							: this.pythonCPW.getVenvPath();
 					this.pythonCPW.createProcessAndClient(true, null, port, venvPath, serverDirectoryPath.toString(),
 							debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {
@@ -662,19 +651,12 @@ public class User implements Serializable {
 			}
 			return this.nodeCPW.getSocketClient();
 		}
-		if (this.nodeCPW == null || this.nodeCPW.getSocketClient() == null) {
-			startNodeSocketServerAndClient(-1);
-			this.nodeCPW.getSocketClient().setUser(this);
-		} else if (!this.nodeCPW.getSocketClient().isConnected()) {
-			this.nodeCPW.shutdown(false);
-			try {
-				this.nodeCPW.reconnect();
-			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to user node process", e);
-				throw new IllegalArgumentException("Failed to connect to your isolated node execution engine");
-			}
+		if (this.nodeCPW == null) {
+			this.nodeCPW = new ClientProcessWrapper();
 		}
-		return this.nodeCPW.getSocketClient();
+		SocketClient client = this.nodeCPW.getOrStartSocketClient(() -> startNodeSocketServerAndClient(-1));
+		client.setUser(this);
+		return client;
 	}
 
 	/**
@@ -702,7 +684,7 @@ public class User implements Serializable {
 			String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 			Path serverDirectoryPath = null;
 			try {
-				serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "n");
+				serverDirectoryPath = getWorkerDirectory(this.nodeCPW, serverDirectory, "n");
 			} catch (IOException e) {
 				classLogger.error("Failed to create temp directory for the node process under {}", serverDirectory, e);
 				throw new IllegalArgumentException("Could not create directory to launch the node process");
@@ -744,22 +726,15 @@ public class User implements Serializable {
 			}
 			return this.javaCPW.getSocketClient();
 		}
-		if (this.javaCPW == null || this.javaCPW.getSocketClient() == null) {
-			startJavaSocketServerAndClient(-1);
-			this.javaCPW.getSocketClient().setUser(this);
-		} else if (!this.javaCPW.getSocketClient().isConnected()) {
-			this.javaCPW.shutdown(false);
-			try {
-				this.javaCPW.reconnect();
-			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to user Java worker", e);
-				throw new IllegalArgumentException("Failed to connect to your isolated Java worker");
-			}
+		if (this.javaCPW == null) {
+			this.javaCPW = new ClientProcessWrapper();
 		}
+		SocketClient client = this.javaCPW.getOrStartSocketClient(() -> startJavaSocketServerAndClient(-1));
+		client.setUser(this);
 
 		this.insightSerializedMap.clear();
 
-		return this.javaCPW.getSocketClient();
+		return client;
 	}
 
 	/**
@@ -807,7 +782,7 @@ public class User implements Serializable {
 				String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 				Path serverDirectoryPath = null;
 				try {
-					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "j");
+					serverDirectoryPath = getWorkerDirectory(this.javaCPW, serverDirectory, "j");
 				} catch (IOException e) {
 					classLogger.error("Failed to create temp directory for the Java worker under {}", serverDirectory,
 							e);
@@ -826,28 +801,61 @@ public class User implements Serializable {
 		}
 	}
 
+	/**
+	 * Returns the folder a worker runs in: the folder its wrapper already uses when
+	 * that still exists, so a restarted worker keeps its folder, or a new folder
+	 * under the insight cache.
+	 *
+	 * @param cpw          the worker's process wrapper
+	 * @param cacheDir     the insight cache folder
+	 * @param folderPrefix the prefix for a new folder's name
+	 * @return the folder
+	 * @throws IOException if a new folder cannot be created
+	 */
+	private static Path getWorkerDirectory(ClientProcessWrapper cpw, String cacheDir, String folderPrefix)
+			throws IOException {
+		String existing = cpw.getServerDirectory();
+		if (existing != null && Files.isDirectory(Paths.get(existing))) {
+			return Paths.get(existing);
+		}
+		return Files.createTempDirectory(Paths.get(cacheDir), folderPrefix);
+	}
+
+	/**
+	 * Returns the process that runs this user's R: the Java worker when R runs over
+	 * TCP, or the user's dedicated Rserve.
+	 *
+	 * @return the process, or null when R does not run in a process of its own for
+	 *         this user
+	 */
 	public Process getrProcess() {
-		return rProcess;
+		if (RJavaTranslatorFactory.runsInJavaWorker()) {
+			return this.javaCPW == null ? null : this.javaCPW.getProcess();
+		}
+		return this.rcon instanceof RUserConnectionDedicated dedicated ? dedicated.getProcess() : null;
 	}
 
-	public void setrProcess(Process rProcess) {
-		this.rProcess = rProcess;
-	}
-
+	/**
+	 * Returns the port of the process that runs this user's R: the Java worker when
+	 * R runs over TCP, or the user's dedicated Rserve.
+	 *
+	 * @return the port, or -1 when R does not run in a process of its own for this
+	 *         user
+	 */
 	public int getrPort() {
-		return rPort;
+		if (RJavaTranslatorFactory.runsInJavaWorker()) {
+			return this.javaCPW == null || this.javaCPW.getSocketClient() == null ? -1 : this.javaCPW.getPort();
+		}
+		return this.rcon instanceof RUserConnectionDedicated dedicated ? dedicated.getPort() : -1;
 	}
 
-	public void setrPort(int rPport) {
-		this.rPort = rPport;
-	}
-
+	/**
+	 * Returns the port of this user's python process.
+	 *
+	 * @return the port, or -1 when the python process has not started
+	 */
 	public int getPyPort() {
-		return pyPort;
-	}
-
-	public void setPyPort(int pyPport) {
-		this.pyPort = pyPport;
+		return this.pythonCPW == null || this.pythonCPW.getSocketClient() == null ? -1 : this.pythonCPW.getPort();
 	}
 
 	private void addUserMemory() {
@@ -940,12 +948,31 @@ public class User implements Serializable {
 		return this.cachedTemporalAccessSecretKey;
 	}
 
+	/**
+	 * Records whether the insight has been sent to this user's Java worker.
+	 *
+	 * @param insightId the insight id
+	 * @param serialize true when the worker has the insight
+	 */
 	public void setInsightSerialization(String insightId, Boolean serialize) {
-		insightSerializedMap.put(insightId, serialize);
+		if (insightId == null) {
+			return;
+		}
+		if (serialize == null) {
+			insightSerializedMap.remove(insightId);
+		} else {
+			insightSerializedMap.put(insightId, serialize);
+		}
 	}
 
+	/**
+	 * Returns whether the insight has been sent to this user's Java worker.
+	 *
+	 * @param insightId the insight id
+	 * @return true when the worker has the insight
+	 */
 	public Boolean getInsightSerialization(String insightId) {
-		return insightSerializedMap.containsKey(insightId) && insightSerializedMap.get(insightId);
+		return insightId != null && Boolean.TRUE.equals(insightSerializedMap.get(insightId));
 	}
 
 	private String[] getUserEmail(AccessToken token) {

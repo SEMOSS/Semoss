@@ -27,28 +27,83 @@
  *******************************************************************************/
 package prerna.io.connector;
 
+import java.util.HashMap;
 import java.util.Map;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AppTokens;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.reactor.AbstractReactor;
 
+/**
+ * A single call to an external service's REST API, made on behalf of a user.
+ * Each implementation owns one endpoint, such as Google sentiment analysis,
+ * Google geocoding or a Twitter search. It knows the endpoint URL, the
+ * {@link AuthProvider} whose access token authorizes the call, and the JMESPath
+ * pattern that maps the JSON response into the objects it returns. Callers,
+ * such as the task lambdas, build the request parameters, call
+ * {@link #execute(User, Map)} and read the returned objects.
+ */
 public interface IConnectorIOp {
-	
-	// basic operations the users do
-	
-	// profile
-	
-	// get a list of files or items
-	
-	// select something from the list
-	
-	// get content of the selected item from the list
-	
-	// create a new item with content
-	
-	// update the content of the item
-	
-	// delete the content of the item 
-	
+
+	/**
+	 * Calls the service with the given request parameters and returns the parsed
+	 * response. An implementation should:
+	 * <ul>
+	 * <li>get the access token for its auth provider with
+	 * {@link #requireAccessToken(User, AuthProvider)}</li>
+	 * <li>treat null parameters as an empty map, and add any entries the service
+	 * needs, such as an API key</li>
+	 * <li>send the parameters as the query string of a GET or the JSON body of a
+	 * POST</li>
+	 * <li>map the JSON response through its JMESPath pattern with
+	 * {@link prerna.util.BeanFiller} into the objects it returns</li>
+	 * </ul>
+	 *
+	 * @param user   the signed in user whose access token authorizes the call
+	 * @param params the request parameters for the service; the implementation may
+	 *               add entries to the map
+	 * @return the parsed response, typed by the implementation: a single object
+	 *         such as a {@link prerna.om.GeoLocation}, a list of objects such as
+	 *         {@link prerna.om.SentimentAnalysis} records, or a value such as the
+	 *         path of a downloaded file
+	 */
 	public Object execute(User user, Map<String, Object> params);
+
+	/**
+	 * Returns the access token that authorizes a call to the provider. The user's
+	 * token is used when the user has connected the provider, otherwise the
+	 * application token from {@link AppTokens}. When neither is available, this
+	 * throws the same login required error as the provider reactors, so the user is
+	 * asked to log in to the provider.
+	 *
+	 * @param user     the signed in user, or null when there is none
+	 * @param provider the auth provider whose token authorizes the call
+	 * @return the access token, which always holds an access token value
+	 */
+	static AccessToken requireAccessToken(User user, AuthProvider provider) {
+		AccessToken token = user == null ? null : user.getAccessToken(provider);
+		if (!hasAccessToken(token)) {
+			token = AppTokens.getInstance().getAccessToken(provider);
+		}
+		if (!hasAccessToken(token)) {
+			Map<String, Object> details = new HashMap<>();
+			details.put("type", provider.getLabel());
+			details.put("message", "Please login to your " + provider.getDisplayName() + " account");
+			AbstractReactor.throwLoginError(details);
+		}
+		return token;
+	}
+
+	/**
+	 * Checks that the token holds an access token value.
+	 *
+	 * @param token the token to check, or null
+	 * @return true when the token has a non blank access token value
+	 */
+	private static boolean hasAccessToken(AccessToken token) {
+		return token != null && token.getAccess_token() != null && !token.getAccess_token().isBlank();
+	}
 
 }

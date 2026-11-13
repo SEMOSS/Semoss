@@ -57,7 +57,7 @@ import software.amazon.awssdk.services.transcribe.model.TranscriptionJobStatus;
 public class AWSTranscribeCustomEmbeddingsFunctionEngine extends AWSTranscribeFunctionEngine
 		implements ICustomEmbeddingsFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AWSTextractCustomEmbeddingsFunctionEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AWSTranscribeCustomEmbeddingsFunctionEngine.class);
 
 	@Override
 	public void open(Properties smssProp) throws Exception {

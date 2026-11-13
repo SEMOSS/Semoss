@@ -52,6 +52,7 @@ import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.ds.rdbms.RdbmsFrameBuilder;
 import prerna.om.ThreadStore;
+import prerna.util.ConnectionUtils;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -199,17 +200,20 @@ public class H2Frame extends AbstractRdbmsFrame {
 	 */
 
 	/**
-	 * Execute and get back a result set Responsibility of the method to grab the
-	 * statement and close it from the result set
+	 * Execute a query and return its open result set. The caller closes the result
+	 * set and the statement it gets from {@link ResultSet#getStatement()}.
 	 * 
-	 * @param query
-	 * @return
+	 * @param query the sql to run against the frame
+	 * @return the open result set, or null when the query fails
 	 */
 	public ResultSet execQuery(String query) {
-		try (PreparedStatement stmt = this.conn.prepareStatement(query)) {
+		PreparedStatement stmt = null;
+		try {
+			stmt = this.conn.prepareStatement(query);
 			return stmt.executeQuery();
 		} catch (SQLException e) {
 			classLogger.error("Error executing the query {}", query, e);
+			ConnectionUtils.closeStatement(stmt);
 		}
 
 		return null;

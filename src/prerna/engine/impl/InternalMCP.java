@@ -165,7 +165,7 @@ public class InternalMCP implements IMCP {
 	 * state is namespaced off the folder instead. See {@link #scopeId}.
 	 *
 	 * @param assetsFolder absolute path to the folder containing {@code mcp/}
-	 * @param id           id published as SMSS_ENGINE_ID / SMSS_PROJECT_ID
+	 * @param id           id published as SMSS_ENGINE_ID
 	 * @param name         display name published as SMSS_ENGINE_NAME
 	 * @param type         value published as SMSS_ENGINE_TYPE
 	 * @return an MCP backed by the given folder

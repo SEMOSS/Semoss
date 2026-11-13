@@ -453,35 +453,43 @@ public final class CentralCloudStorage implements ICloudClient {
 	public void catalogPulledEngine(String aliasAndEngineId, String localSmssFileName, IEngine.CATALOG_TYPE type) {
 		if (IEngine.CATALOG_TYPE.DATABASE == type) {
 			classLogger.info("Synchronizing the database metadata for {}", aliasAndEngineId);
-			SMSSWebWatcher.catalogEngine(localSmssFileName, EngineUtility.DATABASE_FOLDER);
+			SMSSWebWatcher.catalogEngine(localSmssFileName,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE));
 			return;
 		} else if (IEngine.CATALOG_TYPE.STORAGE == type) {
 			classLogger.info("Synchronizing the storage metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.STORAGE_FOLDER);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.STORAGE));
 			return;
 		} else if (IEngine.CATALOG_TYPE.MODEL == type) {
 			classLogger.info("Synchronizing the model metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.MODEL_FOLDER);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.MODEL));
 			return;
 		} else if (IEngine.CATALOG_TYPE.VECTOR == type) {
 			classLogger.info("Synchronizing the vector metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.VECTOR_FOLDER);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.VECTOR));
 			return;
 		} else if (IEngine.CATALOG_TYPE.FUNCTION == type) {
 			classLogger.info("Synchronizing the function metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.FUNCTION_FOLDER);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.FUNCTION));
 			return;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			classLogger.info("Synchronizing the guardrail metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.GUARDRAIL_FOLDER);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.GUARDRAIL));
 			return;
 		} else if (IEngine.CATALOG_TYPE.VENV == type) {
 			classLogger.info("Synchronizing the venv metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName, EngineUtility.VENV_FOLDER);
+			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.VENV));
 			return;
 		} else if (IEngine.CATALOG_TYPE.PROJECT == type) {
 			classLogger.info("Synchronizing the project for {}", aliasAndEngineId);
-			ProjectWatcher.catalogProject(localSmssFileName, EngineUtility.PROJECT_FOLDER);
+			ProjectWatcher.catalogProject(localSmssFileName,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT));
 			return;
 		}
 
@@ -1054,7 +1062,8 @@ public final class CentralCloudStorage implements ICloudClient {
 		// alias__databaseId.smss
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
-		String localDatabaseFolder = EngineUtility.DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
+		String localDatabaseFolder = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE)
+				+ FILE_SEPARATOR + aliasAndDatabaseId;
 
 		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
 
@@ -1105,7 +1114,8 @@ public final class CentralCloudStorage implements ICloudClient {
 		}
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
-		String localDatabaseFolder = EngineUtility.DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
+		String localDatabaseFolder = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE)
+				+ FILE_SEPARATOR + aliasAndDatabaseId;
 
 		String storageDatabaseFolder = DB_CONTAINER_PREFIX + databaseId;
 
@@ -1197,7 +1207,8 @@ public final class CentralCloudStorage implements ICloudClient {
 
 		String databaseName = SecurityEngineUtils.getEngineAliasForId(databaseId);
 		String aliasAndDatabaseId = SmssUtilities.getUniqueName(databaseName, databaseId);
-		String localDatabaseFolder = EngineUtility.DATABASE_FOLDER + FILE_SEPARATOR + aliasAndDatabaseId;
+		String localDatabaseFolder = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE)
+				+ FILE_SEPARATOR + aliasAndDatabaseId;
 
 		File localOwlF = SmssUtilities.getOwlFile(database.getSmssFilePath(), database.getSmssProp());
 		String localOwlFile = localOwlF.getAbsolutePath();
@@ -1251,9 +1262,11 @@ public final class CentralCloudStorage implements ICloudClient {
 		}
 
 		String aliasAndProjectId = alias + "__" + projectId;
-		String localProjectFolder = EngineUtility.PROJECT_FOLDER + FILE_SEPARATOR + aliasAndProjectId;
+		String localProjectFolder = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT)
+				+ FILE_SEPARATOR + aliasAndProjectId;
 		String localSmssFileName = aliasAndProjectId + ".smss";
-		String localSmssFilePath = EngineUtility.PROJECT_FOLDER + FILE_SEPARATOR + localSmssFileName;
+		String localSmssFilePath = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT)
+				+ FILE_SEPARATOR + localSmssFileName;
 
 		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
 		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
@@ -1307,9 +1320,11 @@ public final class CentralCloudStorage implements ICloudClient {
 		// alias__projectId.smss
 		String alias = SecurityProjectUtils.getProjectAliasForId(projectId);
 		String aliasAndProjectId = alias + "__" + projectId;
-		String localProjectFolder = EngineUtility.PROJECT_FOLDER + FILE_SEPARATOR + aliasAndProjectId;
+		String localProjectFolder = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT)
+				+ FILE_SEPARATOR + aliasAndProjectId;
 		String localSmssFileName = aliasAndProjectId + ".smss";
-		String localSmssFilePath = EngineUtility.PROJECT_FOLDER + FILE_SEPARATOR + localSmssFileName;
+		String localSmssFilePath = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT)
+				+ FILE_SEPARATOR + localSmssFileName;
 
 		String storageProjectFolder = PROJECT_CONTAINER_PREFIX + projectId;
 		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
@@ -1332,7 +1347,8 @@ public final class CentralCloudStorage implements ICloudClient {
 			}
 
 			storageSyncStorageToLocal(storageProjectFolder, localProjectFolder);
-			storageCopyToLocal(storageSmssFolder, EngineUtility.PROJECT_FOLDER);
+			storageCopyToLocal(storageSmssFolder,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT));
 
 			// Catalog the project if it is new
 			if (!projectAlreadyLoaded) {
@@ -1361,7 +1377,8 @@ public final class CentralCloudStorage implements ICloudClient {
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
 		String localSmssFileName = SmssUtilities.getUniqueName(projectName, projectId) + ".smss";
 		String localSmssFilePath = Utility
-				.normalizePath(EngineUtility.PROJECT_FOLDER + FILE_SEPARATOR + localSmssFileName);
+				.normalizePath(EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT) + FILE_SEPARATOR
+						+ localSmssFileName);
 
 		String storageSmssFolder = PROJECT_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
@@ -1392,7 +1409,8 @@ public final class CentralCloudStorage implements ICloudClient {
 		lock.lock();
 		classLogger.info("Project {} is locked", aliasAndProjectId);
 		try {
-			storageCopyToLocal(storageSmssFolder, EngineUtility.PROJECT_FOLDER);
+			storageCopyToLocal(storageSmssFolder,
+					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT));
 		} finally {
 			lock.unlock();
 			classLogger.info("Project {} is unlocked", aliasAndProjectId);
@@ -1423,7 +1441,8 @@ public final class CentralCloudStorage implements ICloudClient {
 
 		String projectName = project.getProjectName();
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
-		String localProjectFolder = EngineUtility.PROJECT_FOLDER + FILE_SEPARATOR + aliasAndProjectId;
+		String localProjectFolder = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT)
+				+ FILE_SEPARATOR + aliasAndProjectId;
 		String insightDbFileName = getInsightDB(project, localProjectFolder);
 
 		String storageProjectInsightFilePath = PROJECT_CONTAINER_PREFIX + projectId + "/" + insightDbFileName;
@@ -1469,7 +1488,8 @@ public final class CentralCloudStorage implements ICloudClient {
 
 		String projectName = project.getProjectName();
 		String aliasAndProjectId = SmssUtilities.getUniqueName(projectName, projectId);
-		String localProjectFolder = EngineUtility.PROJECT_FOLDER + FILE_SEPARATOR + aliasAndProjectId;
+		String localProjectFolder = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT)
+				+ FILE_SEPARATOR + aliasAndProjectId;
 		String insightDbFileName = getInsightDB(project, localProjectFolder);
 		String localProjectInsightDb = localProjectFolder + "/" + insightDbFileName;
 
@@ -1540,8 +1560,7 @@ public final class CentralCloudStorage implements ICloudClient {
 			throw new IllegalArgumentException("Insight database was not able to be found");
 		}
 		try {
-			project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getSmssProp(),
-					LogManager.getLogger(AbstractDatabaseEngine.class)));
+			project.setInsightDatabase(ProjectHelper.loadInsightsEngine(project.getSmssProp(), classLogger));
 		} catch (Exception e) {
 			classLogger.error("Failed to reload insights database engine after {} for project {} ({}).", operation,
 					projectId, aliasAndProjectId, e);
@@ -1760,7 +1779,7 @@ public final class CentralCloudStorage implements ICloudClient {
 		// We need to pull the folder alias__projectId and the file
 		// alias__projectId.smss
 		String aliasAndUserAssetId = SmssUtilities.getUniqueName(alias, projectId);
-		String localUserAndAssetFolder = EngineUtility.USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetId;
+		String localUserAndAssetFolder = EngineUtility.getUserFolder() + FILE_SEPARATOR + aliasAndUserAssetId;
 		String storageUserAssetFolder = USER_CONTAINER_PREFIX + projectId;
 		String storageSmssFolder = USER_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;
 
@@ -1787,12 +1806,12 @@ public final class CentralCloudStorage implements ICloudClient {
 
 				// Now pull the smss
 				classLogger.info("Pulling smss from remote={} to target={}", storageSmssFolder,
-						EngineUtility.USER_FOLDER);
+						EngineUtility.getUserFolder());
 				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE USER
 				// FOLDER
-				storageCopyToLocal(storageSmssFolder, EngineUtility.USER_FOLDER);
+				storageCopyToLocal(storageSmssFolder, EngineUtility.getUserFolder());
 				classLogger.debug("Done pulling from remote={} to target={}", storageSmssFolder,
-						EngineUtility.USER_FOLDER);
+						EngineUtility.getUserFolder());
 			} finally {
 				// Re-open the project
 				if (projectAlreadyLoaded) {
@@ -1814,9 +1833,9 @@ public final class CentralCloudStorage implements ICloudClient {
 		// alias__projectId.smss
 		String alias = project.getProjectName();
 		String aliasAndUserAssetId = alias + "__" + projectId;
-		String localUserAssetFolder = EngineUtility.USER_FOLDER + FILE_SEPARATOR + aliasAndUserAssetId;
+		String localUserAssetFolder = EngineUtility.getUserFolder() + FILE_SEPARATOR + aliasAndUserAssetId;
 		String localSmssFileName = aliasAndUserAssetId + ".smss";
-		String localSmssFilePath = EngineUtility.USER_FOLDER + FILE_SEPARATOR + localSmssFileName;
+		String localSmssFilePath = EngineUtility.getUserFolder() + FILE_SEPARATOR + localSmssFileName;
 
 		String storageUserAssetFolder = USER_CONTAINER_PREFIX + projectId;
 		String storageSmssFolder = USER_CONTAINER_PREFIX + projectId + SMSS_POSTFIX;

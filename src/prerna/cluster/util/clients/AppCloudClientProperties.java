@@ -36,8 +36,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.util.Utility;
 
 /**
- * Resolves cluster configuration values, checking environment variables first
- * and falling back to DIHelper properties. Also owns the container's identity
+ * Resolves cluster configuration values, checking DIHelper properties first and
+ * falling back to environment variables. Also owns the container's identity
  * ({@link #getContainerIp()}), generating a stable per-process id when one is
  * not supplied.
  */
@@ -45,13 +45,24 @@ public class AppCloudClientProperties {
 
 	private static final Logger classLogger = LogManager.getLogger(AppCloudClientProperties.class);
 
-	private static volatile Map<String, String> variables = System.getenv();
-	private static volatile String generatedHostIp = null;
-
 	public static final String HOST_IP = "HOST_IP";
 
-	private AppCloudClientProperties() {
+	private static volatile String generatedHostIp = null;
 
+	private final Map<String, String> variables;
+
+	private AppCloudClientProperties() {
+		this(System.getenv());
+	}
+
+	/**
+	 * Creates an accessor that resolves environment variables from the given map
+	 * instead of the process environment.
+	 *
+	 * @param variables the environment variables to fall back to after DIHelper
+	 */
+	AppCloudClientProperties(Map<String, String> variables) {
+		this.variables = variables;
 	}
 
 	/**
@@ -87,16 +98,16 @@ public class AppCloudClientProperties {
 		}
 
 		// fall back to environment variables
-		val = AppCloudClientProperties.variables.get(key);
+		val = this.variables.get(key);
 		if (val != null && !(val = val.trim()).isEmpty()) {
 			return val;
 		}
 		// give benefit of the doubt..
-		val = AppCloudClientProperties.variables.get(key.toUpperCase());
+		val = this.variables.get(key.toUpperCase());
 		if (val != null && !(val = val.trim()).isEmpty()) {
 			return val;
 		}
-		val = AppCloudClientProperties.variables.get(key.toLowerCase());
+		val = this.variables.get(key.toLowerCase());
 		if (val != null && !(val = val.trim()).isEmpty()) {
 			return val;
 		}

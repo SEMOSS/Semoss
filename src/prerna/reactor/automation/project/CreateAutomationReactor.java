@@ -63,6 +63,7 @@ import prerna.util.Utility;
  */
 public class CreateAutomationReactor extends AbstractReactor {
 
+	private static final String CLASS_NAME = CreateAutomationReactor.class.getName();
 	private static final Logger classLogger = LogManager.getLogger(CreateAutomationReactor.class);
 
 	private static final String PROJECT_NAME_KEY = "projectName";
@@ -74,6 +75,8 @@ public class CreateAutomationReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		Logger logger = getLogger(CLASS_NAME);
+
 		organizeKeys();
 		User user = requireUser();
 
@@ -87,7 +90,7 @@ public class CreateAutomationReactor extends AbstractReactor {
 		classLogger.info("Creating automation project '{}'", projectName);
 
 		IProject project = ProjectHelper.generateNewProject(projectName, IProject.PROJECT_TYPE.AUTOMATION, false, null,
-				null, user, classLogger);
+				null, user, logger);
 		String projectId = project.getProjectId();
 		try {
 			AutomationProjectService.createStarterDefinition(project, user);

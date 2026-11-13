@@ -25,44 +25,20 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.test;
-
-import java.util.HashMap;
-import java.util.Map;
+package prerna.om;
 
 /**
- * This is just a internal class
- * so that when we compile to execute the assimilator
- * we can have a method to call based on the super that is 
- * assigned to the new class
+ * A tweet returned by the Twitter search API.
  *
+ * @param review        the text of the tweet
+ * @param author        the id of the tweet
+ * @param authorId      the screen name of the user who posted the tweet
+ * @param location      the location on the user's profile
+ * @param repeatCount   the number of times the tweet was retweeted
+ * @param favCount      the number of times the tweet was favorited
+ * @param followerCount the number of followers of the user
  */
-public abstract class AbstractTestClass {
+public record TwitterTweet(String review, String author, String authorId, String location, int repeatCount,
+		int favCount, int followerCount) {
 
-	Map<String, Object> variables = new HashMap<>();
-	
-	/**
-	 * Method that return the evaluation of 
-	 * the signature
-	 * @return
-	 */
-	public void execute() {
-
-	}
-	
-	public Map<String, Object> getVariables() {
-		return this.variables;
-	}
-	
-	public void addVariable(String var) {
-		variables.put(var, 1);
-	}
-	
-	public void addVariable(String var, int value) {
-		variables.put(var, value);
-	}
-	
-	public Object getVariable(String var) {
-		return variables.get(var);
-	}
 }

@@ -30,47 +30,26 @@ package prerna.io.connector.google;
 import java.util.HashMap;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
-import prerna.auth.AppTokens;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
 import prerna.om.GeoLocation;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 
 public class GoogleLatLongGetter implements IConnectorIOp {
 
-	// name of the object to return
-	String[] beanProps = { "latitude", "longitude" }; // add is done when you have a list
 	String jsonPattern = "results[*].geometry.location.[lat, lng][]";
 
 	@Override
-	public Object execute(User user, Map params) {
+	public Object execute(User user, Map<String, Object> params) {
 		if (params == null) {
 			params = new HashMap<>();
 		}
 
-		AccessToken googToken = null;
-		if (user != null) {
-			googToken = user.getAccessToken(AuthProvider.GOOGLE_MAP);
-		}
-		if (googToken == null) {
-			googToken = AppTokens.getInstance().getAccessToken(AuthProvider.GOOGLE_MAP);
-		}
-
-		if (googToken == null) {
-			SemossPixelException exception = new SemossPixelException(
-					new NounMetadata("Requires login to google", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-
-		String accessToken = googToken.getAccess_token();
+		String accessToken = IConnectorIOp.requireAccessToken(user, AuthProvider.GOOGLE_MAP).getAccess_token();
 		// you fill what you want to send on the API call
 		// the other thing it needs is an address
 		params.put("key", accessToken);
@@ -79,10 +58,16 @@ public class GoogleLatLongGetter implements IConnectorIOp {
 		String url = "https://maps.googleapis.com/maps/api/geocode/json";
 		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
 
-		// fill the bean with the return
-		GeoLocation retLocation = (GeoLocation) BeanFiller.fillFromJson(output, jsonPattern, beanProps,
-				new GeoLocation());
-		return retLocation;
+		JsonNode result = BeanFiller.getJmesResult(output, jsonPattern);
+		float latitude = 0;
+		float longitude = 0;
+		if (result != null && result.size() > 0) {
+			latitude = (float) result.get(0).asDouble();
+			if (result.size() > 1) {
+				longitude = (float) result.get(1).asDouble();
+			}
+		}
+		return new GeoLocation(latitude, longitude);
 	}
 
 }

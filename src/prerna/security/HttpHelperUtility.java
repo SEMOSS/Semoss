@@ -1105,7 +1105,7 @@ public final class HttpHelperUtility {
 		for (int tokenIndex = 0; tokenIndex < tokens.length; tokenIndex++) {
 			String thisToken = tokens[tokenIndex];
 			if (thisToken.startsWith(nameOfToken)) {
-				accessToken = thisToken.replaceAll(nameOfToken + "=", "");
+				accessToken = thisToken.replace(nameOfToken + "=", "");
 			} else if (thisToken.startsWith("refresh_token=")) {
 				refreshToken = thisToken.replace("refresh_token=", "");
 			}

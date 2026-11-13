@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.nio.file.Files;
 import java.sql.SQLException;
@@ -39,7 +42,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.owl.AbstractOWLEngine;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityOwlCreatorUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -70,10 +75,25 @@ public class SecurityOwlCreatorUnitTests extends AbstractSecurityUtilsUnitTestsS
 	/// needsRemake
 	///
 
-	// This method always remakes?
 	@Test
-	void testNeedsRemake() {
-		assertTrue(creator.needsRemake(securityDb));
+	void testNeedsRemake_notForTheOwlWrittenAtStartUp() {
+		assertFalse(creator.needsRemake(securityDb));
+	}
+
+	@Test
+	void testNeedsRemake_anOwlWithNoTables() {
+		IDatabaseEngine engine = mock(IDatabaseEngine.class);
+		when(engine.getPhysicalConcepts()).thenReturn(List.of());
+
+		assertTrue(creator.needsRemake(engine));
+	}
+
+	@Test
+	void testNeedsRemake_anOwlMissingATable() {
+		IDatabaseEngine engine = mock(IDatabaseEngine.class);
+		when(engine.getPhysicalConcepts()).thenReturn(List.of(AbstractOWLEngine.BASE_NODE_URI + "/ENGINE"));
+
+		assertTrue(creator.needsRemake(engine));
 	}
 
 	///

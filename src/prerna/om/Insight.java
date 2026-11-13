@@ -1507,7 +1507,10 @@ public class Insight implements Serializable {
 
 	/**
 	 * Returns the shared R translator for this insight, creating it on first access
-	 * using the provided logger.
+	 * using the provided logger. When a translator that runs R in the user's Java
+	 * worker has lost its connection, such as after the worker crashed, it is
+	 * connected to the worker {@link User#getJavaSocketClient(boolean)} returns,
+	 * which starts a new one, and its R environment is set up there.
 	 *
 	 * @param logger the logger to pass to the translator factory
 	 * @return the AbstractRJavaTranslator
@@ -1515,18 +1518,25 @@ public class Insight implements Serializable {
 	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
 		if (this.rJavaTranslator == null) {
 			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
-
-			// set the netty client if the translator is TCP R translator
-			if (this.rJavaTranslator instanceof TCPRTranslator) {
-				// do this so that the netty client is initialized
-				// getPyTranslator();
-				// now set the netty client
-				((TCPRTranslator) this.rJavaTranslator).setClient(this.user.getJavaSocketClient(true));
-				this.rJavaTranslator.setInsight(this);
-				this.rJavaTranslator.startR();
+			if (this.rJavaTranslator instanceof TCPRTranslator tcpTranslator) {
+				connectJavaWorker(tcpTranslator);
 			}
+		} else if (this.rJavaTranslator instanceof TCPRTranslator tcpTranslator && !tcpTranslator.isConnected()) {
+			connectJavaWorker(tcpTranslator);
 		}
 		return this.rJavaTranslator;
+	}
+
+	/**
+	 * Points the R translator at the user's Java worker, starting the worker when
+	 * it is not running, and sets up this insight and its R environment there.
+	 *
+	 * @param translator the R translator to connect
+	 */
+	private void connectJavaWorker(TCPRTranslator translator) {
+		translator.setClient(this.user.getJavaSocketClient(true));
+		translator.setInsight(this);
+		translator.startR();
 	}
 
 	/**

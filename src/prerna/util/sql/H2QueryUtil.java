@@ -251,6 +251,19 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 		return "SMSS_MEDIAN";
 	}
 
+	/**
+	 * Get the H2 type that arithmetic selectors cast both operands to. H2 gives a
+	 * DECIMAL without a scale a scale of 0, which drops every fractional digit, so
+	 * this is DECFLOAT, with a precision of 38 to bound repeating quotients such
+	 * as 1 / 3
+	 * 
+	 * @return the decimal floating point type used in the arithmetic casts
+	 */
+	@Override
+	public String getArithmeticDataTypeName() {
+		return "DECFLOAT(38)";
+	}
+
 	@Override
 	public String dropIndex(String indexName, String tableName) {
 		return "DROP INDEX " + indexName;

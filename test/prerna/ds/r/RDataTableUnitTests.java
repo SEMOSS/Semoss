@@ -182,9 +182,9 @@ class RDataTableUnitTests {
 		}
 
 		@Test
-		void size_whenNotEmpty_returnsFrameSize() {
+		void size_whenNotEmpty_returnsRowCount() {
 			when(mockTranslator.isEmpty("datatable")).thenReturn(false);
-			when(mockTranslator.getInt("nrow(datatable) * ncol(datatable);")).thenReturn(50);
+			when(mockTranslator.getNumRows("datatable")).thenReturn(50);
 			assertEquals(50, table.size("datatable"));
 		}
 	}
