@@ -165,6 +165,28 @@ Where those permissions come from, as
 
 Admin mode allows every change the batch's shape and the current rows allow.
 
+## Digital Twins
+
+A Digital Twin is an agent that holds copies of its owner's emails, chats and
+files, so it is shared with named people only, by its owners and in admin mode
+alike. It is a project with the server-only metadata key
+`SecurityProjectUtils.DIGITAL_TWIN_METAKEY`, which `AddDigitalTwin` writes
+(`markDigitalTwin`) and `updateProjectMetadata` never sets or clears, whatever an
+uploaded project's metadata file or a metadata reactor sends.
+
+- **Teams.** `readPermissionAllowedChanges` reads `canChangeTeams` as false on a
+  twin, with the reason "A Digital Twin can only be shared with named people",
+  so every team change is refused and `getPermissions` tells the access screens
+  to leave teams out. The mark is read only for someone who could change teams,
+  so nobody else learns the project is a twin.
+- **Everyone.** `SecurityProjectUtils` and `SecurityAdminUtils` refuse to make a
+  twin public, discoverable or a template (`requireNotDigitalTwin`), and to give
+  everyone access to it (`grantNewUsersProjectAccess`, `addAllProjectUsers`);
+  `grantAllProjects` leaves twins out. `CreateAppFromTemplate` does not clone one.
+- People are added and removed as on any project.
+
+`test/prerna/auth/utils/DigitalTwinUnitTests` covers these.
+
 ## Who can call it
 
 `PermissionBatchUtils` is package-private, so nothing outside
