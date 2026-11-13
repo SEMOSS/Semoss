@@ -105,6 +105,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private static final String EF_CONSTRUCTION = "EF_CONSTRUCTION";
 	private static final String M_VALUE = "M_VALUE";
 	private static final String ADDITIONAL_MAPPINGS = "ADDITIONAL_MAPPINGS";
+	private static final String SEARCHABLE_FIELDS = "SEARCHABLE_FIELDS";
 	private static final String INDEX_NAME_PATTERN = "^[a-z0-9](?:[a-z0-9-]{0,126}[a-z0-9])?$";
 
 	private String clusterUrl = null;
@@ -123,6 +124,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	private int m = 24;
 
 	private Map<String, String> otherPropsToType = new HashMap<>();
+	private List<String> searchableFields = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -204,6 +206,12 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		if (additionalMappingsStr != null && !(additionalMappingsStr = additionalMappingsStr.trim()).isEmpty()) {
 			this.otherPropsToType = GSON.fromJson(additionalMappingsStr, new TypeToken<Map<String, String>>() {
 			}.getType());
+		}
+		String searchableFieldsStr = this.smssProp.getProperty(SEARCHABLE_FIELDS);
+		if (searchableFieldsStr != null) {
+			this.searchableFields = Arrays.stream(searchableFieldsStr.replace("[", "").replace("]", "").split(","))
+					.map(field -> field.replace("\"", "").trim()).filter(field -> !field.isEmpty())
+					.collect(Collectors.toList());
 		}
 
 		// we need to store our stuff
@@ -678,7 +686,8 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 					field.addProperty("name", propName);
 					field.addProperty("type", propType);
 					if (propType.equals(TEXT_DATATYPE)) {
-						field.addProperty("searchable", true);
+						field.addProperty("searchable", propName.equals(VectorDatabaseCSVTable.SOURCE)
+								|| this.searchableFields == null || this.searchableFields.contains(propName));
 					}
 					if (propName.equals(AZURE_AI_SEARCH_VECTOR_ID)) {
 						field.addProperty("key", true);
