@@ -104,11 +104,11 @@ public class UnionReactor extends AbstractFrameReactor {
 				this.insight.getVarStore().put(frame1.getName(), noun);
 			}
 			if (unionFrame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
-				this.insight.setDataMaker(unionFrame);
+				this.insight.setCurrentFrame(unionFrame);
 			}
 		} else {
 			this.insight.getVarStore().put(unionFrame.getName(), noun);
-			this.insight.setDataMaker(unionFrame);
+			this.insight.setCurrentFrame(unionFrame);
 		}
 
 		return noun;

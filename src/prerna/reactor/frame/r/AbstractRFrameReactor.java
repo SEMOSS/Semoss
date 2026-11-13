@@ -56,24 +56,27 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 	 */
 	protected void init() {
 		this.rJavaTranslator = this.insight.getRJavaTranslator(this.getLogger(this.getClass().getName()));
-		this.rJavaTranslator.startR(); 
+		this.rJavaTranslator.startR();
 	}
 
 	/**
-	 * This method is used to recreate the frame metadata
-	 * when we execute a script that modifies the data structure
+	 * This method is used to recreate the frame metadata when we execute a script
+	 * that modifies the data structure
+	 * 
 	 * @param frameName
 	 */
 	protected RDataTable createNewFrameFromVariable(String frameName) {
 		// create new frame
-		RDataTable newTable = new RDataTable(this.insight.getRJavaTranslator(getLogger(this.getClass().getName())), frameName);
+		RDataTable newTable = new RDataTable(this.insight.getRJavaTranslator(getLogger(this.getClass().getName())),
+				frameName);
 		OwlTemporalEngineMeta meta = genNewMetaFromVariable(frameName);
 		newTable.setMetaData(meta);
 		return newTable;
 	}
-	
+
 	/**
 	 * Recreate a new engine metadata
+	 * 
 	 * @param frameName
 	 * @return
 	 */
@@ -81,7 +84,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 		// recreate a new frame and set the frame name
 		String[] colNames = getColumns(frameName);
 		String[] colTypes = getColumnTypes(frameName);
-		//clean headers
+		// clean headers
 		HeadersException headerChecker = HeadersException.getInstance();
 		colNames = headerChecker.getCleanHeaders(colNames);
 		// update frame header names in R
@@ -94,20 +97,20 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 		}
 		String script = "colnames(" + frameName + ") <- c(" + rColNames + ")";
 		this.rJavaTranslator.executeEmptyR(script);
-		
+
 		OwlTemporalEngineMeta meta = new OwlTemporalEngineMeta();
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(meta, colNames, colTypes, frameName);
 		return meta;
 	}
-	
+
 	/**
-	 * Renames columns based on a string[] of old names and a string[] of new
-	 * names Used by synchronize methods
+	 * Renames columns based on a string[] of old names and a string[] of new names.
+	 * Used by synchronize methods.
 	 * 
-	 * @param frameName
-	 * @param oldNames
-	 * @param newNames
-	 *            boolean print
+	 * @param frameName the R frame whose columns are renamed
+	 * @param oldNames  the current column names
+	 * @param newNames  the new column names, in the same order
+	 * @param print     whether to print the script and the renamed columns
 	 */
 	protected void renameColumn(String frameName, String[] oldNames, String[] newNames, boolean print) {
 		int size = oldNames.length;
@@ -137,7 +140,8 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 
 		if (print) {
 			System.out.println("Running script : " + script);
-			System.out.println("Successfully modified old names = " + Arrays.toString(oldNames) + " to new names " + Arrays.toString(newNames));
+			System.out.println("Successfully modified old names = " + Arrays.toString(oldNames) + " to new names "
+					+ Arrays.toString(newNames));
 		}
 
 		// FE passes the column name
@@ -148,7 +152,6 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 		}
 		this.getFrame().syncHeaders();
 	}
-
 
 	/**
 	 * This method is used to fix the frame headers to be valid
@@ -166,6 +169,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 
 	/**
 	 * This method is used to get the column names of a frame
+	 * 
 	 * @param frameName
 	 */
 	public String[] getColumns(String frameName) {
@@ -174,6 +178,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 
 	/**
 	 * This method is used to get the column types of a frame
+	 * 
 	 * @param frameName
 	 */
 	public String[] getColumnTypes(String frameName) {
@@ -182,25 +187,28 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 
 	/**
 	 * This method is used to get the column type for a single column of a frame
+	 * 
 	 * @param frameName
 	 * @param column
 	 */
 	public String getColumnType(String frameName, String column) {
 		return this.rJavaTranslator.getColumnType(frameName, column);
 	}
-	
+
 	/**
 	 * Change the frame column type
+	 * 
 	 * @param frame
 	 * @param frameName
 	 * @param colName
 	 * @param newType
 	 * @param dateFormat
 	 */
-	public void changeColumnType(RDataTable frame, String frameName, String colName, String newType, String dateFormat) {
+	public void changeColumnType(RDataTable frame, String frameName, String colName, String newType,
+			String dateFormat) {
 		this.rJavaTranslator.changeColumnType(frame, frameName, colName, newType, dateFormat);
 	}
-	
+
 	protected void storeVariable(String varName, NounMetadata noun) {
 		this.insight.getVarStore().put(varName, noun);
 	}
@@ -221,7 +229,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 		// java.lang.System.setSecurityManager(curManager);
 		// clean up other things
 		this.rJavaTranslator.endR();
-		if(rJavaTranslator instanceof RJavaJriTranslator) {
+		if (rJavaTranslator instanceof RJavaJriTranslator) {
 			removeVariable(IRJavaTranslator.R_ENGINE);
 			removeVariable(IRJavaTranslator.R_PORT);
 		} else {
@@ -231,71 +239,72 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 		System.out.println("R Shutdown!!");
 //		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
-	/**
-     * Get the base folder
-     * @return
-     */
-     protected String getBaseFolder() {
-          String baseFolder = null;
-          try {
-              baseFolder = Utility.getBaseFolder();
-          } catch (Exception ignored) {
-              //logger.info("No BaseFolder detected... most likely running as test...");
-          }
-          return baseFolder;
-     }
-     
- 	public boolean smartSync(AbstractRJavaTranslator rJavaTranslator)
- 	{
- 		// at this point try to see if something has changed and if so
- 		// trigger smart sync
- 		boolean frameChanged = false;
- 		ITableDataFrame frame = this.insight.getCurFrame();
- 		if(frame != null && frame instanceof RDataTable)
- 		{
- 			StringBuffer script = new StringBuffer();
- 			String baseFolder = Utility.getBaseFolder();
- 			script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/util/smssutil.R\");\n");
- 			script.append("if (!exists(\"allframe\")) allframe <- list();");
- 			script.append("allframe <- getCurMeta(" + this.insight.getCurFrame().getName() + ", allframe); \n");
- 			script.append("allframe <- hasFrameChanged('" + this.insight.getCurFrame().getName() + "', allframe); \n");
- 			
- 			// source the script
- 			//script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/util/smssutil.R\");").append("hasFrameChanged(" + this.insight.getCurFrame().getName() + ");");
- 			//String output = rJavaTranslator.getString(script.toString());
- 			
- 			String sync = rJavaTranslator.runRAndReturnOutput(script.toString());
- 			System.err.println("Output >> " + sync);
- 			if(sync.contains("true"))
- 			{
- 				frameChanged = true;
- 				System.err.println("sync > " + sync);
- 				OwlTemporalEngineMeta meta =  genNewMetaFromVariable(frame.getName());
- 				// replace the meta in the R Data table
- 				((RDataTable)frame).setMetaData(meta);
- 			}
- 		}		
- 		return frameChanged;
- 	}
- 	
- 	/////////////////////////////////////////////////////
- 	
- 	/*
- 	 * ICodeExecution methods
- 	 */
 
- 	public void addExecutedCode(String code) {
- 		if(this.codeExecuted.isEmpty()) {
- 			this.codeExecuted.add("###### Code executed from " + getClass().getSimpleName() + " #######");
- 		}
- 		this.codeExecuted.add(code);
- 	}
-	
+	/**
+	 * Get the base folder
+	 * 
+	 * @return
+	 */
+	protected String getBaseFolder() {
+		String baseFolder = null;
+		try {
+			baseFolder = Utility.getBaseFolder();
+		} catch (Exception ignored) {
+			// logger.info("No BaseFolder detected... most likely running as test...");
+		}
+		return baseFolder;
+	}
+
+	public boolean smartSync(AbstractRJavaTranslator rJavaTranslator) {
+		// at this point try to see if something has changed and if so
+		// trigger smart sync
+		boolean frameChanged = false;
+		ITableDataFrame frame = this.insight.getCurrentFrame();
+		if (frame != null && frame instanceof RDataTable) {
+			StringBuffer script = new StringBuffer();
+			String baseFolder = Utility.getBaseFolder();
+			script.append("source(\"" + baseFolder.replace("\\", "/") + "/R/util/smssutil.R\");\n");
+			script.append("if (!exists(\"allframe\")) allframe <- list();");
+			script.append("allframe <- getCurMeta(" + this.insight.getCurrentFrame().getName() + ", allframe); \n");
+			script.append(
+					"allframe <- hasFrameChanged('" + this.insight.getCurrentFrame().getName() + "', allframe); \n");
+
+			// source the script
+			// script.append("source(\"" + baseFolder.replace("\\", "/") +
+			// "/R/util/smssutil.R\");").append("hasFrameChanged(" +
+			// this.insight.getCurrentFrame().getName() + ");");
+			// String output = rJavaTranslator.getString(script.toString());
+
+			String sync = rJavaTranslator.runRAndReturnOutput(script.toString());
+			System.err.println("Output >> " + sync);
+			if (sync.contains("true")) {
+				frameChanged = true;
+				System.err.println("sync > " + sync);
+				OwlTemporalEngineMeta meta = genNewMetaFromVariable(frame.getName());
+				// replace the meta in the R Data table
+				((RDataTable) frame).setMetaData(meta);
+			}
+		}
+		return frameChanged;
+	}
+
+	/////////////////////////////////////////////////////
+
+	/*
+	 * ICodeExecution methods
+	 */
+
+	public void addExecutedCode(String code) {
+		if (this.codeExecuted.isEmpty()) {
+			this.codeExecuted.add("###### Code executed from " + getClass().getSimpleName() + " #######");
+		}
+		this.codeExecuted.add(code);
+	}
+
 	@Override
 	public String getExecutedCode() {
 		StringBuffer finalScript = new StringBuffer();
-		for(String c : this.codeExecuted) {
+		for (String c : this.codeExecuted) {
 			finalScript.append(c).append("\n");
 		}
 		return finalScript.toString();
@@ -305,7 +314,7 @@ public abstract class AbstractRFrameReactor extends AbstractFrameReactor impleme
 	public LANGUAGE getLanguage() {
 		return LANGUAGE.R;
 	}
-	
+
 	@Override
 	public boolean isUserScript() {
 		return false;

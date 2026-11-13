@@ -144,7 +144,7 @@ public class RSourceReactor extends AbstractRFrameReactor {
 				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
 		if (smartSync) {
 			if (smartSync(rJavaTranslator)) {
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
+				outputs.add(new NounMetadata(this.insight.getCurrentFrame(), PixelDataType.FRAME,
 						PixelOperationType.FRAME_HEADERS_CHANGE));
 			}
 		}

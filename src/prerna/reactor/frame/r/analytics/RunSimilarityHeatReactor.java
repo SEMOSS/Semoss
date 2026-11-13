@@ -99,7 +99,7 @@ public class RunSimilarityHeatReactor extends AbstractRFrameReactor {
 
 		// replace existing frame
 		if (override) {
-			this.insight.setDataMaker(returnTable);
+			this.insight.setCurrentFrame(returnTable);
 			retNoun = new NounMetadata(returnTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 					PixelOperationType.FRAME_HEADERS_CHANGE);
 		}

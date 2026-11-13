@@ -39,5 +39,5 @@ public class SubselectQueryStruct extends SelectQueryStruct {
 	public void setAlias(String alias) {
 		this.alias = alias;
 	}
-	
+
 }

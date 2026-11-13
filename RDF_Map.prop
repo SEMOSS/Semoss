@@ -352,6 +352,9 @@ SEMOSS_URI	http://semoss.org/ontologies
 
 #DEFAULT_RDF_ENGINE prerna.engine.impl.rdf.BigDataEngine
 
+#Default query for the instances of a concept, used when an RDF engine smss does not set TYPE_QUERY
+TYPE_QUERY	SELECT ?entity WHERE {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <@entity@>;}
+
 # ------------------------------------------------------------
 # SQL reserved words
 # ------------------------------------------------------------
@@ -367,81 +370,3 @@ MYSQL_KEYWORDS KEY,VALUES
 SQL_SERVER_KEYWORDS GROUP
 
 PROBHIBITED_HEADERS	ALL,CHECK,CONSTRAINT,CROSS,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,DISTINCT,EXCEPT,EXISTS,FALSE,FETCH,FOR,FOREIGN,FROM,FULL,HAVING,INNER,INTERSECT,IS,JOIN,LIKE,LIMIT,MINUS,NATURAL,NOT,NULL,OFFSET,ON,ORDER,PRIMARY,ROWNUM,SELECT,SYSDATE,SYSTIME,SYSTIMESTAMP,TODAY,TRUE,UNION,UNIQUE,WHERE,WITH
-
-##################################################
-##################################################
-##################################################
-# BELOW ARE LEGACY PARAMS
-# DO NOT UPDATE OR MODIFY
-
-GPS_SUDOWL_DEFAULT	false
-GPS_SEARCH_DEFAULT	true
-GPS_PROPERTIES_DEFAULT	true
-
-##COMMON QUERIES ACROSS ALL ENGINES
-SUBJECT_TYPE_QUERY SELECT ?object WHERE {BIND (<@ENTITY@> AS ?subject) { ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?object}   FILTER NOT EXISTS { { ?subject <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ?subtype} {?subtype <http://www.w3.org/2000/01/rdf-schema#subClassOf> ?object} }}
-TYPE_QUERY	SELECT ?entity WHERE {?entity <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>  <@entity@>;}
-
-## DATA MAKERS DEFINED
-GraphDataModel	prerna.om.GraphDataModel
-TinkerFrame	prerna.ds.TinkerFrame
-H2Frame	prerna.ds.h2.H2Frame
-Dashboard prerna.om.Dashboard
-NativeFrame prerna.ds.nativeframe.NativeFrame
-RDataTable prerna.ds.r.RDataTable
-
-##PLAYSHEETS DEFINED
-PLAYSHEETS_DEFINED	Grid;Graph;VivaGraph;HeatMap;Line;Combo;Dendrogram;ParallelCoordinates;ParallelSets;Scatter;Column;Pie;3dBarchart;CirclePack;Clustering;Gantt;Sankey;ScatterplotMatrix;SingleAxisCluster;SystemSimilarity;USHeatMap;USMap;WorldHeatMap;WorldMap;RawGrid;
-
-CirclePack	prerna.ui.components.playsheets.CirclePackPlaySheet
-Clustering	prerna.ui.components.playsheets.ClusteringVizPlaySheet
-Column	prerna.ui.components.playsheets.ColumnChartPlaySheet
-Combo	prerna.ui.components.specific.ousd.RoadmapTimelineComboChartPlaySheet
-Dendrogram	prerna.ui.components.playsheets.DendrogramPlaySheet
-Graph	prerna.ui.components.playsheets.GraphPlaySheet
-VivaGraph	prerna.ui.components.playsheets.GraphPlaySheet
-Grid	prerna.ui.components.playsheets.GridPlaySheet
-RawGrid	prerna.ui.components.playsheets.GridRAWPlaySheet
-HeatMap	prerna.ui.components.playsheets.HeatMapPlaySheet
-Line	prerna.ui.components.playsheets.LineChartPlaySheet
-ParallelSets	prerna.ui.components.playsheets.ParallelSetsPlaySheet
-ParallelCoordinates	prerna.ui.components.playsheets.ParallelCoordinatesPlaySheet
-Pie	prerna.ui.components.playsheets.PieChartPlaySheet
-Scatter	prerna.ui.components.playsheets.ScatterChartPlaySheet
-ScatterplotMatrix	prerna.ui.components.playsheets.ScatterPlotMatrixPlaySheet
-SingleAxisCluster	prerna.ui.components.playsheets.WekaAprioriVizPlaySheet
-SystemSimilarity	prerna.ui.components.specific.tap.SysSimHeatMapSheet
-USHeatMap	prerna.ui.components.playsheets.USHeatMapPlaySheet
-USMap	prerna.ui.components.playsheets.CONUSMapPlaySheet
-WorldHeatMap	prerna.ui.components.playsheets.WorldHeatMapPlaySheet
-WorldMap	prerna.ui.components.playsheets.OCONUSMapPlaySheet
-
-Grid_HINT	GridPlaySheet Hint: SELECT ?x1 ?x2 ?x3 WHERE{ ... }
-Graph_HINT	GraphPlaySheet Hint: CONSTRUCT {?subject ?predicate ?object} WHERE{ ... }
-VivaGraph_HINT	GraphPlaySheet Hint: CONSTRUCT {?subject ?predicate ?object} WHERE{ ... }
-HeatMap_HINT	HeatMapPlaySheet Hint: SELECT ?xAxisList ?yAxisList ?numericHeatValue WHERE{ ... } GROUP BY ?xAxisList ?yAxisList
-Line_HINT	LineChartPlaySheet Hint: SELECT ?xAxis ?series1 (OPTIONAL) ?series2 ?series3 ... (where all series values are numbers) WHERE { ... }
-Dendrogram_HINT	DendrogramPlaySheet Hint: SELECT ?level1 ?level2 ?level3 WHERE{ ... }
-ParallelCoordinates_HINT	ParallelCoordinatesPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }
-ParallelSets_HINT	ParallelSetsPlaySheet Hint: SELECT ?axis1 ?axis2 ?axis3 WHERE{ ... }
-Scatter_HINT	GridScatterSheet Hint: SELECT ?elementName ?xAxisValues ?yAxisValues (OPTIONAL)?zAxisValues WHERE{ ... }
-Column_HINT	ColumnChartPlaySheet Hint: SELECT ?xAxis ?yAxis1 (OPTIONAL) ?yAxis2 ?yAxis3 ... (where all yAxis values are numbers) WHERE { ... }
-Pie_HINT	PieChartPlaySheet Hint: SELECT ?wedgeName ?wedgeValue WHERE { ... }
-CirclePack_HINT	CirclePackPlaySheet Hint: SELECT ?level1 ?level2 ... ?size WHERE{ ... }
-Clustering_HINT	ClusteringVizPlaySheet Hint: SELECT ?instance ?categoricalProp ?numericalProp WHERE { ... }+++(OPTIONAL)numClusters
-SingleAxisCluster_HINT	OutlierPlaySheet Hint: SELECT ?instance ?prop1... ?propN WHERE{ ... }+++NeighborhoodCount
-USHeatMap_HINT	USHeatMapPlaySheet Hint: SELECT ?state ?numericHeatValue WHERE{ ... }
-USMap_HINT	CONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
-WorldHeatMap_HINT	OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
-WorldMap_HINT	OCONUSMapPlaySheet Hint: SELECT ?label ?latitude ?longitude WHERE{ ... }
-
-Combo_CUSTOM	FALSE
-3dBarchart_CUSTOM	FALSE
-Gantt_CUSTOM	FALSE
-SystemSimilarity_CUSTOM	FALSE
-
-##TRANSFORMATIONS DEFINED
-join	prerna.ui.components.playsheets.datamakers.JoinTransformation
-filter	prerna.ui.components.playsheets.datamakers.FilterTransformation
-math	prerna.ui.components.playsheets.datamakers.MathTransformation
-pkql	prerna.ui.components.playsheets.datamakers.PKQLTransformation

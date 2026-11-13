@@ -119,7 +119,6 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		// need to do a check to see if the frame is in R if not convert to R
 		SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
 		ITableDataFrame thisFrame = qs.getFrame();
-//		ITableDataFrame thisFrame = insight.getCurFrame();
 		String type = thisFrame.getFrameType().getTypeAsString();
 
 		// need to also check if it is already there
@@ -143,9 +142,11 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 
 			// we shouldn't be auto doing this
 			// use case is i have a python frame and i want to paint a ggplot
-//			insight.getVarStore().put("R_SYNCHRONIZED", new NounMetadata(true, PixelDataType.BOOLEAN));
-//			// need replace to the frame back
-//			insight.getVarStore().put(Insight.CUR_FRAME_KEY, new NounMetadata(thisFrame, PixelDataType.FRAME));
+			// insight.getVarStore().put("R_SYNCHRONIZED", new NounMetadata(true,
+			// PixelDataType.BOOLEAN));
+			// // need replace to the frame back
+			// insight.getVarStore().put(Insight.CUR_FRAME_KEY, new NounMetadata(thisFrame,
+			// PixelDataType.FRAME));
 		}
 
 		// I can avoid all this to make a selector

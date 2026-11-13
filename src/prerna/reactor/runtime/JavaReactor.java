@@ -39,7 +39,6 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
 import prerna.algorithm.api.ICodeExecution;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Variable.LANGUAGE;
 import prerna.reactor.AbstractReactor;
 //import prerna.sablecc2.ReactorSecurityManager;
@@ -128,8 +127,8 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 				pool.importPackage(packageStr);
 			}
 
-			CtClass cc = pool.makeClass(uniqueName); // the only reason I do this is if the user wants to do something
-														// else
+			// the only reason I do this is if the user wants to do something else
+			CtClass cc = pool.makeClass(uniqueName);
 
 			// the configuration of JRI vs. RServe
 			// is now encapsulated within Abstract + RJavaTranslator
@@ -154,7 +153,7 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			// next step is calling it
 			AbstractBaseRClass jR = (AbstractBaseRClass) retClass.newInstance();
 			jR.setInsight(this.insight);
-			jR.setDataFrame((ITableDataFrame) this.insight.getDataMaker());
+			jR.setDataFrame(this.insight.getCurrentFrame());
 			jR.setPixelPlanner(this.planner);
 			jR.setLogger(logger);
 			jR.setRJavaTranslator(this.insight.getRJavaTranslator(this.getLogger(jR.getClass().getName())));
@@ -181,14 +180,14 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			}
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		} catch (RuntimeException re) {
-			logger.error(Constants.STACKTRACE, re);
+			logger.error("Failed to run the java code", re);
 			throw re;
 		} catch (CannotCompileException cce) {
-			logger.error(Constants.STACKTRACE, cce);
+			logger.error("Failed to compile the java code", cce);
 			throw new IllegalArgumentException(
 					"Code had syntax errors which could not be compiled for execution: " + cce.getMessage());
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			logger.error("Failed to run the java code", ex);
 		} finally {
 //			tempManager.removeClass(uniqueName);
 			// set back the original security manager

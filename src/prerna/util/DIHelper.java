@@ -506,28 +506,15 @@ public final class DIHelper {
 	 */
 	public void loadCoreProp(String fileName) {
 		this.rdfMapFileLocation = fileName;
-		FileInputStream fileIn = null;
-		try {
-			coreProp = new Properties();
-			fileIn = new FileInputStream(Utility.normalizePath(fileName));
+		coreProp = new Properties();
+		try (FileInputStream fileIn = new FileInputStream(Utility.normalizePath(fileName))) {
 			coreProp.load(fileIn);
 			coreProp.put(Constants.DIHELPER_PROP_FILE_LOCATION, fileName);
 		} catch (FileNotFoundException e) {
 			classLogger.error("Failed to load DIHelper core properties file '{}'. File was not found.", fileName, e);
 		} catch (IOException e) {
 			classLogger.error("Failed to read DIHelper core properties file '{}'.", fileName, e);
-		} finally {
-			try {
-				if (fileIn != null) {
-					fileIn.close();
-				}
-			} catch (IOException e) {
-				classLogger.error("Failed to close input stream for DIHelper core properties file '{}'.", fileName, e);
-			}
 		}
-
-		PlaySheetRDFMapBasedEnum.getInstance()
-				.setData(((String) coreProp.get(Constants.PLAYSHEETS_DEFINED) + "").split(";"), coreProp);
 	}
 
 	public void reload() {

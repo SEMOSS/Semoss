@@ -70,15 +70,12 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class PandasFrame extends AbstractTableDataFrame {
 
 	private static final Logger classLogger = LogManager.getLogger(PandasFrame.class);
-
-	public static final String DATA_MAKER_NAME = "PandasFrame";
 
 	public static final String PANDAS_IMPORT_VAR = "pd";
 	public static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
@@ -127,7 +124,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		spy.put(SemossDataType.DOUBLE, "np.float64");
 		spy.put(SemossDataType.DATE, "np.datetime32");
 		spy.put(SemossDataType.TIMESTAMP, "np.datetime32");
-//		spy.put(SemossDataType.BOOLEAN, "np.bool");
+		// spy.put(SemossDataType.BOOLEAN, "np.bool");
 
 		spy.put("float64", "np.float32");
 		spy.put("int64", "np.int32");
@@ -137,9 +134,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		spy.put("dtype('float64')", "float32");
 	}
 
-//	public PandasFrame() {
-//		this(null);
-//	} 
+	// public PandasFrame() {
+	// this(null);
+	// }
 
 	public PandasFrame(PyTranslator pyTranslator) {
 		this(null, pyTranslator);
@@ -944,11 +941,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return DataFrameTypeEnum.PYTHON;
 	}
 
-	@Override
-	public String getDataMakerName() {
-		return DATA_MAKER_NAME;
-	}
-
 	/**
 	 * Recreate the metadata for this existing frame
 	 */
@@ -1273,10 +1265,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public void removeColumn(String columnHeader) {
-	}
-
-	@Override
-	public void processDataMakerComponent(DataMakerComponent component) {
 	}
 
 }

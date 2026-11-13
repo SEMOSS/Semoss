@@ -133,7 +133,6 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IReactorFunctionEngine;
-import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
@@ -153,10 +152,6 @@ import prerna.sablecc2.om.task.TaskUtility;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.SocketServerHandler;
 import prerna.tcp.workers.EngineSocketWrapper;
-import prerna.ui.components.api.IPlaySheet;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented
@@ -455,51 +450,6 @@ public final class Utility {
 			retHash.put(instanceName, uriValue);
 		}
 		return retHash;
-	}
-
-	/**
-	 * Executes a query on a specific engine, iterates through variables from the
-	 * sesame wrapper, and uses logic to obtain the concept URI.
-	 * 
-	 * @param Specified engine.
-	 * @param Subject   URI.
-	 * 
-	 * @return Concept URI.
-	 */
-	public static String getConceptType(IDatabaseEngine engine, String subjectURI) {
-		if (!subjectURI.startsWith("http://")) {
-			return "";
-		}
-
-		String query = Utility.getDIHelperProperty(Constants.SUBJECT_TYPE_QUERY);
-		Map<String, List<Object>> paramHash = new Hashtable<>();
-		List<Object> values = new ArrayList<>();
-		values.add(subjectURI);
-		paramHash.put("ENTITY", values);
-		query = Utility.fillParam(query, paramHash);
-
-		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, query);
-
-		/*
-		 * SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
-		 * sjw.setEngine(engine); sjw.setEngineType(engine.getEngineType());
-		 * sjw.setQuery(query); sjw.executeQuery();
-		 */
-		String[] vars = sjw.getVariables();
-		String returnType = null;
-		while (sjw.hasNext()) {
-			ISelectStatement stmt = sjw.next();
-			String objURI = stmt.getRawVar(vars[0]) + "";
-			if (!objURI.equals(Utility.getDIHelperProperty(Constants.SEMOSS_URI) + "/Concept")) {
-				returnType = objURI;
-			}
-
-		}
-		if (returnType == null) {
-			returnType = Utility.getDIHelperProperty(Constants.SEMOSS_URI) + "/Concept";
-		}
-
-		return returnType;
 	}
 
 	/**
@@ -1001,21 +951,11 @@ public final class Utility {
 			}
 		}
 
-		FileOutputStream newExcelFile = null;
-		try {
-			newExcelFile = new FileOutputStream(fileLocation);
+		try (FileOutputStream newExcelFile = new FileOutputStream(fileLocation)) {
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
 			classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
-		} finally {
-			try {
-				if (newExcelFile != null) {
-					newExcelFile.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
-			}
 		}
 	}
 
@@ -1035,9 +975,7 @@ public final class Utility {
 	 */
 	public static Vector<String> getVectorOfReturn(String query, IDatabaseEngine engine, Boolean raw) {
 		Vector<String> retArray = new Vector<>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query)) {
 			while (wrapper.hasNext()) {
 				Object[] values = null;
 				if (raw) {
@@ -1054,14 +992,6 @@ public final class Utility {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
-				}
-			}
 		}
 
 		return retArray;
@@ -1077,9 +1007,7 @@ public final class Utility {
 	 */
 	public static Vector<String[]> getVectorArrayOfReturn(String query, IDatabaseEngine engine, Boolean raw) {
 		Vector<String[]> retArray = new Vector<>();
-		IRawSelectWrapper wrapper = null;
-		try {
-			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query)) {
 			while (wrapper.hasNext()) {
 				Object[] values = null;
 				if (raw) {
@@ -1098,14 +1026,6 @@ public final class Utility {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
-		} finally {
-			if (wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
-				}
-			}
 		}
 
 		return retArray;
@@ -1131,82 +1051,6 @@ public final class Utility {
 		}
 
 		return paramHash;
-	}
-
-	public static IPlaySheet getPlaySheet(IDatabaseEngine engine, String psName) {
-		classLogger.info("Trying to get playsheet for {}", Utility.cleanLogString(psName));
-		String psClassName = null;
-		if (engine != null) {
-			psClassName = engine.getProperty(psName);
-		}
-		if (psClassName == null) {
-			psClassName = (String) DIHelper.getInstance().getLocalProp(psName);
-		}
-		if (psClassName == null) {
-			psClassName = Utility.getDIHelperProperty(psName);
-		}
-		if (psClassName == null) {
-			psClassName = PlaySheetRDFMapBasedEnum.getClassFromName(psName);
-		}
-		if (psClassName == null || psClassName.isEmpty()) {
-			psClassName = psName;
-		}
-
-		IPlaySheet playSheet = (IPlaySheet) getClassFromString(psClassName);
-
-		return playSheet;
-	}
-
-	public static IDataMaker getDataMaker(IDatabaseEngine engine, String dataMakerName) {
-		classLogger.info("Trying to get data maker for {}", Utility.cleanLogString(dataMakerName));
-		String dmClassName = null;
-		if (engine != null) {
-			dmClassName = engine.getProperty(dataMakerName);
-		}
-		if (dmClassName == null) {
-			dmClassName = (String) DIHelper.getInstance().getLocalProp(dataMakerName);
-		}
-		if (dmClassName == null) {
-			dmClassName = Utility.getDIHelperProperty(dataMakerName);
-		}
-		if (dmClassName == null) {
-			dmClassName = PlaySheetRDFMapBasedEnum.getClassFromName(dataMakerName);
-		}
-		if (dmClassName == null || dmClassName.isEmpty()) {
-			dmClassName = dataMakerName;
-		}
-
-		IDataMaker dm = (IDataMaker) getClassFromString(dmClassName);
-
-		return dm;
-	}
-
-	public static ISEMOSSTransformation getTransformation(IDatabaseEngine engine, String transName) {
-		classLogger.info("Trying to get transformation for {}", Utility.cleanLogString(transName));
-		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
-		if (transClassName == null) {
-			transClassName = Utility.getDIHelperProperty(transName);
-		}
-		if (transClassName == null || transClassName.isEmpty()) {
-			transClassName = transName;
-		}
-
-		ISEMOSSTransformation transformation = (ISEMOSSTransformation) getClassFromString(transClassName);
-		return transformation;
-	}
-
-	public static ISEMOSSAction getAction(IDatabaseEngine engine, String actionName) {
-		classLogger.info("Trying to get action for {}", Utility.cleanLogString(actionName));
-		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
-		if (actionClassName == null) {
-			actionClassName = Utility.getDIHelperProperty(actionName);
-		}
-		if (actionClassName == null || actionClassName.isEmpty()) {
-			actionClassName = actionName;
-		}
-
-		ISEMOSSAction action = (ISEMOSSAction) getClassFromString(actionClassName);
-		return action;
 	}
 
 	public static Object getClassFromString(String className) {
@@ -2461,14 +2305,9 @@ public final class Utility {
 			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 		}
 
-		FileOutputStream fos = null;
-		OutputStreamWriter osw = null;
-		BufferedWriter bufferedWriter = null;
-
-		try {
-			fos = new FileOutputStream(f);
-			osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-			bufferedWriter = new BufferedWriter(osw);
+		try (FileOutputStream fos = new FileOutputStream(f);
+				OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+				BufferedWriter bufferedWriter = new BufferedWriter(osw)) {
 
 			// store some variables and just reset
 			// should be faster than creating new ones each time
@@ -2608,28 +2447,6 @@ public final class Utility {
 
 		} catch (IOException ioe) {
 			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
-			}
-			try {
-				if (osw != null) {
-					osw.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
-			}
-			try {
-				if (fos != null) {
-					fos.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
-			}
 		}
 
 		long end = System.currentTimeMillis();
@@ -2673,14 +2490,9 @@ public final class Utility {
 			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 		}
 
-		FileOutputStream fos = null;
-		OutputStreamWriter osw = null;
-		BufferedWriter bufferedWriter = null;
-
-		try {
-			fos = new FileOutputStream(f);
-			osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-			bufferedWriter = new BufferedWriter(osw);
+		try (FileOutputStream fos = new FileOutputStream(f);
+				OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+				BufferedWriter bufferedWriter = new BufferedWriter(osw)) {
 			bufferedWriter.write("[");
 			// store some variables and just reset
 			// should be faster than creating new ones each time
@@ -2797,28 +2609,6 @@ public final class Utility {
 
 		} catch (IOException ioe) {
 			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
-		} finally {
-			try {
-				if (bufferedWriter != null) {
-					bufferedWriter.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
-			}
-			try {
-				if (osw != null) {
-					osw.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
-			}
-			try {
-				if (fos != null) {
-					fos.close();
-				}
-			} catch (IOException ioe) {
-				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
-			}
 		}
 
 		long end = System.currentTimeMillis();
@@ -4432,15 +4222,15 @@ public final class Utility {
 			DiagnosticCollector<JavaFileObject> diagnostics, List<String> options,
 			Iterable<? extends JavaFileObject> compilationUnits) throws IOException {
 
-		try (PrintWriter pw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8)))) {
+		try (fileManager;
+				PrintWriter pw = new PrintWriter(
+						new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8)))) {
 			boolean hold = compiler.getTask(pw, fileManager, diagnostics, options, null, compilationUnits).call();
 
 			pw.flush();
 			logDiagnostics(diagnostics.getDiagnostics(), pw);
 
 			return hold ? 0 : -1;
-		} finally {
-			fileManager.close();
 		}
 	}
 
