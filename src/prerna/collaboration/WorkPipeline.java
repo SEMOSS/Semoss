@@ -121,14 +121,18 @@ public final class WorkPipeline {
 			- update: news on some piece of work (progress, a date moved, a blocker).
 			- done_claim: a message says something was finished, sent, merged, fixed, scheduled or answered. A \
 			message that delivers what was asked (the owner sends the reply, file or answer someone asked for, or \
-			someone else delivers what the owner was waiting on) is a done_claim for that ask.
+			someone else delivers what the owner was waiting on) is a done_claim for that ask. A message that only \
+			promises it ("I'll send it tomorrow", "expected by Wednesday", "working on it") is a commitment or an \
+			update, never a done_claim.
 			text: one short line. Tasks and commitments are imperative ("Send Kira the budget"). Use people's names, never p1.. ids.
 			assignee (who has to do it), never empty for task and commitment:
 			- "me" when the owner was asked by name or directly (a 1:1 chat with the owner, "@owner", "can you" \
 			addressed only to them), when the owner said they would do it, or when the owner raised it themselves \
 			(a request, bug, or idea the owner posted) and no one else was named to do it.
 			- "group" for a task discussed in a meeting or a group with no one named.
-			- a p id for a task someone else has to do. "unclear" only when you truly cannot tell.
+			- a p id for a task someone else has to do. An ask in a message the owner wrote is for the people that \
+			message was written to, not for the owner: give the p id of the person it was addressed to, or "group" \
+			when it went to several. "unclear" only when you truly cannot tell.
 			Not used for decision and update: use "".
 			askedBy: who asked or said it: "me", a p id, or "".
 			directedAtOwner: true only when the message is aimed at the owner, not at a group.
@@ -527,6 +531,8 @@ public final class WorkPipeline {
 
 		Map<String, String> people = new LinkedHashMap<>();
 		Map<String, String> names = new LinkedHashMap<>();
+		// person id by address, to tell who a message was written to
+		Map<String, String> byAddress = new LinkedHashMap<>();
 		List<Map<String, Object>> peopleInput = new ArrayList<>();
 		CollaborationDbUtils.query("SELECT tp.PERSON_ID, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp "
 				+ "LEFT JOIN BRAIN_PERSON p ON p.OWNER_ID = tp.OWNER_ID AND p.OWNER_TYPE = tp.OWNER_TYPE AND "
@@ -538,6 +544,10 @@ public final class WorkPipeline {
 					}
 					String shortId = "p" + (people.size() + 1);
 					people.put(shortId, personId);
+					String address = rs.getString("EMAIL_NORM");
+					if (address != null && !address.isBlank()) {
+						byAddress.put(address.trim().toLowerCase(java.util.Locale.ROOT), personId);
+					}
 					String name = CollaborationDbUtils.getString(rs, "DISPLAY_NAME");
 					name = name == null || name.isBlank() ? String.valueOf(rs.getString("EMAIL_NORM")) : name;
 					names.put(shortId, name);
@@ -553,9 +563,17 @@ public final class WorkPipeline {
 		String end = (String) thread.get("last");
 		List<Map<String, Object>> fresh = new ArrayList<>();
 		List<Map<String, Object>> older = new ArrayList<>();
+		// the other people each message was written to (To, not Cc), by its time
+		Map<String, Set<String>> writtenTo = new LinkedHashMap<>();
 		for (Map<String, Object> m : (List<Map<String, Object>>) read.get("messages")) {
 			String at = String.valueOf(m.get("at"));
 			end = end == null || at.compareTo(end) > 0 ? at : end;
+			// an invite, reply or cancellation: the calendar has it, as for the thread's card
+			// (BrainThreadClassifier), so it asks nothing of anyone here
+			if (Boolean.TRUE.equals(m.get("meeting"))) {
+				continue;
+			}
+			writtenTo.put(at, addressees(m.get("to"), byAddress));
 			if (ref == null || at.compareTo(ref) > 0) {
 				fresh.add(m);
 			} else {
@@ -642,6 +660,17 @@ public final class WorkPipeline {
 				String kind = str(c.get("kind"));
 				String assignee = assignee(str(c.get("assignee")), people);
 				boolean directed = Boolean.TRUE.equals(c.get("directedAtOwner"));
+				Map<String, Object> source = null;
+				for (Map<String, Object> m : messages) {
+					if (m.get("id").equals(c.get("message"))) {
+						source = m;
+					}
+				}
+				// an ask the owner wrote is for the people it went to, in code: the model often gives the owner
+				// their own request ("Schedule the inspection." to Peter). Their own promise is a commitment
+				if (ME.equals(assignee) && "task".equals(kind) && source != null && ME.equals(source.get("from"))) {
+					assignee = askedOf(writtenTo.get(String.valueOf(source.get("at"))), people);
+				}
 				// the owner rule, in code: theirs only when asked directly or they took it on
 				String rule = null;
 				if (ME.equals(assignee) && !"commitment".equals(kind) && !directed) {
@@ -651,12 +680,7 @@ public final class WorkPipeline {
 						rule = "unconfirmed";
 					}
 				}
-				String at = null;
-				for (Map<String, Object> m : messages) {
-					if (m.get("id").equals(c.get("message"))) {
-						at = String.valueOf(m.get("at"));
-					}
-				}
+				String at = source == null ? null : String.valueOf(source.get("at"));
 				Map<String, Object> addressing = new LinkedHashMap<>();
 				addressing.put("directedAtOwner", directed);
 				addressing.put("ownerPosted", posted);
@@ -1319,6 +1343,35 @@ public final class WorkPipeline {
 		Insight insight = new Insight();
 		insight.setUser(user);
 		return model.ask(CollaborationDbUtils.toJson(input), EXTRACT, insight, params).getStringResponse();
+	}
+
+	// the people a message was written to that Brain knows on this thread, as person ids
+	private static Set<String> addressees(Object to, Map<String, String> byAddress) {
+		Set<String> out = new LinkedHashSet<>();
+		if (to instanceof List<?> list) {
+			for (Object r : list) {
+				if (r instanceof Map<?, ?> m && m.get("address") != null) {
+					String personId = byAddress
+							.get(String.valueOf(m.get("address")).trim().toLowerCase(java.util.Locale.ROOT));
+					if (personId != null) {
+						out.add(personId);
+					}
+				}
+			}
+		}
+		return out;
+	}
+
+	// who an ask the owner wrote is for: the one person the message went to, or the only other person on the
+	// thread (a 1:1 chat has no To); with several, no one in particular
+	static String askedOf(Set<String> writtenTo, Map<String, String> people) {
+		if (writtenTo != null && writtenTo.size() == 1) {
+			return writtenTo.iterator().next();
+		}
+		if ((writtenTo == null || writtenTo.isEmpty()) && people.size() == 1) {
+			return people.values().iterator().next();
+		}
+		return GROUP;
 	}
 
 	// "me", "group", "unclear", or the person a p id stands for

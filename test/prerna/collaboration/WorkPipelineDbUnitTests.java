@@ -29,6 +29,7 @@ package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -113,6 +115,9 @@ class WorkPipelineDbUnitTests {
 	// runs once, during the next model call
 	private Runnable onAsk;
 	private final Map<String, String> bodies = new HashMap<>();
+	// graph id -> the addresses the message was written to; graph ids of calendar messages
+	private final Map<String, List<String>> sentTo = new HashMap<>();
+	private final Set<String> invites = new HashSet<>();
 	private final Set<String> failing = new HashSet<>();
 	private Executor pool;
 	private IntFunction<ExecutorService> readPool;
@@ -175,8 +180,17 @@ class WorkPipelineDbUnitTests {
 			if (failing.contains(graphId)) {
 				throw new IllegalStateException("Graph returned 503");
 			}
-			return Map.of("subject", "Deck", "body", Map.of("content", bodies.get(graphId), "contentType", "text"),
-					"from", Map.of("emailAddress", Map.of("name", "Kira", "address", "kira@test.com")));
+			Map<String, Object> message = new HashMap<>(Map.of("subject", "Deck", "body",
+					Map.of("content", bodies.get(graphId), "contentType", "text"), "from",
+					Map.of("emailAddress", Map.of("name", "Kira", "address", "kira@test.com"))));
+			if (sentTo.containsKey(graphId)) {
+				message.put("toRecipients", sentTo.get(graphId).stream()
+						.map(address -> Map.of("emailAddress", Map.of("name", address, "address", address))).toList());
+			}
+			if (invites.contains(graphId)) {
+				message.put("@odata.type", "#microsoft.graph.eventMessageRequest");
+			}
+			return message;
 		};
 		source = mockStatic(BrainMessageSource.class);
 		source.when(BrainMessageSource::current).thenReturn(mail);
@@ -289,13 +303,14 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
-	void aDoneClaimClosesALooseStepOnItsThreadAndOneUnderItsTopic() throws Exception {
+	void aDoneClaimClosesAStepOfItsOwnThreadAndNeverOneOfAnotherThread() throws Exception {
 		LocalDateTime at = at("2026-11-05T10:00:00");
 		// Kira's ask on an unfiled thread became a loose step; the owner's reply is a done claim
 		thread("unfiled", at, null);
 		step("kira-step", "unfiled", null, "Send Kira the deck");
 		candidate("reply", "unfiled", null, "Sent Kira the deck", at.plusMinutes(1));
-		// a loose step under a topic, finished on another of the topic's threads
+		// a loose step under a topic, and a done claim on another of the topic's threads: on real mail such a
+		// claim matched the wrong step far more often than the right one, so the step stays open
 		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS) VALUES (?, ?, 'budget', 'Budget', "
 				+ "'active')", ownerId, ownerType);
 		thread("ask", at, null);
@@ -312,9 +327,93 @@ class WorkPipelineDbUnitTests {
 				+ "\"newItems\": [], \"loose\": []}";
 		WorkPipeline.reconcile(user, ownerId, ownerType, model);
 		assertEquals("done", value("SELECT STATUS FROM WORK_THREAD_STEP WHERE STEP_ID = 'kira-step'"));
-		assertEquals("done", value("SELECT STATUS FROM WORK_THREAD_STEP WHERE STEP_ID = 'budget-step'"));
-		assertEquals(2, ((Number) value("SELECT COUNT(*) FROM WORK_CANDIDATE WHERE RESULT = 'closes' AND "
-				+ "DROP_REASON IS NULL")).intValue());
+		assertEquals("open", value("SELECT STATUS FROM WORK_THREAD_STEP WHERE STEP_ID = 'budget-step'"));
+		assertEquals("closes", value("SELECT RESULT FROM WORK_CANDIDATE WHERE CANDIDATE_ID = 'reply'"));
+		// the claim is kept as news on the topic
+		assertEquals("topic_update", value("SELECT RESULT FROM WORK_CANDIDATE WHERE CANDIDATE_ID = 'reviewed'"));
+	}
+
+	@Test
+	void anAskTheOwnerWroteIsForThePersonItWentToNotForTheOwner() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("inspection", at, null);
+		person("self", "Owner", "owner@test.com", "self");
+		person("peter", "Peter", "peter@test.com", null);
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, "
+				+ "'inspection', 'peter')", ownerId, ownerType);
+		email("inspection", "g1", at, "Good work. Schedule the city inspection.");
+		sql("UPDATE BRAIN_MESSAGE SET SENDER_PERSON_ID = 'self' WHERE GRAPH_ID = 'g1'");
+		sentTo.put("g1", List.of("peter@test.com"));
+		// the model hands the owner their own request, and a promise of theirs in the same message
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Schedule the city inspection\", \"assignee\": "
+				+ "\"me\", \"askedBy\": \"me\", \"directedAtOwner\": false, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}, {\"kind\": \"commitment\", \"text\": \"Tell Ingrid\", \"assignee\": \"me\", "
+				+ "\"askedBy\": \"me\", \"directedAtOwner\": false, \"message\": \"m1\", \"due\": \"\", \"quote\": \"\"}]}";
+		WorkPipeline.extract(user, ownerId, ownerType, "inspection", model, new String[] { "self", "Owner" });
+		assertEquals("peter", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Schedule the city inspection'"));
+		assertNull(value("SELECT RESULT FROM WORK_CANDIDATE WHERE TEXT = 'Schedule the city inspection'"));
+		assertEquals("me", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Tell Ingrid'"));
+	}
+
+	@Test
+	void anAskTheOwnerWroteToSeveralPeopleIsNoOnesInParticular() {
+		assertEquals("group", WorkPipeline.askedOf(Set.of("peter", "marco"), Map.of("p1", "peter", "p2", "marco")));
+		assertEquals("peter", WorkPipeline.askedOf(Set.of("peter"), Map.of("p1", "peter", "p2", "marco")));
+		// a 1:1 chat has no To: the other person on it
+		assertEquals("kira", WorkPipeline.askedOf(Set.of(), Map.of("p1", "kira")));
+		assertEquals("group", WorkPipeline.askedOf(null, Map.of("p1", "peter", "p2", "marco")));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aDoneClaimFinishesOnlyAnEarlierAskOfItsOwnThread() {
+		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c3\", \"action\": \"closes\", \"ref\": \"c1\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c4\", \"action\": \"closes\", \"ref\": \"c2\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c5\", \"action\": \"closes\", \"ref\": \"c2\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\", \"c2\"]}";
+		Map<String, Object> topic = plan(reply, on(task("c1", "Send Kira the deck"), "deck", "2026-11-05T10:00:00Z"),
+				on(task("c2", "Approve overtime request OT-2214"), "overtime", "2026-11-05T10:00:00Z"),
+				// the owner's reply on the deck thread
+				on(claim("c3", "Sent Kira the deck"), "deck", "2026-11-05T11:00:00Z"),
+				// overtime on another thread a week later, and a claim older than the ask
+				on(claim("c4", "Delgado will work four hours of overtime"), "sanitation", "2026-11-12T10:00:00Z"),
+				on(claim("c5", "Overtime is fine"), "overtime", "2026-11-04T10:00:00Z"));
+		List<Map<String, Object>> loose = (List<Map<String, Object>>) topic.get("looseSteps");
+		assertEquals(List.of("done", "open"), loose.stream().map(s -> s.get("status")).toList());
+		assertEquals(1, ((List<?>) topic.get("closes")).size());
+		// the two that finish nothing are kept as news
+		assertEquals(2, ((List<?>) topic.get("topicUpdates")).size());
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aNewAskIsNeverTheEndOfAnOlderOneAndAnAskOfTheOwnerIsNeverDropped() {
+		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"closes\", \"ref\": \"c1\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c3\", \"action\": \"drop\", \"ref\": \"\", \"reason\": \"personal\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\"]}";
+		Map<String, Object> topic = plan(reply,
+				on(task("c1", "Review the last paragraph of the draft"), "bureau", "2026-11-05T10:00:00Z"),
+				on(task("c2", "Sign the response on page 3"), "bureau", "2026-11-06T10:00:00Z"),
+				on(task("c3", "Take the cat for Saturday night"), "move", "2026-11-06T10:00:00Z"));
+		List<Map<String, Object>> loose = (List<Map<String, Object>>) topic.get("looseSteps");
+		assertEquals(List.of("open", "open", "open"), loose.stream().map(s -> s.get("status")).toList());
+		assertTrue(((List<?>) topic.get("closes")).isEmpty());
+		assertTrue(((List<?>) topic.get("dropped")).isEmpty());
+	}
+
+	@Test
+	void aCalendarMessageIsNotReadForWork() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("call", at, null);
+		email("call", "g1", at, "Coldspan escalation call Tue 08:00-08:30");
+		invites.add("g1");
+		extract("call");
+		// no model call, and the cursor still moves past the invite
+		assertTrue(prompts.isEmpty());
+		assertNotNull(workRef("call"));
 	}
 
 	@Test
@@ -617,6 +716,44 @@ class WorkPipelineDbUnitTests {
 				+ "DECISION) VALUES (?, ?, ?, ?, ?, 'inbox', ?, 'include')", ownerId, ownerType, "key-" + graphId,
 				threadId, graphId, Timestamp.valueOf(receivedAt));
 		bodies.put(graphId, body);
+	}
+
+	private static Map<String, Object> on(Map<String, Object> c, String threadId, String at) {
+		c.put("threadId", threadId);
+		c.put("at", at);
+		return c;
+	}
+
+	private static Map<String, Object> claim(String id, String text) {
+		Map<String, Object> c = new LinkedHashMap<>();
+		c.put("id", id);
+		c.put("kind", "done_claim");
+		c.put("assignee", "");
+		c.put("text", text);
+		return c;
+	}
+
+	private static Map<String, Object> task(String id, String text) {
+		Map<String, Object> c = new LinkedHashMap<>();
+		c.put("id", id);
+		c.put("kind", "task");
+		c.put("assignee", "me");
+		c.put("text", text);
+		return c;
+	}
+
+	// one batch with no topic, planned against the owner's (empty) work list
+	@SafeVarargs
+	@SuppressWarnings("unchecked")
+	private final Map<String, Object> plan(String modelReply, Map<String, Object>... candidates) {
+		reply = modelReply;
+		Map<String, Object> plan = WorkReconcile.plan(user, ownerId, ownerType, model, List.of(candidates));
+		return ((List<Map<String, Object>>) plan.get("topics")).get(0);
+	}
+
+	private void person(String personId, String name, String email, String relationship) throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM, RELATIONSHIP) VALUES "
+				+ "(?, ?, ?, ?, ?, ?)", ownerId, ownerType, personId, name, email, relationship);
 	}
 
 	private void step(String stepId, String threadId, String topicId, String text) throws Exception {

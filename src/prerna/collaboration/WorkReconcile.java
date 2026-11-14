@@ -323,6 +323,7 @@ public final class WorkReconcile {
 				for (Map<String, Object> step : (List<Map<String, Object>>) task.get("openSteps")) {
 					String s = "s" + (stepIds.size() + 1);
 					stepIds.put(s, String.valueOf(step.get("id")));
+					items.stepThreads.put(String.valueOf(step.get("id")), String.valueOf(step.get("threadId")));
 					steps.add(Map.of("id", s, "text", String.valueOf(step.get("text"))));
 				}
 				Map<String, Object> item = new LinkedHashMap<>();
@@ -378,6 +379,7 @@ public final class WorkReconcile {
 			if (!stepIds.containsValue(id)) {
 				String s = "s" + (stepIds.size() + 1);
 				stepIds.put(s, id);
+				items.stepThreads.put(id, String.valueOf(step.get("threadId")));
 				otherSteps.add(Map.of("id", s, "text", String.valueOf(step.get("text"))));
 			}
 		}
@@ -434,6 +436,8 @@ public final class WorkReconcile {
 		final Map<String, Set<String>> fedBy;
 		final Set<String> own = new LinkedHashSet<>();
 		final Map<String, Integer> open = new LinkedHashMap<>();
+		// the thread each existing open step came from, by step id
+		final Map<String, String> stepThreads = new LinkedHashMap<>();
 		Map<String, String> ids = new LinkedHashMap<>();
 
 		Items(Map<String, Set<String>> fedBy) {
@@ -632,9 +636,31 @@ public final class WorkReconcile {
 					underExisting.add(step(c, evidence.get(id), "taskId", taskId));
 				}
 			}
-			case "closes" ->
-				closes.add(entry(c, evidence.get(id), "closes", stepIds.containsKey(ref) ? stepIds.get(ref) : ref));
-			case "drop" -> dropped.add(entry(c, evidence.get(id), "reason", d.getValue().get("reason")));
+			case "closes" -> {
+				// code holds the line: a step is finished only by a later message of its own conversation. A
+				// done claim from another thread matched the wrong step far more often than the right one
+				// (quillfield, 2026-11-14), and a step closed by mistake is gone from the owner's list
+				Map<String, Object> asked = byId.get(ref);
+				String thread = asked != null ? String.valueOf(asked.get("threadId"))
+						: items.stepThreads.get(stepIds.get(ref));
+				if (isTask(c)) {
+					// a new ask never finishes an old one: it is work of its own
+					leftovers.add(id);
+				} else if (finishes(c, thread, asked == null ? null : asked.get("at"))) {
+					closes.add(entry(c, evidence.get(id), "closes", stepIds.containsKey(ref) ? stepIds.get(ref) : ref));
+				} else {
+					topicUpdates.add(entry(c, evidence.get(id), null, null));
+				}
+			}
+			case "drop" -> {
+				// the owner rule already left out what was not asked of the owner; what is left was asked of
+				// them directly, so it stays on their list as a loose step whatever the model thinks of it
+				if (isTask(c) && "me".equals(c.get("assignee"))) {
+					leftovers.add(id);
+				} else {
+					dropped.add(entry(c, evidence.get(id), "reason", d.getValue().get("reason")));
+				}
+			}
 			default -> leftovers.add(id);
 			}
 		}
@@ -739,6 +765,15 @@ public final class WorkReconcile {
 		groups.add(underExisting);
 		groups.add(loose);
 		return groups;
+	}
+
+	// a done claim finishes a step of the same conversation that was asked before it
+	static boolean finishes(Map<String, Object> claim, String stepThread, Object askedAt) {
+		if (stepThread == null || !stepThread.equals(String.valueOf(claim.get("threadId")))) {
+			return false;
+		}
+		return askedAt == null || claim.get("at") == null
+				|| String.valueOf(claim.get("at")).compareTo(String.valueOf(askedAt)) > 0;
 	}
 
 	// the same ask said again: the same words, whatever the case and punctuation. A
