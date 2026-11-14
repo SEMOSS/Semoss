@@ -35,6 +35,8 @@ This abstract class provides a common foundation for most model engine implement
 *   **Usage Tracking and Logging**:
     *   Reads `KEEP_CONVERSATION_HISTORY`; the shared engine base also reads `KEEP_INPUT_OUTPUT`. Persistent room messages and inference usage records are distinct stores; see [internal databases](../platform_services/internal_databases.md#model-inference-database).
     *   If model inference logging is enabled (`Utility.isModelInferenceLogsEnabled()`), it wraps the core model invocation calls (see below) with logic to record interaction details (prompt, response, tokens, timestamps, etc.) to the `ModelInferenceLogsDatabase` via `prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker`.
+*   **Provider Errors**:
+    *   When the provider returns an error, the call fails with its status code, what the code means, and a reference, such as `Error code: 403. The model provider denied access. Reference: <id>`. The provider's own text is logged under `Model error <id>`. See [model provider errors](../platform_services/secret_settings.md#model-provider-errors).
 *   **Model Usage Limits**:
     *   Every call goes through `prerna.engine.impl.model.ModelUsageRestrictionUtility`, which admits it against the [model usage limits](../model_usage_limits/README.md) that apply to the user, passes what is left to the Python client as `usage_ceiling`, and bills what the call used when it ends. See [enforcement](../model_usage_limits/enforcement.md).
 *   **Abstract `*Call` Methods**:

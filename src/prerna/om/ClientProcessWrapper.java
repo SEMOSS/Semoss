@@ -67,6 +67,7 @@ import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.PortAllocator;
 import prerna.util.SandboxInjector;
 import prerna.util.Settings;
@@ -672,7 +673,7 @@ public class ClientProcessWrapper {
 	 */
 	public static Process startTCPServer(String insightFolder, String port) {
 		Process thisProcess = null;
-		String specificPath = Utility.getCP(insightFolder);
+		String specificPath = InternalUtility.getCP(insightFolder);
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
@@ -760,7 +761,7 @@ public class ClientProcessWrapper {
 	 */
 	public static Process startTCPServerChroot(String chrootDir, String insightFolder, String port) {
 		Process thisProcess = null;
-		String specificPath = Utility.getCP(insightFolder);
+		String specificPath = InternalUtility.getCP(insightFolder);
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {

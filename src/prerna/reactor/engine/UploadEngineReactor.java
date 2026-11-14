@@ -67,6 +67,7 @@ import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -173,8 +174,9 @@ public class UploadEngineReactor extends AbstractReactor {
 		if (expectedEngineType != null && !(expectedEngineType = expectedEngineType.trim()).isEmpty()
 				&& (engineType == null || !expectedEngineType.equalsIgnoreCase(engineType.name()))) {
 			cleanUpFolders(randomTempUnzipF);
-			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage("The file holds a "
-					+ engineType + " engine, but this upload expects a " + expectedEngineType.toUpperCase() + " engine"));
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("The file holds a " + engineType
+							+ " engine, but this upload expects a " + expectedEngineType.toUpperCase() + " engine"));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
@@ -288,7 +290,7 @@ public class UploadEngineReactor extends AbstractReactor {
 					finalEngineSmss.getAbsolutePath());
 			if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
 				logger.info(step + ") Synchronizing database structure");
-				Utility.synchronizeEngineMetadata(engineId);
+				InternalUtility.synchronizeEngineMetadata(engineId);
 				logger.info(step + ") Done");
 				step++;
 			}
@@ -302,8 +304,8 @@ public class UploadEngineReactor extends AbstractReactor {
 			String displayName = prop.getProperty(Constants.ENGINE_DISPLAY_NAME);
 			if (displayName == null || displayName.trim().isEmpty()) {
 				try {
-					Utility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(), Constants.ENGINE_DISPLAY_NAME,
-							engineName);
+					InternalUtility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(),
+							Constants.ENGINE_DISPLAY_NAME, engineName);
 				} catch (IOException e) {
 					classLogger.error("Failed to add the display name to the smss of engine {}", engineId, e);
 				}
@@ -404,8 +406,7 @@ public class UploadEngineReactor extends AbstractReactor {
 						"This is a required value containing the relative file path of the single zip file to be imported")
 				.key(ReactorKeysEnum.SPACE,
 						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
-				.key(ReactorKeysEnum.GLOBAL,
-						"This is a required value to determine if the engine is public or private")
+				.key(ReactorKeysEnum.GLOBAL, "This is a required value to determine if the engine is public or private")
 				.key(ReactorKeysEnum.ENGINE_TYPE,
 						"An optional engine type, such as MODEL or GUARDRAIL. When it is given, the upload is refused unless the file holds an engine of that type. Without it, the engine is uploaded as the type its file holds.");
 	}
