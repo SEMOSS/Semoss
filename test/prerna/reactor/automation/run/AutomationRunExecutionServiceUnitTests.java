@@ -47,6 +47,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.logging.log4j.ThreadContext;
@@ -74,6 +75,30 @@ import prerna.util.Utility;
 
 /** Covers deterministic execution-service mappings and run Insight lookup. */
 public class AutomationRunExecutionServiceUnitTests {
+
+	/**
+	 * A {@code data.declare-variable} node's resolved object is spread into scope
+	 * one key at a time, exactly like trigger globals, so later nodes can reference
+	 * each saved name directly as {@code ${name}}.
+	 */
+	@Test
+	void channelVariablesSpreadsEachTopLevelKeyIntoScope() {
+		Map<String, Object> scope = new LinkedHashMap<>();
+		AutomationRunExecutionService.spreadChannelVariables(scope,
+				Map.of("accountId", "acct-1", "region", "east"));
+
+		assertEquals("acct-1", scope.get("accountId"));
+		assertEquals("east", scope.get("region"));
+	}
+
+	/** A non-object result (or a run with no fields yet) contributes nothing, not an error. */
+	@Test
+	void channelVariablesIgnoresANonObjectResult() {
+		Map<String, Object> scope = new LinkedHashMap<>();
+		AutomationRunExecutionService.spreadChannelVariables(scope, "not an object");
+
+		assertTrue(scope.isEmpty());
+	}
 
 	private static final List<Map<String, Object>> NOUL_ROUTES = List.of(
 			Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "approve",
@@ -421,7 +446,7 @@ public class AutomationRunExecutionServiceUnitTests {
 			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(output));
 
 			AutomationRunExecutionService.ReconstructedScope reconstructed =
-					AutomationRunExecutionService.reconstructScope(runId, insight, "trigger");
+					AutomationRunExecutionService.reconstructScope(runId, insight, "trigger", Set.of());
 
 			AutomationFrameOutput.RegisteredFrame frameOutput =
 					(AutomationFrameOutput.RegisteredFrame) reconstructed.scope().get("query_result");
@@ -429,8 +454,37 @@ public class AutomationRunExecutionServiceUnitTests {
 			assertEquals(DataFrameTypeEnum.PYTHON.getTypeAsString(), frameOutput.backend());
 			insight.getVarStore().remove("query_result");
 			IllegalStateException unavailable = assertThrows(IllegalStateException.class,
-					() -> AutomationRunExecutionService.reconstructScope(runId, insight, "trigger"));
+					() -> AutomationRunExecutionService.reconstructScope(runId, insight, "trigger", Set.of()));
 			assertTrue(unavailable.getMessage().contains("cannot resume"));
+		}
+	}
+
+	/**
+	 * On resume, a prior {@code data.declare-variable} node's persisted output must
+	 * be re-spread into scope one key at a time - not just restored under its own
+	 * output variable - so a later node's {@code ${name}} reference still resolves
+	 * after a restart, exactly as it did mid-run.
+	 */
+	@Test
+	void reconstructScopeSpreadsDeclareVariableOutputsOnResume() {
+		String runId = "run-declare-resume";
+		Map<String, Object> output = new LinkedHashMap<>();
+		output.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		output.put(AutomationConstants.NODE_ID, "declare1");
+		output.put(AutomationConstants.OUTPUT_VAR_NAME, "result");
+		output.put(AutomationConstants.OUTPUT_VALUE, "{\"accountId\":\"acct-1\",\"region\":\"east\"}");
+		Insight insight = new Insight();
+		insight.setInsightId("automation-" + runId);
+		try (var store = mockStatic(AutomationRunStore.class, CALLS_REAL_METHODS)) {
+			store.when(() -> AutomationRunStore.getRunInputs(runId)).thenReturn(Map.of());
+			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(output));
+
+			AutomationRunExecutionService.ReconstructedScope reconstructed = AutomationRunExecutionService
+					.reconstructScope(runId, insight, "trigger", Set.of("declare1"));
+
+			assertEquals("acct-1", reconstructed.scope().get("accountId"));
+			assertEquals("east", reconstructed.scope().get("region"));
+			assertEquals(Map.of("accountId", "acct-1", "region", "east"), reconstructed.scope().get("result"));
 		}
 	}
 

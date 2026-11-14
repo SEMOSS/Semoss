@@ -43,6 +43,7 @@ import static org.mockito.Mockito.verify;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,7 +72,7 @@ class AutomationRunStoreUnitTests {
 		db.execute(
 				"CREATE TABLE AUTOMATION_RUNS (RUN_ID VARCHAR PRIMARY KEY, PROJECT_ID VARCHAR, AUTOMATION_ID VARCHAR, DEFINITION_VERSION INT, DEFINITION_HASH VARCHAR, DEFINITION_SNAPSHOT CLOB, INPUT_SNAPSHOT CLOB, STATUS VARCHAR, TRIGGER_TYPE VARCHAR, STARTED_AT TIMESTAMP, LAST_HEARTBEAT TIMESTAMP, TOTAL_NODES INT, COMPLETED_NODES INT, CREATED_BY VARCHAR, CANCEL_REQUESTED BOOLEAN, RESULT_SUMMARY VARCHAR, COMPLETED_AT TIMESTAMP, FAILED_NODE_ID VARCHAR, ERROR_MESSAGE VARCHAR)",
 				"CREATE TABLE AUTOMATION_RUN_NODE_SOURCES (RUN_ID VARCHAR, NODE_ID VARCHAR, SOURCE_HASH VARCHAR, SOURCE_CODE CLOB)",
-				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_KIND VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR)");
+				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_KIND VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR, SCOPE_SNAPSHOT CLOB)");
 	}
 
 	private void savedResultSchema(JdbcTestDatabase db) throws Exception {
@@ -207,6 +208,71 @@ class AutomationRunStoreUnitTests {
 			assertThrows(IllegalStateException.class, () -> AutomationRunStore.completeRun("absent", "project", "SUCCESS", null, null));
 			audit.verifyNoMoreInteractions();
 		}
+	}
+
+	@Test
+	void scopeSnapshotIsPersistedToItsOwnColumnOnSuccess() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			AutomationRunStore.initializeRun("run", "project", "automation", 1, "hash", "{}", Map.of(),
+					"manual", "user", List.of(Map.of("id", "node", "label", "Node")), Map.of(), Map.of());
+			assertTrue(AutomationRunStore.claimRun("run"));
+			AutomationRunStore.markNodeRunning("run", "node");
+
+			String scopeSnapshot = "{\"greeting\":\"hi\",\"count\":2}";
+			AutomationRunStore.updateNodeSuccess("run", "node", java.sql.Timestamp.from(java.time.Instant.now()), 5L,
+					"greeting", null, "\"hi\"", "hi", null, null, scopeSnapshot);
+
+			assertEquals(scopeSnapshot,
+					db.value("SELECT SCOPE_SNAPSHOT FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
+			assertEquals("\"hi\"",
+					db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
+		}
+	}
+
+	@Test
+	void nodeWithoutARetainedScopeSurfacesANullSnapshot() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			AutomationRunStore.initializeRun("run", "project", "automation", 1, "hash", "{}", Map.of(),
+					"manual", "user", List.of(Map.of("id", "node", "label", "Node")), Map.of(), Map.of());
+			assertTrue(AutomationRunStore.claimRun("run"));
+			AutomationRunStore.markNodeRunning("run", "node");
+
+			AutomationRunStore.updateNodeSuccess("run", "node", java.sql.Timestamp.from(java.time.Instant.now()), 5L,
+					"greeting", "\"hi\"", "hi", null, "agent");
+
+			assertNull(db.value("SELECT SCOPE_SNAPSHOT FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
+		}
+	}
+
+	@Test
+	void buildNodeResultsSurfacesTheScopeSnapshotUnderItsResultKey() {
+		Map<String, Object> row = new LinkedHashMap<>();
+		row.put(AutomationConstants.RUN_ID, "run");
+		row.put(AutomationConstants.NODE_ID, "node");
+		row.put(AutomationConstants.NODE_LABEL, "Node");
+		row.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		row.put(AutomationConstants.SCOPE_SNAPSHOT, "{\"foo\":\"bar\"}");
+
+		List<Map<String, Object>> results = AutomationRunStore.buildNodeResults(List.of(row));
+
+		assertEquals(1, results.size());
+		assertEquals("{\"foo\":\"bar\"}", results.get(0).get(AutomationConstants.RESULT_SCOPE_SNAPSHOT));
+	}
+
+	@Test
+	void buildNodeResultsLeavesTheScopeSnapshotNullWhenNoneWasRetained() {
+		Map<String, Object> row = new LinkedHashMap<>();
+		row.put(AutomationConstants.RUN_ID, "run");
+		row.put(AutomationConstants.NODE_ID, "node");
+		row.put(AutomationConstants.NODE_LABEL, "Node");
+		row.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+
+		List<Map<String, Object>> results = AutomationRunStore.buildNodeResults(List.of(row));
+
+		assertEquals(1, results.size());
+		assertNull(results.get(0).get(AutomationConstants.RESULT_SCOPE_SNAPSHOT));
 	}
 
 	@Test
