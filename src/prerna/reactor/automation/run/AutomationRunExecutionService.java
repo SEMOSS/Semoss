@@ -117,9 +117,8 @@ final class AutomationRunExecutionService {
 
 	private enum Handler {
 		START, CONDITION, JEV, LOOP, WAIT, APP_PIXEL, FUNCTION, STORAGE_LIST, DATABASE_WRITE, VECTOR_WRITE, MODEL,
-		STORAGE, AGENT, DATABASE_QUERY, VECTOR_SEARCH, STORAGE_DOWNLOAD, DATA_EXTRACT, PYTHON
-	}
-
+		STORAGE, AGENT, DATABASE_QUERY, VECTOR_SEARCH, STORAGE_DOWNLOAD, DATA_EXTRACT, PYTHON, TEMPLATE_PPTX
+			}
 	private final Insight requestInsight;
 	private final String requestSessionId;
 	private final String streamJobId;
@@ -357,6 +356,7 @@ final class AutomationRunExecutionService {
 			case VECTOR_SEARCH -> executeVectorSearchNode(projectId, runId, node, context, pixelExecutor);
 			case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, node, context, pixelExecutor);
 			case DATA_EXTRACT -> executeDataExtractNode(projectId, runId, node, context, pixelExecutor);
+			case TEMPLATE_PPTX -> executeTemplatePptxNode(projectId, runId, node, context, pixelExecutor);
 			case PYTHON -> executeNodeSource(projectId, runId, node, node, nodeSources.get(nodeId), context,
 					pythonExecutor, traceRoomIds.get(nodeId),
 					controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
@@ -419,6 +419,7 @@ final class AutomationRunExecutionService {
 		case AutomationConstants.NODE_VECTOR_SEARCH -> Handler.VECTOR_SEARCH;
 		case AutomationConstants.NODE_STORAGE_DOWNLOAD -> Handler.STORAGE_DOWNLOAD;
 		case AutomationConstants.NODE_DATA_EXTRACT -> Handler.DATA_EXTRACT;
+		case AutomationConstants.NODE_EXPORT_TEMPLATE_PPTX -> Handler.TEMPLATE_PPTX;
 		case AutomationConstants.NODE_DEVELOPER_PYTHON -> Handler.PYTHON;
 		default -> throw new IllegalArgumentException("Unsupported Automation node type: " + type);
 		};
@@ -597,6 +598,8 @@ final class AutomationRunExecutionService {
 								iterationContext, pixelExecutor);
 						case DATA_EXTRACT ->
 							executeDataExtractNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
+						case TEMPLATE_PPTX ->
+							executeTemplatePptxNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
 						case PYTHON ->
 							executeNodeSource(projectId, runId, executionNode, executionNode, nodeSources.get(current),
 									iterationContext, pythonExecutor, bodyTraceRoomIds.get(current), null);
@@ -780,6 +783,33 @@ final class AutomationRunExecutionService {
 				return new String(Base64.getDecoder().decode(text), StandardCharsets.UTF_8);
 			});
 			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, null, null,
+					context.values(), null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationRunStore.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeTemplatePptxNode(String projectId, String runId, Map<String, Object> node,
+			AutomationExecutionContext context, AutomationPixelExecutor pixelExecutor) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationRunStore.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			Insight insight = context.insight();
+			String expression = AutomationPixelExpressionRenderer.templatePptx(config, context.values(), nodeId,
+					insight.getInsightFolder());
+			Object downloadKey = pixelExecutor.execute(expression);
+			Map<String, Object> deck = AutomationPixelExpressionRenderer.templatePptxResult(downloadKey,
+					downloadKey instanceof String key ? insight.getExportFileLocation(key) : null, nodeId);
+			return persistNativeNodeResult(runId, projectId, node, deck, started, startedMs, null, null,
 					context.values(), null);
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;

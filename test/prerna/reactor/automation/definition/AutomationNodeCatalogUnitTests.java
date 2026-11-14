@@ -132,6 +132,16 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
+	void templatePptxAdvertisesTemplateAndReplacements() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_EXPORT_TEMPLATE_PPTX);
+		assertNotNull(definition);
+		assertEquals("app", definition.toMap().get("category"));
+		assertEquals("", definition.defaultConfig().get("templateFile"));
+		assertEquals(List.of(), definition.defaultConfig().get("replacements"));
+		assertEquals(false, definition.nodeType().supportsCustomCode());
+	}
+
+	@Test
 	void optionalEngineParametersAreBackendOwned() {
 		Map<String, Map<String, Object>> uploadFields = find(AutomationConstants.NODE_STORAGE_UPLOAD).configFields()
 				.stream().collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,

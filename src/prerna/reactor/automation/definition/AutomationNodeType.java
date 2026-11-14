@@ -79,6 +79,8 @@ public enum AutomationNodeType {
 	FUNCTION_EXECUTE(AutomationConstants.NODE_FUNCTION_EXECUTE, Category.FUNCTION, IEngine.CATALOG_TYPE.FUNCTION,
 			Permission.VIEW, true, true),
 	APP_PIXEL(AutomationConstants.NODE_APP_PIXEL, Category.APP, null, Permission.VIEW, true, true),
+	EXPORT_TEMPLATE_PPTX(AutomationConstants.NODE_EXPORT_TEMPLATE_PPTX, Category.APP, null, Permission.NONE, true,
+			false),
 	AGENT_RUN(AutomationConstants.NODE_AGENT_RUN, Category.AGENT, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW, true,
 			true),
 	CONTROL_WAIT(AutomationConstants.NODE_CONTROL_WAIT, Category.CONTROL, null, Permission.NONE, true, true),

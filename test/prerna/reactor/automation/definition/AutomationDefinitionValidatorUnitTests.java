@@ -229,6 +229,46 @@ public class AutomationDefinitionValidatorUnitTests {
 		}
 	}
 
+	private static Map<String, Object> templatePptxConfig(Object... replacements) {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put("templateFile", "templates/deck.pptx");
+		config.put("replacements", List.of(replacements));
+		return config;
+	}
+
+	private static void validateTemplatePptx(Map<String, Object> config) {
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(
+				definition(Map.of(), workNode(AutomationConstants.NODE_EXPORT_TEMPLATE_PPTX, config)));
+	}
+
+	@Test
+	void acceptsTemplatePptxTextImageAndChartReplacements() {
+		validateTemplatePptx(templatePptxConfig(Map.of("shapeName", "Title", "type", "text", "value", "Q3"),
+				Map.of("shapeName", "Logo", "type", "image", "value", "assets/logo.png"),
+				Map.of("shapeName", "Revenue", "type", "chart", "categories", List.of("A", "B"), "series",
+						List.of(Map.of("name", "2026", "values", List.of(1, 2.5))))));
+		validateTemplatePptx(templatePptxConfig());
+		validateTemplatePptx(templatePptxConfig(Map.of("shapeName", "Revenue", "type", "chart", "categories",
+				"${labels}", "series", List.of(Map.of("name", "2026", "values", "${amounts}")))));
+	}
+
+	@Test
+	void rejectsInvalidTemplatePptxConfig() {
+		Map<String, Object> missingTemplate = templatePptxConfig();
+		missingTemplate.put("templateFile", " ");
+		List<Map<String, Object>> invalid = List.of(missingTemplate,
+				templatePptxConfig(Map.of("shapeName", "Title", "type", "video", "value", "x")),
+				templatePptxConfig(Map.of("shapeName", "", "type", "text", "value", "x")),
+				templatePptxConfig(Map.of("shapeName", "Title", "type", "text")),
+				templatePptxConfig(Map.of("shapeName", "Revenue", "type", "chart", "categories", List.of("A", "B"),
+						"series", List.of(Map.of("name", "2026", "values", List.of(1))))),
+				templatePptxConfig(Map.of("shapeName", "Revenue", "type", "chart", "categories", List.of("A"),
+						"series", List.of(Map.of("name", "2026", "values", List.of("x"))))));
+		for (Map<String, Object> config : invalid) {
+			assertThrows(IllegalArgumentException.class, () -> validateTemplatePptx(config));
+		}
+	}
+
 	@Test
 	void acceptsDatabaseQueryPagingOptions() {
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator

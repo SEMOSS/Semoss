@@ -211,6 +211,7 @@ public final class AutomationConstants {
 	public static final String NODE_VECTOR_DELETE = "vector.delete";
 	public static final String NODE_FUNCTION_EXECUTE = "function.execute";
 	public static final String NODE_APP_PIXEL = "app.pixel";
+	public static final String NODE_EXPORT_TEMPLATE_PPTX = "export.template_pptx";
 	public static final String NODE_AGENT_RUN = "agent.run";
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_CONTROL_IF = "control.if";

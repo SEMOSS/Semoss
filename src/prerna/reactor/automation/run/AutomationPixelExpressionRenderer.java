@@ -79,6 +79,136 @@ final class AutomationPixelExpressionRenderer {
 				+ ")|ListStoragePathDetails(storagePath=" + AutomationRuntimeUtils.GSON.toJson(path) + ");";
 	}
 
+	/**
+	 * Renders the {@code TemplatePPTX} call. The template is confined to the run
+	 * Insight's workspace, and the replacement list is translated into the
+	 * reactor's payload keyed by shape name.
+	 */
+	static String templatePptx(Map<String, Object> config, Map<String, Object> scope, String nodeId,
+			String workspaceFolder) {
+		String label = "PowerPoint template node '" + nodeId + "'";
+		String templateFile = workspaceRelativePath(
+				requiredString(config.get("templateFile"), scope, label + " templateFile"), label + " templateFile");
+		Object configured = config.get("replacements");
+		List<?> replacements = configured instanceof List<?> list ? list : List.of();
+		Map<String, Object> payload = new LinkedHashMap<>();
+		for (int index = 0; index < replacements.size(); index++) {
+			String replacementLabel = label + " replacements[" + index + "]";
+			if (!(replacements.get(index) instanceof Map<?, ?> replacement)) {
+				throw new IllegalArgumentException(replacementLabel + " must be an object.");
+			}
+			String shapeName = requiredString(replacement.get("shapeName"), scope, replacementLabel + ".shapeName");
+			if (payload.containsKey(shapeName)) {
+				throw new IllegalArgumentException(
+						label + " has more than one replacement for shape '" + shapeName + "'.");
+			}
+			payload.put(shapeName,
+					templatePptxOperation(replacement, scope, replacementLabel, workspaceFolder));
+		}
+		return "TemplatePPTX(template_file=" + json(templateFile) + ",payload="
+				+ json(AutomationRuntimeUtils.GSON.toJson(payload)) + ");";
+	}
+
+	private static Map<String, Object> templatePptxOperation(Map<?, ?> replacement, Map<String, Object> scope,
+			String label, String workspaceFolder) {
+		Map<String, Object> operation = new LinkedHashMap<>();
+		Object type = replacement.get("type");
+		operation.put("type", type);
+		if ("text".equals(type)) {
+			Object value = replacement.get("value");
+			operation.put("value", value instanceof String text && text.isBlank() ? "" : interpolatedText(value, scope,
+					label + ".value"));
+		} else if ("image".equals(type)) {
+			String imagePath = workspaceRelativePath(
+					requiredString(replacement.get("value"), scope, label + ".value"), label + ".value");
+			// The reactor opens image paths directly, so anchor them to the run workspace.
+			operation.put("path", java.nio.file.Path.of(workspaceFolder, imagePath).toString());
+		} else if ("chart".equals(type)) {
+			operation.put("categories", chartCategories(
+					AutomationScopeResolver.resolveConfig(replacement.get("categories"), scope, label + ".categories"),
+					label));
+			operation.put("series", chartSeries(
+					AutomationScopeResolver.resolveConfig(replacement.get("series"), scope, label + ".series"),
+					label));
+		} else {
+			throw new IllegalArgumentException(label + ".type must be text, image, or chart.");
+		}
+		return operation;
+	}
+
+	private static List<String> chartCategories(Object resolved, String label) {
+		if (!(resolved instanceof List<?> categories)) {
+			throw new IllegalArgumentException(label + ".categories must resolve to a list.");
+		}
+		List<String> values = new ArrayList<>(categories.size());
+		for (Object category : categories) {
+			if (!(category instanceof String) && !(category instanceof Number)) {
+				throw new IllegalArgumentException(label + ".categories must contain only text or numbers.");
+			}
+			values.add(category.toString());
+		}
+		return values;
+	}
+
+	private static List<Map<String, Object>> chartSeries(Object resolved, String label) {
+		if (!(resolved instanceof List<?> seriesList)) {
+			throw new IllegalArgumentException(label + ".series must resolve to a list.");
+		}
+		List<Map<String, Object>> series = new ArrayList<>(seriesList.size());
+		for (int index = 0; index < seriesList.size(); index++) {
+			String seriesLabel = label + ".series[" + index + "]";
+			if (!(seriesList.get(index) instanceof Map<?, ?> entry) || !(entry.get("name") instanceof String name)
+					|| name.isBlank()) {
+				throw new IllegalArgumentException(seriesLabel + " must be an object with a nonblank name.");
+			}
+			if (!(entry.get("values") instanceof List<?> values) || !values.stream()
+					.allMatch(value -> value instanceof Number number && Double.isFinite(number.doubleValue()))) {
+				throw new IllegalArgumentException(seriesLabel + ".values must resolve to a list of numbers.");
+			}
+			Map<String, Object> normalized = new LinkedHashMap<>();
+			normalized.put("name", name);
+			normalized.put("values", values);
+			series.add(normalized);
+		}
+		return series;
+	}
+
+	/**
+	 * Keeps a template reference inside the run Insight's workspace: leading
+	 * separators are dropped so the reactor cannot fall back to an absolute server
+	 * path, and parent-directory or drive references are rejected.
+	 */
+	private static String workspaceRelativePath(String path, String label) {
+		String normalized = path.trim().replace('\\', '/');
+		if (normalized.startsWith("//") || normalized.matches("^[A-Za-z]:.*")
+				|| List.of(normalized.split("/")).contains("..")) {
+			throw new IllegalArgumentException(label + " must be a path inside the run workspace.");
+		}
+		String relative = normalized.replaceFirst("^/+", "");
+		if (relative.isBlank()) {
+			throw new IllegalArgumentException(label + " must be a path inside the run workspace.");
+		}
+		return relative;
+	}
+
+	/**
+	 * Describes the generated deck as an Insight-relative file, since the reactor
+	 * writes it into the run Insight's folder.
+	 */
+	static Map<String, Object> templatePptxResult(Object downloadKey, String absoluteFilePath, String nodeId) {
+		if (!(downloadKey instanceof String key) || key.isBlank() || absoluteFilePath == null) {
+			throw new IllegalStateException(
+					"PowerPoint template node '" + nodeId + "' did not return a generated file.");
+		}
+		String fileName = java.nio.file.Path.of(absoluteFilePath).getFileName().toString();
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("success", true);
+		result.put("fileName", fileName);
+		result.put("filePath", fileName);
+		result.put("downloadKey", key);
+		return result;
+	}
+
 	static String databaseWrite(Map<String, Object> config, Map<String, Object> scope, String nodeId) {
 		String engineId = requiredString(config.get("engineId"), scope,
 				"Database write node '" + nodeId + "' engineId");

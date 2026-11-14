@@ -47,6 +47,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersDataRow;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 class AutomationPixelExpressionRendererUnitTests {
 
@@ -95,6 +96,71 @@ class AutomationPixelExpressionRendererUnitTests {
 						List.of(Map.of("Path", "a.CSV"), Map.of("Path", "folder/"),
 								Map.of("Path", "b.json"), Map.of("Other", "ignored")),
 						config.get("extensions"), scope, "storage"));
+	}
+
+	@Test
+	void rendersTemplatePptxPayloadKeyedByShapeWithResolvedValues() {
+		Map<String, Object> text = Map.of("shapeName", "Title", "type", "text", "value", "Q${quarter} \"results\"");
+		Map<String, Object> blankText = Map.of("shapeName", "Subtitle", "type", "text", "value", "");
+		Map<String, Object> image = Map.of("shapeName", "Logo", "type", "image", "value", "/assets/logo.png");
+		Map<String, Object> chart = Map.of("shapeName", "Revenue", "type", "chart", "categories", "${labels}",
+				"series", List.of(Map.of("name", "2026", "values", "${amounts}")));
+		Map<String, Object> config = Map.of("templateFile", "\\templates\\deck.pptx", "replacements",
+				List.of(text, blankText, image, chart));
+		Map<String, Object> scope = Map.of("quarter", 3, "labels", List.of("A", 2), "amounts", List.of(1, 2.5));
+
+		String expression = AutomationPixelExpressionRenderer.templatePptx(config, scope, "deck",
+				"C:\\runs\\insight-1");
+
+		String payload = "{\"Title\":{\"type\":\"text\",\"value\":\"Q3 \\\"results\\\"\"},"
+				+ "\"Subtitle\":{\"type\":\"text\",\"value\":\"\"},"
+				+ "\"Logo\":{\"type\":\"image\",\"path\":" + AutomationRuntimeUtils.GSON.toJson(
+						java.nio.file.Path.of("C:\\runs\\insight-1", "assets/logo.png").toString()) + "},"
+				+ "\"Revenue\":{\"type\":\"chart\",\"categories\":[\"A\",\"2\"],"
+				+ "\"series\":[{\"name\":\"2026\",\"values\":[1,2.5]}]}}";
+		assertEquals("TemplatePPTX(template_file=\"templates/deck.pptx\",payload="
+				+ AutomationRuntimeUtils.GSON.toJson(payload) + ");", expression);
+	}
+
+	@Test
+	void rejectsTemplatePptxPathsOutsideTheRunWorkspace() {
+		for (String path : List.of("../secret.pptx", "a/../../secret.pptx", "C:\\secret.pptx", "//host/share/a.pptx",
+				"/")) {
+			Map<String, Object> config = Map.of("templateFile", path, "replacements", List.of());
+			assertThrows(IllegalArgumentException.class,
+					() -> AutomationPixelExpressionRenderer.templatePptx(config, Map.of(), "deck", "/runs/1"), path);
+		}
+		Map<String, Object> escapingImage = Map.of("shapeName", "Logo", "type", "image", "value", "../logo.png");
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationPixelExpressionRenderer.templatePptx(
+						Map.of("templateFile", "deck.pptx", "replacements", List.of(escapingImage)), Map.of(), "deck",
+						"/runs/1"));
+	}
+
+	@Test
+	void rejectsDuplicateShapesAndBadChartData() {
+		Map<String, Object> text = Map.of("shapeName", "Title", "type", "text", "value", "x");
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationPixelExpressionRenderer.templatePptx(
+						Map.of("templateFile", "deck.pptx", "replacements", List.of(text, text)), Map.of(), "deck",
+						"/runs/1"));
+		Map<String, Object> chart = Map.of("shapeName", "Revenue", "type", "chart", "categories", List.of("A"),
+				"series", List.of(Map.of("name", "2026", "values", "${amounts}")));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationPixelExpressionRenderer.templatePptx(
+						Map.of("templateFile", "deck.pptx", "replacements", List.of(chart)),
+						Map.of("amounts", List.of("not a number")), "deck", "/runs/1"));
+	}
+
+	@Test
+	void describesTheGeneratedDeckAsAnInsightRelativeFile() {
+		Map<String, Object> result = AutomationPixelExpressionRenderer.templatePptxResult("key-1",
+				java.nio.file.Path.of("insight", "deck_2026.pptx").toString(), "deck");
+
+		assertEquals(Map.of("success", true, "fileName", "deck_2026.pptx", "filePath", "deck_2026.pptx",
+				"downloadKey", "key-1"), result);
+		assertThrows(IllegalStateException.class,
+				() -> AutomationPixelExpressionRenderer.templatePptxResult(null, null, "deck"));
 	}
 
 	@Test

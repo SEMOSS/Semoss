@@ -182,6 +182,12 @@ public final class AutomationNodeCatalog {
 				List.of(field("appId", ConfigFieldType.STRING, "App", false, ""),
 						field("pixel", ConfigFieldType.CODE, "Pixel", true, "")),
 				controlInputs(), controlAndResultOutputs()));
+		definitions.add(definition(AutomationNodeType.EXPORT_TEMPLATE_PPTX, "Fill PowerPoint template",
+				"Replace named shapes in a PowerPoint template with text, images, or charts.",
+				orderedConfig("templateFile", "", "replacements", List.of()),
+				List.of(field("templateFile", ConfigFieldType.STRING, "Template file", true, ""),
+						field("replacements", ConfigFieldType.JSON, "Replacements", false, List.of())),
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(
 				definition(AutomationNodeType.AGENT_RUN, "Run agent", "Run a configured SEMOSS agent with a prompt.",
 						orderedConfig("workspaceId", "", "engineId", "", "command", ""),
