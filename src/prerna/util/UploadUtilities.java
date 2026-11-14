@@ -80,6 +80,7 @@ import prerna.om.MosfetFile;
 import prerna.poi.main.FormUtility;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
+import prerna.security.SecretRedactor;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 import prerna.util.gson.GsonUtility;
@@ -177,6 +178,7 @@ public final class UploadUtilities {
 	public static void removeEngineFromDIHelper(String engineIdToRemove) {
 		removeEngineExcludingSMSSFromDIHelper(engineIdToRemove);
 		DIHelper.getInstance().removeEngineProperty(engineIdToRemove + "_" + Constants.STORE);
+		SecretRedactor.forgetSecrets(engineIdToRemove);
 	}
 
 	/**
@@ -201,6 +203,7 @@ public final class UploadUtilities {
 	 * @param projectIdToRemove
 	 */
 	public static void removeProjectFromDIHelper(String projectIdToRemove) {
+		SecretRedactor.forgetSecrets(projectIdToRemove);
 		DIHelper.getInstance().removeProjectProperty(projectIdToRemove + "_" + Constants.STORE);
 		DIHelper.getInstance().removeProjectProperty(projectIdToRemove);
 		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
@@ -259,7 +262,7 @@ public final class UploadUtilities {
 	 * @throws Exception
 	 */
 	public static void updateMetadata(String databaseId, User user) throws Exception {
-		Utility.synchronizeEngineMetadata(databaseId);
+		InternalUtility.synchronizeEngineMetadata(databaseId);
 		SecurityEngineUtils.addEngine(databaseId, false, user);
 	}
 

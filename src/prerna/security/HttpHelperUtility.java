@@ -36,13 +36,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -56,6 +59,8 @@ import javax.net.ssl.HostnameVerifier;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.client5.http.ClientProtocolException;
+import org.apache.hc.client5.http.DnsResolver;
+import org.apache.hc.client5.http.SystemDefaultDnsResolver;
 import org.apache.hc.client5.http.classic.methods.HttpDelete;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpHead;
@@ -77,6 +82,7 @@ import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpRequestInterceptor;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
@@ -86,6 +92,7 @@ import org.apache.hc.core5.http.io.entity.FileEntity;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.http.ssl.TLS;
+import org.apache.hc.core5.net.URIAuthority;
 import org.apache.hc.core5.reactor.ssl.SSLBufferMode;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.ssl.TrustStrategy;
@@ -99,6 +106,8 @@ import com.google.gson.GsonBuilder;
 
 import prerna.auth.AccessToken;
 import prerna.io.connector.antivirus.VirusScannerUtils;
+import prerna.util.Constants;
+import prerna.util.SandboxedJavaExecution;
 import prerna.util.Utility;
 
 public final class HttpHelperUtility {
@@ -107,6 +116,25 @@ public final class HttpHelperUtility {
 
 	private static ObjectMapper mapper = new ObjectMapper();
 	private static final int MAX_ERROR_RESPONSE_CHARS = 500;
+
+	private static final StackWalker CALLERS = StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE);
+
+	/**
+	 * The methods that hand out a client. A project's custom reactor uses the
+	 * request methods instead.
+	 */
+	private static final Set<String> CLIENT_BUILDERS = Set.of("getCustomClient", "getSchedulerClient");
+
+	/**
+	 * Checks the host of every request a client sends, including each redirect it
+	 * follows, against the whitelist and the blacklist.
+	 */
+	private static final HttpRequestInterceptor URL_RULES = (request, entity, context) -> {
+		URIAuthority authority = request.getAuthority();
+		if (authority != null) {
+			UrlAccessRules.checkHost(authority.getHostName());
+		}
+	};
 
 	/**
 	 * Builds a custom Apache HttpClient instance for connector requests.
@@ -139,6 +167,73 @@ public final class HttpHelperUtility {
 	 */
 	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass,
 			String keyPass, Timeout timeout) {
+		return buildClient(cookieStore, keyStore, keyStorePass, keyPass, timeout, null);
+	}
+
+	/**
+	 * Builds the client the scheduler uses to call the platform's own endpoint,
+	 * {@link Constants#SCHEDULER_ENDPOINT} in RDF_Map. Requests to that endpoint's
+	 * host do not go through the whitelist and the blacklist, so a list that closes
+	 * localhost leaves scheduled jobs running. A request to any other host, such as
+	 * a redirect, follows the lists.
+	 *
+	 * @param cookieStore  optional cookie store to attach to the client
+	 * @param keyStore     optional path to a keystore file that contains client
+	 *                     certificates
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password; when omitted, {@code keyStorePass}
+	 *                     is used
+	 * @return configured {@link CloseableHttpClient}
+	 */
+	public static CloseableHttpClient getSchedulerClient(CookieStore cookieStore, String keyStore,
+			String keyStorePass, String keyPass) {
+		return buildClient(cookieStore, keyStore, keyStorePass, keyPass, Timeout.DISABLED, schedulerHost());
+	}
+
+	/**
+	 * The host of the scheduler endpoint set in RDF_Map.
+	 *
+	 * @return the host, or null when no endpoint is set or it has no host
+	 */
+	private static String schedulerHost() {
+		String endpoint = Utility.getDIHelperProperty(Constants.SCHEDULER_ENDPOINT);
+		if (endpoint == null || endpoint.isBlank()) {
+			return null;
+		}
+		try {
+			return URI.create(endpoint.trim()).getHost();
+		} catch (IllegalArgumentException e) {
+			classLogger.warn("The scheduler endpoint is not a valid URL, so its host stays under the request lists");
+			return null;
+		}
+	}
+
+	/**
+	 * Builds a client that trusts all certificates, can load client key material
+	 * for mutual TLS, and applies the whitelist and the blacklist to every request
+	 * and to every address a host resolves to.
+	 *
+	 * @param cookieStore  optional cookie store to attach to the client
+	 * @param keyStore     optional path to a keystore file
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @param timeout      how long a request waits to connect and for each read
+	 * @param platformHost a host of the platform's own that the lists do not apply
+	 *                     to, or null
+	 * @return configured {@link CloseableHttpClient}
+	 */
+	private static CloseableHttpClient buildClient(CookieStore cookieStore, String keyStore, String keyStorePass,
+			String keyPass, Timeout timeout, String platformHost) {
+		Caller caller = caller();
+		boolean projectCaller = caller.isProjectCode();
+		if (projectCaller && CLIENT_BUILDERS.contains(caller.entered())) {
+			throw new SecurityException("HttpHelperUtility." + caller.entered()
+					+ " is not permitted in project reactors; use the request methods of HttpHelperUtility");
+		}
+		if (projectCaller) {
+			keyStore = SandboxedJavaExecution.sandboxedPath(keyStore);
+		}
+
 		TrustStrategy trustStrategy = new TrustStrategy() {
 			@Override
 			public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
@@ -178,19 +273,153 @@ public final class HttpHelperUtility {
 		}
 
 		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-				.setTlsSocketStrategy(tlsStrategy).build();
+				.setTlsSocketStrategy(tlsStrategy)
+				.setDnsResolver(new RuleCheckingDnsResolver(projectCaller, platformHost)).build();
 
-		connectionManager
-				.setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(timeout).build());
+		connectionManager.setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(timeout).build());
 
 		HttpClientBuilder builder = HttpClients.custom();
 		if (cookieStore != null) {
 			builder.setDefaultCookieStore(cookieStore);
 		}
 		builder.setConnectionManager(connectionManager);
-		builder.setDefaultRequestConfig(RequestConfig.custom().setConnectionRequestTimeout(timeout)
-				.setResponseTimeout(timeout).build());
+		builder.setDefaultRequestConfig(
+				RequestConfig.custom().setConnectionRequestTimeout(timeout).setResponseTimeout(timeout).build());
+		builder.addRequestInterceptorFirst(platformHost == null ? URL_RULES : (request, entity, context) -> {
+			URIAuthority authority = request.getAuthority();
+			if (authority != null && !platformHost.equalsIgnoreCase(authority.getHostName())) {
+				UrlAccessRules.checkHost(authority.getHostName());
+			}
+		});
 		return builder.build();
+	}
+
+	/**
+	 * Builds a client that takes its proxy and TLS settings from the JVM's system
+	 * properties, with the whitelist and the blacklist applied to every request it
+	 * sends and to every address a host resolves to.
+	 *
+	 * @return configured {@link CloseableHttpClient}
+	 */
+	private static CloseableHttpClient systemClient() {
+		boolean projectCaller = caller().isProjectCode();
+		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
+				.useSystemProperties().setDnsResolver(new RuleCheckingDnsResolver(projectCaller, null)).build();
+		return HttpClientBuilder.create().useSystemProperties().setConnectionManager(connectionManager)
+				.addRequestInterceptorFirst(URL_RULES).build();
+	}
+
+	/**
+	 * Applies the whitelist and the blacklist to a URL that is about to be opened
+	 * without one of this class's clients: the host as written, then every address
+	 * it resolves to.
+	 *
+	 * @param url the URL about to be opened
+	 * @throws IllegalArgumentException when the lists do not allow the URL
+	 */
+	private static void checkBeforeConnecting(String url) {
+		UrlAccessRules.checkUrl(url);
+		boolean projectCaller = caller().isProjectCode();
+		if (!UrlAccessRules.checksAddresses(projectCaller)) {
+			return;
+		}
+		String host = URI.create(url).getHost();
+		if (host == null) {
+			return;
+		}
+		try {
+			UrlAccessRules.checkAddresses(host, InetAddress.getAllByName(host), projectCaller);
+		} catch (UnknownHostException e) {
+			classLogger.debug("Could not resolve {} before connecting", host);
+		}
+	}
+
+	/**
+	 * Finds how this class was entered: the first class on the stack that is not
+	 * this one, and the method of this class it called.
+	 *
+	 * @return the caller
+	 */
+	private static Caller caller() {
+		return CALLERS.walk(frames -> {
+			String entered = null;
+			for (StackWalker.StackFrame frame : (Iterable<StackWalker.StackFrame>) frames::iterator) {
+				Class<?> declaring = frame.getDeclaringClass();
+				if (declaring == HttpHelperUtility.class
+						|| declaring.getName().startsWith(HttpHelperUtility.class.getName() + "$")) {
+					entered = frame.getMethodName();
+					continue;
+				}
+				return new Caller(declaring, entered);
+			}
+			return new Caller(null, entered);
+		});
+	}
+
+	/**
+	 * A local path a caller passed in. For a project's custom reactor it follows
+	 * the sandbox path rule.
+	 *
+	 * @param path the path the caller passed
+	 * @return the path to use
+	 */
+	private static String callerPath(String path) {
+		return caller().isProjectCode() ? SandboxedJavaExecution.sandboxedPath(path) : path;
+	}
+
+	/**
+	 * How this class was entered.
+	 *
+	 * @param type    the class that called this one, or null
+	 * @param entered the method of this class it called
+	 */
+	private record Caller(Class<?> type, String entered) {
+
+		/**
+		 * True when a project's custom reactor made the call.
+		 *
+		 * @return true if the caller is project code
+		 */
+		boolean isProjectCode() {
+			return SandboxedJavaExecution.isProjectClass(this.type);
+		}
+	}
+
+	/**
+	 * Resolves a host the usual way, then applies the address rules to what it
+	 * resolved to. The client connects to the addresses this returns, so a host
+	 * cannot pass the check with one address and connect to another.
+	 */
+	private static final class RuleCheckingDnsResolver implements DnsResolver {
+
+		private final boolean projectCaller;
+		private final String platformHost;
+
+		/**
+		 * A resolver for one client.
+		 *
+		 * @param projectCaller whether a project's custom reactor asked for the client
+		 * @param platformHost  a host of the platform's own that the address rules do
+		 *                      not apply to, or null
+		 */
+		RuleCheckingDnsResolver(boolean projectCaller, String platformHost) {
+			this.projectCaller = projectCaller;
+			this.platformHost = platformHost;
+		}
+
+		@Override
+		public InetAddress[] resolve(String host) throws UnknownHostException {
+			InetAddress[] addresses = SystemDefaultDnsResolver.INSTANCE.resolve(host);
+			if (this.platformHost == null || !this.platformHost.equalsIgnoreCase(host)) {
+				UrlAccessRules.checkAddresses(host, addresses, this.projectCaller);
+			}
+			return addresses;
+		}
+
+		@Override
+		public String resolveCanonicalHostname(String host) throws UnknownHostException {
+			return SystemDefaultDnsResolver.INSTANCE.resolveCanonicalHostname(host);
+		}
 	}
 
 	/**
@@ -212,8 +441,28 @@ public final class HttpHelperUtility {
 	}
 
 	/**
-	 * Same as {@link #getRequest(String, Map, String, String, String)}, with a limit
-	 * on how long the request waits to connect and for each read of the response.
+	 * Executes an HTTP GET request and returns the response body as UTF-8 text,
+	 * taking only JDK types.
+	 *
+	 * @param url       target URL
+	 * @param headerMap optional request headers
+	 * @param timeout   how long the request waits to connect and for each read of
+	 *                  the response; null waits for as long as the server stays
+	 *                  silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws HttpStatusException      if the endpoint returns a non-2xx status
+	 * @throws IllegalArgumentException if the URL cannot be reached or the limit
+	 *                                  passes
+	 */
+	public static String getRequest(String url, Map<String, String> headerMap, Duration timeout) {
+		return getRequest(url, headerMap, null, null, null, toTimeout(timeout));
+	}
+
+	/**
+	 * Same as {@link #getRequest(String, Map, String, String, String)}, with a
+	 * limit on how long the request waits to connect and for each read of the
+	 * response.
 	 *
 	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
 	 *                server stays silent
@@ -225,8 +474,8 @@ public final class HttpHelperUtility {
 	 */
 	public static String getRequest(String url, Map<String, String> headerMap, String keyStore, String keyStorePass,
 			String keyPass, Timeout timeout) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass, timeout)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpGet httpGet = new HttpGet(url);
 			if (headerMap != null && !headerMap.isEmpty()) {
 				for (String key : headerMap.keySet()) {
@@ -318,6 +567,7 @@ public final class HttpHelperUtility {
 	 */
 	public static File getRequestFileDownload(String url, Map<String, String> headerMap, String keyStore,
 			String keyStorePass, String keyPass, String saveFilePath, String saveFileName) {
+		final String savePath = callerPath(saveFilePath);
 		String fileName = saveFileName;
 		if (fileName == null) {
 			// if not passed in, see if we can grab it from the URL
@@ -348,18 +598,18 @@ public final class HttpHelperUtility {
 						throw buildHttpStatusException("GET", url, statusCode, responseData);
 					}
 
-					File fileDir = new File(saveFilePath);
+					File fileDir = new File(savePath);
 					if (!fileDir.exists()) {
 						Boolean success = fileDir.mkdirs();
 						if (!success) {
 							classLogger.warn("Unable to make the directory to save the file at location: {}",
-									Utility.cleanLogString(saveFilePath));
-							throw new IllegalArgumentException("Unable to create download directory '" + saveFilePath
-									+ "' for URL '" + url + "'.");
+									Utility.cleanLogString(savePath));
+							throw new IllegalArgumentException(
+									"Unable to create download directory '" + savePath + "' for URL '" + url + "'.");
 						}
 					}
 
-					String fileLocation = Utility.getUniqueFilePath(saveFilePath, resolvedFileName);
+					String fileLocation = Utility.getUniqueFilePath(savePath, resolvedFileName);
 					File savedFile = new File(fileLocation);
 					if (entity == null) {
 						throw new IllegalArgumentException(
@@ -478,6 +728,31 @@ public final class HttpHelperUtility {
 	}
 
 	/**
+	 * Executes an HTTP POST request with a text payload and returns the response
+	 * body as UTF-8 text, taking only JDK types.
+	 *
+	 * @param url         target URL
+	 * @param headersMap  optional request headers
+	 * @param body        the payload
+	 * @param contentType the payload's content type, such as
+	 *                    {@code application/json}; a type that names no charset is
+	 *                    sent as UTF-8
+	 * @param timeout     how long the request waits to connect and for each read of
+	 *                    the response; null waits for as long as the server stays
+	 *                    silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws HttpStatusException      if the endpoint returns a non-2xx status
+	 * @throws IllegalArgumentException if the content type is missing, the URL
+	 *                                  cannot be reached, or the limit passes
+	 */
+	public static String postRequestStringBody(String url, Map<String, String> headersMap, String body,
+			String contentType, Duration timeout) {
+		return postRequestStringBody(url, headersMap, body, toContentType(contentType), null, null, null,
+				toTimeout(timeout));
+	}
+
+	/**
 	 * Same as
 	 * {@link #postRequestStringBody(String, Map, String, ContentType, String, String, String)},
 	 * with a limit on how long the request waits to connect and for each read of
@@ -493,8 +768,8 @@ public final class HttpHelperUtility {
 	 */
 	public static String postRequestStringBody(String url, Map<String, String> headersMap, String body,
 			ContentType contentType, String keyStore, String keyStorePass, String keyPass, Timeout timeout) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass, timeout)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpPost httpPost = new HttpPost(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
@@ -925,8 +1200,7 @@ public final class HttpHelperUtility {
 		CloseableHttpClient httpclient = null;
 		String result = null;
 		try {
-			httpclient = HttpClientBuilder.create().useSystemProperties().build();
-			;
+			httpclient = systemClient();
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			if (headers != null) {
@@ -1010,7 +1284,7 @@ public final class HttpHelperUtility {
 		CloseableHttpClient httpclient = null;
 		String result = null;
 		try {
-			httpclient = HttpClientBuilder.create().useSystemProperties().build();
+			httpclient = systemClient();
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			// loop through all keys and add as basic name value pair
@@ -1280,6 +1554,7 @@ public final class HttpHelperUtility {
 		InputStreamReader isr = null;
 		try {
 			HttpURLConnection con = null;
+			checkBeforeConnecting(urlStr);
 			URL url = new URI(urlStr).toURL();
 			con = (HttpURLConnection) url.openConnection();
 			con.setDoInput(true);
@@ -1375,6 +1650,7 @@ public final class HttpHelperUtility {
 
 		try {
 			HttpURLConnection con = null;
+			checkBeforeConnecting(urlStr);
 			URL url = new URI(urlStr).toURL();
 			con = (HttpURLConnection) url.openConnection();
 			con.setDoInput(true);
@@ -1412,7 +1688,7 @@ public final class HttpHelperUtility {
 	public static String makePostCall(String url, String accessToken, Object input, boolean json) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = HttpClientBuilder.create().useSystemProperties().build();
+			httpclient = systemClient();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type", "application/json; charset=utf-8");
@@ -1478,11 +1754,11 @@ public final class HttpHelperUtility {
 	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName, String localPath) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = HttpClientBuilder.create().useSystemProperties().build();
+			httpclient = systemClient();
 			HttpPut httpput = new HttpPut(url);
 			httpput.addHeader("Authorization", "Bearer " + accessToken);
 			httpput.addHeader("Content-Type", "application/json; charset=utf-8");
-			File fileupload = new File(localPath);
+			File fileupload = new File(callerPath(localPath));
 			httpput.setEntity(new FileEntity(fileupload, ContentType.APPLICATION_OCTET_STREAM));
 			return httpclient.execute(httpput, new HttpClientResponseHandler<String>() {
 				@Override
@@ -1531,13 +1807,13 @@ public final class HttpHelperUtility {
 	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = HttpClientBuilder.create().useSystemProperties().build();
+			httpclient = systemClient();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type", "application/octet-stream");
 			httppost.addHeader("Dropbox-API-Arg",
 					"{\"path\": \"/" + filename + "\",\"mode\": \"add\",\"autorename\": true,\"mute\": false}");
-			File fileupload = new File(filepath);
+			File fileupload = new File(callerPath(filepath));
 			httppost.setEntity(new FileEntity(fileupload, ContentType.APPLICATION_OCTET_STREAM));
 			return httpclient.execute(httppost, new HttpClientResponseHandler<String>() {
 				@Override
@@ -1583,11 +1859,11 @@ public final class HttpHelperUtility {
 	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = HttpClientBuilder.create().useSystemProperties().build();
+			httpclient = systemClient();
 			HttpPatch httppatch = new HttpPatch(url);
 			httppatch.addHeader("Authorization", "Bearer " + accessToken);
 
-			File fileupload = new File(filepath);
+			File fileupload = new File(callerPath(filepath));
 			httppatch.setEntity(new FileEntity(fileupload, ContentType.APPLICATION_OCTET_STREAM));
 			return httpclient.execute(httppatch, new HttpClientResponseHandler<String>() {
 				@Override
@@ -1662,9 +1938,9 @@ public final class HttpHelperUtility {
 	 * @param url          target URL
 	 * @param statusCode   HTTP status code returned by the server
 	 * @param responseBody response payload, if present
-	 * @return populated {@link IllegalArgumentException}
+	 * @return populated {@link HttpStatusException}
 	 */
-	private static IllegalArgumentException buildHttpStatusException(String method, String url, int statusCode,
+	private static HttpStatusException buildHttpStatusException(String method, String url, int statusCode,
 			String responseBody) {
 		StringBuilder message = new StringBuilder();
 		message.append(method).append(" request to ").append(url).append(" returned HTTP ").append(statusCode);
@@ -1674,7 +1950,33 @@ public final class HttpHelperUtility {
 			message.append(". Response body: ").append(normalizedBody);
 		}
 
-		return new IllegalArgumentException(message.toString());
+		return new HttpStatusException(message.toString(), statusCode);
+	}
+
+	/**
+	 * The client timeout for a JDK duration.
+	 *
+	 * @param timeout the limit, or null for none
+	 * @return the limit as the HTTP client takes it
+	 */
+	private static Timeout toTimeout(Duration timeout) {
+		return timeout == null ? Timeout.DISABLED : Timeout.ofMilliseconds(timeout.toMillis());
+	}
+
+	/**
+	 * The content type for its text form. A type that names no charset is sent as
+	 * UTF-8.
+	 *
+	 * @param contentType the content type as text, such as {@code application/json}
+	 * @return the content type as the HTTP client takes it
+	 * @throws IllegalArgumentException if the content type is missing
+	 */
+	private static ContentType toContentType(String contentType) {
+		ContentType parsed = ContentType.parse(contentType);
+		if (parsed == null) {
+			throw new IllegalArgumentException("Must provide the content type of the request body");
+		}
+		return parsed.getCharset() == null ? parsed.withCharset(StandardCharsets.UTF_8) : parsed;
 	}
 
 	/**

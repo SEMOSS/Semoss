@@ -62,6 +62,7 @@ import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -195,7 +196,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 				if (owlPropStr == null || (owlPropStr = owlPropStr.trim()).isEmpty()) {
 					Map<String, String> mods = new HashMap<>();
 					mods.put(Constants.OWL, new File(owlFile).getName());
-					Utility.addKeysAtLocationIntoPropertiesFile(this.smssFilePath, null, mods);
+					InternalUtility.addKeysAtLocationIntoPropertiesFile(this.smssFilePath, null, mods);
 				}
 				ExternalDatabaseMetadataHelper.parseJsonToOwl(this);
 			} catch (Exception e) {
@@ -249,7 +250,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		maker.makeFlatOwl(getOWLEngineFactory().getWriteOWL(), dataFile, owlFile, getDatabaseType(), true);
 		if (owlFile.equals("REMAKE")) {
 			try {
-				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
+				InternalUtility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
 			} catch (IOException e) {
 				classLogger.error("Failed to save the OWL file name {} in the SMSS file for engine {}",
 						Utility.cleanLogString(owlFileName),

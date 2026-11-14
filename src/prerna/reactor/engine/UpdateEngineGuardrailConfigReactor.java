@@ -67,6 +67,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.GuardrailAudit;
 import prerna.util.EngineSyncUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 /**
@@ -181,7 +182,7 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 
 			if (addSmssKey) {
 				try {
-					Utility.changePropertiesFileValue(engine.getSmssFilePath(), IEngine.PIPELINE,
+					InternalUtility.changePropertiesFileValue(engine.getSmssFilePath(), IEngine.PIPELINE,
 							DEFAULT_PIPELINE_FILE);
 				} catch (IOException e) {
 					throw new IllegalStateException(

@@ -50,6 +50,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.security.SensitiveKeys;
 
 /**
  * DIHelper is used throughout SEMOSS to obtain property names from core
@@ -597,13 +598,13 @@ public final class DIHelper {
 	}
 
 	/**
-	 * 
-	 * @param key
-	 * @return
+	 * Whether an RDF_Map value is hidden in the RDF_Map editor: the secret keys
+	 * every setting shares, plus the RDF_Map settings listed here.
+	 *
+	 * @param key the RDF_Map key
+	 * @return true when the value is masked
 	 */
-	private static boolean containsSensitiveKey(String key) {
-		String upperKey = key.toUpperCase();
-		// Skip if it contains the excluded keyword
-		return SENSITIVE_KEYWORDS.contains(upperKey);
+	static boolean containsSensitiveKey(String key) {
+		return SENSITIVE_KEYWORDS.contains(key.toUpperCase()) || SensitiveKeys.isSensitiveKey(key);
 	}
 }

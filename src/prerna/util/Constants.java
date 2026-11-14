@@ -548,6 +548,11 @@ public class Constants {
 	public static final String TRANSACTION_SERIALIZABLE = "TRANSACTION_SERIALIZABLE";
 
 	public static final String SENSITIVE_INFO_MASK = "********";
+	/**
+	 * RDF_Map setting with a comma separated list of more key names whose values
+	 * are secret, on top of the names {@link prerna.security.SensitiveKeys} knows.
+	 */
+	public static final String SENSITIVE_KEYS = "SENSITIVE_KEYS";
 
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
@@ -749,6 +754,7 @@ public class Constants {
 
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
+	public static final String PROJECT_REACTOR_SHARED_PACKAGES = "PROJECT_REACTOR_SHARED_PACKAGES";
 	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
@@ -987,6 +993,7 @@ public class Constants {
 	public static final String ULIMIT_PROCESS = "ULIMIT_PROCESS";
 
 	public static final String WHITE_LIST_DOMAINS = "WHITE_LIST_DOMAINS";
+	public static final String BLACK_LIST_DOMAINS = "BLACK_LIST_DOMAINS";
 
 	public static final String SMSS_USER_NAME = "name";
 	public static final String SMSS_USER_EMAIL = "email";
