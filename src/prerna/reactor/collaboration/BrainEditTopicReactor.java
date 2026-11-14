@@ -116,7 +116,7 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 				.key(TOPIC_ID, "Topic id from ListTopics; pass this or topic, or neither to create a topic named name")
 				.key(TOPIC, "Topic name, when the id is not known; must match one topic")
 				.key(NAME, "New topic name, or the name of the topic to create")
-				.key(DESCRIPTION, "New description; replaces the old one").key(STATUS, "active, dormant, or archived")
+				.key(DESCRIPTION, "New description; replaces the old one").key(STATUS, "active, hibernated, or archived")
 				.key(ADD_PEOPLE, key -> key.type(List.class).description(
 						"People to add to the topic: a list of plain strings, each an email, a name, or a person id (not objects); a suggested person becomes a member"))
 				.key(REMOVE_PEOPLE, key -> key.type(List.class).description(

@@ -290,9 +290,9 @@ public final class BrainMailFolders {
 		Map<String, Set<String>> byFolder = new HashMap<>();
 		CollaborationDbUtils.query("SELECT f.FOLDER_ID, f.TOPIC_ID FROM BRAIN_TOPIC_FOLDER f JOIN BRAIN_TOPIC t ON "
 				+ "t.OWNER_ID = f.OWNER_ID AND t.OWNER_TYPE = f.OWNER_TYPE AND t.TOPIC_ID = f.TOPIC_ID WHERE "
-				+ "f.OWNER_ID = ? AND f.OWNER_TYPE = ? AND t.STATUS IN (?, ?)",
+				+ "f.OWNER_ID = ? AND f.OWNER_TYPE = ? AND t.STATUS IN (?, ?, ?)",
 				rs -> byFolder.computeIfAbsent(rs.getString(1), k -> new HashSet<>()).add(rs.getString(2)), ownerId,
-				ownerType, BrainTopicUtils.ACTIVE, BrainTopicUtils.DORMANT);
+				ownerType, BrainTopicUtils.ACTIVE, BrainTopicUtils.DORMANT, BrainTopicUtils.HIBERNATED);
 		Map<String, String> out = new HashMap<>();
 		byFolder.forEach((folder, topics) -> {
 			if (topics.size() == 1) {

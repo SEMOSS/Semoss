@@ -48,13 +48,15 @@ public class WorkSaveWorkReactor extends AbstractWorkTaskReactor {
 	private static final String ONGOING = "ongoing";
 	private static final String TOPIC_IDS = "topicIds";
 	private static final String THREAD_IDS = "threadIds";
+	private static final String REMOVE_TOPICS = "removeTopicIds";
+	private static final String REMOVE_THREADS = "removeThreadIds";
 	private static final String NOTE = "note";
 	private static final String ACCEPT = "accept";
 
 	public WorkSaveWorkReactor() {
 		this.keysToGet = new String[] { TASK_ID, TITLE, DESCRIPTION, STATUS, NEXT_STEP, WAITING_ON, DUE, PRIORITY,
-				ONGOING, TOPIC_IDS, THREAD_IDS, NOTE, ACCEPT };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				ONGOING, TOPIC_IDS, THREAD_IDS, NOTE, ACCEPT, REMOVE_TOPICS, REMOVE_THREADS };
+		this.keyRequired = new int[this.keysToGet.length];
 	}
 
 	@Override
@@ -73,6 +75,8 @@ public class WorkSaveWorkReactor extends AbstractWorkTaskReactor {
 			args.put(ACCEPT, true);
 		}
 		args.put(TOPIC_IDS, strings(TOPIC_IDS));
+		args.put(REMOVE_TOPICS, strings(REMOVE_TOPICS));
+		args.put(REMOVE_THREADS, strings(REMOVE_THREADS));
 		java.util.List<String> threads = strings(THREAD_IDS);
 		// a new work item made in a thread's chat is about that thread
 		String chatThread = chatThreadId();
@@ -102,6 +106,10 @@ public class WorkSaveWorkReactor extends AbstractWorkTaskReactor {
 						key -> key.type(List.class)
 								.description("Topic ids it belongs to (products and clients it touches)"))
 				.key(THREAD_IDS, key -> key.type(List.class).description("Thread ids that move it"))
+				.key(REMOVE_TOPICS, key -> key.type(List.class)
+						.description("Topic ids to unlink from this work item; does not delete the topics"))
+				.key(REMOVE_THREADS, key -> key.type(List.class)
+						.description("Thread ids to unlink from this work item; the conversations and their evidence remain"))
 				.key(NOTE, "A line for its timeline, e.g. a decision or an update")
 				.key(ACCEPT, key -> key.type(Boolean.class).description("True to accept one Brain proposed"));
 	}

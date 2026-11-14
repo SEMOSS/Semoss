@@ -105,6 +105,7 @@ public final class WorkTaskUtils {
 		String topicId = blankToNull(filter.get("topicId"));
 		String personId = blankToNull(filter.get("personId"));
 		boolean includeSuggested = Boolean.TRUE.equals(filter.get("includeSuggested"));
+		boolean attentionOnly = topicId == null && !Boolean.TRUE.equals(filter.get("includeInactive")) && (status == null || "open".equals(status));
 
 		StringBuilder sql = new StringBuilder("SELECT " + TASK_COLUMNS + " FROM WORK_TASK t" + OWNED);
 		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
@@ -126,6 +127,7 @@ public final class WorkTaskUtils {
 			sql.append(" AND TASK_ID IN (SELECT TASK_ID FROM WORK_TASK_TOPIC" + OWNED + " AND TOPIC_ID = ?)");
 			params.addAll(List.of(ownerId, ownerType, topicId));
 		}
+		if (attentionOnly) sql.append(" AND ").append(BrainTopicLifecycle.taskAttention("t"));
 		// the owner's order first; the rest newest first
 		sql.append(" ORDER BY CASE WHEN SORT_ORDER IS NULL THEN 1 ELSE 0 END, SORT_ORDER, UPDATED_AT DESC");
 		List<Map<String, Object>> tasks = CollaborationDbUtils.query(sql.toString(), WorkTaskUtils::mapTask,
@@ -147,7 +149,7 @@ public final class WorkTaskUtils {
 		}
 
 		// loose steps: the owner's open ones with no work item
-		StringBuilder loose = new StringBuilder("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP" + OWNED
+		StringBuilder loose = new StringBuilder("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP loose_step" + OWNED
 				+ " AND TASK_ID IS NULL AND STATUS = ? AND (STEP_OWNER_ID IS NULL OR STEP_OWNER_ID = ?)");
 		List<Object> looseParams = new ArrayList<>(List.of(ownerId, ownerType, "open", self == null ? "" : self));
 		if (!includeSuggested) {
@@ -158,6 +160,7 @@ public final class WorkTaskUtils {
 			loose.append(" AND LINK_TOPIC_ID = ?");
 			looseParams.add(topicId);
 		}
+		if (attentionOnly) loose.append(" AND ").append(BrainTopicLifecycle.stepAttention("loose_step"));
 		loose.append(" ORDER BY DUE_AT, CREATED_AT DESC");
 		List<Map<String, Object>> looseSteps = kind != null || personId != null ? List.of()
 				: CollaborationDbUtils.query(loose.toString(), WorkTaskUtils::mapStep, looseParams.toArray());
@@ -169,11 +172,10 @@ public final class WorkTaskUtils {
 		out.put("looseSteps", looseSteps);
 		putIfNotNull(out, "selfId", self);
 		if (!includeSuggested) {
-			out.put("suggestedStepCount",
-					CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_THREAD_STEP" + OWNED
-							+ " AND TASK_ID IS NULL AND STATUS = ? AND ORIGIN = ? AND (STEP_OWNER_ID IS NULL OR "
-							+ "STEP_OWNER_ID = ?)", rs -> rs.getInt("N"), ownerId, ownerType, "open", BRAIN,
-							self == null ? "" : self));
+			out.put("suggestedStepCount", CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_THREAD_STEP suggested_step"
+					+ OWNED + " AND TASK_ID IS NULL AND STATUS = ? AND ORIGIN = ? AND (STEP_OWNER_ID IS NULL OR "
+					+ "STEP_OWNER_ID = ?)" + (attentionOnly ? " AND " + BrainTopicLifecycle.stepAttention("suggested_step") : ""), rs -> rs.getInt("N"), ownerId, ownerType, "open", BRAIN,
+					self == null ? "" : self));
 		}
 		return out;
 	}
@@ -211,22 +213,27 @@ public final class WorkTaskUtils {
 		Map<String, Object> task = requireTask(ownerId, ownerType, taskId);
 		task.put("topics", topics(ownerId, ownerType, taskId));
 		task.put("steps", steps(ownerId, ownerType, taskId));
-		task.put("timeline",
-				CollaborationDbUtils.query(
-						"SELECT UPDATE_ID, KIND, TEXT, THREAD_ID, SOURCE_REF, "
-								+ "MESSAGE_AT, ORIGIN, CREATED_AT FROM WORK_TASK_UPDATE" + OWNED
-								+ " AND TASK_ID = ? AND " + "(STATE IS NULL OR STATE <> ?) ORDER BY CREATED_AT DESC",
-						rs -> {
-							Map<String, Object> u = new LinkedHashMap<>();
-							u.put("id", rs.getString("UPDATE_ID"));
-							u.put("kind", rs.getString("KIND"));
-							u.put("text", CollaborationDbUtils.getString(rs, "TEXT"));
-							putIfNotNull(u, "threadId", rs.getString("THREAD_ID"));
-							putIfNotNull(u, "messageAt", CollaborationDbUtils.getTimestamp(rs, "MESSAGE_AT"));
-							u.put("origin", rs.getString("ORIGIN"));
-							u.put("at", CollaborationDbUtils.getTimestamp(rs, "CREATED_AT"));
-							return u;
-						}, ownerId, ownerType, taskId, "rejected"));
+		task.put("selfId", selfId(ownerId, ownerType));
+		task.put("rooms", CollaborationDbUtils.query("SELECT ROOM_ID, LINKED_AT FROM WORK_TASK_ROOM" + OWNED
+				+ " AND TASK_ID = ? ORDER BY LINKED_AT DESC, ROOM_ID", rs -> {
+			Map<String, Object> room = new LinkedHashMap<>();
+			room.put("roomId", rs.getString("ROOM_ID"));
+			room.put("linkedAt", CollaborationDbUtils.getTimestamp(rs, "LINKED_AT"));
+			return room;
+		}, ownerId, ownerType, taskId));
+		task.put("timeline", CollaborationDbUtils.query("SELECT UPDATE_ID, KIND, TEXT, THREAD_ID, SOURCE_REF, "
+				+ "MESSAGE_AT, ORIGIN, CREATED_AT FROM WORK_TASK_UPDATE" + OWNED + " AND TASK_ID = ? AND "
+				+ "(STATE IS NULL OR STATE <> ?) ORDER BY CREATED_AT DESC", rs -> {
+					Map<String, Object> u = new LinkedHashMap<>();
+					u.put("id", rs.getString("UPDATE_ID"));
+					u.put("kind", rs.getString("KIND"));
+					u.put("text", CollaborationDbUtils.getString(rs, "TEXT"));
+					putIfNotNull(u, "threadId", rs.getString("THREAD_ID"));
+					putIfNotNull(u, "messageAt", CollaborationDbUtils.getTimestamp(rs, "MESSAGE_AT"));
+					u.put("origin", rs.getString("ORIGIN"));
+					u.put("at", CollaborationDbUtils.getTimestamp(rs, "CREATED_AT"));
+					return u;
+				}, ownerId, ownerType, taskId, "rejected"));
 		task.put("threads", CollaborationDbUtils.query("SELECT l.THREAD_ID, th.SUBJECT, th.SOURCE, "
 				+ "th.LAST_MESSAGE_AT FROM WORK_TASK_THREAD l LEFT JOIN BRAIN_THREAD th ON th.OWNER_ID = l.OWNER_ID "
 				+ "AND th.OWNER_TYPE = l.OWNER_TYPE AND th.THREAD_ID = l.THREAD_ID WHERE l.OWNER_ID = ? AND "
@@ -262,6 +269,11 @@ public final class WorkTaskUtils {
 		String waitingOn = blankToNull(args.get("waitingOnPersonId"));
 		BrainPeopleUtils.requirePerson(ownerId, ownerType, personId);
 		BrainPeopleUtils.requirePerson(ownerId, ownerType, waitingOn);
+		List<String> removeTopicIds = strings(args.get("removeTopicIds"));
+		List<String> removeThreadIds = strings(args.get("removeThreadIds"));
+		if ((!removeTopicIds.isEmpty() || !removeThreadIds.isEmpty()) && BRAIN.equals(origin)) {
+			throw new IllegalArgumentException("Only an owner action can remove work associations");
+		}
 		List<String> topicIds = strings(args.get("topicIds"));
 		for (String topicId : topicIds) {
 			BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
@@ -290,6 +302,7 @@ public final class WorkTaskUtils {
 						trimmed(args.get("nextStep")), waitingOn, personId, due, priority,
 						origin == null ? OWNER : origin, BRAIN.equals(origin) ? PROPOSED : ACCEPTED, now, now);
 			} else {
+				lockTask(conn, ownerId, ownerType, id[0]);
 				Map<String, Object> before = requireTask(ownerId, ownerType, id[0]);
 				List<String> sets = new ArrayList<>();
 				List<Object> values = new ArrayList<>();
@@ -308,7 +321,7 @@ public final class WorkTaskUtils {
 				if (args.containsKey("due")) {
 					CollaborationDbUtils.addSet(sets, values, "DUE_AT", due);
 				}
-				if (priority != null) {
+				if (args.containsKey("priority")) {
 					CollaborationDbUtils.addSet(sets, values, "PRIORITY", priority);
 				}
 				if (args.containsKey("ongoing")) {
@@ -334,6 +347,24 @@ public final class WorkTaskUtils {
 			linkTopics(conn, ownerId, ownerType, id[0], topicIds, now);
 			for (String threadId : threadIds) {
 				linkThread(conn, ownerId, ownerType, id[0], threadId, origin, now);
+			}
+			for (String topic : removeTopicIds) {
+				CollaborationDbUtils.update(conn, "DELETE FROM WORK_TASK_TOPIC" + OWNED
+						+ " AND TASK_ID = ? AND TOPIC_ID = ?", ownerId, ownerType, id[0], topic);
+			}
+			// Keep one primary after the owner removes the previous primary topic.
+			if (!removeTopicIds.isEmpty() && CollaborationDbUtils.query(conn, "SELECT 1 FROM WORK_TASK_TOPIC" + OWNED
+					+ " AND TASK_ID = ? AND IS_PRIMARY = ?", rs -> rs.getInt(1), ownerId, ownerType, id[0], true).isEmpty()) {
+				List<String> remaining = CollaborationDbUtils.query(conn, "SELECT TOPIC_ID FROM WORK_TASK_TOPIC" + OWNED
+						+ " AND TASK_ID = ? ORDER BY TOPIC_ID", rs -> rs.getString(1), ownerId, ownerType, id[0]);
+				String primary = remaining.isEmpty() ? null : remaining.get(0);
+				if (primary != null) CollaborationDbUtils.update(conn, "UPDATE WORK_TASK_TOPIC SET IS_PRIMARY = ?"
+						+ OWNED + " AND TASK_ID = ? AND TOPIC_ID = ?", true, ownerId, ownerType, id[0], primary);
+			}
+			for (String thread : removeThreadIds) {
+				// Retain rejection so a later automated build cannot silently reattach it.
+				CollaborationDbUtils.update(conn, "UPDATE WORK_TASK_THREAD SET STATE = ?" + OWNED
+						+ " AND TASK_ID = ? AND THREAD_ID = ?", "rejected", ownerId, ownerType, id[0], thread);
 			}
 			if (note != null) {
 				insertUpdate(conn, ownerId, ownerType, id[0], "note", note, null, origin, now);
@@ -515,18 +546,18 @@ public final class WorkTaskUtils {
 			CollaborationDbUtils.update(conn, "UPDATE WORK_TASK_TOPIC SET IS_PRIMARY = ?" + OWNED + " AND TASK_ID = ?",
 					false, ownerId, ownerType, fromId);
 			// links the target lacks move over; duplicates go
-			for (String[] link : new String[][] { { "WORK_TASK_THREAD", "THREAD_ID" },
-					{ "WORK_TASK_TOPIC", "TOPIC_ID" } }) {
-				CollaborationDbUtils.update(conn,
-						"UPDATE " + link[0] + " SET TASK_ID = ?" + OWNED + " AND TASK_ID = ? " + "AND " + link[1]
-								+ " NOT IN (SELECT " + link[1] + " FROM " + link[0] + OWNED + " AND TASK_ID = ?)",
+			for (String[] link : new String[][] { { "WORK_TASK_THREAD", "THREAD_ID" }, { "WORK_TASK_TOPIC", "TOPIC_ID" },
+					{ "WORK_TASK_ROOM", "ROOM_ID" } }) {
+				CollaborationDbUtils.update(conn, "UPDATE " + link[0] + " SET TASK_ID = ?" + OWNED + " AND TASK_ID = ? "
+						+ "AND " + link[1] + " NOT IN (SELECT " + link[1] + " FROM " + link[0] + OWNED + " AND TASK_ID = ?)",
 						intoId, ownerId, ownerType, fromId, ownerId, ownerType, intoId);
 				CollaborationDbUtils.update(conn, "DELETE FROM " + link[0] + OWNED + " AND TASK_ID = ?", ownerId,
 						ownerType, fromId);
 			}
-			CollaborationDbUtils.update(conn,
-					"UPDATE WORK_TASK SET STATUS = ?, CLOSED_AT = ?, UPDATED_AT = ?" + OWNED + " AND TASK_ID = ?",
-					DROPPED, now, now, ownerId, ownerType, fromId);
+			CollaborationDbUtils.update(conn, "UPDATE WORK_TASK SET ROOM_ID = COALESCE(ROOM_ID, ?)" + OWNED
+					+ " AND TASK_ID = ?", from.get("roomId"), ownerId, ownerType, intoId);
+			CollaborationDbUtils.update(conn, "UPDATE WORK_TASK SET STATUS = ?, CLOSED_AT = ?, UPDATED_AT = ?, ROOM_ID = NULL" + OWNED
+					+ " AND TASK_ID = ?", DROPPED, now, now, ownerId, ownerType, fromId);
 			CollaborationDbUtils.update(conn, "UPDATE WORK_TASK SET UPDATED_AT = ?" + OWNED + " AND TASK_ID = ?", now,
 					ownerId, ownerType, intoId);
 		});
@@ -589,8 +620,37 @@ public final class WorkTaskUtils {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		requireTask(owner.getValue0(), owner.getValue1(), taskId);
 		BrainTopicRoomUtils.requireChat(user, roomId);
-		CollaborationDbUtils.update("UPDATE WORK_TASK SET ROOM_ID = ?" + OWNED + " AND TASK_ID = ?", roomId,
-				owner.getValue0(), owner.getValue1(), taskId);
+		CollaborationDbUtils.inTransaction(conn -> {
+			lockTask(conn, owner.getValue0(), owner.getValue1(), taskId);
+			CollaborationDbUtils.update(conn, "UPDATE WORK_TASK SET ROOM_ID = ?" + OWNED + " AND TASK_ID = ?",
+					roomId, owner.getValue0(), owner.getValue1(), taskId);
+			CollaborationDbUtils.update(conn, "DELETE FROM WORK_TASK_ROOM" + OWNED + " AND TASK_ID = ? AND ROOM_ID = ?",
+					owner.getValue0(), owner.getValue1(), taskId, roomId);
+			CollaborationDbUtils.update(conn, "INSERT INTO WORK_TASK_ROOM (OWNER_ID, OWNER_TYPE, TASK_ID, ROOM_ID, LINKED_AT) "
+					+ "VALUES (?, ?, ?, ?, ?)", owner.getValue0(), owner.getValue1(), taskId, roomId, CollaborationDbUtils.now());
+		});
+	}
+
+	/** Resolves the item for any of its rooms, including rooms preceding the latest one. */
+	static String taskForRoom(String ownerId, String ownerType, String roomId) {
+		return CollaborationDbUtils.queryOne("SELECT TASK_ID FROM WORK_TASK_ROOM" + OWNED
+				+ " AND ROOM_ID = ? ORDER BY LINKED_AT DESC FETCH FIRST 1 ROWS ONLY", rs -> rs.getString(1),
+				ownerId, ownerType, roomId);
+	}
+
+	/** Read item context by an owned assistant room without relying on attention-list visibility. */
+	public static Map<String, Object> getWorkForRoom(User user, String roomId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		BrainTopicRoomUtils.requireChat(user, roomId);
+		String taskId = taskForRoom(owner.getValue0(), owner.getValue1(), roomId);
+		return taskId == null ? Map.of() : getWork(user, taskId);
+	}
+
+	private static void lockTask(java.sql.Connection conn, String ownerId, String ownerType, String taskId) {
+		if (CollaborationDbUtils.query(conn, "SELECT TASK_ID FROM WORK_TASK" + OWNED + " AND TASK_ID = ? FOR UPDATE",
+				rs -> rs.getString(1), ownerId, ownerType, taskId).isEmpty()) {
+			throw new IllegalArgumentException("Work item not found");
+		}
 	}
 
 	public static void addUpdate(User user, String taskId, String kind, String text, String threadId, String messageAt,
@@ -700,6 +760,9 @@ public final class WorkTaskUtils {
 			String threadId, String origin, Timestamp now) throws SQLException {
 		if (CollaborationDbUtils.exists("SELECT 1 FROM WORK_TASK_THREAD" + OWNED + " AND TASK_ID = ? AND THREAD_ID = ?",
 				ownerId, ownerType, taskId, threadId)) {
+			if (!BRAIN.equals(origin)) CollaborationDbUtils.update(conn, "UPDATE WORK_TASK_THREAD SET STATE = ?, ORIGIN = ?"
+					+ OWNED + " AND TASK_ID = ? AND THREAD_ID = ?", ACCEPTED, origin == null ? OWNER : origin,
+					ownerId, ownerType, taskId, threadId);
 			return;
 		}
 		CollaborationDbUtils.update(conn,

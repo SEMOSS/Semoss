@@ -56,7 +56,7 @@ public class BrainDeleteTopicReactor extends AbstractCollaborationReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description(
-						"Deletes a Brain topic with its notes, people, and thread links; the threads themselves stay")
+						"Permanently deletes a Brain topic with its notes, people, and thread links; cannot be undone. The threads themselves stay")
 				.key(TOPIC_ID, "Topic id");
 	}
 }

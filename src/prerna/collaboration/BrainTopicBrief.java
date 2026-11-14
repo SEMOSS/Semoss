@@ -77,7 +77,7 @@ public final class BrainTopicBrief {
 		List<String> topics = CollaborationDbUtils.query("SELECT t.TOPIC_ID FROM BRAIN_TOPIC t "
 				+ "LEFT JOIN BRAIN_TOPIC_ROOM r ON r.OWNER_ID = t.OWNER_ID AND r.OWNER_TYPE = t.OWNER_TYPE "
 				+ "AND r.TOPIC_ID = t.TOPIC_ID AND r.ROOM_ID = ? WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? "
-				+ "AND t.STATUS IN (?, ?) AND (r.STATE IS NULL OR r.STATE = ?) "
+				+ "AND t.STATUS IN (?, ?, ?) AND (r.STATE IS NULL OR r.STATE = ?) "
 				+ "AND ((r.STATE = ? AND COALESCE(r.ORIGIN, '') <> ?) OR EXISTS ("
 				+ "SELECT 1 FROM BRAIN_THREAD_ROOM tr JOIN BRAIN_THREAD_TOPIC tt ON tt.OWNER_ID = tr.OWNER_ID "
 				+ "AND tt.OWNER_TYPE = tr.OWNER_TYPE AND tt.THREAD_ID = tr.THREAD_ID "
@@ -85,7 +85,7 @@ public final class BrainTopicBrief {
 				+ "AND th.THREAD_ID = tr.THREAD_ID WHERE tr.OWNER_ID = t.OWNER_ID AND tr.OWNER_TYPE = t.OWNER_TYPE "
 				+ "AND tr.ROOM_ID = ? AND tr.STATE = ? AND tt.TOPIC_ID = t.TOPIC_ID AND tt.SOURCE <> ?)) "
 				+ "ORDER BY t.TOPIC_ID", rs -> rs.getString("TOPIC_ID"), chat.roomId(), owner.getValue0(),
-				owner.getValue1(), BrainTopicUtils.ACTIVE, BrainTopicUtils.DORMANT, BrainTopicRoomUtils.LINKED,
+				owner.getValue1(), BrainTopicUtils.ACTIVE, BrainTopicUtils.DORMANT, BrainTopicUtils.HIBERNATED, BrainTopicRoomUtils.LINKED,
 				BrainTopicRoomUtils.LINKED, BrainTopicRoomUtils.THREAD, chat.roomId(), BrainThreadRoomUtils.LINKED,
 				BrainTopicUtils.SUGGESTED);
 		return applying(user, topics);

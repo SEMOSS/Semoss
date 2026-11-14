@@ -532,8 +532,8 @@ public final class BrainTopicMatches {
 			throw new IllegalArgumentException("topicId is required");
 		}
 		String status = BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
-		if (!BrainTopicUtils.ACTIVE.equals(status) && !BrainTopicUtils.DORMANT.equals(status)) {
-			throw new IllegalArgumentException("Only an active or dormant topic can be matched");
+		if (!BrainTopicLifecycle.canFile(status)) {
+			throw new IllegalArgumentException("Only an active or hibernated topic can be matched");
 		}
 	}
 }
