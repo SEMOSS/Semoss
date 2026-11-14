@@ -33,6 +33,7 @@ package prerna.engine.impl.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,20 +49,23 @@ class RoomMessageStoreUnitTests {
 	private static final String INVALID_PARENT_JSON = "[{\"io\":\"INPUT\",\"messageId\":\"child\",\"parentMessageId\":\"missing\",\"parts\":[]}]";
 
 	@Test
-	void loadAllowsMessagesWithInvalidParents() {
+	void loadMakesAMessageWithAMissingParentARoot() {
 		Room room = roomWithId();
 
 		List<AbstractMessage> messages = RoomMessageStore.loadFromPersistedJson(room, INVALID_PARENT_JSON);
 
 		assertEquals(1, messages.size());
 		assertEquals("child", messages.get(0).getMessageId());
-		assertEquals("missing", messages.get(0).getParentMessageId());
+		assertNull(messages.get(0).getParentMessageId());
+		assertEquals("missing", messages.get(0).getOrnament(RoomMessageStore.DETACHED_PARENT_ORNAMENT));
 	}
 
 	@Test
 	void providerPayloadRejectsMessagesWithInvalidParents() {
 		Room room = roomWithId();
 		List<AbstractMessage> messages = RoomMessageStore.loadFromPersistedJson(room, INVALID_PARENT_JSON);
+		// a link broken in memory, after loading
+		messages.get(0).setParentMessageId("missing");
 
 		assertThrows(IllegalStateException.class, () -> RoomMessageStore.providerMessageHistory(room, messages));
 	}
@@ -70,6 +74,7 @@ class RoomMessageStoreUnitTests {
 	void persistRejectsMessagesWithInvalidParents() {
 		Room room = roomWithId();
 		room.setMessages(RoomMessageStore.loadFromPersistedJson(room, INVALID_PARENT_JSON));
+		room.getMessages().get(0).setParentMessageId("missing");
 
 		assertThrows(IllegalStateException.class, () -> RoomMessageStore.persist(room, "user-id"));
 	}

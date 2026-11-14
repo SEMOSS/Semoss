@@ -100,12 +100,97 @@ public final class RoomMessageStore {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArrayPreservingToolState(projection, room);
 		List<AbstractMessage> messages = loaded != null ? loaded : new ArrayList<>();
-		// loading tolerates broken parent links so a legacy or hand-edited
-		// projection still opens; provider payloads and persists re-validate
-		Set<String> messageIds = requireUniqueMessageIds(messages);
-		warnOnBrokenParentLinks(room, messages, messageIds);
-		warmRedisProjection(room, projection);
+		requireUniqueMessageIds(messages);
+		// a broken link would stop every later save, so the message is made a root.
+		// The stored JSON keeps the broken link until the next save, so it is not
+		// cached in Redis, where every read would reject it.
+		if (detachBrokenParentLinks(room, messages) == 0) {
+			warmRedisProjection(room, projection);
+		}
 		return messages;
+	}
+
+	/** Ornament on a message whose stored parent was missing, itself or in a cycle. */
+	public static final String DETACHED_PARENT_ORNAMENT = "detachedParentMessageId";
+
+	/**
+	 * Makes every message whose parent is missing, is itself, or leads back into a
+	 * cycle the root of its own branch, keeping the old parent id in the
+	 * {@value #DETACHED_PARENT_ORNAMENT} ornament. Message ids must be unique.
+	 *
+	 * @return how many messages were detached
+	 */
+	static int detachBrokenParentLinks(Room room, List<AbstractMessage> messages) {
+		Map<String, AbstractMessage> byId = new HashMap<>();
+		for (AbstractMessage message : messages) {
+			byId.put(ValueUtils.trimToNull(message.getMessageId()), message);
+		}
+		String roomId = room != null ? room.getId() : "<unknown>";
+		Set<String> settled = new HashSet<>();
+		int detached = 0;
+		for (AbstractMessage start : messages) {
+			Set<String> path = new HashSet<>();
+			AbstractMessage current = start;
+			while (current != null) {
+				String id = ValueUtils.trimToNull(current.getMessageId());
+				if (settled.contains(id)) {
+					break;
+				}
+				path.add(id);
+				String parentId = ValueUtils.trimToNull(current.getParentMessageId());
+				if (parentId == null) {
+					break;
+				}
+				AbstractMessage parent = byId.get(parentId);
+				if (parent == null || path.contains(parentId)) {
+					classLogger.warn("Room {} message {} has a parent that is missing, itself or in a cycle ({});"
+							+ " making it a root", roomId, id, parentId);
+					current.setOrnament(DETACHED_PARENT_ORNAMENT, parentId);
+					current.setParentMessageId(null);
+					detached++;
+					break;
+				}
+				current = parent;
+			}
+			settled.addAll(path);
+		}
+		return detached;
+	}
+
+	/**
+	 * The parent a new input message should take, without changing any stored
+	 * message. With no requested parent it is the room's last message, as before.
+	 * When the branch ending there has a tool call with no result, or a result
+	 * with no call (a stopped turn or a crash mid-tool), the new message goes after
+	 * the last message on that branch a provider still accepts; the rest of the
+	 * branch stays stored, as a branch of its own.
+	 *
+	 * @param room              the room, with its latest messages loaded
+	 * @param requestedParentId the parent the caller asked for, or null
+	 * @return the parent id to use, or null when the new message is a root
+	 * @throws IllegalArgumentException when the requested parent is not in the room
+	 */
+	public static String resolveInputParent(Room room, String requestedParentId) {
+		List<AbstractMessage> messages = room.getMessages();
+		if (messages == null || messages.isEmpty()) {
+			return null;
+		}
+		String parentId = ValueUtils.trimToNull(requestedParentId);
+		if (parentId == null) {
+			parentId = messages.getLast().getMessageId();
+		}
+		List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentId);
+		if (branch.isEmpty()) {
+			throw new IllegalArgumentException("Message " + parentId + " is not in room " + room.getId());
+		}
+		int sendable = MessageUtils.sendablePrefixLength(branch);
+		if (sendable == branch.size()) {
+			return parentId;
+		}
+		String anchor = sendable == 0 ? null : branch.get(sendable - 1).getMessageId();
+		classLogger.warn("Room {} branch ending at {} has unpaired tool calls or results; the new message goes"
+				+ " after {} ({} of {} messages)", room.getId(), parentId, anchor, sendable, branch.size());
+		return anchor;
 	}
 
 	public static void refreshFromStore(Room room, String userId) {
@@ -195,15 +280,6 @@ public final class RoomMessageStore {
 			}
 		}
 		return branch;
-	}
-
-	public static void normalizeForProviderPayload(Room room) {
-		List<AbstractMessage> messages = room.getMessages();
-		List<AbstractMessage> sanitized = MessageUtils.sanitizeOrphanToolCalls(messages, room);
-		if (sanitized != messages) {
-			room.setMessages(sanitized);
-		}
-		validateForPersistence(room, room.getMessages());
 	}
 
 	public static boolean persist(Room room, String userId) {
@@ -392,20 +468,6 @@ public final class RoomMessageStore {
 			}
 		}
 		return messageIds;
-	}
-
-	private static void warnOnBrokenParentLinks(Room room, List<AbstractMessage> messages, Set<String> messageIds) {
-		for (AbstractMessage message : messages) {
-			String parentMessageId = ValueUtils.trimToNull(message.getParentMessageId());
-			if (parentMessageId == null) {
-				continue;
-			}
-			if (parentMessageId.equals(message.getMessageId()) || !messageIds.contains(parentMessageId)) {
-				String roomId = room != null ? room.getId() : "<unknown>";
-				classLogger.warn("Room {} persisted message {} references a parent that does not exist: {}", roomId,
-						message.getMessageId(), parentMessageId);
-			}
-		}
 	}
 
 	private static void validateProviderPayload(Room room, List<AbstractMessage> messages) {

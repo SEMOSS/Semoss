@@ -33,9 +33,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -394,77 +396,50 @@ public class MessageUtils {
 	}
 
 	/**
-	 * Truncate at the first ResponseMessage with a TOOL_CALL id that never gets a
-	 * matching TOOL_RESULT. Providers reject unpaired tool_use, so this rewinds
-	 * in-memory to the last clean turn boundary. Pure read-side; persisted JSON is
-	 * untouched until the next normal turn rewrites it.
+	 * The length of the longest root-first run of a branch that a provider accepts:
+	 * every tool call in it has its result, and no result comes before its call.
+	 * Calls the provider runs itself need no result. A branch that is fine as it is
+	 * returns its own size; it is never changed.
+	 *
+	 * @param branch messages from root to leaf
+	 * @return how many messages, from the root, can be sent
 	 */
-	public static List<AbstractMessage> sanitizeOrphanToolCalls(List<AbstractMessage> messages, Room room) {
-		if (messages == null || messages.size() < 2) {
-			return messages != null ? messages : new ArrayList<>();
+	public static int sendablePrefixLength(List<AbstractMessage> branch) {
+		if (branch == null) {
+			return 0;
 		}
-		// pass 1: collect (messageIndex, [callIds]) for every TOOL_CALL message, and
-		// the full set of TOOL_RESULT ids
-		List<int[]> toolCallSlots = new ArrayList<>();
-		List<List<String>> toolCallIdsPerSlot = new ArrayList<>();
-		java.util.Set<String> resultIdsSeen = new java.util.HashSet<>();
-		for (int i = 0; i < messages.size(); i++) {
-			AbstractMessage m = messages.get(i);
-			if (m == null) {
-				continue;
+		Set<String> seenCalls = new HashSet<>();
+		Set<String> openCalls = new HashSet<>();
+		int sendable = 0;
+		for (int i = 0; i < branch.size(); i++) {
+			AbstractMessage message = branch.get(i);
+			if (message == null) {
+				return sendable;
 			}
-			for (MessagePart part : m.getParts()) {
-				if (part instanceof ToolCallMessagePart tcp) {
-					Map<String, Object> tc = tcp.getToolCall();
-					String id = tc != null ? asStringOrNull(tc.get("id")) : null;
+			for (MessagePart part : message.getParts()) {
+				if (part instanceof ToolCallMessagePart call && call.getToolCall() != null) {
+					String id = asStringOrNull(call.getToolCall().get("id"));
 					if (id != null && !id.isBlank()) {
-						if (toolCallSlots.isEmpty() || toolCallSlots.get(toolCallSlots.size() - 1)[0] != i) {
-							toolCallSlots.add(new int[] { i });
-							toolCallIdsPerSlot.add(new ArrayList<>());
+						seenCalls.add(id);
+						if (!isServerToolCall(call.getToolCall())) {
+							openCalls.add(id);
 						}
-						toolCallIdsPerSlot.get(toolCallIdsPerSlot.size() - 1).add(id);
 					}
-				} else if (part instanceof ToolResultMessagePart trp) {
-					ToolResultPart tr = trp.getToolResult();
-					String id = tr != null ? tr.getToolCallId() : null;
+				} else if (part instanceof ToolResultMessagePart result && result.getToolResult() != null) {
+					String id = result.getToolResult().getToolCallId();
 					if (id != null && !id.isBlank()) {
-						resultIdsSeen.add(id);
+						if (!seenCalls.contains(id)) {
+							return sendable;
+						}
+						openCalls.remove(id);
 					}
 				}
 			}
-		}
-		if (toolCallSlots.isEmpty()) {
-			return messages;
-		}
-
-		// pass 2: first slot with any unanswered id is the truncation point
-		int truncateAt = -1;
-		List<String> orphanIds = null;
-		for (int s = 0; s < toolCallSlots.size(); s++) {
-			List<String> unmatched = null;
-			for (String id : toolCallIdsPerSlot.get(s)) {
-				if (!resultIdsSeen.contains(id)) {
-					if (unmatched == null) {
-						unmatched = new ArrayList<>();
-					}
-					unmatched.add(id);
-				}
-			}
-			if (unmatched != null && !unmatched.isEmpty()) {
-				truncateAt = toolCallSlots.get(s)[0];
-				orphanIds = unmatched;
-				break;
+			if (openCalls.isEmpty()) {
+				sendable = i + 1;
 			}
 		}
-		if (truncateAt < 0) {
-			return messages;
-		}
-
-		String roomId = room != null ? room.getId() : "<unknown>";
-		classLogger.warn(
-				"sanitizeOrphanToolCalls: room {} truncating {} message(s) at index {} -- unpaired tool_use ids: {}",
-				roomId, (messages.size() - truncateAt), truncateAt, orphanIds);
-		return new ArrayList<>(messages.subList(0, truncateAt));
+		return sendable;
 	}
 
 	// --- Core two serialization methods ---
@@ -671,9 +646,12 @@ public class MessageUtils {
 		}
 		String currentId = history.getLast().getParentMessageId();
 		boolean shouldPruneTools = false;
+		// a parent cycle would otherwise never end
+		Set<String> passed = new HashSet<>();
+		passed.add(history.getLast().getMessageId());
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
-			if (m == null) {
+			if (m == null || !passed.add(currentId)) {
 				break;
 			}
 			if (m.getPruneToolsAbove()) {
@@ -716,9 +694,11 @@ public class MessageUtils {
 		List<AbstractMessage> history = new ArrayList<>();
 		String currentId = parentMessageId;
 		boolean shouldPruneTools = false;
+		// a parent cycle would otherwise never end
+		Set<String> passed = new HashSet<>();
 		while (currentId != null) {
 			AbstractMessage m = idMap.get(currentId);
-			if (m == null) {
+			if (m == null || !passed.add(currentId)) {
 				break;
 			}
 			if (m.getPruneToolsAbove()) {

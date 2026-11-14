@@ -354,28 +354,13 @@ public class Room implements Serializable {
 					messages.clear();
 				}
 
-				// drop orphan tool_use (cancel mid-tool, crash) before building the outbound
-				// branch so providers do not reject the next payload
-				RoomMessageStore.normalizeForProviderPayload(this);
-
 				// Set model type and add message to history
 				msg.setModel(modelEngine);
 
-				// Set parentMessageId for this message
-				// first check that messages is not empty. otherwise its the first message of
-				// the thread and parent is null
-				if (!messages.isEmpty()) {
-					// if a parent message id is passed in, validate it exists and use it.
-					if (parentMessageId != null && !parentMessageId.isEmpty()) {
-						msg.setParentMessageId(parentMessageId);
-					} else {
-						// if no parent message id is passed in, use the last message as the parent.
-						AbstractMessage lastMsg = messages.get(messages.size() - 1);
-						msg.setParentMessageId(lastMsg.getMessageId());
-					}
-				} else {
-					msg.setParentMessageId(null); // first message
-				}
+				// the requested parent, or the last message; after a cancel or crash mid-tool,
+				// the last message on that branch a provider still accepts. Nothing stored is
+				// dropped.
+				msg.setParentMessageId(RoomMessageStore.resolveInputParent(this, parentMessageId));
 
 				ResponseMessage response = null;
 				try {
@@ -471,19 +456,9 @@ public class Room implements Serializable {
 				if (!modelEngine.keepsConversationHistory()) {
 					messages.clear();
 				}
-				RoomMessageStore.normalizeForProviderPayload(this);
 
 				msg.setModel(modelEngine);
-				if (!messages.isEmpty()) {
-					if (parentMessageId != null && !parentMessageId.isEmpty()) {
-						msg.setParentMessageId(parentMessageId);
-					} else {
-						AbstractMessage lastMsg = messages.get(messages.size() - 1);
-						msg.setParentMessageId(lastMsg.getMessageId());
-					}
-				} else {
-					msg.setParentMessageId(null);
-				}
+				msg.setParentMessageId(RoomMessageStore.resolveInputParent(this, parentMessageId));
 				response.setParentMessageId(msg.getMessageId());
 
 				messages.add(msg);
@@ -673,6 +648,73 @@ public class Room implements Serializable {
 		} finally {
 			lock.unlock();
 		}
+	}
+
+	/**
+	 * Adds a compaction's input and response to the latest stored messages and
+	 * saves them, as one change under the room's locks. The anchor is the last
+	 * message of the branch that was compacted; when {@code flagAnchor} is true it
+	 * is also flagged to prune the tool payloads at and above it. Nothing is kept
+	 * when the save fails.
+	 *
+	 * @param anchorMessageId the last message of the compacted branch
+	 * @param flagAnchor      whether to flag the anchor to prune tools above it
+	 * @param input           the compaction's input, already linked
+	 * @param response        the compaction's response, already linked
+	 * @param insight         the caller
+	 * @throws IllegalStateException when the anchor is no longer in the room, or
+	 *                               the save fails
+	 */
+	public void appendCompaction(String anchorMessageId, boolean flagAnchor, InputMessage input,
+			ResponseMessage response, Insight insight) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				this.insight = insight;
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				AbstractMessage anchor = null;
+				for (AbstractMessage message : messages) {
+					if (anchorMessageId.equals(message.getMessageId())) {
+						anchor = message;
+						break;
+					}
+				}
+				if (anchor == null) {
+					throw new IllegalStateException("Message " + anchorMessageId + " is no longer in room " + getId()
+							+ "; nothing was compacted");
+				}
+				boolean priorFlag = anchor.getPruneToolsAbove();
+				if (flagAnchor) {
+					anchor.setPruneToolsAbove(true);
+				}
+				input.setRoom(this);
+				response.setRoom(this);
+				messages.add(input);
+				messages.add(response);
+				boolean saved;
+				try {
+					saved = RoomMessageStore.persist(this, userId);
+				} catch (RuntimeException e) {
+					rollBackCompaction(anchor, priorFlag, input, response);
+					throw e;
+				}
+				if (!saved) {
+					rollBackCompaction(anchor, priorFlag, input, response);
+					throw new IllegalStateException("Unable to save the compaction for room " + getId());
+				}
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	private void rollBackCompaction(AbstractMessage anchor, boolean priorFlag, InputMessage input,
+			ResponseMessage response) {
+		messages.remove(response);
+		messages.remove(input);
+		anchor.setPruneToolsAbove(priorFlag);
 	}
 
 	/**

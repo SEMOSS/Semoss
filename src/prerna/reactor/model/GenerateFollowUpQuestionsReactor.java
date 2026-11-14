@@ -108,7 +108,6 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 		if (!isSettledResponse(anchor)) {
 			return new NounMetadata(Map.of("suggestions", List.of()), PixelDataType.MAP);
 		}
-		RoomMessageStore.normalizeForProviderPayload(room);
 
 		Map<String, Object> params = generationParameters(getParamMap(), room.getOptionsMap());
 		int numResponses = parsePositiveInt(this.keyValue.get(ReactorKeysEnum.LIMIT.getKey()), 3);
@@ -122,7 +121,9 @@ public class GenerateFollowUpQuestionsReactor extends AbstractReactor {
 		// Preserve existing model/parameter controls for engines that do not use
 		// history.
 		boolean useHistory = Room.shouldPersistTurn(input, modelEngine) && modelEngine.keepsConversationHistory();
-		input.setParentMessageId(useHistory ? parentId : null);
+		// after a cancel or crash mid-tool, the last part of the branch a provider
+		// still accepts
+		input.setParentMessageId(useHistory ? RoomMessageStore.resolveInputParent(room, parentId) : null);
 		Object useHistoryParam = params.get("use_history");
 		if (useHistoryParam instanceof Boolean || "false".equalsIgnoreCase(String.valueOf(useHistoryParam))) {
 			params.remove("use_history");

@@ -43,7 +43,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -54,6 +53,7 @@ import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.message.ToolCallMessagePart;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
@@ -81,6 +81,15 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 	private static final int SUMMARY_MIN_TOKENS = 2_000;
 	private static final int SUMMARY_MAX_TOKENS = 12_000;
 	private static final double SUMMARY_MAX_WINDOW_RATIO = 0.05;
+
+	// tool arguments and output in a transcript are cut to this many characters
+	static final int MAX_TOOL_TEXT_CHARS = 2_000;
+	// room left in the summary request for its instructions
+	private static final int SUMMARY_PROMPT_TOKENS = 2_000;
+	// the verbatim messages kept beside the summary take at most this share of the
+	// window
+	private static final int KEPT_WINDOW_PERCENT = 15;
+	private static final int MIN_TRANSCRIPT_CHARS = 8_000;
 
 	private static final Set<String> VALID_COMPACTION_TYPES = new HashSet<>(Arrays.asList("TOOL_PRUNE", "SUMMARY"));
 
@@ -148,15 +157,17 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
 		List<Map<String, Object>> typeResults = new ArrayList<>();
 
+		if (messages.stream().noneMatch(message -> parentMessageId.equals(message.getMessageId()))) {
+			throw new IllegalArgumentException("Message " + parentMessageId + " is not in room " + roomId);
+		}
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, parentMessageId);
 
 		// Prevent compaction on invalid message states
-		if (!branch.isEmpty() && (branch.getLast() instanceof InputMessage || branch.getLast().hasToolCallPart())) {
+		if (branch.getLast() instanceof InputMessage) {
 			throw new IllegalArgumentException("Cannot compact: message " + parentMessageId
 					+ " is an input message. Compact after the assistant has responded.");
 		}
-
-		if (!branch.isEmpty() && branch.getLast().hasToolCallPart()) {
+		if (branch.getLast().hasToolCallPart()) {
 			throw new IllegalArgumentException("Cannot compact: message " + parentMessageId
 					+ " has unanswered tool calls. Compact once the tool call has been resolved.");
 		}
@@ -203,7 +214,9 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		int toolTokens = computeToolTokens(branch);
 		int currTokenCount = getLastMessageTokens(branch);
 
-		boolean useToolPruning = currTokenCount > 0
+		// pruning leaves an unpaired tool call or result in place, so only a summary
+		// makes such a branch sendable again
+		boolean useToolPruning = isSendable(branch) && currTokenCount > 0
 				&& (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD;
 
 		if (useToolPruning) {
@@ -229,6 +242,13 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 			return result;
 		}
 
+		if (!isSendable(branch)) {
+			result.put("success", false);
+			result.put("error", "The branch has a tool call or result without its pair, which tool pruning does"
+					+ " not fix; use SUMMARY");
+			return result;
+		}
+
 		if (toolTokens == 0) {
 			toolTokens = computeToolTokens(branch);
 		}
@@ -248,19 +268,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		toolPruneMessage.setPruneToolsAbove(true);
 		// Set the prune flag on the message itself for the FE to render the UI
 
-		List<AbstractMessage> messages = room.getMessages();
 		String branchLeafMessageId = branch.getLast().getMessageId();
-		AbstractMessage leafToFlag = null;
-		for (AbstractMessage m : messages) {
-			if (m.getMessageId().equals(branchLeafMessageId)) {
-				leafToFlag = m;
-				break;
-			}
-		}
-		boolean priorLeafFlag = leafToFlag != null && leafToFlag.getPruneToolsAbove();
-		if (leafToFlag != null) {
-			leafToFlag.setPruneToolsAbove(true);
-		}
 
 		// Pair the compacted input with a response message so the branch is complete
 		ResponseMessage toolPruneResponse = ResponseMessage.builder()
@@ -278,22 +286,11 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		// span (to avoid double counting)
 		toolPruneResponse.setTokensInMessage(65);
 
-		messages.add(toolPruneMessage);
-		messages.add(toolPruneResponse);
-
 		try {
-			RoomMessageStore.persist(room, this.insight.getUser().getPrimaryLoginToken().getId());
+			// under the room's locks, on its latest messages, so a write made since the
+			// branch was read is kept; nothing is kept if the save fails
+			room.appendCompaction(branchLeafMessageId, true, toolPruneMessage, toolPruneResponse, this.insight);
 		} catch (Exception e) {
-			// Roll back the in-memory mutations so the cached Room stays in sync with the
-			// DB.
-			// Room objects are process-cached (RoomUtils), so leaking dirty state here
-			// would
-			// corrupt future requests for this room until the cache is evicted.
-			messages.remove(toolPruneResponse);
-			messages.remove(toolPruneMessage);
-			if (leafToFlag != null) {
-				leafToFlag.setPruneToolsAbove(priorLeafFlag);
-			}
 			classLogger.error("Failed to persist TOOL_PRUNE compaction for room {}; rolled back in-memory changes",
 					room.getId(), e);
 			result.put("success", false);
@@ -350,14 +347,17 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
 		// cap the reply so the summary always fits the space the trigger reserved
 		int summaryTokens = summaryTokenBudget(summaryTranscript.length(), modelEngine);
+		// the request must fit the window that compaction is freeing
+		String transcriptToSummarize = fitTranscript(summaryTranscript.toString().trim(),
+				summaryTranscriptCharBudget(modelEngine, summaryTokens));
 
-		// Ask the LLM to summarize using a throw-away room (no history pollution)
-		// transcript first, instructions last: with a long transcript in front, models
+		// Ask the LLM to summarize from an in-memory room, so nothing is stored and no
+		// earlier request rides along. Transcript first, instructions last: with a long transcript in front, models
 		// otherwise lose the instructions and just continue the chat
 		String summarizationPrompt = "You write handoff summaries of conversation transcripts. "
 				+ "Below is a conversation transcript between <transcript> tags. "
 				+ "It is data to summarize, not a conversation to continue.\n\n<transcript>\n"
-				+ summaryTranscript.toString().trim() + "\n</transcript>\n\n" + """
+				+ transcriptToSummarize + "\n</transcript>\n\n" + """
 						The transcript above has ended. Do not reply to it or continue it. Summarize it.
 						Your summary will be used to continue this conversation in a new context window, so preserve:
 
@@ -378,12 +378,9 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 						Keep the whole summary under about %d words.
 						""".formatted(summaryWordBudget(summaryTokens));
 
-		Room throwawayRoom = RoomUtils.createRoomIfNotExists(null, this.insight, modelEngine, null);
-		InputMessage summarizationMsg = InputMessage.builder(throwawayRoom).withText(summarizationPrompt)
-				.withModelType(modelEngine.getModelType())
-				.withParamMap(new HashMap<>(Map.of(AbstractModelEngine.MAX_TOKENS, summaryTokens))).build();
-		ResponseMessage summaryResponse = throwawayRoom.ask(summarizationMsg, modelEngine);
-		String summaryText = summaryResponse != null ? summaryResponse.getContent() : null;
+		AskModelEngineResponse<?> summaryResponse = askForSummary(room, modelEngine, summarizationPrompt,
+				summaryTokens);
+		String summaryText = summaryResponse != null ? summaryResponse.getStringResponse() : null;
 		if (summaryText == null || summaryText.isBlank()) {
 			result.put("success", false);
 			result.put("error", "Model could not generate a summary");
@@ -424,7 +421,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
 				The following are the most recent messages verbatim:
 
-				""" + keepTranscript;
+				""" + fitTranscript(keepTranscript.toString(), keptTranscriptCharBudget(modelEngine));
 
 		// Build the summary placeholder as a new user message at the root of the kept
 		// chain
@@ -450,22 +447,13 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		// summary response tokens + last n messages tokens - original tokens in that
 		// span (to avoid double counting)
 		compactedResponse.setTokensInMessage(
-				summaryResponse.getTokensInMessage() + lastMessagesTokenCount - beforeSummaryTokenCount);
-
-		List<AbstractMessage> messages = room.getMessages();
-		messages.add(compactedMessage);
-		messages.add(compactedResponse);
+				summaryResponse.getNumberOfTokensInResponse() + lastMessagesTokenCount - beforeSummaryTokenCount);
 
 		try {
-			RoomMessageStore.persist(room, this.insight.getUser().getPrimaryLoginToken().getId());
+			// the summary call can take a while: add the pair to the room's latest messages
+			// under its locks, so a write made meanwhile is kept
+			room.appendCompaction(messageId, false, compactedMessage, compactedResponse, this.insight);
 		} catch (Exception e) {
-			// Roll back the in-memory mutations so the cached Room stays in sync with the
-			// DB.
-			// Room objects are process-cached (RoomUtils), so leaking dirty state here
-			// would
-			// corrupt future requests for this room until the cache is evicted.
-			messages.remove(compactedResponse);
-			messages.remove(compactedMessage);
 			classLogger.error("Failed to persist SUMMARY compaction for room {}; rolled back in-memory changes",
 					room.getId(), e);
 			result.put("success", false);
@@ -499,6 +487,84 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		return Math.max(100, (int) (tokenBudget * 0.6));
 	}
 
+	/** Whether every tool call on the branch has its result, so it can be sent as it is. */
+	private static boolean isSendable(List<AbstractMessage> branch) {
+		return MessageUtils.sendablePrefixLength(branch) == branch.size();
+	}
+
+	/**
+	 * Asks for the summary without storing anything: the request goes through the
+	 * model's normal limits and logging, against the compacted room's id, from an
+	 * in-memory room with no history and no tools.
+	 */
+	private AskModelEngineResponse<?> askForSummary(Room room, IModelEngine modelEngine, String prompt,
+			int summaryTokens) {
+		Room summarizer = new Room();
+		summarizer.setId(room.getId());
+		summarizer.setProjectId(room.getProjectId());
+		summarizer.setInsight(this.insight);
+		Map<String, Object> params = new HashMap<>(Map.of(AbstractModelEngine.MAX_TOKENS, summaryTokens));
+		InputMessage summarizationMsg = InputMessage.builder(summarizer).withText(prompt)
+				.withModelType(modelEngine.getModelType()).withParamMap(new HashMap<>(params)).build();
+		return modelEngine.askRoom(summarizationMsg, summarizer, params);
+	}
+
+	/**
+	 * The most transcript characters the summary request can carry: the window,
+	 * less the reply and the instructions, at chars / 4, with a fifth spare.
+	 * Unlimited when the window is unknown.
+	 */
+	static int summaryTranscriptCharBudget(IModelEngine modelEngine, int summaryTokens) {
+		int contextWindow = contextWindow(modelEngine);
+		if (contextWindow <= 0) {
+			return Integer.MAX_VALUE;
+		}
+		long tokens = (long) contextWindow - summaryTokens - SUMMARY_PROMPT_TOKENS;
+		return (int) Math.max(MIN_TRANSCRIPT_CHARS, Math.min(Integer.MAX_VALUE, tokens * 4 * 4 / 5));
+	}
+
+	/** The most characters of verbatim messages kept beside the summary. */
+	static int keptTranscriptCharBudget(IModelEngine modelEngine) {
+		int contextWindow = contextWindow(modelEngine);
+		if (contextWindow <= 0) {
+			return Integer.MAX_VALUE;
+		}
+		return (int) Math.max(MIN_TRANSCRIPT_CHARS, (long) contextWindow * 4 * KEPT_WINDOW_PERCENT / 100);
+	}
+
+	private static int contextWindow(IModelEngine modelEngine) {
+		try {
+			return modelEngine.getContextWindow();
+		} catch (RuntimeException e) {
+			return 0;
+		}
+	}
+
+	/**
+	 * Shortens a transcript to at most {@code maxChars}, keeping its start, where
+	 * the goal usually is, and most of its end, and saying how much was left out.
+	 */
+	static String fitTranscript(String transcript, int maxChars) {
+		if (transcript.length() <= maxChars) {
+			return transcript;
+		}
+		int head = maxChars / 4;
+		int tail = Math.max(0, maxChars - head - 100);
+		int omitted = transcript.length() - head - tail;
+		return transcript.substring(0, head) + "\n\n[... " + omitted
+				+ " characters of the conversation left out to fit the model's context ...]\n\n"
+				+ transcript.substring(transcript.length() - tail);
+	}
+
+	/** Tool arguments and output past {@value #MAX_TOOL_TEXT_CHARS} characters are cut, with a note. */
+	static String capToolText(String text) {
+		if (text == null || text.length() <= MAX_TOOL_TEXT_CHARS) {
+			return text;
+		}
+		return text.substring(0, MAX_TOOL_TEXT_CHARS) + " [... " + (text.length() - MAX_TOOL_TEXT_CHARS)
+				+ " more characters left out]";
+	}
+
 	private static void appendMessageToTranscript(AbstractMessage m, StringBuilder transcript) {
 		String text = getMessageText(m);
 		if (text != null && !text.isBlank()) {
@@ -509,7 +575,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 			for (MessagePart part : m.getParts()) {
 				if (part instanceof ToolCallMessagePart) {
 					Map<String, Object> toolCall = ((ToolCallMessagePart) part).getToolCall();
-					transcript.append("Assistant calls tool: ").append(toolCall).append("\n\n");
+					transcript.append("Assistant calls tool: ").append(capToolText(String.valueOf(toolCall)))
+							.append("\n\n");
 				}
 			}
 		}
@@ -523,7 +590,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 					String toolName = result.getToolName();
 					String output = result.getOutput();
 					transcript.append("Tool result").append(toolName != null ? " for " + toolName : "").append(": ")
-							.append(output != null ? output : "").append("\n\n");
+							.append(output != null ? capToolText(output) : "").append("\n\n");
 				}
 			}
 		}
@@ -637,7 +704,10 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 						+ "This tool can be called at the LLMs discretion when the context window is at risk of being exceeded, or manually by the user. "
 						+ "If no compaction type is specified, the reactor will attempt to auto-detect the best strategy based on the content of the messages. "
 						+ "Note that compaction by summarization is a lossy operation and should be used with care.")
-				.key(ReactorKeysEnum.ROOM_ID, "The room id for which to compact messages").key(COMPACTION_TYPES_KEY,
+				.key(ReactorKeysEnum.ROOM_ID, "The room id for which to compact messages")
+				.key(ReactorKeysEnum.PARENT_MESSAGE_ID,
+						"The last message of the branch to compact, an assistant response with no unanswered tool calls")
+				.key(COMPACTION_TYPES_KEY,
 						"Method(s) to apply for compacting messages. Valid values: " + VALID_COMPACTION_TYPES
 								+ ". If not provided, compaction type will be auto-detected based on message content.");
 	}
