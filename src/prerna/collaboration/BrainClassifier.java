@@ -93,6 +93,15 @@ public interface BrainClassifier {
 
 	Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight);
 
+	/**
+	 * How surely a machine-sent message needs the owner personally to act (a ticket assigned to them, an
+	 * approval waiting on them), in [0, 1]; null when this classifier cannot say. Asked on its own, never
+	 * with score: more questions in one call moved the other answers when it was tried.
+	 */
+	default Double demand(ThreadInput thread, Insight insight) {
+		return null;
+	}
+
 	// picks the classifier for an engine by its model type: TypeSafe (Jev) or any
 	// chat model
 	static BrainClassifier forEngine(String engineId, IModelEngine model) {

@@ -28,6 +28,8 @@
 package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -220,6 +222,105 @@ class BrainThreadClassifierDbUnitTests {
 
 	// ---- helpers ----
 
+	@Test
+	void aNoticeFromTheOwnersOrganisationThatNeedsThemRaisesOneItemPerTicketAndAClosingNoticeFinishesIt()
+			throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM) VALUES (?, ?, 'desk', "
+				+ "'EHS System', 'ehs-system@test.com')", ownerId, ownerType);
+		// assigned, then a reminder in its own thread: the same ticket, so still one item
+		assertTrue(notice("assigned", "Corrective Action CA-318 Assigned to You", "desk", 0.9));
+		assertTrue(notice("reminder", "Escalation: CA-318 is overdue", "desk", 0.9));
+		assertEquals(List.of(List.of("notice:CA-318", "errand", "open")), items());
+		// an approval with no ticket id is its own item
+		assertTrue(notice("timesheet", "Timesheet awaiting your approval - Marco Bellini", "desk", 0.8));
+		assertEquals(2, items().size());
+		// a status notice raises nothing, and one that says the ticket is closed finishes its item
+		assertFalse(notice("update", "CA-318 photo evidence received", "desk", 0.1));
+		assertEquals("open", items().get(0).get(2));
+		assertFalse(notice("closed", "Corrective Action CA-318 Closed", "desk", 0.1));
+		assertEquals(List.of("notice:CA-318", "errand", "done"), items().get(0));
+		// each notice is asked about once: a second run over the same mail does not call the model again
+		assertFalse(noticeAgain("assigned", "Corrective Action CA-318 Assigned to You"));
+	}
+
+	@Test
+	void aNoticeFromOutsideTheOwnersOrganisationIsNeverAskedAbout() throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM) VALUES (?, ?, 'spam', "
+				+ "'IT Helpdesk', 'it-helpdesk@elsewhere.example')", ownerId, ownerType);
+		// the classifier would say it needs the owner ("verify your mailbox"): it is not asked
+		assertFalse(notice("phish", "Verify Your Mailbox to Avoid Suspension", "spam", null));
+		assertTrue(items().isEmpty());
+	}
+
+	// one machine notice on its own thread, judged as classifyOne would after sorting it automated; demand is
+	// the classifier's answer, null when asking at all is a failure
+	private boolean notice(String threadId, String subject, String senderId, Double demand) throws Exception {
+		insertNotice(threadId, subject, senderId);
+		return judge(threadId, subject, demand);
+	}
+
+	private boolean noticeAgain(String threadId, String subject) throws Exception {
+		return judge(threadId, subject, null);
+	}
+
+	private void insertNotice(String threadId, String subject, String senderId) throws Exception {
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, SUBJECT, MUTED, AUTOMATED) "
+				+ "VALUES (?, ?, ?, ?, 'email', ?, FALSE, TRUE)", ownerId, ownerType, threadId, "email:" + threadId, subject);
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, "
+				+ "RECEIVED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, "key-" + threadId, threadId,
+				"g-" + threadId, senderId, java.sql.Timestamp.valueOf("2026-11-05 10:00:00"));
+	}
+
+	private boolean judge(String threadId, String subject, Double demand) throws Exception {
+		BrainClassifier classifier = new BrainClassifier() {
+			@Override
+			public String version() {
+				return "test-v1";
+			}
+
+			@Override
+			public Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight) {
+				throw new UnsupportedOperationException();
+			}
+
+			@Override
+			public Double demand(ThreadInput thread, Insight insight) {
+				if (demand == null) {
+					throw new AssertionError("the model was asked about a notice it should not see");
+				}
+				return demand;
+			}
+		};
+		Class<?> context = Class.forName(BrainThreadClassifier.class.getName() + "$Context");
+		Method notice = BrainThreadClassifier.class.getDeclaredMethod("notice", context, String.class, Map.class,
+				List.class);
+		notice.setAccessible(true);
+		Map<String, Object> message = new LinkedHashMap<>();
+		message.put("id", "g-" + threadId);
+		message.put("at", "2026-11-05T10:00:00Z");
+		message.put("text", subject);
+		message.put("fromName", "EHS System");
+		Map<String, Object> extra = Map.of("classifier", classifier, "self",
+				new BrainThreadClassifier.Self("self", "Owner", Set.of("owner@test.com")), "window",
+				BrainThreadClassifier.window((Object) null), "timeZone", java.time.ZoneOffset.UTC, "ownOrg",
+				BrainOrgDomains.of(List.of(), "test.com"));
+		return (Boolean) notice.invoke(null, context(context, extra), threadId,
+				Map.of("subject", subject, "source", "email"), List.of(message));
+	}
+
+	// [dedupe key, ask type, status] of every item, oldest first
+	private List<List<Object>> items() throws Exception {
+		List<List<Object>> out = new ArrayList<>();
+		try (java.sql.Statement statement = connection.createStatement();
+				java.sql.ResultSet rs = statement
+						.executeQuery("SELECT DEDUPE_KEY, ASK_TYPE, STATUS FROM WORK_ITEM ORDER BY CREATED_AT, ITEM_ID")) {
+			while (rs.next()) {
+				out.add(List.of(rs.getString(1), rs.getString(2), rs.getString(3)));
+			}
+		}
+		return out;
+	}
+
 	// the model's topic scores, best first, with the rest on "Something else"; run as classifyOne would
 	private void file(Object... ranked) throws Exception {
 		Map<String, Double> topics = new LinkedHashMap<>();
@@ -239,8 +340,14 @@ class BrainThreadClassifierDbUnitTests {
 
 	// the run's context with what filing reads; everything else empty
 	private Object context(Class<?> type) throws Exception {
-		Map<String, Object> values = Map.of("user", user, "ownerId", ownerId, "ownerType", ownerType, "classifier",
-				CLASSIFIER, "fileAt", BrainProfileUtils.DEFAULT_FILE_AT, "askAt", BrainProfileUtils.DEFAULT_ASK_AT);
+		return context(type, Map.of());
+	}
+
+	private Object context(Class<?> type, Map<String, Object> extra) throws Exception {
+		Map<String, Object> values = new LinkedHashMap<>(Map.of("user", user, "ownerId", ownerId, "ownerType",
+				ownerType, "classifier", CLASSIFIER, "fileAt", BrainProfileUtils.DEFAULT_FILE_AT, "askAt",
+				BrainProfileUtils.DEFAULT_ASK_AT));
+		values.putAll(extra);
 		RecordComponent[] parts = type.getRecordComponents();
 		Class<?>[] types = new Class<?>[parts.length];
 		Object[] args = new Object[parts.length];

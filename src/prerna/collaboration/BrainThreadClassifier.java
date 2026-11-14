@@ -94,6 +94,16 @@ public final class BrainThreadClassifier {
 	private static final int TODAY_DAYS = 1;
 	private static final int WEEK_DAYS = 7;
 	static final int WAY_OUT_ASK_BAND = 15;
+	// a machine notice from the owner's own organisation needs the owner at this much of the demand answer. On the
+	// held-out mailbox (quillfield, 2026-11-14) 0.5 found 18 of the 26 notices that needed the owner with 3 false;
+	// without the own-organisation rule the same question also flagged most spam
+	static final double NOTICE_AT = 0.5;
+	// "CA-318", "INC-21547", "GLA-2024-117": the ticket, request or order a notice is about
+	private static final java.util.regex.Pattern TICKET = java.util.regex.Pattern
+			.compile("#?\\b([A-Z][A-Z0-9]{1,7}-\\d{2,}(?:-\\d+)*)\\b");
+	private static final java.util.regex.Pattern TICKET_OVER = java.util.regex.Pattern.compile(
+			"\\b(closed|resolved|completed|approved|cancelled|canceled|withdrawn|paid)\\b",
+			java.util.regex.Pattern.CASE_INSENSITIVE);
 	// a VIP of the best topic writing on the thread: this much surer it belongs there (untuned)
 	static final int VIP_FILING_POINTS = 10;
 
@@ -319,7 +329,7 @@ public final class BrainThreadClassifier {
 			boolean dryRun, Self self, Set<String> vips, Map<String, Set<String>> topicVips,
 			List<BrainRulesGate.Rule> rules, Set<String> followed, Set<String> automatedSenders,
 			Map<String, BrainClassifier.Scores> scored, Window window, ZoneId timeZone, BrainMailFolders.Tree folders,
-			Map<String, String> linkedFolders, BrainTopicEvidence.Evidence evidence) {
+			Map<String, String> linkedFolders, BrainTopicEvidence.Evidence evidence, BrainOrgDomains.Org ownOrg) {
 	}
 
 	// how much of a thread one model call carries; budget is characters for all messages together
@@ -353,7 +363,15 @@ public final class BrainThreadClassifier {
 				BrainProfileUtils.timeZone(user), BrainMailFolders.load(ownerId, ownerType),
 				BrainMailFolders.linkedTopics(ownerId, ownerType),
 				// read once for the run, so results do not depend on the order threads finish in
-				BrainTopicEvidence.load(ownerId, ownerType, topics, rules));
+				BrainTopicEvidence.load(ownerId, ownerType, topics, rules), ownOrg(ownerId, ownerType));
+	}
+
+	// the owner's organisation, by the domains it mails from
+	private static BrainOrgDomains.Org ownOrg(String ownerId, String ownerType) {
+		String myDomain = BrainMailImport.domain(CollaborationDbUtils.queryOne("SELECT EMAIL_NORM FROM BRAIN_PERSON "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?", rs -> rs.getString(1), ownerId, ownerType,
+				"self"));
+		return BrainOrgDomains.load(ownerId, ownerType, myDomain);
 	}
 
 	private static Result classifyOne(Context ctx, String threadId) {
@@ -375,14 +393,18 @@ public final class BrainThreadClassifier {
 		boolean notAutomated = Boolean.TRUE.equals(thread.get("override"));
 		// marked automated by an earlier run: no model call
 		if (!ctx.dryRun() && !notAutomated && Boolean.TRUE.equals(thread.get("automated"))) {
-			return new Result(threadId, null, null, null, "automated", null, null, null);
+			// a sender typed as automated marks its threads without their being read here: its notices are
+			// asked about once all the same
+			return new Result(threadId, null, null, null, notice(ctx, threadId, thread, null) ? "notice" : "automated",
+					null, null, null);
 		}
 		// the owner never wrote here and everyone else is an automated sender or says machine-sent: no model call
 		if (!ctx.dryRun() && !notAutomated && machineOnly(ctx, threadId)) {
 			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 					+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
 			ctx.scored().remove(threadId);
-			return new Result(threadId, null, null, null, "automated", null, null, null);
+			return new Result(threadId, null, null, null, notice(ctx, threadId, thread, null) ? "notice" : "automated",
+					null, null, null);
 		}
 		Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId,
 				ctx.window().messages(), BrainMessageSource.current());
@@ -435,7 +457,8 @@ public final class BrainThreadClassifier {
 						.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 								+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
 			}
-			return new Result(threadId, topicId, confidence, band, "automated", null, signals, null);
+			return new Result(threadId, topicId, confidence, band,
+					notice(ctx, threadId, thread, messages) ? "notice" : "automated", null, signals, null);
 		}
 		// just filed in a topic that ignores the sender: their message is not used
 		if (sender.keptOut()) {
@@ -646,6 +669,93 @@ public final class BrainThreadClassifier {
 				// each topic with what is filed under it, less this thread's own subject
 				kept ? List.of() : BrainTopicEvidence.describe(ctx.topics(), ctx.evidence(), threadId),
 				ctx.insight());
+	}
+
+	// Machine mail is left out of Work, but some of it is the cleanest ask there is: a ticket assigned to the
+	// owner, an approval waiting on them. A notice from the owner's own organisation is asked one more question
+	// (its own model call), and when it needs the owner it raises an item, one per ticket however many notices
+	// name it. A later notice that says the ticket is closed finishes that item. messages: already read, or null.
+	// True when the thread's newest notice needs the owner; a dry run writes nothing
+	private static boolean notice(Context ctx, String threadId, Map<String, Object> thread,
+			List<Map<String, Object>> messages) {
+		if (!"email".equals(thread.get("source"))) {
+			return false;
+		}
+		// the newest sender's organisation, from the database: no mail is fetched for anyone else's notices
+		// and each notice is asked about once: CLASSIFIED_AT on the message says it was
+		Object[] sent = CollaborationDbUtils.queryOne(CollaborationDbUtils.page("SELECT p.EMAIL_NORM, m.MESSAGE_KEY, "
+				+ "m.CLASSIFIED_AT FROM BRAIN_MESSAGE m JOIN BRAIN_PERSON p ON p.OWNER_ID = m.OWNER_ID AND "
+				+ "p.OWNER_TYPE = m.OWNER_TYPE AND p.PERSON_ID = m.SENDER_PERSON_ID WHERE m.OWNER_ID = ? AND "
+				+ "m.OWNER_TYPE = ? AND m.THREAD_ID = ? ORDER BY m.RECEIVED_AT DESC", 1, 0),
+				rs -> new Object[] { rs.getString(1), rs.getString(2), rs.getTimestamp(3) }, ctx.ownerId(),
+				ctx.ownerType(), threadId);
+		String domain = sent == null ? null : BrainMailImport.domain((String) sent[0]);
+		if (domain == null || !ctx.ownOrg().isMine(domain) || (sent[2] != null && !ctx.dryRun())) {
+			return false;
+		}
+		String subject = (String) thread.get("subject");
+		java.util.regex.Matcher named = TICKET.matcher(subject == null ? "" : subject);
+		String ticket = named.find() ? named.group(1) : null;
+		if (messages == null) {
+			messages = used(BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId,
+					NEWEST_ONLY_MESSAGES, BrainMessageSource.current()));
+		}
+		if (messages.isEmpty()) {
+			return false;
+		}
+		Map<String, Object> newest = messages.get(messages.size() - 1);
+		Double demand = ctx.classifier().demand(input(ctx, threadId, subject, messages), ctx.insight());
+		if (demand != null && !ctx.dryRun()) {
+			CollaborationDbUtils.update("UPDATE BRAIN_MESSAGE SET CLASSIFIED_AT = ?, CLASSIFIER_VERSION = ? WHERE "
+					+ "OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?", CollaborationDbUtils.now(),
+					clip(ctx.classifier().version(), 50), ctx.ownerId(), ctx.ownerType(), sent[1]);
+		}
+		if (demand == null || demand < NOTICE_AT) {
+			// "Ticket INC-20774 Closed": whatever an earlier notice about it raised is done
+			if (demand != null && ticket != null && !ctx.dryRun() && TICKET_OVER.matcher(subject).find()) {
+				WorkItemUtils.closeNotice(ctx.ownerId(), ctx.ownerType(), ticket);
+			}
+			return false;
+		}
+		if (!ctx.dryRun()) {
+			Map<String, Object> item = new LinkedHashMap<>();
+			item.put("dedupeKey", WorkItemUtils.NOTICE_KEY + (ticket != null ? ticket : threadId + ":" + newest.get("id")));
+			item.put("threadId", threadId);
+			item.put("channel", "email");
+			item.put("title", subject == null ? "(no subject)" : subject);
+			item.put("askType", subject != null && subject.toLowerCase(java.util.Locale.ROOT).contains("approv")
+					? "approve" : "errand");
+			item.put("receivedAt", newest.get("at"));
+			item.put("sourceRef", newest.get("id"));
+			item.put("actorName", newest.get("fromName"));
+			item.put("status", "open");
+			item.put("suggested", false);
+			item.put("priority", "P2");
+			item.put("reasons", ticket == null ? List.of("A system notice that needs you")
+					: List.of("A system notice that needs you", ticket));
+			item.put("classifierVersion", ctx.classifier().version());
+			item.put("reason", "classifier");
+			WorkItemUtils.ingestOnThread(ctx.ownerId(), ctx.ownerType(), item);
+		}
+		return true;
+	}
+
+	// the thread as the classifier reads it: newest messages within the window's budget
+	private static BrainClassifier.ThreadInput input(Context ctx, String threadId, String subject,
+			List<Map<String, Object>> messages) {
+		Window window = ctx.window();
+		List<BrainClassifier.Message> input = new ArrayList<>();
+		int left = window.budget();
+		for (int i = messages.size() - 1; i >= 0 && left > 0; i--) {
+			Map<String, Object> m = messages.get(i);
+			String text = clip(m.get("text"), Math.min(left,
+					Boolean.TRUE.equals(m.get("history")) ? window.historyChars() : window.textChars()));
+			left -= text.length();
+			input.add(0, new BrainClassifier.Message(from(ctx, m), names(ctx.self(), m.get("to")),
+					names(ctx.self(), m.get("cc")), (String) m.get("at"), text, null));
+		}
+		return new BrainClassifier.ThreadInput(threadId, ctx.self().name(), subject, participants(ctx, threadId), input,
+				window.earlier(), RuntimeTimeContext.capture(ctx.timeZone()), null);
 	}
 
 	private static String clip(Object value, int max) {

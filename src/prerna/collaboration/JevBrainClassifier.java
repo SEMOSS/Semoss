@@ -110,6 +110,26 @@ final class JevBrainClassifier implements BrainClassifier {
 		return new Scores(topicScores, noul(answers, "fyi"), noul(answers, "automated"), score.doubleValue(), answers);
 	}
 
+	@Override
+	public Double demand(ThreadInput thread, Insight insight) {
+		Map<String, Object> state = state(thread);
+		// the notice names the owner ("assigned to D. Reyes"), so the model has to know who "me" is
+		if (thread.ownerName() != null && !thread.ownerName().isBlank()) {
+			state.put("owner", Map.of("id", "me", "name", thread.ownerName()));
+		}
+		Map<String, Object> questions = new LinkedHashMap<>();
+		questions.put("act", question("noul", "This is a machine-sent notice (a ticket, approval request, work order, "
+				+ "portal or system alert). Does it require the owner (\"me\", named in owner) personally to do something: "
+				+ "approve, sign, respond, upload, renew, fix or close it? Answer no when it only reports a status, when "
+				+ "it names someone else as the assignee or owner, when it is marketing, or when it looks like phishing.",
+				null));
+		Map<String, Object> answers = map(engine.evaluate(state, questions, insight, null).getResponse().get("answers"));
+		if (answers == null) {
+			throw new IllegalStateException("The classifier model returned no answers");
+		}
+		return noul(answers, "act");
+	}
+
 	// the thread as Jev state. Earlier messages go in unless the engine's window is set to 0: laya did best on the
 	// newest message alone, diffusion Gemma does much better with them (BrainThreadClassifier.MESSAGES)
 	static Map<String, Object> state(ThreadInput thread) {
