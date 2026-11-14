@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
@@ -60,5 +62,20 @@ class BrainThreadClassifierUnitTests {
 		List<Map<String, Object>> namesake = List.of(Map.of("name", "Owner", "address", "owner@elsewhere.com"));
 		assertEquals("none",
 				BrainThreadClassifier.recipientRole(OWNER, Map.of("to", namesake, "cc", namesake), "email"));
+	}
+
+	@Test
+	void aModelReadsEarlierMessagesUnlessItsWindowSaysOtherwise() {
+		// no setting: the newest message and up to nine before it, inside a fixed budget
+		BrainThreadClassifier.Window standard = BrainThreadClassifier.window((Object) null);
+		assertEquals(10, standard.messages());
+		assertEquals(12000, standard.budget());
+		assertTrue(standard.earlier());
+		// 0: the newest message alone
+		assertFalse(BrainThreadClassifier.window((Object) 0).earlier());
+		// a context window in tokens: half of it, at three characters a token
+		BrainThreadClassifier.Window wide = BrainThreadClassifier.window((Object) 16000);
+		assertEquals(24000, wide.budget());
+		assertTrue(wide.earlier());
 	}
 }

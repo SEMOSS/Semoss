@@ -41,8 +41,8 @@ import prerna.util.RuntimeTimeContext;
 public interface BrainClassifier {
 
 	/**
-	 * What a classifier sees: the gated thread, never more. earlier: the engine's
-	 * window fits the earlier messages too (COLLAB_CLASSIFIER_WINDOW).
+	 * What a classifier sees: the gated thread, never more. earlier: the messages before the
+	 * newest are included (the default; COLLAB_CLASSIFIER_WINDOW 0 for an engine leaves them out).
 	 * currentTime is captured by the server before scoring, with the owner's timezone.
 	 */
 	record ThreadInput(String threadId, String ownerName, String subject, List<String> participants,

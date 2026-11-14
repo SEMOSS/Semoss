@@ -68,13 +68,19 @@ public final class BrainThreadClassifier {
 	// threads classified at once; RDF_Map COLLAB_CLASSIFY_PARALLEL raises it for a model that keeps up
 	private static final int PARALLEL = 8;
 	private static final int MAX_PARALLEL = 32;
-	private static final int MESSAGES = 2;
+	// what one model call reads by default: the newest message and up to nine before it, 12,000 characters in
+	// all (about 4,000 tokens). On the fixture mailbox diffusion Gemma picked the right topic for 66% of threads
+	// from the newest message alone, 81% with three earlier messages and 83% with nine (chats: 34%, 63%, 80%)
+	private static final int MESSAGES = 10;
+	private static final int BUDGET_CHARS = 12000;
+	private static final int NEWEST_ONLY_MESSAGES = 2;
 	private static final int TEXT_CHARS = 1500;
 	// a forward, or mail from before the thread: the part that matters is under the
 	// note
 	private static final int HISTORY_CHARS = 5000;
 	// an engine with a window set (COLLAB_CLASSIFIER_WINDOW {engineId: contextTokens}) reads more: up to
-	// WIDE_MESSAGES messages, each as long as the cleaner keeps, with its footer, in half the window
+	// WIDE_MESSAGES messages, each as long as the cleaner keeps, with its footer, in half the window. A window of
+	// 0 reads the newest message alone, for a model that does better without the earlier ones
 	private static final int WIDE_MESSAGES = 10;
 	private static final int WIDE_TEXT_CHARS = 12000;
 	private static final int WIDE_FOOTER_CHARS = 2000;
@@ -317,8 +323,7 @@ public final class BrainThreadClassifier {
 	}
 
 	// how much of a thread one model call carries; budget is characters for all messages together
-	private record Window(int messages, int textChars, int historyChars, int footerChars, int budget,
-			boolean earlier) {
+	record Window(int messages, int textChars, int historyChars, int footerChars, int budget, boolean earlier) {
 	}
 
 	// the model, cutoffs, topics and people a run needs; fails when no model is set or the caller cannot use it
@@ -661,13 +666,19 @@ public final class BrainThreadClassifier {
 		return name == null || name.isBlank() ? address : name + " <" + address + ">";
 	}
 
-	// the short default the cutoffs were tuned on, unless RDF_Map gives this engine a context window
+	// the default, unless RDF_Map gives this engine a context window (or 0 for the newest message alone)
 	private static Window window(String engine) {
 		Map<String, Object> all = CollaborationDbUtils
 				.parseMap(Utility.getDIHelperProperty(Constants.COLLAB_CLASSIFIER_WINDOW));
-		Object tokens = all == null ? null : all.get(engine);
+		return window(all == null ? null : all.get(engine));
+	}
+
+	static Window window(Object tokens) {
+		if (tokens instanceof Number n && n.intValue() == 0) {
+			return new Window(NEWEST_ONLY_MESSAGES, TEXT_CHARS, HISTORY_CHARS, 0, Integer.MAX_VALUE, false);
+		}
 		if (!(tokens instanceof Number n) || n.intValue() < MIN_WINDOW_TOKENS) {
-			return new Window(MESSAGES, TEXT_CHARS, HISTORY_CHARS, 0, Integer.MAX_VALUE, false);
+			return new Window(MESSAGES, TEXT_CHARS, HISTORY_CHARS, 0, BUDGET_CHARS, true);
 		}
 		return new Window(WIDE_MESSAGES, WIDE_TEXT_CHARS, WIDE_TEXT_CHARS, WIDE_FOOTER_CHARS,
 				n.intValue() / 2 * CHARS_PER_TOKEN, true);

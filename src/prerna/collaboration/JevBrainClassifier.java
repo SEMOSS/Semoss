@@ -110,9 +110,8 @@ final class JevBrainClassifier implements BrainClassifier {
 		return new Scores(topicScores, noul(answers, "fyi"), noul(answers, "automated"), score.doubleValue(), answers);
 	}
 
-	// the thread as Jev state; laya did best on the newest message alone (two
-	// messages and the owner's name dropped topic accuracy in the fixture eval), so
-	// earlier messages go in only when the engine's window is set for them
+	// the thread as Jev state. Earlier messages go in unless the engine's window is set to 0: laya did best on the
+	// newest message alone, diffusion Gemma does much better with them (BrainThreadClassifier.MESSAGES)
 	static Map<String, Object> state(ThreadInput thread) {
 		Map<String, Object> state = new LinkedHashMap<>();
 		state.put("subject", thread.subject());
