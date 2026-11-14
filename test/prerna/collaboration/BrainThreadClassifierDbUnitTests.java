@@ -171,6 +171,28 @@ class BrainThreadClassifierDbUnitTests {
 	}
 
 	@Test
+	void aConfidentPickWithNoneOfTheTopicsPeopleOnTheThreadIsAsked() throws Exception {
+		person(A, "p-ana");
+		file(A, 0.95, B, 0.03);
+		assertEquals(List.of(List.of(A, "suggested", true), List.of(B, "suggested", false)), links());
+		assertEquals(List.of(List.of(A, B)), openQuestions());
+
+		// one of the topic's people on the thread: filed as before
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, ?, ?)",
+				ownerId, ownerType, THREAD, "p-ana");
+		file(A, 0.95, B, 0.03);
+		assertEquals(List.of(List.of(A, "confirmed", true)), links());
+		assertEquals(List.of(), openQuestions());
+	}
+
+	@Test
+	void aTopicWithNoPeopleFilesOnTheModelAlone() throws Exception {
+		person(B, "p-ben");
+		file(A, 0.95, B, 0.03);
+		assertEquals(List.of(List.of(A, "confirmed", true)), links());
+	}
+
+	@Test
 	void aFilingNeverTouchesAThreadTheOwnerFiled() throws Exception {
 		sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY, "
 				+ "CHANGED_BY) VALUES (?, ?, ?, ?, 'you', 100, TRUE, 'you')", ownerId, ownerType, THREAD, A);
@@ -271,6 +293,11 @@ class BrainThreadClassifierDbUnitTests {
 			}
 		}
 		return questions;
+	}
+
+	private void person(String topic, String personId) throws Exception {
+		sql("INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, PERSON_ID, STATE) VALUES (?, ?, ?, ?, "
+				+ "'member')", ownerId, ownerType, topic, personId);
 	}
 
 	private void sql(String sql, Object... params) throws Exception {

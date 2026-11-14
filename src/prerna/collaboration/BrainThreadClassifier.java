@@ -30,6 +30,7 @@ package prerna.collaboration;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -553,7 +554,7 @@ public final class BrainThreadClassifier {
 			}
 			if (OTHER_TOPIC.equals(bestId)) {
 				band = "unassigned";
-			} else if (confidence >= ctx.fileAt()) {
+			} else if (confidence >= ctx.fileAt() && !noneOfItsPeople(ctx, threadId, bestId)) {
 				band = "filed";
 				topicId = bestId;
 				if (!ctx.dryRun() && !link(ctx, threadId, bestId, "confirmed", confidence, scores.topics())) {
@@ -578,6 +579,25 @@ public final class BrainThreadClassifier {
 			}
 		}
 		return new Filing(topicId, confidence, band);
+	}
+
+	// a topic with people files on its own only when one of them is on the thread: a confident pick with none of
+	// them there was wrong as often as right on the fixture mailbox, so the owner is asked instead. A topic with no
+	// people yet files on the model alone
+	private static boolean noneOfItsPeople(Context ctx, String threadId, String topicId) {
+		String self = ctx.self() == null ? null : ctx.self().personId();
+		String people = "FROM BRAIN_TOPIC_PERSON tp WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.TOPIC_ID = ? "
+				+ "AND tp.STATE IN (?, ?) AND tp.PERSON_ID <> ?";
+		Object[] params = { ctx.ownerId(), ctx.ownerType(), topicId, BrainTopicUtils.MEMBER, BrainTopicUtils.SUGGESTED,
+				self == null ? "" : self };
+		if (!CollaborationDbUtils.exists("SELECT 1 " + people, params)) {
+			return false;
+		}
+		Object[] onThread = Arrays.copyOf(params, params.length + 1);
+		onThread[params.length] = threadId;
+		return !CollaborationDbUtils.exists("SELECT 1 " + people + " AND EXISTS (SELECT 1 FROM "
+				+ "BRAIN_THREAD_PARTICIPANT p WHERE p.OWNER_ID = tp.OWNER_ID AND p.OWNER_TYPE = tp.OWNER_TYPE "
+				+ "AND p.PERSON_ID = tp.PERSON_ID AND p.THREAD_ID = ?)", onThread);
 	}
 
 	// keyed by its candidates, so a new question replaces the open one; Brain's own close is undone, the owner's stands
