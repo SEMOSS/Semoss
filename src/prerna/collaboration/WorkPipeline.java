@@ -427,7 +427,9 @@ public final class WorkPipeline {
 				java.util.concurrent.atomic.AtomicInteger done = new java.util.concurrent.atomic.AtomicInteger();
 				java.util.concurrent.atomic.AtomicInteger found = new java.util.concurrent.atomic.AtomicInteger();
 				java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
-				ExecutorService reads = readPool.apply(Math.max(1, Math.min(extractParallel(), threadIds.size())));
+				int readers = Math.max(1, Math.min(extractParallel(), threadIds.size()));
+				// one reader reads on this thread: no pool to start for a single thread or a setting of 1
+				ExecutorService reads = readers == 1 ? new InPlace() : readPool.apply(readers);
 				try {
 					List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
 					for (String threadId : threadIds) {
@@ -1201,6 +1203,42 @@ public final class WorkPipeline {
 			}
 		}
 		pool.execute(() -> drain(lane));
+	}
+
+	// runs each job where it is submitted
+	private static final class InPlace extends java.util.concurrent.AbstractExecutorService {
+		private boolean shut;
+
+		@Override
+		public void execute(Runnable job) {
+			job.run();
+		}
+
+		@Override
+		public void shutdown() {
+			shut = true;
+		}
+
+		@Override
+		public List<Runnable> shutdownNow() {
+			shut = true;
+			return List.of();
+		}
+
+		@Override
+		public boolean isShutdown() {
+			return shut;
+		}
+
+		@Override
+		public boolean isTerminated() {
+			return shut;
+		}
+
+		@Override
+		public boolean awaitTermination(long timeout, java.util.concurrent.TimeUnit unit) {
+			return true;
+		}
 	}
 
 	private static int extractParallel() {

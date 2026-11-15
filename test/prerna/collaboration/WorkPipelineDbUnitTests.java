@@ -89,6 +89,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -697,6 +698,8 @@ class WorkPipelineDbUnitTests {
 		engine.when(() -> BrainTopicModel.engine(any())).thenReturn("work-model");
 		MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
 		utility.when(() -> Utility.getModel("work-model")).thenReturn(first, then);
+		// one reader, so threads are read on the test thread, where the static mocks are
+		utility.when(() -> Utility.getDIHelperProperty(Constants.COLLAB_WORK_EXTRACT_PARALLEL)).thenReturn("1");
 		return () -> {
 			utility.close();
 			engine.close();
