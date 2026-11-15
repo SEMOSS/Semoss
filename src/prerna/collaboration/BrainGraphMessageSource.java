@@ -31,12 +31,16 @@ import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
@@ -47,8 +51,18 @@ import prerna.security.HttpHelperUtility;
 // reads one message from Graph with the owner's delegated token, only after the rules let it through
 final class BrainGraphMessageSource implements BrainMessageSource {
 
+	private static final Logger classLogger = LogManager.getLogger(BrainGraphMessageSource.class);
+
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final int BATCH = 20;
+	private static final int SEARCH_PAGE = 50;
+	private static final int CONVERSATION_BATCH = 10;
+	private static final int CONVERSATION_PAGE = 25;
+	// what the rules need of a message, and no body
+	private static final String CONVERSATION_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId,"
+			+ "isDraft";
+	private static final String SEARCH_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId,"
+			+ "isDraft,bodyPreview";
 	private static final int RETRIES = 3;
 	private static final long MAX_WAIT_MS = 10000;
 	private static final String MAIL_SELECT = "subject,from,toRecipients,ccRecipients,body,uniqueBody,receivedDateTime,"
@@ -64,8 +78,126 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		}
 		String token = MicrosoftLoginUtils.getValidAccessToken(user);
 		Map<String, Object> message = CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(BASE + path,
-				MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+				MicrosoftLoginUtils.getBearerHeader(token), null, null, null, BrainGraphHeaderSource.TIMEOUT));
 		return "teams".equals(source) ? fromChat(message) : message;
+	}
+
+	// Graph's own index over subject and body: one search, followed page by page up to max. $search cannot be combined
+	// with $filter, so the dates ride in the query; a source that rejects them is asked again without
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> search(User user, List<String> terms, boolean all, Instant from, Instant to,
+			int max) throws Exception {
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		String words = String.join(all ? " AND " : " OR ", terms.stream().map(t -> t.replace("\"", " ")).toList());
+		String range = from == null || to == null ? ""
+				: " AND received:" + from.toString().substring(0, 10) + ".." + to.toString().substring(0, 10);
+		for (String query : range.isEmpty() ? List.of(words) : List.of("(" + words + ")" + range, words)) {
+			List<Map<String, Object>> out = new ArrayList<>();
+			String url = BASE + "/me/messages?$search=" + encode("\"" + query + "\"") + "&$top=" + SEARCH_PAGE
+					+ "&$select=" + SEARCH_SELECT;
+			try {
+				while (url != null && out.size() < max) {
+					Map<String, Object> page = CollaborationDbUtils.parseMap(
+							HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+					if (page.get("value") instanceof List<?> values) {
+						for (Object value : values) {
+							out.add((Map<String, Object>) value);
+						}
+					}
+					url = page.get("@odata.nextLink") instanceof String next ? next : null;
+				}
+			} catch (SemossPixelException e) {
+				throw e;
+			} catch (Exception e) {
+				if (query.equals(words)) {
+					throw e;
+				}
+				continue;
+			}
+			out.sort((a, b) -> String.valueOf(b.get("receivedDateTime")).compareTo(String.valueOf(a.get("receivedDateTime"))));
+			return out.size() > max ? new ArrayList<>(out.subList(0, max)) : out;
+		}
+		return List.of();
+	}
+
+	// Graph $batch of conversation listings, 10 a call: the messages of each conversation without their bodies, so a
+	// topic's mail can be listed whole whether or not it was imported, and the rules decide before a body is read.
+	// A conversation is followed page by page until perConversation messages are listed or it has no more. A
+	// throttled (429) or busy (5xx) listing is sent again; one that is refused, or still failing after the retries,
+	// counts in unread.
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> conversationMessages(User user, java.util.Collection<String> conversationIds,
+			int perConversation, java.util.concurrent.atomic.AtomicInteger unread) throws Exception {
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		List<String> ids = new ArrayList<>(conversationIds);
+		List<Map<String, Object>> out = new ArrayList<>();
+		int pageSize = Math.min(perConversation, CONVERSATION_PAGE);
+		for (int start = 0; start < ids.size(); start += CONVERSATION_BATCH) {
+			Map<String, Map<String, Object>> pending = new LinkedHashMap<>();
+			for (int i = start; i < Math.min(ids.size(), start + CONVERSATION_BATCH); i++) {
+				String filter = "conversationId eq '" + ids.get(i).replace("'", "''") + "'";
+				pending.put(String.valueOf(i), Map.of("id", String.valueOf(i), "method", "GET", "url",
+						"/me/messages?$filter=" + encode(filter) + "&$top=" + pageSize + "&$select="
+								+ CONVERSATION_SELECT));
+			}
+			Map<String, Integer> collected = new HashMap<>();
+			Map<String, Integer> retries = new HashMap<>();
+			while (!pending.isEmpty()) {
+				Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
+						BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
+						CollaborationDbUtils.toJson(Map.of("requests", new ArrayList<>(pending.values()))),
+						ContentType.APPLICATION_JSON, null, null, null, BrainGraphHeaderSource.TIMEOUT));
+				Map<String, Map<String, Object>> answered = new HashMap<>();
+				if (reply.get("responses") instanceof List<?> list) {
+					for (Object r : list) {
+						Map<String, Object> response = (Map<String, Object>) r;
+						answered.put(String.valueOf(response.get("id")), response);
+					}
+				}
+				Map<String, Map<String, Object>> next = new LinkedHashMap<>();
+				long wait = 0;
+				for (Map.Entry<String, Map<String, Object>> entry : pending.entrySet()) {
+					String id = entry.getKey();
+					Map<String, Object> response = answered.get(id);
+					int status = response != null && response.get("status") instanceof Number n ? n.intValue() : 0;
+					if (response != null && (status == 429 || status >= 500) && retries.getOrDefault(id, 0) < RETRIES) {
+						int attempt = retries.merge(id, 1, Integer::sum) - 1;
+						next.put(id, entry.getValue());
+						wait = Math.max(wait, retryAfter(response, attempt));
+					} else if (status == 200 && response.get("body") instanceof Map<?, ?> body
+							&& body.get("value") instanceof List<?> values) {
+						int have = collected.getOrDefault(id, 0);
+						for (Object value : values) {
+							if (have < perConversation) {
+								out.add((Map<String, Object>) value);
+								have++;
+							}
+						}
+						collected.put(id, have);
+						// the rest of a long conversation, from the link Graph gives for the next page
+						if (have < perConversation && body.get("@odata.nextLink") instanceof String link
+								&& link.startsWith(BASE)) {
+							next.put(id, Map.of("id", id, "method", "GET", "url", link.substring(BASE.length())));
+						}
+					} else {
+						classLogger.warn("Graph could not list a conversation of the topic: status {}", status);
+						unread.incrementAndGet();
+					}
+				}
+				pending = next;
+				if (wait > 0 && !pending.isEmpty()) {
+					try {
+						Thread.sleep(wait);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						break;
+					}
+				}
+			}
+		}
+		return out;
 	}
 
 	// Graph $batch, 20 a call: one round trip instead of one per message
@@ -105,7 +237,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 					Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 							BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 							CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
-							null, null));
+							null, null, BrainGraphHeaderSource.TIMEOUT));
 					responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list : List.of();
 				} catch (Exception e) {
 					for (Map<String, Object> request : requests) {
@@ -190,7 +322,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 				Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 						BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 						CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
-						null, null));
+						null, null, BrainGraphHeaderSource.TIMEOUT));
 				List<Object> responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list
 						: List.of();
 				List<Map<String, Object>> again = new ArrayList<>();
@@ -243,7 +375,8 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		String url = BASE + attachmentPath(graphId, attachmentId) + "?$select=" + ATTACHMENT_SELECT;
 		try {
 			return CollaborationDbUtils.parseMap(
-					HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+					HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null,
+							BrainGraphHeaderSource.TIMEOUT));
 		} catch (IllegalArgumentException e) {
 			// HttpHelperUtility reports a status as "... returned HTTP <code>"
 			if (String.valueOf(e.getMessage()).contains("returned HTTP 404")) {

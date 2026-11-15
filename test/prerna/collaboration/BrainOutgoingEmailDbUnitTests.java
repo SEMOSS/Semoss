@@ -269,6 +269,89 @@ class BrainOutgoingEmailDbUnitTests {
 		assertEquals(0, count("BRAIN_MESSAGE"));
 	}
 
+	// ---- whose topics a sent email takes ----
+
+	@Test
+	void aTopicBrainTaggedTheChatWithIsNotFiledAsTheOwnersOnSend() throws Exception {
+		chatTopic("topic-guessed", "brain");
+		chatTopic("topic-asked", "agent");
+		// the owner already said this conversation is not about the topic Brain then guessed for the chat
+		String threadId = sentThread();
+		CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE) "
+				+ "VALUES (?, ?, ?, 'email:conv-1', 'email')", ownerId, ownerType, threadId);
+		CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD_TOPIC_REJECTION (OWNER_ID, OWNER_TYPE, THREAD_ID, "
+				+ "TOPIC_ID) VALUES (?, ?, ?, 'topic-guessed')", ownerId, ownerType, threadId);
+
+		BrainOutgoingEmail.trackDraft(insight, "draft-1");
+
+		// the owner's own chat topic and the one they asked the assistant to tag, never Brain's guess
+		assertEquals(List.of("topic-1:you", "topic-asked:you"), links(threadId));
+		assertEquals("topic-guessed", value("SELECT TOPIC_ID FROM BRAIN_THREAD_TOPIC_REJECTION"));
+	}
+
+	@Test
+	void aTopicTheChatTookFromItsThreadIsFiledOnlyWhenTheOwnerFiledThatThread() throws Exception {
+		chatTopic("topic-thread", "thread");
+		threadChat("th-origin");
+		CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE) "
+				+ "VALUES (?, ?, 'th-origin', 'email:origin', 'email')", ownerId, ownerType);
+		CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE, "
+				+ "CONFIDENCE, IS_PRIMARY, CLASSIFIER_VERSION, CHANGED_BY) VALUES (?, ?, 'th-origin', 'topic-thread', "
+				+ "'confirmed', 90, TRUE, 'jev-v2:engine', 'brain')", ownerId, ownerType);
+
+		// Brain filed the chat's thread there: new mail from the chat is left for the next sync to file
+		BrainOutgoingEmail.trackDraft(insight, "draft-1");
+		assertEquals(List.of("topic-1:you"), links(sentThread()));
+
+		// the owner files that thread there themselves: mail sent from its chat follows
+		CollaborationDbUtils.update("UPDATE BRAIN_THREAD_TOPIC SET SOURCE = 'you' WHERE THREAD_ID = 'th-origin'");
+		BrainOutgoingEmail.trackDraft(insight, "draft-1");
+		assertEquals(List.of("topic-1:you", "topic-thread:you"), links(sentThread()));
+	}
+
+	@Test
+	void aReplySentFromAThreadsChatLeavesBrainsFilingOfThatThreadAGuess() throws Exception {
+		String threadId = sentThread();
+		chatTopic("topic-thread", "thread");
+		threadChat(threadId);
+		CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE) "
+				+ "VALUES (?, ?, ?, 'email:conv-1', 'email')", ownerId, ownerType, threadId);
+		CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE, "
+				+ "CONFIDENCE, IS_PRIMARY, CLASSIFIER_VERSION, CHANGED_BY) VALUES (?, ?, ?, 'topic-thread', 'confirmed', "
+				+ "90, TRUE, 'jev-v2:engine', 'brain')", ownerId, ownerType, threadId);
+
+		BrainOutgoingEmail.trackDraft(insight, "draft-1");
+
+		// replying is not filing: the classifier may still change its mind about this thread
+		assertEquals(List.of("topic-1:you", "topic-thread:confirmed"), links(threadId));
+	}
+
+	// a topic linked to the chat by the owner (you), the assistant on request (agent), Brain (brain) or its thread
+	private void chatTopic(String topicId, String origin) {
+		CollaborationDbUtils.update("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS) "
+				+ "VALUES (?, ?, ?, ?, 'active')", ownerId, ownerType, topicId, topicId);
+		CollaborationDbUtils.update("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, "
+				+ "ORIGIN) VALUES (?, ?, 'room-1', ?, 'linked', ?)", ownerId, ownerType, topicId, origin);
+	}
+
+	// the chat was opened from this thread
+	private void threadChat(String threadId) {
+		logs.when(() -> ModelInferenceLogsUtils.getActiveRoomSummaries(user.getPrimaryLoginToken().getId(),
+				List.of("room-1"))).thenReturn(List.of(Map.of("ROOM_ID", "room-1", "PROJECT_ID",
+						CollaborationUtils.COLLABORATION_PROJECT_ID, "OPTIONS",
+						"{\"source\":{\"threadId\":\"" + threadId + "\"}}")));
+	}
+
+	// the thread the draft's conversation is tracked as
+	private String sentThread() {
+		return "th-" + CollaborationDbUtils.deterministicId(ownerId, ownerType, "thread", "email:conv-1");
+	}
+
+	private List<String> links(String threadId) {
+		return CollaborationDbUtils.query("SELECT TOPIC_ID, SOURCE FROM BRAIN_THREAD_TOPIC WHERE THREAD_ID = ? "
+				+ "ORDER BY TOPIC_ID", rs -> rs.getString(1) + ":" + rs.getString(2), threadId);
+	}
+
 	private void draft(String conversationId) {
 		http.when(() -> HttpHelperUtility.getRequest(anyString(), anyMap(), isNull(), isNull(), isNull()))
 				.thenReturn("{\"id\":\"draft-1\",\"conversationId\":\"" + conversationId

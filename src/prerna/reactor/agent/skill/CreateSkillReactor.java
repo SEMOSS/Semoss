@@ -93,7 +93,8 @@ public class CreateSkillReactor extends AbstractReactor {
 	private static final String SKILL_CONTENT = "skillContent";
 
 	public CreateSkillReactor() {
-		this.keysToGet = new String[] { SKILL_CONTENT, ReactorKeysEnum.NAME.getKey(),
+		this.keysToGet = new String[] { SKILL_CONTENT,
+				ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.NAME.getKey(),
 				ReactorKeysEnum.DESCRIPTION.getKey(), };
 		this.keyRequired = new int[] { 1, 0, 0 };
 	}
@@ -103,7 +104,7 @@ public class CreateSkillReactor extends AbstractReactor {
 		organizeKeys();
 
 		Map<String, Object> response = create(this.insight.getUser(), this.keyValue.get(SKILL_CONTENT),
-				this.keyValue.get(ReactorKeysEnum.NAME.getKey()),
+				this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey()),
 				this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey()));
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
@@ -186,7 +187,7 @@ public class CreateSkillReactor extends AbstractReactor {
 				.key(SKILL_CONTENT,
 						"SKILL.md body, with or without a YAML frontmatter block. "
 								+ "A frontmatter block will be synthesized from 'name' and 'description' if absent")
-				.key(ReactorKeysEnum.NAME,
+				.key(ReactorKeysEnum.CATALOG_NAME,
 						"Display name. Wins over the SKILL.md frontmatter's 'name' when supplied; "
 								+ "frontmatter is the fallback only when this param is omitted entirely")
 				.key(ReactorKeysEnum.DESCRIPTION,

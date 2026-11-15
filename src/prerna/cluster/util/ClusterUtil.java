@@ -31,10 +31,10 @@ import java.io.File;
 import java.io.FileFilter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -93,12 +93,11 @@ public class ClusterUtil {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	public static String IMAGES_FOLDER_PATH = Utility.getBaseFolder() + DIR_SEPARATOR + "images";
 	// A successful folder refresh covers every resource in that catalog. Keep only
 	// a short, bounded in-memory record so stock-only cards do not each pull it
 	// again.
 	private static final Cache<String, Boolean> IMAGE_FOLDER_REFRESHES = CacheBuilder.newBuilder().maximumSize(64)
-			.expireAfterWrite(30, TimeUnit.SECONDS).build();
+			.expireAfterWrite(Duration.ofSeconds(30)).build();
 	private static final String SCHEDULER_EXECUTOR_KEY = "SCHEDULER_EXECUTOR";
 
 	private static final String IS_CLUSTERED_SCHEDULER_KEY = "SEMOSS_SCHEDULER_IS_CLUSTER";
@@ -111,21 +110,15 @@ public class ClusterUtil {
 							? Boolean.parseBoolean(System.getenv(IS_CLUSTERED_SCHEDULER_KEY))
 							: IS_CLUSTER);
 
-	/*
-	 * private static final String MULTIPLE_STORAGE_ACCOUNTS_KEY =
-	 * "MULTIPLE_STORAGE_ACCOUNTS"; public static final boolean
-	 * MULTIPLE_STORAGE_ACCOUNTS =
-	 * System.getenv().containsKey(MULTIPLE_STORAGE_ACCOUNTS_KEY) ?
-	 * Boolean.parseBoolean(System.getenv(MULTIPLE_STORAGE_ACCOUNTS_KEY)) : false;
-	 * 
-	 * private static final String MAIN_STORAGE_ACCOUNT_KEY =
-	 * "MAIN_STORAGE_ACCOUNT"; public static final String MAIN_STORAGE_ACOUNT =
-	 * System.getenv(MAIN_STORAGE_ACCOUNT_KEY);
-	 * 
-	 * 
-	 * //redis table info public static final String REDIS_STORAGE_ACCOUNT =
-	 * "storageAccount"; public static final String REDIS_TIMESTAMP = "timestamp";
+	/**
+	 * Returns the folder under the base folder that holds the engine and project
+	 * images. The base folder is read on each call.
+	 *
+	 * @return the images folder
 	 */
+	public static String getImagesFolderPath() {
+		return Utility.getBaseFolder() + DIR_SEPARATOR + "images";
+	}
 
 	/**
 	 * Determines whether this node runs the scheduled jobs. Outside a cluster every

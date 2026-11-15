@@ -51,6 +51,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -162,6 +163,18 @@ public final class WorkPipeline {
 		t.setDaemon(true);
 		return t;
 	});
+
+	/**
+	 * Opens the pool one run reads its threads on, with the given number of
+	 * threads; the run shuts it down when its reads are done. Not final so tests
+	 * can read on their own thread.
+	 */
+	static IntFunction<ExecutorService> readPool = size -> Executors.newFixedThreadPool(size, r -> {
+		Thread t = new Thread(r, "collaboration-work-items-extract");
+		t.setDaemon(true);
+		return t;
+	});
+
 	// a first build reads this many threads a run, each run its own job in the
 	// owner's lane, so other owners get the
 	// pool between them; a sync run that finishes a build cut off takes no more, so
@@ -410,12 +423,7 @@ public final class WorkPipeline {
 				java.util.concurrent.atomic.AtomicInteger done = new java.util.concurrent.atomic.AtomicInteger();
 				java.util.concurrent.atomic.AtomicInteger found = new java.util.concurrent.atomic.AtomicInteger();
 				java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
-				ExecutorService reads = Executors
-						.newFixedThreadPool(Math.max(1, Math.min(extractParallel(), threadIds.size())), r -> {
-							Thread t = new Thread(r, "collaboration-work-items-extract");
-							t.setDaemon(true);
-							return t;
-						});
+				ExecutorService reads = readPool.apply(Math.max(1, Math.min(extractParallel(), threadIds.size())));
 				try {
 					List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
 					for (String threadId : threadIds) {

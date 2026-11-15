@@ -44,6 +44,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,6 +111,7 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 		directory = mockStatic(MicrosoftGraphUserLookup.class);
 		prices = mockStatic(ModelUsageCost.class);
 		prices.when(() -> ModelUsageCost.hasKnownPrices(anyString())).thenReturn(false);
+		prices.when(() -> ModelUsageCost.priceEntry(anyString())).thenReturn(null);
 		pathView = mockStatic(ModelUsagePathView.class);
 		pathView.when(() -> ModelUsagePathView.toMap(any(ModelUsageLimitPath.class), eq(true))).thenAnswer(call -> Map
 				.of("billedLimitType", String.valueOf(call.<ModelUsageLimitPath>getArgument(0).getBilledLimitType())));
@@ -915,19 +917,18 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 		assertTrue(PermissionBatchUtils.sameLimit(expected, actual), "the limits differ");
 	}
 
-	@SuppressWarnings("unchecked")
 	private static Map<String, Object> map(Object value) {
-		return (Map<String, Object>) value;
+		Map<String, Object> copy = new LinkedHashMap<>();
+		((Map<?, ?>) value).forEach((key, entry) -> copy.put((String) key, entry));
+		return copy;
 	}
 
-	@SuppressWarnings("unchecked")
 	private static List<Map<String, Object>> list(Object value) {
-		return (List<Map<String, Object>>) value;
+		return ((List<?>) value).stream().map(PermissionBatchUtilsUsageLimitUnitTests::map).toList();
 	}
 
-	@SuppressWarnings("unchecked")
 	private static List<String> strings(Object value) {
-		return (List<String>) value;
+		return ((List<?>) value).stream().map(String.class::cast).toList();
 	}
 
 	private static List<Map<String, Object>> changes(Map<String, Object> result) {

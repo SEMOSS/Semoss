@@ -384,6 +384,17 @@ class BrainSyncDbUnitTests {
 	}
 
 	@Test
+	void theImportAfterOneThatWasCutOffCountsTheThreadsItLeft() throws Exception {
+		// the first run stopped before it counted its threads; the retry reads the same mail and skips it as imported
+		read(false);
+		assertEquals(0, value("SELECT MAX(MESSAGE_COUNT) FROM BRAIN_THREAD"));
+
+		read(false).refreshThreads();
+
+		assertEquals(1, value("SELECT MIN(MESSAGE_COUNT) FROM BRAIN_THREAD"));
+	}
+
+	@Test
 	void aWebhookImportTakesItsMessagesOnceItsStepsAreDone() throws Exception {
 		BrainSync.importHeaders(user, ownerId, ownerType, headers, new ArrayList<>(mailbox));
 		assertEquals(2, count("BRAIN_MESSAGE"));

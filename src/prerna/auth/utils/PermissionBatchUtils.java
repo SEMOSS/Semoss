@@ -1168,6 +1168,14 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			allowed.setCanChangePeople(level != null && AccessPermissionEnum.isEditor(level));
 			allowed.setOwner(level != null && AccessPermissionEnum.isOwner(level));
 			allowed.setCanChangeTeams(allowed.isOwner());
+			// a Digital Twin is shared with named people, never with a team. It is
+			// read only for someone who could change teams, so nobody else learns
+			// the project is one
+			if (allowed.isOwner() && target.getResourceType() == PermissionTargetResource.TargetResourceType.PROJECT
+					&& SecurityProjectUtils.isDigitalTwin(id)) {
+				allowed.setCanChangeTeams(false);
+				allowed.setTeamsReason(SecurityProjectUtils.DIGITAL_TWIN_PEOPLE_ONLY);
+			}
 			allowed.setAddsAreAdminOnly(!adminMode && allowed.canChangePeople() && isAddAdminOnly(target));
 			// only owners set usage limits, at any level: letting editors set them on
 			// Read-Only and Editor people would let an editor demote another editor,

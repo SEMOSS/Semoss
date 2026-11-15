@@ -146,18 +146,21 @@ public class SocketClientHandler implements Runnable {
 					}
 					int bytesRead = in.read(lenBytes, lenBytesReadSoFar, (lenBytes.length - lenBytesReadSoFar)); // blocking
 																													// read
-					lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
+					if (bytesRead < 0) {
+						readBytes = bytesRead;
+					} else {
+						lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
+					}
 				}
 
 				if (readBytes < 0) // stream is closed - kill this thread
 				{
 					done = true;
-					this.socketClient.crash();
+					this.socketClient.connectionEnded(null);
 				}
 			} catch (IOException e) {
-				classLogger.error("IO error reading from socket; crashing the client", e);
 				done = true;
-				this.socketClient.crash();
+				this.socketClient.connectionEnded(e);
 			}
 		}
 	}

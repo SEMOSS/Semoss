@@ -27,10 +27,13 @@
  *******************************************************************************/
 package prerna.io.connector.google;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
@@ -40,7 +43,6 @@ import prerna.util.BeanFiller;
 
 public class GoogleEntityResolver implements IConnectorIOp {
 
-	String[] beanProps = { "entity_name", "entity_type", "wiki_url", "content", "content_subtype" };
 	String jsonPattern = "entities[].{entity_name : name, entity_type : type, wiki_url : metadata.wikipedia_url, content : mentions[].text.content, content_subtype : mentions[].type}";
 
 	@Override
@@ -49,17 +51,23 @@ public class GoogleEntityResolver implements IConnectorIOp {
 		if (params == null) {
 			params = new HashMap<>();
 		}
-		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE);
-		String accessToken = googToken.getAccess_token();
+		String accessToken = IConnectorIOp.requireAccessToken(user, AuthProvider.GOOGLE).getAccess_token();
 
 		// make the API call
 		String url = "https://language.googleapis.com/v1/documents:analyzeEntities";
 		String jsonString = HttpHelperUtility.makePostCall(url, accessToken, params, true);
 
-		EntityResolution entity = new EntityResolution();
-		// fill the bean with the return
-		Object returnObj = BeanFiller.fillFromJson(jsonString, jsonPattern, beanProps, entity);
-		return returnObj;
+		List<JsonNode> nodes = BeanFiller.getJmesObjects(jsonString, jsonPattern);
+		if (nodes.isEmpty()) {
+			return new EntityResolution(null, null, null, null, null);
+		}
+		List<EntityResolution> entities = new ArrayList<>();
+		for (JsonNode node : nodes) {
+			entities.add(new EntityResolution(BeanFiller.getText(node, "entity_name"),
+					BeanFiller.getText(node, "entity_type"), BeanFiller.getText(node, "wiki_url"),
+					BeanFiller.getText(node, "content"), BeanFiller.getText(node, "content_subtype")));
+		}
+		return entities;
 	}
 
 }

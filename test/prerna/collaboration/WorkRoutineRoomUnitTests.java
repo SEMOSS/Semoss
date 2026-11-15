@@ -183,6 +183,8 @@ class WorkRoutineRoomUnitTests {
 		assertTrue(CollaborationAgentTools.appliesTo(room));
 		assertTrue(CollaborationUtils.isAssistantRoom(room));
 		assertEquals("collaboration-model", room.getOptionsMap().get("modelId"));
+		// the chat's assistant is told which routine's result it starts with
+		assertEquals(routineId, room.getOptionsMap().get(CollaborationUtils.ROOM_OPTION_ROUTINE_CHAT));
 		assertNotEquals("automation-room", id);
 	}
 

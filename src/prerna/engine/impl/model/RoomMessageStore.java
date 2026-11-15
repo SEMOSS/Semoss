@@ -412,6 +412,7 @@ public final class RoomMessageStore {
 		validateForPersistence(room, messages);
 
 		Set<String> toolCallIds = new HashSet<>();
+		Set<String> providerRunCallIds = new HashSet<>();
 		Set<String> toolResultIds = new HashSet<>();
 		for (AbstractMessage message : messages) {
 			for (MessagePart part : message.getParts()) {
@@ -419,6 +420,9 @@ public final class RoomMessageStore {
 					String toolCallId = toolCallId((ToolCallMessagePart) part);
 					if (toolCallId != null) {
 						toolCallIds.add(toolCallId);
+						if (MessageUtils.isServerToolCall(((ToolCallMessagePart) part).getToolCall())) {
+							providerRunCallIds.add(toolCallId);
+						}
 					}
 				} else if (part instanceof ToolResultMessagePart) {
 					String toolResultId = toolResultId((ToolResultMessagePart) part);
@@ -435,9 +439,13 @@ public final class RoomMessageStore {
 			throw new IllegalStateException(
 					"Room message payload contains tool results without tool calls: " + unmatched);
 		}
-		if (!toolResultIds.containsAll(toolCallIds)) {
-			Set<String> unmatched = new HashSet<>(toolCallIds);
-			unmatched.removeAll(toolResultIds);
+		Set<String> unmatched = new HashSet<>(toolCallIds);
+		unmatched.removeAll(toolResultIds);
+		// A provider runs its own tools. When the model calls one beside ours, the
+		// provider waits for our results and runs it in the next request, so until
+		// then that call has no result here.
+		unmatched.removeAll(providerRunCallIds);
+		if (!unmatched.isEmpty()) {
 			throw new IllegalStateException("Room message payload contains unresolved tool calls: " + unmatched);
 		}
 	}

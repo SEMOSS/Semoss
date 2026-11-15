@@ -73,6 +73,7 @@ import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -95,6 +96,7 @@ import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
 
 public class ModelInferenceLogsUtils {
 
@@ -200,6 +202,9 @@ public class ModelInferenceLogsUtils {
 						"DATE_CREATED"),
 				OwlIndex.of("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", "USER_ID", "ROOM_ID", "DATE_CREATED"),
 				OwlIndex.of("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID"),
+				// the playground room list sorts by last activity
+				OwlIndex.of("ROOM_USER_PROJECT_UPDATED_INDEX", "ROOM", "USER_ID", "PROJECT_ID", "UPDATED_AT"),
+				OwlIndex.of("WORKSPACE_WORKSPACE_ID_INDEX", "WORKSPACE", "WORKSPACE_ID"),
 				// hit limits count a room's hits, a user's hits in a window, and check a
 				// user's lock on every call to an engine that has limits
 				OwlIndex.of("GUARDRAIL_HIT_ENGINE_ROOM_INDEX", "GUARDRAIL_HIT", "ENGINE_ID", "ROOM_ID"),
@@ -1818,6 +1823,252 @@ public class ModelInferenceLogsUtils {
 		sortDir = (sortDir != null) ? sortDir.trim().toUpperCase() : "DESC";
 		qs.addOrderBy(new QueryColumnOrderBySelector("ROOM__DATE_CREATED", sortDir));
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/** Column a playground room list is sorted by. */
+	public enum PlaygroundRoomSort {
+		DATE_CREATED("dateCreated"), DATE_UPDATED("dateUpdated"), NAME("name");
+
+		private final String key;
+
+		PlaygroundRoomSort(String key) {
+			this.key = key;
+		}
+
+		/** The sort for a reactor key; an unknown or blank key is a caller error. */
+		public static PlaygroundRoomSort fromKey(String key) {
+			for (PlaygroundRoomSort sort : values()) {
+				if (sort.key.equalsIgnoreCase(key)) {
+					return sort;
+				}
+			}
+			throw new IllegalArgumentException("sortBy must be one of dateCreated, dateUpdated, name");
+		}
+	}
+
+	/** How a playground room list is grouped; the group comes first in the order. */
+	public enum PlaygroundRoomGroup {
+		NONE("none"), AGENT("agent");
+
+		private final String key;
+
+		PlaygroundRoomGroup(String key) {
+			this.key = key;
+		}
+
+		/** The grouping for a reactor key; an unknown or blank key is a caller error. */
+		public static PlaygroundRoomGroup fromKey(String key) {
+			for (PlaygroundRoomGroup group : values()) {
+				if (group.key.equalsIgnoreCase(key)) {
+					return group;
+				}
+			}
+			throw new IllegalArgumentException("groupBy must be one of none, agent");
+		}
+	}
+
+	/** Most room ids one lookup by {@code roomIds} accepts. */
+	public static final int MAX_PLAYGROUND_ROOM_IDS = 200;
+
+	/**
+	 * Which playground rooms to list.
+	 *
+	 * @param search              text to find, case-insensitively; null or blank
+	 *                            lists every room
+	 * @param searchMessages      whether {@code search} also matches message text,
+	 *                            not only the room name
+	 * @param pinned              true or false to list only pinned or unpinned
+	 *                            rooms; null for both
+	 * @param roomIds             only these rooms (at most
+	 *                            {@link #MAX_PLAYGROUND_ROOM_IDS}); null for all
+	 * @param workspaceId         only rooms started with this agent; null for all
+	 * @param includeUnnamedRooms whether rooms without a name are listed
+	 * @param includeChildRooms   whether subagent rooms are listed
+	 */
+	public record PlaygroundRoomFilter(String search, boolean searchMessages, Boolean pinned,
+			Collection<String> roomIds, String workspaceId, boolean includeUnnamedRooms, boolean includeChildRooms) {
+
+		/** Every room the user started that has a message. */
+		public static PlaygroundRoomFilter all() {
+			return new PlaygroundRoomFilter(null, false, null, null, null, false, false);
+		}
+
+		boolean hasSearch() {
+			return search != null && !search.trim().isEmpty();
+		}
+	}
+
+	/**
+	 * Lists a user's playground rooms in one page, ordered by group, then pinned
+	 * rooms first, then the sort column, then room id so pages never overlap. Each
+	 * row adds {@code DATE_UPDATED} (last activity, falling back to creation),
+	 * {@code WORKSPACE_NAME} (the agent). With a search, it adds
+	 * {@code NAME_MATCH}; when messages are searched too, rooms whose name matches
+	 * come first within their group.
+	 *
+	 * <p>
+	 * The page is chosen in an inner query that touches only {@code ROOM}, plus
+	 * {@code WORKSPACE} when grouping by agent and, when searching messages, a
+	 * match on the room's own conversation (only for rooms whose name did not
+	 * already match). The agent name is then read for the page's rows alone, and
+	 * the page is re-sorted by the keys the inner query exposed.
+	 */
+	public static List<Map<String, Object>> getPlaygroundRooms(String userId, String projectId, long limit,
+			long offset, PlaygroundRoomSort sortBy, String sortDir, PlaygroundRoomGroup groupBy,
+			PlaygroundRoomFilter filter) {
+		Collection<String> roomIds = filter.roomIds();
+		if (roomIds != null && roomIds.size() > MAX_PLAYGROUND_ROOM_IDS) {
+			throw new IllegalArgumentException("At most " + MAX_PLAYGROUND_ROOM_IDS + " room ids can be requested");
+		}
+		if (roomIds != null && roomIds.isEmpty()) {
+			return new ArrayList<>();
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, playgroundRoomsQuery(
+				modelInferenceLogsDb.getQueryUtil(), userId, projectId, limit, offset, sortBy, sortDir, groupBy, filter),
+				0);
+	}
+
+	/**
+	 * Builds the {@link #getPlaygroundRooms} query for a database dialect. The
+	 * caller has already checked {@code roomIds}.
+	 */
+	static QueryExecutionUtility.ParameterizedQuery playgroundRoomsQuery(AbstractSqlQueryUtil queryUtil,
+			String userId, String projectId, long limit, long offset, PlaygroundRoomSort sortBy, String sortDir,
+			PlaygroundRoomGroup groupBy, PlaygroundRoomFilter filter) {
+		String search = filter.hasSearch() ? "%" + filter.search().trim().toLowerCase() + "%" : null;
+		boolean searchMessages = search != null && filter.searchMessages();
+		String direction = "ASC".equalsIgnoreCase(sortDir) ? "ASC" : "DESC";
+
+		// order keys over r (ROOM) and w (WORKSPACE); each is exposed as SKn so the
+		// outer query can re-sort the page without repeating the expressions
+		List<String> keys = new ArrayList<>();
+		List<String> directions = new ArrayList<>();
+		List<Object> keyParams = new ArrayList<>();
+		if (groupBy == PlaygroundRoomGroup.AGENT) {
+			keys.add("CASE WHEN r.WORKSPACE_ID IS NULL THEN 1 ELSE 0 END");
+			directions.add("ASC");
+			keys.add("LOWER(w.NAME)");
+			directions.add("ASC");
+			keys.add("r.WORKSPACE_ID");
+			directions.add("ASC");
+		}
+		if (searchMessages) {
+			// a name match is what the user most likely meant
+			keys.add("CASE WHEN LOWER(r.ROOM_NAME) LIKE ? THEN 0 ELSE 1 END");
+			directions.add("ASC");
+			keyParams.add(search);
+		}
+		keys.add("CASE WHEN r.PINNED = TRUE THEN 0 ELSE 1 END");
+		directions.add("ASC");
+		keys.add(switch (sortBy) {
+		case DATE_UPDATED -> "COALESCE(r.UPDATED_AT, r.DATE_CREATED)";
+		case NAME -> "LOWER(r.ROOM_NAME)";
+		default -> "r.DATE_CREATED";
+		});
+		directions.add(direction);
+		keys.add("r.ROOM_ID");
+		directions.add("ASC");
+
+		StringBuilder inner = new StringBuilder(
+				"SELECT r.ROOM_ID, r.ROOM_NAME, r.DATE_CREATED, COALESCE(r.UPDATED_AT, r.DATE_CREATED) AS DATE_UPDATED, r.PINNED, r.WORKSPACE_ID");
+		for (int i = 0; i < keys.size(); i++) {
+			inner.append(", ").append(keys.get(i)).append(" AS SK").append(i);
+		}
+		inner.append(" FROM ROOM r");
+		if (groupBy == PlaygroundRoomGroup.AGENT) {
+			inner.append(" LEFT JOIN WORKSPACE w ON w.WORKSPACE_ID = r.WORKSPACE_ID");
+		}
+
+		List<Object> whereParams = new ArrayList<>();
+		inner.append(" WHERE r.USER_ID = ? AND r.IS_ACTIVE = TRUE");
+		whereParams.add(userId);
+		// matches getUserConversations: only rooms with at least one saved message
+		inner.append(" AND EXISTS (SELECT 1 FROM MESSAGE m WHERE m.ROOM_ID = r.ROOM_ID AND m.MESSAGE_DATA IS NOT NULL)");
+		if (projectId != null) {
+			inner.append(" AND r.PROJECT_ID = ?");
+			whereParams.add(projectId);
+		}
+		if (!filter.includeUnnamedRooms()) {
+			inner.append(" AND r.ROOM_NAME IS NOT NULL AND r.ROOM_NAME <> ''");
+		}
+		if (!filter.includeChildRooms()) {
+			inner.append(" AND r.PARENT_ROOM_ID IS NULL");
+		}
+		if (filter.workspaceId() != null) {
+			inner.append(" AND r.WORKSPACE_ID = ?");
+			whereParams.add(filter.workspaceId());
+		}
+		if (searchMessages) {
+			// Match what the user sees: the room's conversation (ROOM.MESSAGES), not the
+			// MESSAGE log, whose rows hold each raw model call with its history, system
+			// prompt and tool definitions. A room saved before conversations were kept
+			// on the room falls back to its log. The name is checked first, so the
+			// conversation is read only when the name did not match, and only for this
+			// user's rooms.
+			inner.append(" AND (LOWER(r.ROOM_NAME) LIKE ?")
+					.append(" OR (r.MESSAGES IS NOT NULL AND LOWER(r.MESSAGES) LIKE ?)")
+					.append(" OR (r.MESSAGES IS NULL AND EXISTS (SELECT 1 FROM MESSAGE sm WHERE sm.ROOM_ID = r.ROOM_ID")
+					.append(" AND sm.MESSAGE_DATA IS NOT NULL AND LOWER(").append(searchableMessageText(queryUtil))
+					.append(") LIKE ?)))");
+			whereParams.add(search);
+			whereParams.add(search);
+			whereParams.add(search);
+		} else if (search != null) {
+			inner.append(" AND LOWER(r.ROOM_NAME) LIKE ?");
+			whereParams.add(search);
+		}
+		Boolean pinned = filter.pinned();
+		if (pinned != null) {
+			inner.append(pinned.booleanValue() ? " AND r.PINNED = TRUE" : " AND (r.PINNED = FALSE OR r.PINNED IS NULL)");
+		}
+		Collection<String> roomIds = filter.roomIds();
+		if (roomIds != null) {
+			inner.append(" AND r.ROOM_ID IN (").append(String.join(", ", Collections.nCopies(roomIds.size(), "?")))
+					.append(")");
+			whereParams.addAll(roomIds);
+		}
+		inner.append(" ORDER BY ");
+		for (int i = 0; i < keys.size(); i++) {
+			inner.append(i == 0 ? "" : ", ").append("SK").append(i).append(" ").append(directions.get(i));
+		}
+		inner = queryUtil.addLimitOffsetToQuery(inner, limit, offset);
+
+		StringBuilder sql = new StringBuilder("SELECT p.ROOM_ID AS \"ROOM_ID\", p.ROOM_NAME AS \"ROOM_NAME\", ")
+				.append("p.DATE_CREATED AS \"DATE_CREATED\", p.DATE_UPDATED AS \"DATE_UPDATED\", ")
+				.append("p.PINNED AS \"PINNED\", p.WORKSPACE_ID AS \"WORKSPACE_ID\", pw.NAME AS \"WORKSPACE_NAME\"");
+		if (search != null) {
+			sql.append(", CASE WHEN LOWER(p.ROOM_NAME) LIKE ? THEN TRUE ELSE FALSE END AS \"NAME_MATCH\"");
+		}
+		sql.append(" FROM (").append(inner).append(") p")
+				.append(" LEFT JOIN WORKSPACE pw ON pw.WORKSPACE_ID = p.WORKSPACE_ID ORDER BY ");
+		for (int i = 0; i < keys.size(); i++) {
+			sql.append(i == 0 ? "" : ", ").append("p.SK").append(i).append(" ").append(directions.get(i));
+		}
+
+		// bind in text order: outer name match, inner order keys, inner filters
+		List<Object> params = new ArrayList<>();
+		if (search != null) {
+			params.add(search);
+		}
+		params.addAll(keyParams);
+		params.addAll(whereParams);
+
+		return new QueryExecutionUtility.ParameterizedQuery(sql.toString(), params, 0);
+	}
+
+	/**
+	 * The dialect's text for {@code sm.MESSAGE_DATA}, readable even for legacy
+	 * rows with invalid bytes, as {@link #searchMessages} searches it.
+	 */
+	private static String searchableMessageText(AbstractSqlQueryUtil queryUtil) {
+		if (queryUtil.getDbType() == RdbmsTypeEnum.H2_DB) {
+			// H2 2.x refuses CAST(BLOB AS TEXT); UTF8TOSTRING decodes the bytes
+			return "UTF8TOSTRING(sm.MESSAGE_DATA)";
+		}
+		QueryFunctionSelector text = queryUtil
+				.getSearchableBlobToStringFunctionSelector(new QueryOpaqueSelector("sm.MESSAGE_DATA"), "message_text");
+		return queryUtil.buildFunctionSyntax(text, new SqlInterpreter());
 	}
 
 	/**

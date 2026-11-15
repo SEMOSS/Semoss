@@ -297,12 +297,6 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("TOKENNAME", VARCHAR_255),
 				Pair.with("TOKENDESCRIPTION", VARCHAR_500)));
 
-		addTable("TOKEN", Arrays.asList(
-				Pair.with("IPADDR", VARCHAR_255),
-				Pair.with("VAL", VARCHAR_255),
-				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("CLIENTID", VARCHAR_255)));
-
 		addTable("PERMISSION", Arrays.asList(
 				Pair.with("ID", INTEGER_DATATYPE_NAME),
 				Pair.with("NAME", VARCHAR_255)));

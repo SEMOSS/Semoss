@@ -46,12 +46,11 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import prerna.om.ThreadStore;
 import prerna.security.HttpHelperUtility;
-import prerna.util.insight.InsightUtility;
 
 public class TCPChromeDriverUtility {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	protected static final Logger classLogger = LogManager.getLogger(InsightUtility.class.getName());
+	protected static final Logger classLogger = LogManager.getLogger(TCPChromeDriverUtility.class.getName());
 
 	protected static String contextPath = null;
 	protected static String sessionCookie = null;

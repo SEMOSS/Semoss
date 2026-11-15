@@ -147,7 +147,7 @@ class EngineCommitDetailsReactorTest {
 		assertNotNull(commit.get("author"));
 		assertNotNull(commit.get("date"));
 		assertNotNull(commit.get("commitMessage"));
-		assertEquals("init\n", commit.get("commitMessage"));
+		assertEquals("init", commit.get("commitMessage"));
 	}
 
 	@Test

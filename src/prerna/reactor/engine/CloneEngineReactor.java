@@ -61,13 +61,16 @@ public class CloneEngineReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CloneEngineReactor.class.getName();
 
+	private static final String ENGINE_ID_KEY = "engineId";
+
 	/** Appended to the source display name when no name is given for the clone. */
 	private static final String DEFAULT_NAME_SUFFIX = " Copy";
 	/** Audit detail key holding the id of the engine that was cloned. */
 	private static final String CLONED_FROM_DETAIL = "clonedFrom";
 
 	public CloneEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.NAME.getKey() };
+		this.keysToGet = new String[] { ENGINE_ID_KEY + "," + ReactorKeysEnum.ENGINE.getKey(),
+				ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.NAME.getKey() };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -81,7 +84,7 @@ public class CloneEngineReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String engineId = this.keyValue.get(ENGINE_ID_KEY);
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 		if (!isAdmin && !SecurityEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalArgumentException("Engine " + engineId
@@ -99,7 +102,7 @@ public class CloneEngineReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Only an admin can create a local file system storage engine");
 		}
 
-		String cloneName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String cloneName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 		if (cloneName == null || cloneName.trim().isEmpty()) {
 			IEngine source = Utility.getEngine(engineId);
 			if (source == null) {
@@ -140,8 +143,8 @@ public class CloneEngineReactor extends AbstractReactor {
 				python files, virtual environment, version history), its smss file and secrets, its metadata, \
 				and its image. Connection settings are copied as they are, so a clone of an engine backed by an \
 				external system uses the same external data. The user must own the engine.""")
-				.key(ReactorKeysEnum.ENGINE, "The id of the engine to clone")
-				.key(ReactorKeysEnum.NAME, "The name of the clone. Defaults to the engine name followed by \""
+				.key(ENGINE_ID_KEY, "The id of the engine to clone")
+				.key(ReactorKeysEnum.CATALOG_NAME, "The name of the clone. Defaults to the engine name followed by \""
 						+ DEFAULT_NAME_SUFFIX.trim() + "\"");
 	}
 

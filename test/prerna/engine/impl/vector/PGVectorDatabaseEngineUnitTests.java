@@ -39,7 +39,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,9 +59,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
@@ -93,7 +94,6 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.QueryExecutionUtility;
-import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.H2QueryUtil;
@@ -106,14 +106,44 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	private PGVectorDatabaseEngine engine;
 	private IModelEngine modelEmbedder;
 
+	private MockedConstruction<ClientProcessWrapper> wrapperConstruction;
+
 	@BeforeEach
 	void setUp() throws IOException {
 		FileUtils.cleanDirectory(tempDir.toFile());
 
 		user = mock(User.class);
+		wrapperConstruction = mockWorkerWrapper();
 		engine = new PGVectorDatabaseEngine();
 		insight = mock(Insight.class);
 		modelEmbedder = mock(IModelEngine.class);
+	}
+
+	@AfterEach
+	void closeWrapperConstruction() {
+		wrapperConstruction.close();
+	}
+
+	/**
+	 * Makes the engine's process wrapper a mock whose python process starts once,
+	 * on the first call that needs it, and stays connected. The engine creates its
+	 * wrapper when it is constructed, so this runs before the engine is created.
+	 *
+	 * @return the construction mock, closed after each test
+	 */
+	private static MockedConstruction<ClientProcessWrapper> mockWorkerWrapper() {
+		SocketClient workerClient = mock(SocketClient.class);
+		when(workerClient.isConnected()).thenReturn(true);
+		return Mockito.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
+			AtomicBoolean started = new AtomicBoolean();
+			when(mock.getSocketClient()).thenReturn(workerClient);
+			when(mock.getOrStartSocketClient(any())).thenAnswer(invocation -> {
+				if (started.compareAndSet(false, true)) {
+					invocation.getArgument(0, Runnable.class).run();
+				}
+				return workerClient;
+			});
+		});
 	}
 
 	@Test
@@ -155,6 +185,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.getConnectionUserKey()).thenReturn("user_key");
 				when(queryUtilMock.getConnectionPasswordKey()).thenReturn("password_key");
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
+				when(queryUtilMock.fillFileParameterizedConnectionUrl(nullable(String.class), nullable(String.class),
+						nullable(String.class))).thenReturn(url);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
 			Connection mockConn = mock();
@@ -241,6 +273,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.getConnectionUserKey()).thenReturn("user_key");
 				when(queryUtilMock.getConnectionPasswordKey()).thenReturn("password_key");
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
+				when(queryUtilMock.fillFileParameterizedConnectionUrl(nullable(String.class), nullable(String.class),
+						nullable(String.class))).thenReturn(url);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
 			Connection mockConn = mock();
@@ -318,6 +352,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.getConnectionUserKey()).thenReturn("user_key");
 				when(queryUtilMock.getConnectionPasswordKey()).thenReturn("password_key");
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
+				when(queryUtilMock.fillFileParameterizedConnectionUrl(nullable(String.class), nullable(String.class),
+						nullable(String.class))).thenReturn(url);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
 			Connection mockConn = mock();
@@ -387,7 +423,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		// Set up the database
 		try (Connection connection = DriverManager.getConnection(dbUrl);
 				MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);
-				MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
+				MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
+				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 
 			try (Statement statement = connection.createStatement()) {
 				statement.execute(createVectorTableQuery);
@@ -413,6 +450,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(outputMock.getResponse()).thenReturn(allEmbeddings);
 
 			engine.addEmbeddings(dataTable, insight, parameters);
+			pgv.verify(() -> PGvector.addVectorType(connection));
 
 			// Verify data
 			try (Statement statement = connection.createStatement()) {
@@ -894,26 +932,12 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		fileNames.add(file1.toString());
 		fileNames.add(file2.toString());
 
-		SocketClient scMock = mock(SocketClient.class); // used in addDocument()->checkSocketStatus()->startServer()
-		when(scMock.isConnected()).thenReturn(true);
-		try (MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito// used in
-																			// addDocument()->checkSocketStatus()->startServer()
-				.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
-					doNothing().when(mock).createProcessAndClient(any(boolean.class), nullable(SymlinkHelper.class),
-							any(int.class), nullable(String.class), nullable(String.class), nullable(String.class),
-							any(boolean.class), any(String.class), any(String.class));
-					doNothing().when(mock).shutdown(false);
-					when(mock.getSocketClient()).thenReturn(scMock);
-
-				});
-				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
+		try (MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
-						(mock, context) -> {
-							// doNothing().when(mock).setSocketClient(scMock);
-							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn("true");
-						});
-				MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
+				(mock, context) -> {
+					doNothing().when(mock).runEmptyPy(any());
+					when(mock.runScript(any())).thenReturn("true");
+				}); MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
 
 			// used for addEmbeddings() portion
 			VectorDatabaseCSVTable vectorCsvTableMock = mock();
@@ -932,31 +956,13 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(mockConn.prepareStatement(any())).thenReturn(psMock);
 				when(psMock.executeBatch()).thenReturn(new int[0]);
 
-//				printDirContents(tempDir);
 				assertTrue(Files.exists(file1));
 				assertTrue(Files.exists(file2));
 				engine.addDocument(fileNames, parameters);
-//				printDirContents(tempDir);
 				assertFalse(Files.exists(file1)); // deleted from insight folder
 				assertFalse(Files.exists(file2)); // deleted from insight folder
 				assertTrue(Files.exists(docDirPath.resolve(fileName1))); // moved to doc folder
 				assertTrue(Files.exists(docDirPath.resolve(fileName2))); // moved to doc folder
-			}
-		}
-	}
-
-	/*
-	 * Used for debugging file directory contents
-	 */
-	private void printDirContents(Path path) {
-		System.out.println(path.toAbsolutePath());
-		if (Files.isDirectory(path)) {
-			try (DirectoryStream<Path> stream = Files.newDirectoryStream(path)) {
-				for (Path entry : stream) {
-					printDirContents(entry);
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		}
 	}
@@ -976,9 +982,11 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		String indexClass = "TEST_INDEX_CLASS";
 		parameters.put("indexClass", indexClass);
 
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> engine.addDocument(new Vector<>(), parameters));
-		assertEquals("Insight must be provided to run Model Engine Encoder", e.getMessage());
+		try (MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class)) {
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> engine.addDocument(new Vector<>(), parameters));
+			assertEquals("Insight must be provided to run Model Engine Encoder", e.getMessage());
+		}
 	}
 
 	@Test
@@ -1138,6 +1146,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.getConnectionUserKey()).thenReturn("user_key");
 				when(queryUtilMock.getConnectionPasswordKey()).thenReturn("password_key");
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
+				when(queryUtilMock.fillFileParameterizedConnectionUrl(nullable(String.class), nullable(String.class),
+						nullable(String.class))).thenReturn(url);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
 			Connection mockConn = mock();

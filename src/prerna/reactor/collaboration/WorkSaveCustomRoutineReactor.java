@@ -120,7 +120,10 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 						+ "out routineId to create one; pass it, from ListRoutines, to change one, sending only what changes. "
 						+ "The owner approves the exact routine on a card before it is saved. A routine can never send to "
 						+ "anyone else, but it can save email drafts for others in the owner's Outlook, never sent, for "
-						+ "the owner to review (\"draft Ryan a status update each morning\"). To try a saved routine now, use ManageRoutine with action run. Load "
+						+ "the owner to review (\"draft Ryan a status update each morning\"). With delivery brief the routine is "
+						+ "a section of the owner's daily brief instead: use that when they ask to add something to their "
+						+ "brief that it does not have (\"add my open Jira tickets to my brief\"). To try a saved routine now, "
+						+ "use ManageRoutine with action run. Load "
 						+ "collaboration/references/routines/schedule-a-routine.md before creating one.")
 				.key(ROUTINE_ID, "Id of the routine to change, from ListRoutines. Leave out to create a new routine.")
 				.key(NAME,
@@ -137,7 +140,9 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 				.key(TIMEZONE, "IANA time zone of the time, such as America/New_York. Use the owner's own time zone.")
 				.key(DELIVERY,
 						"Where the answer goes, always only to the owner: email (their own inbox, with any files the run "
-								+ "makes attached), teams (a Teams message to themselves, text only) or none (kept in Routines). Default email.")
+								+ "makes attached), teams (a Teams message to themselves, text only), brief (a section of their "
+								+ "daily brief under the routine's name; it runs when the brief runs, so time and days are not "
+								+ "used) or none (kept in Routines). Default email.")
 				.key(SKILLS, key -> key.type(List.class).description(
 						"Ids of the skills the agent loads: the owner's own from ListMySkills, or other skills they can use. "
 								+ "Optional."))

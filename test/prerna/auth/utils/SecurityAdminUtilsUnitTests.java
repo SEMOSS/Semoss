@@ -342,6 +342,34 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	}
 
 	@Test
+	void testEditUser_withoutRolesKeepsThem() {
+		User user = UnitTestSecurityAuthUtils.createUser("testuser", true);
+
+		Map<String, Object> userInfo = testUserInfo();
+		userInfo.put("name", "Updated Name");
+		assertTrue(instance.editUser(userInfo));
+		assertTrue(SecurityAdminUtils.userIsAdmin(user));
+	}
+
+	@Test
+	void testEditUser_changesOnlyTheRolesItNames() {
+		User user = UnitTestSecurityAuthUtils.createUser("testuser", true);
+
+		Map<String, Object> userInfo = testUserInfo();
+		userInfo.put("publisher", true);
+		instance.editUser(userInfo);
+		assertTrue(SecurityAdminUtils.userIsAdmin(user));
+		assertTrue(SecurityQueryUtils.userIsPublisher(user));
+		assertFalse(SecurityQueryUtils.userIsExporter(user));
+
+		userInfo.remove("publisher");
+		userInfo.put("admin", false);
+		instance.editUser(userInfo);
+		assertFalse(SecurityAdminUtils.userIsAdmin(user));
+		assertTrue(SecurityQueryUtils.userIsPublisher(user));
+	}
+
+	@Test
 	void testEditUser_makePublisher() {
 		User user = UnitTestSecurityAuthUtils.createUser("testuser", false);
 
@@ -456,6 +484,58 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	}
 
 	@Test
+	void testDeleteUser_requiresTheLoginType() {
+		UnitTestSecurityAuthUtils.createUser("todelete", false);
+
+		assertThrows(IllegalArgumentException.class, () -> instance.deleteUser("todeleteid", null));
+		assertThrows(IllegalArgumentException.class, () -> instance.deleteUser("todeleteid", " "));
+		assertEquals(1, instance.getAllUsers("todelete", 10, 0).size());
+	}
+
+	@Test
+	void testDeleteUser_keepsThePermissionsAnotherLoginWithTheIdShares() throws Exception {
+		UnitTestSecurityAuthUtils.createUser("shared", false);
+		registerMicrosoftLogin("sharedid");
+		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
+		SecurityEngineUtils.addEngineUser(adminUser, "sharedid", "engine1", "EDIT", null, null);
+
+		instance.deleteUser("sharedid", "NATIVE");
+
+		List<Map<String, Object>> remaining = instance.getAllUsers("shared", 10, 0);
+		assertEquals(1, remaining.size());
+		assertEquals("MICROSOFT", remaining.get(0).get("type"));
+		assertEquals(AccessPermissionEnum.EDIT.getId(), SecurityEngineUtils.getUserEnginePermission("sharedid",
+				"engine1"));
+
+		instance.deleteUser("sharedid", "MICROSOFT");
+
+		assertTrue(instance.getAllUsers("shared", 10, 0).isEmpty());
+		assertNull(SecurityEngineUtils.getUserEnginePermission("sharedid", "engine1"));
+	}
+
+	/**
+	 * Adds a Microsoft login for an id that already has a native login. The
+	 * register methods check whether a user exists by the id alone, so the row is
+	 * inserted directly.
+	 */
+	private void registerMicrosoftLogin(String id) throws Exception {
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, LOCKED) "
+						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				ps -> {
+					ps.setString(1, id);
+					ps.setString(2, "Shared Person");
+					ps.setString(3, id);
+					ps.setString(4, "shared@corp.example");
+					ps.setString(5, AuthProvider.MICROSOFT.getLabel());
+					ps.setBoolean(6, false);
+					ps.setBoolean(7, false);
+					ps.setBoolean(8, false);
+					ps.setBoolean(9, false);
+				});
+	}
+
+	@Test
 	void testDeleteUser() {
 		User user = UnitTestSecurityAuthUtils.createUser("todelete", false);
 
@@ -476,7 +556,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testSetUserPublisher_enable() {
 		User user = UnitTestSecurityAuthUtils.createUser("testuser", false);
 
-		instance.setUserPublisher("testuserid", true);
+		instance.setUserPublisher("testuserid", "NATIVE", true);
 		// Verify by getting user info
 		List<Map<String, Object>> users = instance.getAllUsers("testuser", 10, 0);
 		assertEquals(1, users.size());
@@ -486,12 +566,26 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	@Test
 	void testSetUserPublisher_disable() {
 		User user = UnitTestSecurityAuthUtils.createUser("testuser", false);
-		instance.setUserPublisher("testuserid", true);
-		instance.setUserPublisher("testuserid", false);
+		instance.setUserPublisher("testuserid", "NATIVE", true);
+		instance.setUserPublisher("testuserid", "NATIVE", false);
 
 		List<Map<String, Object>> users = instance.getAllUsers("testuser", 10, 0);
 		assertEquals(1, users.size());
 		assertFalse((Boolean) users.get(0).get("publisher"));
+	}
+
+	@Test
+	void testSetUserPublisher_changesOnlyTheLoginItNames() throws Exception {
+		UnitTestSecurityAuthUtils.createUser("shared", false);
+		registerMicrosoftLogin("sharedid");
+
+		instance.setUserPublisher("sharedid", "MICROSOFT", true);
+
+		Map<String, Boolean> publisherByType = new HashMap<>();
+		for (Map<String, Object> row : instance.getAllUsers("shared", 10, 0)) {
+			publisherByType.put((String) row.get("type"), (Boolean) row.get("publisher"));
+		}
+		assertEquals(Map.of("NATIVE", false, "MICROSOFT", true), publisherByType);
 	}
 
 	///
@@ -499,11 +593,25 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	///
 
 	@Test
+	void testSetUserExporter_changesOnlyTheLoginItNames() throws Exception {
+		UnitTestSecurityAuthUtils.createUser("shared", false);
+		registerMicrosoftLogin("sharedid");
+
+		instance.setUserExporter("sharedid", "MICROSOFT", true);
+
+		Map<String, Boolean> exporterByType = new HashMap<>();
+		for (Map<String, Object> row : instance.getAllUsers("shared", 10, 0)) {
+			exporterByType.put((String) row.get("type"), (Boolean) row.get("exporter"));
+		}
+		assertEquals(Map.of("NATIVE", false, "MICROSOFT", true), exporterByType);
+	}
+
+	@Test
 	void testSetUserExporter_enable() {
 		User user = UnitTestSecurityAuthUtils.createUser("testuser", false);
 
 		// Just verify no exception is thrown
-		instance.setUserExporter("testuserid", true);
+		instance.setUserExporter("testuserid", "NATIVE", true);
 
 		List<Map<String, Object>> users = instance.getAllUsers("testuser", 10, 0);
 		assertEquals(1, users.size());

@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,7 +39,10 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
+import com.microsoft.playwright.Page;
+
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -71,6 +75,7 @@ public class ReplaySingleStepReactorTest {
 
 		when(mockInsight.getUser()).thenReturn(mockUser);
 		when(mockNounStore.size()).thenReturn(0);
+		when(mockSession.getOperationLock()).thenReturn(new ReentrantLock());
 	}
 
 	@Test
@@ -86,7 +91,13 @@ public class ReplaySingleStepReactorTest {
 		try (MockedStatic<PlaywrightUtility> mockedUtility = mockStatic(PlaywrightUtility.class);
 				MockedStatic<PlaywrightSessionUtility> mockedSessionUtility = mockStatic(
 						PlaywrightSessionUtility.class);
-				MockedStatic<ScreenshotReactor> mockedScreenshot = mockStatic(ScreenshotReactor.class)) {
+				MockedStatic<ScreenshotReactor> mockedScreenshot = mockStatic(ScreenshotReactor.class);
+				MockedStatic<SecurityProjectUtils> projectSecurity = mockStatic(SecurityProjectUtils.class)) {
+
+			projectSecurity.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(mockUser, "project123"))
+					.thenReturn("project123");
+			projectSecurity.when(() -> SecurityProjectUtils.userCanViewProject(mockUser, "project123"))
+					.thenReturn(true);
 
 			StepsEnvelope mockEnvelope = mock(StepsEnvelope.class);
 			Map<String, List<List<PlaywrightStep>>> stepsMap = createMockStepsMap(1);
@@ -399,8 +410,7 @@ public class ReplaySingleStepReactorTest {
 			mockedUtility.when(() -> PlaywrightUtility.loadStepsFromFile(projectId, fileName)).thenReturn(mockEnvelope);
 			when(mockEnvelope.steps()).thenReturn(stepsMap);
 			when(mockUser.getPlaywrightSession(sessionId)).thenReturn(mockSession);
-			mockSession.tabPages = new HashMap<>();
-			mockSession.tabPages.put(tabId, null);
+			when(mockSession.getPage(tabId)).thenReturn(mock(Page.class));
 
 			mockedSessionUtility.when(() -> PlaywrightSessionUtility.applyStep(any(), any(), anyString()))
 					.thenThrow(new RuntimeException("Execution error"));

@@ -67,6 +67,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
@@ -1755,7 +1756,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testSetPortalPublish() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		// Verify no timestamp before publish
 		assertNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
@@ -1770,7 +1771,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testGetPortalPublishedTimestamp_noTimestamp() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		LocalDateTime timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
 		assertNull(timestamp);
@@ -1779,7 +1780,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testInitPortalPublishedTimestamp() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		assertNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
 
@@ -1791,7 +1792,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testInitPortalPublishedTimestamp_doesNotOverwriteExisting() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		SecurityProjectUtils.setPortalPublish(user, "testProjectId");
 		LocalDateTime reported = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
@@ -1915,6 +1916,46 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(user, "testProjectId", "user2id",
 				"user", "READ_ONLY", null);
 		assertNotNull(result);
+	}
+
+	@Test
+	void testPropagateProjectPermission_leavesAnAdminOnlyDependencyToAdmins() {
+		User owner = UnitTestSecurityAuthUtils.createUser("owner", false);
+		UnitTestSecurityAuthUtils.createUser("user2", false);
+		Map<String, Object> result = propagateToAModelWhoseAddsAreAdminOnly(owner);
+
+		assertEquals(List.of("model1"), result.get("couldNotAddRequest"));
+		assertNull(SecurityEngineUtils.getUserEnginePermission("user2id", "model1"));
+	}
+
+	@Test
+	void testPropagateProjectPermission_letsAnAdminGrantAnAdminOnlyDependency() {
+		User admin = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createUser("user2", false);
+		Map<String, Object> result = propagateToAModelWhoseAddsAreAdminOnly(admin);
+
+		assertEquals(List.of("model1"), result.get("accessGranted"));
+		assertEquals(AccessPermissionEnum.READ_ONLY.getId(),
+				SecurityEngineUtils.getUserEnginePermission("user2id", "model1"));
+	}
+
+	/**
+	 * Propagates Read-Only access on a project that depends on one model, owned by
+	 * the requester, while only admins can give people access to models.
+	 */
+	private static Map<String, Object> propagateToAModelWhoseAddsAreAdminOnly(User requester) {
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", requester);
+		UnitTestSecurityAuthUtils.createEngine("model1", "Model One", IEngine.CATALOG_TYPE.MODEL, requester);
+		SecurityProjectUtils.updateProjectDependencies(requester, "testProjectId",
+				List.of(Map.<String, Object>of("ENGINEID", "model1", "ENGINETYPE", IEngine.CATALOG_TYPE.MODEL.name())));
+		boolean adminOnlyBefore = AbstractSecurityUtils.adminOnlyModelAddAccess;
+		AbstractSecurityUtils.adminOnlyModelAddAccess = true;
+		try {
+			return SecurityProjectUtils.propagateProjectPermission(requester, "testProjectId", "user2id", "NATIVE",
+					"READ_ONLY", null);
+		} finally {
+			AbstractSecurityUtils.adminOnlyModelAddAccess = adminOnlyBefore;
+		}
 	}
 
 	///
@@ -2262,10 +2303,21 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	private void stageLoadedProject(String projectId) {
 		IRDBMSEngine insightsDb = mock(IRDBMSEngine.class);
 		when(insightsDb.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
-		IProject project = mock(IProject.class);
-		when(project.getInsightDatabase()).thenReturn(insightsDb);
-		DIHelper.getInstance().setProjectProperty(projectId, project);
+		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
+	}
+
+	/**
+	 * A loaded project with its smss properties and the insights database given, as
+	 * Utility.getProject reads it.
+	 */
+	private static IProject loadedProject(String projectId, IRDBMSEngine insightsDb) {
+		IProject project = mock(IProject.class);
+		when(project.getEngineId()).thenReturn(projectId);
+		when(project.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.PROJECT);
+		when(project.getSmssProp()).thenReturn(new Properties());
+		when(project.getInsightDatabase()).thenReturn(insightsDb);
+		return project;
 	}
 
 	/**
@@ -2302,9 +2354,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 					null, false, null);
 			admin.updateInsightTags(insightId, List.of(insightName + "Tag"));
 		}
-		IProject project = mock(IProject.class);
-		when(project.getInsightDatabase()).thenReturn(insightsDb);
-		DIHelper.getInstance().setProjectProperty(projectId, project);
+		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
 
 		Properties props = new Properties();

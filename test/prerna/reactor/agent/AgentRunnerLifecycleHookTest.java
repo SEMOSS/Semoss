@@ -45,11 +45,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
@@ -85,6 +90,8 @@ class AgentRunnerLifecycleHookTest {
 	private IAgentHarness harness;
 	private AgentConfig agentConfig;
 	private AgentHarnessResult harnessResult;
+	private MockedStatic<SecurityEngineUtils> engineSecurity;
+	private MockedStatic<SecurityModelMetadataUtils> modelMetadata;
 
 	@BeforeEach
 	void setUp() {
@@ -103,6 +110,19 @@ class AgentRunnerLifecycleHookTest {
 
 		when(agentConfig.getSkills()).thenReturn(Collections.emptyList());
 		when(harness.getName()).thenReturn("test_harness");
+
+		User user = mock(User.class);
+		when(insight.getUser()).thenReturn(user);
+		engineSecurity = Mockito.mockStatic(SecurityEngineUtils.class);
+		engineSecurity.when(() -> SecurityEngineUtils.userCanViewEngine(user, MODEL_ID)).thenReturn(true);
+		engineSecurity.when(() -> SecurityEngineUtils.getEngineType(MODEL_ID)).thenReturn(IEngine.CATALOG_TYPE.MODEL);
+		modelMetadata = Mockito.mockStatic(SecurityModelMetadataUtils.class);
+	}
+
+	@AfterEach
+	void tearDown() {
+		modelMetadata.close();
+		engineSecurity.close();
 	}
 
 	/**

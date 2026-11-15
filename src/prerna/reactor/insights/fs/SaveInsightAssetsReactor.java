@@ -34,12 +34,14 @@ import org.json.JSONObject;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 
 public class SaveInsightAssetsReactor extends AbstractSaveInsightAssetsReactor {
 
 	public SaveInsightAssetsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey() };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
+				ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 
 //		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
 //				ReactorKeysEnum.COMMENT_KEY.getKey() };
@@ -47,14 +49,15 @@ public class SaveInsightAssetsReactor extends AbstractSaveInsightAssetsReactor {
 	}
 
 	@Override
-	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
-		FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents);
+	protected List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents,
+			boolean override) {
+		return FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents, override);
 	}
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Saves one or more files to the insight assets folder and commits them to the insight's git repository.")
+				"Saves one or more files to the insight assets folder.")
 				.key(ReactorKeysEnum.FILE_PATH, "Names of the file(s) to save").key(ReactorKeysEnum.CONTENT, """
 						Contents of the file(s) to save. \
 						For convenience, instead of escaping quotes or backslashes you can wrap \

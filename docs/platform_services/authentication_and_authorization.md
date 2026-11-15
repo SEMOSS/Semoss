@@ -22,6 +22,12 @@ Monolith establishes the configured session or integration identity. REST resour
 
 Custom reactors should check access before loading and operating on a user-selected resource. A resource identifier supplied by a client or model is not proof of permission. Use the platform's security utilities and existing authorized operations instead of introducing a parallel permission model.
 
+## Shared authentication
+
+`GetShareAuthToken()` records the caller's user ID and login type for authentication in another browser session. Monolith's `ShareSessionFilter` reconstructs the matching account's token through `SecurityShareSessionUtils.generateAccessTokenForShareAuth`. Reconstruction preserves the canonical user ID independently of email or username; an API user does not need an email address to retain its identity for model access, usage limits, or room ownership. Missing identity fields or an account that cannot be resolved are rejected rather than returning an incomplete token.
+
+This does not change `GetShareSessionToken()` semantics: sharing authentication establishes a login in a separate session, while sharing a session reuses the existing session.
+
 ## Agents, skills, and approvals
 
 Agent execution has several access boundaries:

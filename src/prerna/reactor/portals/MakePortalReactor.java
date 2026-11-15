@@ -158,7 +158,7 @@ public class MakePortalReactor extends AbstractReactor {
 	private void convertAllTemplates(String projectFolder, Properties projectValues, String portalName)
 			throws Exception {
 		String portalFolder = projectFolder + "/" + portalName;
-		portalFolder = portalFolder.replace("\\\\", "/");
+		portalFolder = portalFolder.replace("\\", "/");
 
 		// main pom
 		String inputFile = "pom.xml";

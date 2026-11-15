@@ -41,12 +41,13 @@ ENGINE_TYPE         prerna.engine.impl.guardrail.PolicyComplianceGuardrailEngine
 MODEL_ENGINE_ID     <judge-model-engine-id>
 POLICY_DESCRIPTION  <the default policy used when a pipeline does not override it>
 BLOCKED_MESSAGE     The mail did not pass policy review.
-FAIL_OPEN           false
+JUDGE_ERROR_VERDICT BLOCK
 ```
 
-`FAIL_OPEN false` matters for sending: if the judge model is unavailable or
-returns an error, the mail stays unsent. The default is `true` for compatibility
-with existing policy guardrails.
+`JUDGE_ERROR_VERDICT BLOCK` matters for sending: if the judge model is
+unavailable or returns an error, the mail stays unsent. `BLOCK` is the default,
+so the line makes the choice explicit; `PASS` lets the mail go out when the
+judge cannot answer.
 
 ## Selecting mail fields
 

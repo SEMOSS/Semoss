@@ -50,7 +50,7 @@ public class GetPhysicalToLogicalMappingReactor extends AbstractReactor {
 		H2Frame frame = new H2Frame();
 		RdbmsImporter importer = new RdbmsImporter(frame, qs);
 		importer.insertData();
-		this.insight.setDataMaker(frame);
+		this.insight.setCurrentFrame(frame);
 		return new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME);
 	}
 
