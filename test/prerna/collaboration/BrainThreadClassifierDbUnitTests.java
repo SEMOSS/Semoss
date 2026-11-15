@@ -288,6 +288,16 @@ class BrainThreadClassifierDbUnitTests {
 	}
 
 	@Test
+	void acceptingANewTopicTheScreenAlreadyKeptStillFilesItsConversations() throws Exception {
+		String review = proposal("t-new", "Harbour crane inspection");
+		// the owner's screen saves the topic as active before it answers the question
+		sql("UPDATE BRAIN_TOPIC SET STATUS = 'active' WHERE TOPIC_ID = 't-new'");
+		BrainReviewUtils.resolveReview(ownerId, ownerType, review, "Accept", null, BrainProfileUtils.YOU);
+		assertEquals("member", value("SELECT STATE FROM BRAIN_TOPIC_PERSON WHERE TOPIC_ID = 't-new'"));
+		assertEquals(List.of(List.of("t-new", "confirmed", true)), links());
+	}
+
+	@Test
 	void dismissingANewTopicRemovesItAndFilesNothing() throws Exception {
 		String review = proposal("t-new", "Harbour crane inspection");
 		BrainReviewUtils.resolveReview(ownerId, ownerType, review, "dismiss", null, BrainProfileUtils.YOU);

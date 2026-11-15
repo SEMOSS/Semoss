@@ -194,9 +194,13 @@ public final class BrainTopicSuggest {
 			}
 			return;
 		}
+		// the owner's screen may have kept the topic already (it saves the topic before it answers the question);
+		// the proposal's people and conversations are still to apply
 		if (CollaborationDbUtils.update("UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ?" + suggested,
-				BrainTopicUtils.ACTIVE, now, ownerId, ownerType, topicId, BrainTopicUtils.SUGGESTED, "brain") == 0) {
-			// already kept, or gone: nothing of the proposal to apply
+				BrainTopicUtils.ACTIVE, now, ownerId, ownerType, topicId, BrainTopicUtils.SUGGESTED, "brain") == 0
+				&& !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
+						+ "TOPIC_ID = ? AND STATUS = ?", ownerId, ownerType, topicId, BrainTopicUtils.ACTIVE)) {
+			// gone, or put away since: nothing of the proposal to apply
 			return;
 		}
 		CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_PERSON SET STATE = ?, CHANGED_AT = ? WHERE OWNER_ID = ? AND "
