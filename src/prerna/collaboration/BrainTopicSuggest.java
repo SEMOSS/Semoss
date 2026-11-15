@@ -56,6 +56,15 @@ public final class BrainTopicSuggest {
 	private static final int ACCOUNT_MIN_THREADS = 3;
 	private static final int MEMBERS = 6;
 	private static final int DESCRIBE = 5;
+	// new topics as mail comes in: the job, how far back unfiled mail is looked at, how much of it, the least worth
+	// a look, how many questions one look may raise, and how often a sync may start one
+	public static final String FRESH_KIND = "topic_watch";
+	private static final int FRESH_DAYS = 45;
+	private static final int FRESH_POOL = 300;
+	private static final int FRESH_MIN_POOL = 6;
+	private static final int FRESH_MIN_THREADS = 3;
+	private static final int FRESH_MAX = 3;
+	private static final long FRESH_EVERY_HOURS = 24;
 	static final Set<String> FREEMAIL = Set.of("gmail.com", "googlemail.com", "outlook.com", "hotmail.com",
 			"live.com", "msn.com", "yahoo.com", "icloud.com", "me.com", "aol.com", "proton.me", "protonmail.com");
 
@@ -70,7 +79,7 @@ public final class BrainTopicSuggest {
 	 * link to saved accounts.
 	 */
 	public static Map<String, Object> accounts(User user) {
-		return suggest(user, false, false, null);
+		return suggest(user, false, false, null, false);
 	}
 
 	/**
@@ -90,12 +99,110 @@ public final class BrainTopicSuggest {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		// Serialize generation through replacement for this owner; accepted topics are never replaced.
 		synchronized (CollaborationDbUtils.ownerLock("topic-suggest", owner.getValue0(), owner.getValue1())) {
-			return suggest(user, true, dryRun, job);
+			return suggest(user, true, dryRun, job, false);
+		}
+	}
+
+	/**
+	 * New topics as mail comes in: a new project or event shows up as recent conversations no topic holds that
+	 * belong together. The same grouping and naming as onboarding, over that mail only. A group the owner takes
+	 * part in is saved as a suggested topic with a question (BrainReviewUtils.NEW_TOPIC); the topics and questions
+	 * already there stay. Accepting the question makes the topic active and files the group's conversations under
+	 * it (settle). A group asked about before, whatever the answer was, is not asked about again.
+	 */
+	public static Map<String, Object> fresh(User user, boolean dryRun) {
+		return fresh(user, dryRun, null);
+	}
+
+	static Map<String, Object> fresh(User user, boolean dryRun, CollaborationJobUtils.Job job) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		synchronized (CollaborationDbUtils.ownerLock("topic-suggest", owner.getValue0(), owner.getValue1())) {
+			return suggest(user, true, dryRun, job, true);
+		}
+	}
+
+	/**
+	 * After a sync: looks for new topics when setup is over, no look ran in the last day, and enough unfiled
+	 * conversations are there with some of them newer than the last look. Runs as its own job so the sync does
+	 * not wait for it. Returns whether a look was started.
+	 */
+	public static boolean watch(User user, String ownerId, String ownerType) {
+		if (BrainTopicModel.engine(user) == null || !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_SETTINGS WHERE "
+				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND SETUP_DONE_AT IS NOT NULL", ownerId, ownerType)) {
+			return false;
+		}
+		Map<String, Object> last = CollaborationJobUtils.latest(ownerId, ownerType, FRESH_KIND);
+		Timestamp lastAt = last == null ? null : (Timestamp) last.get("startedAt");
+		Timestamp now = CollaborationDbUtils.now();
+		if (lastAt != null && now.getTime() - lastAt.getTime() < FRESH_EVERY_HOURS * 3_600_000L) {
+			return false;
+		}
+		List<Timestamp> unfiled = CollaborationDbUtils.query(UNFILED.replace("THREAD_ID FROM", "LAST_MESSAGE_AT FROM"),
+				rs -> rs.getTimestamp(1), unfiledParams(ownerId, ownerType, now));
+		long newer = unfiled.stream().filter(at -> lastAt == null || (at != null && at.after(lastAt))).count();
+		if (unfiled.size() < FRESH_MIN_POOL || newer < FRESH_MIN_THREADS) {
+			return false;
+		}
+		CollaborationJobUtils.start(ownerId, ownerType, FRESH_KIND, Map.of(), job -> {
+			Map<String, Object> out = fresh(user, false, job);
+			job.count("asked", out.get("topics") instanceof List<?> topics ? topics.size() : 0);
+			job.count("pool", out.get("freshPool"));
+		});
+		return true;
+	}
+
+	// conversations of the last FRESH_DAYS days that a person wrote and none of the owner's topics holds
+	private static final String UNFILED = "SELECT t.THREAD_ID FROM BRAIN_THREAD t WHERE t.OWNER_ID = ? AND "
+			+ "t.OWNER_TYPE = ? AND (t.MUTED IS NULL OR t.MUTED = ?) AND (t.AUTOMATED IS NULL OR t.AUTOMATED = ?) AND "
+			+ "t.LAST_MESSAGE_AT >= ? AND NOT EXISTS (SELECT 1 FROM BRAIN_THREAD_TOPIC l JOIN BRAIN_TOPIC tp ON "
+			+ "tp.OWNER_ID = l.OWNER_ID AND tp.OWNER_TYPE = l.OWNER_TYPE AND tp.TOPIC_ID = l.TOPIC_ID WHERE "
+			+ "l.OWNER_ID = t.OWNER_ID AND l.OWNER_TYPE = t.OWNER_TYPE AND l.THREAD_ID = t.THREAD_ID AND "
+			+ "(tp.STATUS IS NULL OR tp.ORIGIN IS NULL OR tp.STATUS <> ? OR tp.ORIGIN <> ?)) "
+			+ "ORDER BY t.LAST_MESSAGE_AT DESC";
+
+	private static Object[] unfiledParams(String ownerId, String ownerType, Timestamp now) {
+		return new Object[] { ownerId, ownerType, false, false,
+				new Timestamp(now.getTime() - FRESH_DAYS * 86_400_000L), BrainTopicUtils.SUGGESTED, "brain" };
+	}
+
+	/**
+	 * The owner answered a new-topic question. Accepted: the suggested topic becomes active, the people suggested
+	 * for it become its members, and the group's conversations are filed under it, except where the owner filed
+	 * or refused one themselves. Dismissed: the suggested topic is removed; the question stays, answered, so the
+	 * same group is not asked about again.
+	 */
+	static void settle(String ownerId, String ownerType, String topicId, List<String> threadIds, boolean accepted) {
+		Timestamp now = CollaborationDbUtils.now();
+		String suggested = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND STATUS = ? AND ORIGIN = ?";
+		if (!accepted) {
+			if (CollaborationDbUtils.update("DELETE FROM BRAIN_TOPIC" + suggested, ownerId, ownerType, topicId,
+					BrainTopicUtils.SUGGESTED, "brain") > 0) {
+				CollaborationDbUtils.update("DELETE FROM BRAIN_TOPIC_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
+						+ "TOPIC_ID = ?", ownerId, ownerType, topicId);
+			}
+			return;
+		}
+		if (CollaborationDbUtils.update("UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ?" + suggested,
+				BrainTopicUtils.ACTIVE, now, ownerId, ownerType, topicId, BrainTopicUtils.SUGGESTED, "brain") == 0) {
+			// already kept, or gone: nothing of the proposal to apply
+			return;
+		}
+		CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_PERSON SET STATE = ?, CHANGED_AT = ? WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ? AND TOPIC_ID = ? AND STATE = ?", BrainTopicUtils.MEMBER, now, ownerId, ownerType, topicId,
+				"suggested");
+		for (String threadId : threadIds) {
+			try {
+				BrainThreadClassifier.linkKept(ownerId, ownerType, threadId, topicId, Map.of("proposed", true),
+						BrainTopicOnboarding.VERSION);
+			} catch (RuntimeException e) {
+				// a conversation deleted since the question was asked
+				classLogger.warn("Could not file {} under new topic {}", threadId, topicId, e);
+			}
 		}
 	}
 
 	private static Map<String, Object> suggest(User user, boolean writeTopics, boolean dryRun,
-			CollaborationJobUtils.Job job) {
+			CollaborationJobUtils.Job job, boolean fresh) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -132,6 +239,22 @@ public final class BrainTopicSuggest {
 						new Thread(rs.getString(1), CollaborationDbUtils.getString(rs, "SUBJECT"),
 								new LinkedHashSet<>())),
 				ownerId, ownerType, false, false, "teams", BrainGraphHeaderSource.CHAT_PREFIX + "%");
+		// what was asked about before, answered or not: a group made mostly of it is not asked about again
+		Set<String> asked = new HashSet<>();
+		if (fresh) {
+			List<String> pool = CollaborationDbUtils.query(UNFILED, rs -> rs.getString(1),
+					unfiledParams(ownerId, ownerType, CollaborationDbUtils.now()));
+			threads.keySet().retainAll(new HashSet<>(pool.subList(0, Math.min(FRESH_POOL, pool.size()))));
+			CollaborationDbUtils.query("SELECT DETAIL_JSON FROM BRAIN_REVIEW WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
+					+ "KIND = ?", rs -> {
+						Map<String, Object> detail = CollaborationDbUtils
+								.parseMap(CollaborationDbUtils.getString(rs, "DETAIL_JSON"));
+						if (detail != null && detail.get("threadIds") instanceof List<?> ids) {
+							ids.forEach(id -> asked.add(String.valueOf(id)));
+						}
+						return null;
+					}, ownerId, ownerType, BrainReviewUtils.NEW_TOPIC);
+		}
 		// automated and list senders, VIPs, and who wrote on each thread
 		Set<String> automated = new HashSet<>();
 		Set<String> vips = new HashSet<>();
@@ -238,6 +361,13 @@ public final class BrainTopicSuggest {
 			return out;
 		}
 		out.put("dryRun", dryRun);
+		if (fresh) {
+			out.put("freshPool", threads.size());
+			if (threads.size() < FRESH_MIN_POOL) {
+				out.put("topics", List.of());
+				return out;
+			}
+		}
 
 		List<Candidate> candidates;
 		try {
@@ -276,8 +406,10 @@ public final class BrainTopicSuggest {
 		List<Map<String, Object>> written = new ArrayList<>();
 		Timestamp now = CollaborationDbUtils.now();
 		List<Candidate> proposals = candidates;
+		// the questions to raise once the suggested topics are saved
+		List<Object[]> questions = new ArrayList<>();
 		CollaborationDbUtils.TransactionWork replace = conn -> {
-			if (!dryRun) {
+			if (!dryRun && !fresh) {
 				// Replace only after a complete generation, in the same transaction as the inserts.
 				for (String id : CollaborationDbUtils.query("SELECT TOPIC_ID FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND "
 						+ "OWNER_TYPE = ? AND STATUS = ? AND ORIGIN = ? FOR UPDATE", rs -> rs.getString(1), ownerId, ownerType,
@@ -286,7 +418,8 @@ public final class BrainTopicSuggest {
 				}
 			}
 			for (Candidate c : proposals) {
-				if (written.size() >= BrainTopicStructure.A1.topics() || topicNames.contains(c.name().toLowerCase(Locale.ROOT))) {
+				if (written.size() >= (fresh ? FRESH_MAX : BrainTopicStructure.A1.topics())
+						|| topicNames.contains(c.name().toLowerCase(Locale.ROOT))) {
 					continue;
 				}
 				String topicId = "t-" + CollaborationDbUtils.deterministicId(ownerId, ownerType, "suggest", c.key());
@@ -294,6 +427,21 @@ public final class BrainTopicSuggest {
 						+ "TOPIC_ID = ? AND (STATUS IS NULL OR ORIGIN IS NULL OR STATUS <> ? OR ORIGIN <> ?)", ownerId, ownerType, topicId,
 						BrainTopicUtils.SUGGESTED, "brain")) {
 					continue;
+				}
+				int mine = (int) c.threads().stream().filter(t -> writers.getOrDefault(t.id(), Set.of()).contains(self)).count();
+				int withVip = (int) c.threads().stream().filter(t -> t.people().stream().anyMatch(vips::contains)).count();
+				// pre-checked on screen: you wrote on a third of its conversations or more, or a VIP is on it. One
+				// reply among thirty threads of recruiters or vendors is not taking part: on the fixture worlds every
+				// real topic had the owner writing on 44% or more, and half of the other groups under a third
+				boolean takesPart = (mine > 0 && 3 * mine >= c.threads().size()) || withVip > 0;
+				if (fresh) {
+					// a question interrupts: only a group the owner takes part in, asked about once
+					long before = c.threads().stream().filter(t -> asked.contains(t.id())).count();
+					if (!takesPart || c.threads().size() < FRESH_MIN_THREADS || 2 * before >= c.threads().size()
+							|| CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND "
+									+ "OWNER_TYPE = ? AND TOPIC_ID = ?", ownerId, ownerType, topicId)) {
+						continue;
+					}
 				}
 				// an account (or outside at all) only when its people are on at least half the threads, so
 				// one outside person copied on a few threads does not claim the topic
@@ -369,15 +517,21 @@ public final class BrainTopicSuggest {
 				row.put("suggestedTerms", c.suggestedTerms());
 				row.put("sampleSubjects", samples(c, mailThreads, writers, self).stream().limit(3)
 						.collect(Collectors.toList()));
-				int mine = (int) c.threads().stream().filter(t -> writers.getOrDefault(t.id(), Set.of()).contains(self)).count();
-				int withVip = (int) c.threads().stream().filter(t -> t.people().stream().anyMatch(vips::contains)).count();
 				row.put("youWrote", mine);
 				row.put("vipThreads", withVip);
-				// pre-checked on screen: you wrote on a third of its conversations or more, or a VIP is on it. One
-				// reply among thirty threads of recruiters or vendors is not taking part: on the fixture worlds every
-				// real topic had the owner writing on 44% or more, and half of the other groups under a third
-				row.put("suggested", (mine > 0 && 3 * mine >= c.threads().size()) || withVip > 0);
+				row.put("suggested", takesPart);
 				written.add(row);
+				if (fresh && !dryRun) {
+					List<String> subjects = samples(c, mailThreads, writers, self);
+					Map<String, Object> detail = new LinkedHashMap<>();
+					detail.put("text", "New topic suggested: " + c.name());
+					detail.put("detail", c.threads().size() + " recent conversations no topic holds"
+							+ (subjects.isEmpty() ? "" : ", such as: "
+									+ String.join("; ", subjects.subList(0, Math.min(3, subjects.size())))));
+					detail.put("candidate", topicId);
+					detail.put("threadIds", row.get("threadIds"));
+					questions.add(new Object[] { topicId, c.key(), detail });
+				}
 			}
 		};
 		if (dryRun) {
@@ -388,6 +542,12 @@ public final class BrainTopicSuggest {
 			}
 		} else {
 			CollaborationDbUtils.batch(replace);
+		}
+		for (Object[] q : questions) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> detail = (Map<String, Object>) q[2];
+			BrainReviewUtils.addReview(ownerId, ownerType, BrainReviewUtils.NEW_TOPIC, "topic", (String) q[0],
+					(String) q[1], detail);
 		}
 
 		out.put("topics", written);

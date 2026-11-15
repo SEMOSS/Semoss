@@ -1168,6 +1168,13 @@ public final class BrainThreadClassifier {
 
 	// the folder's topic becomes the thread's: links Brain guessed give way, the owner's own never do
 	private static boolean linkFolder(String ownerId, String ownerType, String threadId, String topicId) {
+		return linkKept(ownerId, ownerType, threadId, topicId, Map.of("folder", true), BrainMailFolders.FILED);
+	}
+
+	// files a thread under a topic on the owner's word (a folder they keep for it, a proposal they accepted): a
+	// guess of Brain's gives way, a thread the owner filed or refused for this topic, or an automated one, is left
+	static boolean linkKept(String ownerId, String ownerType, String threadId, String topicId,
+			Map<String, Object> signals, String version) {
 		Timestamp now = CollaborationDbUtils.now();
 		boolean[] written = { false };
 		CollaborationDbUtils.batch(conn -> {
@@ -1202,7 +1209,7 @@ public final class BrainThreadClassifier {
 							+ "IS_PRIMARY, SIGNALS_JSON, CLASSIFIER_VERSION, CHANGED_BY, CHANGED_AT) "
 							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 					ownerId, ownerType, threadId, topicId, "confirmed", 100, !hasPrimary,
-					CollaborationDbUtils.toJson(Map.of("folder", true)), BrainMailFolders.FILED, "brain", now);
+					CollaborationDbUtils.toJson(signals), version, "brain", now);
 			CollaborationDbUtils.update(conn, "UPDATE WORK_ITEM SET LINK_TOPIC_ID = ?" + owned
 					+ " AND LINK_TOPIC_ID IS NULL", topicId, ownerId, ownerType, threadId);
 			written[0] = true;

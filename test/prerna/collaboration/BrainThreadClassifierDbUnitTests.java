@@ -278,6 +278,45 @@ class BrainThreadClassifierDbUnitTests {
 		assertTrue(notice("vip", "Change request CR-7 needs your approval", "desk", 0.9));
 	}
 
+	@Test
+	void acceptingANewTopicFoundInIncomingMailKeepsItAndFilesItsConversations() throws Exception {
+		String review = proposal("t-new", "Harbour crane inspection");
+		BrainReviewUtils.resolveReview(ownerId, ownerType, review, "Accept", null, BrainProfileUtils.YOU);
+		assertEquals("active", value("SELECT STATUS FROM BRAIN_TOPIC WHERE TOPIC_ID = 't-new'"));
+		assertEquals("member", value("SELECT STATE FROM BRAIN_TOPIC_PERSON WHERE TOPIC_ID = 't-new'"));
+		assertEquals(List.of(List.of("t-new", "confirmed", true)), links());
+	}
+
+	@Test
+	void dismissingANewTopicRemovesItAndFilesNothing() throws Exception {
+		String review = proposal("t-new", "Harbour crane inspection");
+		BrainReviewUtils.resolveReview(ownerId, ownerType, review, "dismiss", null, BrainProfileUtils.YOU);
+		assertEquals(null, value("SELECT STATUS FROM BRAIN_TOPIC WHERE TOPIC_ID = 't-new'"));
+		assertTrue(links().isEmpty());
+		// the answered question stays: it is what keeps the same group from being asked about again
+		assertEquals("dismissed", value("SELECT STATUS FROM BRAIN_REVIEW WHERE REVIEW_ID = '" + review + "'"));
+	}
+
+	// a suggested topic with one suggested person and the question about it, as a look at incoming mail leaves them
+	private String proposal(String topicId, String name) throws Exception {
+		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS, ORIGIN) VALUES (?, ?, ?, ?, "
+				+ "'suggested', 'brain')", ownerId, ownerType, topicId, name);
+		sql("INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, PERSON_ID, STATE) VALUES (?, ?, ?, 'kira', "
+				+ "'suggested')", ownerId, ownerType, topicId);
+		Map<String, Object> detail = new LinkedHashMap<>();
+		detail.put("text", "New topic suggested: " + name);
+		detail.put("candidate", topicId);
+		detail.put("threadIds", List.of(THREAD, "th-gone"));
+		return (String) ((Map<?, ?>) BrainReviewUtils.addReview(ownerId, ownerType, BrainReviewUtils.NEW_TOPIC, "topic",
+				topicId, "key-1", detail).get("review")).get("id");
+	}
+
+	private String value(String query) throws Exception {
+		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery(query)) {
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
 	// one machine notice on its own thread, judged as classifyOne would after sorting it automated; demand is
 	// the classifier's answer, null when asking at all is a failure
 	private Set<String> vips = Set.of();

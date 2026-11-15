@@ -233,6 +233,12 @@ public final class BrainSync {
 		WorkThreadInsights.queue(user, ownerId, ownerType, summarize);
 		WorkPipeline.queue(user, ownerId, ownerType, summarize);
 		job.count("summarizing", summarize.size());
+		// a new project or event in the mail no topic holds: looked for at most once a day, on its own job
+		try {
+			job.count("topicWatch", BrainTopicSuggest.watch(user, ownerId, ownerType));
+		} catch (RuntimeException e) {
+			classLogger.warn("New-topic look could not start", e);
+		}
 		job.count("resumed", run.owed.size() - run.imported);
 		finishFollowUps(ownerId, ownerType, run);
 
