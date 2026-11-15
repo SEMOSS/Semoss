@@ -376,6 +376,8 @@ public final class BrainProfileUtils {
 		// read-only: the platform agent behind each thread's assistant, when this user
 		// can use it
 		settings.put("assistantAgent", CollaborationUtils.threadAgent(user));
+		// read-only: whether an admin turned Digital Twin avatars on and set their image model
+		settings.put("avatarGeneration", WorkTwinAvatar.available());
 		return settings;
 	}
 

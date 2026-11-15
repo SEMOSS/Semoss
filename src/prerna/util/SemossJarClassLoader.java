@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -44,6 +45,9 @@ import org.xeustechnologies.jcl.JarClassLoader;
  * {@link SemossClassLoader#isReflectionApiBlocked(String)}.</li>
  * <li>Forces all {@code prerna.*} classes to load from the application
  * classloader, preventing spoofed prerna classes in reactor JARs.</li>
+ * <li>Shares only the libraries on the platform's shared list. Any other
+ * library comes from the project's own Maven dependencies, or is loaded as the
+ * project's own sandboxed copy of the platform's.</li>
  * <li>Applies bytecode transformation to every class loaded from the JAR,
  * intercepting {@code System.getenv}, {@code System.exit}, file paths, network
  * access, and all other sandbox-enforced APIs - identical to the transformation
@@ -56,6 +60,8 @@ import org.xeustechnologies.jcl.JarClassLoader;
 public class SemossJarClassLoader extends JarClassLoader {
 
 	private static final Logger classLogger = LogManager.getLogger(SemossJarClassLoader.class);
+
+	private final List<String> approvedPackages = SemossClassLoader.approvedLibraryPackages();
 
 	/**
 	 * Constructs a SemossJarClassLoader and registers additional system properties
@@ -83,7 +89,24 @@ public class SemossJarClassLoader extends JarClassLoader {
 			// still resolved correctly via the application classloader.
 			return SemossJarClassLoader.class.getClassLoader().loadClass(className);
 		}
-		return super.loadClass(className, resolveIt);
+		if (className == null || SemossClassLoader.isSharedWithPlatform(className, this.approvedPackages)) {
+			return super.loadClass(className, resolveIt);
+		}
+		synchronized (getClassLoadingLock(className)) {
+			Class<?> loaded = findLoadedClass(className);
+			if (loaded == null) {
+				loaded = getLocalLoader().loadClass(className, resolveIt);
+			}
+			if (loaded == null) {
+				byte[] copy = SemossClassLoader.sandboxedLibraryCopy(className,
+						SemossJarClassLoader.class.getClassLoader(), this.approvedPackages);
+				if (copy == null) {
+					return super.loadClass(className, resolveIt);
+				}
+				loaded = defineClass(className, copy, 0, copy.length);
+			}
+			return loaded;
+		}
 	}
 
 	/**

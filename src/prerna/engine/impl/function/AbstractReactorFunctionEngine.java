@@ -59,6 +59,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.SecretRedactor;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
@@ -239,6 +240,7 @@ public abstract class AbstractReactorFunctionEngine extends AbstractReactor impl
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
+		SecretRedactor.recordSecrets(this.engineId, this.smssProp);
 
 		this.functionName = smssProp.getProperty(IFunctionEngine.NAME_KEY);
 		this.functionDescription = smssProp.getProperty(IFunctionEngine.DESCRIPTION_KEY);

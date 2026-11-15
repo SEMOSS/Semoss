@@ -68,6 +68,7 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.SemossClassLoader;
 import prerna.util.SemossJarClassLoader;
+import prerna.util.SemossProjectJarClassLoader;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.git.GitAssetUtils;
@@ -309,7 +310,7 @@ public class ProjectReactorHelper {
 		}
 
 		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader());
-		urlClassLoader = new URLClassLoader(urls, this.projectClassLoader);
+		urlClassLoader = new SemossProjectJarClassLoader(urls, this.projectClassLoader);
 		try {
 			// scan all abstract reactors
 			ScanResult sr = new ClassGraph().overrideClasspath((Object[]) urls).enableClassInfo().scan();

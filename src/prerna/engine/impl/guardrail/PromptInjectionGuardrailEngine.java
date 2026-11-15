@@ -170,7 +170,8 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 
 		String script = "classifier.classify(" + PyUtils.determineStringType(prompt) + ", max_length="
 				+ PyUtils.determineStringType(maxLength) + ")";
-		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(script);
+		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(null,
+				this.timeout, this.timeoutMessage, script);
 
 		Map<String, Double> scoresByLabel = extractScoresByLabel(predictions);
 		DecisionResult decision = evaluate(scoresByLabel, this.labelDecisionMap, threshold, this.defaultDecision);
@@ -331,7 +332,7 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 
 				This guardrail runs a local Hugging Face text-classification model and evaluates its label scores using `LABEL_DECISION_MAP`. A label mapped to `BLOCK` fails when its score is at or above the threshold.
 
-				`MODEL_NAME` and `LABEL_DECISION_MAP` are required in the guardrail SMSS. Match the map keys to the exact labels produced by that model, for example `{"SAFE":"PASS","INJECTION":"BLOCK"}`. `DEFAULT_DECISION` (`BLOCK` or `PASS`) is used for unmapped or missing labels and defaults to `BLOCK`. Optional settings include `DEFAULT_THRESHOLD`, `DEFAULT_MAX_LENGTH`, `DEVICE`, `USE_CUDA`, and `TRUST_REMOTE_CODE`. Enable remote code only for a model repository you trust.
+				`MODEL_NAME` (the Hugging Face repository of the classifier to load) and `LABEL_DECISION_MAP` are required in the guardrail SMSS. Match the map keys to the exact labels produced by that model, for example `{"SAFE":"PASS","INJECTION":"BLOCK"}`. `DEFAULT_DECISION` (`BLOCK` or `PASS`) is used for unmapped or missing labels and defaults to `BLOCK`. Optional settings include `DEFAULT_THRESHOLD`, `DEFAULT_MAX_LENGTH`, `DEVICE`, `USE_CUDA`, and `TRUST_REMOTE_CODE`. Enable remote code only for a model repository you trust.
 
 				## Example: block injection attempts before model inference
 

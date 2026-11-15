@@ -65,6 +65,7 @@ import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -263,7 +264,7 @@ public class UploadProjectReactor extends AbstractReactor {
 			String displayName = smssProps.getProperty(Constants.PROJECT_DISPLAY_NAME);
 			if (displayName == null || displayName.trim().isEmpty()) {
 				try {
-					Utility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
+					InternalUtility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
 							Constants.PROJECT_DISPLAY_NAME, projectName);
 				} catch (IOException e) {
 					classLogger.error("Failed to write {} into the smss file for project {}",
