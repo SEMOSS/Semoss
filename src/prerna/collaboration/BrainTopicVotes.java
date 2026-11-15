@@ -48,8 +48,10 @@ public final class BrainTopicVotes {
 
 	public static final String INSTRUCTIONS = """
 			You help one person set up their work topics from their email. Below are clusters of their email threads,
-			found from who is on each thread, subject wording and dates. Each cluster has an id, its thread count, first and last
-			month, the people who appear most, and example subjects. "outlookFolder", when given, is an Outlook folder
+			found from who is on each thread, subject wording and dates, or from what the messages say. Each cluster has an
+			id, its thread count, first and last month, the people who appear most, and example subjects. "words", when
+			given, are words its messages use far more than the rest of the mail does: they say what the cluster is
+			about even when the subjects differ. "outlookFolder", when given, is an Outlook folder
 			they made whose mail is mostly in this cluster (the path runs from their top folder down);
 			"outlookCategories" are Outlook categories they put on its mail. These are clues to how they sort their
 			work, not answers.

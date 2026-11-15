@@ -405,6 +405,38 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
+	void topicDiscoveryReadsWhatThePoolSaysThroughTheThreadReadAndKeepsNone() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("freezer", at, null);
+		email("freezer", "g1", at, "The compressor teardown is booked for Tuesday");
+		email("freezer", "g2", at.plusMinutes(5), "Crane deposit is paid");
+		thread("away", at, null);
+		email("away", "g3", at, "Cannot be fetched");
+		failing.add("g3");
+		// reads run on the test thread, where the static mocks are
+		int readers = BrainTopicOnboarding.readers;
+		BrainTopicOnboarding.readers = 1;
+		try {
+			Map<String, Object> notes = new HashMap<>();
+			List<BrainTopicStructure.Facts> pool = new ArrayList<>();
+			for (String id : List.of("freezer", "away")) {
+				pool.add(new BrainTopicStructure.Facts(id, "About " + id, at.toString(), List.of(), Set.of(), false, false,
+						false, false, 1, true, null, Set.of()));
+			}
+			Map<String, List<BrainTopicStructure.Text>> read = BrainTopicOnboarding
+					.reader(user, ownerId, ownerType, BrainMessageSource.current(), notes).read(pool);
+			// oldest first, as the thread read cleans them; the thread that cannot be read has no words
+			assertEquals(Set.of("freezer"), read.keySet());
+			assertEquals(List.of("The compressor teardown is booked for Tuesday", "Crane deposit is paid"),
+					read.get("freezer").stream().map(BrainTopicStructure.Text::text).toList());
+			assertEquals(1, notes.get("readThreads"));
+			assertEquals(1, notes.get("unreadThreads"));
+		} finally {
+			BrainTopicOnboarding.readers = readers;
+		}
+	}
+
+	@Test
 	void aCalendarMessageIsNotReadForWork() throws Exception {
 		LocalDateTime at = at("2026-11-05T10:00:00");
 		thread("call", at, null);
