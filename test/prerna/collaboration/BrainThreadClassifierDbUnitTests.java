@@ -252,8 +252,36 @@ class BrainThreadClassifierDbUnitTests {
 		assertTrue(items().isEmpty());
 	}
 
+	@Test
+	void aNoticeFromAnOrganisationTheOwnerWorksWithIsAskedAbout() throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM, RELATIONSHIP) VALUES "
+				+ "(?, ?, 'portal', 'Vendor Portal', 'no-reply@portal.adatum.com', 'automated')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM, RELATIONSHIP) VALUES "
+				+ "(?, ?, 'kira', 'Kira Holt', 'kira@adatum.com', 'external')", ownerId, ownerType);
+		// mail from someone there is not enough: the owner has not written to them
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, 'talk', "
+				+ "'kira')", ownerId, ownerType);
+		assertFalse(notice("early", "Ticket VP-11 assigned to you", "portal", null));
+		// the owner wrote on a thread Kira is on: the organisation's portal is asked about from then on
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, "
+				+ "RECEIVED_AT) VALUES (?, ?, 'key-talk', 'talk', 'g-talk', 'self', ?)", ownerId, ownerType,
+				java.sql.Timestamp.valueOf("2026-11-04 10:00:00"));
+		assertTrue(notice("later", "Ticket VP-12 assigned to you", "portal", 0.9));
+		assertEquals(List.of(List.of("notice:VP-12", "errand", "open")), items());
+	}
+
+	@Test
+	void aNoticeFromAVipIsAskedAboutWhereverItComesFrom() throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM) VALUES (?, ?, 'desk', "
+				+ "'Client Desk', 'desk@client.example')", ownerId, ownerType);
+		vips = Set.of("desk");
+		assertTrue(notice("vip", "Change request CR-7 needs your approval", "desk", 0.9));
+	}
+
 	// one machine notice on its own thread, judged as classifyOne would after sorting it automated; demand is
 	// the classifier's answer, null when asking at all is a failure
+	private Set<String> vips = Set.of();
+
 	private boolean notice(String threadId, String subject, String senderId, Double demand) throws Exception {
 		insertNotice(threadId, subject, senderId);
 		return judge(threadId, subject, demand);
@@ -303,7 +331,8 @@ class BrainThreadClassifierDbUnitTests {
 		Map<String, Object> extra = Map.of("classifier", classifier, "self",
 				new BrainThreadClassifier.Self("self", "Owner", Set.of("owner@test.com")), "window",
 				BrainThreadClassifier.window((Object) null), "timeZone", java.time.ZoneOffset.UTC, "ownOrg",
-				BrainOrgDomains.of(List.of(), "test.com"));
+				BrainOrgDomains.of(List.of(), "test.com"), "vips", vips, "topicVips", Map.of(), "partners",
+				new java.util.concurrent.ConcurrentHashMap<String, Boolean>());
 		return (Boolean) notice.invoke(null, context(context, extra), threadId,
 				Map.of("subject", subject, "source", "email"), List.of(message));
 	}

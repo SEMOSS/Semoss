@@ -41,6 +41,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 // Reconcile: turns extracted candidates into the owner's work, one topic at a time.
 // Per topic the model sees the topic, its open work items and steps, and the new candidates, and matches before it
@@ -921,6 +923,10 @@ public final class WorkReconcile {
 		params.put("temperature", 0);
 		params.put("max_tokens", MAX_TOKENS);
 		params.put("schema", schema);
+		String effort = Utility.getDIHelperProperty(Constants.COLLAB_WORK_REASONING_EFFORT);
+		if (effort != null && !effort.isBlank()) {
+			params.put("reasoning_effort", effort.trim());
+		}
 		Insight insight = new Insight();
 		insight.setUser(user);
 		return model.ask(CollaborationDbUtils.toJson(input), instructions, insight, params).getStringResponse();

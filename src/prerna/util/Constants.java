@@ -1083,6 +1083,8 @@ public class Constants {
 	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
 	// threads one work items run reads at once (default 5)
 	public static final String COLLAB_WORK_EXTRACT_PARALLEL = "COLLAB_WORK_EXTRACT_PARALLEL";
+	// reasoning effort sent with Work's model calls (low, medium, high); unset sends none
+	public static final String COLLAB_WORK_REASONING_EFFORT = "COLLAB_WORK_REASONING_EFFORT";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
 	// characters of memories a thread's assistant gets in its prompt (default 4000)

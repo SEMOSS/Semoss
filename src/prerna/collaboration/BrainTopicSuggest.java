@@ -56,7 +56,7 @@ public final class BrainTopicSuggest {
 	private static final int ACCOUNT_MIN_THREADS = 3;
 	private static final int MEMBERS = 6;
 	private static final int DESCRIBE = 5;
-	private static final Set<String> FREEMAIL = Set.of("gmail.com", "googlemail.com", "outlook.com", "hotmail.com",
+	static final Set<String> FREEMAIL = Set.of("gmail.com", "googlemail.com", "outlook.com", "hotmail.com",
 			"live.com", "msn.com", "yahoo.com", "icloud.com", "me.com", "aol.com", "proton.me", "protonmail.com");
 
 	private BrainTopicSuggest() {

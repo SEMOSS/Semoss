@@ -329,7 +329,8 @@ public final class BrainThreadClassifier {
 			boolean dryRun, Self self, Set<String> vips, Map<String, Set<String>> topicVips,
 			List<BrainRulesGate.Rule> rules, Set<String> followed, Set<String> automatedSenders,
 			Map<String, BrainClassifier.Scores> scored, Window window, ZoneId timeZone, BrainMailFolders.Tree folders,
-			Map<String, String> linkedFolders, BrainTopicEvidence.Evidence evidence, BrainOrgDomains.Org ownOrg) {
+			Map<String, String> linkedFolders, BrainTopicEvidence.Evidence evidence, BrainOrgDomains.Org ownOrg,
+			Map<String, Boolean> partners) {
 	}
 
 	// how much of a thread one model call carries; budget is characters for all messages together
@@ -363,7 +364,8 @@ public final class BrainThreadClassifier {
 				BrainProfileUtils.timeZone(user), BrainMailFolders.load(ownerId, ownerType),
 				BrainMailFolders.linkedTopics(ownerId, ownerType),
 				// read once for the run, so results do not depend on the order threads finish in
-				BrainTopicEvidence.load(ownerId, ownerType, topics, rules), ownOrg(ownerId, ownerType));
+				BrainTopicEvidence.load(ownerId, ownerType, topics, rules), ownOrg(ownerId, ownerType),
+				new ConcurrentHashMap<>());
 	}
 
 	// the owner's organisation, by the domains it mails from
@@ -675,7 +677,8 @@ public final class BrainThreadClassifier {
 	}
 
 	// Machine mail is left out of Work, but some of it is the cleanest ask there is: a ticket assigned to the
-	// owner, an approval waiting on them. A notice from the owner's own organisation is asked one more question
+	// owner, an approval waiting on them. A notice from the owner's own organisation, or from one the owner works
+	// with (worksWith), is asked one more question
 	// (its own model call), and when it needs the owner it raises an item, one per ticket however many notices
 	// name it. A later notice that says the ticket is closed finishes that item. messages: already read, or null.
 	// True when the thread's newest notice needs the owner; a dry run writes nothing
@@ -687,13 +690,14 @@ public final class BrainThreadClassifier {
 		// the newest sender's organisation, from the database: no mail is fetched for anyone else's notices
 		// and each notice is asked about once: CLASSIFIED_AT on the message says it was
 		Object[] sent = CollaborationDbUtils.queryOne(CollaborationDbUtils.page("SELECT p.EMAIL_NORM, m.MESSAGE_KEY, "
-				+ "m.CLASSIFIED_AT FROM BRAIN_MESSAGE m JOIN BRAIN_PERSON p ON p.OWNER_ID = m.OWNER_ID AND "
+				+ "m.CLASSIFIED_AT, p.PERSON_ID FROM BRAIN_MESSAGE m JOIN BRAIN_PERSON p ON p.OWNER_ID = m.OWNER_ID AND "
 				+ "p.OWNER_TYPE = m.OWNER_TYPE AND p.PERSON_ID = m.SENDER_PERSON_ID WHERE m.OWNER_ID = ? AND "
 				+ "m.OWNER_TYPE = ? AND m.THREAD_ID = ? ORDER BY m.RECEIVED_AT DESC", 1, 0),
-				rs -> new Object[] { rs.getString(1), rs.getString(2), rs.getTimestamp(3) }, ctx.ownerId(),
-				ctx.ownerType(), threadId);
+				rs -> new Object[] { rs.getString(1), rs.getString(2), rs.getTimestamp(3), rs.getString(4) },
+				ctx.ownerId(), ctx.ownerType(), threadId);
 		String domain = sent == null ? null : BrainMailImport.domain((String) sent[0]);
-		if (domain == null || !ctx.ownOrg().isMine(domain) || (sent[2] != null && !ctx.dryRun())) {
+		if (domain == null || (sent[2] != null && !ctx.dryRun())
+				|| !(ctx.ownOrg().isMine(domain) || worksWith(ctx, domain, (String) sent[3]))) {
 			return false;
 		}
 		String subject = (String) thread.get("subject");
@@ -741,6 +745,44 @@ public final class BrainThreadClassifier {
 			WorkItemUtils.ingestOnThread(ctx.ownerId(), ctx.ownerType(), item);
 		}
 		return true;
+	}
+
+	// A notice from outside the owner's organisation is asked about only when the owner works with whoever sent it:
+	// the sender or someone at its organisation is a VIP, someone there is a member of one of the owner's topics,
+	// or the owner has written on a thread with someone there. Anyone else's notice is never asked about, so a
+	// stranger's "verify your mailbox" raises nothing. Free mail is nobody's organisation
+	private static boolean worksWith(Context ctx, String domain, String senderId) {
+		if (senderId != null && (ctx.vips().contains(senderId)
+				|| ctx.topicVips().containsKey(senderId))) {
+			return true;
+		}
+		String org = BrainOrgDomains.org(domain);
+		if (org == null || BrainTopicSuggest.FREEMAIL.contains(org)) {
+			return false;
+		}
+		return ctx.partners().computeIfAbsent(org, o -> {
+			String self = ctx.self() == null || ctx.self().personId() == null ? "" : ctx.self().personId();
+			// people at the organisation who write themselves
+			String there = "FROM BRAIN_PERSON p WHERE p.OWNER_ID = ? AND p.OWNER_TYPE = ? AND (p.EMAIL_NORM LIKE ? OR "
+					+ "p.EMAIL_NORM LIKE ?) AND (p.RELATIONSHIP IS NULL OR p.RELATIONSHIP NOT IN (?, ?))";
+			Object[] who = { ctx.ownerId(), ctx.ownerType(), "%@" + o, "%." + o, "automated", "self" };
+			Object[] and = Arrays.copyOf(who, who.length + 1);
+			and[who.length] = true;
+			if (CollaborationDbUtils.exists("SELECT 1 " + there + " AND p.IS_VIP = ?", and)) {
+				return true;
+			}
+			and[who.length] = BrainTopicUtils.MEMBER;
+			if (CollaborationDbUtils.exists("SELECT 1 " + there + " AND EXISTS (SELECT 1 FROM BRAIN_TOPIC_PERSON tp "
+					+ "WHERE tp.OWNER_ID = p.OWNER_ID AND tp.OWNER_TYPE = p.OWNER_TYPE AND tp.PERSON_ID = p.PERSON_ID "
+					+ "AND tp.STATE = ?)", and)) {
+				return true;
+			}
+			and[who.length] = self;
+			return CollaborationDbUtils.exists("SELECT 1 " + there + " AND EXISTS (SELECT 1 FROM "
+					+ "BRAIN_THREAD_PARTICIPANT tp JOIN BRAIN_MESSAGE m ON m.OWNER_ID = tp.OWNER_ID AND m.OWNER_TYPE = "
+					+ "tp.OWNER_TYPE AND m.THREAD_ID = tp.THREAD_ID WHERE tp.OWNER_ID = p.OWNER_ID AND tp.OWNER_TYPE = "
+					+ "p.OWNER_TYPE AND tp.PERSON_ID = p.PERSON_ID AND m.SENDER_PERSON_ID = ?)", and);
+		});
 	}
 
 	// the thread as the classifier reads it: newest messages within the window's budget

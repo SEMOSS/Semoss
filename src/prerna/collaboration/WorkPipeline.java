@@ -1378,6 +1378,11 @@ public final class WorkPipeline {
 		params.put("temperature", 0);
 		params.put("max_tokens", MAX_TOKENS);
 		params.put("schema", EXTRACT_SCHEMA);
+		// a thinking model reads a thread in seconds with its thinking held low, and in minutes without
+		String effort = Utility.getDIHelperProperty(Constants.COLLAB_WORK_REASONING_EFFORT);
+		if (effort != null && !effort.isBlank()) {
+			params.put("reasoning_effort", effort.trim());
+		}
 		Insight insight = new Insight();
 		insight.setUser(user);
 		return model.ask(CollaborationDbUtils.toJson(input), EXTRACT, insight, params).getStringResponse();
