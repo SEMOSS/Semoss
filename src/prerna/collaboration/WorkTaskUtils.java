@@ -32,6 +32,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -133,10 +134,12 @@ public final class WorkTaskUtils {
 		if (tasks.size() > LIST_LIMIT) {
 			tasks = new ArrayList<>(tasks.subList(0, LIST_LIMIT));
 		}
+		Map<String, String> inbox = inbox(ownerId, ownerType);
 		for (Map<String, Object> task : tasks) {
 			String taskId = (String) task.get("id");
 			task.put("topics", topics(ownerId, ownerType, taskId));
 			List<Map<String, Object>> steps = steps(ownerId, ownerType, taskId);
+			steps.forEach(step -> putIfNotNull(step, "inbox", inbox.get(step.get("threadId"))));
 			task.put("stepCount", steps.size());
 			steps.removeIf(step -> !STEP_OPEN.contains(step.get("status")));
 			task.put("openSteps", steps);
@@ -144,6 +147,11 @@ public final class WorkTaskUtils {
 			// a step nobody was named for (a group ask) counts as the owner's
 			task.put("mine", steps.stream()
 					.anyMatch(step -> step.get("assigneeId") == null || step.get("assigneeId").equals(self)));
+			// needs the owner now: one of their open steps is from a conversation the inbox did not set aside as
+			// only for their information or as waiting on someone else (a step made by hand has no conversation)
+			task.put("needsYou", steps.stream()
+					.anyMatch(step -> (step.get("assigneeId") == null || step.get("assigneeId").equals(self))
+							&& "open".equals(step.get("status")) && (step.get("inbox") == null || !ASIDE.contains(step.get("inbox")))));
 		}
 
 		// loose steps: the owner's open ones with no work item
@@ -164,6 +172,7 @@ public final class WorkTaskUtils {
 		if (looseSteps.size() > LOOSE_LIMIT) {
 			looseSteps = new ArrayList<>(looseSteps.subList(0, LOOSE_LIMIT));
 		}
+		looseSteps.forEach(step -> putIfNotNull(step, "inbox", inbox.get(step.get("threadId"))));
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("workItems", tasks);
 		out.put("looseSteps", looseSteps);
@@ -210,7 +219,10 @@ public final class WorkTaskUtils {
 		String ownerType = owner.getValue1();
 		Map<String, Object> task = requireTask(ownerId, ownerType, taskId);
 		task.put("topics", topics(ownerId, ownerType, taskId));
-		task.put("steps", steps(ownerId, ownerType, taskId));
+		Map<String, String> inbox = inbox(ownerId, ownerType);
+		List<Map<String, Object>> steps = steps(ownerId, ownerType, taskId);
+		steps.forEach(step -> putIfNotNull(step, "inbox", inbox.get(step.get("threadId"))));
+		task.put("steps", steps);
 		task.put("timeline",
 				CollaborationDbUtils.query(
 						"SELECT UPDATE_ID, KIND, TEXT, THREAD_ID, SOURCE_REF, "
@@ -637,6 +649,25 @@ public final class WorkTaskUtils {
 			throw new IllegalArgumentException("Step not found");
 		}
 		return step;
+	}
+
+	// inbox verdicts that set a conversation aside: the owner is only informed, or is waiting on someone else
+	static final Set<String> ASIDE = Set.of("fyi", "waiting");
+
+	/**
+	 * What the inbox decided for each conversation that has a card: needs_me, waiting or fyi. A step carries its
+	 * conversation's verdict so the list can put what needs the owner first.
+	 */
+	static Map<String, String> inbox(String ownerId, String ownerType) {
+		Map<String, String> out = new HashMap<>();
+		CollaborationDbUtils.query("SELECT THREAD_ID, STATUS, ASK_TYPE FROM WORK_ITEM" + OWNED
+				+ " AND THREAD_ID IS NOT NULL ORDER BY UPDATED_AT", rs -> {
+					String status = rs.getString("STATUS");
+					out.put(rs.getString("THREAD_ID"), "waiting".equals(status) ? "waiting"
+							: "fyi".equals(rs.getString("ASK_TYPE")) ? "fyi" : "needs_me");
+					return null;
+				}, ownerId, ownerType);
+		return out;
 	}
 
 	private static List<Map<String, Object>> steps(String ownerId, String ownerType, String taskId) {

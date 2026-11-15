@@ -426,11 +426,7 @@ public final class WorkReconcile {
 		boolean noTopic = NO_TOPIC.equals(topicId);
 		// a done message may reach a step on another thread only within a topic, and only when the owner (Settings)
 		// or else the instance allows it
-		Boolean own = noTopic ? null
-				: CollaborationDbUtils.queryOne("SELECT WORK_CLOSE_ACROSS FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND "
-						+ "OWNER_TYPE = ?", rs -> CollaborationDbUtils.getBoolean(rs, "WORK_CLOSE_ACROSS"), ownerId,
-						ownerType);
-		boolean across = !noTopic && (own == null ? instanceClosesAcross() : own);
+		boolean across = !noTopic && closesAcross(ownerId, ownerType);
 		assemble(answer, shown, mergedInto, items, stepIds, existing, noTopic, across, out);
 		// unfiled threads have nothing in common but being unfiled; their tasks are not
 		// grouped across threads
@@ -790,6 +786,13 @@ public final class WorkReconcile {
 		}
 		return askedAt == null || claim.get("at") == null
 				|| String.valueOf(claim.get("at")).compareTo(String.valueOf(askedAt)) > 0;
+	}
+
+	// the owner's choice (Settings), or else the instance's
+	static boolean closesAcross(String ownerId, String ownerType) {
+		Boolean own = CollaborationDbUtils.queryOne("SELECT WORK_CLOSE_ACROSS FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ?", rs -> CollaborationDbUtils.getBoolean(rs, "WORK_CLOSE_ACROSS"), ownerId, ownerType);
+		return own == null ? instanceClosesAcross() : own;
 	}
 
 	// off only when the setting says so

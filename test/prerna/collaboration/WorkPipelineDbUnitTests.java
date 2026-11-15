@@ -391,6 +391,41 @@ class WorkPipelineDbUnitTests {
 
 	@Test
 	@SuppressWarnings("unchecked")
+	void aWorkItemNeedsTheOwnerOnlyWhenAStepComesFromAConversationTheInboxDidNotSetAside() throws Exception {
+		String card = "INSERT INTO WORK_ITEM (OWNER_ID, OWNER_TYPE, ITEM_ID, THREAD_ID, SOURCE, TITLE, ASK_TYPE, STATUS, "
+				+ "ORIGIN) VALUES (?, ?, ?, ?, 'email', 't', ?, ?, 'brain')";
+		for (String thread : List.of("th-fyi", "th-wait", "th-me")) {
+			sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT) VALUES (?, ?, ?, 'email', ?)",
+					ownerId, ownerType, thread, thread);
+		}
+		sql(card, ownerId, ownerType, "card-fyi", "th-fyi", "fyi", "open");
+		sql(card, ownerId, ownerType, "card-wait", "th-wait", "waiting_on", "waiting");
+		sql(card, ownerId, ownerType, "card-me", "th-me", "reply", "open");
+		String aside = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Read along"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Note the new date", "taskId", aside, "threadId", "th-fyi"), "owner");
+		WorkTaskUtils.addStep(user, Map.of("text", "Chase the quote", "taskId", aside, "threadId", "th-wait"), "owner");
+		String asked = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Answer Kira"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Send the deck", "taskId", asked, "threadId", "th-me"), "owner");
+		String hand = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Book the room"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Call the venue", "taskId", hand), "owner");
+
+		Map<String, Map<String, Object>> byId = new java.util.HashMap<>();
+		for (Map<String, Object> item : (List<Map<String, Object>>) WorkTaskUtils.listMyWork(user, Map.of())
+				.get("workItems")) {
+			byId.put((String) item.get("id"), item);
+		}
+		assertEquals(false, byId.get(aside).get("needsYou"));
+		assertEquals(true, byId.get(aside).get("mine"));
+		assertEquals(true, byId.get(asked).get("needsYou"));
+		// made by hand, no conversation behind it
+		assertEquals(true, byId.get(hand).get("needsYou"));
+		List<Map<String, Object>> steps = (List<Map<String, Object>>) byId.get(aside).get("openSteps");
+		assertEquals(Set.of("fyi", "waiting"),
+				steps.stream().map(step -> step.get("inbox")).collect(java.util.stream.Collectors.toSet()));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
 	void aDoneClaimFinishesOnlyAnEarlierAskOfItsOwnThreadWhenNoTopicHoldsThem() {
 		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
 				+ "{\"candidate\": \"c2\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
