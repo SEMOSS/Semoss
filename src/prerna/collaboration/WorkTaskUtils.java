@@ -652,7 +652,9 @@ public final class WorkTaskUtils {
 	}
 
 	// inbox verdicts that set a conversation aside: the owner is only informed, or is waiting on someone else
-	static final Set<String> ASIDE = Set.of("fyi", "waiting");
+	// or the conversation is only from people the owner has never worked with
+	static final String OUTSIDE = "outside";
+	static final Set<String> ASIDE = Set.of("fyi", "waiting", OUTSIDE);
 
 	/**
 	 * What the inbox decided for each conversation that has a card: needs_me, waiting or fyi. A step carries its
@@ -667,6 +669,50 @@ public final class WorkTaskUtils {
 							: "fyi".equals(rs.getString("ASK_TYPE")) ? "fyi" : "needs_me");
 					return null;
 				}, ownerId, ownerType);
+		outside(ownerId, ownerType).forEach(thread -> out.computeIfPresent(thread,
+				(t, verdict) -> ASIDE.contains(verdict) ? verdict : OUTSIDE));
+		return out;
+	}
+
+	// a person's organisation, or the address itself on free mail, which is nobody's organisation
+	private static String orgKey(String email) {
+		String domain = BrainMailImport.domain(email);
+		String org = domain == null ? null : BrainOrgDomains.org(domain);
+		return org == null || BrainTopicSuggest.FREEMAIL.contains(org) ? email : org;
+	}
+
+	/**
+	 * Conversations with an open step where nobody the owner works with has written and the owner has not either:
+	 * a survey invitation, a stranger's offer. The owner works with their colleagues, their VIPs, the members of
+	 * their topics, and anyone at an organisation they have written on a conversation with.
+	 */
+	static Set<String> outside(String ownerId, String ownerType) {
+		String person = "p.OWNER_ID = ? AND p.OWNER_TYPE = ? AND p.EMAIL_NORM IS NOT NULL";
+		Set<String> known = new java.util.HashSet<>();
+		CollaborationDbUtils.query("SELECT DISTINCT p.EMAIL_NORM FROM BRAIN_PERSON p WHERE " + person
+				+ " AND (p.RELATIONSHIP IN (?, ?) OR p.IS_VIP = ? OR EXISTS (SELECT 1 FROM BRAIN_TOPIC_PERSON tp WHERE "
+				+ "tp.OWNER_ID = p.OWNER_ID AND tp.OWNER_TYPE = p.OWNER_TYPE AND tp.PERSON_ID = p.PERSON_ID AND "
+				+ "tp.STATE = ?) OR EXISTS (SELECT 1 FROM BRAIN_MESSAGE m JOIN BRAIN_MESSAGE mine ON mine.OWNER_ID = "
+				+ "m.OWNER_ID AND mine.OWNER_TYPE = m.OWNER_TYPE AND mine.THREAD_ID = m.THREAD_ID JOIN BRAIN_PERSON me "
+				+ "ON me.OWNER_ID = mine.OWNER_ID AND me.OWNER_TYPE = mine.OWNER_TYPE AND me.PERSON_ID = "
+				+ "mine.SENDER_PERSON_ID AND me.RELATIONSHIP = ? WHERE m.OWNER_ID = p.OWNER_ID AND m.OWNER_TYPE = "
+				+ "p.OWNER_TYPE AND m.SENDER_PERSON_ID = p.PERSON_ID))", rs -> known.add(orgKey(rs.getString(1))),
+				ownerId, ownerType, "self", "colleague", true, BrainTopicUtils.MEMBER, "self");
+		// a conversation is outside until someone the owner works with shows up on it
+		Map<String, Boolean> threads = new HashMap<>();
+		CollaborationDbUtils.query("SELECT DISTINCT m.THREAD_ID, p.EMAIL_NORM FROM BRAIN_MESSAGE m JOIN BRAIN_PERSON p "
+				+ "ON p.OWNER_ID = m.OWNER_ID AND p.OWNER_TYPE = m.OWNER_TYPE AND p.PERSON_ID = m.SENDER_PERSON_ID WHERE "
+				+ "m.OWNER_ID = ? AND m.OWNER_TYPE = ? AND p.EMAIL_NORM IS NOT NULL AND m.THREAD_ID IN (SELECT THREAD_ID "
+				+ "FROM WORK_THREAD_STEP" + OWNED + " AND STATUS = ? AND THREAD_ID IS NOT NULL)", rs -> {
+					threads.merge(rs.getString(1), !known.contains(orgKey(rs.getString(2))), Boolean::logicalAnd);
+					return null;
+				}, ownerId, ownerType, ownerId, ownerType, "open");
+		Set<String> out = new java.util.HashSet<>();
+		threads.forEach((thread, strangers) -> {
+			if (strangers) {
+				out.add(thread);
+			}
+		});
 		return out;
 	}
 

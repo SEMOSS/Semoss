@@ -409,6 +409,30 @@ class WorkPipelineDbUnitTests {
 		String hand = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Book the room"), "owner").get("id");
 		WorkTaskUtils.addStep(user, Map.of("text", "Call the venue", "taskId", hand), "owner");
 
+		// a survey from an organisation the owner has never written with, and an ask from one they have
+		String person = "INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, EMAIL_NORM, RELATIONSHIP) VALUES (?, "
+				+ "?, ?, ?, ?)";
+		String message = "INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, SENDER_PERSON_ID) "
+				+ "VALUES (?, ?, ?, ?, ?)";
+		sql(person, ownerId, ownerType, "p-me", "me@northpine.com", "self");
+		sql(person, ownerId, ownerType, "p-panel", "invites@fieldline.com", "external");
+		sql(person, ownerId, ownerType, "p-kira", "kira@adatum.com", "external");
+		sql(person, ownerId, ownerType, "p-omar", "omar@adatum.com", "external");
+		for (String[] row : new String[][] { { "th-survey", "reply" }, { "th-omar", "reply" }, { "th-kira", "reply" } }) {
+			sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT) VALUES (?, ?, ?, 'email', ?)",
+					ownerId, ownerType, row[0], row[0]);
+			sql(card, ownerId, ownerType, "card-" + row[0], row[0], row[1], "open");
+		}
+		sql(message, ownerId, ownerType, "m1", "th-survey", "p-panel");
+		sql(message, ownerId, ownerType, "m2", "th-omar", "p-omar");
+		// the owner has written with Kira, so Omar's organisation is one they work with
+		sql(message, ownerId, ownerType, "m3", "th-kira", "p-kira");
+		sql(message, ownerId, ownerType, "m4", "th-kira", "p-me");
+		String survey = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Survey"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Take the survey", "taskId", survey, "threadId", "th-survey"), "owner");
+		String omar = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Omar"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Send Omar the quote", "taskId", omar, "threadId", "th-omar"), "owner");
+
 		Map<String, Map<String, Object>> byId = new java.util.HashMap<>();
 		for (Map<String, Object> item : (List<Map<String, Object>>) WorkTaskUtils.listMyWork(user, Map.of())
 				.get("workItems")) {
@@ -419,6 +443,8 @@ class WorkPipelineDbUnitTests {
 		assertEquals(true, byId.get(asked).get("needsYou"));
 		// made by hand, no conversation behind it
 		assertEquals(true, byId.get(hand).get("needsYou"));
+		assertEquals(false, byId.get(survey).get("needsYou"));
+		assertEquals(true, byId.get(omar).get("needsYou"));
 		List<Map<String, Object>> steps = (List<Map<String, Object>>) byId.get(aside).get("openSteps");
 		assertEquals(Set.of("fyi", "waiting"),
 				steps.stream().map(step -> step.get("inbox")).collect(java.util.stream.Collectors.toSet()));
