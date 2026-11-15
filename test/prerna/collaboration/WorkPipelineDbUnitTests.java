@@ -304,14 +304,14 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
-	void aDoneClaimClosesAStepOfItsOwnThreadAndNeverOneOfAnotherThread() throws Exception {
+	void aDoneClaimClosesAStepOfItsOwnThreadAndNotOneOfAnotherThreadItDoesNotName() throws Exception {
 		LocalDateTime at = at("2026-11-05T10:00:00");
 		// Kira's ask on an unfiled thread became a loose step; the owner's reply is a done claim
 		thread("unfiled", at, null);
 		step("kira-step", "unfiled", null, "Send Kira the deck");
 		candidate("reply", "unfiled", null, "Sent Kira the deck", at.plusMinutes(1));
-		// a loose step under a topic, and a done claim on another of the topic's threads: on real mail such a
-		// claim matched the wrong step far more often than the right one, so the step stays open
+		// a loose step under a topic, and a done claim on another of the topic's threads that does not name it: on
+		// real mail such a claim matched the wrong step far more often than the right one, so the step stays open
 		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS) VALUES (?, ?, 'budget', 'Budget', "
 				+ "'active')", ownerId, ownerType);
 		thread("ask", at, null);
@@ -321,7 +321,7 @@ class WorkPipelineDbUnitTests {
 					+ "(?, ?, ?, 'budget', 'you', TRUE)", ownerId, ownerType, threadId);
 		}
 		step("budget-step", "ask", "budget", "Review the budget");
-		candidate("reviewed", "answer", "budget", "Reviewed the budget", at.plusMinutes(2));
+		candidate("reviewed", "answer", "budget", "The numbers are in", at.plusMinutes(2));
 		// in each topic's batch the loose step is s1
 		reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"closes\", \"ref\": \"s1\", \"reason\": \"\"}, "
 				+ "{\"candidate\": \"c2\", \"action\": \"closes\", \"ref\": \"s1\", \"reason\": \"\"}], "
@@ -367,7 +367,31 @@ class WorkPipelineDbUnitTests {
 
 	@Test
 	@SuppressWarnings("unchecked")
-	void aDoneClaimFinishesOnlyAnEarlierAskOfItsOwnThread() {
+	void aDoneClaimOnAnotherThreadOfTheTopicFinishesTheStepItNames() {
+		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c3\", \"action\": \"closes\", \"ref\": \"c1\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c4\", \"action\": \"closes\", \"ref\": \"c2\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\", \"c2\"]}";
+		Map<String, Object>[] all = new Map[] {
+				on(task("c1", "Approve the Tarnwick invoice 4471"), "invoice", "2026-11-05T10:00:00Z"),
+				on(task("c2", "Approve overtime request OT-2214"), "overtime", "2026-11-05T10:00:00Z"),
+				// said done on the weekly thread, in the step's own words
+				on(claim("c3", "Tarnwick invoice 4471 is approved"), "weekly", "2026-11-06T10:00:00Z"),
+				// overtime again, but not that request
+				on(claim("c4", "Delgado will work four hours of overtime"), "sanitation", "2026-11-12T10:00:00Z") };
+		for (Map<String, Object> c : all) {
+			c.put("topicId", "finance");
+		}
+		Map<String, Object> topic = plan(reply, all);
+		List<Map<String, Object>> loose = (List<Map<String, Object>>) topic.get("looseSteps");
+		assertEquals(List.of("done", "open"), loose.stream().map(s -> s.get("status")).toList());
+		assertEquals(1, ((List<?>) topic.get("topicUpdates")).size());
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aDoneClaimFinishesOnlyAnEarlierAskOfItsOwnThreadWhenNoTopicHoldsThem() {
 		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
 				+ "{\"candidate\": \"c2\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
 				+ "{\"candidate\": \"c3\", \"action\": \"closes\", \"ref\": \"c1\", \"reason\": \"\"}, "
@@ -375,6 +399,7 @@ class WorkPipelineDbUnitTests {
 				+ "{\"candidate\": \"c5\", \"action\": \"closes\", \"ref\": \"c2\", \"reason\": \"\"}], "
 				+ "\"newItems\": [], \"loose\": [\"c1\", \"c2\"]}";
 		Map<String, Object> topic = plan(reply, on(task("c1", "Send Kira the deck"), "deck", "2026-11-05T10:00:00Z"),
+
 				on(task("c2", "Approve overtime request OT-2214"), "overtime", "2026-11-05T10:00:00Z"),
 				// the owner's reply on the deck thread
 				on(claim("c3", "Sent Kira the deck"), "deck", "2026-11-05T11:00:00Z"),

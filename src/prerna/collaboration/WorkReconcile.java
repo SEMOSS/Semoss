@@ -326,6 +326,7 @@ public final class WorkReconcile {
 					String s = "s" + (stepIds.size() + 1);
 					stepIds.put(s, String.valueOf(step.get("id")));
 					items.stepThreads.put(String.valueOf(step.get("id")), String.valueOf(step.get("threadId")));
+					items.stepTexts.put(String.valueOf(step.get("id")), String.valueOf(step.get("text")));
 					steps.add(Map.of("id", s, "text", String.valueOf(step.get("text"))));
 				}
 				Map<String, Object> item = new LinkedHashMap<>();
@@ -382,6 +383,7 @@ public final class WorkReconcile {
 				String s = "s" + (stepIds.size() + 1);
 				stepIds.put(s, id);
 				items.stepThreads.put(id, String.valueOf(step.get("threadId")));
+				items.stepTexts.put(id, String.valueOf(step.get("text")));
 				otherSteps.add(Map.of("id", s, "text", String.valueOf(step.get("text"))));
 			}
 		}
@@ -440,6 +442,8 @@ public final class WorkReconcile {
 		final Map<String, Integer> open = new LinkedHashMap<>();
 		// the thread each existing open step came from, by step id
 		final Map<String, String> stepThreads = new LinkedHashMap<>();
+		// what each existing open step says, by step id
+		final Map<String, String> stepTexts = new LinkedHashMap<>();
 		Map<String, String> ids = new LinkedHashMap<>();
 
 		Items(Map<String, Set<String>> fedBy) {
@@ -639,16 +643,19 @@ public final class WorkReconcile {
 				}
 			}
 			case "closes" -> {
-				// code holds the line: a step is finished only by a later message of its own conversation. A
-				// done claim from another thread matched the wrong step far more often than the right one
+				// code holds the line: a later message of the step's own conversation finishes it. From another
+				// thread of the topic it does so only when it names the same thing (the owner's decision,
+				// 2026-11-15): a bare done claim there matched the wrong step far more often than the right one
 				// (quillfield, 2026-11-14), and a step closed by mistake is gone from the owner's list
 				Map<String, Object> asked = byId.get(ref);
 				String thread = asked != null ? String.valueOf(asked.get("threadId"))
 						: items.stepThreads.get(stepIds.get(ref));
+				Object said = asked != null ? asked.get("text") : items.stepTexts.get(stepIds.get(ref));
 				if (isTask(c)) {
 					// a new ask never finishes an old one: it is work of its own
 					leftovers.add(id);
-				} else if (finishes(c, thread, asked == null ? null : asked.get("at"))) {
+				} else if (finishes(c, thread, asked == null ? null : asked.get("at"))
+						|| (!noTopic && closesAcross() && finishesAcross(c, said, asked == null ? null : asked.get("at")))) {
 					closes.add(entry(c, evidence.get(id), "closes", stepIds.containsKey(ref) ? stepIds.get(ref) : ref));
 				} else {
 					topicUpdates.add(entry(c, evidence.get(id), null, null));
@@ -776,6 +783,36 @@ public final class WorkReconcile {
 		}
 		return askedAt == null || claim.get("at") == null
 				|| String.valueOf(claim.get("at")).compareTo(String.valueOf(askedAt)) > 0;
+	}
+
+	// off only when the setting says so
+	private static boolean closesAcross() {
+		String set = Utility.getDIHelperProperty(Constants.COLLAB_WORK_CLOSE_ACROSS);
+		return set == null || !"false".equalsIgnoreCase(set.trim());
+	}
+
+	// a done claim on another thread of the topic finishes a step when it comes after the ask and names what the
+	// step names: two or more of the step's telling words (a name, a number, a long word), and at least half of them
+	static boolean finishesAcross(Map<String, Object> claim, Object stepText, Object askedAt) {
+		if (stepText == null || claim.get("text") == null || (askedAt != null && claim.get("at") != null
+				&& String.valueOf(claim.get("at")).compareTo(String.valueOf(askedAt)) <= 0)) {
+			return false;
+		}
+		Set<String> step = telling(String.valueOf(stepText));
+		Set<String> shared = telling(String.valueOf(claim.get("text")));
+		shared.retainAll(step);
+		return shared.size() >= 2 && shared.size() * 2 >= step.size();
+	}
+
+	private static Set<String> telling(String text) {
+		Set<String> out = new LinkedHashSet<>();
+		for (String w : words(text).split(" ")) {
+			if (w.length() >= 4 || w.chars().anyMatch(Character::isDigit)) {
+				// "sent" and "send", "approved" and "approve" are one word here
+				out.add(w.length() > 5 ? w.substring(0, 5) : w);
+			}
+		}
+		return out;
 	}
 
 	// the same ask said again: the same words, whatever the case and punctuation. A

@@ -44,6 +44,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.util.Constants;
+import prerna.util.Utility;
 
 // onboarding: accounts from outside domains (returned, the owner saves them), and structured topic groups judged
 // and named by the platform text model (COLLAB_LLM_ENGINE_ID), written as STATUS suggested, ORIGIN brain, with suggested
@@ -126,6 +127,16 @@ public final class BrainTopicSuggest {
 	 * conversations are there with some of them newer than the last look. Runs as its own job so the sync does
 	 * not wait for it. Returns whether a look was started.
 	 */
+	// hours between looks: COLLAB_TOPIC_WATCH_HOURS, a day when unset or unreadable, never when 0
+	static long everyHours() {
+		String set = Utility.getDIHelperProperty(Constants.COLLAB_TOPIC_WATCH_HOURS);
+		try {
+			return set == null || set.isBlank() ? FRESH_EVERY_HOURS : Long.parseLong(set.trim());
+		} catch (NumberFormatException e) {
+			return FRESH_EVERY_HOURS;
+		}
+	}
+
 	public static boolean watch(User user, String ownerId, String ownerType) {
 		if (BrainTopicModel.engine(user) == null || !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_SETTINGS WHERE "
 				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND SETUP_DONE_AT IS NOT NULL", ownerId, ownerType)) {
@@ -134,7 +145,8 @@ public final class BrainTopicSuggest {
 		Map<String, Object> last = CollaborationJobUtils.latest(ownerId, ownerType, FRESH_KIND);
 		Timestamp lastAt = last == null ? null : (Timestamp) last.get("startedAt");
 		Timestamp now = CollaborationDbUtils.now();
-		if (lastAt != null && now.getTime() - lastAt.getTime() < FRESH_EVERY_HOURS * 3_600_000L) {
+		long every = everyHours();
+		if (every <= 0 || (lastAt != null && now.getTime() - lastAt.getTime() < every * 3_600_000L)) {
 			return false;
 		}
 		List<Timestamp> unfiled = CollaborationDbUtils.query(UNFILED.replace("THREAD_ID FROM", "LAST_MESSAGE_AT FROM"),
