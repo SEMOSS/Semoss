@@ -398,10 +398,13 @@ public final class BrainThreadClassifier {
 			return new Result(threadId, null, null, null, notice(ctx, threadId, thread, null) ? "notice" : "automated",
 					null, null, null);
 		}
-		// the owner never wrote here and everyone else is an automated sender or says machine-sent: no model call
-		if (!ctx.dryRun() && !notAutomated && machineOnly(ctx, threadId)) {
-			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-					+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
+		// the owner never wrote here and everyone else is an automated sender or says machine-sent: no model call.
+		// A dry run takes this branch too (and writes nothing), or it scores filings the product never makes
+		if (!notAutomated && machineOnly(ctx, threadId)) {
+			if (!ctx.dryRun()) {
+				CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND "
+						+ "OWNER_TYPE = ? AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
+			}
 			ctx.scored().remove(threadId);
 			return new Result(threadId, null, null, null, notice(ctx, threadId, thread, null) ? "notice" : "automated",
 					null, null, null);
