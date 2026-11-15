@@ -541,9 +541,14 @@ public final class BrainTopicSuggest {
 					List<String> subjects = samples(c, mailThreads, writers, self);
 					Map<String, Object> detail = new LinkedHashMap<>();
 					detail.put("text", "New topic suggested: " + c.name());
+					// who it is with, so the owner can tell a new project from a new name for an old one
+					List<String> with = members.stream().limit(4)
+							.map(p -> names.getOrDefault(p, emails.getOrDefault(p, p))).collect(Collectors.toList());
 					detail.put("detail", c.threads().size() + " recent conversations no topic holds"
 							+ (subjects.isEmpty() ? "" : ", such as: "
-									+ String.join("; ", subjects.subList(0, Math.min(3, subjects.size())))));
+									+ String.join("; ", subjects.subList(0, Math.min(3, subjects.size()))))
+							+ (with.isEmpty() ? "" : ". With " + String.join(", ", with)
+									+ (members.size() > with.size() ? " and others" : "")) + ".");
 					detail.put("candidate", topicId);
 					detail.put("threadIds", row.get("threadIds"));
 					questions.add(new Object[] { topicId, c.key(), detail });
