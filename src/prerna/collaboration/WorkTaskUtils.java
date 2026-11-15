@@ -643,10 +643,20 @@ public final class WorkTaskUtils {
 		// with the assignee's name, so the UI need not load people
 		return CollaborationDbUtils.query("SELECT " + STEP_COLUMNS + ", (SELECT p.DISPLAY_NAME FROM BRAIN_PERSON p "
 				+ "WHERE p.OWNER_ID = WORK_THREAD_STEP.OWNER_ID AND p.OWNER_TYPE = WORK_THREAD_STEP.OWNER_TYPE AND "
-				+ "p.PERSON_ID = WORK_THREAD_STEP.STEP_OWNER_ID) AS ASSIGNEE_NAME FROM WORK_THREAD_STEP" + OWNED
+				+ "p.PERSON_ID = WORK_THREAD_STEP.STEP_OWNER_ID) AS ASSIGNEE_NAME, "
+				// what closed it when a message did: what the message said and the conversation it was on, so the
+				// owner can see a wrong close and reopen the step
+				+ "(SELECT c.TEXT FROM WORK_CANDIDATE c WHERE c.OWNER_ID = WORK_THREAD_STEP.OWNER_ID AND c.OWNER_TYPE = "
+				+ "WORK_THREAD_STEP.OWNER_TYPE AND c.CANDIDATE_ID = WORK_THREAD_STEP.CLOSED_BY) AS CLOSED_TEXT, "
+				+ "(SELECT th.SUBJECT FROM WORK_CANDIDATE c JOIN BRAIN_THREAD th ON th.OWNER_ID = c.OWNER_ID AND "
+				+ "th.OWNER_TYPE = c.OWNER_TYPE AND th.THREAD_ID = c.THREAD_ID WHERE c.OWNER_ID = "
+				+ "WORK_THREAD_STEP.OWNER_ID AND c.OWNER_TYPE = WORK_THREAD_STEP.OWNER_TYPE AND c.CANDIDATE_ID = "
+				+ "WORK_THREAD_STEP.CLOSED_BY) AS CLOSED_SUBJECT FROM WORK_THREAD_STEP" + OWNED
 				+ " AND TASK_ID = ? AND (STATUS IS NULL OR STATUS <> ?) ORDER BY CREATED_AT", rs -> {
 					Map<String, Object> step = mapStep(rs);
 					putIfNotNull(step, "assigneeName", CollaborationDbUtils.getString(rs, "ASSIGNEE_NAME"));
+					putIfNotNull(step, "closedText", CollaborationDbUtils.getString(rs, "CLOSED_TEXT"));
+					putIfNotNull(step, "closedSubject", CollaborationDbUtils.getString(rs, "CLOSED_SUBJECT"));
 					return step;
 				}, ownerId, ownerType, taskId, WorkWorkspaceUtils.DISMISSED);
 	}
