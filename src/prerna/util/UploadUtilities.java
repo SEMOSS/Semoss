@@ -80,6 +80,7 @@ import prerna.om.MosfetFile;
 import prerna.poi.main.FormUtility;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
+import prerna.security.SecretRedactor;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 import prerna.util.gson.GsonUtility;
@@ -110,6 +111,14 @@ public final class UploadUtilities {
 	public static final String RECIPE_ID_KEY = "recipe";
 	public static final String INSIGHT_NAME_KEY = "insightName";
 	public static final String SCHEMA_NAME_KEY = "schemaName";
+
+	/**
+	 * The engine details key reserved for the name an engine is cataloged under,
+	 * for every engine type. Import forms send the catalog name under this key, and
+	 * create reactors take the name from their own reactor key, so the smss writers
+	 * drop it from the details and no engine reads a setting by this name.
+	 */
+	public static final String CATALOG_NAME_KEY = "CATALOG_NAME";
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
@@ -169,6 +178,7 @@ public final class UploadUtilities {
 	public static void removeEngineFromDIHelper(String engineIdToRemove) {
 		removeEngineExcludingSMSSFromDIHelper(engineIdToRemove);
 		DIHelper.getInstance().removeEngineProperty(engineIdToRemove + "_" + Constants.STORE);
+		SecretRedactor.forgetSecrets(engineIdToRemove);
 	}
 
 	/**
@@ -193,6 +203,7 @@ public final class UploadUtilities {
 	 * @param projectIdToRemove
 	 */
 	public static void removeProjectFromDIHelper(String projectIdToRemove) {
+		SecretRedactor.forgetSecrets(projectIdToRemove);
 		DIHelper.getInstance().removeProjectProperty(projectIdToRemove + "_" + Constants.STORE);
 		DIHelper.getInstance().removeProjectProperty(projectIdToRemove);
 		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
@@ -251,7 +262,7 @@ public final class UploadUtilities {
 	 * @throws Exception
 	 */
 	public static void updateMetadata(String databaseId, User user) throws Exception {
-		Utility.synchronizeEngineMetadata(databaseId);
+		InternalUtility.synchronizeEngineMetadata(databaseId);
 		SecurityEngineUtils.addEngine(databaseId, false, user);
 	}
 
@@ -1131,6 +1142,7 @@ public final class UploadUtilities {
 	public static File createTemporaryExternalRdbmsSmss(String databaseId, String databaseName, File owlFile,
 			String dbClassName, RdbmsTypeEnum dbType, String connectionUrl, Map<String, Object> connectionDetails,
 			Map<String, Object> jdbcPropertiesMap) throws IOException {
+		removeCatalogName(connectionDetails);
 
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 
@@ -1434,6 +1446,7 @@ public final class UploadUtilities {
 			bufferedWriter.write(newLine);
 
 			if (properties != null) {
+				removeCatalogName(properties);
 				if (secretStore != null) {
 					properties.put(Constants.ENGINE, engineId);
 					properties.put(Constants.ENGINE_ALIAS, engineName);
@@ -1465,6 +1478,17 @@ public final class UploadUtilities {
 		}
 
 		return engineTempSmss;
+	}
+
+	/**
+	 * Remove the reserved catalog name key, in any case, from engine details before
+	 * they are written to an smss file or the secret store. See
+	 * {@link #CATALOG_NAME_KEY}.
+	 *
+	 * @param details the engine details sent by the caller
+	 */
+	static void removeCatalogName(Map<String, Object> details) {
+		details.keySet().removeIf(CATALOG_NAME_KEY::equalsIgnoreCase);
 	}
 
 	static String escapeSmssPropertyValue(Object value) {

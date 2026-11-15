@@ -97,7 +97,7 @@ public class CommandReactor extends GitBaseReactor {
 		CmdExecUtil cmdUtil = this.insight.getCmdUtil();
 
 		if (cmdUtil == null) {
-			return getError("No context is set - please use SetContext(<mount point>) to set context");
+			return getError("No context is set - please use LoadApp(project='<project id>') to set context");
 		}
 
 		// uncomment this line to see it in action. We want to test it for .. etc.

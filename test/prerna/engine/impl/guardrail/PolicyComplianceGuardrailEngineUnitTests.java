@@ -97,7 +97,7 @@ class PolicyComplianceGuardrailEngineUnitTests {
 		assertTrue(selfHarm.getDefaultSystemPrompt().contains("self"));
 		assertTrue(policy.getDefaultSystemPrompt().contains("${POLICY_DESCRIPTION}"));
 		assertEquals(GuardrailVerdict.BLOCK, selfHarm.getDefaultJudgeErrorVerdict());
-		assertEquals(GuardrailVerdict.PASS, policy.getDefaultJudgeErrorVerdict());
+		assertEquals(GuardrailVerdict.BLOCK, policy.getDefaultJudgeErrorVerdict());
 	}
 
 	@Test

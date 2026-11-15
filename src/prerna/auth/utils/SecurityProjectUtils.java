@@ -100,6 +100,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
+import prerna.util.InternalUtility;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -126,8 +127,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	/**
 	 * Marks a project as a Digital Twin: an agent that holds copies of its owner's
 	 * emails, chats and files, so it is shared with named people only. Only
-	 * {@link #markDigitalTwin} writes it; {@link #updateProjectMetadata} never
-	 * sets or clears it.
+	 * {@link #markDigitalTwin} writes it; {@link #updateProjectMetadata} never sets
+	 * or clears it.
 	 */
 	public static final String DIGITAL_TWIN_METAKEY = "digital_twin";
 	/** Why sharing a Digital Twin beyond named people is refused. */
@@ -354,7 +355,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (reloadInsights) {
 			classLogger.info("Modifying force reload to false");
 			try {
-				Utility.changePropertiesFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");
+				InternalUtility.changePropertiesFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");
 			} catch (IOException e) {
 				classLogger.error("Failed to set RELOAD_INSIGHTS to false in the smss file of project {}",
 						Utility.cleanLogString(projectId), e);

@@ -355,7 +355,7 @@ class BrainTopicMatchesDbUnitTests {
 	void aLinkLeftToADeletedTopicIsNotOneOfTheChatsTopics() throws Exception {
 		for (String topic : List.of(T, "deleted")) {
 			sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
-					+ "VALUES (?, ?, 'chat', ?, 'linked', 'brain')", ownerId, ownerType, topic);
+					+ "VALUES (?, ?, 'chat', ?, 'linked', 'you')", ownerId, ownerType, topic);
 		}
 		Room room = mock(Room.class);
 		when(room.getId()).thenReturn("chat");
@@ -363,6 +363,18 @@ class BrainTopicMatchesDbUnitTests {
 		when(room.getOptionsMap()).thenReturn(Map.of());
 		// sending from the chat links the email to each of these
 		assertEquals(List.of(T), BrainTopicRoomUtils.topicsOf(user, room));
+	}
+
+	@Test
+	void aTopicTheOwnerTookOffAChatIsThatChatsAlone() throws Exception {
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'chat', ?, 'dismissed', 'you')", ownerId, ownerType, A);
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'chat', ?, 'linked', 'you')", ownerId, ownerType, B);
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'other-chat', ?, 'dismissed', 'you')", ownerId, ownerType, T);
+		// the background tagger leaves these out of what it offers for the chat
+		assertEquals(Set.of(A), BrainTopicRoomUtils.dismissed(ownerId, ownerType, "chat"));
 	}
 
 	// ---- helpers ----
