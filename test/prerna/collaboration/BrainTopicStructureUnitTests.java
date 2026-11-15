@@ -156,6 +156,16 @@ class BrainTopicStructureUnitTests {
 	}
 
 	@Test
+	void aGroupLargelyUnderTheOwnersTopicsIsNotProposedAgain() {
+		Set<String> held = Set.of("a", "b", "c");
+		// a quarter or more of it is already filed: it is a topic the owner has
+		assertTrue(BrainTopicOnboarding.alreadyATopic(List.of("a", "b", "x", "y", "z", "w", "v", "u"), held));
+		// new work: mail nothing holds yet, one stray filed thread among it
+		assertFalse(BrainTopicOnboarding.alreadyATopic(List.of("a", "x", "y", "z", "w", "v", "u", "t"), held));
+		assertFalse(BrainTopicOnboarding.alreadyATopic(List.of("x", "y", "z"), Set.of()));
+	}
+
+	@Test
 	void theSamePoolAlwaysGivesTheSameGroups() {
 		World world = world(false);
 		assertEquals(prepare(world, pool -> world.texts()).filed(), prepare(world, pool -> world.texts()).filed());
