@@ -266,10 +266,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (!availableSkillsBlock.isEmpty()) {
 			composed.append("\n\n").append(availableSkillsBlock);
 		}
-		// The agent's own files, which only the default read tools reach.
-		String agentFilesBlock = agentConfig.useDefaultAgentTools()
-				? buildAgentFilesPromptBlock(agentConfig.getAgentFilesDir())
-				: "";
+		String agentFilesBlock = agentFilesBlock(agentConfig.useDefaultAgentTools(),
+				PlatformAgentTools.defaultToolsReplaced(), agentConfig.getAgentFilesDir());
 		if (!agentFilesBlock.isEmpty()) {
 			composed.append("\n\n").append(agentFilesBlock);
 		}
@@ -1600,6 +1598,23 @@ public class SemossAgentHarness implements IAgentHarness {
 				need ListSkill to discover these.\
 				""");
 		return sb.toString();
+	}
+
+	/**
+	 * The agent-files block for this run. Only the built-in read tools reach
+	 * {@code agent:/} paths, so the block is left out when the default tools are
+	 * off or when a toolbox replaces them.
+	 *
+	 * @param useDefaultTools      whether the agent uses the default tools
+	 * @param builtInToolsReplaced whether {@code AGENT_DEFAULT_TOOLS_MCP_ID} replaces
+	 *                             the built-in tools
+	 * @param agentFilesDir        the folder of the agent's own files, or {@code null}
+	 */
+	static String agentFilesBlock(boolean useDefaultTools, boolean builtInToolsReplaced, String agentFilesDir) {
+		if (!useDefaultTools || builtInToolsReplaced) {
+			return "";
+		}
+		return buildAgentFilesPromptBlock(agentFilesDir);
 	}
 
 	/**

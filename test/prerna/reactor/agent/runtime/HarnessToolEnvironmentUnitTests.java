@@ -31,11 +31,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import prerna.collaboration.CollaborationPrompts;
 
 class HarnessToolEnvironmentUnitTests {
+
+	@TempDir
+	Path agentFiles;
 
 	@Test
 	void describesBuiltInToolsWhenTheyAreTheDefaults() {
@@ -64,5 +71,19 @@ class HarnessToolEnvironmentUnitTests {
 	void keepsCollaborationNotesBetweenBuiltInSections() {
 		String block = SemossAgentHarness.toolEnvironmentBlock(false, false, CollaborationPrompts.FILES_PROMPT);
 		assertTrue(block.contains("destination.\n\n" + CollaborationPrompts.FILES_PROMPT + "\n\n- node, npm"));
+	}
+
+	@Test
+	void listsAgentFilesOnlyWhenTheBuiltInToolsAreInUse() throws Exception {
+		Files.writeString(agentFiles.resolve("guide.pdf"), "guide");
+		String dir = agentFiles.toString();
+
+		String block = SemossAgentHarness.agentFilesBlock(true, false, dir);
+		assertTrue(block.startsWith("## Agent files"));
+		assertTrue(block.contains("- agent:/guide.pdf"));
+
+		// a replacement toolbox does not know agent:/ paths
+		assertEquals("", SemossAgentHarness.agentFilesBlock(true, true, dir));
+		assertEquals("", SemossAgentHarness.agentFilesBlock(false, false, dir));
 	}
 }
