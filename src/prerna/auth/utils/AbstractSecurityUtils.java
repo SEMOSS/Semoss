@@ -1194,10 +1194,12 @@ public abstract class AbstractSecurityUtils {
 			// USERENGINEPREFERENCE
 			// a person's own settings on an engine, such as favorite and visibility, kept
 			// out of ENGINEPERMISSION so that setting one adds no access row
-			colNames = new String[] { "USERID", "TYPE", "ENGINEID", "FAVORITE", "VISIBILITY" };
+			// USERDISCOVERABLE marks it as one the user lets agents find and use; off
+			// unless the user turns it on, and a null is off
+			colNames = new String[] { "USERID", "TYPE", "ENGINEID", "FAVORITE", "VISIBILITY", "USERDISCOVERABLE" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME,
-					BOOLEAN_DATATYPE_NAME };
-			defaultValues = new Object[] { null, null, null, false, true };
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, null, false, true, false };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("USERENGINEPREFERENCE", colNames, types,
 						defaultValues);
@@ -1542,10 +1544,12 @@ public abstract class AbstractSecurityUtils {
 			// USERPROJECTPREFERENCE
 			// a person's own settings on a project, such as favorite and visibility, kept
 			// out of PROJECTPERMISSION so that setting one adds no access row
-			colNames = new String[] { "USERID", "TYPE", "PROJECTID", "FAVORITE", "VISIBILITY" };
+			// USERDISCOVERABLE marks it as one the user lets agents find and use; off
+			// unless the user turns it on, and a null is off
+			colNames = new String[] { "USERID", "TYPE", "PROJECTID", "FAVORITE", "VISIBILITY", "USERDISCOVERABLE" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME,
-					BOOLEAN_DATATYPE_NAME };
-			defaultValues = new Object[] { null, null, null, false, true };
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME };
+			defaultValues = new Object[] { null, null, null, false, true, false };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("USERPROJECTPREFERENCE", colNames, types,
 						defaultValues);

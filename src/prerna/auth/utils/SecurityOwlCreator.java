@@ -126,7 +126,8 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
-				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME),
+				Pair.with("USERDISCOVERABLE", BOOLEAN_DATATYPE_NAME)));
 
 		// a model usage limit: one row per key (ModelUsageLimitKey), such as a
 		// person's grant on a model, a team's, a model's public use or total, or a
@@ -193,7 +194,8 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
-				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME),
+				Pair.with("USERDISCOVERABLE", BOOLEAN_DATATYPE_NAME)));
 
 		addTable("PROJECTMETA", Arrays.asList(
 				Pair.with("PROJECTID", VARCHAR_255),
