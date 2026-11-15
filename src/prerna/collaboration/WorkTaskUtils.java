@@ -81,8 +81,9 @@ public final class WorkTaskUtils {
 	private static final String STEP_COLUMNS = "STEP_ID, THREAD_ID, TASK_ID, TEXT, KIND, STATUS, STEP_OWNER_ID, "
 			+ "DUE_AT, LINK_TOPIC_ID, ORIGIN, NOTE, CLOSED_BY, CREATED_AT, UPDATED_AT";
 	private static final int MAX_TITLE = 255;
-	private static final int LIST_LIMIT = 100;
-	private static final int LOOSE_LIMIT = 50;
+	// more than a busy owner has open at once; what is cut is counted (workItemTotal, looseStepTotal)
+	private static final int LIST_LIMIT = 500;
+	private static final int LOOSE_LIMIT = 300;
 
 	private WorkTaskUtils() {
 	}
@@ -131,6 +132,7 @@ public final class WorkTaskUtils {
 		sql.append(" ORDER BY CASE WHEN SORT_ORDER IS NULL THEN 1 ELSE 0 END, SORT_ORDER, UPDATED_AT DESC");
 		List<Map<String, Object>> tasks = CollaborationDbUtils.query(sql.toString(), WorkTaskUtils::mapTask,
 				params.toArray());
+		int taskTotal = tasks.size();
 		if (tasks.size() > LIST_LIMIT) {
 			tasks = new ArrayList<>(tasks.subList(0, LIST_LIMIT));
 		}
@@ -169,6 +171,7 @@ public final class WorkTaskUtils {
 		loose.append(" ORDER BY DUE_AT, CREATED_AT DESC");
 		List<Map<String, Object>> looseSteps = kind != null || personId != null ? List.of()
 				: CollaborationDbUtils.query(loose.toString(), WorkTaskUtils::mapStep, looseParams.toArray());
+		int looseTotal = looseSteps.size();
 		if (looseSteps.size() > LOOSE_LIMIT) {
 			looseSteps = new ArrayList<>(looseSteps.subList(0, LOOSE_LIMIT));
 		}
@@ -176,6 +179,8 @@ public final class WorkTaskUtils {
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("workItems", tasks);
 		out.put("looseSteps", looseSteps);
+		out.put("workItemTotal", taskTotal);
+		out.put("looseStepTotal", looseTotal);
 		putIfNotNull(out, "selfId", self);
 		if (!includeSuggested) {
 			out.put("suggestedStepCount",
@@ -665,8 +670,14 @@ public final class WorkTaskUtils {
 		CollaborationDbUtils.query("SELECT THREAD_ID, STATUS, ASK_TYPE FROM WORK_ITEM" + OWNED
 				+ " AND THREAD_ID IS NOT NULL ORDER BY UPDATED_AT", rs -> {
 					String status = rs.getString("STATUS");
-					out.put(rs.getString("THREAD_ID"), "waiting".equals(status) ? "waiting"
-							: "fyi".equals(rs.getString("ASK_TYPE")) ? "fyi" : "needs_me");
+					String verdict = "waiting".equals(status) ? "waiting"
+							: "fyi".equals(rs.getString("ASK_TYPE")) ? "fyi" : "needs_me";
+					// a card that is finished or dismissed no longer says the conversation needs the owner
+					if ("needs_me".equals(verdict) && !"open".equals(status)) {
+						out.remove(rs.getString("THREAD_ID"));
+					} else {
+						out.put(rs.getString("THREAD_ID"), verdict);
+					}
 					return null;
 				}, ownerId, ownerType);
 		outside(ownerId, ownerType).forEach(thread -> out.computeIfPresent(thread,
