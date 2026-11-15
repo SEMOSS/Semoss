@@ -373,8 +373,10 @@ public final class BrainTopicSuggest {
 				int withVip = (int) c.threads().stream().filter(t -> t.people().stream().anyMatch(vips::contains)).count();
 				row.put("youWrote", mine);
 				row.put("vipThreads", withVip);
-				// pre-checked on screen: you took part, or a VIP is on it
-				row.put("suggested", mine > 0 || withVip > 0);
+				// pre-checked on screen: you wrote on a third of its conversations or more, or a VIP is on it. One
+				// reply among thirty threads of recruiters or vendors is not taking part: on the fixture worlds every
+				// real topic had the owner writing on 44% or more, and half of the other groups under a third
+				row.put("suggested", (mine > 0 && 3 * mine >= c.threads().size()) || withVip > 0);
 				written.add(row);
 			}
 		};
