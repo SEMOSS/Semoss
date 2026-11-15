@@ -424,7 +424,14 @@ public final class WorkReconcile {
 			return;
 		}
 		boolean noTopic = NO_TOPIC.equals(topicId);
-		assemble(answer, shown, mergedInto, items, stepIds, existing, noTopic, out);
+		// a done message may reach a step on another thread only within a topic, and only when the owner (Settings)
+		// or else the instance allows it
+		Boolean own = noTopic ? null
+				: CollaborationDbUtils.queryOne("SELECT WORK_CLOSE_ACROSS FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND "
+						+ "OWNER_TYPE = ?", rs -> CollaborationDbUtils.getBoolean(rs, "WORK_CLOSE_ACROSS"), ownerId,
+						ownerType);
+		boolean across = !noTopic && (own == null ? instanceClosesAcross() : own);
+		assemble(answer, shown, mergedInto, items, stepIds, existing, noTopic, across, out);
 		// unfiled threads have nothing in common but being unfiled; their tasks are not
 		// grouped across threads
 		if (!noTopic) {
@@ -568,7 +575,7 @@ public final class WorkReconcile {
 	@SuppressWarnings("unchecked")
 	private static void assemble(Map<String, Object> answer, List<Map<String, Object>> shown,
 			Map<String, List<String>> mergedInto, Items items, Map<String, String> stepIds,
-			List<Map<String, Object>> existing, boolean noTopic, Map<String, Object> out) {
+			List<Map<String, Object>> existing, boolean noTopic, boolean across, Map<String, Object> out) {
 		Map<String, String> itemIds = items.ids;
 		Map<String, Map<String, Object>> byId = new LinkedHashMap<>();
 		for (Map<String, Object> c : shown) {
@@ -655,7 +662,7 @@ public final class WorkReconcile {
 					// a new ask never finishes an old one: it is work of its own
 					leftovers.add(id);
 				} else if (finishes(c, thread, asked == null ? null : asked.get("at"))
-						|| (!noTopic && closesAcross() && finishesAcross(c, said, asked == null ? null : asked.get("at")))) {
+						|| (across && finishesAcross(c, said, asked == null ? null : asked.get("at")))) {
 					closes.add(entry(c, evidence.get(id), "closes", stepIds.containsKey(ref) ? stepIds.get(ref) : ref));
 				} else {
 					topicUpdates.add(entry(c, evidence.get(id), null, null));
@@ -786,7 +793,7 @@ public final class WorkReconcile {
 	}
 
 	// off only when the setting says so
-	private static boolean closesAcross() {
+	static boolean instanceClosesAcross() {
 		String set = Utility.getDIHelperProperty(Constants.COLLAB_WORK_CLOSE_ACROSS);
 		return set == null || !"false".equalsIgnoreCase(set.trim());
 	}

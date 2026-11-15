@@ -160,6 +160,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// minutes between scheduled syncs of the owner's mail while the app is closed (BrainSync); 0 is off,
 				// null the default 15
 				Pair.with("SYNC_EVERY_MINUTES", INTEGER_DATATYPE_NAME),
+				// hours between looks for new topics in incoming mail (BrainTopicSuggest.watch); 0 is off, null the
+				// instance's COLLAB_TOPIC_WATCH_HOURS
+				Pair.with("TOPIC_WATCH_HOURS", INTEGER_DATATYPE_NAME),
+				// whether a done message on another thread of a topic may finish a step (WorkReconcile); null the
+				// instance's COLLAB_WORK_CLOSE_ACROSS
+				Pair.with("WORK_CLOSE_ACROSS", BOOLEAN_DATATYPE_NAME),
 				// when the owner finished setup (Open Work) or skipped the rest of it; null sends them back to it,
 				// unless their import is from before this column (BrainConnection)
 				Pair.with("SETUP_DONE_AT", TIMESTAMP_DATATYPE_NAME),

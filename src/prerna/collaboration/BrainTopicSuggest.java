@@ -122,13 +122,8 @@ public final class BrainTopicSuggest {
 		}
 	}
 
-	/**
-	 * After a sync: looks for new topics when setup is over, no look ran in the last day, and enough unfiled
-	 * conversations are there with some of them newer than the last look. Runs as its own job so the sync does
-	 * not wait for it. Returns whether a look was started.
-	 */
 	// hours between looks: COLLAB_TOPIC_WATCH_HOURS, a day when unset or unreadable, never when 0
-	static long everyHours() {
+	static long instanceEveryHours() {
 		String set = Utility.getDIHelperProperty(Constants.COLLAB_TOPIC_WATCH_HOURS);
 		try {
 			return set == null || set.isBlank() ? FRESH_EVERY_HOURS : Long.parseLong(set.trim());
@@ -137,6 +132,11 @@ public final class BrainTopicSuggest {
 		}
 	}
 
+	/**
+	 * After a sync: looks for new topics when setup is over, no look ran in the last day, and enough unfiled
+	 * conversations are there with some of them newer than the last look. Runs as its own job so the sync does
+	 * not wait for it. Returns whether a look was started.
+	 */
 	public static boolean watch(User user, String ownerId, String ownerType) {
 		if (BrainTopicModel.engine(user) == null || !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_SETTINGS WHERE "
 				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND SETUP_DONE_AT IS NOT NULL", ownerId, ownerType)) {
@@ -145,7 +145,10 @@ public final class BrainTopicSuggest {
 		Map<String, Object> last = CollaborationJobUtils.latest(ownerId, ownerType, FRESH_KIND);
 		Timestamp lastAt = last == null ? null : (Timestamp) last.get("startedAt");
 		Timestamp now = CollaborationDbUtils.now();
-		long every = everyHours();
+		// the owner's own choice (Settings) comes before the instance's
+		Integer own = CollaborationDbUtils.queryOne("SELECT TOPIC_WATCH_HOURS FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ?", rs -> CollaborationDbUtils.getInteger(rs, "TOPIC_WATCH_HOURS"), ownerId, ownerType);
+		long every = own == null ? instanceEveryHours() : own;
 		if (every <= 0 || (lastAt != null && now.getTime() - lastAt.getTime() < every * 3_600_000L)) {
 			return false;
 		}

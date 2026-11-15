@@ -951,6 +951,24 @@ class BrainSyncDbUnitTests {
 	}
 
 	@Test
+	void theOwnerChoosesHowOftenTopicsAreProposedAndWhetherClosingCrossesConversations() throws Exception {
+		try (MockedStatic<BrainThreadClassifier> classifier = mockStatic(BrainThreadClassifier.class)) {
+			// until the owner chooses, the instance's values apply
+			Map<String, Object> first = BrainProfileUtils.getSettings(ownerId, ownerType);
+			assertEquals(24, first.get("newTopicsEveryHours"));
+			assertEquals(true, first.get("closeAcrossThreads"));
+			Map<String, Object> saved = BrainProfileUtils.saveSettings(user,
+					Map.of("newTopicsEveryHours", 168, "closeAcrossThreads", false));
+			assertEquals(168, saved.get("newTopicsEveryHours"));
+			assertEquals(false, saved.get("closeAcrossThreads"));
+			assertThrows(IllegalArgumentException.class,
+					() -> BrainProfileUtils.saveSettings(user, Map.of("newTopicsEveryHours", 5)));
+			assertThrows(IllegalArgumentException.class,
+					() -> BrainProfileUtils.saveSettings(user, Map.of("closeAcrossThreads", "no")));
+		}
+	}
+
+	@Test
 	void aSyncAlreadyRunningIsJoinedAndTheScheduleWaitsItsTurn() throws Exception {
 		CountDownLatch release = new CountDownLatch(1);
 		Map<String, Object> running = CollaborationJobUtils.start(ownerId, ownerType, BrainSync.KIND, Map.of(),
