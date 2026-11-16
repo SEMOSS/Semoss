@@ -281,12 +281,6 @@ public class SemossClassLoader extends ClassLoader {
 			"tools.jackson.databind.util.ClassUtil");
 
 	/**
-	 * Utility methods project reactor code cannot call: each hands out a DIHelper
-	 * value on the caller's behalf. Each moves to InternalUtility in time.
-	 */
-	private static final Set<String> BLOCKED_UTILITY_METHODS = Set.of("getDIHelperLocalProperty");
-
-	/**
 	 * Internal name of the sandbox utility class whose static methods replace calls
 	 * in the transformed bytecode.
 	 */
@@ -526,7 +520,7 @@ public class SemossClassLoader extends ClassLoader {
 					Set.of("<init>", "getParentFile", "getParent", "getAbsolutePath", "getCanonicalPath", "toPath")),
 			Map.entry("java/io/FileInputStream", Set.of("<init>")),
 			Map.entry("java/io/FileOutputStream", Set.of("<init>")), Map.entry("prerna/util/Utility",
-					Set.of("getDIHelperProperty", "loadProperties", "getDIHelperLocalProperty")));
+					Set.of("getDIHelperProperty", "loadProperties")));
 
 	private String folder = null;
 
@@ -1908,15 +1902,6 @@ public class SemossClassLoader extends ClassLoader {
 				if ("loadProperties".equals(name) && ("(Ljava/lang/String;)Ljava/util/Properties;".equals(descriptor)
 						|| "(Ljava/io/File;)Ljava/util/Properties;".equals(descriptor))) {
 					super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "sandboxedLoadProperties", descriptor, false);
-					return;
-				}
-				if (BLOCKED_UTILITY_METHODS.contains(name)) {
-					for (Type argType : Type.getArgumentTypes(descriptor)) {
-						super.visitInsn(argType.getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
-					}
-					super.visitLdcInsn("Utility." + name);
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "blockCall", "(Ljava/lang/String;)V", false);
-					pushDefault(Type.getReturnType(descriptor));
 					return;
 				}
 			}

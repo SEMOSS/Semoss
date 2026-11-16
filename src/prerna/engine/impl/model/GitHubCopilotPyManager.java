@@ -56,7 +56,6 @@ import prerna.reactor.agent.sandbox.SandboxLauncherRegistry;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
@@ -123,7 +122,7 @@ public class GitHubCopilotPyManager {
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
 
-		String cliPath = ValueUtils.trimToNull(DIHelper.getInstance().getProperty(Constants.GITHUB_COPILOT_CLI_PATH));
+		String cliPath = ValueUtils.trimToNull(Utility.getDIHelperProperty(Constants.GITHUB_COPILOT_CLI_PATH));
 		Map<String, String> sandboxEnv = Collections.emptyMap();
 
 		if (sandboxPolicy != null && sandboxPolicy.getEnforcement() != EnforcementMode.DISABLED) {

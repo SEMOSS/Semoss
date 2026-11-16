@@ -66,7 +66,6 @@ import prerna.tcp.SocketServer;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.InternalUtility;
 import prerna.util.PortAllocator;
 import prerna.util.SandboxInjector;
@@ -706,7 +705,7 @@ public class ClientProcessWrapper {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
 			}
 			Collections.addAll(commands, memory + " -cp", specificPath, SocketServer.class.getName(), finalDir,
-					DIHelper.getInstance().getRDFMapFileLocation());
+					InternalUtility.getRDFMapFileLocation());
 			if (port != null) {
 				commands.add(port);
 			}
@@ -795,7 +794,7 @@ public class ClientProcessWrapper {
 			}
 
 			Collections.addAll(commands, memory + " -cp", specificPath, SocketServer.class.getName(), finalDir,
-					DIHelper.getInstance().getRDFMapFileLocation());
+					InternalUtility.getRDFMapFileLocation());
 			if (port != null) {
 				commands.add(port);
 			}

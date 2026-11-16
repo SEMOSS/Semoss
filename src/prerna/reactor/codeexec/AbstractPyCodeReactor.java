@@ -86,8 +86,9 @@ public abstract class AbstractPyCodeReactor extends AbstractPyFrameReactor imple
 		List<NounMetadata> outputs = new ArrayList<>(2);
 		outputs.add(execNoun);
 
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null)
-				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		NounMetadata smartSyncVar = insight.getVarStore().get("SMART_SYNC");
+		boolean smartSync = Boolean.parseBoolean(smartSyncVar != null ? smartSyncVar.getValue().toString()
+				: Utility.getDIHelperProperty("SMART_SYNC"));
 		// forcing smart sync to true
 		smartSync = true;
 		if (smartSync) {

@@ -77,7 +77,7 @@ Guarded by [SandboxReplacedCallsUnitTests](../../test/prerna/util/SandboxReplace
 | `File.getAbsolutePath`, `getCanonicalPath`, `getParent`, `getParentFile`, `toPath` | With `CHROOT_ENABLE` on, the path as seen from the user's folder | `withAUserRootAFileReportsItsPathFromThatRoot` |
 | `Utility.getDIHelperProperty` | The RDF_Map value, and `null` for every key the RDF_Map editor hides | `folderReactorsReadSettingsButNotSecretSettings`, `theSandboxedSettingGetterHidesWhatTheRdfMapEditorHides` |
 | `Utility.loadProperties` | The file's values, read under the same path rule as `new File(...)` | `withoutAChrootLoadPropertiesReadsTheFileAsBefore`, `withAChrootLoadPropertiesStaysInsideIt` |
-| `Utility.getDIHelperLocalProperty` | `SecurityException` | `folderReactorsCannotReadTheDIHelperLocalMap` |
+| `InternalUtility.getLocalProperty`, the values the desktop tools keep in memory | Refused with the rest of `InternalUtility`: `NoClassDefFoundError` | `folderReactorsCannotReadTheDIHelperLocalMap` |
 | A method reference to any call above | The same result as the call itself | `aMethodReferenceToARewrittenMethodRunsTheSandboxedVersion`, `aMethodReferenceBehavesLikeTheCallItStandsFor` |
 | A method handle constant to any call above | The class is refused when it loads | `aMethodHandleConstantToARefusedCallIsRefused`, `aMethodHandleConstantToABlockedUtilityMethodIsRefused` |
 

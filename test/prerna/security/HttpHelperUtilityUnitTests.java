@@ -71,7 +71,7 @@ import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsServer;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 
 class HttpHelperUtilityUnitTests {
 
@@ -87,14 +87,14 @@ class HttpHelperUtilityUnitTests {
 
 	@BeforeEach
 	void setRdfMap() {
-		this.savedCoreProp = DIHelper.getInstance().getCoreProp();
+		this.savedCoreProp = InternalUtility.getCoreProp();
 		this.rdfMap = new Properties();
-		DIHelper.getInstance().setCoreProp(this.rdfMap);
+		InternalUtility.setCoreProp(this.rdfMap);
 	}
 
 	@AfterEach
 	void restoreRdfMap() {
-		DIHelper.getInstance().setCoreProp(this.savedCoreProp);
+		InternalUtility.setCoreProp(this.savedCoreProp);
 	}
 
 	@BeforeEach

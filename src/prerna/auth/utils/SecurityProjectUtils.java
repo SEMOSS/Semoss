@@ -96,7 +96,6 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
 import prerna.util.InternalUtility;
@@ -191,7 +190,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void addProject(String projectId, boolean global, User user) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
+		String smssFile = InternalUtility.getProjectSmssPath(projectId) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 		boolean isTemplate = Boolean.parseBoolean(prop.getProperty(Constants.IS_TEMPLATE, "false"));
 
