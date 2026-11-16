@@ -218,6 +218,9 @@ public final class AzureKeyVaultUtil extends AbstractSecrets {
 					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 					Map<String, Object> data = gson.fromJson(value, new TypeToken<Map<String, Object>>() {
 					}.getType());
+					if (data != null && data.containsKey(IV)) {
+						data.put(IV, toInitializationVector(data.get(IV)));
+					}
 					return data;
 				} catch (JsonSyntaxException e) {
 					classLogger.error(

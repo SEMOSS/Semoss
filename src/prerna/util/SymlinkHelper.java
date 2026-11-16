@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
@@ -39,9 +40,11 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -57,11 +60,36 @@ public class SymlinkHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(SymlinkHelper.class);
 
+	private static final String JAVA_FOLDER = "java";
+	private static final String CLASSES_FOLDER = "classes";
+	private static final String GIT_FOLDER = ".git";
+	private static final String PROJECT_FOLDER_ID_SEPARATOR = "__";
+
+	/**
+	 * How long a read-only user's copy of a project is used before the project's
+	 * files are looked at again for changes.
+	 */
+	private static final long COPY_CHECK_GAP_MILLIS = 5_000L;
+
+	/**
+	 * The folders of a project that a read-only user's copy leaves out, relative to
+	 * the project's app root: the source of its custom reactors, their compiled
+	 * classes and its portals, which only the main JVM uses, and the git folder
+	 * with the project's history, which a copy nobody can change has no use for.
+	 */
+	private static final List<Path> FOLDERS_LEFT_OUT_OF_A_COPY = List.of(
+			Paths.get(Constants.VERSION_FOLDER, Constants.ASSETS_FOLDER, JAVA_FOLDER),
+			Paths.get(Constants.VERSION_FOLDER, Constants.ASSETS_FOLDER, CLASSES_FOLDER),
+			Paths.get(Constants.VERSION_FOLDER, Constants.ASSETS_FOLDER, Constants.PORTALS_FOLDER),
+			Paths.get(Constants.VERSION_FOLDER, GIT_FOLDER));
+
 	private String userChrootFolder = null;
 
+	private final User user;
 	private final boolean injectMode;
 	private SandboxInjector injector;
-	private final Map<String, Boolean> activeInjects = new LinkedHashMap<>();
+	private final Map<String, Mount> activeInjects = new LinkedHashMap<>();
+	private final Map<String, ProjectCopy> projectCopies = new HashMap<>();
 
 	/**
 	 * Construct a SymlinkHelper bound to a user-specific chroot folder and run the
@@ -74,6 +102,19 @@ public class SymlinkHelper {
 	 *                      {@code /opt/kunalppatel9__a123123})
 	 */
 	public SymlinkHelper(String targetDirName) {
+		this(targetDirName, null);
+	}
+
+	/**
+	 * Construct the SymlinkHelper of one user. Knowing its user, the helper puts a
+	 * project in the chroot by that user's permission on it whichever folder of the
+	 * project it is asked to link; see {@link #symlinkProject(User, String)}.
+	 *
+	 * @param targetDirName absolute path of the user chroot folder
+	 * @param user          the user the chroot folder belongs to, or null
+	 */
+	public SymlinkHelper(String targetDirName, User user) {
+		this.user = user;
 		this.userChrootFolder = targetDirName;
 		String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
 		this.injectMode = "NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode);
@@ -103,9 +144,9 @@ public class SymlinkHelper {
 	public synchronized void setInjector(SandboxInjector injector) {
 		this.injector = injector;
 		if (injector != null && !activeInjects.isEmpty()) {
-			for (Map.Entry<String, Boolean> entry : activeInjects.entrySet()) {
+			for (Map.Entry<String, Mount> entry : activeInjects.entrySet()) {
 				try {
-					injector.inject(entry.getKey(), entry.getValue());
+					injector.inject(entry.getKey(), entry.getValue().source(), entry.getValue().readWrite());
 				} catch (RuntimeException e) {
 					classLogger.warn("Skipping namespace injection for {}", entry.getKey(), e);
 				}
@@ -117,18 +158,29 @@ public class SymlinkHelper {
 		return injectMode;
 	}
 
-	private synchronized void enqueueOrInject(String absPath, boolean readWrite) {
+	/**
+	 * Mounts a folder in the namespace sandbox at a path, now or as soon as the
+	 * sandbox is attached. A path that is mounted differently already, from another
+	 * folder or with other access, is mounted again the way it is asked for here.
+	 *
+	 * @param absPath   the path the folder shows at inside the sandbox
+	 * @param source    the folder to mount there; the path itself for the folder at
+	 *                  that path
+	 * @param readWrite whether the sandbox may write to it
+	 */
+	private synchronized void enqueueOrInject(String absPath, String source, boolean readWrite) {
 		if (!isNamespaceInjectablePath(absPath)) {
 			classLogger.warn("Skipping namespace injection for path outside SEMOSS home: {}", absPath);
 			return;
 		}
-		Boolean existing = activeInjects.get(absPath);
-		if (existing == null || (readWrite && !existing)) {
-			activeInjects.put(absPath, readWrite);
-		}
+		Mount wanted = new Mount(source, readWrite);
+		Mount existing = activeInjects.put(absPath, wanted);
 		if (injector != null) {
 			try {
-				injector.inject(absPath, readWrite);
+				if (existing != null && !existing.equals(wanted)) {
+					injector.remove(absPath);
+				}
+				injector.inject(absPath, source, readWrite);
 			} catch (RuntimeException e) {
 				classLogger.warn("Skipping namespace injection for {}", absPath, e);
 			}
@@ -265,35 +317,49 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Copy an entire directory tree from {@code source} to {@code target},
-	 * preserving relative structure. Sub-directories are recreated under the target
-	 * and files are copied with {@code REPLACE_EXISTING}. No-op if the source does
-	 * not exist. Per-file IO failures are wrapped in {@link UncheckedIOException}
-	 * so the stream pipeline can propagate them.
+	 * Copies a project's app root for a read-only user, keeping the folder
+	 * structure and leaving out the custom reactor source, the compiled classes,
+	 * the portals and the git folder. The main JVM compiles and loads the reactors
+	 * and serves the portals from the project's own folder, and a copy nobody can
+	 * change has no use for the project's history, so a user's chroot has no use
+	 * for a copy of them. Files are copied with {@code REPLACE_EXISTING}. Nothing
+	 * is copied when the app root does not exist.
 	 *
-	 * @param source root directory to copy from
-	 * @param target root directory to copy into (created as needed)
-	 * @throws IOException if walking the source tree fails
+	 * @param appRoot the project's app root folder
+	 * @param target  the folder to copy into, created as needed
+	 * @throws IOException          if walking the app root fails
+	 * @throws UncheckedIOException if a folder cannot be created or a file cannot
+	 *                              be copied
 	 */
-	private void copyDirectoryRecursively(Path source, Path target) throws IOException {
-		if (source.toFile().exists()) {
-			try (Stream<Path> stream = Files.walk(source)) {
-				stream.forEach(src -> {
-					try {
-						Path dest = target.resolve(source.relativize(src));
-						if (Files.isDirectory(src)) {
-							Files.createDirectories(dest);
-						} else {
-							Files.copy(src, dest, StandardCopyOption.REPLACE_EXISTING);
-						}
-					} catch (IOException e) {
-						throw new UncheckedIOException(e);
-					}
-				});
-			} catch (IOException e) {
-				throw new UncheckedIOException(e);
-			}
+	static void copyProjectForReadOnlyUser(Path appRoot, Path target) throws IOException {
+		if (!Files.exists(appRoot)) {
+			return;
 		}
+		Files.walkFileTree(appRoot, new SimpleFileVisitor<Path>() {
+			@Override
+			public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+				Path relative = appRoot.relativize(dir);
+				if (FOLDERS_LEFT_OUT_OF_A_COPY.contains(relative)) {
+					return FileVisitResult.SKIP_SUBTREE;
+				}
+				try {
+					Files.createDirectories(target.resolve(relative));
+				} catch (IOException e) {
+					throw new UncheckedIOException(e);
+				}
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+				try {
+					Files.copy(file, target.resolve(appRoot.relativize(file)), StandardCopyOption.REPLACE_EXISTING);
+				} catch (IOException e) {
+					throw new UncheckedIOException(e);
+				}
+				return FileVisitResult.CONTINUE;
+			}
+		});
 	}
 
 	/**
@@ -304,14 +370,29 @@ public class SymlinkHelper {
 	 * is normalized first, parent directories of the link are created as needed,
 	 * and the call is idempotent (skipped if the link already exists). All errors
 	 * are logged and swallowed.
+	 * <p>
+	 * A folder that is a project's app root, or inside one, is not linked on its
+	 * own: the whole project is put in the chroot by the user's permission on it,
+	 * as {@link #symlinkProject(User, String)} does.
 	 *
 	 * @param sourceDirName absolute host path of the directory to expose inside the
 	 *                      chroot
 	 */
 	public void symlinkFolder(String sourceDirName) {
 		sourceDirName = Utility.normalizePath(sourceDirName);
+		ProjectFolder project = sourceDirName == null || this.user == null ? null
+				: ProjectFolder.of(Paths.get(sourceDirName), Paths.get(Utility.getBaseFolder()));
+		if (project != null) {
+			try {
+				placeProject(this.user, project.projectId(), project.appRoot().toString());
+			} catch (RuntimeException e) {
+				classLogger.error("Unable to put project {} in the user's folder for {}", project.projectId(),
+						sourceDirName, e);
+			}
+			return;
+		}
 		if (injectMode) {
-			enqueueOrInject(sourceDirName, true);
+			enqueueOrInject(sourceDirName, sourceDirName, true);
 		}
 		createChrootSymlink(sourceDirName);
 	}
@@ -370,7 +451,15 @@ public class SymlinkHelper {
 	 * Recursively delete this user's chroot folder and everything inside it. Errors
 	 * are logged and swallowed.
 	 */
-	public void removeChrootFolder() {
+	public synchronized void removeChrootFolder() {
+		for (ProjectCopy copy : this.projectCopies.values()) {
+			try {
+				makeWritable(copy.folder());
+			} catch (IOException | UncheckedIOException e) {
+				classLogger.warn("Unable to make the project copy {} writable before it is deleted", copy.folder(), e);
+			}
+		}
+		this.projectCopies.clear();
 		try {
 			FileUtils.deleteDirectory(new File(userChrootFolder));
 			classLogger.info("Deleted the chroot folder {} and all its contents", userChrootFolder);
@@ -413,204 +502,252 @@ public class SymlinkHelper {
 	}
 
 	/**
-	 * Expose a project's app root folder inside the chroot with access mode
-	 * determined by the user's project permissions:
+	 * Puts a project in the chroot by what the user may do with it:
 	 * <ul>
-	 * <li>If the user can edit the project, the live project folder is symlinked
-	 * into the chroot (writes pass straight through to the host project).</li>
-	 * <li>Otherwise, behaviour depends on the {@code CHROOT_READ_ONLY_COPY} flag.
-	 * When enabled, a copy of the project is placed inside the chroot and every
-	 * file is chmod'd to {@code r-xr-xr-x} so the read-only user cannot modify
-	 * project state. When disabled, the project is symlinked as if the user had
-	 * edit access.</li>
+	 * <li>A user who can edit the project gets a symlink to the project's own app
+	 * root, so their changes are the project's. In the namespace sandbox the app
+	 * root is mounted read-write.</li>
+	 * <li>Any other user gets a copy, which nobody can write to and which leaves
+	 * out the custom reactor source, the compiled classes and the portals, since
+	 * only the main JVM uses those, and the git folder. In the namespace sandbox the copy is mounted
+	 * read-only at the app root's path. What a project has for the people who only
+	 * view it goes in its other folders, such as its public folder.</li>
 	 * </ul>
-	 * Already-copied targets are detected and skipped on repeat calls.
+	 * The copy is made again when the project's files have changed, and a change
+	 * of the user's permission is followed the next time this is called.
 	 *
 	 * @param user      the user whose chroot is being prepared
 	 * @param projectId id of the project to expose
+	 * @throws UncheckedIOException if the copy cannot be made
 	 */
 	public void symlinkProject(User user, String projectId) {
-		classLogger.info("Symlinking project for projectId={}", projectId);
+		placeProject(user, projectId, Utility.normalizePath(AssetUtility.getProjectAppRootFolder(projectId)));
+	}
 
-		String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(projectId);
-
-		boolean canEdit = SecurityProjectUtils.userCanEditProject(user, projectId);
-
-		if (injectMode) {
-			enqueueOrInject(Utility.normalizePath(projectAppRootFolder), canEdit);
-		}
-
-		if (canEdit) {
-			createChrootSymlink(Utility.normalizePath(projectAppRootFolder));
-			return;
-		}
-
-		boolean readOnlyCopyEnabled = Boolean
-				.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_READ_ONLY_COPY));
-
-		if (readOnlyCopyEnabled) {
-			Path projectTarget = Paths.get(userChrootFolder)
-					.resolve(Utility.normalizePath(projectAppRootFolder).substring(1));
-			if (Files.exists(projectTarget)) {
-				classLogger.info(
-						"Chrooted project already copied for projectId={} at: {}, skipping copy and permission patch.",
-						projectId, projectTarget);
+	private synchronized void placeProject(User user, String projectId, String appRoot) {
+		Path inChroot = Paths.get(userChrootFolder).resolve(appRoot.substring(1));
+		try {
+			if (SecurityProjectUtils.userCanEditProject(user, projectId)) {
+				classLogger.info("Symlinking project for an editor, projectId={}", projectId);
+				this.projectCopies.remove(projectId);
+				removeCopy(inChroot);
+				if (injectMode) {
+					enqueueOrInject(appRoot, appRoot, true);
+				}
+				createChrootSymlink(appRoot);
 				return;
 			}
-
-			classLogger.info("Symlinking read-only copy for projectId={}", projectId);
-			setupCopiedProject(projectId);
-			setAllReadExecuteForProject(projectId);
-			// below does not work - commenting out for now
-			// setExecuteOnlyOnAssetCodeFolders(projectId);
-		} else {
-			classLogger.info("Symlinking full folder for read-only user, projectId={}", projectId);
-			createChrootSymlink(Utility.normalizePath(projectAppRootFolder));
+			refreshProjectCopy(projectId, Paths.get(appRoot), inChroot);
+			if (injectMode) {
+				enqueueOrInject(appRoot, inChroot.toString(), false);
+			}
+		} catch (IOException e) {
+			throw new UncheckedIOException("Unable to put project " + projectId + " in the user's folder", e);
 		}
 	}
 
 	/**
-	 * Apply {@code rwxr-xr-x} POSIX permissions: owner has full access; group and
-	 * others get read and execute.
+	 * Makes a read-only user's copy of a project, or makes it again when the
+	 * project's files changed since it was made. The files are looked at for
+	 * changes at most once every {@link #COPY_CHECK_GAP_MILLIS}.
 	 *
-	 * @param dir path to chmod
-	 * @throws IOException if setting permissions fails
+	 * @param projectId the project
+	 * @param appRoot   the project's own app root
+	 * @param copy      where the copy goes in the chroot
+	 * @throws IOException if the project cannot be read or the copy cannot be made
 	 */
-	private void setOwnerRWX(Path dir) throws IOException {
-		Files.setPosixFilePermissions(dir, EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
-				PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE,
-				PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE));
+	private void refreshProjectCopy(String projectId, Path appRoot, Path copy) throws IOException {
+		if (!Files.exists(appRoot)) {
+			classLogger.warn("Project app root does not exist, so there is nothing to copy: {}", appRoot);
+			return;
+		}
+		long now = System.currentTimeMillis();
+		ProjectCopy last = this.projectCopies.get(projectId);
+		boolean copied = last != null && Files.isDirectory(copy, LinkOption.NOFOLLOW_LINKS);
+		if (copied && now - last.checkedAt() < COPY_CHECK_GAP_MILLIS) {
+			return;
+		}
+		ProjectFiles files = ProjectFiles.of(appRoot);
+		if (copied && last.files().equals(files)) {
+			this.projectCopies.put(projectId, new ProjectCopy(copy, files, now));
+			return;
+		}
+		classLogger.info("Copying project for a read-only user, projectId={}", projectId);
+		copyForViewer(appRoot, copy);
+		this.projectCopies.put(projectId, new ProjectCopy(copy, files, now));
 	}
 
 	/**
-	 * Apply {@code r-xr-xr-x} POSIX permissions: read and execute for owner, group,
-	 * and others; no write for anyone. Used to lock down a copied project so a
-	 * read-only user cannot modify it from inside the chroot.
+	 * Makes the copy of a project that a user who can only view it gets, in place
+	 * of whatever is at that path in the chroot: the symlink they had as an editor,
+	 * or an earlier copy, whose folder is kept and filled again so a mount of it
+	 * stays good. Nobody can write to the copy.
 	 *
-	 * @param dir path to chmod
-	 * @throws IOException if setting permissions fails
+	 * @param appRoot the project's own app root
+	 * @param copy    where the copy goes in the chroot
+	 * @throws IOException if the project cannot be read or the copy cannot be made
 	 */
-	private void setOwnerRX(Path dir) throws IOException {
-		Files.setPosixFilePermissions(dir,
+	static void copyForViewer(Path appRoot, Path copy) throws IOException {
+		if (Files.isSymbolicLink(copy)) {
+			Files.delete(copy);
+		} else if (Files.isDirectory(copy, LinkOption.NOFOLLOW_LINKS)) {
+			makeWritable(copy);
+			FileUtils.cleanDirectory(copy.toFile());
+		}
+		copyProjectForReadOnlyUser(appRoot, copy);
+		makeReadOnly(copy);
+	}
+
+	/**
+	 * Removes a project copy from the chroot, so the project's own app root can be
+	 * linked at that path for a user who can now edit it. A symlink at the path is
+	 * left as it is.
+	 *
+	 * @param inChroot the project's path in the chroot
+	 * @throws IOException if the copy cannot be deleted
+	 */
+	static void removeCopy(Path inChroot) throws IOException {
+		if (Files.isDirectory(inChroot, LinkOption.NOFOLLOW_LINKS)) {
+			makeWritable(inChroot);
+			FileUtils.deleteDirectory(inChroot.toFile());
+		}
+	}
+
+	/**
+	 * Takes write access away from every folder and file of a project copy, for
+	 * its owner, its group and everyone else, so nobody changes it from inside the
+	 * chroot. Symlinks are not followed.
+	 *
+	 * @param copy the copy's top folder
+	 * @throws IOException if a folder or file cannot be changed
+	 */
+	static void makeReadOnly(Path copy) throws IOException {
+		setPermissions(copy,
 				EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_EXECUTE,
 						PosixFilePermission.GROUP_READ, PosixFilePermission.GROUP_EXECUTE,
 						PosixFilePermission.OTHERS_READ, PosixFilePermission.OTHERS_EXECUTE));
 	}
 
 	/**
-	 * Copy the live project app root into the chroot for a read-only user. Skips
-	 * silently if the source does not exist or the target has already been copied.
-	 * Part of the read-only-copy strategy in {@link #symlinkProject(User, String)}.
+	 * Gives the owner write access to every folder and file of a project copy
+	 * again, so the copy can be replaced or deleted.
 	 *
-	 * @param projectId id of the project whose app root should be copied
+	 * @param copy the copy's top folder
+	 * @throws IOException if a folder or file cannot be changed
 	 */
-	private void setupCopiedProject(String projectId) {
-		String sourceDirToCopy = AssetUtility.getProjectAppRootFolder(projectId);
-		sourceDirToCopy = Utility.normalizePath(sourceDirToCopy);
-		Path projectSource = Paths.get(sourceDirToCopy);
-		if (!Files.exists(projectSource)) {
-			classLogger.warn("Project app root does not exist for readOnlyCopyProject: {}", sourceDirToCopy);
+	static void makeWritable(Path copy) throws IOException {
+		if (!Files.isDirectory(copy, LinkOption.NOFOLLOW_LINKS)) {
 			return;
 		}
-		Path projectTarget = Paths.get(userChrootFolder).resolve(sourceDirToCopy.substring(1));
-		if (Files.exists(projectTarget)) {
-			classLogger.info("Chrooted project already copied, skipping copy for: {}", projectTarget);
-			return;
-		}
-		try {
-			copyDirectoryRecursively(projectSource, projectTarget);
-			classLogger.info("Copied project from: {}", projectSource);
-		} catch (IOException e) {
-			classLogger.debug("Could not copy project from: {}", projectSource);
+		setPermissions(copy,
+				EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
+						PosixFilePermission.OWNER_EXECUTE, PosixFilePermission.GROUP_READ,
+						PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_READ,
+						PosixFilePermission.OTHERS_EXECUTE));
+	}
+
+	private static void setPermissions(Path top, Set<PosixFilePermission> permissions) throws IOException {
+		Files.walkFileTree(top, new SimpleFileVisitor<Path>() {
+			@Override
+			public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+				Files.setPosixFilePermissions(dir, permissions);
+				return FileVisitResult.CONTINUE;
+			}
+
+			@Override
+			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+				if (!attrs.isSymbolicLink()) {
+					Files.setPosixFilePermissions(file, permissions);
+				}
+				return FileVisitResult.CONTINUE;
+			}
+		});
+	}
+
+	/**
+	 * A folder mounted in the namespace sandbox.
+	 *
+	 * @param source    the folder that is mounted
+	 * @param readWrite whether the sandbox may write to it
+	 */
+	private record Mount(String source, boolean readWrite) {
+	}
+
+	/**
+	 * A project's app root, found from a folder that is the app root or inside it.
+	 *
+	 * @param projectId the project
+	 * @param appRoot   the project's app root folder
+	 */
+	record ProjectFolder(String projectId, Path appRoot) {
+
+		/**
+		 * Finds the project a folder belongs to.
+		 *
+		 * @param folder     an absolute folder path
+		 * @param baseFolder the SEMOSS home, which holds the project folders
+		 * @return the project, or null when the folder is not part of a project
+		 */
+		static ProjectFolder of(Path folder, Path baseFolder) {
+			Path projects = baseFolder.resolve(Constants.PROJECT_FOLDER).toAbsolutePath().normalize();
+			Path candidate = folder.toAbsolutePath().normalize();
+			int depth = projects.getNameCount();
+			if (!candidate.startsWith(projects) || candidate.getNameCount() < depth + 2
+					|| !Constants.APP_ROOT_FOLDER.equals(candidate.getName(depth + 1).toString())) {
+				return null;
+			}
+			String projectFolder = candidate.getName(depth).toString();
+			int idAt = projectFolder.lastIndexOf(PROJECT_FOLDER_ID_SEPARATOR);
+			if (idAt < 0) {
+				return null;
+			}
+			return new ProjectFolder(projectFolder.substring(idAt + PROJECT_FOLDER_ID_SEPARATOR.length()),
+					projects.resolve(projectFolder).resolve(Constants.APP_ROOT_FOLDER));
 		}
 	}
 
 	/**
-	 * Walk the chroot copy of the given project and apply {@code r-xr-xr-x}
-	 * permissions to every file and directory, locking the read-only user out of
-	 * modifying any project content while still allowing traversal and execution.
+	 * A read-only user's copy of a project.
 	 *
-	 * @param projectId id of the project whose chroot copy should be made
-	 *                  read-only-executable
+	 * @param folder    the copy's top folder in the chroot
+	 * @param files     the project's files when the copy was made
+	 * @param checkedAt when the project's files were last looked at for changes
 	 */
-	public void setAllReadExecuteForProject(String projectId) {
-		String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(projectId);
-		projectAppRootFolder = Utility.normalizePath(projectAppRootFolder);
-		Path chrootAppRoot = Paths.get(userChrootFolder,
-				projectAppRootFolder.startsWith("/") ? projectAppRootFolder.substring(1) : projectAppRootFolder);
+	private record ProjectCopy(Path folder, ProjectFiles files, long checkedAt) {
+	}
 
-		if (!Files.exists(chrootAppRoot)) {
-			classLogger.warn("Chrooted app root does not exist for project: {}", chrootAppRoot);
-			return;
-		}
+	/**
+	 * What tells one state of a project's files from another: how many files a
+	 * read-only copy takes, their total size, and when the newest was changed. The
+	 * folders the copy leaves out do not count.
+	 *
+	 * @param count  the number of files
+	 * @param bytes  their total size
+	 * @param newest when the newest file or folder was last changed
+	 */
+	record ProjectFiles(long count, long bytes, long newest) {
 
-		try {
-			Files.walkFileTree(chrootAppRoot, new SimpleFileVisitor<Path>() {
+		static ProjectFiles of(Path appRoot) throws IOException {
+			long[] totals = new long[3];
+			Files.walkFileTree(appRoot, new SimpleFileVisitor<Path>() {
 				@Override
-				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-					setOwnerRX(dir);
+				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+					if (FOLDERS_LEFT_OUT_OF_A_COPY.contains(appRoot.relativize(dir))) {
+						return FileVisitResult.SKIP_SUBTREE;
+					}
+					totals[2] = Math.max(totals[2], attrs.lastModifiedTime().toMillis());
 					return FileVisitResult.CONTINUE;
 				}
 
 				@Override
-				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-					setOwnerRX(file);
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+					totals[0]++;
+					totals[1] += attrs.size();
+					totals[2] = Math.max(totals[2], attrs.lastModifiedTime().toMillis());
 					return FileVisitResult.CONTINUE;
 				}
 			});
-		} catch (IOException e) {
-			classLogger.error("Failed to set r-x permissions on project: {}", chrootAppRoot, e);
-		}
-	}
-
-	/**
-	 * Walk the chroot copy of the given project's asset code folders ({@code java},
-	 * {@code classes}, {@code py}) and strip the read bits, leaving only
-	 * {@code --x--x--x} permissions. The intent is to permit execution of compiled
-	 * code while preventing inspection of the source.
-	 * <p>
-	 * Currently does not work in practice - preserved for reference; see the
-	 * commented-out call in {@link #symlinkProject(User, String)}.
-	 *
-	 * @param projectId id of the project whose code folders should be made
-	 *                  execute-only
-	 */
-	public void setExecuteOnlyOnAssetCodeFolders(String projectId) {
-		String assetsFolderPath = AssetUtility.getProjectAssetsFolder(projectId);
-		assetsFolderPath = Utility.normalizePath(assetsFolderPath);
-		Path chrootAssetsFolder = Paths.get(userChrootFolder,
-				assetsFolderPath.startsWith("/") ? assetsFolderPath.substring(1) : assetsFolderPath);
-
-		if (!Files.exists(chrootAssetsFolder)) {
-			classLogger.warn("Chroot assets folder does not exist: {}", chrootAssetsFolder);
-			return;
-		}
-
-		String[] codeDirs = { "java", "classes", "py" };
-		for (String dirName : codeDirs) {
-			Path subDir = chrootAssetsFolder.resolve(dirName);
-			if (Files.exists(subDir)) {
-				try {
-					Files.walkFileTree(subDir, new SimpleFileVisitor<Path>() {
-						@Override
-						public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
-								throws IOException {
-							Files.setPosixFilePermissions(dir, EnumSet.of(PosixFilePermission.OWNER_EXECUTE,
-									PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_EXECUTE));
-							return FileVisitResult.CONTINUE;
-						}
-
-						@Override
-						public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-							Files.setPosixFilePermissions(file, EnumSet.of(PosixFilePermission.OWNER_EXECUTE,
-									PosixFilePermission.GROUP_EXECUTE, PosixFilePermission.OTHERS_EXECUTE));
-							return FileVisitResult.CONTINUE;
-						}
-					});
-				} catch (IOException e) {
-					classLogger.warn("Failed to set execute-only on: {}", subDir, e);
-				}
-			}
+			return new ProjectFiles(totals[0], totals[1], totals[2]);
 		}
 	}
 

@@ -30,12 +30,14 @@ package prerna.engine.api;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.model.responses.OpenAIDecisionsModelEngineResponse;
 import prerna.om.Insight;
 
 /** Native OpenAI Decisions exposed through the guarded model engine proxy. */
 public interface IOpenAIDecisionsEngine extends IModelEngine {
 
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	OpenAIDecisionsModelEngineResponse decisions(Object input, List<Map<String, Object>> questions,
 			Insight insight, Map<String, Object> parameters);
 }

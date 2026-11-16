@@ -74,7 +74,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description("Runs a saved automation through the authenticated Java graph executor.")
-				.key(ReactorKeysEnum.PROJECT, "The project ID or alias containing the automation workflow.")
+				.key(ReactorKeysEnum.PROJECT, "The project ID containing the automation workflow.")
 				.key(AutomationConstants.AUTOMATION_INPUTS_KEY,
 						"Optional values overriding trigger globals; date, triggered_at, and run_id are runtime-owned.")
 				.key(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY,

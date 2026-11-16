@@ -43,6 +43,7 @@ import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentMeta;
+import prerna.security.SecretRedactor;
 
 /**
  * Runs one agent run to completion and records how it ended.
@@ -266,6 +267,7 @@ final class AgentRunExecutor {
 		if (message == null || message.trim().isEmpty()) {
 			message = t == null ? "Unknown agent run failure" : t.getClass().getName();
 		}
+		message = SecretRedactor.redactError(message);
 		if (message.length() <= MAX_ERROR_LENGTH) {
 			return message;
 		}

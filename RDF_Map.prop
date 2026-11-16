@@ -65,6 +65,10 @@ FE_WEB_APP_NAME
 #WHAT SAMESITE COOKIE VALUE DO YOU WANT
 #POSSIBLE VALUES INCLUDE strict, lax, none
 SAMESITE_COOKIE none
+#SET WHITE LIST DOMAINS AND BLACK LIST DOMAINS
+#Both lists are comma separated domains, host names, IP addresses and CIDR ranges
+WHITE_LIST_DOMAINS
+BLACK_LIST_DOMAINS
 #Caching for tasks
 X_CACHE false
 #SET THE EMBED URL IMAGE
@@ -117,6 +121,10 @@ DISABLE_TERMINAL
 DISABLE_R_TERMINAL
 DISABLE_PY_TERMINAL
 DISABLE_GIT_TERMINAL
+
+# Library packages a project's custom reactors share with the platform, comma separated,
+# on top of the built-in list. The sandbox block list still applies to them.
+PROJECT_REACTOR_SHARED_PACKAGES
 
 #DEFAULT TERMINAL MODE
 #VALID ONLY FOR WINDOWS
@@ -257,8 +265,10 @@ REDIS_CLUSTER_MAX_ATTEMPTS=5
 # ------------------------------------------------------------
 # Secrets
 # ------------------------------------------------------------
+#Setting names whose values are secret, comma separated, on top of the built-in rule
+SENSITIVE_KEYS
 SECRET_STORE_ENABLED	false
-#HASHICORP_VAULT or AZURE_KEYVAULT
+#HASHICORP_VAULT, AZURE_KEYVAULT or AWS_SECRETS_MANAGER
 SECRET_STORE_TYPE		
 #Base Paths For Resources
 SECRETS_DB_PATH			semoss-db
@@ -282,6 +292,16 @@ AZURE_KEYVAULT_NAME
 AZURE_CLIENT_ID	
 AZURE_CLIENT_SECRET	
 AZURE_TENANT_ID 		
+
+#AWS Secrets Manager
+#Note SECRETS_*_PATH can contain alphanumeric and /_+=.@-
+#Leave the access key blank to use the default AWS credential chain
+AWS_SECRETS_MANAGER_REGION	
+AWS_SECRETS_MANAGER_ENDPOINT	
+AWS_SECRETS_MANAGER_ACCESS_KEY	
+AWS_SECRETS_MANAGER_SECRET_KEY	
+AWS_SECRETS_MANAGER_SESSION_TOKEN	
+AWS_SECRETS_MANAGER_KMS_KEY_ID	
 
 # ------------------------------------------------------------
 # Security

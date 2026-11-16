@@ -77,14 +77,13 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 		if (projectGrsFilters != null && !projectGrsFilters.isEmpty()) {
 			pFilters = new ArrayList<String>();
 			for (int i = 0; i < projectGrsFilters.size(); i++) {
-				String engineFilter = projectGrsFilters.get(i).toString();
-				engineFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
-				if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
-					pFilters.add(engineFilter);
+				String projectFilter = projectGrsFilters.get(i).toString();
+				if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectFilter)) {
+					pFilters.add(projectFilter);
 				} else {
 					// store warnings
 					warningNouns.add(NounMetadata.getWarningNounMessage(
-							engineFilter + " does not exist or user does not have access to project."));
+							projectFilter + " does not exist or user does not have access to project."));
 				}
 			}
 		}

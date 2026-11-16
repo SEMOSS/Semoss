@@ -815,7 +815,6 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 			rdf.put(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
 			DIHelper.getInstance().setCoreProp(rdf);
 			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, "testId;");
-			DIHelper.getInstance().setEngineProperty("testId_" + Constants.OWL, "value");
 			DIHelper.getInstance().setEngineProperty("testId_" + Constants.STORE, "value");
 			DIHelper.getInstance().setEngineProperty("testId", "value");
 
@@ -860,7 +859,6 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 				assertTrue(Files.notExists(testEngine));
 				assertEquals("", DIHelper.getInstance().getEngineProperty(Constants.ENGINES));
 				assertNull(DIHelper.getInstance().getEngineProperty("testId"));
-				assertNull(DIHelper.getInstance().getEngineProperty("testId_" + Constants.OWL));
 				assertNull(DIHelper.getInstance().getEngineProperty("testId_" + Constants.STORE));
 			}
 		}

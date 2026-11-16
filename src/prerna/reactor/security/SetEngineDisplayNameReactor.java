@@ -41,6 +41,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -73,7 +74,7 @@ public class SetEngineDisplayNameReactor extends AbstractReactor {
 		if (engine != null) {
 			String smssFilePath = engine.getSmssFilePath();
 			try {
-				Utility.changePropertiesFileValue(smssFilePath, Constants.ENGINE_DISPLAY_NAME, displayName);
+				InternalUtility.changePropertiesFileValue(smssFilePath, Constants.ENGINE_DISPLAY_NAME, displayName);
 			} catch (IOException e) {
 				classLogger.error("Error occurred updating the engine smss file for display name", e);
 			}

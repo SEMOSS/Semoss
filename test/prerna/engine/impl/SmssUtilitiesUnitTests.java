@@ -47,6 +47,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
@@ -478,13 +479,21 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 	}
 
 	@Test
-	void testValidateProjectAlreadyContains() {
+	void testValidateProjectAllowsExistingProjectName() throws IOException {
+		Path base = tempDir.resolve("Semoss");
+		Files.createDirectories(base);
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		DIHelper.getInstance().setCoreProp(coreProp);
+
 		User u = new User();
 		try (MockedStatic<AbstractSecurityUtils> mockedStatic = Mockito.mockStatic(AbstractSecurityUtils.class)) {
 			mockedStatic.when(() -> AbstractSecurityUtils.containsProjectName("pname")).thenReturn(true);
 
-			IOException e = assertThrows(IOException.class, () -> SmssUtilities.validateProject(u, "pname", "id"));
-			assertEquals("Project name already exists. Please provide a unique project name", e.getMessage());
+			File f = SmssUtilities.validateProject(u, "pname", "id");
+
+			assertFalse(f.exists());
+			assertEquals("pname__id", f.getName());
 		}
 	}
 
@@ -652,6 +661,89 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals("project/@PROJECT@/insights_database.sqlite", load.getProperty(Constants.RDBMS_INSIGHTS));
 		assertEquals("SQLITE", load.getProperty(Constants.RDBMS_INSIGHTS_TYPE));
 		assertEquals("org.sqlite.JDBC", load.getProperty(Constants.DRIVER));
+	}
+
+	@Test
+	void testConcealSmssSensitiveInfoKeepsTheKeysOwnCase() {
+		String concealed = SmssUtilities.concealSmssSensitiveInfo("secretKey=abc123\nENGINE=x\n");
+
+		assertEquals("secretKey\t" + Constants.SENSITIVE_INFO_MASK + "\nENGINE=x\n", concealed);
+	}
+
+	@Test
+	void testConcealSmssSensitiveInfoReadsColonsIndentsAndNewSecretKeys() {
+		String concealed = SmssUtilities
+				.concealSmssSensitiveInfo("  OPEN_AI_KEY: sk-abc\nSMTP_PASSWORD hunter2\nSP_CLIENT_SECRET=s\n");
+
+		assertEquals("OPEN_AI_KEY\t" + Constants.SENSITIVE_INFO_MASK + "\nSMTP_PASSWORD\t"
+				+ Constants.SENSITIVE_INFO_MASK + "\nSP_CLIENT_SECRET\t" + Constants.SENSITIVE_INFO_MASK + "\n",
+				concealed);
+	}
+
+	@Test
+	void testConcealSmssSensitiveInfoHidesEveryLineOfAContinuedSecret() {
+		String smss = "GCS_SERVICE_ACCOUNT_JSON {\"type\":\"service_account\",\\\n"
+				+ "  \"private_key\":\"-----BEGIN PRIVATE KEY-----\"}\nENGINE x\n";
+
+		assertEquals("GCS_SERVICE_ACCOUNT_JSON\t" + Constants.SENSITIVE_INFO_MASK + "\nENGINE x\n",
+				SmssUtilities.concealSmssSensitiveInfo(smss));
+	}
+
+	@Test
+	void testConcealSmssSensitiveInfoLeavesTheNextLinesOfAValueThatIsNotSecret() {
+		String smss = "INIT_MODEL_ENGINE import os;\\\napi_key='${OPEN_AI_KEY}'\nENGINE x\n";
+
+		assertEquals(smss, SmssUtilities.concealSmssSensitiveInfo(smss));
+	}
+
+	@Test
+	void testConcealSmssSensitiveInfoLeavesComments() {
+		String smss = "# PASSWORD hunter2\n! API_KEY abc\n\n";
+
+		assertEquals("# PASSWORD hunter2\n! API_KEY abc\n", SmssUtilities.concealSmssSensitiveInfo(smss));
+	}
+
+	@Test
+	void testUnconcealSmssSensitiveInfoPutsBackTheCurrentValueUnderTheSameKey() {
+		Properties current = new Properties();
+		current.setProperty("secretKey", "abc\\def\"ghi");
+
+		String restored = SmssUtilities
+				.unconcealSmssSensitiveInfo("secretKey\t" + Constants.SENSITIVE_INFO_MASK + "\nENGINE=x\n", current);
+
+		Properties saved = Utility.loadPropertiesString(restored);
+		assertEquals("abc\\def\"ghi", saved.getProperty("secretKey"));
+		assertEquals("x", saved.getProperty("ENGINE"));
+		assertNull(saved.getProperty("SECRETKEY"));
+	}
+
+	@Test
+	void testUnconcealSmssSensitiveInfoKeepsANewValue() {
+		Properties current = new Properties();
+		current.setProperty("SMTP_PASSWORD", "old-password");
+		String edited = "SMTP_PASSWORD new-password\nENGINE x\n";
+
+		assertEquals(edited, SmssUtilities.unconcealSmssSensitiveInfo(edited, current));
+	}
+
+	@Test
+	void testUnconcealSmssSensitiveInfoReadsTheSecretStore() {
+		String restored = SmssUtilities.unconcealSmssSensitiveInfo(
+				"OPEN_AI_KEY\t" + Constants.SENSITIVE_INFO_MASK + "\n", new Properties(),
+				Map.of("OPEN_AI_KEY", "sk-from-store"));
+
+		assertEquals("sk-from-store", Utility.loadPropertiesString(restored).getProperty("OPEN_AI_KEY"));
+	}
+
+	@Test
+	void testConcealedSmssSavesBackToTheSameValues() {
+		String smss = "ENGINE x\nHEADERS {\"Authorization\":\"Bearer abc\",\\\n \"Accept\":\"json\"}\n"
+				+ "1_PASSWORD p@ss\nURL https://example.com\n";
+		Properties current = Utility.loadPropertiesString(smss);
+
+		String saved = SmssUtilities.unconcealSmssSensitiveInfo(SmssUtilities.concealSmssSensitiveInfo(smss), current);
+
+		assertEquals(current, Utility.loadPropertiesString(saved));
 	}
 
 }

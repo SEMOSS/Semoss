@@ -980,13 +980,6 @@ public class GraphDataModel {
 						edge = edgeStore.get(predicateName);
 					}
 					if (edge == null) {
-						// need to create the predicate at runtime I think
-						/*
-						 * edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
-						 * System.err.println("Predicate plugged is " + predicateName);
-						 * edgeStore.put(sct.getPredicate()+"", edge);
-						 */
-
 						// the logic works only when the predicates dont have the vertices on it..
 						edge = new SEMOSSEdge(vert1, vert2, predicateName);
 						storeEdge(edge);

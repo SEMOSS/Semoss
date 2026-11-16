@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -60,11 +61,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
+import prerna.auth.utils.SecurityEngineAccessUtils;
 import prerna.cluster.sync.IClusterSynchronizer;
 import prerna.cluster.sync.impl.ClusterSynchronizerFactory;
 import prerna.cluster.util.clients.CentralCloudStorage;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
+import prerna.engine.impl.pipeline.StubEngines;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.DefaultImageGeneratorUtil;
@@ -73,17 +78,6 @@ import prerna.util.Utility;
 import sun.misc.Unsafe;
 
 class ClusterUtilUnitTests {
-
-	// Force-load EngineUtility safely - its client calls Utility.getBaseFolder()
-	// which returns null in test context, causing NPE on .replace().
-	static {
-		try (MockedStatic<Utility> util = mockStatic(Utility.class)) {
-			util.when(Utility::getBaseFolder).thenReturn(System.getProperty("java.io.tmpdir"));
-			Class.forName("prerna.util.EngineUtility");
-		} catch (Exception e) {
-			// class already loaded or other issue - ok for tests
-		}
-	}
 
 	@Nested
 	class GetSubdirsTests {
@@ -2736,11 +2730,46 @@ class ClusterUtilUnitTests {
 	@Nested
 	class StaticAccessorTests {
 		@Test
-		void getCentralStorageClient_delegatesToCCS() throws Exception {
+		void getCentralStorageClient_passesEachCallOnToCCS() throws Exception {
 			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
 				CentralCloudStorage mock = mock(CentralCloudStorage.class);
 				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
-				assertSame(mock, ClusterUtil.getCentralStorageClient());
+
+				ClusterUtil.getCentralStorageClient().pushEngine("engine-1");
+
+				verify(mock).pushEngine("engine-1");
+			}
+		}
+
+		@Test
+		void getCentralStorageClient_throwsWhatCCSThrew() throws Exception {
+			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class)) {
+				CentralCloudStorage mock = mock(CentralCloudStorage.class);
+				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
+				doThrow(new IOException("no storage")).when(mock).pushEngine("engine-1");
+
+				IOException thrown = assertThrows(IOException.class,
+						() -> ClusterUtil.getCentralStorageClient().pushEngine("engine-1"));
+
+				assertEquals("no storage", thrown.getMessage());
+			}
+		}
+
+		@Test
+		void getCentralStorageClient_runsEachCallAsAPlatformOperation() throws Exception {
+			ThreadStore.remove();
+			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class);
+					MockedStatic<SecurityEngineAccessUtils> access = mockStatic(SecurityEngineAccessUtils.class)) {
+				access.when(SecurityEngineAccessUtils::isSecurityDatabaseLoaded).thenReturn(true);
+				access.when(() -> SecurityEngineAccessUtils.isListed(anyString(), anyBoolean())).thenReturn(true);
+				IRDBMSEngine engine = StubEngines.database("engine-1");
+				CentralCloudStorage mock = mock(CentralCloudStorage.class);
+				ccs.when(CentralCloudStorage::getInstance).thenReturn(mock);
+				doAnswer(call -> engine.getEngineId()).when(mock).pushEngine("engine-1");
+
+				assertThrows(SemossPixelException.class, engine::getEngineId);
+				assertDoesNotThrow(() -> ClusterUtil.getCentralStorageClient().pushEngine("engine-1"));
+				assertThrows(SemossPixelException.class, engine::getEngineId);
 			}
 		}
 

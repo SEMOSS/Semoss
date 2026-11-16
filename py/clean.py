@@ -86,17 +86,19 @@ class PyFrame:
         actual_col_values = frame[actual_col].unique()
         predicted_col_values = frame[predicted_col].unique()
         for x in actual_col_values:
-            if x is np.nan:
+            if not isinstance(x, str):
                 continue
             for y in predicted_col_values:
-                if y is np.nan:
+                if not isinstance(y, str):
                     continue
-                ratio = distance.get_jaro_winkler_distance(x, y, scaling=0.1)
+                try:
+                    ratio = distance.get_jaro_winkler_distance(x, y, scaling=0.1)
+                except distance.JaroDistanceError:
+                    continue
                 if ratio != 0:
-                    data = [x, y, ratio]
-                    result.append(data)
+                    result.append([x, y, ratio])
         result = pd.DataFrame(result, columns=["col1", "col2", "distance"])
-        return result
+        return result.astype({"distance": "float64"})
 
     def self_match(this, actual_col):
         result = []

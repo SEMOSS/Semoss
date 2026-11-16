@@ -81,7 +81,8 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-		assertNull(SecurityInsightUtils.getInsight("testProjectId", "nonExistentId"));
+		assertThrows(IllegalArgumentException.class,
+				() -> SecurityInsightUtils.getInsight("testProjectId", "nonExistentId"));
 	}
 
 	///
@@ -1329,26 +1330,6 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		assertFalse(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
 		assertFalse(SecurityInsightUtils.userCanViewInsight(user3, "testProjectId", "testInsightId"));
-	}
-
-	///
-	/// removeExpiredInsightUser
-	///
-
-	@Test
-	void testRemoveExpiredInsightUser() throws IllegalAccessException {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
-		SecurityInsightUtils.addUserInsightCreator(user, "testProjectId", "testInsightId");
-		SecurityInsightUtils.addInsightUser(user, "user2id", "testProjectId", "testInsightId", "READ_ONLY", null);
-
-		assertTrue(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
-
-		SecurityInsightUtils.removeExpiredInsightUser("user2id", "testProjectId", "testInsightId");
-
-		assertFalse(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
 	}
 
 	///

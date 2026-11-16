@@ -88,8 +88,9 @@ public class AdminMyEnginesReactorUnitTests {
 
 	@Test
 	void testKeysToGet() {
-		assertEquals(10, reactor.keysToGet.length);
+		assertEquals(14, reactor.keysToGet.length);
 		assertEquals(ReactorKeysEnum.FILTER_WORD.getKey(), reactor.keysToGet[0]);
+		assertEquals("createdByMe", reactor.keysToGet[13]);
 	}
 
 	@Test
@@ -108,8 +109,7 @@ public class AdminMyEnginesReactorUnitTests {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
-					.thenReturn(new ArrayList<>());
+			stubEngineSettings(s, new ArrayList<>());
 
 			NounMetadata result = reactor.execute();
 
@@ -140,7 +140,6 @@ public class AdminMyEnginesReactorUnitTests {
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	void testSuccessWithNonEmptyResultsAndMetadata() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
@@ -153,8 +152,7 @@ public class AdminMyEnginesReactorUnitTests {
 			engine.put("database_id", "eng1");
 			results.add(engine);
 
-			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
-					.thenReturn(results);
+			stubEngineSettings(s, results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
 			when(wrapper.hasNext()).thenReturn(true, true, false);
@@ -169,16 +167,15 @@ public class AdminMyEnginesReactorUnitTests {
 
 			assertNotNull(result);
 			assertEquals(PixelDataType.CUSTOM_DATA_STRUCTURE, result.getNounType());
-			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
+			List<?> value = (List<?>) result.getValue();
 			assertEquals(1, value.size());
 			// Verify metadata was added - second value should create a list
-			Object desc = value.get(0).get("description");
+			Object desc = ((Map<?, ?>) value.get(0)).get("description");
 			assertNotNull(desc);
 		}
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	void testSuccessWithNonEmptyResultsNullMetaValue() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
@@ -191,8 +188,7 @@ public class AdminMyEnginesReactorUnitTests {
 			engine.put("database_id", "eng1");
 			results.add(engine);
 
-			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
-					.thenReturn(results);
+			stubEngineSettings(s, results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
 			when(wrapper.hasNext()).thenReturn(true, false);
@@ -204,15 +200,14 @@ public class AdminMyEnginesReactorUnitTests {
 			NounMetadata result = reactor.execute();
 
 			assertNotNull(result);
-			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
+			List<?> value = (List<?>) result.getValue();
 			assertEquals(1, value.size());
 			// Null meta value should be skipped
-			assertEquals(false, value.get(0).containsKey("description"));
+			assertEquals(false, ((Map<?, ?>) value.get(0)).containsKey("description"));
 		}
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	void testSuccessWithUserTracking() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);
@@ -227,8 +222,7 @@ public class AdminMyEnginesReactorUnitTests {
 			engine.put("database_id", "eng1");
 			results.add(engine);
 
-			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
-					.thenReturn(results);
+			stubEngineSettings(s, results);
 
 			// noMeta=true (skip metadata), includeUserT=true (include user tracking)
 			reactor.keyValue.put(ReactorKeysEnum.NO_META.getKey(), "true");
@@ -249,10 +243,19 @@ public class AdminMyEnginesReactorUnitTests {
 			NounMetadata result = reactor.execute();
 
 			assertNotNull(result);
-			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
+			List<?> value = (List<?>) result.getValue();
 			assertEquals(1, value.size());
-			assertEquals(5, value.get(0).get("upvotes"));
-			assertEquals(true, value.get(0).get("hasUpvoted"));
+			assertEquals(5, ((Map<?, ?>) value.get(0)).get("upvotes"));
+			assertEquals(true, ((Map<?, ?>) value.get(0)).get("hasUpvoted"));
 		}
+	}
+
+	/**
+	 * Stubs the admin engine list to return the engines given when the reactor reads
+	 * it with no filters.
+	 */
+	private static void stubEngineSettings(SecurityAdminUtils adminUtils, List<Map<String, Object>> engines) {
+		when(adminUtils.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+				isNull(), isNull(), eq(List.of()))).thenReturn(engines);
 	}
 }

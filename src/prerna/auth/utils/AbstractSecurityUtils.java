@@ -35,7 +35,6 @@ import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Connection;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -797,10 +796,9 @@ public abstract class AbstractSecurityUtils {
 
 			// ENGINE
 			colNames = new String[] { "ENGINEID", "ENGINENAME", "ENGINEDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
-					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP", };
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255,
-					VARCHAR_255 };
+					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255 };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -834,6 +832,11 @@ public abstract class AbstractSecurityUtils {
 						classLogger.info("Running sql {}", dropTypeColumn);
 						securityDb.insertData(dropTypeColumn);
 					}
+				}
+				if (allCols.stream().anyMatch("TOOL_APP"::equalsIgnoreCase)) {
+					String dropToolAppColumn = queryUtil.alterTableDropColumn("ENGINE", "TOOL_APP");
+					classLogger.info("Running sql {}", dropToolAppColumn);
+					securityDb.insertData(dropToolAppColumn);
 				}
 
 				// engines with no type are databases, and existing rows get their display name
@@ -2283,6 +2286,22 @@ public abstract class AbstractSecurityUtils {
 			// billed to
 			setMissingDatesAdded(securityDb, "GROUPENGINEPERMISSION");
 
+			colNames = new String[] { "PROJECTID", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE",
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("PROJECTENGINEPERMISSION", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "PROJECTENGINEPERMISSION", database, schema)) {
+					String sql = queryUtil.createTable("PROJECTENGINEPERMISSION", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
 			// GROUP PROJECT PERMISSION
 			// TODO::: look into how we want to allow user hiding of projects that are
 			// assigned at group lvl
@@ -2806,24 +2825,36 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// Insert default row for DEFAULTMODEL into USERMETAKEYS if not exists, in one
-			// transaction
+			// Insert the metakeys the platform defines into USERMETAKEYS, in one
+			// transaction. Each key is inserted only when it is missing, so a key added
+			// in a later release reaches a deployment whose table is already populated,
+			// and a key an admin has reconfigured is left as they set it.
 			{
 				String[] userMetaKeyColNames = colNames;
 				String[] userMetaKeyTypes = types;
+				String[] platformMetakeys = new String[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY,
+						Constants.DEFAULT_CODE_GENERATION_MODEL_KEY,
+						Constants.PLAYGROUND_DEFAULT_INPUT_TEXT_MODEL_KEY, Constants.PLAYGROUND_DEFAULT_CHAT_MODE_KEY,
+						Constants.PLAYGROUND_DEFAULT_CHAT_AGENT_KEY };
 				try {
 					QueryExecutionUtility.write(securityDb, connection -> {
-						Long count = QueryExecutionUtility.queryOne(connection,
-								"select count(*) from " + Constants.USER_METAKEYS, QueryExecutionUtility.NO_PARAMETERS,
-								rs -> rs.getLong(1));
-						if (count != null && count == 0) {
-							int order = 0;
+						List<String> existingKeys = QueryExecutionUtility.queryList(connection,
+								"select METAKEY from " + Constants.USER_METAKEYS, QueryExecutionUtility.NO_PARAMETERS,
+								rs -> rs.getString(1));
+						Integer maxOrder = QueryExecutionUtility.queryOne(connection,
+								"select max(DISPLAYORDER) from " + Constants.USER_METAKEYS,
+								QueryExecutionUtility.NO_PARAMETERS, rs -> {
+									int value = rs.getInt(1);
+									return rs.wasNull() ? null : value;
+								});
+						int order = maxOrder == null ? 0 : maxOrder + 1;
+						for (String metakey : platformMetakeys) {
+							if (existingKeys.contains(metakey)) {
+								continue;
+							}
 							insertRows(connection, queryUtil, Constants.USER_METAKEYS, userMetaKeyColNames,
 									userMetaKeyTypes,
-									new Object[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "single", order++,
-											"select-box", null },
-									new Object[] { Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "single", order++,
-											"select-box", null });
+									new Object[] { metakey, "single", order++, "select-box", null });
 						}
 						return null;
 					});
@@ -3138,6 +3169,7 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPENGINEPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPMANAGERS", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
+		allValues.put("PROJECTENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPINSIGHTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPPROJECTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("INSIGHTACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });
@@ -4197,20 +4229,6 @@ public abstract class AbstractSecurityUtils {
 		ZonedDateTime zdt = ZonedDateTime.parse(endDate);
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
-	}
-
-	/**
-	 * Check if permission end date has expired
-	 * 
-	 * @param endDate
-	 */
-	public static boolean endDateIsExpired(SemossDate endDate) throws Exception {
-		LocalDateTime currentTime = LocalDateTime.now();
-		if (endDate == null) {
-			return false;
-		}
-		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
-		return formattedEndDate.isBefore(currentTime);
 	}
 
 }

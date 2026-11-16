@@ -396,6 +396,10 @@
 			<id>dev</id>
 			<activation>
 				<activeByDefault>true</activeByDefault>
+				<!-- stay on when -Dfullenv turns on the fullenv profile -->
+				<property>
+					<name>fullenv</name>
+				</property>
 			</activation>
 			<build>
 				<plugins>
@@ -424,11 +428,17 @@
 						<configuration>
 							<includes>
 								<include>**/*UnitTests.java</include>
+								<include>**/*Test.java</include>
+								<include>**/*Tests.java</include>
 								<!-- <include>prerna.testing.AllTests.java</include> -->
 							</includes>
+							<excludes>
+								<!-- API tests that need a running environment -->
+								<exclude>prerna/testing/**</exclude>
+							</excludes>
 							<parallel>all</parallel>
 							<useUnlimitedThreads>true</useUnlimitedThreads>
-							<argLine>${argLine}</argLine>
+							<argLine>${argLine} --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED</argLine>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -491,10 +501,16 @@
 						<configuration>
 							<includes>
 								<include>**/*UnitTests.java</include>
+								<include>**/*Test.java</include>
+								<include>**/*Tests.java</include>
 							</includes>
+							<excludes>
+								<!-- API tests that need a running environment -->
+								<exclude>prerna/testing/**</exclude>
+							</excludes>
 							<parallel>all</parallel>
 							<useUnlimitedThreads>true</useUnlimitedThreads>
-							<argLine>${argLine}</argLine>
+							<argLine>${argLine} --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED</argLine>
 						</configuration>
 					</plugin>
 					<plugin>
@@ -603,6 +619,63 @@
 					<plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-deploy-plugin</artifactId><version>3.0.0-M1</version><configuration><skip>false</skip><
 							<deployAtEnd>true</deployAtEnd><attachedArtifacts><artifact><file>semoss-${ci.version}.jar</file></artifact><artifact><file>semoss-${ci.version}-tests.jar</file><classifier>tests</classifier><type>jar</type></artifact><artifact><file>semoss-${ci.version}-javadoc.jar</file><classifier>javadoc</classifier><type>jar</type></artifact><artifact><file>semoss-${ci.version}-sources.jar</file><classifier>sources</classifier><type>java-source</type></artifact><artifact><file>semoss-${ci.version}-semosshome.tar.gz</file><classifier>semosshome</classifier><type>zip</type></artifact></attachedArtifacts></configuration></plugin>
 					-->
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<!-- mvn clean install -Dfullenv: also compiles and runs test_legacy and the
+			prerna/testing API suite, which need a running environment -->
+			<id>fullenv</id>
+			<activation>
+				<property>
+					<name>fullenv</name>
+				</property>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>junit</groupId>
+					<artifactId>junit</artifactId>
+					<version>4.13.2</version>
+					<scope>test</scope>
+				</dependency>
+				<dependency>
+					<groupId>org.junit.vintage</groupId>
+					<artifactId>junit-vintage-engine</artifactId>
+					<version>${junit.version}</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>build-helper-maven-plugin</artifactId>
+						<version>3.6.0</version>
+						<executions>
+							<execution>
+								<id>add-legacy-tests</id>
+								<phase>generate-test-sources</phase>
+								<goals>
+									<goal>add-test-source</goal>
+								</goals>
+								<configuration>
+									<sources>
+										<source>test_legacy</source>
+									</sources>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<configuration>
+							<excludes combine.self="override">
+								<!-- suites that rerun tests already selected one by one -->
+								<exclude>**/AllTests.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
 				</plugins>
 			</build>
 		</profile>
@@ -3006,6 +3079,11 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>transcribe</artifactId>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/software.amazon.awssdk/secretsmanager -->
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>secretsmanager</artifactId>
 		</dependency>
 		<!-- self hosted athena jar -->
 		<dependency>

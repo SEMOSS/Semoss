@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.tcp;
 
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -78,6 +79,7 @@ public class SocketServerHandler implements Runnable {
 	private int bytesReadSoFar = 0;
 	private int lenBytesReadSoFar = 0;
 	private boolean done = false;
+	private volatile boolean shuttingDown = false;
 	// processes one payload and moves to the next one. This is how it currently
 	// behaves
 	private boolean blocking = false;
@@ -274,9 +276,7 @@ public class SocketServerHandler implements Runnable {
 					ps.payloadClasses = new Class[] { NounMetadata.class };
 				} catch (Exception ex) {
 					classLogger.error("Error while executing REACTOR operation '{}'", ps.objId, ex);
-					// System.err.println("Method.. " + ps.methodName);
-					ps.ex = ExceptionUtils.getStackTrace(ex);
-					// TCPChromeDriverUtility.quit("stop");
+					ps.ex = ex.getMessage() != null ? ex.getMessage() : ex.toString();
 				}
 				return ps;
 			} else if (ps.operation == PayloadStruct.OPERATION.PROJECT) {
@@ -514,10 +514,11 @@ public class SocketServerHandler implements Runnable {
 	}
 
 	/**
-	 * Deletes the socket working folder and shuts down translator/database
-	 * resources.
+	 * Shuts down the translator and database resources, deletes the socket working
+	 * folder, and exits the worker, which is the normal end of a logout.
 	 */
 	public void cleanUp() {
+		this.shuttingDown = true;
 		try {
 			if (!test) {
 				classLogger.info("Starting shutdown ");
@@ -561,8 +562,7 @@ public class SocketServerHandler implements Runnable {
 			// ignore
 		}
 
-		// exit out
-		System.exit(1);
+		System.exit(0);
 	}
 
 	/**
@@ -729,6 +729,11 @@ public class SocketServerHandler implements Runnable {
 			return translator;
 		}
 
+		String useR = DIHelper.getInstance().getProperty(Constants.USE_R);
+		if (useR != null && !Boolean.parseBoolean(useR.trim())) {
+			throw new IllegalArgumentException("R is set to false for this instance");
+		}
+
 		synchronized (translatorInitLock) {
 			translator = rtMap.get(env);
 			if (translator != null) {
@@ -811,6 +816,9 @@ public class SocketServerHandler implements Runnable {
 					}
 
 					int bytesRead = is.read(curBytes, bytesReadSoFar, (curBytes.length - bytesReadSoFar)); // block
+					if (bytesRead < 0) {
+						throw new EOFException("The client closed the connection");
+					}
 					bytesReadSoFar = bytesReadSoFar + bytesRead;
 
 					if (bytesReadSoFar == curBytes.length) // we got what we need.. let us go
@@ -865,9 +873,26 @@ public class SocketServerHandler implements Runnable {
 						lenBytes = new byte[bytesToRead]; // block it
 					}
 					int bytesRead = is.read(lenBytes, lenBytesReadSoFar, (lenBytes.length - lenBytesReadSoFar)); // block
+					if (bytesRead < 0) {
+						throw new EOFException("The client closed the connection");
+					}
 					lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
 				}
-			} catch (IOException e) {
+			} catch (EOFException e) {
+				this.done = true;
+				if (this.shuttingDown) {
+					return;
+				}
+				classLogger.info("The client closed the connection, so the worker stops");
+				try {
+					server.signalCrash();
+				} catch (Exception e1) {
+					classLogger.error("Failed to signal the server that the client left", e1);
+				}
+				if (!SocketServer.isMulti()) {
+					System.exit(0);
+				}
+			} catch (IOException | RuntimeException e) {
 				classLogger.error("Socket handler read failed; signaling crash recovery", e);
 				try {
 					// Notify SocketServer.run() so it can unwind/cleanup and re-listen.

@@ -32,13 +32,29 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLStreamHandlerFactory;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.zaxxer.hikari.HikariConfig;
+
+import prerna.security.SensitiveKeys;
 
 /**
  * Static factory class whose methods replace direct file-API calls in bytecode
@@ -72,6 +88,18 @@ import java.util.concurrent.ConcurrentHashMap;
  * closing the user-created symlink escape vector.
  */
 public final class SandboxedJavaExecution {
+
+	private static final Logger classLogger = LogManager.getLogger(SandboxedJavaExecution.class);
+
+	/**
+	 * How long to wait before saying again that chroot is off.
+	 */
+	private static final long CHROOT_OFF_WARNING_GAP_MILLIS = 60_000L;
+
+	/**
+	 * When the chroot warning was last logged, in milliseconds, or 0 for never.
+	 */
+	static final AtomicLong CHROOT_OFF_LAST_WARNED = new AtomicLong();
 
 	/**
 	 * Per-thread chroot root (set by the executor before running reactor code).
@@ -132,6 +160,12 @@ public final class SandboxedJavaExecution {
 	 * </ul>
 	 */
 	private static final ConcurrentHashMap<String, String> PLATFORM_PROPERTIES = new ConcurrentHashMap<>();
+
+	/**
+	 * The HikariCP settings that make the pool look a data source up by name, or
+	 * create one from a class name.
+	 */
+	private static final Set<String> HIKARI_LOOKUP_SETTINGS = Set.of("dataSourceJNDI", "dataSourceClassName");
 
 	private SandboxedJavaExecution() {
 	}
@@ -201,6 +235,44 @@ public final class SandboxedJavaExecution {
 			return real != null ? real : defaultValue;
 		}
 		return defaultValue;
+	}
+
+	/**
+	 * Sandboxed replacement for {@code Utility.getDIHelperProperty(String)}.
+	 * Returns the RDF_Map value, or null for every key the RDF_Map editor hides:
+	 * the secret keys of {@link SensitiveKeys#isSensitiveKey(String)} and the
+	 * secret store and keystore settings.
+	 *
+	 * @param key the RDF_Map key
+	 * @return the value, or null for a hidden or missing key
+	 */
+	public static String sandboxedPlatformProperty(String key) {
+		if (key == null || DIHelper.containsSensitiveKey(key)) {
+			return null;
+		}
+		return Utility.getDIHelperProperty(key);
+	}
+
+	/**
+	 * Sandboxed replacement for {@code Utility.loadProperties(String)}: reads the
+	 * file under the same path rule as {@link #file(String)}.
+	 *
+	 * @param filePath the properties file
+	 * @return its values, empty when the file cannot be read
+	 */
+	public static Properties sandboxedLoadProperties(String filePath) {
+		return Utility.loadProperties(filePath == null ? null : sanitize(filePath));
+	}
+
+	/**
+	 * Sandboxed replacement for {@code Utility.loadProperties(File)}: reads the
+	 * file under the same path rule as {@link #file(String)}.
+	 *
+	 * @param file the properties file
+	 * @return its values, empty when the file cannot be read
+	 */
+	public static Properties sandboxedLoadProperties(File file) {
+		return Utility.loadProperties(file == null ? null : new File(sanitize(file.getPath())));
 	}
 
 	// ------------------------------------------------------------------ Setup
@@ -275,6 +347,11 @@ public final class SandboxedJavaExecution {
 	static String sanitize(String rawPath) {
 		String root = getEffectiveSandboxRoot();
 		if (root == null) {
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				throw new SecurityException("File access in a project reactor needs the user's folder, which this "
+						+ "thread does not have; do the file work on the thread that runs the reactor");
+			}
+			warnChrootOff();
 			return rawPath;
 		}
 		Path base = Path.of(root);
@@ -298,6 +375,23 @@ public final class SandboxedJavaExecution {
 			throw new SecurityException("Path escape attempt blocked by project reactor sandbox: " + rawPath);
 		}
 		return resolved.toString();
+	}
+
+	/**
+	 * Logs, at most once a minute, that a project reactor used a file path while
+	 * chroot is off. The reactor still runs, which is what a developer machine
+	 * needs; the path is used as given.
+	 */
+	private static void warnChrootOff() {
+		long now = System.currentTimeMillis();
+		long last = CHROOT_OFF_LAST_WARNED.get();
+		if ((last == 0 || now - last >= CHROOT_OFF_WARNING_GAP_MILLIS)
+				&& CHROOT_OFF_LAST_WARNED.compareAndSet(last, now)) {
+			classLogger.warn(
+					"A project reactor used a file path while {} is off, so the path is used as given and is not "
+							+ "kept inside the user's folder. This would typically require {} to be enabled for security.",
+					Constants.CHROOT_ENABLE, Constants.CHROOT_ENABLE);
+		}
 	}
 
 	// ------------------------------------------------------------------ File
@@ -435,6 +529,17 @@ public final class SandboxedJavaExecution {
 
 	// ---------------------------------------------------------- Blocked APIs
 
+	/**
+	 * Replacement for a call project reactors cannot make, such as
+	 * {@code System.loadLibrary} or {@code Utility.getDIHelperLocalProperty} -
+	 * always throws.
+	 *
+	 * @param method the method that was called
+	 */
+	public static void blockCall(String method) {
+		throw new SecurityException(method + " is not permitted in project reactors");
+	}
+
 	/** Replacement for {@code Runtime.exec(...)} - always throws. */
 	public static void blockRuntimeExec() {
 		throw new SecurityException("Runtime.exec() is not permitted in project reactors");
@@ -449,24 +554,339 @@ public final class SandboxedJavaExecution {
 	}
 
 	/**
-	 * Sandboxed replacement for {@code Class.forName(String)}.
+	 * Sandboxed replacement for {@code Class.forName}: finds the class through the
+	 * sandbox loader of the project class that asked, so the block list applies and
+	 * the project's own classes are found. The three-argument form is reduced to
+	 * this by the bytecode transformer, so a loader the caller passes in is not
+	 * used.
 	 *
-	 * <p>
-	 * Checks the class name against
-	 * {@link SemossClassLoader#isReflectionApiBlocked} before delegating so that
-	 * reactor code cannot load blocked classes by name string (e.g.
-	 * {@code Class.forName("java.lang.ProcessBuilder")}). The three-arg overload is
-	 * reduced to this by the bytecode transformer so that a caller-supplied
-	 * {@code ClassLoader} cannot bypass {@code SemossClassLoader}.
-	 *
+	 * @param className the class name
+	 * @param caller    the project class that asked
+	 * @return the class
 	 * @throws SecurityException      if the class is on the reactor block list
 	 * @throws ClassNotFoundException if the class cannot be found
 	 */
-	public static Class<?> sandboxedForName(String className) throws ClassNotFoundException {
+	public static Class<?> sandboxedForName(String className, Class<?> caller) throws ClassNotFoundException {
 		if (SemossClassLoader.isReflectionApiBlocked(className)) {
 			throw new SecurityException("Class.forName('" + className + "') is not permitted in project reactors");
 		}
-		return Class.forName(className);
+		return Class.forName(className, true, callerLoader(caller));
+	}
+
+	/**
+	 * Sandboxed replacement for {@code ClassLoader.loadClass(String)} on a loader a
+	 * project class holds: applies the block list whichever loader it is.
+	 *
+	 * @param loader    the loader the project class called
+	 * @param className the class name
+	 * @return the class
+	 * @throws SecurityException      if the class is on the reactor block list
+	 * @throws ClassNotFoundException if the class cannot be found
+	 */
+	public static Class<?> sandboxedLoadClass(ClassLoader loader, String className) throws ClassNotFoundException {
+		if (SemossClassLoader.isReflectionApiBlocked(className)) {
+			throw new SecurityException("Loading '" + className + "' is not permitted in project reactors");
+		}
+		return loader.loadClass(className);
+	}
+
+	// --------------------------------------------------------------- HikariCP
+
+	/**
+	 * Sandboxed replacement for {@code new HikariConfig()}.
+	 *
+	 * @return an empty pool configuration
+	 */
+	public static HikariConfig hikariConfig() {
+		return new HikariConfig();
+	}
+
+	/**
+	 * Sandboxed replacement for {@code new HikariConfig(Properties)}: the pool
+	 * connects through its JDBC URL, so a setting that has it look a data source up
+	 * by name, or create one from a class name, is refused.
+	 *
+	 * @param properties the pool settings
+	 * @return the pool configuration
+	 * @throws SecurityException if the settings hold one of the refused ones
+	 */
+	public static HikariConfig hikariConfig(Properties properties) {
+		for (String key : properties.stringPropertyNames()) {
+			for (String refused : HIKARI_LOOKUP_SETTINGS) {
+				if (refused.equalsIgnoreCase(key)) {
+					throw new SecurityException(
+							"The HikariCP setting " + refused + " is not permitted in project reactors");
+				}
+			}
+		}
+		return new HikariConfig(properties);
+	}
+
+	/**
+	 * Sandboxed replacement for {@code new HikariConfig(String)}: reads the
+	 * properties file under the same path rule as {@link #file(String)}, then
+	 * applies {@link #hikariConfig(Properties)}.
+	 *
+	 * @param propertyFileName the properties file
+	 * @return the pool configuration
+	 * @throws IllegalArgumentException if the file cannot be read
+	 */
+	public static HikariConfig hikariConfig(String propertyFileName) {
+		Properties properties = new Properties();
+		try (FileInputStream in = new FileInputStream(sanitize(propertyFileName))) {
+			properties.load(in);
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Cannot read the pool property file " + propertyFileName, e);
+		}
+		return hikariConfig(properties);
+	}
+
+	// ---------------------------------------------------------- Class loaders
+
+	/**
+	 * True for a class a project's sandbox loaded: its custom reactors, the classes
+	 * in its jars and its copies of libraries.
+	 *
+	 * @param candidate a class, or null
+	 * @return true if the class is project code
+	 */
+	public static boolean isProjectClass(Class<?> candidate) {
+		return candidate != null && SemossClassLoader.isSandboxLoader(candidate.getClassLoader());
+	}
+
+	/**
+	 * A file a project's code is about to use or hand to the JDK, the platform or a
+	 * shared library, under the same path rule as {@link #file(String)}.
+	 *
+	 * @param file the file the project holds
+	 * @return the same file when it is inside the user's folder or no folder is
+	 *         set, otherwise the file at that path inside the user's folder
+	 */
+	public static File sandboxedFileValue(File file) {
+		if (file == null) {
+			return null;
+		}
+		String sandboxed = sanitize(file.getPath());
+		return sandboxed.equals(file.getPath()) ? file : new File(sandboxed);
+	}
+
+	/**
+	 * A path a project's code is about to hand to the JDK, the platform or a shared
+	 * library, under the same path rule as {@link #file(String)}. A path inside
+	 * another file system, such as an open zip file, is left as it is.
+	 *
+	 * @param path the path the project holds
+	 * @return the same path when it is inside the user's folder or no folder is
+	 *         set, otherwise that path inside the user's folder
+	 */
+	public static Path sandboxedPathValue(Path path) {
+		if (path == null || path.getFileSystem() != FileSystems.getDefault()) {
+			return path;
+		}
+		String sandboxed = sanitize(path.toString());
+		return sandboxed.equals(path.toString()) ? path : Path.of(sandboxed);
+	}
+
+	/**
+	 * A path a project's code handed to a platform helper, under the same path rule
+	 * as {@link #file(String)}.
+	 *
+	 * @param path the path the project passed
+	 * @return the path inside the user's folder when one is set, otherwise the same
+	 *         path
+	 */
+	public static String sandboxedPath(String path) {
+		return path == null ? null : sanitize(path);
+	}
+
+	/**
+	 * The project a class belongs to: the project of the sandbox loader that loaded
+	 * it, or of the nearest sandbox loader above that one, which covers the loaders
+	 * a project's own code creates.
+	 *
+	 * @param candidate a class, or null
+	 * @return the project id, or null when the class is not project code or its
+	 *         loader belongs to no project
+	 */
+	public static String projectIdOf(Class<?> candidate) {
+		ClassLoader loader = candidate == null ? null : candidate.getClassLoader();
+		while (SemossClassLoader.isSandboxLoader(loader)) {
+			String projectId = null;
+			if (loader instanceof SemossClassLoader projectLoader) {
+				projectId = projectLoader.getProjectId();
+			} else if (loader instanceof SemossJarClassLoader dependencyLoader) {
+				projectId = dependencyLoader.getProjectId();
+			}
+			if (projectId != null) {
+				return projectId;
+			}
+			if (loader != null) {
+				loader = loader.getParent();
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * The sandbox loader that loaded a project class.
+	 *
+	 * @param caller the project class
+	 * @return its loader
+	 * @throws SecurityException if the class was not loaded by the sandbox
+	 */
+	static ClassLoader callerLoader(Class<?> caller) {
+		ClassLoader loader = caller.getClassLoader();
+		if (!SemossClassLoader.isSandboxLoader(loader)) {
+			throw new SecurityException("Class loaders are only available to classes the project sandbox loaded");
+		}
+		return loader;
+	}
+
+	/**
+	 * Stands in for any class loader a project class is handed, such as the result
+	 * of {@code getClassLoader()}, {@code getSystemClassLoader()} or
+	 * {@code getParent()}. A sandbox loader is passed through. Any other loader is
+	 * swapped for the sandbox loader of the project class that asked.
+	 *
+	 * @param candidate the loader the call returned
+	 * @param caller    the project class that asked
+	 * @return a sandbox loader, or null when the call returned null
+	 */
+	public static ClassLoader sandboxLoader(ClassLoader candidate, Class<?> caller) {
+		if (candidate == null || SemossClassLoader.isSandboxLoader(candidate)) {
+			return candidate;
+		}
+		return callerLoader(caller);
+	}
+
+	/**
+	 * Checks a loader a project class cast to a specific loader type, such as
+	 * {@code URLClassLoader}: only a sandbox loader passes.
+	 *
+	 * @param candidate the loader that was cast
+	 * @return the same loader
+	 * @throws SecurityException if the loader is not a sandbox loader
+	 */
+	public static ClassLoader requireSandboxLoader(ClassLoader candidate) {
+		if (candidate != null && !SemossClassLoader.isSandboxLoader(candidate)) {
+			throw new SecurityException("This class loader is not available in project reactors");
+		}
+		return candidate;
+	}
+
+	/**
+	 * Sandboxed replacement for {@code new URLClassLoader(URL[])} and
+	 * {@code URLClassLoader.newInstance(URL[])}: a loader for local jars under the
+	 * sandbox loader of the project class that asked.
+	 *
+	 * @param urls   the local jars and folders
+	 * @param caller the project class that asked
+	 * @return the sandbox loader
+	 */
+	public static URLClassLoader urlClassLoader(URL[] urls, Class<?> caller) {
+		return new SemossProjectJarClassLoader(urls, caller);
+	}
+
+	/**
+	 * Sandboxed replacement for {@code new URLClassLoader(URL[], ClassLoader)} and
+	 * {@code URLClassLoader.newInstance(URL[], ClassLoader)}.
+	 *
+	 * @param urls            the local jars and folders
+	 * @param requestedParent the parent the project class asked for, which is not
+	 *                        used
+	 * @param caller          the project class that asked
+	 * @return the sandbox loader
+	 */
+	public static URLClassLoader urlClassLoader(URL[] urls, ClassLoader requestedParent, Class<?> caller) {
+		return new SemossProjectJarClassLoader(urls, caller);
+	}
+
+	/**
+	 * Sandboxed replacement for
+	 * {@code new URLClassLoader(URL[], ClassLoader, URLStreamHandlerFactory)}.
+	 *
+	 * @param urls             the local jars and folders
+	 * @param requestedParent  the parent the project class asked for, which is not
+	 *                         used
+	 * @param requestedFactory the URL handler factory the project class asked for,
+	 *                         which is not used
+	 * @param caller           the project class that asked
+	 * @return the sandbox loader
+	 */
+	public static URLClassLoader urlClassLoader(URL[] urls, ClassLoader requestedParent,
+			URLStreamHandlerFactory requestedFactory, Class<?> caller) {
+		return new SemossProjectJarClassLoader(urls, caller);
+	}
+
+	/**
+	 * Sandboxed replacement for
+	 * {@code new URLClassLoader(String, URL[], ClassLoader)}.
+	 *
+	 * @param name            the loader's name
+	 * @param urls            the local jars and folders
+	 * @param requestedParent the parent the project class asked for, which is not
+	 *                        used
+	 * @param caller          the project class that asked
+	 * @return the sandbox loader
+	 */
+	public static URLClassLoader urlClassLoader(String name, URL[] urls, ClassLoader requestedParent, Class<?> caller) {
+		return new SemossProjectJarClassLoader(name, urls, requestedParent, caller);
+	}
+
+	/**
+	 * Sandboxed replacement for
+	 * {@code new URLClassLoader(String, URL[], ClassLoader, URLStreamHandlerFactory)}.
+	 *
+	 * @param name             the loader's name
+	 * @param urls             the local jars and folders
+	 * @param requestedParent  the parent the project class asked for, which is not
+	 *                         used
+	 * @param requestedFactory the URL handler factory the project class asked for,
+	 *                         which is not used
+	 * @param caller           the project class that asked
+	 * @return the sandbox loader
+	 */
+	public static URLClassLoader urlClassLoader(String name, URL[] urls, ClassLoader requestedParent,
+			URLStreamHandlerFactory requestedFactory, Class<?> caller) {
+		return new SemossProjectJarClassLoader(name, urls, requestedParent, caller);
+	}
+
+	/**
+	 * The jars and folders a project class asked a loader to read, each checked by
+	 * {@link #sandboxedJarUrl(URL)}.
+	 *
+	 * @param urls the jars and folders
+	 * @return the same locations, under the path rule
+	 */
+	static URL[] sandboxedJarUrls(URL[] urls) {
+		URL[] sandboxed = new URL[urls.length];
+		for (int i = 0; i < urls.length; i++) {
+			sandboxed[i] = sandboxedJarUrl(urls[i]);
+		}
+		return sandboxed;
+	}
+
+	/**
+	 * A jar or folder a project class asked a loader to read. It has to be on the
+	 * local disk, and it follows the same path rule as {@link #file(String)}.
+	 *
+	 * @param url the jar or folder
+	 * @return the same location, under the path rule
+	 * @throws SecurityException if the location is not a local file
+	 */
+	static URL sandboxedJarUrl(URL url) {
+		if (!"file".equalsIgnoreCase(url.getProtocol())) {
+			throw new SecurityException("Only jars and folders on the local disk can be loaded in project reactors");
+		}
+		try {
+			String location = new File(sanitize(Path.of(url.toURI()).toString())).toURI().toString();
+			if (url.getPath().endsWith("/") && !location.endsWith("/")) {
+				location += "/";
+			}
+			return URI.create(location).toURL();
+		} catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
+			throw new SecurityException("Not a local jar or folder: " + e.getMessage(), e);
+		}
 	}
 
 	/**

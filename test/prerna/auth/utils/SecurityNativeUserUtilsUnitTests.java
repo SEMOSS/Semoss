@@ -471,8 +471,9 @@ public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		try {
 			AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
 			assertTrue(SecurityNativeUserUtils.addNativeUser(newUser, "Test123!"));
+			String salt = AbstractSecurityUtils.generateSalt();
 			SecurityNativeUserUtils.storeUserPassword(newUser.getId(), newUser.getProvider().toString(),
-					AbstractSecurityUtils.hash("Other123!", "salt"), "salt",
+					AbstractSecurityUtils.hash("Other123!", salt), salt,
 					Timestamp.valueOf(LocalDateTime.of(2100, 1, 1, 0, 0)));
 
 			// the history now holds more passwords than the rule covers

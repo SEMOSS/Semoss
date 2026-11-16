@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -59,15 +58,11 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 		}
 
 		List<Map<String, Object>> baseInfo = null;
-		// make sure valid id for user
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 		if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-			// user has access!
 			baseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), databaseId, null);
 		} else if (SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
 			baseInfo = SecurityEngineUtils.getDiscoverableEngineList(databaseId, null);
 		} else {
-			// you dont have access
 			throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
 		}
 
@@ -88,6 +83,7 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
+	@Deprecated
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
@@ -96,7 +92,7 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 						Returns metadata for a single engine (legacy GetDatabaseMetadata name) when the user can access it or it is discoverable.
 
 						Inputs: database, metaKeys.
-						Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys and last_updated.
+						Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys and last_updated.
 						Any response key prefixed with app_* or database_* is legacy and should not be used.
 						""");
 	}

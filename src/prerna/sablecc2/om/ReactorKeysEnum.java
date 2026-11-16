@@ -40,7 +40,6 @@ public enum ReactorKeysEnum {
 	ALL("all",                                              	"Boolean to use all the values"),
 	ALL_NUMERIC_KEY("allNumeric", 								"Indicates if only numeric headers should be returned"),
 	ALIAS("alias", 												"An alias to assign for an operation or output - use .as([\"aliasName\"])"), 
-//	APP("app", 													"Name of the app on the local SEMOSS instance"),
 	ANIMATE("animate", 											"Specifies if the ggplot needs to be animated"),
 	API_KEY("apikey", 									    	"API key being used for the specific insight / project"),
 	ARRAY("array", 												"An array of input values"),
@@ -50,6 +49,7 @@ public enum ReactorKeysEnum {
 	BATCH_REQUESTS("requests",                              	"List of batch requests; each entry is a map with custom_id and body"),
 	BREAKS("breaks", 											"Number of divisions"),
 	BLOCK_ENTRY("block_enrty",  								"Block entry input map from frontend"),	
+	CATALOG_NAME("catalogName",									"The name the new engine or project is cataloged under"),
 	CLEAN("clean", 												"Boolean if we should clean up the strings before insertion. (default is true)"),
 	CLEAN_UP_CLOUD_STORAGE("cleanUpCloudStorage",				"Boolean whether to clean up the cloud storage account used to persist databases in the cluster (defaults to false)"),
 	CLONE_PANEL_KEY("cloneId", 									"Id to assign the new clone panel"),
@@ -197,6 +197,8 @@ public enum ReactorKeysEnum {
 	MUSTACHE("mustache", 										"Boolean true/false if the html passed in is a mustache template"),
 	MUSTACHE_VARMAP("mustacheVars", 							"Map containing the replacement values for a mustache tempalte. Most reactors will require mustache=true for this to be utilized"),
 	MVN_GOALS("mvn_goals", 										"The maven goals to execute"),							
+	// this is unclear and should be defined in each reactor for what it is identifying
+	@Deprecated
 	NAME("name",												"Unique identifier"), 								
 	NEW_COLUMN("newCol", 										"Name of the new column being created"),
 	NEW_HEADER_NAMES("newHeaders", 								"New header names for a file"),
