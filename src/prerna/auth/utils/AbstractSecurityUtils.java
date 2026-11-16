@@ -797,10 +797,9 @@ public abstract class AbstractSecurityUtils {
 
 			// ENGINE
 			colNames = new String[] { "ENGINEID", "ENGINENAME", "ENGINEDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
-					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP", };
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255,
-					VARCHAR_255 };
+					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255 };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -834,6 +833,11 @@ public abstract class AbstractSecurityUtils {
 						classLogger.info("Running sql {}", dropTypeColumn);
 						securityDb.insertData(dropTypeColumn);
 					}
+				}
+				if (allCols.stream().anyMatch("TOOL_APP"::equalsIgnoreCase)) {
+					String dropToolAppColumn = queryUtil.alterTableDropColumn("ENGINE", "TOOL_APP");
+					classLogger.info("Running sql {}", dropToolAppColumn);
+					securityDb.insertData(dropToolAppColumn);
 				}
 
 				// engines with no type are databases, and existing rows get their display name
@@ -2283,6 +2287,22 @@ public abstract class AbstractSecurityUtils {
 			// billed to
 			setMissingDatesAdded(securityDb, "GROUPENGINEPERMISSION");
 
+			colNames = new String[] { "PROJECTID", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE",
+					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("PROJECTENGINEPERMISSION", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "PROJECTENGINEPERMISSION", database, schema)) {
+					String sql = queryUtil.createTable("PROJECTENGINEPERMISSION", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
 			// GROUP PROJECT PERMISSION
 			// TODO::: look into how we want to allow user hiding of projects that are
 			// assigned at group lvl
@@ -3150,6 +3170,7 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPENGINEPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPMANAGERS", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
+		allValues.put("PROJECTENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPINSIGHTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPPROJECTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("INSIGHTACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });

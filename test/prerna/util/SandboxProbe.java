@@ -33,6 +33,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
@@ -41,6 +42,13 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
+
+import prerna.engine.api.IEngine;
+import prerna.engine.impl.pipeline.AdminEngineCalls;
+import prerna.engine.impl.pipeline.PlatformOperation;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Builds a small class with ASM and loads it the way a project's custom
@@ -279,9 +287,71 @@ public final class SandboxProbe {
 	 * @return the loader
 	 */
 	static SemossClassLoader loader(Path folder) {
-		SemossClassLoader loader = new SemossClassLoader(SandboxProbe.class.getClassLoader());
+		return loader(folder, null);
+	}
+
+	/**
+	 * A sandbox loader over the classes folder of one project.
+	 *
+	 * @param folder    the classes folder
+	 * @param projectId the id of the project the classes belong to
+	 * @return the loader
+	 */
+	static SemossClassLoader loader(Path folder, String projectId) {
+		SemossClassLoader loader = new SemossClassLoader(SandboxProbe.class.getClassLoader(), projectId);
 		loader.setFolder(folder.toString());
 		return loader;
+	}
+
+	/**
+	 * Loads a probe class as the custom code of one project.
+	 *
+	 * @param folder    the classes folder
+	 * @param bytes     the class as compiled
+	 * @param projectId the id of the project the class belongs to
+	 * @return the sandboxed class
+	 * @throws Exception if the class cannot be written or loaded
+	 */
+	static Class<?> load(Path folder, byte[] bytes, String projectId) throws Exception {
+		write(folder, INTERNAL_NAME, bytes);
+		return loader(folder, projectId).loadClass(INTERNAL_NAME.replace('/', '.'));
+	}
+
+	/**
+	 * Runs a piece of work the way a platform method runs a callback it was
+	 * handed, so the platform is between the caller and the work on the stack.
+	 *
+	 * @param work the callback
+	 * @return what the callback returned
+	 */
+	public static Object runAsPlatform(Supplier<?> work) {
+		return work.get();
+	}
+
+	/**
+	 * Begins a platform operation and reads the held engine's name through a
+	 * reactor of the platform, the way a platform method that syncs an engine
+	 * would if a custom reactor reached it.
+	 *
+	 * @return the engine's name
+	 */
+	public static Object readHeldEngineInAPlatformOperation() {
+		try (PlatformOperation operation = PlatformOperation.begin("sandbox probe")) {
+			return new ReadsTheHeldEngine().execute().getValue();
+		}
+	}
+
+	/**
+	 * Reads the held engine's name through a reactor of the platform that a class
+	 * requiring an admin runs, the way an admin reactor reads an engine.
+	 *
+	 * @return the engine's name
+	 * @throws Throwable what the read threw
+	 */
+	public static Object readHeldEngineThroughAnAdminClass() throws Throwable {
+		Object[] name = new Object[1];
+		AdminEngineCalls.run(() -> name[0] = new ReadsTheHeldEngine().execute().getValue());
+		return name[0];
 	}
 
 	/**
@@ -324,4 +394,18 @@ public final class SandboxProbe {
 		}, 0);
 		return calls;
 	}
+
+	/**
+	 * A reactor of the platform that reads the held engine, as a tool a user runs
+	 * does.
+	 */
+	private static final class ReadsTheHeldEngine extends AbstractReactor {
+
+		@Override
+		public NounMetadata execute() {
+			return new NounMetadata(((IEngine) heldObject).getEngineName(), PixelDataType.CONST_STRING);
+		}
+
+	}
+
 }

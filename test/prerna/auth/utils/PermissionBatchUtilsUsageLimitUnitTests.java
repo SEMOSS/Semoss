@@ -506,7 +506,7 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 		List<Map<String, Object>> changes = changes(validate(owner, batch));
 
 		assertBlocked(changes.get(0), "This model has no known prices, so its limits cannot count cost");
-		assertBlocked(changes.get(1), "Only a team, public use and a model's total can have shared rules");
+		assertBlocked(changes.get(1), "Only a team, an app, public use and a model's total can have shared rules");
 		assertBlocked(changes.get(2), "Only minute and hour windows can be more than one minute or hour long");
 	}
 

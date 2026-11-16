@@ -30,6 +30,7 @@ package prerna.cluster.util;
 import java.util.HashMap;
 import java.util.Map;
 
+import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.util.EngineSyncUtility;
 import prerna.util.ProjectSyncUtility;
 
@@ -171,10 +172,10 @@ public enum ClusterSyncMethod {
 	};
 
 	/**
-	 * The token published across nodes to name this action. It never changes, so
-	 * nodes on older and newer builds read each other's events.
+	 * The name of the platform operation a cluster sync runs as, for the log: the
+	 * changes another node published and every call to the cluster's cloud storage.
 	 */
-	private final String wireName;
+	public static final String CLUSTER_SYNC_OPERATION = "cluster sync";
 
 	/**
 	 * Every action keyed by its wire token, for reading a published event back.
@@ -185,6 +186,12 @@ public enum ClusterSyncMethod {
 			BY_WIRE_NAME.put(method.wireName, method);
 		}
 	}
+
+	/**
+	 * The token published across nodes to name this action. It never changes, so
+	 * nodes on older and newer builds read each other's events.
+	 */
+	private final String wireName;
 
 	/**
 	 * Creates the action published under the given token.
@@ -211,6 +218,19 @@ public enum ClusterSyncMethod {
 	 * @param params deserialized arguments, in the same order they were published
 	 */
 	public abstract void invoke(Object[] params);
+
+	/**
+	 * Applies a change another node published, on the thread that listens for
+	 * them. It runs as a platform operation, since the node syncs its engines and
+	 * projects for no user.
+	 *
+	 * @param params deserialized arguments, in the same order they were published
+	 */
+	public final void apply(Object[] params) {
+		try (PlatformOperation operation = PlatformOperation.begin(CLUSTER_SYNC_OPERATION)) {
+			invoke(params);
+		}
+	}
 
 	/**
 	 * Resolves the action published under the given wire token.

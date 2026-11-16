@@ -35,7 +35,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
@@ -101,8 +100,8 @@ public class GitHubWebhookDeliveriesReactor extends AbstractReactor {
 			if (installObj != null) {
 				installationFilter = ((Number) installObj).longValue();
 			}
-		} else if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-			throw new SemossPixelException("A project is required unless the user has administrator access.");
+		} else {
+			throw new SemossPixelException("A project is required.");
 		}
 
 		try {

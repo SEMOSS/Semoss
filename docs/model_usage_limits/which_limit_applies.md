@@ -43,10 +43,30 @@ CEILINGS   Model Total (and, on each team step, that team's Team Total)
 SOURCES    1. Direct Limit             the first login with a grant whose limit is defined,
                                        else the first login with a grant
            2. Team Limits              teams with a grant on the model, in billing order
-           3. Public Use Limit         skipped (NOT_PUBLIC) when the model is not public
-           4. User's Total Model Limit the first login with one defined, primary first
-           5. General Platform Limit
+           3. App Limit                only for a call an app with a permission on the model makes;
+                                       skipped (HAS_GRANT) for a person with a grant or a team's
+           4. Public Use Limit         skipped (NOT_PUBLIC) when the model is not public
+           5. User's Total Model Limit the first login with one defined, primary first
+           6. General Platform Limit
 ```
+
+**The App Limit.** A model's owner can give an app a permission on the model,
+which the app's custom reactors use for people who have no access to the model
+themselves. A call those reactors make is resolved with
+`ModelUsageLimitResolver.resolve(person, engineId, appProjectId)`, which adds the
+App Limit step (`ModelUsageLimitKey.app(engineId, projectId)`) after the team
+steps and before public use. The step applies to a person whose only way to the
+model is the app: the Direct Limit is skipped (`NO_GRANT`) and there are no team
+steps. The App Limit is then billed when it is defined, and otherwise the call
+passes on to the Public Use Limit on a public model, the person's User's Total
+Model Limit and the General Platform Limit. For a person with a grant of their
+own or a team's, the step is skipped (`HAS_GRANT`) and their own sources decide.
+A call no app with a permission makes is resolved without the step.
+
+The engine proxy's access check knows which app is making a call, and keeps it
+for the engine answering the call when the engine gives that app a permission
+([EngineCallAppPermission](../../src/prerna/engine/impl/pipeline/EngineCallAppPermission.java)).
+`ModelUsageGuard.admit` reads it and resolves the path with it.
 
 The source billed is the **first one with a limit defined**: rules or Unlimited.
 An Unlimited source stops the search the same way rules do, so the person is
@@ -96,7 +116,7 @@ are used only if `green` reaches its Team Total, or Frank leaves `green`.
 | --- | --- | --- |
 | `DEFINED` | resolver | has a limit defined (rules or Unlimited) |
 | `NOT_DEFINED` | resolver | no limit defined here |
-| `SKIPPED`, with `NO_GRANT` or `NOT_PUBLIC` | resolver | does not apply to this person or model |
+| `SKIPPED`, with `NO_GRANT`, `HAS_GRANT` or `NOT_PUBLIC` | resolver | does not apply to this person or model |
 | `NOT_REACHED` | resolver | defined, but an earlier source is billed |
 | `CHECKED` | resolver, guard | a ceiling with a limit, checked on every call and with usage left |
 | `BILLED` | guard | the source this call counts against |

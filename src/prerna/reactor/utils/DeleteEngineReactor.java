@@ -39,7 +39,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -74,20 +73,17 @@ public class DeleteEngineReactor extends AbstractReactor {
 		List<String> engineIds = getEngineIds();
 		// first validate all the inputs
 		User user = this.insight.getUser();
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin) {
-			for (String engineId : engineIds) {
-				if (AbstractSecurityUtils.adminOnlyEngineDelete(engineId)) {
-					throwFunctionalityOnlyExposedForAdminsError();
-				}
+		for (String engineId : engineIds) {
+			if (AbstractSecurityUtils.adminOnlyEngineDelete(engineId)) {
+				throwFunctionalityOnlyExposedForAdminsError();
+			}
 
-				// we may have the alias
-				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-				if (!isOwner) {
-					throw new IllegalArgumentException("Engine " + engineId
-							+ " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
-				}
+			// we may have the alias
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+			boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
+			if (!isOwner) {
+				throw new IllegalArgumentException("Engine " + engineId
+						+ " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
 			}
 		}
 

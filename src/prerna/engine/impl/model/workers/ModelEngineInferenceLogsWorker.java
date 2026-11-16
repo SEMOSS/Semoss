@@ -42,6 +42,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.usage.ModelUsageBilledTo;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.util.Utility;
 
@@ -182,6 +183,20 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 
 	@Override
 	public void run() {
+		User userOnThread = ThreadStore.getUser();
+		ThreadStore.setUser(this.user);
+		try {
+			recordMessages();
+		} finally {
+			ThreadStore.setUser(userOnThread);
+		}
+	}
+
+	/**
+	 * Writes the call's rows to the inference logs, on a thread that carries the
+	 * user the call was made for.
+	 */
+	private void recordMessages() {
 		String agentType = engine.getCatalogSubType(engine.getSmssProp());
 
 		// assumption, if project level, then they will be inferencing through a saved

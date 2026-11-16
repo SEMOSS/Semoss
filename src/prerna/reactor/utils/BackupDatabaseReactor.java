@@ -38,7 +38,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -68,10 +67,10 @@ public class BackupDatabaseReactor extends AbstractReactor {
 
 		User user = this.insight.getUser();
 		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
-		if (!SecurityAdminUtils.userIsAdmin(user) && !SecurityEngineUtils.userIsOwner(user, databaseId)) {
+		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalArgumentException("Database " + databaseId
 					+ " does not exist or user does not have permissions to back up the database. "
-					+ "User must be the owner or an administrator to perform this function.");
+					+ "User must be the owner to perform this function.");
 		}
 
 		// get engine details

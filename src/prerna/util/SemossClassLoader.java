@@ -71,11 +71,17 @@ public class SemossClassLoader extends ClassLoader {
 	/**
 	 * Platform classes project reactor code can never use: DIHelper holds every
 	 * loaded engine and the RDF_Map, SystemEngineRegistry holds the system
-	 * databases, SecretRedactor holds the secret values engines loaded, and
-	 * InternalUtility holds the helpers that act with the platform's authority.
+	 * databases, SecretRedactor holds the secret values engines loaded,
+	 * InternalUtility holds the helpers that act with the platform's authority,
+	 * EngineProxyFactory and PipelineInvocationHandler build the proxy that checks
+	 * every call to an engine, PlatformOperation marks the platform's own work,
+	 * which that check lets through, and InsightStore holds every open insight of
+	 * every user, with the user it belongs to.
 	 */
 	private static final Set<String> BLOCKED_PLATFORM_CLASSES = Set.of("prerna.util.DIHelper",
-			"prerna.util.SystemEngineRegistry", "prerna.security.SecretRedactor", "prerna.util.InternalUtility");
+			"prerna.util.SystemEngineRegistry", "prerna.security.SecretRedactor", "prerna.util.InternalUtility",
+			"prerna.engine.impl.pipeline.EngineProxyFactory", "prerna.engine.impl.pipeline.PipelineInvocationHandler",
+			"prerna.engine.impl.pipeline.PlatformOperation", "prerna.om.InsightStore");
 
 	/**
 	 * Platform packages project reactor code can never use, as name prefixes: the
@@ -151,12 +157,25 @@ public class SemossClassLoader extends ClassLoader {
 	private static final Set<String> HIKARI_LOOKUP_SETTERS = Set.of("setDataSourceJNDI", "setDataSourceClassName");
 
 	/**
+	 * The ThreadStore methods that change what the thread says about the request it
+	 * serves: the signed in user, the insight, session, route and job, the context
+	 * project, the local host details and scheduler mode, the whole map at once,
+	 * and removing it. Project reactor code reads the thread's values and never
+	 * changes them, since the engine access check reads the user from there.
+	 */
+	private static final Set<String> THREAD_STORE_CHANGES = Set.of("setUser", "setThreadMapObject",
+			"getTheadMapObject", "setInsightId", "setSessionId", "setRouteId", "setJobId", "setSchedulerMode",
+			"setLocalHostname", "setLocalProtocol", "setLocalPort", "setContextProjectIdOverride",
+			"setContextProjectNameOverride", "clearContextProjectOverride", "remove");
+
+	/**
 	 * Calls project reactor code cannot make, by owner then method name. Each is
 	 * replaced with a call that throws, and a project class cannot extend an owner.
 	 * They load native code (load, loadLibrary), open a network connection
 	 * (URL.getContent), change something for every user of the JVM (its standard
 	 * streams, URL handlers, security providers, registered JDBC drivers, time
-	 * zone, locale and logging), change who the signed in user is, have a shared
+	 * zone, locale and logging), change who the signed in user is or which request
+	 * the thread serves, have a shared
 	 * library find a class or a data source by name, or hand out the SAX1 parser
 	 * under a SAX parser.
 	 */
@@ -171,7 +190,7 @@ public class SemossClassLoader extends ClassLoader {
 			Map.entry("java/util/TimeZone", Set.of("setDefault")),
 			Map.entry("java/util/SimpleTimeZone", Set.of("setDefault")),
 			Map.entry("java/util/Locale", Set.of("setDefault")), Map.entry("prerna/om/Insight", Set.of("setUser")),
-			Map.entry("prerna/om/ThreadStore", Set.of("setUser", "setThreadMapObject")),
+			Map.entry("prerna/om/ThreadStore", THREAD_STORE_CHANGES),
 			Map.entry("prerna/auth/User",
 					Set.of("setAccessToken", "setGlobalAccessToken", "dropAccessToken", "setPrimaryLogin")),
 			Map.entry("prerna/auth/AccessToken", IDENTITY_SETTERS),
@@ -182,6 +201,22 @@ public class SemossClassLoader extends ClassLoader {
 			Map.entry("com/zaxxer/hikari/HikariDataSource", HIKARI_LOOKUP_SETTERS),
 			Map.entry("com/fasterxml/jackson/databind/type/TypeFactory", Set.of("findClass")),
 			Map.entry("tools/jackson/databind/type/TypeFactory", Set.of("findClass")));
+
+	/**
+	 * The package of the query utilities an RDBMS engine hands out
+	 * ({@code getQueryUtil()}), as an internal name prefix.
+	 */
+	private static final String QUERY_UTIL_PACKAGE = "prerna/util/sql/";
+
+	/**
+	 * The methods of the query utilities project reactor code cannot call, on any
+	 * class of {@link #QUERY_UTIL_PACKAGE}: the ones that read the engine's user
+	 * name, password, connection properties and connection URL, and the ones that
+	 * change where the engine connects.
+	 */
+	private static final Set<String> QUERY_UTIL_CONNECTION_MEMBERS = Set.of("getUsername", "getPassword",
+			"getAdditionalProps", "getConnectionUrl", "setHostname", "setPort", "setDatabase", "setSchema",
+			"setUsername", "setPassword", "setAdditionalProps", "setConnectionUrl");
 
 	/**
 	 * Calls project reactor code cannot make on any class, by method name. Each
@@ -495,6 +530,8 @@ public class SemossClassLoader extends ClassLoader {
 
 	private String folder = null;
 
+	private final String projectId;
+
 	private final List<String> approvedPackages = approvedLibraryPackages();
 
 	/**
@@ -503,7 +540,19 @@ public class SemossClassLoader extends ClassLoader {
 	 * @param parent The parent class loader.
 	 */
 	public SemossClassLoader(ClassLoader parent) {
+		this(parent, (String) null);
+	}
+
+	/**
+	 * Constructs the loader for the custom classes of one project.
+	 *
+	 * @param parent    the parent class loader
+	 * @param projectId the id of the project whose classes this loader loads, or
+	 *                  null when the classes belong to no project
+	 */
+	public SemossClassLoader(ClassLoader parent, String projectId) {
 		super(parent);
+		this.projectId = projectId;
 	}
 
 	/**
@@ -525,7 +574,17 @@ public class SemossClassLoader extends ClassLoader {
 	 */
 	public SemossClassLoader(ClassLoader parent, Map<String, String> additionalProperties) {
 		super(parent);
+		this.projectId = null;
 		SandboxedJavaExecution.addPlatformProperties(additionalProperties);
+	}
+
+	/**
+	 * The project whose custom classes this loader loads.
+	 *
+	 * @return the project id, or null when the classes belong to no project
+	 */
+	String getProjectId() {
+		return this.projectId;
 	}
 
 	/**
@@ -762,12 +821,14 @@ public class SemossClassLoader extends ClassLoader {
 	/**
 	 * True for a platform class that requires an admin: by convention its name
 	 * starts with {@code Admin}, such as the admin reactors and the admin
-	 * endpoints, plus SecurityAdminUtils.
+	 * endpoints, plus SecurityAdminUtils. Project reactor code can never use one,
+	 * and an admin has more than their own permissions on an engine only while
+	 * one is acting.
 	 *
 	 * @param name fully-qualified class name
 	 * @return true if only an admin may use the class
 	 */
-	private static boolean requiresAdmin(String name) {
+	public static boolean requiresAdmin(String name) {
 		if (!name.startsWith(PLATFORM_PACKAGE)) {
 			return false;
 		}
@@ -1625,7 +1686,7 @@ public class SemossClassLoader extends ClassLoader {
 			}
 
 			Set<String> blockedCalls = BLOCKED_CALLS.get(owner);
-			if ((blockedCalls != null && blockedCalls.contains(name))
+			if ((blockedCalls != null && blockedCalls.contains(name)) || isQueryUtilConnectionMember(owner, name)
 					|| (BLOCKED_CALLS_ON_ANY_CLASS.contains(name) && !declaresItself(owner, name, descriptor))) {
 				blockCall(opcode, owner, name, descriptor);
 				return;
@@ -2050,7 +2111,20 @@ public class SemossClassLoader extends ClassLoader {
 		Set<String> blockedCalls = BLOCKED_CALLS.get(handle.getOwner());
 		return (members != null && members.contains(handle.getName()))
 				|| (blockedCalls != null && blockedCalls.contains(handle.getName()))
+				|| isQueryUtilConnectionMember(handle.getOwner(), handle.getName())
 				|| BLOCKED_CALLS_ON_ANY_CLASS.contains(handle.getName());
+	}
+
+	/**
+	 * True for a call that reads an RDBMS engine's credentials from its query
+	 * utility, or changes where the engine connects.
+	 *
+	 * @param owner the internal name of the class the call names
+	 * @param name  the method
+	 * @return true if the call is one project code cannot make
+	 */
+	private static boolean isQueryUtilConnectionMember(String owner, String name) {
+		return owner.startsWith(QUERY_UTIL_PACKAGE) && QUERY_UTIL_CONNECTION_MEMBERS.contains(name);
 	}
 
 	/**

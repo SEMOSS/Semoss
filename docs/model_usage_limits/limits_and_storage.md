@@ -52,6 +52,7 @@ its factories:
 | `team(engineId, teamId, teamType)` | Team Limit | `TEAM` | the model | team id / team type |
 | `teamTotal(teamId, teamType)` | Team Total (ceiling) | `TEAM` | null | team id / team type |
 | `publicUse(engineId)` | Public Use Limit | `PUBLIC` | the model | null / null |
+| `app(engineId, projectId)` | App Limit | `PROJECT` | the model | project id / null |
 | `modelTotal(engineId)` | Model Total (ceiling) | `MODEL` | the model | null / null |
 | `platform()` | General Platform Limit | `PLATFORM` | null | null / null |
 
@@ -141,7 +142,7 @@ problem as an `IllegalArgumentException`.
 | Every rule has a metric, a window and counts | "Each rule needs a metric, a window and whose use it counts" |
 | A window length is in range | "A minute window is 1 to 59 minutes long ..." |
 | Amounts are 1 or more | "Each rule's amount is 1 or more" |
-| `SHARED` only on a team, public use and the Model Total | "Only a team, public use and a model's total can have shared rules" |
+| `SHARED` only on a team, an app, public use and the Model Total | "Only a team, an app, public use and a model's total can have shared rules" |
 | A ceiling has shared rules only | "... has shared rules only" |
 | Cost on a model needs known prices | "This model has no known prices, so its limits cannot count cost" |
 | One rule per metric, window, length and counts | "A limit has only one rule for each metric, window and whose use it counts" |

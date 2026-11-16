@@ -43,7 +43,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IEngine;
@@ -85,13 +84,10 @@ public class ExportEngineReactor extends AbstractReactor {
 
 		// security
 		User user = this.insight.getUser();
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin) {
-			boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-			if (!isOwner) {
-				throw new IllegalArgumentException("Engine " + engineId
-						+ " does not exist or user does not have permissions to engine. User must be the owner to perform this function.");
-			}
+		boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
+		if (!isOwner) {
+			throw new IllegalArgumentException("Engine " + engineId
+					+ " does not exist or user does not have permissions to engine. User must be the owner to perform this function.");
 		}
 
 		IEngine engine = Utility.getEngine(engineId);

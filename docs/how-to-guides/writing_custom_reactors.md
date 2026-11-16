@@ -279,6 +279,32 @@ As per the `SEMOSS/backend-training` repository's `README.md`:
 -   **Pixel Operations within Reactors**: You can execute further Pixel scripts from within a Reactor using `this.planner.addPixelRecipe(String pixelScript)` and then retrieving results from the `NounStore`.
 -   **Managing State**: Reactors are typically stateless. If state is needed across Reactor calls, store it in the `NounStore` or use SEMOSS's broader state management capabilities (e.g., project or user-level properties if appropriate).
 
+## Using Engines
+
+A reactor gets an engine from `Utility`: `getDatabase`, `getModel`, `getStorage`, `getVectorDatabase`, `getFunctionEngine` and the other typed getters. Every call on the engine is checked: the reactor's call goes through when the signed in user holds the permission the method needs on that engine, or when the engine gave the app a permission that covers it. See [engine access](../platform_services/engine_access.md) for the level of each method.
+
+| What the reactor does | What it needs on the engine |
+| --- | --- |
+| Reads: runs a query through the platform's query classes, asks a model, lists or downloads from a storage engine, searches a vector database | `READ_ONLY` |
+| Writes, runs SQL as given, or holds the connection: `getConnection`, `getPreparedStatement`, `execQuery`, `insertData`, `copyToStorage`, `addDocument` | `EDIT` |
+
+```java
+IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(databaseId);
+try (Connection connection = database.getConnection();
+        PreparedStatement insert = connection.prepareStatement("INSERT INTO ORDERS (ID, ITEM) VALUES (?, ?)")) {
+    connection.setAutoCommit(false);
+    insert.setString(1, orderId);
+    insert.setString(2, item);
+    insert.executeUpdate();
+    connection.commit();
+}
+```
+
+-   **An app that works for people with no access to the engine**: An app often inserts into a database or adds a file to a storage engine for people who cannot open that engine themselves. An owner of the engine gives the app a permission on it, on the engine's Access Control tab, in Apps, and the app's reactors then use the engine with that permission, whoever runs them. `READ_ONLY` covers the read methods, and `EDIT` adds the writes and the connection. The same section lists the apps an engine gives a permission to and takes one away; see [engine access](../platform_services/engine_access.md#giving-an-app-a-permission-on-an-engine) for the endpoints behind it.
+-   **A call the reactor has no permission for**: It throws with the engine id, the level the call needs and the method, such as `Engine <id> does not exist or neither the user nor the app has EDIT permission on it, which a custom reactor needs to call getConnection`.
+-   **SQL for the engine's dialect**: `database.getQueryUtil()` builds SQL for the engine's type. The engine's user name, password and connection URL stay with the engine.
+-   **The app's own project**: A reactor has `EDIT` on its own project, so it reads the project's insights database (`getInsightDatabase()`) and uses the project's Python process (`getProjectPyTranslator()`) for any user who can run it.
+
 ## Calling Web Services
 
 Reactors call HTTP services through [HttpHelperUtility](../../src/prerna/security/HttpHelperUtility.java). Its `getRequest(url, headers, timeout)` and `postRequestStringBody(url, headers, body, contentType, timeout)` entry points take only JDK types and return the response body as text:
@@ -327,7 +353,7 @@ This guide provides a foundational understanding of creating custom Reactors in 
 Reactors can encapsulate complex database interactions, such as Create, Read, Update, and Delete (CRUD) operations, providing a clean API for your Pixel scripts. This approach promotes reusability and separates Java database logic from your Pixel workflows.
 
 For instance, you might create reactors like `AddMovieReactor`, `UpdateGenreReactor`, or `DeleteMovieReactor`. These reactors would internally handle:
-- Connecting to the appropriate database engine.
+- Connecting to the appropriate database engine, with the user's `EDIT` permission on it or one the engine gave the app (see [using engines](#using-engines)).
 - Constructing and executing SQL `INSERT`, `UPDATE`, or `DELETE` statements (often using `PreparedStatement` for security and efficiency).
 - Managing database transactions (e.g., `setAutoCommit(false)`, `commit()`, `rollback()`) if multiple operations need to be atomic.
 - Performing necessary data validation before database operations.
