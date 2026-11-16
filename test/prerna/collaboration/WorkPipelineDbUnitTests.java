@@ -654,7 +654,7 @@ class WorkPipelineDbUnitTests {
 		}
 		step("mine-1", "ask", "budget", "Send Kira the budget");
 		step("mine-2", "ask", "budget", "Send Kira the forecast");
-		sql("UPDATE WORK_THREAD_STEP SET STEP_OWNER_ID = 'self'");
+		// as the product stores them: an open step with no one named is the owner's
 		// loose steps are listed newest first: the forecast step is s1, the budget step s2
 		sql("UPDATE WORK_THREAD_STEP SET CREATED_AT = ? WHERE STEP_ID = 'mine-2'",
 				Timestamp.valueOf("2026-11-04 10:00:00"));
@@ -675,6 +675,37 @@ class WorkPipelineDbUnitTests {
 		// Kira's message does not finish the owner's step; the owner's own message finishes theirs
 		assertEquals("open", stepStatus("mine-1"));
 		assertEquals("done", stepStatus("mine-2"));
+	}
+
+	@Test
+	void aStepChangesHandsWhenAMessageSaysSoButNotAgainstWhatTheOwnerSetLater() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		person("self", "Owner", "owner@test.com", "self");
+		person("bob", "Bob", "bob@test.com", null);
+		thread("deck", at, null);
+		step("deck-step", "deck", null, "Send Kira the deck");
+		candidate("handover", "deck", null, "Bob will send Kira the deck", at.plusMinutes(1));
+		sql("UPDATE WORK_CANDIDATE SET KIND = 'update', ASSIGNEE = 'bob', MESSAGE_REF = '2026-11-05T10:01:00Z' "
+				+ "WHERE CANDIDATE_ID = 'handover'");
+		reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"reassign\", \"ref\": \"s1\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": []}";
+		WorkPipeline.reconcile(user, ownerId, ownerType, model);
+		// Bob has it now, and the owner waits on him
+		assertEquals("bob", value("SELECT STEP_OWNER_ID FROM WORK_THREAD_STEP WHERE STEP_ID = 'deck-step'"));
+		assertEquals("waiting", stepStatus("deck-step"));
+		assertEquals("reassign", value("SELECT RESULT FROM WORK_CANDIDATE WHERE CANDIDATE_ID = 'handover'"));
+
+		// the owner takes it back; the same old message read again does not hand it over a second time
+		Map<String, Object> back = new HashMap<>();
+		back.put("assigneeId", null);
+		back.put("status", "open");
+		WorkTaskUtils.updateStep(user, "deck-step", back, "owner");
+		candidate("handover-again", "deck", null, "Bob will send Kira the deck", at.plusMinutes(1));
+		sql("UPDATE WORK_CANDIDATE SET KIND = 'update', ASSIGNEE = 'bob', MESSAGE_REF = '2026-11-05T10:01:00Z' "
+				+ "WHERE CANDIDATE_ID = 'handover-again'");
+		WorkPipeline.reconcile(user, ownerId, ownerType, model);
+		assertNull(value("SELECT STEP_OWNER_ID FROM WORK_THREAD_STEP WHERE STEP_ID = 'deck-step'"));
+		assertEquals("open", stepStatus("deck-step"));
 	}
 
 	@Test

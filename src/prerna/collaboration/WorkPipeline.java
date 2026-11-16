@@ -998,6 +998,28 @@ int[] kept = { 0 };
 			for (Map<String, Object> u : list(plan.get("topicUpdates"))) {
 				mark(u.get("evidence"), "topic_update", topicId, null);
 			}
+			// a step that changed hands: to the owner it is open on their list, to someone else the owner waits
+			for (Map<String, Object> r : list(plan.get("reassigns"))) {
+				String stepId = (String) r.get("stepId");
+				boolean toMe = Boolean.TRUE.equals(r.get("toMe"));
+				Map<String, Object> from = byShort.get(String.valueOf(r.get("candidate")));
+				String assigneeId = toMe || from == null ? null : (String) from.get("assigneeId");
+				if (!toMe && assigneeId == null) {
+					// the person named is no one Brain knows: news, the step stays as it is
+					mark(r.get("evidence"), "topic_update", topicId, null);
+					continue;
+				}
+				try {
+					Map<String, Object> args = new LinkedHashMap<>();
+					args.put("assigneeId", assigneeId);
+					args.put("status", toMe ? "open" : "waiting");
+					WorkTaskUtils.updateStep(user, stepId, args, BRAIN);
+					evidence(stepId, r.get("evidence"), "reassigned");
+					mark(r.get("evidence"), "reassign", stepId, null);
+				} catch (IllegalArgumentException e) {
+					mark(r.get("evidence"), "reassign", null, "unmatched");
+				}
+			}
 			for (Map<String, Object> close : list(plan.get("closes"))) {
 				Object ref = close.get("closes");
 				if (close.get("appliedTo") != null) {
