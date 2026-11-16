@@ -98,7 +98,30 @@ public final class SandboxProbe {
 	 * @param interfaces   the internal names of the interfaces it implements
 	 */
 	SandboxProbe(String internalName, String superName, String[] interfaces) {
-		this.writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null, superName,
+		this(Opcodes.V21, internalName, superName, interfaces);
+	}
+
+	/**
+	 * Starts an empty probe class compiled for an older Java, as a library built
+	 * for that Java would be.
+	 *
+	 * @param version the class file version, such as {@link Opcodes#V1_1}
+	 */
+	SandboxProbe(int version) {
+		this(version, INTERNAL_NAME, "java/lang/Object", new String[0]);
+	}
+
+	/**
+	 * Starts an empty class with its own class file version, name, superclass and
+	 * interfaces.
+	 *
+	 * @param version      the class file version
+	 * @param internalName the class's internal name
+	 * @param superName    the internal name of the class it extends
+	 * @param interfaces   the internal names of the interfaces it implements
+	 */
+	private SandboxProbe(int version, String internalName, String superName, String[] interfaces) {
+		this.writer.visit(version, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null, superName,
 				interfaces);
 	}
 

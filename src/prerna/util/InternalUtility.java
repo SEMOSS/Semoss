@@ -97,11 +97,15 @@ import prerna.tcp.workers.EngineSocketWrapper;
 
 /**
  * Helpers that act with the platform's own authority, such as loading and
- * registering a project from its smss. Only SEMOSS itself calls them: the
- * project reactor sandbox ({@link SemossClassLoader}) refuses this class, so
- * custom reactors, their jars and their Maven dependencies cannot use it.
- * Methods move here from {@link Utility} one at a time; general helpers stay in
- * {@link Utility}.
+ * registering a project from its smss, and every read or change of what
+ * {@link DIHelper} holds besides a single setting: the RDF_Map settings as a
+ * whole, the smss paths and ids of the registered engines and projects, the
+ * loaded engines and projects, and the values the desktop tools keep in memory.
+ * Only SEMOSS itself calls them: the project reactor sandbox
+ * ({@link SemossClassLoader}) refuses this class, so custom reactors, their
+ * jars and their Maven dependencies cannot use it. A single setting is read
+ * with {@link Utility#getDIHelperProperty(String)}, and general helpers stay
+ * in {@link Utility}.
  */
 public final class InternalUtility {
 
@@ -109,6 +113,268 @@ public final class InternalUtility {
 
 	private InternalUtility() {
 
+	}
+
+	/**
+	 * The RDF_Map settings. This is the Properties object itself, so a change to it
+	 * changes the settings. A setting is read with
+	 * {@link Utility#getDIHelperProperty(String)}.
+	 *
+	 * @return the settings
+	 */
+	public static Properties getCoreProp() {
+		return DIHelper.getInstance().getCoreProp();
+	}
+
+	/**
+	 * Replaces the RDF_Map settings, as start up and tests do.
+	 *
+	 * @param coreProp the settings
+	 */
+	public static void setCoreProp(Properties coreProp) {
+		DIHelper.getInstance().setCoreProp(coreProp);
+	}
+
+	/**
+	 * Sets one RDF_Map setting in memory, without writing the file.
+	 *
+	 * @param name  the setting
+	 * @param value its value
+	 */
+	public static void setDIHelperProperty(String name, String value) {
+		DIHelper.getInstance().putProperty(name, value);
+	}
+
+	/**
+	 * Loads the RDF_Map settings from a file, as start up does.
+	 *
+	 * @param fileName the RDF_Map file
+	 */
+	public static void loadCoreProp(String fileName) {
+		DIHelper.getInstance().loadCoreProp(fileName);
+	}
+
+	/**
+	 * The path of the RDF_Map file the settings were loaded from.
+	 *
+	 * @return the path, or null when the settings were not loaded from a file
+	 */
+	public static String getRDFMapFileLocation() {
+		return DIHelper.getInstance().getRDFMapFileLocation();
+	}
+
+	/**
+	 * The RDF_Map file's contents with every secret value concealed, for the admin
+	 * view of the file.
+	 *
+	 * @return the contents
+	 * @throws IOException when the file cannot be read
+	 */
+	public static StringBuilder getConcealedRDFMapContents() throws IOException {
+		return DIHelper.getInstance().getConcealedRDFMapContents();
+	}
+
+	/**
+	 * A value the desktop tools and the socket server keep in memory, such as the
+	 * main frame or the selected repositories.
+	 *
+	 * @param key the value's name
+	 * @return the value, or null when there is none or DIHelper is not loaded
+	 */
+	public static Object getLocalProperty(String key) {
+		DIHelper helper = DIHelper.getInstance();
+		return helper == null ? null : helper.getLocalProp(key);
+	}
+
+	/**
+	 * Keeps a value in memory under a name, for {@link #getLocalProperty(String)}.
+	 *
+	 * @param key   the value's name
+	 * @param value the value
+	 */
+	public static void setLocalProperty(String key, Object value) {
+		DIHelper.getInstance().setLocalProperty(key, value);
+	}
+
+	/**
+	 * Forgets a value {@link #setLocalProperty(String, Object)} kept.
+	 *
+	 * @param key the value's name
+	 */
+	public static void removeLocalProperty(String key) {
+		DIHelper.getInstance().removeLocalProperty(key);
+	}
+
+	/**
+	 * The path of the smss file this server registered for an engine.
+	 *
+	 * @param engineId the engine
+	 * @return the path, or null when the engine is not registered
+	 */
+	public static String getEngineSmssPath(String engineId) {
+		Object path = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+		return path == null ? null : path.toString();
+	}
+
+	/**
+	 * Registers the path of an engine's smss file on this server.
+	 *
+	 * @param engineId the engine
+	 * @param smssPath the path of its smss file
+	 */
+	public static void setEngineSmssPath(String engineId, String smssPath) {
+		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssPath);
+	}
+
+	/**
+	 * The ids of the engines this server has cataloged, separated by {@code ;}.
+	 *
+	 * @return the ids, or null before start up lists them
+	 */
+	public static String getEngineIds() {
+		Object ids = DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+		return ids == null ? null : ids.toString();
+	}
+
+	/**
+	 * Replaces the ids of the engines this server has cataloged, as start up does.
+	 *
+	 * @param engineIds the ids, separated by {@code ;}
+	 */
+	public static void setEngineIds(String engineIds) {
+		DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineIds);
+	}
+
+	/**
+	 * Adds an engine's id to the ids this server has cataloged, so the file watcher
+	 * does not load the engine a second time while it is being created or
+	 * uploaded.
+	 *
+	 * @param engineId the engine
+	 * @return true when the id was added; false when it was already there
+	 */
+	public static boolean addEngineId(String engineId) {
+		String ids = getEngineIds();
+		if (isListed(ids, engineId)) {
+			return false;
+		}
+		setEngineIds(ids == null || ids.isEmpty() ? engineId : ids + ";" + engineId);
+		return true;
+	}
+
+	/**
+	 * The engine object this server loaded for an id.
+	 *
+	 * @param engineId the engine
+	 * @return the engine, or null when it is not loaded
+	 */
+	public static IEngine getLoadedEngine(String engineId) {
+		Object engine = DIHelper.getInstance().getEngineProperty(engineId);
+		return engine instanceof IEngine loaded ? loaded : null;
+	}
+
+	/**
+	 * Forgets the engine object this server loaded for an id, so the next use loads
+	 * it again. Its smss path and its id stay registered.
+	 *
+	 * @param engineId the engine
+	 */
+	public static void removeLoadedEngine(String engineId) {
+		DIHelper.getInstance().removeEngineProperty(engineId);
+	}
+
+	/**
+	 * The path of the smss file this server registered for a project.
+	 *
+	 * @param projectId the project
+	 * @return the path, or null when the project is not registered
+	 */
+	public static String getProjectSmssPath(String projectId) {
+		Object path = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE);
+		return path == null ? null : path.toString();
+	}
+
+	/**
+	 * Registers the path of a project's smss file on this server.
+	 *
+	 * @param projectId the project
+	 * @param smssPath  the path of its smss file
+	 */
+	public static void setProjectSmssPath(String projectId, String smssPath) {
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssPath);
+	}
+
+	/**
+	 * The ids of the projects this server has cataloged, separated by {@code ;}.
+	 *
+	 * @return the ids, or null before start up lists them
+	 */
+	public static String getProjectIds() {
+		Object ids = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
+		return ids == null ? null : ids.toString();
+	}
+
+	/**
+	 * Replaces the ids of the projects this server has cataloged, as start up does.
+	 *
+	 * @param projectIds the ids, separated by {@code ;}
+	 */
+	public static void setProjectIds(String projectIds) {
+		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectIds);
+	}
+
+	/**
+	 * Adds a project's id to the ids this server has cataloged, so the file watcher
+	 * does not load the project a second time while it is being created or
+	 * uploaded.
+	 *
+	 * @param projectId the project
+	 * @return true when the id was added; false when it was already there
+	 */
+	public static boolean addProjectId(String projectId) {
+		String ids = getProjectIds();
+		if (isListed(ids, projectId)) {
+			return false;
+		}
+		setProjectIds(ids == null || ids.isEmpty() ? projectId : ids + ";" + projectId);
+		return true;
+	}
+
+	/**
+	 * Registers the project object this server loaded for an id.
+	 *
+	 * @param projectId the project
+	 * @param project   the loaded project
+	 */
+	public static void setLoadedProject(String projectId, IProject project) {
+		DIHelper.getInstance().setProjectProperty(projectId, project);
+	}
+
+	/**
+	 * Registers a project that is being created on this server: the path of its
+	 * smss file, the project object and its id, so the file watcher leaves it to
+	 * the code creating it.
+	 *
+	 * @param projectId the project
+	 * @param project   the project object
+	 * @param smssPath  the path of its smss file so far
+	 */
+	public static void registerNewProject(String projectId, IProject project, String smssPath) {
+		setProjectSmssPath(projectId, smssPath);
+		setLoadedProject(projectId, project);
+		addProjectId(projectId);
+	}
+
+	private static boolean isListed(String ids, String id) {
+		if (ids == null || ids.isEmpty()) {
+			return false;
+		}
+		for (String listed : ids.split(";")) {
+			if (listed.equals(id)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

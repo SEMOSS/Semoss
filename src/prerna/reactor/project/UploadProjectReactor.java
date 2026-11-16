@@ -64,7 +64,6 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
@@ -103,7 +102,7 @@ public class UploadProjectReactor extends AbstractReactor {
 
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
-		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+		String projectFolderPath = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
 				+ Constants.PROJECT_FOLDER;
 		String randomTempUnzipFolderPath = projectFolderPath + DIR_SEPARATOR + randomIdAsDir;
 		File randomTempUnzipF = new File(randomTempUnzipFolderPath);
@@ -177,7 +176,6 @@ public class UploadProjectReactor extends AbstractReactor {
 			}
 		}
 
-		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
 
@@ -213,10 +211,7 @@ public class UploadProjectReactor extends AbstractReactor {
 					+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
-			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
-					|| projects.endsWith(";" + projectId))) {
-				String newProjects = projects + ";" + projectId;
-				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
+			if (InternalUtility.addProjectId(projectId)) {
 				projectAddedToDIHelper = true;
 			} else {
 				SemossPixelException exception = new SemossPixelException(
@@ -255,7 +250,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
+			InternalUtility.setProjectSmssPath(projectId,
 					finalProjectSmssF.getAbsolutePath());
 
 			// ensure PROJECT_DISPLAY_NAME is present in the smss file

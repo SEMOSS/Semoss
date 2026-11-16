@@ -91,8 +91,8 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.security.HttpHelperUtility;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -201,10 +201,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(mockConn.createStatement()).thenReturn(mockStm);// RDBMSNativeEngine.open() -> used in initSQL() ->
 																	// execCreateStatement()
 
-			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-				DIHelper diMock = mock(DIHelper.class);
-				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+			try (MockedDIHelper dh = MockedDIHelper.start();) {
+				dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)) {
 
@@ -289,10 +287,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(mockConn.createStatement()).thenReturn(mockStm);// RDBMSNativeEngine.open() -> used in initSQL() ->
 																	// execCreateStatement()
 
-			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-				DIHelper diMock = mock(DIHelper.class);
-				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+			try (MockedDIHelper dh = MockedDIHelper.start();) {
+				dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
@@ -368,10 +364,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(mockConn.createStatement()).thenReturn(mockStm);// RDBMSNativeEngine.open() -> used in initSQL() ->
 																	// execCreateStatement()
 
-			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-				DIHelper diMock = mock(DIHelper.class);
-				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+			try (MockedDIHelper dh = MockedDIHelper.start();) {
+				dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
@@ -1162,10 +1156,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(mockConn.createStatement()).thenReturn(mockStm);// RDBMSNativeEngine.open() -> used in initSQL() ->
 																	// execCreateStatement()
 
-			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-				DIHelper diMock = mock(DIHelper.class);
-				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+			try (MockedDIHelper dh = MockedDIHelper.start();) {
+				dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 

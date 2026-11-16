@@ -57,9 +57,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -108,7 +108,7 @@ public class ExportEngineReactor extends AbstractReactor {
 		try {
 			if (lock != null) {
 				logger.info("Stopping the engine... ");
-				DIHelper.getInstance().removeEngineProperty(engineId);
+				InternalUtility.removeLoadedEngine(engineId);
 				try {
 					engine.close();
 					closed = true;

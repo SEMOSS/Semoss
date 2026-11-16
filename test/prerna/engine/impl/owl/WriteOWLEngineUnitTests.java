@@ -53,7 +53,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 
 public class WriteOWLEngineUnitTests extends SemossUnitTest {
 
@@ -71,7 +71,7 @@ public class WriteOWLEngineUnitTests extends SemossUnitTest {
 
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, tempDir.toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		writeLock = new ReentrantLock();
 

@@ -91,8 +91,9 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -385,7 +386,7 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 			try (OutputStream os = Files.newOutputStream(rdf)) {
 				prop.store(os, null);
 			}
-			DIHelper.getInstance().loadCoreProp(rdf.toAbsolutePath().toString());
+			InternalUtility.loadCoreProp(rdf.toAbsolutePath().toString());
 
 			// OWL File
 			File generatedOwlPath = tempPath.resolve("generated.owl").toFile();
@@ -551,7 +552,7 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 			Files.createDirectories(base);
 			Properties rdf = new Properties();
 			rdf.put(Constants.BASE_FOLDER, tempDir.toAbsolutePath().toString());
-			DIHelper.getInstance().setCoreProp(rdf);
+			InternalUtility.setCoreProp(rdf);
 
 			RepositoryConnection mockRC = mock(RepositoryConnection.class);
 			try (MockedConstruction<OWLEngineFactory> mockedOwlEngineFactory = mockConstruction(OWLEngineFactory.class);
@@ -619,7 +620,7 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties rdf = new Properties();
 		rdf.put(Constants.BASE_FOLDER, tempDir.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(rdf);
+		InternalUtility.setCoreProp(rdf);
 
 		RepositoryConnection mockRC = mock(RepositoryConnection.class);
 		try (MockedConstruction<OWLEngineFactory> ignored = mockConstruction(OWLEngineFactory.class);
@@ -813,10 +814,10 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 
 			Properties rdf = new Properties();
 			rdf.put(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-			DIHelper.getInstance().setCoreProp(rdf);
-			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, "testId;");
-			DIHelper.getInstance().setEngineProperty("testId_" + Constants.STORE, "value");
-			DIHelper.getInstance().setEngineProperty("testId", "value");
+			InternalUtility.setCoreProp(rdf);
+			InternalUtility.setEngineIds("testId;");
+			InternalUtility.setEngineSmssPath("testId", "value");
+			DIHelperTestUtils.setLoadedEngine("testId", engine);
 
 			Path engineFolder = engineDir.resolve(engineNameAndId);
 			Path engineAssetFolder = engineFolder.resolve("assets");
@@ -857,9 +858,9 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 				assertTrue(Files.notExists(owlPath));
 				assertTrue(Files.notExists(engineSMSS));
 				assertTrue(Files.notExists(testEngine));
-				assertEquals("", DIHelper.getInstance().getEngineProperty(Constants.ENGINES));
-				assertNull(DIHelper.getInstance().getEngineProperty("testId"));
-				assertNull(DIHelper.getInstance().getEngineProperty("testId_" + Constants.STORE));
+				assertEquals("", InternalUtility.getEngineIds());
+				assertNull(InternalUtility.getLoadedEngine("testId"));
+				assertNull(InternalUtility.getEngineSmssPath("testId"));
 			}
 		}
 	}

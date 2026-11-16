@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -151,12 +152,6 @@ public class SemossClassLoader extends ClassLoader {
 			"setUserGroupType", "setLocked");
 
 	/**
-	 * The HikariCP settings that make the pool look a data source up by name, or
-	 * create one from a class name.
-	 */
-	private static final Set<String> HIKARI_LOOKUP_SETTERS = Set.of("setDataSourceJNDI", "setDataSourceClassName");
-
-	/**
 	 * The ThreadStore methods that change what the thread says about the request it
 	 * serves: the signed in user, the insight, session, route and job, the context
 	 * project, the local host details and scheduler mode, the whole map at once,
@@ -173,13 +168,12 @@ public class SemossClassLoader extends ClassLoader {
 	 * replaced with a call that throws, and a project class cannot extend an owner.
 	 * They load native code (load, loadLibrary), open a network connection
 	 * (URL.getContent), change something for every user of the JVM (its standard
-	 * streams, URL handlers, security providers, registered JDBC drivers, time
-	 * zone, locale and logging), change who the signed in user is or which request
-	 * the thread serves, have a shared
-	 * library find a class or a data source by name, or hand out the SAX1 parser
-	 * under a SAX parser.
+	 * streams, URL handlers, security providers, registered JDBC drivers, time zone
+	 * and locale), change who the signed in user is or which request the thread
+	 * serves, or hand out the SAX1 parser under a SAX parser. The calls each shared
+	 * library cannot make are listed in its sandbox class and added here.
 	 */
-	private static final Map<String, Set<String>> BLOCKED_CALLS = Map.ofEntries(
+	private static final Map<String, Set<String>> BLOCKED_CALLS = withLibraryRules(Map.ofEntries(
 			Map.entry("java/lang/System", Set.of("load", "loadLibrary", "setIn", "setOut", "setErr")),
 			Map.entry("java/lang/Runtime", Set.of("load", "loadLibrary")),
 			Map.entry("java/net/URL", Set.of("getContent", "setURLStreamHandlerFactory")),
@@ -195,12 +189,9 @@ public class SemossClassLoader extends ClassLoader {
 					Set.of("setAccessToken", "setGlobalAccessToken", "dropAccessToken", "setPrimaryLogin")),
 			Map.entry("prerna/auth/AccessToken", IDENTITY_SETTERS),
 			Map.entry("prerna/auth/ReadOnlyAccessToken", IDENTITY_SETTERS),
-			Map.entry("org/apache/logging/log4j/LogManager", Set.of("setFactory", "shutdown")),
-			Map.entry("javax/xml/parsers/SAXParser", Set.of("getParser")),
-			Map.entry("com/zaxxer/hikari/HikariConfig", HIKARI_LOOKUP_SETTERS),
-			Map.entry("com/zaxxer/hikari/HikariDataSource", HIKARI_LOOKUP_SETTERS),
-			Map.entry("com/fasterxml/jackson/databind/type/TypeFactory", Set.of("findClass")),
-			Map.entry("tools/jackson/databind/type/TypeFactory", Set.of("findClass")));
+			Map.entry("javax/xml/parsers/SAXParser", Set.of("getParser"))),
+			List.of(SandboxedLog4j.BLOCKED_CALLS, SandboxedHikari.BLOCKED_CALLS, SandboxedJackson.BLOCKED_CALLS,
+					SandboxedPdfBox.BLOCKED_CALLS));
 
 	/**
 	 * The package of the query utilities an RDBMS engine hands out
@@ -219,78 +210,58 @@ public class SemossClassLoader extends ClassLoader {
 			"setUsername", "setPassword", "setAdditionalProps", "setConnectionUrl");
 
 	/**
-	 * Calls project reactor code cannot make on any class, by method name. Each
-	 * tells a Jackson mapper to create objects of the classes that the JSON, or a
-	 * string, names.
-	 */
-	private static final Set<String> BLOCKED_CALLS_ON_ANY_CLASS = Set.of("enableDefaultTyping",
-			"enableDefaultTypingAsProperty", "activateDefaultTyping", "activateDefaultTypingAsProperty",
-			"setDefaultTyping", "constructFromCanonical");
-
-	/**
-	 * The Jackson annotation that picks how a type is named in JSON, and the two
-	 * settings of it that name a class.
-	 */
-	private static final String JSON_TYPE_INFO = "Lcom/fasterxml/jackson/annotation/JsonTypeInfo;";
-	private static final Set<String> JSON_TYPE_BY_CLASS_NAME = Set.of("CLASS", "MINIMAL_CLASS");
-
-	/**
 	 * Library classes project reactor code can never use, by full name; their
-	 * nested classes are blocked with them. These send and read mail, which a
-	 * project does through EmailUtility.
+	 * nested classes are blocked with them. Each shared library lists its own in
+	 * its sandbox class.
 	 */
-	private static final Set<String> BLOCKED_LIBRARY_CLASSES = Set.of("jakarta.mail.Transport", "jakarta.mail.Store",
-			"jakarta.mail.Service", "jakarta.mail.Folder");
+	private static final Set<String> BLOCKED_LIBRARY_CLASSES = union(List.of(SandboxedMail.BLOCKED_CLASSES));
 
 	/**
 	 * The library packages project reactor code shares with the platform, as name
-	 * prefixes: JSON (org.json, Jackson), Excel and Office files (the POI family
-	 * with its schema classes), tuples, and the mail and activation APIs. Any other
-	 * library on the platform classpath that a project class names is loaded as the
-	 * project's own sandboxed copy.
+	 * prefixes: org.json and tuples, which need no other rule, and the packages of
+	 * Jackson, POI, PDFBox and the mail APIs, listed in their sandbox classes. Any
+	 * other library on the platform classpath that a project class names is loaded
+	 * as the project's own sandboxed copy.
 	 */
-	private static final List<String> SHARED_LIBRARY_PACKAGES = List.of("org.json.", "com.fasterxml.jackson.",
-			"tools.jackson.", "org.apache.poi.", "com.github.pjfanning.xlsx.", "org.openxmlformats.schemas.",
-			"com.microsoft.schemas.", "org.etsi.uri.", "org.w3.x2000.", "org.javatuples.", "jakarta.mail.",
-			"jakarta.activation.");
+	private static final List<String> SHARED_LIBRARY_PACKAGES = concat(List.of(List.of("org.json.", "org.javatuples."),
+			SandboxedJackson.SHARED_PACKAGES, SandboxedPoi.SHARED_PACKAGES, SandboxedPdfBox.SHARED_PACKAGES,
+			SandboxedMail.SHARED_PACKAGES));
 
 	/**
-	 * Library packages shared without their sub-packages: the log4j API, Gson and
-	 * HikariCP, whose other packages hold their internals.
+	 * Library packages shared without their sub-packages, whose other packages hold
+	 * the library's internals: Gson, which needs no other rule, and the log4j API
+	 * and HikariCP, listed in their sandbox classes.
 	 */
-	private static final Set<String> SHARED_LIBRARY_EXACT_PACKAGES = Set.of("org.apache.logging.log4j",
-			"org.apache.logging.log4j.message", "org.apache.logging.log4j.spi", "com.google.gson",
-			"com.google.gson.annotations", "com.google.gson.reflect", "com.google.gson.stream", "com.zaxxer.hikari");
+	private static final Set<String> SHARED_LIBRARY_EXACT_PACKAGES = union(List.of(Set.of("com.google.gson",
+			"com.google.gson.annotations", "com.google.gson.reflect", "com.google.gson.stream"),
+			SandboxedLog4j.SHARED_EXACT_PACKAGES, SandboxedHikari.SHARED_EXACT_PACKAGES));
 
 	/**
-	 * Single classes shared out of a package that is not: the types log4j's logging
-	 * methods take.
+	 * Single classes shared out of a package that is not, listed in the sandbox
+	 * class of their library.
 	 */
-	private static final Set<String> SHARED_LIBRARY_CLASSES = Set.of("org.apache.logging.log4j.util.Supplier",
-			"org.apache.logging.log4j.util.MessageSupplier", "org.apache.logging.log4j.util.BiConsumer",
-			"org.apache.logging.log4j.util.TriConsumer", "org.apache.logging.log4j.util.StringBuilderFormattable",
-			"org.apache.logging.log4j.util.ReadOnlyStringMap", "org.apache.logging.log4j.util.StringMap");
+	private static final Set<String> SHARED_LIBRARY_CLASSES = union(List.of(SandboxedLog4j.SHARED_CLASSES));
 
 	/**
 	 * Single classes kept out of a shared package, so a project gets its own
-	 * sandboxed copy: the log4j message that dumps every thread, and Jackson's
-	 * helper that finds and creates classes by name.
+	 * sandboxed copy, listed in the sandbox class of their library.
 	 */
-	private static final Set<String> UNSHARED_LIBRARY_CLASSES = Set.of(
-			"org.apache.logging.log4j.message.ThreadDumpMessage", "com.fasterxml.jackson.databind.util.ClassUtil",
-			"tools.jackson.databind.util.ClassUtil");
-
-	/**
-	 * Utility methods project reactor code cannot call: each hands out a DIHelper
-	 * value on the caller's behalf. Each moves to InternalUtility in time.
-	 */
-	private static final Set<String> BLOCKED_UTILITY_METHODS = Set.of("getDIHelperLocalProperty");
+	private static final Set<String> UNSHARED_LIBRARY_CLASSES = union(
+			List.of(SandboxedLog4j.UNSHARED_CLASSES, SandboxedJackson.UNSHARED_CLASSES));
 
 	/**
 	 * Internal name of the sandbox utility class whose static methods replace calls
 	 * in the transformed bytecode.
 	 */
 	private static final String SANDBOX = "prerna/util/SandboxedJavaExecution";
+
+	/**
+	 * The oldest class file version the sandbox writes: Java 5, the first in which
+	 * {@code ldc} loads a class constant, which the rewritten calls use to pass the
+	 * calling class. A class compiled for an older Java, such as a library built
+	 * for Java 1.1, is written at this version and checked by the same verifier.
+	 */
+	private static final int OLDEST_WRITTEN_VERSION = Opcodes.V1_5;
 
 	/**
 	 * Internal name of the sandbox class whose static methods harden the JDK's XML
@@ -318,7 +289,9 @@ public class SemossClassLoader extends ClassLoader {
 	 * only the calls the sandbox itself writes into a class reach them.
 	 */
 	private static final Set<String> SANDBOX_CLASSES = Set.of(SANDBOX, SANDBOX_XML, "prerna/util/SemossClassLoader",
-			PROJECT_JAR_CLASS_LOADER, "prerna/util/SemossJarClassLoader", SANDBOXED_CLASS_LOADER);
+			PROJECT_JAR_CLASS_LOADER, "prerna/util/SemossJarClassLoader", SANDBOXED_CLASS_LOADER,
+			SandboxedPdfBox.INTERNAL_NAME, SandboxedHikari.INTERNAL_NAME, "prerna/util/SandboxedJackson",
+			"prerna/util/SandboxedLog4j", "prerna/util/SandboxedPoi", "prerna/util/SandboxedMail");
 
 	private static final String FILE = "java/io/File";
 	private static final String FILE_DESCRIPTOR = "Ljava/io/File;";
@@ -458,11 +431,11 @@ public class SemossClassLoader extends ClassLoader {
 	/**
 	 * Calls that take a path as text, by owner, then method name, then the position
 	 * of the path argument. The text is put under the path rule before the call.
-	 * They are the JDK classes that open a file by name, the shared library and
-	 * platform methods that do, and the platform helpers that read or write a file
-	 * for their caller.
+	 * They are the JDK classes that open a file by name and the platform helpers
+	 * that read or write a file for their caller, and the shared library methods
+	 * that open a file by name, listed in their sandbox classes.
 	 */
-	private static final Map<String, Map<String, Integer>> PATH_TEXT_ARGUMENTS = Map.ofEntries(
+	private static final Map<String, Map<String, Integer>> PATH_TEXT_ARGUMENTS = withLibraryRules(Map.ofEntries(
 			Map.entry("java/io/FileInputStream", Map.of("<init>", 0)),
 			Map.entry("java/io/FileOutputStream", Map.of("<init>", 0)),
 			Map.entry("java/io/FileReader", Map.of("<init>", 0)), Map.entry("java/io/FileWriter", Map.of("<init>", 0)),
@@ -472,16 +445,10 @@ public class SemossClassLoader extends ClassLoader {
 			Map.entry("java/util/Formatter", Map.of("<init>", 0)),
 			Map.entry("java/util/zip/ZipFile", Map.of("<init>", 0)),
 			Map.entry("java/util/jar/JarFile", Map.of("<init>", 0)),
-			Map.entry("org/apache/poi/xssf/usermodel/XSSFWorkbook", Map.of("<init>", 0)),
-			Map.entry("org/apache/poi/hslf/usermodel/HSLFSlideShow", Map.of("<init>", 0)),
-			Map.entry("org/apache/poi/openxml4j/opc/OPCPackage", Map.of("open", 0, "create", 0)),
-			Map.entry("org/apache/poi/ooxml/POIXMLDocument", Map.of("openPackage", 0)),
-			Map.entry("jakarta/activation/FileDataSource", Map.of("<init>", 0)),
-			Map.entry("jakarta/activation/MimetypesFileTypeMap", Map.of("<init>", 0)),
-			Map.entry("jakarta/activation/MailcapCommandMap", Map.of("<init>", 0)),
-			Map.entry("jakarta/mail/internet/MimeBodyPart", Map.of("attachFile", 0, "saveFile", 0)),
 			Map.entry("prerna/util/Utility", Map.of("writeResultToFile", 0, "writeResultToJson", 0, "writeWorkbook", 1,
-					"folderHasAnyFiles", 0, "folderIsNotEmpty", 0, "getUniqueFilePath", 0)));
+					"folderHasAnyFiles", 0, "folderIsNotEmpty", 0, "getUniqueFilePath", 0))),
+			List.of(SandboxedPoi.PATH_TEXT_ARGUMENTS, SandboxedPdfBox.PATH_TEXT_ARGUMENTS,
+					SandboxedMail.PATH_TEXT_ARGUMENTS));
 
 	/**
 	 * The two forms of {@code loadClass}, as name and descriptor. A custom loader
@@ -526,7 +493,7 @@ public class SemossClassLoader extends ClassLoader {
 					Set.of("<init>", "getParentFile", "getParent", "getAbsolutePath", "getCanonicalPath", "toPath")),
 			Map.entry("java/io/FileInputStream", Set.of("<init>")),
 			Map.entry("java/io/FileOutputStream", Set.of("<init>")), Map.entry("prerna/util/Utility",
-					Set.of("getDIHelperProperty", "loadProperties", "getDIHelperLocalProperty")));
+					Set.of("getDIHelperProperty", "loadProperties")));
 
 	private String folder = null;
 
@@ -861,6 +828,56 @@ public class SemossClassLoader extends ClassLoader {
 	}
 
 	/**
+	 * One rule table out of the loader's own entries and the entries each shared
+	 * library's sandbox class lists. A class with entries in two places stops the
+	 * loader from starting, so each class's rules live in one place.
+	 *
+	 * @param <V>       the type of an entry
+	 * @param own       the loader's own entries
+	 * @param libraries the entries of each library's sandbox class
+	 * @return the combined table
+	 */
+	private static <V> Map<String, V> withLibraryRules(Map<String, V> own, List<Map<String, V>> libraries) {
+		Map<String, V> all = new HashMap<>(own);
+		for (Map<String, V> library : libraries) {
+			for (Map.Entry<String, V> entry : library.entrySet()) {
+				if (all.putIfAbsent(entry.getKey(), entry.getValue()) != null) {
+					throw new IllegalStateException(entry.getKey() + " has sandbox rules in two places");
+				}
+			}
+		}
+		return Collections.unmodifiableMap(all);
+	}
+
+	/**
+	 * Every name in a set of name sets.
+	 *
+	 * @param sets the sets
+	 * @return their union
+	 */
+	private static Set<String> union(List<Set<String>> sets) {
+		Set<String> all = new HashSet<>();
+		for (Set<String> set : sets) {
+			all.addAll(set);
+		}
+		return Collections.unmodifiableSet(all);
+	}
+
+	/**
+	 * Every name in a list of name lists, in order.
+	 *
+	 * @param lists the lists
+	 * @return the names
+	 */
+	private static List<String> concat(List<List<String>> lists) {
+		List<String> all = new ArrayList<>();
+		for (List<String> list : lists) {
+			all.addAll(list);
+		}
+		return Collections.unmodifiableList(all);
+	}
+
+	/**
 	 * True when project reactor code uses the platform's own copy of a class: a
 	 * {@code java.*} or {@code prerna.*} class, or a class of a shared library.
 	 *
@@ -1064,8 +1081,9 @@ public class SemossClassLoader extends ClassLoader {
 
 	/**
 	 * Maps each intercepted internal class name to its constructor descriptor(s),
-	 * and for each descriptor the replacement factory method name and descriptor in
-	 * {@link SandboxedPaths}.
+	 * and for each descriptor the replacement factory method name and descriptor.
+	 * The factories are in {@link SandboxedJavaExecution}, or in the shared
+	 * library's sandbox class that {@link #REDIRECT_FACTORY_OWNERS} names.
 	 *
 	 * <p>
 	 * Layout:
@@ -1078,6 +1096,13 @@ public class SemossClassLoader extends ClassLoader {
 	 * passthrough factories.
 	 */
 	private static final Map<String, Map<String, String[]>> CONSTRUCTOR_REDIRECTS;
+
+	/**
+	 * The class that holds the factory methods for a redirected class, by internal
+	 * name, for the redirects a shared library's sandbox class lists. Every other
+	 * redirect goes to {@link SandboxedJavaExecution}.
+	 */
+	private static final Map<String, String> REDIRECT_FACTORY_OWNERS;
 
 	static {
 		Map<String, Map<String, String[]>> m = new HashMap<>();
@@ -1124,29 +1149,47 @@ public class SemossClassLoader extends ClassLoader {
 		}
 		m.put(URL_CLASS_LOADER, loader);
 
-		Map<String, String[]> hikari = new HashMap<>();
-		for (String arguments : List.of("", "Ljava/util/Properties;", "Ljava/lang/String;")) {
-			hikari.put("(" + arguments + ")V",
-					new String[] { "hikariConfig", "(" + arguments + ")Lcom/zaxxer/hikari/HikariConfig;" });
+		Map<String, String> owners = new HashMap<>();
+		for (Map.Entry<String, Map<String, Map<String, String[]>>> library : Map
+				.of(SandboxedHikari.INTERNAL_NAME, SandboxedHikari.CONSTRUCTOR_REDIRECTS, SandboxedPdfBox.INTERNAL_NAME,
+						SandboxedPdfBox.CONSTRUCTOR_REDIRECTS)
+				.entrySet()) {
+			for (Map.Entry<String, Map<String, String[]>> redirect : library.getValue().entrySet()) {
+				if (m.putIfAbsent(redirect.getKey(), redirect.getValue()) != null) {
+					throw new IllegalStateException(redirect.getKey() + " has constructor redirects in two places");
+				}
+				owners.put(redirect.getKey(), library.getKey());
+			}
 		}
-		m.put("com/zaxxer/hikari/HikariConfig", hikari);
 
 		CONSTRUCTOR_REDIRECTS = Collections.unmodifiableMap(m);
+		REDIRECT_FACTORY_OWNERS = Collections.unmodifiableMap(owners);
 	}
 
 	/**
 	 * Applies all bytecode transformations to a raw class byte array:
 	 * <ul>
 	 * <li>Redirects {@code new File(...)}, {@code new FileInputStream(String)}, and
-	 * {@code new FileOutputStream(String[,boolean])} through {@link SandboxedPaths}
-	 * factory methods that enforce the sandbox root.</li>
+	 * {@code new FileOutputStream(String[,boolean])} through
+	 * {@link SandboxedJavaExecution} factory methods that enforce the sandbox
+	 * root.</li>
 	 * <li>Redirects {@code Paths.get(...)} and {@code Path.of(...)} through
 	 * sandboxed equivalents.</li>
 	 * <li>Replaces {@code System.getenv()} / {@code System.getenv(String)} with
 	 * {@code null}, hiding host environment variables.</li>
 	 * <li>Replaces all {@code Runtime.exec(...)} overloads with a call that throws
 	 * {@link SecurityException}.</li>
+	 * <li>Writes a class compiled for Java 1.4 or older at
+	 * {@link #OLDEST_WRITTEN_VERSION}, so the class constants the rewritten calls
+	 * pass are valid in it.</li>
 	 * </ul>
+	 * <p>
+	 * Stack-map frames are rebuilt from scratch for a class file of Java 6 or
+	 * newer, since the replacements change the frame layout; a type that is not on
+	 * the classpath counts as {@code Object} when two types meet. An older class
+	 * file has no frames, so only its stack and local sizes are recomputed, which
+	 * also keeps the {@code jsr} and {@code ret} instructions older compilers write
+	 * for {@code finally} blocks.
 	 *
 	 * @param original raw bytecode of the class to transform
 	 * @return transformed bytecode
@@ -1167,11 +1210,8 @@ public class SemossClassLoader extends ClassLoader {
 				};
 			}
 		}, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-		// COMPUTE_FRAMES rebuilds stack-map frames from scratch, which is required
-		// because our instruction replacements can change the frame layout.
-		// getCommonSuperClass falls back to Object for any class not on the
-		// current classpath so that transformation never fails hard.
-		ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES) {
+		int frames = cr.readUnsignedShort(6) < Opcodes.V1_6 ? ClassWriter.COMPUTE_MAXS : ClassWriter.COMPUTE_FRAMES;
+		ClassWriter cw = new ClassWriter(cr, frames) {
 			@Override
 			protected String getCommonSuperClass(String type1, String type2) {
 				try {
@@ -1181,8 +1221,6 @@ public class SemossClassLoader extends ClassLoader {
 				}
 			}
 		};
-		// SKIP_FRAMES: let COMPUTE_FRAMES recompute everything instead of trying
-		// to patch the original (potentially stale) frame data.
 		cr.accept(new SandboxClassVisitor(cw, methodLocals, approvedLibraryPackages()), ClassReader.SKIP_FRAMES);
 		return cw.toByteArray();
 	}
@@ -1212,7 +1250,8 @@ public class SemossClassLoader extends ClassLoader {
 		/**
 		 * Moves a class that extends a JDK class loader onto the sandbox class that
 		 * stands in for it, and refuses a class that extends a sandbox class or
-		 * overrides {@code loadClass}.
+		 * overrides {@code loadClass}. A class compiled for Java 1.4 or older is
+		 * written at {@link #OLDEST_WRITTEN_VERSION}.
 		 */
 		@Override
 		public void visit(int version, int access, String name, String signature, String superName,
@@ -1231,8 +1270,9 @@ public class SemossClassLoader extends ClassLoader {
 			this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
 			this.originalSuper = superName;
 			this.sandboxSuper = superName == null ? null : LOADER_BASES.get(superName);
+			int writtenVersion = (version & 0xFFFF) < OLDEST_WRITTEN_VERSION ? OLDEST_WRITTEN_VERSION : version;
 			if (this.sandboxSuper == null) {
-				super.visit(version, access, name, signature, superName, interfaces);
+				super.visit(writtenVersion, access, name, signature, superName, interfaces);
 				return;
 			}
 			for (String loadClass : LOAD_CLASS_METHODS) {
@@ -1241,7 +1281,7 @@ public class SemossClassLoader extends ClassLoader {
 							+ "findClass; overriding loadClass is not permitted");
 				}
 			}
-			super.visit(version, access, name, null, this.sandboxSuper, interfaces);
+			super.visit(writtenVersion, access, name, null, this.sandboxSuper, interfaces);
 		}
 
 		@Override
@@ -1323,7 +1363,8 @@ public class SemossClassLoader extends ClassLoader {
 			if (CONSTRUCTOR_REDIRECTS.containsKey(owner) || PATH_TEXT_ARGUMENTS.containsKey(owner)
 					|| LOADER_BASES.containsKey(owner) || FILE.equals(owner) || XML_FACTORY_LOOKUPS.containsKey(owner)
 					|| XML_USES.containsKey(owner) || SYSTEM_ID_ARGUMENTS.containsKey(owner)
-					|| XPATH_CLASSES.contains(owner) || descriptor.endsWith(")" + CLASS_LOADER_DESCRIPTOR)) {
+					|| XPATH_CLASSES.contains(owner) || descriptor.endsWith(")" + CLASS_LOADER_DESCRIPTOR)
+					|| descriptor.endsWith(")" + SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR)) {
 				return true;
 			}
 			for (String argument : ARGUMENT_RULES.keySet()) {
@@ -1411,13 +1452,13 @@ public class SemossClassLoader extends ClassLoader {
 	 *         other annotation
 	 */
 	private static AnnotationVisitor typingByDataRefused(String descriptor, AnnotationVisitor next) {
-		if (!JSON_TYPE_INFO.equals(descriptor)) {
+		if (!SandboxedJackson.JSON_TYPE_INFO.equals(descriptor)) {
 			return next;
 		}
 		return new AnnotationVisitor(Opcodes.ASM9, next) {
 			@Override
 			public void visitEnum(String name, String enumDescriptor, String value) {
-				if ("use".equals(name) && JSON_TYPE_BY_CLASS_NAME.contains(value)) {
+				if ("use".equals(name) && SandboxedJackson.JSON_TYPE_BY_CLASS_NAME.contains(value)) {
 					throw new SecurityException(
 							"@JsonTypeInfo that names classes in the JSON is not permitted in project reactors");
 				}
@@ -1438,7 +1479,7 @@ public class SemossClassLoader extends ClassLoader {
 	 * Java compilers always emit
 	 * {@code NEW T; DUP; [push args]; INVOKESPECIAL T.<init>}. We suppress the
 	 * {@code NEW} and its companion {@code DUP}, then at {@code INVOKESPECIAL} time
-	 * we emit {@code INVOKESTATIC SandboxedPaths.factory(args)} instead. The
+	 * we emit {@code INVOKESTATIC SandboxedJavaExecution.factory(args)} instead. The
 	 * factory returns an already-initialized instance, leaving the stack in exactly
 	 * the same state as the original sequence would have.
 	 *
@@ -1527,17 +1568,27 @@ public class SemossClassLoader extends ClassLoader {
 		}
 
 		/**
-		 * Keeps a class loader read from a field in the sandbox, and refuses a field of
-		 * a sandbox class.
+		 * Keeps a class loader read from a field in the sandbox, hands out a copy of a
+		 * page size PDFBox shares, refuses a field of a sandbox class, and replaces an
+		 * assignment to a static field of a JDK, platform or shared library class,
+		 * which every user of the JVM would see, with a call that throws.
 		 */
 		@Override
 		public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
 			suppressNextDup = false;
 			refuseSandboxClass(owner);
+			if (opcode == Opcodes.PUTSTATIC && this.owner.isPlatformSide(owner)) {
+				super.visitInsn(Type.getType(descriptor).getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
+				super.visitLdcInsn(owner.substring(owner.lastIndexOf('/') + 1) + "." + name);
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "blockCall", "(Ljava/lang/String;)V", false);
+				return;
+			}
 			super.visitFieldInsn(opcode, owner, name, descriptor);
 			if ((opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC)
 					&& CLASS_LOADER_DESCRIPTOR.equals(descriptor)) {
 				keepLoaderInSandbox();
+			} else if (opcode == Opcodes.GETSTATIC && SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR.equals(descriptor)) {
+				unsharePageSize();
 			}
 		}
 
@@ -1552,13 +1603,26 @@ public class SemossClassLoader extends ClassLoader {
 		}
 
 		/**
-		 * Writes a call as it is, then keeps the class loader it returns, if it returns
-		 * one, in the sandbox.
+		 * With a PDFBox rectangle on top of the stack, swaps it for a copy when it is a
+		 * page size every document shares.
 		 */
-		private void callKeepingLoaderInSandbox(int opcode, String owner, String name, String descriptor, boolean itf) {
+		private void unsharePageSize() {
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, SandboxedPdfBox.INTERNAL_NAME, "unsharedPageSize",
+					"(" + SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR + ")" + SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR,
+					false);
+		}
+
+		/**
+		 * Writes a call as it is, then keeps the class loader it returns, if it returns
+		 * one, in the sandbox, and swaps a page size PDFBox shares that it returns for
+		 * a copy.
+		 */
+		private void callKeepingResultInSandbox(int opcode, String owner, String name, String descriptor, boolean itf) {
 			super.visitMethodInsn(opcode, owner, name, descriptor, itf);
 			if (descriptor.endsWith(")" + CLASS_LOADER_DESCRIPTOR)) {
 				keepLoaderInSandbox();
+			} else if (descriptor.endsWith(")" + SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR)) {
+				unsharePageSize();
 			}
 		}
 
@@ -1611,7 +1675,8 @@ public class SemossClassLoader extends ClassLoader {
 						super.visitLdcInsn(Type.getObjectType(this.className));
 					}
 					// factory[0] = method name, factory[1] = method descriptor
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, factory[0], factory[1], false);
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, REDIRECT_FACTORY_OWNERS.getOrDefault(owner, SANDBOX),
+							factory[0], factory[1], false);
 				} else {
 					// Unknown overload for a sandboxed type - pop args and block.
 					for (Type argType : Type.getArgumentTypes(descriptor)) {
@@ -1669,7 +1734,7 @@ public class SemossClassLoader extends ClassLoader {
 				return;
 			}
 			if (opcode == Opcodes.INVOKESPECIAL && this.sandboxSuper != null && owner.equals(this.originalSuper)) {
-				callKeepingLoaderInSandbox(opcode, this.sandboxSuper, name, descriptor, itf);
+				callKeepingResultInSandbox(opcode, this.sandboxSuper, name, descriptor, itf);
 				return;
 			}
 			if (opcode == Opcodes.INVOKESTATIC && URL_CLASS_LOADER.equals(owner) && "newInstance".equals(name)) {
@@ -1687,7 +1752,8 @@ public class SemossClassLoader extends ClassLoader {
 
 			Set<String> blockedCalls = BLOCKED_CALLS.get(owner);
 			if ((blockedCalls != null && blockedCalls.contains(name)) || isQueryUtilConnectionMember(owner, name)
-					|| (BLOCKED_CALLS_ON_ANY_CLASS.contains(name) && !declaresItself(owner, name, descriptor))) {
+					|| (SandboxedJackson.BLOCKED_CALLS_ON_ANY_CLASS.contains(name)
+							&& !declaresItself(owner, name, descriptor))) {
 				blockCall(opcode, owner, name, descriptor);
 				return;
 			}
@@ -1745,7 +1811,7 @@ public class SemossClassLoader extends ClassLoader {
 			}
 
 			// ------------------------------------------------------------------
-			// Sandbox System.getProperty - route through SandboxedPaths which
+			// Sandbox System.getProperty - route through SandboxedJavaExecution which
 			// allows the default safe set + any platform-registered properties,
 			// and blocks everything else.
 			// ------------------------------------------------------------------
@@ -1910,18 +1976,9 @@ public class SemossClassLoader extends ClassLoader {
 					super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "sandboxedLoadProperties", descriptor, false);
 					return;
 				}
-				if (BLOCKED_UTILITY_METHODS.contains(name)) {
-					for (Type argType : Type.getArgumentTypes(descriptor)) {
-						super.visitInsn(argType.getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
-					}
-					super.visitLdcInsn("Utility." + name);
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "blockCall", "(Ljava/lang/String;)V", false);
-					pushDefault(Type.getReturnType(descriptor));
-					return;
-				}
 			}
 
-			callKeepingLoaderInSandbox(opcode, owner, name, descriptor, itf);
+			callKeepingResultInSandbox(opcode, owner, name, descriptor, itf);
 		}
 
 		/**
@@ -2112,7 +2169,7 @@ public class SemossClassLoader extends ClassLoader {
 		return (members != null && members.contains(handle.getName()))
 				|| (blockedCalls != null && blockedCalls.contains(handle.getName()))
 				|| isQueryUtilConnectionMember(handle.getOwner(), handle.getName())
-				|| BLOCKED_CALLS_ON_ANY_CLASS.contains(handle.getName());
+				|| SandboxedJackson.BLOCKED_CALLS_ON_ANY_CLASS.contains(handle.getName());
 	}
 
 	/**

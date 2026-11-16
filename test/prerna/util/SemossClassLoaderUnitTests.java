@@ -159,8 +159,7 @@ class SemossClassLoaderUnitTests {
 
 		InvocationTargetException failure = assertThrows(InvocationTargetException.class,
 				() -> call(probe, "readLocalProperty"));
-		assertInstanceOf(SecurityException.class, failure.getCause());
-		assertTrue(failure.getCause().getMessage().contains("Utility.getDIHelperLocalProperty"));
+		assertInstanceOf(NoClassDefFoundError.class, failure.getCause());
 	}
 
 	@Test
@@ -194,7 +193,7 @@ class SemossClassLoaderUnitTests {
 				assertThrows(InvocationTargetException.class, () -> call(probe, "touchDIHelper")).getCause());
 		assertInstanceOf(NoClassDefFoundError.class,
 				assertThrows(InvocationTargetException.class, () -> call(probe, "touchInternalUtility")).getCause());
-		assertInstanceOf(SecurityException.class,
+		assertInstanceOf(NoClassDefFoundError.class,
 				assertThrows(InvocationTargetException.class, () -> call(probe, "readLocalProperty")).getCause());
 
 		Path chroot = Files.createDirectories(this.folder.resolve("jar-chroot"));
@@ -368,7 +367,7 @@ class SemossClassLoaderUnitTests {
 		});
 		method(writer, "readLocalProperty", mv -> {
 			mv.visitLdcInsn("core");
-			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "prerna/util/Utility", "getDIHelperLocalProperty",
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "prerna/util/InternalUtility", "getLocalProperty",
 					"(Ljava/lang/String;)Ljava/lang/Object;", false);
 		});
 		method(writer, "readEnv", mv -> {

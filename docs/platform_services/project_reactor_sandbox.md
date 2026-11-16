@@ -69,6 +69,7 @@ Guarded by [SandboxReplacedCallsUnitTests](../../test/prerna/util/SandboxReplace
 | The calls that change who the signed in user is: `Insight.setUser`, `ThreadStore.setUser` and `setThreadMapObject`, `User.setAccessToken`, `setGlobalAccessToken`, `dropAccessToken` and `setPrimaryLogin`, and `AccessToken.setId`, `setProvider`, `setUserGroups`, `setUserGroupType` and `setLocked` | `SecurityException` | `theSignedInUserCannotBeChanged` |
 | The `ThreadStore` calls that change which request the thread serves: `setInsightId`, `setSessionId`, `setRouteId`, `setJobId`, `setSchedulerMode`, `setLocalHostname`, `setLocalProtocol`, `setLocalPort`, `setContextProjectIdOverride`, `setContextProjectNameOverride`, `clearContextProjectOverride`, `remove`, and `getTheadMapObject`, which hands out the thread's map itself | `SecurityException` | `theRequestTheThreadServesCannotBeChanged` |
 | The calls that read an RDBMS engine's credentials from its query utility or change where it connects, on any class of `prerna.util.sql`: `getUsername`, `getPassword`, `getAdditionalProps`, `getConnectionUrl`, `setHostname`, `setPort`, `setDatabase`, `setSchema`, `setUsername`, `setPassword`, `setAdditionalProps`, `setConnectionUrl` | `SecurityException` | `anEnginesCredentialsCannotBeReadOrChangedThroughItsQueryUtility` |
+| Assigning a static field of a JDK, platform or shared library class, such as `SchedulerListener.schedulerLeader` or `PDDeviceCMYK.INSTANCE` | `SecurityException` | `aStaticFieldOfThePlatformCannotBeAssigned` |
 | Extending a class that has refused calls, such as `User`, `AccessToken`, `Insight` or `TimeZone` | The class is refused when it loads | `aClassWithRefusedCallsCannotBeExtended` |
 | `URL.openStream`, `openConnection`, `getContent`, `setURLStreamHandlerFactory` | `SecurityException` | `aUrlCannotOpenAConnection` |
 | `Files.createSymbolicLink`, `FileChannel.open` | `SecurityException` | `symbolicLinksAndFileChannelsAreRefused` |
@@ -77,7 +78,7 @@ Guarded by [SandboxReplacedCallsUnitTests](../../test/prerna/util/SandboxReplace
 | `File.getAbsolutePath`, `getCanonicalPath`, `getParent`, `getParentFile`, `toPath` | With `CHROOT_ENABLE` on, the path as seen from the user's folder | `withAUserRootAFileReportsItsPathFromThatRoot` |
 | `Utility.getDIHelperProperty` | The RDF_Map value, and `null` for every key the RDF_Map editor hides | `folderReactorsReadSettingsButNotSecretSettings`, `theSandboxedSettingGetterHidesWhatTheRdfMapEditorHides` |
 | `Utility.loadProperties` | The file's values, read under the same path rule as `new File(...)` | `withoutAChrootLoadPropertiesReadsTheFileAsBefore`, `withAChrootLoadPropertiesStaysInsideIt` |
-| `Utility.getDIHelperLocalProperty` | `SecurityException` | `folderReactorsCannotReadTheDIHelperLocalMap` |
+| `InternalUtility.getLocalProperty`, the values the desktop tools keep in memory | Refused with the rest of `InternalUtility`: `NoClassDefFoundError` | `folderReactorsCannotReadTheDIHelperLocalMap` |
 | A method reference to any call above | The same result as the call itself | `aMethodReferenceToARewrittenMethodRunsTheSandboxedVersion`, `aMethodReferenceBehavesLikeTheCallItStandsFor` |
 | A method handle constant to any call above | The class is refused when it loads | `aMethodHandleConstantToARefusedCallIsRefused`, `aMethodHandleConstantToABlockedUtilityMethodIsRefused` |
 
@@ -138,7 +139,7 @@ Every class loader a project's code can get or create is a sandbox loader, so a 
 | Such a loader cannot define classes in `prerna.*` packages | `aCustomClassLoaderCannotDefinePlatformPackageClasses` |
 | Such a loader supplies its classes through `findClass`; `loadClass` stays with the sandbox | `aCustomClassLoaderCannotOverrideLoadClass` |
 | A project class that extends `URLClassLoader` is loaded as a subclass of `SemossProjectJarClassLoader` under the project's sandbox loader | `aCustomUrlClassLoaderIsMovedUnderTheSandbox` |
-| The classes that make up the sandbox (`SandboxedJavaExecution`, `SandboxedXml`, `SemossClassLoader`, `SemossProjectJarClassLoader`, `SemossJarClassLoader`, `SandboxedClassLoader`) are reached only through the calls the sandbox writes into a class | `customCodeCannotNameTheSandboxClasses` |
+| The classes that make up the sandbox (`SandboxedJavaExecution`, `SandboxedXml`, `SemossClassLoader`, `SemossProjectJarClassLoader`, `SemossJarClassLoader`, `SandboxedClassLoader`, and the library classes `SandboxedPdfBox`, `SandboxedHikari`, `SandboxedJackson`, `SandboxedLog4j`, `SandboxedPoi` and `SandboxedMail`) are reached only through the calls the sandbox writes into a class | `customCodeCannotNameTheSandboxClasses` |
 | A method reference to a loader call gives the sandbox loader like the call does, and a method handle constant to one is refused when the class loads | `aMethodReferenceToALoaderCallReturnsTheSandboxLoader`, `aMethodHandleConstantToALoaderCallIsRefused` |
 
 ## Libraries
@@ -152,6 +153,7 @@ A project shares a short list of the platform's libraries. Every other library o
 | Logging | The log4j API: `org.apache.logging.log4j` with its `message` and `spi` packages, and the types its logging methods take |
 | Database connection pools | `com.zaxxer.hikari` |
 | Tuples | `org.javatuples.*` |
+| PDF files | `org.apache.pdfbox.*` and `org.apache.fontbox.*` |
 | Mail and attachments | `jakarta.mail.*`, `jakarta.activation.*` |
 
 An admin shares more packages with the RDF_Map setting `PROJECT_REACTOR_SHARED_PACKAGES`, a comma separated list of package names such as `org.apache.commons.lang3, com.mycompany.shared`. The block list applies to an approved package like any other.
@@ -161,12 +163,16 @@ An admin shares more packages with the RDF_Map setting `PROJECT_REACTOR_SHARED_P
 | A class of a shared library, a `prerna` class and a JDK class are the platform's own | `aSharedLibraryClassIsThePlatformsOwn` |
 | A class of any other library is the project's own sandboxed copy | `anyOtherLibraryClassIsTheProjectsOwnCopy`, `eachProjectGetsItsOwnCopy` |
 | A copy works like the library and follows the sandbox rules: environment variables are hidden from it, and its files stay inside the user's folder | `aLibraryCopyWorksAndFollowsTheSandboxRules` |
+| A library compiled for any Java version, back to Java 1.1, loads and runs as a copy, `finally` blocks from old compilers included | `aLibraryCompiledForAnOldJavaRunsInTheSandbox`, `aFinallyBlockFromAnOldCompilerRunsInTheSandbox` |
 | A library class that needs a blocked class, such as a mail transport, cannot be loaded | `aLibraryCopyThatTheSandboxRefusesCannotBeLoaded` |
 | An admin approves more packages in RDF_Map, under the block list | `anAdminCanApproveMorePackages`, `anApprovedPackageStaysUnderTheBlockList` |
 | A project's Maven dependencies share the same libraries and copy the rest | `mavenDependenciesShareTheSameLibrariesAndCopyTheRest` |
 | Jackson reads and writes JSON, and the calls and the `@JsonTypeInfo` settings that create objects of classes the data names are refused: `enableDefaultTyping`, `activateDefaultTyping`, `setDefaultTyping`, `TypeFactory.constructFromCanonical` and `findClass`, and `use = Id.CLASS` or `Id.MINIMAL_CLASS` | `aJacksonMapperStillReadsAndWritesJson`, `jacksonCannotCreateObjectsOfClassesTheDataNames`, `aJacksonAnnotationThatNamesClassesInTheJsonIsRefused`, `aJacksonAnnotationThatNamesTypesByALogicalNameIsAllowed` |
 | A reactor gets its logger from `LogManager.getLogger`; `LogManager.setFactory` and `shutdown` are refused | `aReactorStillGetsALogger`, `platformLoggingCannotBeReplacedOrShutDown` |
 | A HikariCP pool connects through its JDBC URL; `setDataSourceJNDI`, `setDataSourceClassName` and the same settings in a `Properties` are refused | `aConnectionPoolCannotLookUpItsDataSourceByName`, `aConnectionPoolBuiltFromPropertiesFollowsTheSameRule` |
+| PDFBox reads and writes PDFs, and a path it is given as text, such as `PDDocument.save(String)` or `new RandomAccessReadBufferedFile(String)`, is the one inside the user's folder | `pdfBoxWritesAndReadsPdfsInsideTheUsersFolder` |
+| The PDFBox calls that change what every document in the JVM shares, or free memory other code may still read, are refused: `IOUtils.unmap`, `COSName.clearResources`, `ResourceCacheFactory.setResourceCacheCreateFunction`, `FontMappers.set`, `SecurityProvider.setProvider`, `SecurityHandlerFactory.registerHandler`, `getInstance` of `CFFISOAdobeCharset`, `CFFExpertCharset` and `CFFExpertSubsetCharset`, and `Overlay.overlay`, which reads file paths out of a map; `Overlay.overlayDocuments` takes the documents themselves | `pdfBoxCannotChangeWhatEveryUserShares` |
+| A page size such as `PDRectangle.A4`, the media box of a new `PDPage`, and a page size PDFBox hands back are the project's own copy | `aPageSizeEveryDocumentSharesStaysTheSame` |
 
 ## HTTP requests
 
@@ -214,4 +220,4 @@ A rule and its test land together.
 2. Add the name to `BLOCKED_JDK_PACKAGES`, `BLOCKED_JDK_CLASSES`, `BLOCKED_PLATFORM_CLASSES` or `BLOCKED_PLATFORM_PACKAGES` in `SemossClassLoader`, or the call to `BLOCKED_CALLS`. A call that takes a path as text goes in `PATH_TEXT_ARGUMENTS` with a test in `SandboxFilesUnitTests`. A rule about class loaders goes in `SandboxClassLoadersUnitTests`. A call that needs a sandboxed version instead of a refusal gets a method in `SandboxedJavaExecution` and a rewrite in `SandboxMethodVisitor`.
 3. Add the row to this page with the test's name.
 
-A library joins the shared list the same way: add its packages to `SHARED_LIBRARY_PACKAGES` or `SHARED_LIBRARY_EXACT_PACKAGES` in `SemossClassLoader` after checking what its public methods do for their caller, add a call it should not make for a project to `BLOCKED_CALLS`, and add both to `SandboxLibrariesUnitTests`.
+A library joins the shared list with a sandbox class of its own in `prerna.util`, such as `SandboxedPdfBox`, written after checking what the library's public methods do for their caller. The class holds every rule for the library: its packages, the classes and calls a project cannot use, the calls that take a path as text, the constructors it replaces, and the methods that stand in for them. `SemossClassLoader` adds the class's tables to its own and lists the class in `SANDBOX_CLASSES`. A library that only needs its packages shared, such as Gson, is listed in `SemossClassLoader` directly. Each rule gets a test in `SandboxLibrariesUnitTests`.

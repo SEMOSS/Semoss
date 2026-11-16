@@ -83,8 +83,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.InsightsRDBMSUtils;
+import prerna.util.InternalUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -210,13 +210,7 @@ public final class ProjectHelper {
 			// well
 			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectType, gitProvider,
 					gitCloneUrl, null);
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-
-			// Only at end do we add to DIHelper
-			DIHelper.getInstance().setProjectProperty(projectId, project);
-			String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-			projects = projects + ";" + projectId;
-			DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
+			InternalUtility.registerNewProject(projectId, project, tempSmss.getAbsolutePath());
 
 			// Rename .temp to .smss
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -226,7 +220,7 @@ public final class ProjectHelper {
 			// Update engine smss file location
 			project.open(smssFile.getAbsolutePath());
 			logger.info("Finished creating project");
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+			InternalUtility.setProjectSmssPath(projectId, smssFile.getAbsolutePath());
 
 			if (ClusterUtil.IS_CLUSTER) {
 				logger.info("Syncing project for cloud backup");
