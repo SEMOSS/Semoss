@@ -98,12 +98,25 @@ public final class BrainThreadClassifier {
 	// held-out mailbox (quillfield, 2026-11-14) 0.5 found 18 of the 26 notices that needed the owner with 3 false;
 	// without the own-organisation rule the same question also flagged most spam
 	static final double NOTICE_AT = 0.5;
-	// "CA-318", "INC-21547", "GLA-2024-117": the ticket, request or order a notice is about
-	private static final java.util.regex.Pattern TICKET = java.util.regex.Pattern
-			.compile("#?\\b([A-Z][A-Z0-9]{1,7}-\\d{2,}(?:-\\d+)*)\\b");
+	// "CA-318", "INC-21547", "GLA-2024-117", and ServiceNow's "INC0012345", "REQ0012345", "CHG0012345": the
+	// ticket, request or order a notice is about
+	private static final java.util.regex.Pattern TICKET = java.util.regex.Pattern.compile(
+			"#?\\b([A-Z][A-Z0-9]{1,7}-\\d{2,}(?:-\\d+)*|[A-Z]{3,4}\\d{7})\\b");
+	// whole words only: not "unapproved", "re-closed" or "paid-up"
 	private static final java.util.regex.Pattern TICKET_OVER = java.util.regex.Pattern.compile(
-			"\\b(closed|resolved|completed|approved|cancelled|canceled|withdrawn|paid)\\b",
+			"(?<![\\w-])(closed|resolved|completed|approved|cancelled|canceled|withdrawn|paid)(?![\\w-])",
 			java.util.regex.Pattern.CASE_INSENSITIVE);
+
+	// the ticket a notice's subject names, or null
+	static String ticket(String subject) {
+		java.util.regex.Matcher named = TICKET.matcher(subject == null ? "" : subject);
+		return named.find() ? named.group(1) : null;
+	}
+
+	// true when the subject says the ticket is over ("Ticket INC-20774 Closed")
+	static boolean ticketOver(String subject) {
+		return subject != null && TICKET_OVER.matcher(subject).find();
+	}
 	// a VIP of the best topic writing on the thread: this much surer it belongs there (untuned)
 	static final int VIP_FILING_POINTS = 10;
 
@@ -722,8 +735,7 @@ public final class BrainThreadClassifier {
 			return false;
 		}
 		String subject = (String) thread.get("subject");
-		java.util.regex.Matcher named = TICKET.matcher(subject == null ? "" : subject);
-		String ticket = named.find() ? named.group(1) : null;
+		String ticket = ticket(subject);
 		if (messages == null) {
 			messages = used(BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId,
 					NEWEST_ONLY_MESSAGES, BrainMessageSource.current()));
@@ -740,7 +752,7 @@ public final class BrainThreadClassifier {
 		}
 		if (demand == null || demand < NOTICE_AT) {
 			// "Ticket INC-20774 Closed": whatever an earlier notice about it raised is done
-			if (demand != null && ticket != null && !ctx.dryRun() && TICKET_OVER.matcher(subject).find()) {
+			if (demand != null && ticket != null && !ctx.dryRun() && ticketOver(subject)) {
 				WorkItemUtils.closeNotice(ctx.ownerId(), ctx.ownerType(), ticket);
 			}
 			return false;

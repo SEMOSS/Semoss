@@ -78,4 +78,18 @@ class BrainThreadClassifierUnitTests {
 		assertEquals(24000, wide.budget());
 		assertTrue(wide.earlier());
 	}
+
+	@Test
+	void aSubjectNamesAServiceNowTicketAndOnlyAWholeWordClosesIt() {
+		assertEquals("INC-20774", BrainThreadClassifier.ticket("Ticket INC-20774 Closed"));
+		assertEquals("INC0012345", BrainThreadClassifier.ticket("Incident INC0012345 assigned to you"));
+		assertEquals("REQ0012345", BrainThreadClassifier.ticket("REQ0012345: laptop request"));
+		assertEquals("CHG0012345", BrainThreadClassifier.ticket("Approval needed for CHG0012345"));
+		assertEquals(null, BrainThreadClassifier.ticket("Lunch on Friday"));
+		assertTrue(BrainThreadClassifier.ticketOver("Ticket INC0012345 Closed"));
+		assertTrue(BrainThreadClassifier.ticketOver("CHG0012345 approved."));
+		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 unapproved vendor list"));
+		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 re-closed review"));
+		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 prepaid cards"));
+	}
 }
