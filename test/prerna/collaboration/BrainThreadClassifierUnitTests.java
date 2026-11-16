@@ -92,4 +92,27 @@ class BrainThreadClassifierUnitTests {
 		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 re-closed review"));
 		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 prepaid cards"));
 	}
+
+	/** A sender's domain that only resembles a known organisation is named; a known or unrelated one is not. */
+	@Test
+	void aDomainThatOnlyResemblesAKnownOrganisationIsFlagged() {
+		Set<String> known = Set.of("castellanbank.example", "northpine.example", "acme.example");
+		assertEquals("castellanbank.example",
+				BrainOrgDomains.lookalike("castellanbank-payments.example", known));
+		assertEquals("northpine.example", BrainOrgDomains.lookalike("northpine-analytics.example", known));
+		assertEquals("castellanbank.example", BrainOrgDomains.lookalike("castellanbank.co", known));
+		assertEquals("castellanbank.example", BrainOrgDomains.lookalike("castelIanbank.example", known));
+		assertEquals("northpine.example", BrainOrgDomains.lookalike("mail.northplne.example", known));
+		// the organisation itself, a subdomain of it, an unrelated one, and a short name that only looks close
+		assertEquals(null, BrainOrgDomains.lookalike("castellanbank.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike("mail.northpine.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike("tidewaterlogistics.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike("acne.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike(null, known));
+		// a verified subdomain of the organisation lends its own label to nobody
+		Set<String> withSub = Set.of("northpine.example", "partners.northpine.example");
+		assertEquals(null, BrainOrgDomains.lookalike("winrate-partners.example", withSub));
+		assertEquals(null, BrainOrgDomains.lookalike("partners.northpine.example", withSub));
+		assertEquals("northpine.example", BrainOrgDomains.lookalike("northpine-sales.example", withSub));
+	}
 }

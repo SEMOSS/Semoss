@@ -346,7 +346,24 @@ public final class BrainThreadClassifier {
 			List<BrainRulesGate.Rule> rules, Set<String> followed, Set<String> automatedSenders,
 			Map<String, BrainClassifier.Scores> scored, Window window, ZoneId timeZone, BrainMailFolders.Tree folders,
 			Map<String, String> linkedFolders, BrainTopicEvidence.Evidence evidence, BrainOrgDomains.Org ownOrg,
-			Map<String, Boolean> partners) {
+			Map<String, Boolean> partners, Set<String> knownOrgs) {
+	}
+
+	// the organisations the owner works with, by domain: their own, their colleagues', their VIPs' and those of the
+	// members of their topics. A sender whose domain only resembles one of these is flagged on the card.
+	static Set<String> knownOrgs(String ownerId, String ownerType, BrainOrgDomains.Org own) {
+		Set<String> orgs = new HashSet<>(own.domains());
+		CollaborationDbUtils.query("SELECT DISTINCT p.EMAIL_NORM FROM BRAIN_PERSON p WHERE p.OWNER_ID = ? AND "
+				+ "p.OWNER_TYPE = ? AND p.EMAIL_NORM IS NOT NULL AND (p.RELATIONSHIP IN (?, ?) OR p.IS_VIP = ? OR EXISTS "
+				+ "(SELECT 1 FROM BRAIN_TOPIC_PERSON tp WHERE tp.OWNER_ID = p.OWNER_ID AND tp.OWNER_TYPE = p.OWNER_TYPE "
+				+ "AND tp.PERSON_ID = p.PERSON_ID AND tp.STATE = ?))", rs -> {
+					String org = BrainOrgDomains.org(BrainMailImport.domain(rs.getString(1)));
+					if (org != null && !BrainTopicSuggest.FREEMAIL.contains(org)) {
+						orgs.add(org);
+					}
+					return null;
+				}, ownerId, ownerType, "self", "colleague", true, BrainTopicUtils.MEMBER);
+		return orgs;
 	}
 
 	// how much of a thread one model call carries; budget is characters for all messages together
@@ -365,6 +382,7 @@ public final class BrainThreadClassifier {
 			throw new IllegalArgumentException("Model " + engine + " could not be loaded");
 		}
 		BrainClassifier classifier = BrainClassifier.forEngine(engine, model);
+		BrainOrgDomains.Org ownOrg = ownOrg(ownerId, ownerType);
 		List<BrainClassifier.TopicOption> topics = topicOptions(ownerId, ownerType);
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
 		Set<String> vips = new HashSet<>(CollaborationDbUtils.query(
@@ -380,8 +398,8 @@ public final class BrainThreadClassifier {
 				BrainProfileUtils.timeZone(user), BrainMailFolders.load(ownerId, ownerType),
 				BrainMailFolders.linkedTopics(ownerId, ownerType),
 				// read once for the run, so results do not depend on the order threads finish in
-				BrainTopicEvidence.load(ownerId, ownerType, topics, rules), ownOrg(ownerId, ownerType),
-				new ConcurrentHashMap<>());
+				BrainTopicEvidence.load(ownerId, ownerType, topics, rules), ownOrg, new ConcurrentHashMap<>(),
+				knownOrgs(ownerId, ownerType, ownOrg));
 	}
 
 	// the owner's organisation, by the domains it mails from
@@ -544,6 +562,14 @@ public final class BrainThreadClassifier {
 		} else if (fromFollowed && !"fyi".equals(work) && !"waiting".equals(work)) {
 			urgency = Math.min(3, urgency + 0.4);
 			reasons.add("From someone you follow");
+		}
+		// a sender whose domain only resembles the owner's organisation or one they work with: said first, and
+		// never urgent on the sender's word alone
+		String fromDomain = BrainMailImport.domain((String) newest.get("fromAddress"));
+		String imitated = BrainOrgDomains.lookalike(fromDomain, ctx.knownOrgs());
+		if (imitated != null) {
+			reasons.add(0, "Check the sender: " + BrainOrgDomains.org(fromDomain) + " is not " + imitated);
+			urgency = Math.min(urgency, 1);
 		}
 		long age = ageDays((String) newest.get("at"));
 		if (age > WEEK_DAYS) {

@@ -120,6 +120,84 @@ public final class BrainOrgDomains {
 		}
 	}
 
+	/**
+	 * The known organisation a sender's domain imitates, or null: the same name under another ending
+	 * (adatum.co for adatum.com), the name with a word added (adatum-payments.com), or the name one or two
+	 * letters off (adaturn.com). A domain that is one of the known organisations imitates nothing.
+	 */
+	static String lookalike(String domain, Collection<String> known) {
+		String org = registrable(domain);
+		if (org == null || known == null || known.contains(org)) {
+			return null;
+		}
+		String name = name(org);
+		for (String k : known) {
+			// a verified subdomain (partners.adatum.com) is the organisation, not a name of its own
+			String kOrg = registrable(k);
+			if (kOrg == null) {
+				continue;
+			}
+			if (kOrg.equals(org)) {
+				return null;
+			}
+			String other = name(kOrg);
+			// short names collide by chance: "acme" and "acne" are two companies
+			if (other.length() < 5 || name.length() < 5) {
+				continue;
+			}
+			if (name.equals(other) || name.startsWith(other + "-") || name.endsWith("-" + other)
+					|| other.startsWith(name + "-") || other.endsWith("-" + name)
+					|| distance(name, other) <= (other.length() >= 9 ? 2 : 1)) {
+				return kOrg;
+			}
+		}
+		return null;
+	}
+
+	// org(), and for an ending the public suffix list does not know, the last two labels
+	private static String registrable(String domain) {
+		String org = org(domain);
+		if (org == null || org.endsWith(".gov") || org.endsWith(".mil")) {
+			return org;
+		}
+		String[] labels = org.split("\\.");
+		try {
+			if (labels.length > 2 && !InternetDomainName.from(org).isUnderPublicSuffix()) {
+				return labels[labels.length - 2] + "." + labels[labels.length - 1];
+			}
+		} catch (IllegalArgumentException | IllegalStateException e) {
+			return org;
+		}
+		return org;
+	}
+
+	// the organisation's own name in its domain: "adatum" for adatum.co.uk
+	private static String name(String org) {
+		int dot = org.indexOf('.');
+		return dot < 0 ? org : org.substring(0, dot);
+	}
+
+	// edit distance, stopping the count at 3
+	private static int distance(String a, String b) {
+		if (Math.abs(a.length() - b.length()) > 2) {
+			return 3;
+		}
+		int[] prev = new int[b.length() + 1];
+		for (int j = 0; j <= b.length(); j++) {
+			prev[j] = j;
+		}
+		for (int i = 1; i <= a.length(); i++) {
+			int[] row = new int[b.length() + 1];
+			row[0] = i;
+			for (int j = 1; j <= b.length(); j++) {
+				row[j] = Math.min(Math.min(row[j - 1], prev[j]) + 1,
+						prev[j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1));
+			}
+			prev = row;
+		}
+		return Math.min(3, prev[b.length()]);
+	}
+
 	// the organisation's domain: mail.adatum.example is adatum.example; .gov and
 	// .mil keep the full agency domain
 	static String org(String domain) {
