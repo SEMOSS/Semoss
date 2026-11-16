@@ -8,22 +8,29 @@
                maxThreads="200" connectionTimeout="20000" allowTrace="false"
                maxParameterCount="1000" maxPostSize="10485760"
                clientAuth="${cac.piv.client.auth:-false}">
-      <!-- clientAuth is "want" (optional, not required) only when a site sets
-           CAC_PIV_CLIENT_AUTH=true (see setenv.sh) - a request with no client
-           certificate is accepted either way. To actually authenticate CAC/PIV
-           users, a site must also add a <TrustStore> here (and <CertificateVerification/>
-           if a non-default trust/revocation policy is needed) pointed at its own
-           mounted DoD PKI root/intermediate CA bundle - deliberately not
-           included here, the same way the server's own certificate above is a
-           mounted secret, not something baked into this template. CACFilter.java
-           and PIVFilter.java (Monolith) read the validated certificate from the
-           request; see docker/il4/README.md's CAC/PIV section for the full
-           enablement procedure. -->
+      <!-- clientAuth is "want" (request, do not insist on, a client certificate)
+           unless CAC_PIV_REQUIRED=false and CAC_PIV_CLIENT_AUTH is not true (see
+           setenv.sh). It is deliberately not "true": a connector that insists
+           ends the TLS handshake, and the browser then shows its own error page
+           with no way to explain what to do. Monolith's CACRequiredFilter makes
+           the requirement instead and sends a browser without a certificate to a
+           "CAC required" page. A certificate the browser DOES present is
+           validated here against the trust store named below - the DoD PKI CA
+           bundle a site mounts at /run/secrets/cac-truststore.bcfks (the
+           entrypoint refuses to start without it). Without an explicit trust
+           store the JVM's public-CA store would apply and any publicly issued
+           client certificate would pass. CACFilter.java and PIVFilter.java
+           (Monolith) read the validated certificate from the request; see
+           docker/il4/README.md's CAC/PIV section. -->
       <SSLHostConfig protocols="TLSv1.2,+TLSv1.3" sslProtocol="TLS"
                      keyManagerAlgorithm="PKIX"
                      groups="secp256r1,secp384r1,secp521r1,ffdhe2048,ffdhe3072"
                      cipherSuites="TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256"
-                     ciphers="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256">
+                     ciphers="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256"
+                     truststoreFile="${cac.piv.truststore.file:-/opt/fips/cacerts.bcfks}"
+                     truststoreType="BCFKS" truststoreProvider="BCFIPS"
+                     truststorePassword="${cac.piv.truststore.password:-changeit}"
+                     sessionTimeout="30">
         <Certificate certificateKeystoreFile="/run/secrets/server.bcfks"
                      certificateKeystoreType="BCFKS" certificateKeystoreProvider="BCFIPS"
                      certificateKeystorePasswordFile="/run/secrets/server.password"/>

@@ -25,4 +25,22 @@ for file in /run/secrets/server.bcfks /run/secrets/server.password; do
         exit 1
     fi
 done
+# CAC/PIV is required unless a site explicitly sets CAC_PIV_REQUIRED=false (see
+# conf/setenv.sh). The connector can only judge a card against the DoD PKI trust
+# store a site mounts, so refuse to start without it rather than fall back to
+# the JVM's public-CA store, which would accept any publicly issued certificate.
+if [ "${CAC_PIV_REQUIRED:-true}" = "true" ]; then
+    for file in /run/secrets/cac-truststore.bcfks /run/secrets/cac-truststore.password; do
+        if [ ! -r "$file" ] || [ ! -s "$file" ]; then
+            echo "CAC/PIV is required but its trust store secret is missing, empty, or unreadable: $file" >&2
+            echo "Mount the DoD PKI CA bundle, or set CAC_PIV_REQUIRED=false to run without CAC/PIV." >&2
+            exit 1
+        fi
+    done
+    # the password reaches Tomcat through a space-separated JVM option, so keep it to a safe alphabet
+    if [ -n "$(tr -d 'A-Za-z0-9._@%+=:,/-' < /run/secrets/cac-truststore.password | tr -d '\n')" ]; then
+        echo "/run/secrets/cac-truststore.password may only contain letters, digits and . _ @ % + = : , / -" >&2
+        exit 1
+    fi
+fi
 exec /opt/tomcat/bin/catalina.sh run

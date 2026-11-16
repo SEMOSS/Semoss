@@ -17,6 +17,13 @@ services:
     stop_grace_period: 60s
     ports:
       - "127.0.0.1:8443:8443"
+    environment:
+      # CAC/PIV is required by default (see README "CAC/PIV authentication"), and
+      # the container will not start without the DoD CA trust store mounted at
+      # /run/secrets/cac-truststore.bcfks. This local stack has no card reader or
+      # trust store, so it turns the requirement off - explicitly, and only here.
+      # Do not copy this line into a deployment.
+      CAC_PIV_REQUIRED: ${CAC_PIV_REQUIRED:-false}
     tmpfs:
       - /tmp:rw,noexec,nosuid,nodev
       - /opt/tomcat/temp:rw,noexec,nosuid,nodev,uid=10001,gid=10001

@@ -918,35 +918,82 @@ identity is established before anything downstream that might care whether a
 user is present - running them later, where the commented-out template left
 them, would authenticate too late for a new user's first request.
 
-### Why this is safe by default
+### CAC/PIV is required by default
 
-Being active in `web.xml` does not, by itself, do anything: both filters read
-`jakarta.servlet.request.X509Certificate[]` off the request, which is only
-populated when the TLS connector both requested *and received* a client
-certificate. `server.xml`'s connector has `clientAuth="${cac.piv.client.auth:-false}"`,
-defaulting to `false` unless a site sets `CAC_PIV_CLIENT_AUTH=true` (see
-`setenv.sh`) - so by default no client certificate is ever requested, the
-attribute is never populated, and both filters are a harmless no-op on every
-request. Native and OAuth/SSO login continue to work completely unchanged in
-this state.
+A request with no validated CAC/PIV client certificate never reaches the login
+page. Three pieces make that so:
 
-### Enabling it
+1. **`server.xml`'s connector requests a certificate** (`clientAuth="want"`) and
+   validates whatever the browser presents against the DoD PKI trust store a
+   site mounts (below). It is deliberately `want`, not `true`: a connector that
+   insists on the certificate ends the TLS handshake, and the browser then shows
+   its own error page with no way to tell the user what to do.
+2. **Monolith's `CACRequiredFilter`** (first in the chain after
+   `StartUpSuccessFilter`; active when `cac.piv.required` is `true`, which
+   `setenv.sh` sets from `CAC_PIV_REQUIRED`) turns a request with no validated
+   certificate away. A browser navigation is redirected to `/Monolith/cacRequired/`,
+   a static page that says a CAC is required, lists the steps (insert the card,
+   close other windows, try again) and links back to the site. Any other request
+   (an API call, an asset fetch) gets a `403` with a `CAC_REQUIRED` JSON body. Each
+   denial sends `Cache-Control: no-store` and `Connection: close`, and is written
+   to the security audit trail (`LOGIN_FAILURE`) at most once a minute per client.
+   `/health*` and `/cacRequired*` stay reachable, and so do requests whose TCP
+   peer is the container itself (the scheduler and local workers calling back
+   in, which carry no card) - decided by the socket's peer address only, never by
+   `X-Forwarded-For`, which a client can set.
+3. **The entrypoint refuses to start without the trust store.** With
+   `CAC_PIV_REQUIRED` unset or `true`, `/run/secrets/cac-truststore.bcfks` and
+   `/run/secrets/cac-truststore.password` must be present, non-empty and
+   readable. Without an explicit trust store the JVM's public-CA store would
+   apply and any publicly issued client certificate would be accepted as a CAC.
 
-Two things, both left to the deploying site rather than guessed at here:
+Because the page is reached by redirect, the user's card prompt and the retry
+come from the browser, not from SEMOSS. After the card is inserted, **Try again**
+loads the site on a new connection. `server.xml` also sets
+`sessionTimeout="30"` so the browser does not resume an earlier TLS session that
+had no certificate; the browser may still cache its "no certificate" choice for
+the host, which is why the page also says to close the browser and reopen it.
+Exercise the retry path with a real card and the browsers you support before
+relying on it - it has been tested here only with unit tests.
 
-1. Set `CAC_PIV_CLIENT_AUTH=true` so the connector requests a client
-   certificate (`clientAuth="want"` - optional, not required, so a client
-   with no certificate still connects and falls back to native/OAuth login).
-2. Add a `<TrustStore>` (and `<CertificateVerification/>` if you need
-   something other than the default revocation/trust policy) inside
-   `server.xml`'s `<SSLHostConfig>`, pointed at your own mounted DoD PKI
-   root/intermediate CA bundle. This is deliberately not included in the
-   image, the same way the server's own TLS certificate is a mounted secret
-   (`/run/secrets/server.bcfks`/`.p12`) rather than baked in - `clientAuth`
-   alone, with nothing to validate a presented certificate against, cannot
-   authenticate anyone.
+### Giving the connector its trust store
 
-### What happens once enabled
+Build a BCFKS keystore of the DoD PKI root and intermediate CA certificates you
+accept (obtain the bundle from DISA/DoD PKI and verify it before use), and mount
+it with a password file:
+
+```bash
+# one entry per CA certificate in the DoD bundle (PEM files)
+for ca in dod-roots/*.pem; do
+  keytool -importcert -noprompt -alias "$(basename "$ca" .pem)" -file "$ca" \
+    -keystore cac-truststore.bcfks -storetype BCFKS -storepass:file cac-truststore.password \
+    -providername BCFIPS -providerclass org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider \
+    -providerpath /path/to/bc-fips.jar
+done
+```
+
+Mount `cac-truststore.bcfks` and `cac-truststore.password` read-only at
+`/run/secrets/`, readable by UID/GID 10001, the same way as `server.bcfks`. The
+truststore holds public CA certificates only, so the password guards integrity,
+not secrecy; it is passed to Tomcat as a JVM property, so it may only contain
+letters, digits and `. _ @ % + = : , / -` (the entrypoint checks this). Generate
+one with `openssl rand -hex 24`.
+
+Not covered here: certificate revocation checking (CRL/OCSP) on the presented
+card. A site that needs it should enable `revocationEnabled`/a CRL on the
+`SSLHostConfig` and give the container egress to the DoD OCSP responders.
+
+### Turning it off
+
+`CAC_PIV_REQUIRED=false` runs without the requirement - for local development,
+or a site that authenticates users some other way. It must be set explicitly
+(`compose.dev.yml` does, for the local stack only), and it re-opens the login
+page to anyone who can reach the connector. `CAC_PIV_CLIENT_AUTH=true` together
+with `CAC_PIV_REQUIRED=false` requests a certificate without requiring one:
+`CACFilter`/`PIVFilter` authenticate a user who has a card, and everyone else
+logs in as before.
+
+### What happens once a certificate is presented
 
 `CACFilter` expects a CAC certificate's CN to end in a period-separated DoD
 ID (10+ digits) and pulls the email from the certificate's subject
