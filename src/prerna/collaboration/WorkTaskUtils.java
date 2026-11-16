@@ -141,10 +141,12 @@ public final class WorkTaskUtils {
 		}
 		Map<String, String> inbox = inbox(ownerId, ownerType);
 		Map<String, String> warnings = senderWarnings(ownerId, ownerType);
+		Map<String, List<Map<String, Object>>> allSteps = stepsByTask(ownerId, ownerType);
+		Map<String, List<Map<String, Object>>> allTopics = topicsByTask(ownerId, ownerType);
 		for (Map<String, Object> task : tasks) {
 			String taskId = (String) task.get("id");
-			task.put("topics", topics(ownerId, ownerType, taskId));
-			List<Map<String, Object>> steps = steps(ownerId, ownerType, taskId);
+			task.put("topics", allTopics.getOrDefault(taskId, new ArrayList<>()));
+			List<Map<String, Object>> steps = allSteps.getOrDefault(taskId, new ArrayList<>());
 			steps.forEach(step -> mark(step, inbox, warnings));
 			task.put("stepCount", steps.size());
 			steps.removeIf(step -> !STEP_OPEN.contains(step.get("status")));
@@ -771,32 +773,57 @@ public final class WorkTaskUtils {
 	 * their topics, and anyone at an organisation they have written on a conversation with.
 	 */
 	static Set<String> outside(String ownerId, String ownerType) {
-		String person = "p.OWNER_ID = ? AND p.OWNER_TYPE = ? AND p.EMAIL_NORM IS NOT NULL";
-		Set<String> known = new java.util.HashSet<>();
-		CollaborationDbUtils.query("SELECT DISTINCT p.EMAIL_NORM FROM BRAIN_PERSON p WHERE " + person
-				+ " AND (p.RELATIONSHIP IN (?, ?) OR p.IS_VIP = ? OR EXISTS (SELECT 1 FROM BRAIN_TOPIC_PERSON tp WHERE "
-				+ "tp.OWNER_ID = p.OWNER_ID AND tp.OWNER_TYPE = p.OWNER_TYPE AND tp.PERSON_ID = p.PERSON_ID AND "
-				+ "tp.STATE = ?) OR EXISTS (SELECT 1 FROM BRAIN_MESSAGE m JOIN BRAIN_MESSAGE mine ON mine.OWNER_ID = "
-				+ "m.OWNER_ID AND mine.OWNER_TYPE = m.OWNER_TYPE AND mine.THREAD_ID = m.THREAD_ID JOIN BRAIN_PERSON me "
-				+ "ON me.OWNER_ID = mine.OWNER_ID AND me.OWNER_TYPE = mine.OWNER_TYPE AND me.PERSON_ID = "
-				+ "mine.SENDER_PERSON_ID AND me.RELATIONSHIP = ? WHERE m.OWNER_ID = p.OWNER_ID AND m.OWNER_TYPE = "
-				+ "p.OWNER_TYPE AND m.SENDER_PERSON_ID = p.PERSON_ID))", rs -> known.add(orgKey(rs.getString(1))),
-				ownerId, ownerType, "self", "colleague", true, BrainTopicUtils.MEMBER, "self");
-		// a conversation is outside until someone the owner works with shows up on it
-		Map<String, Boolean> threads = new HashMap<>();
-		CollaborationDbUtils.query("SELECT DISTINCT m.THREAD_ID, p.EMAIL_NORM FROM BRAIN_MESSAGE m JOIN BRAIN_PERSON p "
-				+ "ON p.OWNER_ID = m.OWNER_ID AND p.OWNER_TYPE = m.OWNER_TYPE AND p.PERSON_ID = m.SENDER_PERSON_ID WHERE "
-				+ "m.OWNER_ID = ? AND m.OWNER_TYPE = ? AND p.EMAIL_NORM IS NOT NULL AND m.THREAD_ID IN (SELECT THREAD_ID "
-				+ "FROM WORK_THREAD_STEP" + OWNED + " AND STATUS = ? AND THREAD_ID IS NOT NULL)", rs -> {
-					threads.merge(rs.getString(1), !known.contains(orgKey(rs.getString(2))), Boolean::logicalAnd);
+		// read flat and worked out here: asked of the database as one statement this took most of a second on a
+		// mailbox of 8,000 messages, on every reading of the work list
+		Map<String, String> emails = new HashMap<>();
+		Set<String> mine = new java.util.HashSet<>();
+		Set<String> knownPeople = new java.util.HashSet<>();
+		CollaborationDbUtils.query("SELECT PERSON_ID, EMAIL_NORM, RELATIONSHIP, IS_VIP FROM BRAIN_PERSON" + OWNED, rs -> {
+			String id = rs.getString(1);
+			String relationship = rs.getString(3);
+			if (rs.getString(2) != null) {
+				emails.put(id, rs.getString(2));
+			}
+			if ("self".equals(relationship)) {
+				mine.add(id);
+			}
+			if ("self".equals(relationship) || "colleague".equals(relationship)
+					|| Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "IS_VIP"))) {
+				knownPeople.add(id);
+			}
+			return null;
+		}, ownerId, ownerType);
+		knownPeople.addAll(CollaborationDbUtils.query("SELECT DISTINCT PERSON_ID FROM BRAIN_TOPIC_PERSON" + OWNED
+				+ " AND STATE = ?", rs -> rs.getString(1), ownerId, ownerType, BrainTopicUtils.MEMBER));
+		// who wrote on each conversation
+		Map<String, Set<String>> writers = new HashMap<>();
+		CollaborationDbUtils.query("SELECT DISTINCT THREAD_ID, SENDER_PERSON_ID FROM BRAIN_MESSAGE" + OWNED
+				+ " AND THREAD_ID IS NOT NULL AND SENDER_PERSON_ID IS NOT NULL", rs -> {
+					writers.computeIfAbsent(rs.getString(1), k -> new java.util.HashSet<>()).add(rs.getString(2));
 					return null;
-				}, ownerId, ownerType, ownerId, ownerType, "open");
+				}, ownerId, ownerType);
+		// anyone on a conversation the owner wrote on is someone they work with
+		for (Set<String> people : writers.values()) {
+			if (people.stream().anyMatch(mine::contains)) {
+				knownPeople.addAll(people);
+			}
+		}
+		Set<String> known = new java.util.HashSet<>();
+		for (String person : knownPeople) {
+			if (emails.get(person) != null) {
+				known.add(orgKey(emails.get(person)));
+			}
+		}
+		// a conversation is outside until someone the owner works with shows up on it
 		Set<String> out = new java.util.HashSet<>();
-		threads.forEach((thread, strangers) -> {
-			if (strangers) {
+		for (String thread : CollaborationDbUtils.query("SELECT DISTINCT THREAD_ID FROM WORK_THREAD_STEP" + OWNED
+				+ " AND STATUS = ? AND THREAD_ID IS NOT NULL", rs -> rs.getString(1), ownerId, ownerType, "open")) {
+			List<String> addresses = writers.getOrDefault(thread, Set.of()).stream().map(emails::get)
+					.filter(java.util.Objects::nonNull).toList();
+			if (!addresses.isEmpty() && addresses.stream().noneMatch(address -> known.contains(orgKey(address)))) {
 				out.add(thread);
 			}
-		});
+		}
 		return out;
 	}
 
@@ -813,13 +840,42 @@ public final class WorkTaskUtils {
 				+ "th.OWNER_TYPE = c.OWNER_TYPE AND th.THREAD_ID = c.THREAD_ID WHERE c.OWNER_ID = "
 				+ "WORK_THREAD_STEP.OWNER_ID AND c.OWNER_TYPE = WORK_THREAD_STEP.OWNER_TYPE AND c.CANDIDATE_ID = "
 				+ "WORK_THREAD_STEP.CLOSED_BY) AS CLOSED_SUBJECT FROM WORK_THREAD_STEP" + OWNED
-				+ " AND TASK_ID = ? AND (STATUS IS NULL OR STATUS <> ?) ORDER BY CREATED_AT", rs -> {
+				+ (taskId == null ? " AND TASK_ID IS NOT NULL" : " AND TASK_ID = ?")
+				+ " AND (STATUS IS NULL OR STATUS <> ?) ORDER BY CREATED_AT", rs -> {
 					Map<String, Object> step = mapStep(rs);
 					putIfNotNull(step, "assigneeName", CollaborationDbUtils.getString(rs, "ASSIGNEE_NAME"));
 					putIfNotNull(step, "closedText", CollaborationDbUtils.getString(rs, "CLOSED_TEXT"));
 					putIfNotNull(step, "closedSubject", CollaborationDbUtils.getString(rs, "CLOSED_SUBJECT"));
 					return step;
-				}, ownerId, ownerType, taskId, WorkWorkspaceUtils.DISMISSED);
+				}, taskId == null ? new Object[] { ownerId, ownerType, WorkWorkspaceUtils.DISMISSED }
+						: new Object[] { ownerId, ownerType, taskId, WorkWorkspaceUtils.DISMISSED });
+	}
+
+	// every work item's steps and topics, read once each: a list of some hundred items asked item by item was
+	// most of the time the work list took
+	private static Map<String, List<Map<String, Object>>> stepsByTask(String ownerId, String ownerType) {
+		Map<String, List<Map<String, Object>>> out = new HashMap<>();
+		for (Map<String, Object> step : steps(ownerId, ownerType, null)) {
+			out.computeIfAbsent((String) step.get("taskId"), k -> new ArrayList<>()).add(step);
+		}
+		return out;
+	}
+
+	private static Map<String, List<Map<String, Object>>> topicsByTask(String ownerId, String ownerType) {
+		Map<String, List<Map<String, Object>>> out = new HashMap<>();
+		CollaborationDbUtils.query("SELECT l.TASK_ID, l.TOPIC_ID, l.IS_PRIMARY, t.NAME FROM WORK_TASK_TOPIC l LEFT JOIN "
+				+ "BRAIN_TOPIC t ON t.OWNER_ID = l.OWNER_ID AND t.OWNER_TYPE = l.OWNER_TYPE AND t.TOPIC_ID = l.TOPIC_ID "
+				+ "WHERE l.OWNER_ID = ? AND l.OWNER_TYPE = ? ORDER BY l.IS_PRIMARY DESC, t.NAME", rs -> {
+					Map<String, Object> t = new LinkedHashMap<>();
+					t.put("id", rs.getString("TOPIC_ID"));
+					t.put("name", CollaborationDbUtils.getString(rs, "NAME"));
+					if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "IS_PRIMARY"))) {
+						t.put("primary", true);
+					}
+					out.computeIfAbsent(rs.getString("TASK_ID"), k -> new ArrayList<>()).add(t);
+					return null;
+				}, ownerId, ownerType);
+		return out;
 	}
 
 	private static List<Map<String, Object>> topics(String ownerId, String ownerType, String taskId) {
