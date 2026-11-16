@@ -331,9 +331,9 @@ class SandboxLibrariesUnitTests {
 		byClassName.setProperty("dataSourceClassName", "org.h2.jdbcx.JdbcDataSource");
 
 		assertInstanceOf(HikariConfig.class, SandboxProbe.run(probe, "empty"));
-		assertEquals("jdbc:h2:mem:sandbox", SandboxedJavaExecution.hikariConfig(byUrl).getJdbcUrl());
-		assertThrows(SecurityException.class, () -> SandboxedJavaExecution.hikariConfig(byLookup));
-		assertThrows(SecurityException.class, () -> SandboxedJavaExecution.hikariConfig(byClassName));
+		assertEquals("jdbc:h2:mem:sandbox", SandboxedHikari.hikariConfig(byUrl).getJdbcUrl());
+		assertThrows(SecurityException.class, () -> SandboxedHikari.hikariConfig(byLookup));
+		assertThrows(SecurityException.class, () -> SandboxedHikari.hikariConfig(byClassName));
 	}
 
 	@Test
