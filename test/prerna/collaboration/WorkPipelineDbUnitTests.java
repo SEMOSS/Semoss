@@ -537,6 +537,17 @@ class WorkPipelineDbUnitTests {
 		List<Map<String, Object>> steps = (List<Map<String, Object>>) byId.get(aside).get("openSteps");
 		assertEquals(Set.of("fyi", "waiting"),
 				steps.stream().map(step -> step.get("inbox")).collect(java.util.stream.Collectors.toSet()));
+
+		// the owner says a set-aside step does need them: their word outranks the card
+		String surveyStep = (String) ((List<Map<String, Object>>) byId.get(survey).get("openSteps")).get(0).get("id");
+		WorkTaskUtils.updateStep(user, surveyStep, Map.of("status", "open"), "owner");
+		for (Map<String, Object> item : (List<Map<String, Object>>) WorkTaskUtils.listMyWork(user, Map.of())
+				.get("workItems")) {
+			if (survey.equals(item.get("id"))) {
+				assertEquals(true, item.get("needsYou"));
+				assertEquals(null, ((List<Map<String, Object>>) item.get("openSteps")).get(0).get("inbox"));
+			}
+		}
 	}
 
 	@Test

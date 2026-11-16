@@ -144,7 +144,7 @@ public final class WorkTaskUtils {
 			String taskId = (String) task.get("id");
 			task.put("topics", topics(ownerId, ownerType, taskId));
 			List<Map<String, Object>> steps = steps(ownerId, ownerType, taskId);
-			steps.forEach(step -> putIfNotNull(step, "inbox", inbox.get(step.get("threadId"))));
+			steps.forEach(step -> putIfNotNull(step, "inbox", verdict(step, inbox)));
 			task.put("stepCount", steps.size());
 			steps.removeIf(step -> !STEP_OPEN.contains(step.get("status")));
 			task.put("openSteps", steps);
@@ -178,7 +178,7 @@ public final class WorkTaskUtils {
 		if (looseSteps.size() > LOOSE_LIMIT) {
 			looseSteps = new ArrayList<>(looseSteps.subList(0, LOOSE_LIMIT));
 		}
-		looseSteps.forEach(step -> putIfNotNull(step, "inbox", inbox.get(step.get("threadId"))));
+		looseSteps.forEach(step -> putIfNotNull(step, "inbox", verdict(step, inbox)));
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("workItems", tasks);
 		out.put("looseSteps", looseSteps);
@@ -245,7 +245,7 @@ public final class WorkTaskUtils {
 		task.put("topics", topics(ownerId, ownerType, taskId));
 		Map<String, String> inbox = inbox(ownerId, ownerType);
 		List<Map<String, Object>> steps = steps(ownerId, ownerType, taskId);
-		steps.forEach(step -> putIfNotNull(step, "inbox", inbox.get(step.get("threadId"))));
+		steps.forEach(step -> putIfNotNull(step, "inbox", verdict(step, inbox)));
 		task.put("steps", steps);
 		task.put("timeline",
 				CollaborationDbUtils.query(
@@ -683,6 +683,13 @@ public final class WorkTaskUtils {
 			throw new IllegalArgumentException("Step not found");
 		}
 		return step;
+	}
+
+	// the conversation's verdict for a step, unless the owner has set the step themselves (kept it, took it over,
+	// reopened it): their word outranks a card that set the conversation aside
+	private static String verdict(Map<String, Object> step, Map<String, String> inbox) {
+		String verdict = inbox.get(step.get("threadId"));
+		return verdict != null && ASIDE.contains(verdict) && step.get("ownerSetAt") != null ? null : verdict;
 	}
 
 	// inbox verdicts that set a conversation aside: the owner is only informed, or is waiting on someone else
