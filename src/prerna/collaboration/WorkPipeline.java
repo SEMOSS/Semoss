@@ -714,7 +714,7 @@ int[] kept = { 0 };
 						+ "ADDRESSING_JSON, TOPIC_ID, RESULT, DROP_REASON, EXTRACTED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "
 						+ "?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, UUID.randomUUID().toString(), threadId, at,
 						time(at), clip(kind, 20), named(str(c.get("text")), names), str(c.get("quote")),
-						dueTime(str(c.get("due"))), clip(assignee, 50), clip(person(str(c.get("askedBy")), people), 50),
+						dueTime(str(c.get("due"))), clip(assignee, 50), clip(writer(source, c, people), 50),
 						CollaborationDbUtils.toJson(addressing), thread.get("topicId"), rule == null ? null : "drop",
 						rule, now);
 				if (rule == null) {
@@ -834,6 +834,8 @@ int[] kept = { 0 };
 		// run (older rows hold names the model made up, and topics merged or deleted
 		// since)
 		CollaborationDbUtils.query("SELECT c.CANDIDATE_ID, c.THREAD_ID, c.MESSAGE_REF, c.KIND, c.TEXT, c.DUE_AT, "
+				+ "c.ASKED_BY, (SELECT w.DISPLAY_NAME FROM BRAIN_PERSON w WHERE w.OWNER_ID = c.OWNER_ID AND "
+				+ "w.OWNER_TYPE = c.OWNER_TYPE AND w.PERSON_ID = c.ASKED_BY) AS WRITER_NAME, "
 				// the thread's topic now, not at extract: a thread filed, moved or left without
 				// a topic since
 				+ "c.ASSIGNEE, (SELECT MIN(bt.TOPIC_ID) FROM BRAIN_THREAD_TOPIC bt JOIN BRAIN_TOPIC tp ON "
@@ -867,6 +869,14 @@ int[] kept = { 0 };
 					String name = CollaborationDbUtils.getString(rs, "DISPLAY_NAME");
 					c.put("assignee",
 							isPerson(assignee) ? (name == null ? UNCLEAR : name) : assignee == null ? "" : assignee);
+					// who wrote the message: the owner, or a person by name; left out when not known
+					String writer = rs.getString("ASKED_BY");
+					String writerName = CollaborationDbUtils.getString(rs, "WRITER_NAME");
+					if (ME.equals(writer)) {
+						c.put("by", ME);
+					} else if (writerName != null && !writerName.isBlank()) {
+						c.put("by", writerName);
+					}
 					c.put("text", CollaborationDbUtils.getString(rs, "TEXT"));
 					c.put("at", row.get("at"));
 					String due = (String) row.get("due");
@@ -1496,6 +1506,19 @@ int[] kept = { 0 };
 			return people.get(value);
 		}
 		return ME.equals(value) || GROUP.equals(value) ? value : UNCLEAR;
+	}
+
+	// who wrote the message a candidate comes from, from the message itself: the owner or a person Brain knows.
+	// Only when the message is not found, or its sender is no one Brain knows, the model's reading stands
+	private static String writer(Map<String, Object> source, Map<String, Object> c, Map<String, String> people) {
+		Object from = source == null ? null : source.get("from");
+		if (ME.equals(from)) {
+			return ME;
+		}
+		if (from != null && people.containsKey(String.valueOf(from))) {
+			return people.get(String.valueOf(from));
+		}
+		return person(str(c.get("askedBy")), people);
 	}
 
 	// a name ("Bob") or a p id the model made up is no one Brain knows: unclear,

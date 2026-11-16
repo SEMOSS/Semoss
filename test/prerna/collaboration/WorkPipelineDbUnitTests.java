@@ -627,6 +627,45 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
+	void aClaimFromAnotherConversationClosesAStepOnlyWhenItsWriterIsWhoTheStepIsFor() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		person("self", "Owner", "owner@test.com", "self");
+		person("kira", "Kira", "kira@test.com", null);
+		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS) VALUES (?, ?, 'budget', 'Budget', "
+				+ "'active')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_SETTINGS (OWNER_ID, OWNER_TYPE, WORK_CLOSE_ACROSS) VALUES (?, ?, TRUE)", ownerId,
+				ownerType);
+		for (String id : List.of("ask", "kira-says", "owner-says")) {
+			thread(id, at, null);
+			sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, IS_PRIMARY) VALUES (?, ?, ?, "
+					+ "'budget', TRUE)", ownerId, ownerType, id);
+		}
+		step("mine-1", "ask", "budget", "Send Kira the budget");
+		step("mine-2", "ask", "budget", "Send Kira the forecast");
+		sql("UPDATE WORK_THREAD_STEP SET STEP_OWNER_ID = 'self'");
+		// loose steps are listed newest first: the forecast step is s1, the budget step s2
+		sql("UPDATE WORK_THREAD_STEP SET CREATED_AT = ? WHERE STEP_ID = 'mine-2'",
+				Timestamp.valueOf("2026-11-04 10:00:00"));
+		// Kira did something else with the same words; the owner did what the other step asks
+		candidate("kira-claim", "kira-says", "budget", "Kira approved the budget", at.plusMinutes(1));
+		sql("UPDATE WORK_CANDIDATE SET ASKED_BY = 'kira' WHERE CANDIDATE_ID = 'kira-claim'");
+		candidate("owner-claim", "owner-says", "budget", "Sent Kira the forecast", at.plusMinutes(2));
+		sql("UPDATE WORK_CANDIDATE SET ASKED_BY = 'me' WHERE CANDIDATE_ID = 'owner-claim'");
+		reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"closes\", \"ref\": \"s2\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"closes\", \"ref\": \"s1\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": []}";
+		WorkPipeline.reconcile(user, ownerId, ownerType, model);
+		String prompt = prompts.get(prompts.size() - 1);
+		// the model is told whose each step is and who wrote each claim
+		assertTrue(prompt.contains("\"for\":\"me\"") || prompt.contains("\"for\": \"me\""), prompt);
+		assertTrue(prompt.contains("\"by\":\"Kira\"") || prompt.contains("\"by\": \"Kira\""), prompt);
+		assertTrue(prompt.contains("\"by\":\"me\"") || prompt.contains("\"by\": \"me\""), prompt);
+		// Kira's message does not finish the owner's step; the owner's own message finishes theirs
+		assertEquals("open", stepStatus("mine-1"));
+		assertEquals("done", stepStatus("mine-2"));
+	}
+
+	@Test
 	void aDoneClaimThatNamesARepeatedAskClosesTheStepItRepeats() throws Exception {
 		LocalDateTime at = at("2026-11-05T10:00:00");
 		thread("deck", at, null);
