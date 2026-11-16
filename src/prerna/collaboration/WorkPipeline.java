@@ -57,6 +57,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
+import com.google.common.util.concurrent.MoreExecutors;
+
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
@@ -433,7 +435,7 @@ public final class WorkPipeline {
 				java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
 				int readers = Math.max(1, Math.min(extractParallel(), threadIds.size()));
 				// one reader reads on this thread: no pool to start for a single thread or a setting of 1
-				ExecutorService reads = readers == 1 ? new InPlace() : readPool.apply(readers);
+				ExecutorService reads = readers == 1 ? MoreExecutors.newDirectExecutorService() : readPool.apply(readers);
 				try {
 					List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
 					for (String threadId : threadIds) {
@@ -715,7 +717,7 @@ public final class WorkPipeline {
 		boolean bulk = Boolean.TRUE.equals(facts.get("bulk"));
 		int size = facts.get("people") instanceof Integer n ? n : 0;
 		Timestamp now = CollaborationDbUtils.now();
-int[] kept = { 0 };
+		int[] kept = { 0 };
 		CollaborationDbUtils.inTransaction(conn -> {
 			for (Map<String, Object> c : found) {
 				String kind = str(c.get("kind"));
@@ -1337,42 +1339,6 @@ int[] kept = { 0 };
 			}
 		}
 		pool.execute(() -> drain(lane));
-	}
-
-	// runs each job where it is submitted
-	private static final class InPlace extends java.util.concurrent.AbstractExecutorService {
-		private boolean shut;
-
-		@Override
-		public void execute(Runnable job) {
-			job.run();
-		}
-
-		@Override
-		public void shutdown() {
-			shut = true;
-		}
-
-		@Override
-		public List<Runnable> shutdownNow() {
-			shut = true;
-			return List.of();
-		}
-
-		@Override
-		public boolean isShutdown() {
-			return shut;
-		}
-
-		@Override
-		public boolean isTerminated() {
-			return shut;
-		}
-
-		@Override
-		public boolean awaitTermination(long timeout, java.util.concurrent.TimeUnit unit) {
-			return true;
-		}
 	}
 
 	private static int extractParallel() {

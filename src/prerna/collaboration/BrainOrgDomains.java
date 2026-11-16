@@ -34,6 +34,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.text.similarity.LevenshteinDistance;
+
 import com.google.common.net.InternetDomainName;
 
 // the owner's own organisation: their domain and the Microsoft tenant's verified domains (read at import),
@@ -147,7 +149,7 @@ public final class BrainOrgDomains {
 			}
 			if (name.equals(other) || name.startsWith(other + "-") || name.endsWith("-" + other)
 					|| other.startsWith(name + "-") || other.endsWith("-" + name)
-					|| distance(name, other) <= (other.length() >= 9 ? 2 : 1)) {
+					|| LevenshteinDistance.getDefaultInstance().apply(name, other) <= (other.length() >= 9 ? 2 : 1)) {
 				return kOrg;
 			}
 		}
@@ -175,27 +177,6 @@ public final class BrainOrgDomains {
 	private static String name(String org) {
 		int dot = org.indexOf('.');
 		return dot < 0 ? org : org.substring(0, dot);
-	}
-
-	// edit distance, stopping the count at 3
-	private static int distance(String a, String b) {
-		if (Math.abs(a.length() - b.length()) > 2) {
-			return 3;
-		}
-		int[] prev = new int[b.length() + 1];
-		for (int j = 0; j <= b.length(); j++) {
-			prev[j] = j;
-		}
-		for (int i = 1; i <= a.length(); i++) {
-			int[] row = new int[b.length() + 1];
-			row[0] = i;
-			for (int j = 1; j <= b.length(); j++) {
-				row[j] = Math.min(Math.min(row[j - 1], prev[j]) + 1,
-						prev[j - 1] + (a.charAt(i - 1) == b.charAt(j - 1) ? 0 : 1));
-			}
-			prev = row;
-		}
-		return Math.min(3, prev[b.length()]);
 	}
 
 	// the organisation's domain: mail.adatum.example is adatum.example; .gov and

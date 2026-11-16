@@ -717,24 +717,7 @@ public final class BrainThreadClassifier {
 
 	private static BrainClassifier.Scores modelScores(Context ctx, String threadId, String subject,
 			List<Map<String, Object>> messages, boolean kept) {
-		Window window = ctx.window();
-		// newest first, so the budget always keeps the newest message
-		List<BrainClassifier.Message> input = new ArrayList<>();
-		int left = window.budget();
-		for (int i = messages.size() - 1; i >= 0 && left > 0; i--) {
-			Map<String, Object> m = messages.get(i);
-			int max = Math.min(left,
-					Boolean.TRUE.equals(m.get("history")) ? window.historyChars() : window.textChars());
-			String text = clip(m.get("text"), max);
-			left -= text.length();
-			String footer = window.footerChars() == 0 ? null : clip(m.get("footer"), Math.min(left, window.footerChars()));
-			left -= footer == null ? 0 : footer.length();
-			input.add(0, new BrainClassifier.Message(from(ctx, m), names(ctx.self(), m.get("to")),
-					names(ctx.self(), m.get("cc")), (String) m.get("at"), text,
-					footer == null || footer.isEmpty() ? null : footer));
-		}
-		return ctx.classifier().score(new BrainClassifier.ThreadInput(threadId, ctx.self().name(), subject,
-				participants(ctx, threadId), input, window.earlier(), RuntimeTimeContext.capture(ctx.timeZone()),
+		return ctx.classifier().score(input(ctx, threadId, subject, messages, true,
 				BrainMailFolders.facts(ctx.ownerId(), ctx.ownerType(), threadId, ctx.folders())),
 				// each topic with what is filed under it, less this thread's own subject
 				kept ? List.of() : BrainTopicEvidence.describe(ctx.topics(), ctx.evidence(), threadId),
@@ -775,7 +758,7 @@ public final class BrainThreadClassifier {
 			return false;
 		}
 		Map<String, Object> newest = messages.get(messages.size() - 1);
-		Double demand = ctx.classifier().demand(input(ctx, threadId, subject, messages), ctx.insight());
+		Double demand = ctx.classifier().demand(input(ctx, threadId, subject, messages, false, null), ctx.insight());
 		if (demand != null && !ctx.dryRun()) {
 			CollaborationDbUtils.update("UPDATE BRAIN_MESSAGE SET CLASSIFIED_AT = ?, CLASSIFIER_VERSION = ? WHERE "
 					+ "OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?", CollaborationDbUtils.now(),
@@ -849,22 +832,29 @@ public final class BrainThreadClassifier {
 		});
 	}
 
-	// the thread as the classifier reads it: newest messages within the window's budget
+	// the thread as the classifier reads it: the newest messages within the window's budget, each with its
+	// footer when asked for and the window has room; outlook is what the mailbox says of the thread, or null
 	private static BrainClassifier.ThreadInput input(Context ctx, String threadId, String subject,
-			List<Map<String, Object>> messages) {
+			List<Map<String, Object>> messages, boolean footers, Map<String, Object> outlook) {
 		Window window = ctx.window();
+		// newest first, so the budget always keeps the newest message
 		List<BrainClassifier.Message> input = new ArrayList<>();
 		int left = window.budget();
 		for (int i = messages.size() - 1; i >= 0 && left > 0; i--) {
 			Map<String, Object> m = messages.get(i);
-			String text = clip(m.get("text"), Math.min(left,
-					Boolean.TRUE.equals(m.get("history")) ? window.historyChars() : window.textChars()));
+			int max = Math.min(left,
+					Boolean.TRUE.equals(m.get("history")) ? window.historyChars() : window.textChars());
+			String text = clip(m.get("text"), max);
 			left -= text.length();
+			String footer = !footers || window.footerChars() == 0 ? null
+					: clip(m.get("footer"), Math.min(left, window.footerChars()));
+			left -= footer == null ? 0 : footer.length();
 			input.add(0, new BrainClassifier.Message(from(ctx, m), names(ctx.self(), m.get("to")),
-					names(ctx.self(), m.get("cc")), (String) m.get("at"), text, null));
+					names(ctx.self(), m.get("cc")), (String) m.get("at"), text,
+					footer == null || footer.isEmpty() ? null : footer));
 		}
 		return new BrainClassifier.ThreadInput(threadId, ctx.self().name(), subject, participants(ctx, threadId), input,
-				window.earlier(), RuntimeTimeContext.capture(ctx.timeZone()), null);
+				window.earlier(), RuntimeTimeContext.capture(ctx.timeZone()), outlook);
 	}
 
 	private static String clip(Object value, int max) {
