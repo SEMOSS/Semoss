@@ -82,6 +82,6 @@ public class GetAutomationReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
 				"Returns the automation graph, node sources, revision, trigger globals, and scope variables for a project.")
-				.key(ReactorKeysEnum.PROJECT, "The project ID or alias of the automation to retrieve.");
+				.key(ReactorKeysEnum.PROJECT, "The project ID of the automation to retrieve.");
 	}
 }

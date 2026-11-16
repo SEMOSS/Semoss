@@ -34,7 +34,6 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
@@ -62,8 +61,6 @@ public class AdminEngineInfoReactor extends AbstractReactor {
 		if (engineId == null || engineId.isEmpty()) {
 			throw new IllegalArgumentException("Must input an engine id");
 		}
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-
 		List<Map<String, Object>> baseInfo = adminUtils.getAllEngineSettings(Arrays.asList(engineId), null, null, null,
 				null, null);
 		if (baseInfo == null || baseInfo.isEmpty()) {

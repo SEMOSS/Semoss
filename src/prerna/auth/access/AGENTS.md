@@ -116,7 +116,13 @@ What validating a batch finds (built while saving; saving works from these)
   `requireEach` for the rows of a bulk request, and `requireById` for a team
   level sent as 1 to 3. Each refuses a missing or unknown level with an
   `IllegalArgumentException`, which the endpoint answers with 400.
-- End dates are ISO dates and times with a zone, or null for never.
+- End dates are ISO dates and times with a zone, stored in UTC, or null for never.
+  Access whose end date has passed is removed by `ExpiredAccessRemoval`, which
+  every server runs once a minute from a random start, from every table above,
+  with the usage limit on it. The audit trail records each
+  removal with SEMOSS as the actor and the action `PERMISSION_EXPIRED`: a
+  `PERMISSION_DELETE` for a grant, naming the person, team or app and the level,
+  and a `GROUP_MEMBER_REMOVE` for a place in a team.
 - A person needs a login type only on `TEAM` and `TEAM_MANAGERS`, since the
   other tables keep only the id. A type that is given must match an account.
 - A team subject always needs its type.
@@ -502,7 +508,7 @@ and after as `{"usageLimit": ...}` (null for no limit defined), and
 `details.limitType` (`DIRECT`, `TEAM`, `APP`, `PUBLIC` or `MODEL_TOTAL`, with the
 team for a Team Limit and the project for an App Limit). A grant's removal records its limit removed with it
 (`removedWithGrant`), and so does a grant that ended, removed by SEMOSS
-(`removeExpiredEngineUser`, `reason` `EXPIRED`). Changes to a model's public use
+(`ExpiredAccessRemoval`, `reason` `EXPIRED`). Changes to a model's public use
 or total record only this event, since they change no access. `PermissionChangeValidation` keeps the limit
 before the change (`getCurrentUsageLimit`) for it. A model's owners read its limit changes on its
 Audit tab (`ResourceAuditReadService`); admins read them with the access changes, the app and engine

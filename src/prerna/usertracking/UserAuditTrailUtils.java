@@ -408,18 +408,6 @@ public final class UserAuditTrailUtils {
 	}
 
 	/**
-	 * Records a permission the platform removed because its end date passed. The
-	 * actor is the system, not a user.
-	 */
-	public static void recordExpiredPermissionRemoval(AuditTargetType targetType, String targetId, String projectId,
-			String engineId, String insightId, String userId) {
-		recordEvent(new AuditEvent().eventType(AuditEventType.PERMISSION_DELETE).action(PERMISSION_EXPIRED_ACTION)
-				.status(AuditStatus.SUCCESS).systemActor().subject(userId, null, null)
-				.target(targetType, targetId, null).context(projectId, engineId, insightId, null)
-				.details(Map.of("reason", "EXPIRED")));
-	}
-
-	/**
 	 * Records a team (group) permission change. Groups are not users, so the group
 	 * is stored in {@code DETAILS} ({@code groupId}/{@code groupType}) and the
 	 * subject user columns stay empty.

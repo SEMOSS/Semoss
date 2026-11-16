@@ -82,7 +82,6 @@ public class SetRemoteMCPReactor extends AbstractReactor {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
 			throw new IllegalArgumentException("Project " + projectId
 					+ " does not exist or user does not have permissions to set the remote MCP. User must be the owner to perform this function.");

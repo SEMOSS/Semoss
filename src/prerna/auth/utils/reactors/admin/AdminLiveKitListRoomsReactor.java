@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.livekit;
+package prerna.auth.utils.reactors.admin;
 
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
@@ -40,15 +40,12 @@ import java.io.IOException;
 import livekit.LivekitModels.Room;
 import java.util.List;
 
-public class LiveKitListRoomsAdminReactor extends AbstractReactor {
-	private static final Logger classLogger = LogManager.getLogger(LiveKitListRoomsAdminReactor.class);
+public class AdminLiveKitListRoomsReactor extends AbstractReactor {
 
-	public LiveKitListRoomsAdminReactor() {
-	}
+	private static final Logger classLogger = LogManager.getLogger(AdminLiveKitListRoomsReactor.class);
 
 	@Override
 	public NounMetadata execute() {
-
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(this.insight.getUser());
 		if (!isAdmin) {
 			throw new IllegalArgumentException("User must be an admin for this operation!");
@@ -58,13 +55,10 @@ public class LiveKitListRoomsAdminReactor extends AbstractReactor {
 
 		try {
 			List<Room> rooms = controller.listRooms();
-
 			return new NounMetadata(rooms, PixelDataType.CUSTOM_DATA_STRUCTURE);
-
 		} catch (IOException e) {
 			String errorMsg = "Failed to list LiveKit rooms: " + e.getMessage();
 			classLogger.error(errorMsg, e);
-
 			return getError(errorMsg);
 		}
 	}

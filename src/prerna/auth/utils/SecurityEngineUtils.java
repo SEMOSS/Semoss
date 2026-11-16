@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -52,7 +51,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
@@ -1334,63 +1332,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 								PermissionBatchUtils.OWNERS_END_LIMITED_ACCESS)
 						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the users from this engine"));
-	}
-
-	/**
-	 * Removes a person's access to an engine once it has ended, with the model
-	 * usage limit on it.
-	 *
-	 * @param userId   the person
-	 * @param engineId the engine
-	 */
-	public static void removeExpiredEngineUser(String userId, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
-		// read before the removal, so the audit trail records the limits removed with
-		// it
-		Map<ModelUsageLimitKey, ModelUsageLimit> removedLimits = directLimitsOf(engineId, userId);
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				QueryExecutionUtility.executeUpdate(connection, deleteQuery, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, engineId);
-				});
-				SecurityModelUsageLimitUtils.deleteDirectLimitsWithoutGrant(connection, userId);
-				return null;
-			});
-			SecurityModelUsageLimitUtils.markChanged();
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to remove expired engine user", e);
-			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
-		}
-		UserAuditTrailUtils.recordExpiredPermissionRemoval(getAuditTargetType(engineId), engineId, null, engineId, null,
-				userId);
-		ModelUsageLimitAudit.recordRemovedWithExpiredGrant(engineId, removedLimits);
-	}
-
-	/**
-	 * Reads a person's Direct Limits on a model, on every login type, for the audit
-	 * trail of a removal. A read that fails gives none, so it never stops the
-	 * removal.
-	 *
-	 * @return the person's Direct Limits on the model, by key
-	 */
-	private static Map<ModelUsageLimitKey, ModelUsageLimit> directLimitsOf(String engineId, String userId) {
-		Map<ModelUsageLimitKey, ModelUsageLimit> direct = new LinkedHashMap<>();
-		try {
-			for (Map.Entry<ModelUsageLimitKey, ModelUsageLimit> entry : SecurityModelUsageLimitUtils
-					.getEngineLimits(engineId).entrySet()) {
-				if (entry.getKey().isDirect() && userId.equals(entry.getKey().subjectId())) {
-					direct.put(entry.getKey(), entry.getValue());
-				}
-			}
-		} catch (RuntimeException e) {
-			classLogger.warn("Unable to read the usage limits of an expired grant for the audit trail", e);
-		}
-		return direct;
 	}
 
 	/**

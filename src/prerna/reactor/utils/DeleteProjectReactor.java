@@ -77,7 +77,6 @@ public class DeleteProjectReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 
 			// we may have the alias
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
 				throwFunctionalityOnlyExposedForAdminsError();
 			}

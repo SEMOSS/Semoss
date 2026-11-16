@@ -58,7 +58,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.ModelTypeEnum;
@@ -167,8 +166,9 @@ public class ModelBatchManager {
 				try {
 					return ModelUsageGuard.markOnce(key, ITEM_MARK_TIME);
 				} catch (ModelUsageStoreException e) {
-					classLogger.warn("Batch results are marked on this server only, since the counters cannot be "
-							+ "reached: " + e.getMessage());
+					classLogger.warn(
+							"Batch results are marked on this server only, since the counters cannot be reached: {}",
+							e.getMessage());
 					shared = false;
 				}
 			}
@@ -203,7 +203,8 @@ public class ModelBatchManager {
 	private static final String VERTEX_BATCH_ROOT = "semoss-batches/";
 
 	/**
-	 * Decoded pieces of a VERTEX providerBatchId; see {@link #VERTEX_STORAGE_DELIM}.
+	 * Decoded pieces of a VERTEX providerBatchId; see
+	 * {@link #VERTEX_STORAGE_DELIM}.
 	 */
 	private static final class VertexBatchId {
 		final String storageEngineId;
@@ -485,8 +486,9 @@ public class ModelBatchManager {
 
 	/**
 	 * The TRANSACTION_ID of one batch request's log rows: "batchId.customId", or a
-	 * UUID named after it when that is longer than the column holds, so a long batch
-	 * or custom id still logs. Submit, billing and results all key a request by it.
+	 * UUID named after it when that is longer than the column holds, so a long
+	 * batch or custom id still logs. Submit, billing and results all key a request
+	 * by it.
 	 *
 	 * @param providerBatchId the batch id the caller holds
 	 * @param customId        the request's custom id
@@ -609,7 +611,8 @@ public class ModelBatchManager {
 	 */
 	static Map<String, Object> withMaxOutput(Map<String, Object> request, long cap, ModelTypeEnum modelType) {
 		Map<String, Object> copy = new LinkedHashMap<>(request);
-		// both Vertex clients take max_tokens; Claude on Vertex refuses max_completion_tokens
+		// both Vertex clients take max_tokens; Claude on Vertex refuses
+		// max_completion_tokens
 		boolean usesMaxTokens = modelType == ModelTypeEnum.ANTHROPIC || modelType == ModelTypeEnum.VERTEX;
 		for (String bodyKey : NATIVE_BODY_KEYS) {
 			if (copy.get(bodyKey) instanceof Map<?, ?> nativeBody) {
@@ -627,8 +630,7 @@ public class ModelBatchManager {
 	}
 
 	/**
-	 * Copies the provider-native body of a batch request into a map keyed by
-	 * name.
+	 * Copies the provider-native body of a batch request into a map keyed by name.
 	 *
 	 * @param body the body, as the request holds it
 	 * @return a copy with the same entries in the same order
@@ -670,9 +672,9 @@ public class ModelBatchManager {
 	/**
 	 * For a VERTEX engine, providerBatchId is "<storageEngineId>:<batchUuid>.
 	 * <vertexJobName>" (see {@link #submitVertexBatch}) since results, unlike
-	 * status/list/cancel, needs bucket access again. Re-resolves and
-	 * re-authorizes that storage engine here (no SEMOSS-side state persisted
-	 * for it) and reads the output itself -- Python never touches the bucket.
+	 * status/list/cancel, needs bucket access again. Re-resolves and re-authorizes
+	 * that storage engine here (no SEMOSS-side state persisted for it) and reads
+	 * the output itself -- Python never touches the bucket.
 	 */
 	public static BatchResultsResponse results(User user, String engineId, String providerBatchId,
 			Map<String, Object> parameters) {
@@ -693,13 +695,12 @@ public class ModelBatchManager {
 	}
 
 	/**
-	 * Resolves and authorizes a GCS storage engine, mirroring StorageReactor's
-	 * own STORAGE key handling. Submitting writes the batch's input into the
-	 * bucket, so it needs edit access, as PushToStorage does; reading the results
-	 * needs view access.
+	 * Resolves and authorizes a GCS storage engine, mirroring StorageReactor's own
+	 * STORAGE key handling. Submitting writes the batch's input into the bucket, so
+	 * it needs edit access, as PushToStorage does; reading the results needs view
+	 * access.
 	 */
-	public static IStorageEngine resolveStorage(User user, String storageEngineId, boolean edit) {
-		String storageId = SecurityQueryUtils.testUserEngineIdForAlias(user, storageEngineId);
+	public static IStorageEngine resolveStorage(User user, String storageId, boolean edit) {
 		if (edit ? !SecurityEngineUtils.userCanEditEngine(user, storageId)
 				: !SecurityEngineUtils.userCanViewEngine(user, storageId)) {
 			throw new IllegalArgumentException("Storage " + storageId + " does not exist or user does not have "
@@ -709,14 +710,13 @@ public class ModelBatchManager {
 	}
 
 	/**
-	 * Anthropic-on-Vertex has no hosted batch API; a Vertex AI batch prediction
-	 * job is used instead, staged through Cloud Storage. Java drives every bit
-	 * of that GCS I/O itself through the given (already resolved+authorized)
-	 * storage engine -- its credentials never leave this method, let alone
-	 * reach the out-of-process Python runtime. Two calls into the engine:
-	 * first to build the input JSONL (no GCS/Vertex touched), then -- once
-	 * Java has uploaded it -- to actually create the job with the resulting
-	 * gs:// URIs.
+	 * Anthropic-on-Vertex has no hosted batch API; a Vertex AI batch prediction job
+	 * is used instead, staged through Cloud Storage. Java drives every bit of that
+	 * GCS I/O itself through the given (already resolved+authorized) storage engine
+	 * -- its credentials never leave this method, let alone reach the
+	 * out-of-process Python runtime. Two calls into the engine: first to build the
+	 * input JSONL (no GCS/Vertex touched), then -- once Java has uploaded it -- to
+	 * actually create the job with the resulting gs:// URIs.
 	 */
 	public static BatchSubmissionResponse submitVertexBatch(IModelEngine engine, IStorageEngine storage,
 			List<Map<String, Object>> requests, Map<String, Object> parameters) {
@@ -762,24 +762,24 @@ public class ModelBatchManager {
 		// (projects/.../locations/.../batchPredictionJobs/<id>); only the
 		// trailing numeric id is needed to poll/cancel/fetch it later
 		String bareJobId = fullJobName.substring(fullJobName.lastIndexOf('/') + 1);
-		jobResponse.setProviderBatchId(storageToken + VERTEX_STORAGE_DELIM + folderToken
-				+ COMPOSITE_DELIM + encodeJobIdToken(bareJobId));
+		jobResponse.setProviderBatchId(
+				storageToken + VERTEX_STORAGE_DELIM + folderToken + COMPOSITE_DELIM + encodeJobIdToken(bareJobId));
 		return jobResponse;
 	}
 
 	/**
-	 * providerBatchId here is "<storageEngineId>:<batchUuid>.<vertexJobName>"
-	 * (see {@link #submitVertexBatch}). Splits it back apart, re-resolves and
-	 * re-authorizes the storage engine, and downloads the output files under
-	 * the exact same relative prefix it originally chose at submit time --
-	 * recursing one level to find whatever shard files Vertex wrote there --
-	 * into a temp folder, deleted after, that the engine reads and normalizes.
-	 * The engine is asked under the caller's id, which the results are billed
-	 * and logged under, is given the plain job id as jobId and the downloaded
-	 * files as outputFiles, and never touches the bucket.
+	 * providerBatchId here is "<storageEngineId>:<batchUuid>.<vertexJobName>" (see
+	 * {@link #submitVertexBatch}). Splits it back apart, re-resolves and
+	 * re-authorizes the storage engine, and downloads the output files under the
+	 * exact same relative prefix it originally chose at submit time -- recursing
+	 * one level to find whatever shard files Vertex wrote there -- into a temp
+	 * folder, deleted after, that the engine reads and normalizes. The engine is
+	 * asked under the caller's id, which the results are billed and logged under,
+	 * is given the plain job id as jobId and the downloaded files as outputFiles,
+	 * and never touches the bucket.
 	 */
-	private static BatchResultsResponse fetchVertexBatchResults(User user, IModelEngine engine,
-			String providerBatchId, Map<String, Object> parameters) {
+	private static BatchResultsResponse fetchVertexBatchResults(User user, IModelEngine engine, String providerBatchId,
+			Map<String, Object> parameters) {
 		VertexBatchId decoded = decodeVertexBatchId(providerBatchId);
 		IStorageEngine storage = resolveStorage(user, decoded.storageEngineId, false);
 		String outputPrefix = VERTEX_BATCH_ROOT + decoded.folderToken + "/output/";
@@ -818,12 +818,12 @@ public class ModelBatchManager {
 	}
 
 	/**
-	 * Vertex writes output under its own generated subfolder(s) inside the
-	 * prefix a job was given (e.g. "prediction-<model>-<timestamp>/predictions_
-	 * 00001.jsonl"), so a plain single-level listing of the output prefix
-	 * itself would only see that subfolder, not the files in it. Recurses to
-	 * find the ".jsonl" files, bounded in depth since Vertex only nests one
-	 * level today but this shouldn't break if that ever changes.
+	 * Vertex writes output under its own generated subfolder(s) inside the prefix a
+	 * job was given (e.g. "prediction-<model>-<timestamp>/predictions_
+	 * 00001.jsonl"), so a plain single-level listing of the output prefix itself
+	 * would only see that subfolder, not the files in it. Recurses to find the
+	 * ".jsonl" files, bounded in depth since Vertex only nests one level today but
+	 * this shouldn't break if that ever changes.
 	 */
 	private static void collectJsonlBlobPaths(IStorageEngine storage, String prefix, List<String> out, int depth)
 			throws Exception {
@@ -1009,9 +1009,9 @@ public class ModelBatchManager {
 	}
 
 	/**
-	 * Look up the stored input prompts for a batch. Returns transactionId -> command
-	 * map, keyed by {@link #batchTransactionId}. Returns empty map if logging is
-	 * disabled or no submission row exists.
+	 * Look up the stored input prompts for a batch. Returns transactionId ->
+	 * command map, keyed by {@link #batchTransactionId}. Returns empty map if
+	 * logging is disabled or no submission row exists.
 	 */
 	public static Map<String, String> getBatchInputs(User user, String providerBatchId) {
 		if (!Utility.isModelInferenceLogsEnabled()) {

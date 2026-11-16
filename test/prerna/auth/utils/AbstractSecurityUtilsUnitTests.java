@@ -39,8 +39,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,7 +64,6 @@ import prerna.auth.access.ModelUsageLimitRule;
 import prerna.auth.access.ModelUsageLimitRule.Counts;
 import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.auth.access.ModelUsageLimitRule.Window;
-import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.project.api.IProject;
@@ -947,23 +944,6 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		Timestamp ts = AbstractSecurityUtils.calculateEndDate(nowString);
 		// probably figure out a better way to test the timestamp is in utc.
 		assertNotNull(ts);
-	}
-
-	@Test
-	void testEndDateIsExpired_null() throws Exception {
-		assertFalse(AbstractSecurityUtils.endDateIsExpired(null));
-	}
-
-	@Test
-	void testEndDateIsExpired_true() throws Exception {
-		SemossDate semossDate = new SemossDate(LocalDateTime.now().minusDays(2), ZoneId.of("UTC"));
-		assertTrue(AbstractSecurityUtils.endDateIsExpired(semossDate));
-	}
-
-	@Test
-	void testEndDateIsExpired_false() throws Exception {
-		SemossDate semossDate = new SemossDate(LocalDateTime.now().plusDays(2), ZoneId.of("UTC"));
-		assertFalse(AbstractSecurityUtils.endDateIsExpired(semossDate));
 	}
 
 	@Test

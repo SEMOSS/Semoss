@@ -40,7 +40,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -95,7 +94,6 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 		Properties smssProp = null;
 		if (engineId != null) {
 			User user = this.insight.getUser();
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 				throw new IllegalArgumentException(
 						"Model engine does not exist or user does not have access to view it");

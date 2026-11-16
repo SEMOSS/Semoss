@@ -76,7 +76,6 @@ public class ExportProjectAppReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 
 		User user = this.insight.getUser();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
 		if (!isOwner) {
 			throw new IllegalArgumentException(

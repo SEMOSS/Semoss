@@ -25,27 +25,36 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.blocks;
+package prerna.auth.utils.reactors.admin;
 
 import java.sql.SQLException;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
 import prerna.theme.ThemeDbTable;
 
-public class DeleteBlockReactor extends AbstractReactor {
+@Deprecated
+public class AdminDeleteBlockReactor extends AbstractReactor {
 
-	public DeleteBlockReactor() {
+	private static final Logger classLogger = LogManager.getLogger(AdminDeleteBlockReactor.class);
+
+	@Deprecated
+	public AdminDeleteBlockReactor() {
 		this.keysToGet = new String[] { "blockId", "hardDelete" };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		User user = requireUser();
@@ -69,9 +78,21 @@ public class DeleteBlockReactor extends AbstractReactor {
 		try {
 			result = BlocksThemeUtils.deleteBlock(blockId, tableName, hardDelete);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			classLogger.error("Failed to delete block {}", blockId, e);
 		}
 		return new NounMetadata(result, PixelDataType.BOOLEAN);
 	}
 
+	@Deprecated
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Admin Only: Deletes a block from the blocks library. Without hardDelete the block's "
+						+ "row is kept and marked as no longer the latest")
+				.key("blockId", "The id of the block to delete")
+				.key("hardDelete",
+						key -> key.type(Boolean.class)
+								.description("Removes the block's row instead of marking it. Default false"))
+				.output(Boolean.class, "Whether the block was deleted");
+	}
 }

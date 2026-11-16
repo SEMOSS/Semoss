@@ -57,7 +57,6 @@ public class SetProjectDisplayNameReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("Project " + projectId
 					+ " does not exist or user does not have permissions to set the display name. User must be the owner to perform this function.");

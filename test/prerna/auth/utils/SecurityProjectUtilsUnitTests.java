@@ -613,24 +613,6 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
-	/// removeExpiredProjectUser
-	///
-
-	@Test
-	void testRemoveExpiredProjectUser() throws IllegalAccessException {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
-		SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "READ_ONLY", null);
-
-		assertTrue(SecurityProjectUtils.userCanViewProject(user2, "testProjectId"));
-
-		SecurityProjectUtils.removeExpiredProjectUser("user2id", "testProjectId");
-
-		assertFalse(SecurityProjectUtils.userCanViewProject(user2, "testProjectId"));
-	}
-
-	///
 	/// addProjectUserPermissions (batch)
 	///
 

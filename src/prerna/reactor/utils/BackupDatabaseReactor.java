@@ -39,13 +39,11 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
@@ -66,7 +64,6 @@ public class BackupDatabaseReactor extends AbstractReactor {
 		}
 
 		User user = this.insight.getUser();
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
 		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalArgumentException("Database " + databaseId
 					+ " does not exist or user does not have permissions to back up the database. "
@@ -116,7 +113,8 @@ public class BackupDatabaseReactor extends AbstractReactor {
 			try {
 				FileUtils.copyFile(originalFile, newFile);
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to copy {} to {} for the database backup", originalFile.getAbsolutePath(),
+						newFile.getAbsolutePath(), e);
 				throw new IllegalArgumentException("Database backup failed! Try again.");
 			}
 		} else {

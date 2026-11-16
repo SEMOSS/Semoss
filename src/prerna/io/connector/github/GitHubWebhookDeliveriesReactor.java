@@ -87,7 +87,6 @@ public class GitHubWebhookDeliveriesReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		if (projectId != null && !projectId.trim().isEmpty()) {
 			projectId = projectId.trim();
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 				throw new SemossPixelException(
 						"Project does not exist or user does not have access to view the project.");
