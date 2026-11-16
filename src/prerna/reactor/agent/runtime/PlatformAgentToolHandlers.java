@@ -92,6 +92,8 @@ final class PlatformAgentToolHandlers {
 
 	private static final String TOOL_KIND = "semoss_platform_default";
 	private static final int DEFAULT_READ_MAX_LINES = 2000;
+	// MB of file ReadFile extracts as a document when RDF_Map sets no DOCUMENT_READ_MAX_FILE_MB
+	private static final int DEFAULT_DOCUMENT_READ_MAX_FILE_MB = 100;
 	private static final List<String> DOCLING_READ_EXTENSIONS = List.of("pdf", "docx", "pptx", "xlsx");
 	private static final int MAX_GLOB_RESULTS = 500;
 	private static final int DEFAULT_GREP_HEAD_LIMIT = 200;
@@ -464,7 +466,8 @@ final class PlatformAgentToolHandlers {
 		String encodedPath = Base64.getEncoder()
 				.encodeToString(file.getAbsolutePath().getBytes(StandardCharsets.UTF_8));
 		String script = "from smssutil import get_document_markdown as _smss_doc_md\n" + "import base64 as _smss_b64\n"
-				+ "print(_smss_doc_md(_smss_b64.b64decode('" + encodedPath + "').decode('utf-8')), end='')";
+				+ "print(_smss_doc_md(_smss_b64.b64decode('" + encodedPath + "').decode('utf-8'), max_file_bytes="
+				+ documentReadMaxFileBytes() + "), end='')";
 		Insight executionInsight = tc.ctx.getInsight();
 		User user = executionInsight.getUser();
 		Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
@@ -479,6 +482,21 @@ final class PlatformAgentToolHandlers {
 					}
 				});
 		return output == null ? "" : output.toString();
+	}
+
+	/** Bytes of file ReadFile extracts as a document: RDF_Map's DOCUMENT_READ_MAX_FILE_MB, or 100 MB. */
+	static long documentReadMaxFileBytes() {
+		String value = getTrimmedProperty(Constants.DOCUMENT_READ_MAX_FILE_MB);
+		long mb = DEFAULT_DOCUMENT_READ_MAX_FILE_MB;
+		if (value != null) {
+			try {
+				mb = Math.max(1, Long.parseLong(value));
+			} catch (NumberFormatException e) {
+				logger.warn("{} is not a whole number of MB; using {}", Constants.DOCUMENT_READ_MAX_FILE_MB,
+						DEFAULT_DOCUMENT_READ_MAX_FILE_MB);
+			}
+		}
+		return mb * 1024L * 1024L;
 	}
 
 	private static String lastLine(String message) {
