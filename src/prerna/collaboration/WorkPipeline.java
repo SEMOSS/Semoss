@@ -139,7 +139,8 @@ public final class WorkPipeline {
 			askedBy: who asked or said it: "me", a p id, or "".
 			directedAtOwner: true only when the message is aimed at the owner, not at a group.
 			message: the m id it comes from. quote: up to 20 words copied from it.
-			due: YYYY-MM-DD when a message gives or clearly implies a date, else "".
+			due: YYYY-MM-DD when a message gives or clearly implies a date, else "". A relative date ("Friday", \
+			"tomorrow", "next week") counts from the day of the message that says it (its "day"), never from today.
 			alreadyNoted lists what earlier messages of this thread already gave: do not list those again, but do \
 			list a done_claim or update when these messages finish or change one of them.
 			earlier, when given, holds the messages just before these, already read: use them to understand the new \
@@ -624,6 +625,14 @@ public final class WorkPipeline {
 			noted = new ArrayList<>(noted.subList(0, MAX_NOTED));
 		}
 		String today = WorkReconcile.today(user);
+		// each message's own date and weekday in the owner's zone: "by Friday" counts from the mail, not from today
+		java.time.ZoneId zone = BrainProfileUtils.timeZone(user);
+		for (Map<String, Object> m : context) {
+			String day = messageDay(m.get("at"), zone);
+			if (day != null) {
+				m.put("day", day);
+			}
+		}
 		List<Map<String, Object>> found = new ArrayList<>();
 		for (int from = 0; from < messages.size(); from += WINDOW) {
 			List<Map<String, Object>> window = messages.subList(from, Math.min(messages.size(), from + WINDOW));
@@ -705,7 +714,7 @@ int[] kept = { 0 };
 						+ "ADDRESSING_JSON, TOPIC_ID, RESULT, DROP_REASON, EXTRACTED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "
 						+ "?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, UUID.randomUUID().toString(), threadId, at,
 						time(at), clip(kind, 20), named(str(c.get("text")), names), str(c.get("quote")),
-						time(str(c.get("due"))), clip(assignee, 50), clip(person(str(c.get("askedBy")), people), 50),
+						dueTime(str(c.get("due"))), clip(assignee, 50), clip(person(str(c.get("askedBy")), people), 50),
 						CollaborationDbUtils.toJson(addressing), thread.get("topicId"), rule == null ? null : "drop",
 						rule, now);
 				if (rule == null) {
@@ -1499,6 +1508,26 @@ int[] kept = { 0 };
 	private static boolean isPerson(String assignee) {
 		return assignee != null && !assignee.isBlank() && !ME.equals(assignee) && !GROUP.equals(assignee)
 				&& !UNCLEAR.equals(assignee);
+	}
+
+	// the date and weekday of a message's time in the owner's zone, "2026-11-05 (Thursday)"; null when unreadable
+	static String messageDay(Object at, java.time.ZoneId zone) {
+		try {
+			java.time.LocalDate day = java.time.OffsetDateTime.parse(String.valueOf(at)).atZoneSameInstant(zone)
+					.toLocalDate();
+			return day + " (" + day.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL,
+					java.util.Locale.ENGLISH) + ")";
+		} catch (java.time.format.DateTimeParseException e) {
+			return null;
+		}
+	}
+
+	// a due date is a day, not an instant: noon UTC keeps it the same day in every zone from UTC-12 to UTC+11,
+	// where midnight UTC showed the day before to an owner west of Greenwich
+	private static Timestamp dueTime(String value) {
+		Timestamp t = time(value);
+		return t == null || value == null || value.trim().length() != 10 ? t
+				: Timestamp.valueOf(t.toLocalDateTime().plusHours(12));
 	}
 
 	private static Timestamp time(String value) {

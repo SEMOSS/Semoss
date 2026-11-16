@@ -377,6 +377,26 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
+	void aRelativeDueDateCountsFromTheDayOfItsMailAndIsStoredAsADayNotAMidnight() throws Exception {
+		// Thursday 2026-11-05 05:00 UTC is still Wednesday evening in Honolulu
+		sql("INSERT INTO BRAIN_PROFILE (OWNER_ID, OWNER_TYPE, TIMEZONE) VALUES (?, ?, ?)", ownerId, ownerType,
+				"Pacific/Honolulu");
+		LocalDateTime at = at("2026-11-05T05:00:00");
+		thread("due", at, null);
+		person("self", "Owner", "owner@test.com", "self");
+		email("due", "D1", at, "Please send the deck by Friday.");
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the deck\", \"assignee\": "
+				+ "\"me\", \"askedBy\": \"\", \"directedAtOwner\": true, \"message\": \"m1\", "
+				+ "\"due\": \"2026-11-06\", \"quote\": \"\"}]}";
+		WorkPipeline.extract(user, ownerId, ownerType, "due", model, new String[] { "self", "Owner" });
+		// the model is told the day of the mail (owner's zone: Wednesday 2026-11-04), not only today
+		assertTrue(prompts.stream().anyMatch(p -> p.contains("\"day\":\"2026-11-04 (Wednesday)\"")), prompts.toString());
+		// stored at noon UTC, so the day holds for owners west of Greenwich
+		assertEquals(Timestamp.valueOf("2026-11-06 12:00:00"),
+				value("SELECT DUE_AT FROM WORK_CANDIDATE WHERE TEXT = 'Send the deck'"));
+	}
+
+	@Test
 	void anAskSentToTheOwnerAloneIsTheOwnersEvenWhenTheModelReadsItAsGroupTalk() throws Exception {
 		LocalDateTime at = at("2026-11-05T10:00:00");
 		thread("ask", at, null);
