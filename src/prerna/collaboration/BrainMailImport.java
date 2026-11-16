@@ -863,10 +863,9 @@ public final class BrainMailImport {
 				}
 				upsertParticipant(threadId, personId, entry.getValue(), at);
 			}
-			// Focused Inbox "Other", sent on behalf of another mailbox, or a big mailing
-			String sender = address(header.get("sender"));
+			// Focused Inbox "Other", sent for another mailbox by a mailing service, or a big mailing
 			boolean bulk = "other".equals(header.get("inferenceClassification"))
-					|| (sender != null && !sender.equals(from)) || broadcast || toList(header);
+					|| sentByService(address(header.get("sender")), from) || broadcast || toList(header);
 			// marked in the same batch as the message, so a run cut off after it leaves its steps to the next sync
 			CollaborationDbUtils.update(
 					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ?, MEETING = ?, "
@@ -1162,6 +1161,16 @@ public final class BrainMailImport {
 			}
 		}
 		return false;
+	}
+
+	// sent for the From mailbox by another one outside its organisation: a mailing service. A delegate or an
+	// assistant writing for someone in their own organisation is a person, and their mail is not bulk
+	static boolean sentByService(String sender, String from) {
+		if (sender == null || from == null || sender.equals(from)) {
+			return false;
+		}
+		String senderOrg = BrainOrgDomains.org(domain(sender));
+		return senderOrg == null || !senderOrg.equals(BrainOrgDomains.org(domain(from)));
 	}
 
 	// posted to a mailing list (List-Id, Precedence list): a hint only, people write to lists too
