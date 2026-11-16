@@ -302,6 +302,17 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
+	void anAssigneeTheModelCannotPlaceStaysUnclearOnTheCandidate() throws Exception {
+		thread("th-1", at("2026-11-05T10:00:00"), null);
+		email("th-1", "g1", at("2026-11-05T10:00:00"), "Someone should send the deck.");
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the deck\", \"assignee\": \"Bob\", "
+				+ "\"askedBy\": \"p1\", \"directedAtOwner\": false, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}]}";
+		extract("th-1");
+		assertEquals("unclear", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Send the deck'"));
+	}
+
+	@Test
 	void eachSyncRunAlsoTakesThreadsBehindOnTheirMailButNotTheBacklog() throws Exception {
 		LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.SECONDS);
 		thread("behind", now.minusHours(1), now.minusHours(2));
