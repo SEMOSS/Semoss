@@ -140,11 +140,12 @@ public final class WorkTaskUtils {
 			tasks = new ArrayList<>(tasks.subList(0, LIST_LIMIT));
 		}
 		Map<String, String> inbox = inbox(ownerId, ownerType);
+		Map<String, String> warnings = senderWarnings(ownerId, ownerType);
 		for (Map<String, Object> task : tasks) {
 			String taskId = (String) task.get("id");
 			task.put("topics", topics(ownerId, ownerType, taskId));
 			List<Map<String, Object>> steps = steps(ownerId, ownerType, taskId);
-			steps.forEach(step -> putIfNotNull(step, "inbox", verdict(step, inbox)));
+			steps.forEach(step -> mark(step, inbox, warnings));
 			task.put("stepCount", steps.size());
 			steps.removeIf(step -> !STEP_OPEN.contains(step.get("status")));
 			task.put("openSteps", steps);
@@ -178,7 +179,7 @@ public final class WorkTaskUtils {
 		if (looseSteps.size() > LOOSE_LIMIT) {
 			looseSteps = new ArrayList<>(looseSteps.subList(0, LOOSE_LIMIT));
 		}
-		looseSteps.forEach(step -> putIfNotNull(step, "inbox", verdict(step, inbox)));
+		looseSteps.forEach(step -> mark(step, inbox, warnings));
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("workItems", tasks);
 		out.put("looseSteps", looseSteps);
@@ -244,8 +245,9 @@ public final class WorkTaskUtils {
 		Map<String, Object> task = requireTask(ownerId, ownerType, taskId);
 		task.put("topics", topics(ownerId, ownerType, taskId));
 		Map<String, String> inbox = inbox(ownerId, ownerType);
+		Map<String, String> warnings = senderWarnings(ownerId, ownerType);
 		List<Map<String, Object>> steps = steps(ownerId, ownerType, taskId);
-		steps.forEach(step -> putIfNotNull(step, "inbox", verdict(step, inbox)));
+		steps.forEach(step -> mark(step, inbox, warnings));
 		task.put("steps", steps);
 		task.put("timeline",
 				CollaborationDbUtils.query(
@@ -683,6 +685,41 @@ public final class WorkTaskUtils {
 			throw new IllegalArgumentException("Step not found");
 		}
 		return step;
+	}
+
+	/** What a card says first when its sender's domain only resembles a known organisation. */
+	static final String SENDER_WARNING = "Check the sender: ";
+
+	// conversations whose card carries a sender warning, with the warning
+	static Map<String, String> senderWarnings(String ownerId, String ownerType) {
+		Map<String, String> out = new HashMap<>();
+		CollaborationDbUtils.query("SELECT THREAD_ID, REASONS_JSON FROM WORK_ITEM" + OWNED
+				+ " AND THREAD_ID IS NOT NULL AND REASONS_JSON LIKE ?", rs -> {
+					List<Object> reasons = CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "REASONS_JSON"));
+					if (reasons != null) {
+						for (Object reason : reasons) {
+							if (String.valueOf(reason).startsWith(SENDER_WARNING)) {
+								out.put(rs.getString("THREAD_ID"), String.valueOf(reason));
+							}
+						}
+					}
+					return null;
+				}, ownerId, ownerType, "%" + SENDER_WARNING + "%");
+		return out;
+	}
+
+	// a step's conversation verdict and sender warning. A warned conversation never counts as needing the owner
+	// on the card's word; the owner setting the step themselves still outranks both.
+	private static void mark(Map<String, Object> step, Map<String, String> inbox, Map<String, String> warnings) {
+		String verdict = verdict(step, inbox);
+		String warning = warnings.get(step.get("threadId"));
+		if (warning != null) {
+			step.put("senderWarning", warning);
+			if (step.get("ownerSetAt") == null && (verdict == null || !ASIDE.contains(verdict))) {
+				verdict = OUTSIDE;
+			}
+		}
+		putIfNotNull(step, "inbox", verdict);
 	}
 
 	// the conversation's verdict for a step, unless the owner has set the step themselves (kept it, took it over,

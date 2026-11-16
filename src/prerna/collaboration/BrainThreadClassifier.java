@@ -568,7 +568,7 @@ public final class BrainThreadClassifier {
 		String fromDomain = BrainMailImport.domain((String) newest.get("fromAddress"));
 		String imitated = BrainOrgDomains.lookalike(fromDomain, ctx.knownOrgs());
 		if (imitated != null) {
-			reasons.add(0, "Check the sender: " + BrainOrgDomains.org(fromDomain) + " is not " + imitated);
+			reasons.add(0, WorkTaskUtils.SENDER_WARNING + BrainOrgDomains.org(fromDomain) + " is not " + imitated);
 			urgency = Math.min(urgency, 1);
 		}
 		long age = ageDays((String) newest.get("at"));

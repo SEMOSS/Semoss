@@ -548,6 +548,26 @@ class WorkPipelineDbUnitTests {
 				assertEquals(null, ((List<Map<String, Object>>) item.get("openSteps")).get(0).get("inbox"));
 			}
 		}
+
+		// a card that warns about its sender does not make its step need the owner, until the owner says so
+		String warning = WorkTaskUtils.SENDER_WARNING + "adatum-billing.com is not adatum.com";
+		sql("UPDATE WORK_ITEM SET REASONS_JSON = ? WHERE ITEM_ID = ?", "[\"" + warning + "\",\"Asks you to pay\"]",
+				"card-th-omar");
+		Map<String, Object> warned = item(omar);
+		Map<String, Object> warnedStep = ((List<Map<String, Object>>) warned.get("openSteps")).get(0);
+		assertEquals(false, warned.get("needsYou"));
+		assertEquals("outside", warnedStep.get("inbox"));
+		assertEquals(warning, warnedStep.get("senderWarning"));
+		WorkTaskUtils.updateStep(user, (String) warnedStep.get("id"), Map.of("status", "open"), "owner");
+		warned = item(omar);
+		assertEquals(true, warned.get("needsYou"));
+		assertEquals(warning, ((List<Map<String, Object>>) warned.get("openSteps")).get(0).get("senderWarning"));
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> item(String id) {
+		return ((List<Map<String, Object>>) WorkTaskUtils.listMyWork(user, Map.of()).get("workItems")).stream()
+				.filter(item -> id.equals(item.get("id"))).findFirst().orElseThrow();
 	}
 
 	@Test
