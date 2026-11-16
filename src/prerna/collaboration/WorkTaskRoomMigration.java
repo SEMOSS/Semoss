@@ -34,7 +34,8 @@ import org.apache.logging.log4j.Logger;
  * Migrates work item room links from the single WORK_TASK.ROOM_ID column to the
  * WORK_TASK_ROOM link table, enabling multiple chats per work item. Each
  * non-null ROOM_ID is moved to a new row in WORK_TASK_ROOM, preserving
- * timestamps. The old ROOM_ID column can then be dropped.
+ * timestamps, and cleared in the same transaction, so running it again moves
+ * nothing. The old ROOM_ID column can then be dropped.
  */
 final class WorkTaskRoomMigration {
 
@@ -44,21 +45,16 @@ final class WorkTaskRoomMigration {
 	}
 
 	static void run() {
-		// Check if migration already completed by looking for any rows in
-		// WORK_TASK_ROOM
-		Integer count = CollaborationDbUtils.queryOne("SELECT COUNT(*) AS N FROM WORK_TASK_ROOM", rs -> rs.getInt("N"));
-		if (count != null && count > 0) {
-			// Migration already completed; WORK_TASK_ROOM has data
-			return;
-		}
-
-		// Migrate all non-null ROOM_ID values from WORK_TASK to WORK_TASK_ROOM
+		String left = " WHERE ROOM_ID IS NOT NULL";
 		CollaborationDbUtils.inTransaction(conn -> {
+			// locks the rows first, so two servers starting together cannot both copy them
+			CollaborationDbUtils.update(conn, "UPDATE WORK_TASK SET UPDATED_AT = UPDATED_AT" + left);
 			int moved = CollaborationDbUtils.update(conn,
 					"INSERT INTO WORK_TASK_ROOM (OWNER_ID, OWNER_TYPE, TASK_ID, ROOM_ID, CREATED_AT) "
-							+ "SELECT OWNER_ID, OWNER_TYPE, TASK_ID, ROOM_ID, UPDATED_AT FROM WORK_TASK "
-							+ "WHERE ROOM_ID IS NOT NULL",
-					new Object[0]);
+							+ "SELECT OWNER_ID, OWNER_TYPE, TASK_ID, ROOM_ID, UPDATED_AT FROM WORK_TASK" + left);
+			// cleared with the copy, so a later boot has nothing left to move and a chat
+			// taken off an item stays off
+			CollaborationDbUtils.update(conn, "UPDATE WORK_TASK SET ROOM_ID = NULL, UPDATED_AT = UPDATED_AT" + left);
 			if (moved > 0) {
 				classLogger.info("Migrated {} work item room links to WORK_TASK_ROOM table", moved);
 			}

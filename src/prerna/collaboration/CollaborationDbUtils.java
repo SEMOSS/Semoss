@@ -509,6 +509,13 @@ public class CollaborationDbUtils {
 		} catch (RuntimeException e) {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
+		// a work item's one chat lived in WORK_TASK.ROOM_ID; any left there move on the
+		// next boot
+		try {
+			WorkTaskRoomMigration.run();
+		} catch (RuntimeException e) {
+			classLogger.error("Moving work item chats into WORK_TASK_ROOM failed; retrying next boot", e);
+		}
 		// Work Brain raised from routine results before imports kept them out; nothing
 		// matches once it is done
 		try {
@@ -686,6 +693,10 @@ public class CollaborationDbUtils {
 							"TASK_ID"),
 					OwlIndex.of("WORK_TASK_THREAD_THREAD_ID_INDEX", "WORK_TASK_THREAD", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_ID"),
+					OwlIndex.of("WORK_TASK_ROOM_TASK_ID_INDEX", "WORK_TASK_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"TASK_ID"),
+					OwlIndex.of("WORK_TASK_ROOM_ROOM_ID_INDEX", "WORK_TASK_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
 					OwlIndex.of("WORK_TASK_UPDATE_TASK_ID_INDEX", "WORK_TASK_UPDATE", "OWNER_ID", "OWNER_TYPE",
 							"TASK_ID"),
 					OwlIndex.of("WORK_CANDIDATE_THREAD_ID_INDEX", "WORK_CANDIDATE", "OWNER_ID", "OWNER_TYPE",
