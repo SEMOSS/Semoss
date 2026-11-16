@@ -82,8 +82,6 @@ class ListPlaywrightScriptsReactorTest extends SemossUnitTest {
 		User user = mock(User.class);
 		when(insight.getUser()).thenReturn(user);
 		projectSecurity = Mockito.mockStatic(SecurityProjectUtils.class);
-		projectSecurity.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, PROJECT_ID))
-				.thenReturn(PROJECT_ID);
 		projectSecurity.when(() -> SecurityProjectUtils.userCanViewProject(user, PROJECT_ID)).thenReturn(true);
 	}
 

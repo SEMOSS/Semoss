@@ -63,7 +63,6 @@ public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 
 		if (space != null && !space.isEmpty() && !space.equals(AssetUtility.INSIGHT_SPACE_KEY)
 				&& !space.equals(AssetUtility.USER_SPACE_KEY)) {
-			space = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), space);
 			if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), space)) {
 				throw new IllegalArgumentException(
 						"Project does not exist or user does not have access to view the project");
@@ -88,7 +87,7 @@ public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 			project.getProjectPyTranslator().runScript(script);
 			return new NounMetadata("Variable set " + alias, PixelDataType.CONST_STRING);
 		} catch (Exception e) {
-			classLogger.error("Unable to load python file as module. Error: " + e.getMessage(), e);
+			classLogger.error("Unable to load python file {} as module {} in project {}", filePath, alias, space, e);
 			throw new SemossPixelException("Unable to load python file as module. Error: " + e.getMessage(), e);
 		}
 	}

@@ -46,7 +46,6 @@ import com.google.gson.JsonSyntaxException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
@@ -119,7 +118,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 
 		User user = this.insight.getUser();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityInsightUtils.userCanViewInsight(user, projectId, rdbmsId)) {
 			NounMetadata noun = new NounMetadata("User does not have access to this insight",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -145,7 +143,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			logger.warn(
 					"Failed to load insight {} in project {} from the security database, loading it from the project",
 					rdbmsId, projectId, e);
-			logger.info("Pulling project from cloud storage, projectId=" + projectId);
+			logger.info("Pulling project from cloud storage, projectId={}", projectId);
 			ClusterUtil.pullInsightsDB(projectId);
 			// this is needed for the pipeline json
 			ClusterUtil.pullProjectFolder(project,

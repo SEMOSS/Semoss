@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.security;
+package prerna.auth.utils.reactors.admin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,16 +34,17 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class SetProjectMetakeyOptionsReactor extends AbstractInsightReactor {
+public class AdminSetProjectMetakeyOptionsReactor extends AbstractInsightReactor {
 	
 	private static final String METAOPTIONS = "metaoptions";
 	
-	public SetProjectMetakeyOptionsReactor() {
+	public AdminSetProjectMetakeyOptionsReactor() {
 		this.keysToGet = new String[]{METAOPTIONS};
 	}
 
@@ -93,5 +94,17 @@ public class SetProjectMetakeyOptionsReactor extends AbstractInsightReactor {
 			return res;
 		}
 		return null;
+	}
+
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
+				Admin Only: Replaces the metadata keys offered for projects with the ones given, each with \
+				whether it takes one value or many, its place in the list and how the catalog shows it""")
+				.key(METAOPTIONS, key -> key.list(Map.class).description("""
+						Each metadata key as a map: metakey (its name), singlemulti (single or multi), order \
+						(its place in the list) and displayoptions (how the catalog shows it, such as \
+						multi-typeahead or select-box)"""))
+				.output(Boolean.class, "Whether the metadata keys were saved");
 	}
 }

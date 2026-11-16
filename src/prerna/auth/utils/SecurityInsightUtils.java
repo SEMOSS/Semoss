@@ -79,8 +79,6 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.parser.ParserException;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -549,9 +547,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addRelation("USERINSIGHTPERMISSION", "PERMISSION", "inner.join");
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userIds));
-			List<Integer> permissions = new Vector<>();
-			permissions.add(AccessPermissionEnum.OWNER.getId());
-			permissions.add(AccessPermissionEnum.EDIT.getId());
+			List<Integer> permissions = new ArrayList<>(
+					List.of(AccessPermissionEnum.OWNER.getId(), AccessPermissionEnum.EDIT.getId()));
 			qs.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PERMISSION", "==", permissions));
 			qs.addOrderBy(new QueryColumnOrderBySelector("INSIGHT__INSIGHTNAME"));
@@ -1423,20 +1420,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param insightId  the insight
 	 * @param permission the level on the insight, by name
 	 * @param endDate    when the access ends, or null for never
-	 * @throws IllegalAccessException when the user cannot give people access to
-	 *                                the project
+	 * @throws IllegalAccessException when the user cannot give people access to the
+	 *                                project
 	 */
-	public static void addInsightUserWithProjectAccess(User user, String newUserId, String projectId,
-			String insightId, String permission, String endDate) throws IllegalAccessException {
+	public static void addInsightUserWithProjectAccess(User user, String newUserId, String projectId, String insightId,
+			String permission, String endDate) throws IllegalAccessException {
 		List<PermissionBatch> batches = new ArrayList<>();
 		if (SecurityProjectUtils.getUserProjectPermission(newUserId, projectId) == null) {
 			batches.add(new PermissionBatch(PermissionTargetResource.project(projectId),
 					List.of(PermissionChange.add(PermissionSubject.ofUser(newUserId, null),
 							new PermissionGrant(AccessPermissionEnum.READ_ONLY.getPermission(), endDate)))));
 		}
-		batches.add(new PermissionBatch(PermissionTargetResource.insight(projectId, insightId),
-				List.of(PermissionChange.add(PermissionSubject.ofUser(newUserId, null),
-						new PermissionGrant(permission, endDate)))));
+		batches.add(new PermissionBatch(PermissionTargetResource.insight(projectId, insightId), List.of(PermissionChange
+				.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate)))));
 		PermissionBatchUtils.saveChanges(user, batches, PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
 						.rule(PermissionProblem.ErrorCode.NO_PERMISSION,
@@ -2350,7 +2346,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					if (retMap.containsKey("tags")) {
 						listVal = (List<String>) retMap.get("tags");
 					} else {
-						listVal = new Vector<String>();
+						listVal = new ArrayList<>();
 						retMap.put("tags", listVal);
 					}
 					listVal.add(metaValue);
@@ -2823,32 +2819,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 								"As a non-owner, you cannot remove access of an owner.")
 						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the user permissions for this insight"));
-	}
-
-	/**
-	 * Remove expired insight permissions
-	 * 
-	 * @param userId
-	 * @param projectId
-	 * @return
-	 */
-	public static void removeExpiredInsightUser(String userId, String projectId, String insightId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String deleteQuery = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
-		}
-		UserAuditTrailUtils.recordExpiredPermissionRemoval(AuditTargetType.INSIGHT, insightId, projectId, null,
-				insightId, userId);
 	}
 
 	/**

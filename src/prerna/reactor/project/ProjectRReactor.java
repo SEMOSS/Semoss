@@ -63,18 +63,14 @@ public class ProjectRReactor extends AbstractReactor {
 
 		organizeKeys();
 		String projectId = resolveContextEngineId(this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
-
-		String code = this.keyValue.get(ReactorKeysEnum.CODE.getKey());
-
-		// make sure valid id for user
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			// you don't have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
-
 		IProject project = Utility.getProject(projectId);
+
 		TCPRTranslator projectRTranslator = project.getProjectRTranslator();
+		String code = this.keyValue.get(ReactorKeysEnum.CODE.getKey());
 		String output = projectRTranslator.runRAndReturnOutput(code);
 
 		List<NounMetadata> outputs = new ArrayList<>(1);

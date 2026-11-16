@@ -35,7 +35,6 @@ import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Connection;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -4230,20 +4229,6 @@ public abstract class AbstractSecurityUtils {
 		ZonedDateTime zdt = ZonedDateTime.parse(endDate);
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
-	}
-
-	/**
-	 * Check if permission end date has expired
-	 * 
-	 * @param endDate
-	 */
-	public static boolean endDateIsExpired(SemossDate endDate) throws Exception {
-		LocalDateTime currentTime = LocalDateTime.now();
-		if (endDate == null) {
-			return false;
-		}
-		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
-		return formattedEndDate.isBefore(currentTime);
 	}
 
 }

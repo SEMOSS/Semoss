@@ -93,7 +93,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.parser.ParserException;
 import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -797,23 +796,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Try to reconcile and get the engine id
+	 * This method is deprecated. Please do not use and expect an projectId for
+	 * input in your method.
 	 * 
 	 * @return
 	 */
+	@Deprecated
 	public static String testUserProjectIdForAlias(User user, String potentialId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> ids = new ArrayList<String>();
-
-		// String userFilters = getUserFilters(user);
-		// String query = "SELECT DISTINCT PROJECTPERMISSION.PROJECTID "
-		// + "FROM PROJECTPERMISSION INNER JOIN PROJECT ON
-		// PROJECT.PROJECTID=PROJECTPERMISSION.PROJECTID "
-		// + "WHERE PROJECT.PROJECTNAME='" + potentialId + "' AND
-		// PROJECTPERMISSION.USERID IN " + userFilters;
-		//
-		// IRawSelectWrapper wrapper =
-		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
@@ -1653,31 +1644,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
 						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred removing the user permissions for the project and insights of this project"));
-	}
-
-	/**
-	 * Deletes the user's grant on the project. Called when that grant has expired.
-	 * 
-	 * @param userId
-	 * @param projectId
-	 * @return
-	 */
-	public static void removeExpiredProjectUser(String userId, String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String deleteQuery = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, projectId);
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			throw new IllegalArgumentException("An error occurred removing the user permissions for this project");
-		}
-		UserAuditTrailUtils.recordExpiredPermissionRemoval(AuditTargetType.PROJECT, projectId, projectId, null, null,
-				userId);
 	}
 
 	/**
@@ -3122,16 +3088,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean checkUserHasAccessToProject(String projectId, String userId) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			boolean isExpired = SecurityUserProjectUtils.projectPermissionIsExpired(userId, projectId);
-			if (isExpired) {
-				removeExpiredProjectUser(userId, projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to verify user access to the project", e);
-			throw e;
-		}
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
@@ -4331,16 +4287,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param user      the signed in user
 	 * @param projectId the project
 	 * @return the request: {@code id}, {@code permission} (the level asked for),
-	 *         {@code comment} and {@code requestedAt} (UTC, ISO 8601); null when the
-	 *         user has none waiting
+	 *         {@code comment} and {@code requestedAt} (UTC, ISO 8601); null when
+	 *         the user has none waiting
 	 */
 	public static Map<String, Object> getUserWaitingAccessRequest(User user, String projectId) {
 		return OwnAccessRequests.waiting(OwnAccessRequests.PROJECT, projectId, user);
 	}
 
 	/**
-	 * Withdraws the signed in user's own access request on a project that waits
-	 * for a decision. The request is kept, marked withdrawn by the user.
+	 * Withdraws the signed in user's own access request on a project that waits for
+	 * a decision. The request is kept, marked withdrawn by the user.
 	 *
 	 * @param user      the signed in user
 	 * @param projectId the project

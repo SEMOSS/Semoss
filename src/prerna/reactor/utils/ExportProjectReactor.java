@@ -79,7 +79,6 @@ public class ExportProjectReactor extends AbstractReactor {
 		boolean keepGit = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]));
 
 		User user = this.insight.getUser();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
 		if (!isOwner) {
 			throw new IllegalArgumentException(

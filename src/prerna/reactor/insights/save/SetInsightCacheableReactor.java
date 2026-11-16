@@ -37,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 import org.quartz.CronExpression;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
@@ -69,8 +68,6 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String existingId = this.keyValue.get(this.keysToGet[1]);
 
-		// we may have the alias
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
 			throw new IllegalArgumentException(
 					"Project does not exist or user does not have permission to edit this insight");

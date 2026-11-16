@@ -45,7 +45,6 @@ import org.mockito.Mockito;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -80,10 +79,8 @@ User user;
         map.remove(ReactorKeysEnum.ENGINE.getKey());
         reactor.keyValue = map;
 
-        try (MockedStatic<SecurityAdminUtils> adminUtils = Mockito.mockStatic(SecurityAdminUtils.class);
-            MockedStatic<SecurityQueryUtils> queryUtils = Mockito.mockStatic(SecurityQueryUtils.class)) {
+        try (MockedStatic<SecurityAdminUtils> adminUtils = Mockito.mockStatic(SecurityAdminUtils.class)) {
             adminUtils.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(mock(SecurityAdminUtils.class));
-            queryUtils.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
         
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> reactor.execute());
             assertEquals("Must input an engine id", e.getMessage());
@@ -94,9 +91,7 @@ User user;
     void userNotOwner() {
         reactor.keyValue = map;
 
-        try(MockedStatic<SecurityQueryUtils> queryUtils = Mockito.mockStatic(SecurityQueryUtils.class);
-            MockedStatic<SecurityEngineUtils> engineUtils = Mockito.mockStatic(SecurityEngineUtils.class)) {
-            queryUtils.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
+        try (MockedStatic<SecurityEngineUtils> engineUtils = Mockito.mockStatic(SecurityEngineUtils.class)) {
             engineUtils.when(() -> SecurityEngineUtils.userIsOwner(user, "engine")).thenReturn(false);
         
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> reactor.execute());
@@ -110,10 +105,8 @@ User user;
 
         reactor.keyValue = map;
 
-        try (MockedStatic<SecurityQueryUtils> queryUtils = Mockito.mockStatic(SecurityQueryUtils.class);
-            MockedStatic<SecurityEngineUtils> engineUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+        try (MockedStatic<SecurityEngineUtils> engineUtils = Mockito.mockStatic(SecurityEngineUtils.class);
             MockedStatic<ModelInferenceLogsUtils> modelUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
-            queryUtils.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
             engineUtils.when(() -> SecurityEngineUtils.userIsOwner(user, "engine")).thenReturn(true);
             modelUtils.when(() -> ModelInferenceLogsUtils.getUserUsagePerEngine("engine", "limit", "offset", "start date", "end date")).thenReturn(list);
         

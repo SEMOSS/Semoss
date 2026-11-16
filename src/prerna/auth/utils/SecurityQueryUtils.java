@@ -61,7 +61,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	private static final Logger classLogger = LogManager.getLogger(SecurityQueryUtils.class);
 
 	/**
-	 * Try to reconcile and get the engine id
+	 * This method is deprecated. Please do not use and expect an engineId for input
+	 * in your method.
 	 * 
 	 * @return
 	 */

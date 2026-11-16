@@ -212,6 +212,7 @@ Guarded by [EngineProjectPermissionUnitTests](../../test/prerna/auth/utils/Engin
 | Taking the permission away, or deleting the app, removes its limit | `takingAnAppsPermissionAwayRemovesItsLimit`, `deletingTheAppRemovesItsLimits` |
 | An app is in a batch once, and is added once | `anAppIsInABatchOnce`, `aBatchThatAddsAnAppTwiceInARowIsRefusedTheSecondTime` |
 | A permission has an optional end date, and one that has ended is not in effect | `anEndDateThatCannotBeReadIsRefused`, `aPermissionThatHasEndedIsNotInEffect` |
+| A permission that has ended is removed with its App Limit and recorded as ended | `anEndedAppPermissionTakesItsAppLimitWithIt`, `anEndedGrantNamesWhoHadItAndTheLevel` |
 | A batch sent as JSON gives an app a permission | `aBatchSentAsJsonGivesAnAppAPermission` |
 | An engine's permissions list its apps, and tell an owner they can change them | `theEnginesPermissionsListItsApps`, `onlyAnOwnerIsToldTheyCanChangeTheApps`, `aProjectsPermissionsHaveNoApps` |
 | Only the engine's editors and owners list its apps | `onlyTheEnginesEditorsAndOwnersListItsApps` |

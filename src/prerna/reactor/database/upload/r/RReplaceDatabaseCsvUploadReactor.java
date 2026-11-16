@@ -37,7 +37,6 @@ import com.google.common.io.Files;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -81,9 +80,6 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 		}
 		// check security
 		User user = requireUser();
-
-		// check if input is alias since we are adding ot existing
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
 
 		// throw error is user is not owner
 		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
