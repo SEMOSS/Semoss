@@ -222,13 +222,6 @@ public final class Utility {
 		return DIHelper.getInstance().getProperty(prop);
 	}
 
-	public static Object getDIHelperLocalProperty(String prop) {
-		if (DIHelper.getInstance() == null) {
-			return null;
-		}
-		return DIHelper.getInstance().getLocalProp(prop);
-	}
-
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
 	 * of the query matches a part of the pattern, set substring as the key with

@@ -61,8 +61,8 @@ import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 import prerna.util.Utility;
 
 public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest {
@@ -108,10 +108,8 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest 
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 				
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try(MockedDIHelper dh = MockedDIHelper.start();){
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
 
@@ -573,10 +571,8 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest 
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 				
-		try(MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);){
-			DIHelper diMock = mock(DIHelper.class);			
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try(MockedDIHelper dh = MockedDIHelper.start();){
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 				MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);){
 

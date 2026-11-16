@@ -81,8 +81,8 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
+import prerna.util.InternalUtility;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -132,7 +132,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// dont add local master or security db to security db
 			return;
 		}
-		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
+		String smssFile = InternalUtility.getEngineSmssPath(engineId) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);

@@ -57,7 +57,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -113,7 +112,7 @@ public class AdminExportProjectReactor extends AbstractReactor {
 		}
 
 		logger.info("Exporting project now...");
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
+		String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER).replace("\\", "/");
 		if (!baseFolder.endsWith("/")) {
 			baseFolder += "/";
 		}

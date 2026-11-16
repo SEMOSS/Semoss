@@ -41,7 +41,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 
 class UrlAccessRulesUnitTests {
 
@@ -50,14 +50,14 @@ class UrlAccessRulesUnitTests {
 
 	@BeforeEach
 	void setRdfMap() {
-		this.savedCoreProp = DIHelper.getInstance().getCoreProp();
+		this.savedCoreProp = InternalUtility.getCoreProp();
 		this.rdfMap = new Properties();
-		DIHelper.getInstance().setCoreProp(this.rdfMap);
+		InternalUtility.setCoreProp(this.rdfMap);
 	}
 
 	@AfterEach
 	void restoreRdfMap() {
-		DIHelper.getInstance().setCoreProp(this.savedCoreProp);
+		InternalUtility.setCoreProp(this.savedCoreProp);
 	}
 
 	@ParameterizedTest

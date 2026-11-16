@@ -531,8 +531,7 @@ public final class SandboxedJavaExecution {
 
 	/**
 	 * Replacement for a call project reactors cannot make, such as
-	 * {@code System.loadLibrary} or {@code Utility.getDIHelperLocalProperty} -
-	 * always throws.
+	 * {@code System.loadLibrary} - always throws.
 	 *
 	 * @param method the method that was called
 	 */
