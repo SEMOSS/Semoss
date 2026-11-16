@@ -96,7 +96,8 @@ public final class WorkPipeline {
 	// backlog before the first build stays out
 	private static final int RETRY_NEW_DAYS = 7;
 	// this many unfinished tries in a row from one cursor, and the cursor moves
-	// past that mail
+	// past that mail. Only tries that failed on the mail count (an unreadable reply, a
+	// fetch that keeps failing), never a model outage (ModelUnavailable)
 	private static final int GIVE_UP = 3;
 	// ...once those tries span this long: lagging threads are retried every sync,
 	// and a model or Graph outage of a
@@ -489,11 +490,43 @@ public final class WorkPipeline {
 		String from = CollaborationDbUtils.queryOne(
 				"SELECT WORK_REF FROM BRAIN_THREAD WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ? AND THREAD_ID = ?",
 				rs -> rs.getString("WORK_REF"), ownerId, ownerType, threadId);
+		boolean outage = false;
 		try {
 			return extractWindow(user, ownerId, ownerType, threadId, model, self);
+		} catch (ModelUnavailable e) {
+			outage = true;
+			throw e;
 		} finally {
-			settle(ownerId, ownerType, threadId, from);
+			// a model that is down says nothing about this thread's mail: no try counts against it, the cursor
+			// stays, and the thread is read again once the model is back
+			if (!outage) {
+				settle(ownerId, ownerType, threadId, from);
+			}
 		}
+	}
+
+	// the model could not be reached or answered "try later" (429, 5xx, timeout, connection): not a failure of the mail
+	static class ModelUnavailable extends IllegalStateException {
+		private static final long serialVersionUID = 1L;
+
+		ModelUnavailable(Throwable cause) {
+			super("Work items model unavailable: " + cause.getMessage(), cause);
+		}
+	}
+
+	private static final java.util.regex.Pattern UNAVAILABLE = java.util.regex.Pattern.compile(
+			"\\b(429|5\\d\\d)\\b|time[ds]? ?out|connect|unavailable|overload|rate.?limit|too many requests|"
+					+ "temporar|bad gateway|reset by peer|broken pipe|unknown ?host|no route|try again",
+			java.util.regex.Pattern.CASE_INSENSITIVE);
+
+	static boolean looksUnavailable(Throwable e) {
+		for (Throwable t = e; t != null; t = t.getCause() == t ? null : t.getCause()) {
+			if (t instanceof java.io.IOException || t instanceof java.util.concurrent.TimeoutException
+					|| (t.getMessage() != null && UNAVAILABLE.matcher(t.getMessage()).find())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -657,7 +690,13 @@ public final class WorkPipeline {
 				input.put("earlier", earlier);
 			}
 			input.put("messages", window);
-			Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(ask(model, user, input));
+			String asked;
+			try {
+				asked = ask(model, user, input);
+			} catch (RuntimeException e) {
+				throw looksUnavailable(e) ? new ModelUnavailable(e) : e;
+			}
+			Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(asked);
 			if (answer == null || !(answer.get("candidates") instanceof List<?> list)) {
 				// the window is read again with the next mail
 				throw new IllegalStateException("unreadable extract for thread " + threadId);

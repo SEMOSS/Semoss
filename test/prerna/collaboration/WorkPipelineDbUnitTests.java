@@ -273,13 +273,32 @@ class WorkPipelineDbUnitTests {
 	void anExtractThatKeepsFailingMovesPastItsMailOnTheThirdTryInARow() throws Exception {
 		thread("th-1", at("2026-11-05T10:00:00"), null);
 		email("th-1", "g1", at("2026-11-05T10:00:00"), "Can you send the deck?");
-		reply = null;
+		// a reply that cannot be read is about this thread's mail, not about the model being down
+		reply = "this is not json";
 		for (int i = 0; i < 2; i++) {
 			assertThrows(IllegalStateException.class, () -> extract("th-1"));
 			assertNull(workRef("th-1"));
 		}
 		assertThrows(IllegalStateException.class, () -> extract("th-1"));
 		assertEquals("2026-11-05T10:00:00Z", workRef("th-1"));
+	}
+
+	@Test
+	void aLongModelOutageNeverMovesTheCursorWhateverTheTimeOrTheNumberOfTries() throws Exception {
+		thread("th-1", at("2026-11-05T10:00:00"), null);
+		email("th-1", "g1", at("2026-11-05T10:00:00"), "Can you send the deck?");
+		// the model is down (429) for far more tries than the give-up count, with no minimum span
+		reply = null;
+		for (int i = 0; i < 8; i++) {
+			assertThrows(IllegalStateException.class, () -> extract("th-1"));
+			assertNull(workRef("th-1"));
+		}
+		// back up: the ask is read
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the deck\", \"assignee\": \"me\", "
+				+ "\"askedBy\": \"me\", \"directedAtOwner\": true, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}]}";
+		extract("th-1");
+		assertEquals(1, value("SELECT COUNT(*) FROM WORK_CANDIDATE WHERE ASSIGNEE = 'me'") instanceof Number n ? n.intValue() : -1);
 	}
 
 	@Test
