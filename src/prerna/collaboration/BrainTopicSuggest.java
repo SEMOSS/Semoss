@@ -166,18 +166,27 @@ public final class BrainTopicSuggest {
 		return true;
 	}
 
-	// conversations of the last FRESH_DAYS days that a person wrote and none of the owner's topics holds
+	// conversations of the last FRESH_DAYS days that a person wrote and none of the owner's topics holds. A filing
+	// Brain only suggested, which the owner has yet to confirm, does not hold a conversation: the first mail of a
+	// new project is often put, unsurely, under the nearest older topic, and would otherwise never be looked at
 	private static final String UNFILED = "SELECT t.THREAD_ID FROM BRAIN_THREAD t WHERE t.OWNER_ID = ? AND "
 			+ "t.OWNER_TYPE = ? AND (t.MUTED IS NULL OR t.MUTED = ?) AND (t.AUTOMATED IS NULL OR t.AUTOMATED = ?) AND "
 			+ "t.LAST_MESSAGE_AT >= ? AND NOT EXISTS (SELECT 1 FROM BRAIN_THREAD_TOPIC l JOIN BRAIN_TOPIC tp ON "
 			+ "tp.OWNER_ID = l.OWNER_ID AND tp.OWNER_TYPE = l.OWNER_TYPE AND tp.TOPIC_ID = l.TOPIC_ID WHERE "
 			+ "l.OWNER_ID = t.OWNER_ID AND l.OWNER_TYPE = t.OWNER_TYPE AND l.THREAD_ID = t.THREAD_ID AND "
-			+ "(tp.STATUS IS NULL OR tp.ORIGIN IS NULL OR tp.STATUS <> ? OR tp.ORIGIN <> ?)) "
+			+ "(l.SOURCE IS NULL OR l.SOURCE <> ?) AND (tp.STATUS IS NULL OR tp.ORIGIN IS NULL OR tp.STATUS <> ? OR tp.ORIGIN <> ?)) "
 			+ "ORDER BY t.LAST_MESSAGE_AT DESC";
 
 	private static Object[] unfiledParams(String ownerId, String ownerType, Timestamp now) {
 		return new Object[] { ownerId, ownerType, false, false,
-				new Timestamp(now.getTime() - FRESH_DAYS * 86_400_000L), BrainTopicUtils.SUGGESTED, "brain" };
+				new Timestamp(now.getTime() - FRESH_DAYS * 86_400_000L), "suggested", BrainTopicUtils.SUGGESTED,
+				"brain" };
+	}
+
+	// the conversations a look for new topics may group, newest first
+	static List<String> unfiled(String ownerId, String ownerType) {
+		return CollaborationDbUtils.query(UNFILED, rs -> rs.getString(1),
+				unfiledParams(ownerId, ownerType, CollaborationDbUtils.now()));
 	}
 
 	/**
@@ -261,8 +270,7 @@ public final class BrainTopicSuggest {
 		// what was asked about before, answered or not: a group made mostly of it is not asked about again
 		Set<String> asked = new HashSet<>();
 		if (fresh) {
-			List<String> pool = CollaborationDbUtils.query(UNFILED, rs -> rs.getString(1),
-					unfiledParams(ownerId, ownerType, CollaborationDbUtils.now()));
+			List<String> pool = unfiled(ownerId, ownerType);
 			threads.keySet().retainAll(new HashSet<>(pool.subList(0, Math.min(FRESH_POOL, pool.size()))));
 			CollaborationDbUtils.query("SELECT DETAIL_JSON FROM BRAIN_REVIEW WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
 					+ "KIND = ?", rs -> {
