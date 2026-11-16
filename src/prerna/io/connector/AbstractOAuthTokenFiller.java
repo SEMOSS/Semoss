@@ -296,7 +296,8 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 			}
 			output = userInfoUsesPost()
 					? HttpHelperUtility.makePostCall(userInfoUrl, accessToken.getAccess_token(), null, true)
-					: HttpHelperUtility.makeGetCall(userInfoUrl, accessToken.getAccess_token(), null, true);
+					: HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(), userInfoUrl,
+							HttpHelperUtility.bearerJsonHeaders(accessToken.getAccess_token()));
 		}
 
 		if (sanitize) {
@@ -332,7 +333,9 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 
 	private void fetchAndFill(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
 			Map<String, Object> params, boolean sanitize) {
-		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken.getAccess_token(), params, true);
+		String output = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(),
+				HttpHelperUtility.withQueryParameters(userInfoUrl, params),
+				HttpHelperUtility.bearerJsonHeaders(accessToken.getAccess_token()));
 		if (sanitize) {
 			output = output.replace("\\", "\\\\");
 		}
@@ -356,7 +359,8 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 			return;
 		}
 		String group_url = socialData.getProperty(prefix + "group_url");
-		String groupsJson = HttpHelperUtility.makeGetCall(group_url, accessToken.getAccess_token());
+		String groupsJson = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(), group_url,
+				HttpHelperUtility.bearerJsonHeaders(accessToken.getAccess_token()));
 		boolean sanitizeGroupResponse = Boolean.parseBoolean(socialData.getProperty(prefix + "sanitizeGroupResponse"));
 		if (sanitizeGroupResponse) {
 			groupsJson = groupsJson.replace("\\", "\\\\");
