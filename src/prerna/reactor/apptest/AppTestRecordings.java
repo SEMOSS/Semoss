@@ -40,11 +40,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 /** Declarative recordings live beside version/, never inside published assets. */
 final class AppTestRecordings {
@@ -53,6 +55,11 @@ final class AppTestRecordings {
 	private static final Set<String> TYPES = Set.of("CLICK", "FILL", "SELECT", "CHECK", "KEY", "SCROLL",
 			"ASSERT_TEXT", "ASSERT_VISIBLE", "NAVIGATE");
 	static final int MAX_STEPS = 300;
+	/** When true, a saved recording may only target elements by data-testid. */
+	static final String REQUIRE_TESTID_PROP = "APP_TEST_REQUIRE_TESTID";
+	// a tag name is optional; the value is a quoted attribute value
+	private static final Pattern TESTID_SELECTOR = Pattern
+			.compile("^(?:[a-zA-Z][a-zA-Z0-9-]*)?\\[data-test(?:id)?=\"(?:[^\"\\\\]|\\\\.)+\"\\]$");
 	static final int MAX_RECORDINGS = 25;
 	private static final int MAX_BYTES = 256_000;
 
@@ -138,7 +145,13 @@ final class AppTestRecordings {
 				}
 				copy.put("value", value);
 			}
-			if (type.equals("ASSERT_TEXT")) copy.put("text", text(step.get("text"), "assertion text", 10_000));
+			if (type.equals("ASSERT_TEXT")) {
+				copy.put("text", text(step.get("text"), "assertion text", 10_000));
+				if (step.get("exact") != null) {
+					if (!(step.get("exact") instanceof Boolean)) throw new IllegalArgumentException("Invalid exact flag");
+					copy.put("exact", step.get("exact"));
+				}
+			}
 			if (type.equals("KEY")) copy.put("key", text(step.get("key"), "key", 100));
 			if (type.equals("CHECK")) {
 				if (!(step.get("checked") instanceof Boolean)) throw new IllegalArgumentException("Missing checked state");
@@ -166,8 +179,27 @@ final class AppTestRecordings {
 		return value;
 	}
 
+	/** True for a selector that targets one element by its data-testid or data-test. */
+	static boolean stableSelector(String selector) {
+		return selector != null && TESTID_SELECTOR.matcher(selector).matches();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void requireStableTargets(Map<String, Object> recording) {
+		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(REQUIRE_TESTID_PROP))) return;
+		int number = 0;
+		for (Map<String, Object> step : (List<Map<String, Object>>) recording.get("steps")) {
+			number++;
+			if (step.get("selector") != null && !stableSelector(String.valueOf(step.get("selector")))) {
+				throw new IllegalArgumentException("Step " + number + " does not target a data-testid. "
+						+ "Add a unique data-testid to the element and use [data-testid=\"name\"] as the selector.");
+			}
+		}
+	}
+
 	static synchronized Map<String, Object> save(Path base, Map<String, Object> input) throws IOException {
 		Map<String, Object> recording = validate(input);
+		requireStableTargets(recording);
 		Path dir = base.resolve("recordings");
 		Files.createDirectories(dir);
 		Path file = dir.resolve(recording.get("id") + ".json");

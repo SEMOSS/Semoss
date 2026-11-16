@@ -63,6 +63,7 @@ final class AppTestRuns {
     private static final Pattern SCENARIO_NAME = Pattern.compile("[A-Za-z0-9_-]{1,64}");
     private static final Map<String, Run> RUNS = new LinkedHashMap<>();
     private static final int MAX_RUNS = 50;
+    static final int MAX_REPEAT = 5;
     private static final ThreadPoolExecutor WORKERS = new ThreadPoolExecutor(2, 2, 0, TimeUnit.MILLISECONDS,
             new ArrayBlockingQueue<>(8), runnable -> {
                 Thread thread = new Thread(runnable, "app-regression-test");
@@ -94,6 +95,13 @@ final class AppTestRuns {
 
     static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
             String applicationUrl, String sessionId, String cookieName) {
+        return start(owner, projectId, scenario, suite, pages, applicationUrl, sessionId, cookieName, 1);
+    }
+
+    /** {@code repeat} replays each recording that many times (1 to 5) and passes it only if every replay passes. */
+    static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
+            String applicationUrl, String sessionId, String cookieName, int repeat) {
+        int replays = Math.max(1, Math.min(MAX_REPEAT, repeat));
         String runId = UUID.randomUUID().toString();
         Map<String, Object> pending = new LinkedHashMap<>();
         pending.put("runId", runId);
@@ -132,10 +140,10 @@ final class AppTestRuns {
         URI root = AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId);
         List<Map<String, Object>> selected = recordings;
         register(runId, run);
-        long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * 1_000_000;
+        long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * replays * 1_000_000;
         try {
             Path reportFolder = folder.resolve("reports").resolve(ownerDirectory(owner));
-            WORKERS.execute(() -> run.result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected, reportFolder, deadline));
+            WORKERS.execute(() -> run.result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected, reportFolder, deadline, replays));
         } catch (RejectedExecutionException e) {
             synchronized (RUNS) { RUNS.remove(runId); }
             throw new IllegalArgumentException("App test runner is busy. Try again after an active run finishes.");

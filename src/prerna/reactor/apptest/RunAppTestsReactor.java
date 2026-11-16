@@ -48,10 +48,11 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 	static final String SCENARIO = "scenario";
 	static final String SUITE = "suite";
 	static final String PAGES = "pages";
+	static final String REPEAT = "repeat";
 
 	public RunAppTestsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO };
-		this.keyRequired = new int[] { 1, 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO, REPEAT };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -65,8 +66,20 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 		Object configuredCookie = DIHelper.getInstance().getLocalProp(Constants.SESSION_ID_KEY);
 		String cookieName = configuredCookie == null ? "JSESSIONID" : String.valueOf(configuredCookie);
 		String owner = AppTestRuns.ownerOf(requireUser());
+		int repeat = 1;
+		String repeatValue = getString(REPEAT);
+		if (repeatValue != null && !repeatValue.isBlank()) {
+			try {
+				repeat = Integer.parseInt(repeatValue.trim());
+			} catch (NumberFormatException e) {
+				throw new IllegalArgumentException("repeat must be a whole number from 1 to " + AppTestRuns.MAX_REPEAT);
+			}
+			if (repeat < 1 || repeat > AppTestRuns.MAX_REPEAT) {
+				throw new IllegalArgumentException("repeat must be a whole number from 1 to " + AppTestRuns.MAX_REPEAT);
+			}
+		}
 
-		String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName);
+		String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName, repeat);
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("runId", runId);
@@ -74,6 +87,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 		result.put("status", AppTestRuns.get(owner, runId).get("status"));
 		result.put("scope", AppTestRuns.PLATFORM_SMOKE_SUITE.equals(suite) ? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSIONS");
 		result.put("maxFixAttempts", AppTestRuns.maxFixAttempts());
+		if (repeat > 1) result.put("repeat", repeat);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
@@ -94,6 +108,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 				.key(PAGES, k -> k.description("Optional list of page names; only the tests of those pages run.")
 						.list(String.class))
 				.key(SCENARIO, "Development fixture only, requires APP_TEST_ALLOW_MOCKS=true; never verifies an app.")
+				.key(REPEAT, k -> k.type(Integer.class).description("Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY. Use 3 to verify a newly saved recording."))
 				.output(Map.class, "Run id, explicit target, initial status and maximum repair attempts");
 	}
 }

@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Clock;
 import com.microsoft.playwright.FrameLocator;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
@@ -50,15 +51,27 @@ import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.Response;
 import com.microsoft.playwright.TimeoutError;
 import com.microsoft.playwright.assertions.LocatorAssertions;
+import com.microsoft.playwright.options.ColorScheme;
 import com.microsoft.playwright.options.Cookie;
+import com.microsoft.playwright.options.ReducedMotion;
 import com.microsoft.playwright.options.ServiceWorkerPolicy;
 import com.microsoft.playwright.options.ScreenshotType;
 import com.microsoft.playwright.options.WaitUntilState;
+
+import prerna.util.Utility;
 
 /** One run owns all Playwright objects, on one worker thread, until they close. */
 final class AppTestRunner {
 	static final long RUN_TIMEOUT_MS = 120_000;
 	private static final double STEP_TIMEOUT_MS = 5_000;
+	/** Optional ISO instant the page clock starts at, so date-dependent screens replay the same. */
+	static final String FIXED_TIME_PROP = "APP_TEST_FIXED_TIME";
+	// animations and transitions make an element move or change while a step is acting on it
+	private static final String DISABLE_ANIMATIONS = "(() => { const add = () => { const s = document.createElement('style');"
+			+ " s.textContent = '*,*::before,*::after{animation:none!important;transition:none!important;"
+			+ "scroll-behavior:auto!important;caret-color:transparent!important}';"
+			+ " (document.head || document.documentElement).appendChild(s); };"
+			+ " if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add(); })();";
 
 	private AppTestRunner() { }
 
@@ -102,6 +115,12 @@ final class AppTestRunner {
 
 	static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
 			List<Map<String, Object>> recordings, Path reportFolder, long deadline) {
+		return run(runId, target, root, sessionId, cookieName, recordings, reportFolder, deadline, 1);
+	}
+
+	/** Replays each recording {@code repeat} times in fresh browser contexts; it passes only if every replay does. */
+	static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
+			List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat) {
 		List<Map<String, Object>> tests = new ArrayList<>();
 		// Browser provisioning belongs to deployment; never download binaries in a user job.
 		try {
@@ -110,7 +129,7 @@ final class AppTestRunner {
 					Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setTimeout(30_000))) {
 				for (Map<String, Object> recording : recordings) {
 					if (System.nanoTime() >= deadline) throw new IllegalStateException("Run exceeded its time limit");
-					tests.add(replay(browser, root, sessionId, cookieName, recording, deadline));
+					tests.add(replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat));
 				}
 			}
 		} catch (RuntimeException | AssertionError e) {
@@ -153,7 +172,11 @@ final class AppTestRunner {
 		AtomicBoolean unsafeNavigation = new AtomicBoolean();
 		AtomicInteger runtimeErrors = new AtomicInteger();
 		try (BrowserContext context = browser.newContext(new Browser.NewContextOptions().setViewportSize(1280, 900)
-				.setServiceWorkers(ServiceWorkerPolicy.BLOCK))) {
+				.setDeviceScaleFactor(1.0).setLocale("en-US").setTimezoneId("UTC").setColorScheme(ColorScheme.LIGHT)
+				.setReducedMotion(ReducedMotion.REDUCE).setServiceWorkers(ServiceWorkerPolicy.BLOCK))) {
+			context.addInitScript(DISABLE_ANIMATIONS);
+			Instant fixedTime = fixedTime();
+			if (fixedTime != null) context.clock().install(new Clock.InstallOptions().setTime(fixedTime.toString()));
 			String modulePath = root.getPath().substring(0, root.getPath().indexOf("/public_home/"));
 			context.addCookies(List.of(new Cookie(cookieName, sessionId).setDomain(root.getHost())
 					.setPath(modulePath.isEmpty() ? "/" : modulePath).setHttpOnly(true).setSecure("https".equals(root.getScheme()))));
@@ -207,13 +230,16 @@ final class AppTestRunner {
 			} catch (RuntimeException | AssertionError e) {
 				boolean environment = unauthorized.get() || unsafeNavigation.get()
 						|| !(e instanceof TimeoutError || e instanceof AssertionError);
+				// A missing element may be a removal that was intended, so it is not called a regression.
+				boolean targetMissing = !environment && currentStep > 0 && targetMissing(page, steps.get(currentStep - 1));
 				test.put("status", environment ? "ERROR" : "FAILED");
-				test.put("classification", environment ? "ERROR" : "REGRESSION_SUSPECTED");
+				test.put("classification", environment ? "ERROR" : targetMissing ? "TARGET_NOT_FOUND" : "REGRESSION_SUSPECTED");
 				test.put("failedStep", currentStep);
 				test.put("reason", unauthorized.get() ? "SEMOSS session expired or access was denied. Sign in again before running tests."
 						: unsafeNavigation.get() ? "Navigation left the target app or required a different authentication origin."
 						: smoke && runtimeErrors.get() > 0 ? "The page visibility smoke check observed unhandled JavaScript errors. This check provides no workflow coverage."
 						: environment ? "The app could not load, a step was unsupported, or the runner timed out."
+						: targetMissing ? "The recorded element was not found in the app. It may have been removed or renamed; confirm whether that was intended. Do not weaken the test to make it pass."
 						: "The recorded element or expected check did not match the app.");
 				if (currentStep > 0) {
 					Map<String, Object> failed = steps.get(currentStep - 1);
@@ -246,6 +272,66 @@ final class AppTestRunner {
 		return test;
 	}
 
+	/** The configured start of the page clock, or null when the real clock should be used. */
+	private static Instant fixedTime() {
+		String value = Utility.getDIHelperProperty(FIXED_TIME_PROP);
+		if (value == null || value.isBlank()) return null;
+		try {
+			return Instant.parse(value.trim());
+		} catch (java.time.format.DateTimeParseException e) {
+			return null;
+		}
+	}
+
+	/** True when the step's element does not exist in the page right now. */
+	private static boolean targetMissing(Page page, Map<String, Object> step) {
+		if ("NAVIGATE".equals(String.valueOf(step.get("type"))) || step.get("selector") == null) return false;
+		try {
+			return locator(page, step).count() == 0;
+		} catch (RuntimeException e) {
+			return false;
+		}
+	}
+
+	private static Map<String, Object> replayRepeated(Browser browser, URI root, String sessionId, String cookieName,
+			Map<String, Object> recording, long deadline, int repeat) {
+		List<Map<String, Object>> outcomes = new ArrayList<>();
+		for (int i = 0; i < Math.max(1, repeat); i++) {
+			outcomes.add(replay(browser, root, sessionId, cookieName, recording, deadline));
+			if (System.nanoTime() >= deadline) break;
+		}
+		return aggregateRepeats(outcomes, Math.max(1, repeat));
+	}
+
+	/**
+	 * One result for identical replays of the same recording. It passes only if every
+	 * replay passed; replays that disagree are reported FLAKY, never as a pass.
+	 */
+	static Map<String, Object> aggregateRepeats(List<Map<String, Object>> outcomes, int requested) {
+		Map<String, Object> chosen = outcomes.getFirst();
+		int passed = 0;
+		for (Map<String, Object> outcome : outcomes) {
+			if ("PASSED".equals(outcome.get("status"))) passed++;
+			else if ("PASSED".equals(chosen.get("status"))) chosen = outcome;
+		}
+		Map<String, Object> result = new LinkedHashMap<>(chosen);
+		if (requested <= 1) return result;
+		result.put("repeats", outcomes.size());
+		result.put("passedRepeats", passed);
+		if (outcomes.size() < requested && passed == outcomes.size()) {
+			result.put("status", "ERROR");
+			result.put("classification", "ERROR");
+			result.put("reason", "The run time limit was reached after " + outcomes.size() + " of " + requested
+					+ " replays, so stability could not be confirmed.");
+		} else if (passed > 0 && passed < outcomes.size()) {
+			result.put("status", "FAILED");
+			result.put("classification", "FLAKY");
+			result.put("reason", "The same recording passed " + passed + " of " + outcomes.size()
+					+ " identical replays. Its result is not deterministic, so do not rely on it.");
+		}
+		return result;
+	}
+
 	@SuppressWarnings("unchecked")
 	static void execute(Page page, URI root, Map<String, Object> step) {
 		String type = String.valueOf(step.get("type"));
@@ -265,7 +351,14 @@ final class AppTestRunner {
 		case "CHECK" -> locator.setChecked((Boolean) step.get("checked"));
 		case "KEY" -> locator.press(String.valueOf(step.get("key")));
 		case "SCROLL" -> locator.evaluate("(el, p) => el.scrollTo(p.x, p.y)", Map.of("x", step.get("x"), "y", step.get("y")));
-		case "ASSERT_TEXT" -> assertThat(locator).containsText(String.valueOf(step.get("text")), new LocatorAssertions.ContainsTextOptions().setTimeout(STEP_TIMEOUT_MS));
+		case "ASSERT_TEXT" -> {
+			String expected = String.valueOf(step.get("text"));
+			if (Boolean.TRUE.equals(step.get("exact"))) {
+				assertThat(locator).hasText(expected, new LocatorAssertions.HasTextOptions().setTimeout(STEP_TIMEOUT_MS));
+			} else {
+				assertThat(locator).containsText(expected, new LocatorAssertions.ContainsTextOptions().setTimeout(STEP_TIMEOUT_MS));
+			}
+		}
 		case "ASSERT_VISIBLE" -> assertThat(locator).isVisible(new LocatorAssertions.IsVisibleOptions().setTimeout(STEP_TIMEOUT_MS));
 		default -> throw new IllegalArgumentException("Unsupported app test step");
 		}
