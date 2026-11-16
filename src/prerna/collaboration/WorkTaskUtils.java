@@ -885,7 +885,7 @@ public final class WorkTaskUtils {
 			String status = (String) row.get("status");
 			boolean finished = (int) row.get("total") > 0 && (int) row.get("open") == 0
 					&& !Boolean.TRUE.equals(row.get("ongoing"));
-			if (OPEN_STATUSES.contains(status) && finished) {
+			if (OPEN_STATUSES.contains(status) && finished && !ownerOpenedSince(conn, ownerId, ownerType, taskId)) {
 				CollaborationDbUtils.update(conn, "UPDATE WORK_TASK SET STATUS = ?, CLOSED_AT = ?, UPDATED_AT = ?"
 						+ OWNED + " AND TASK_ID = ?", DONE, now, now, ownerId, ownerType, taskId);
 				insertUpdate(conn, ownerId, ownerType, taskId, "status",
@@ -898,6 +898,22 @@ public final class WorkTaskUtils {
 						"Status: " + DONE + " -> " + ACTIVE + " (a step is open again)", null, BRAIN, now);
 			}
 		}
+	}
+
+	// the owner set the item's status themselves after its last step changed (reopened a finished item, say):
+	// their word stands until a step changes again
+	private static boolean ownerOpenedSince(java.sql.Connection conn, String ownerId, String ownerType, String taskId)
+			throws SQLException {
+		List<Timestamp> owners = CollaborationDbUtils.query(conn,
+				"SELECT MAX(CREATED_AT) FROM WORK_TASK_UPDATE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TASK_ID = ? "
+						+ "AND KIND = ? AND ORIGIN = ?",
+				rs -> rs.getTimestamp(1), ownerId, ownerType, taskId, "status", OWNER);
+		List<Timestamp> steps = CollaborationDbUtils.query(conn,
+				"SELECT MAX(UPDATED_AT) FROM WORK_THREAD_STEP WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TASK_ID = ?",
+				rs -> rs.getTimestamp(1), ownerId, ownerType, taskId);
+		Timestamp set = owners.isEmpty() ? null : owners.get(0);
+		Timestamp step = steps.isEmpty() ? null : steps.get(0);
+		return set != null && (step == null || !step.after(set));
 	}
 
 	// the item's latest status change is the one settleTasks made

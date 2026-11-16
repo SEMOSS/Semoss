@@ -1131,6 +1131,17 @@ class WorkPipelineDbUnitTests {
 		WorkTaskUtils.updateStep(user, "a", Map.of("status", "open"), "owner");
 		assertEquals("done", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
 
+		// the owner reopens an item whose steps are all finished: the next build leaves it open
+		WorkTaskUtils.updateStep(user, "a", Map.of("status", "done"), "owner");
+		WorkTaskUtils.updateStep(user, "b", Map.of("status", "done"), "owner");
+		assertEquals("done", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+		assertEquals(0L, ((Number) value("SELECT COUNT(*) FROM WORK_THREAD_STEP WHERE TASK_ID = 'bill' AND STATUS IN "
+				+ "('open', 'waiting')")).longValue());
+		Thread.sleep(20);
+		WorkTaskUtils.saveWork(user, Map.of("id", "bill", "title", "Answer Bill", "status", "active"), "owner");
+		WorkTaskUtils.settleAll(ownerId, ownerType);
+		assertEquals("active", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+
 		// an ongoing item is never closed by its steps
 		sql("INSERT INTO WORK_TASK (OWNER_ID, OWNER_TYPE, TASK_ID, KIND, TITLE, STATUS, ONGOING, ORIGIN, STATE) VALUES "
 				+ "(?, ?, 'ongoing', 'work', 'Watch the line', 'active', ?, 'brain', 'proposed')", ownerId, ownerType,
