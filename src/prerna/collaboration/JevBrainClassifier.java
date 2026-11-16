@@ -121,7 +121,9 @@ final class JevBrainClassifier implements BrainClassifier {
 		questions.put("act", question("noul", "This is a machine-sent notice (a ticket, approval request, work order, "
 				+ "portal or system alert). Does it require the owner (\"me\", named in owner) personally to do something: "
 				+ "approve, sign, respond, upload, renew, fix or close it? Answer no when it only reports a status, when "
-				+ "it names someone else as the assignee or owner, when it is marketing, or when it looks like phishing.",
+				+ "it names someone else as the assignee or owner, when it is marketing, a survey or a request for "
+				+ "feedback, or when it looks like phishing (an unexpected invoice, a request to confirm bank or "
+				+ "payment details).",
 				null));
 		Map<String, Object> answers = map(engine.evaluate(state, questions, insight, null).getResponse().get("answers"));
 		if (answers == null) {
