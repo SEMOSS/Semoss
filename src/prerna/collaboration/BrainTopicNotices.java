@@ -54,6 +54,7 @@ final class BrainTopicNotices {
 			holidays, sick days, appointments, personal holds on a calendar, and replies to those. Do not list anything
 			about a project, client, deal or piece of work, even when it mentions someone being away, and do not list a
 			meeting where work is discussed. When unsure, do not list it. Return an empty list when none qualify.
+			Answer with JSON only, in exactly this shape: {"notices": ["id", "id"]}
 			""";
 
 	// conversations per model call

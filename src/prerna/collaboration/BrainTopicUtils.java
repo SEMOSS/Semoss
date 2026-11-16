@@ -361,6 +361,31 @@ public final class BrainTopicUtils {
 		return getTopicPerson(ownerId, ownerType, topicId, personId);
 	}
 
+	// ORIGIN of a person Brain added to a topic from a filing the owner made by hand
+	static final String FROM_CORRECTION = "correction";
+
+	// The owner filed a conversation under a topic: the people who wrote on it become that topic's suggested people,
+	// the prior the classifier reads. The owner, automated senders, people the thread excluded, and anyone already
+	// on the topic (a removed person included) are left. Joins the caller's transaction.
+	static void learnPeople(Connection conn, String ownerId, String ownerType, String threadId, String topicId)
+			throws SQLException {
+		List<String> people = CollaborationDbUtils.query("SELECT tp.PERSON_ID FROM BRAIN_THREAD_PARTICIPANT tp "
+				+ "JOIN BRAIN_PERSON p ON p.OWNER_ID = tp.OWNER_ID AND p.OWNER_TYPE = tp.OWNER_TYPE "
+				+ "AND p.PERSON_ID = tp.PERSON_ID WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.THREAD_ID = ? "
+				+ "AND (tp.INCLUDED IS NULL OR tp.INCLUDED = ?) AND (p.RELATIONSHIP IS NULL OR p.RELATIONSHIP NOT IN (?, ?)) "
+				+ "AND NOT EXISTS (SELECT 1 FROM BRAIN_TOPIC_PERSON t WHERE t.OWNER_ID = tp.OWNER_ID "
+				+ "AND t.OWNER_TYPE = tp.OWNER_TYPE AND t.TOPIC_ID = ? AND t.PERSON_ID = tp.PERSON_ID) "
+				+ "ORDER BY tp.PERSON_ID", rs -> rs.getString(1), ownerId, ownerType, threadId, true, "self",
+				BrainSenderTyping.AUTOMATED, topicId);
+		Timestamp now = CollaborationDbUtils.now();
+		for (String personId : people) {
+			CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, "
+					+ "PERSON_ID, STATE, ORIGIN, REASON, CHANGED_BY, CHANGED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+					ownerId, ownerType, topicId, personId, SUGGESTED, FROM_CORRECTION,
+					"Wrote on a conversation you filed here", "brain", now);
+		}
+	}
+
 	private static Map<String, Object> getTopicPerson(String ownerId, String ownerType, String topicId,
 			String personId) {
 		return CollaborationDbUtils.queryOne(
