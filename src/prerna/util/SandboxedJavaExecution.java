@@ -43,7 +43,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -52,11 +51,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.pdfbox.cos.COSDictionary;
-import org.apache.pdfbox.pdmodel.PDPage;
-import org.apache.pdfbox.pdmodel.common.PDRectangle;
-
-import com.zaxxer.hikari.HikariConfig;
 
 import prerna.security.SensitiveKeys;
 
@@ -164,12 +158,6 @@ public final class SandboxedJavaExecution {
 	 * </ul>
 	 */
 	private static final ConcurrentHashMap<String, String> PLATFORM_PROPERTIES = new ConcurrentHashMap<>();
-
-	/**
-	 * The HikariCP settings that make the pool look a data source up by name, or
-	 * create one from a class name.
-	 */
-	private static final Set<String> HIKARI_LOOKUP_SETTINGS = Set.of("dataSourceJNDI", "dataSourceClassName");
 
 	private SandboxedJavaExecution() {
 	}
@@ -591,110 +579,6 @@ public final class SandboxedJavaExecution {
 			throw new SecurityException("Loading '" + className + "' is not permitted in project reactors");
 		}
 		return loader.loadClass(className);
-	}
-
-	// --------------------------------------------------------------- HikariCP
-
-	/**
-	 * Sandboxed replacement for {@code new HikariConfig()}.
-	 *
-	 * @return an empty pool configuration
-	 */
-	public static HikariConfig hikariConfig() {
-		return new HikariConfig();
-	}
-
-	/**
-	 * Sandboxed replacement for {@code new HikariConfig(Properties)}: the pool
-	 * connects through its JDBC URL, so a setting that has it look a data source up
-	 * by name, or create one from a class name, is refused.
-	 *
-	 * @param properties the pool settings
-	 * @return the pool configuration
-	 * @throws SecurityException if the settings hold one of the refused ones
-	 */
-	public static HikariConfig hikariConfig(Properties properties) {
-		for (String key : properties.stringPropertyNames()) {
-			for (String refused : HIKARI_LOOKUP_SETTINGS) {
-				if (refused.equalsIgnoreCase(key)) {
-					throw new SecurityException(
-							"The HikariCP setting " + refused + " is not permitted in project reactors");
-				}
-			}
-		}
-		return new HikariConfig(properties);
-	}
-
-	/**
-	 * Sandboxed replacement for {@code new HikariConfig(String)}: reads the
-	 * properties file under the same path rule as {@link #file(String)}, then
-	 * applies {@link #hikariConfig(Properties)}.
-	 *
-	 * @param propertyFileName the properties file
-	 * @return the pool configuration
-	 * @throws IllegalArgumentException if the file cannot be read
-	 */
-	public static HikariConfig hikariConfig(String propertyFileName) {
-		Properties properties = new Properties();
-		try (FileInputStream in = new FileInputStream(sanitize(propertyFileName))) {
-			properties.load(in);
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Cannot read the pool property file " + propertyFileName, e);
-		}
-		return hikariConfig(properties);
-	}
-
-	/**
-	 * A rectangle a project's code gets from PDFBox, or a copy of it when it is one
-	 * of the page sizes PDFBox shares between every document in the JVM, such as
-	 * {@link PDRectangle#A4}, so a change to it stays in the project's own
-	 * document.
-	 *
-	 * @param box the rectangle
-	 * @return the rectangle, or a copy of a shared page size
-	 */
-	public static PDRectangle unsharedPageSize(PDRectangle box) {
-		if (box == null) {
-			return null;
-		}
-		for (PDRectangle size : List.of(PDRectangle.LETTER, PDRectangle.LEGAL, PDRectangle.TABLOID, PDRectangle.A0,
-				PDRectangle.A1, PDRectangle.A2, PDRectangle.A3, PDRectangle.A4, PDRectangle.A5, PDRectangle.A6)) {
-			if (box == size || box.getCOSArray() == size.getCOSArray()) {
-				return new PDRectangle(box.getLowerLeftX(), box.getLowerLeftY(), box.getWidth(), box.getHeight());
-			}
-		}
-		return box;
-	}
-
-	/**
-	 * Sandboxed replacement for {@code new PDPage()}: a US Letter page with a media
-	 * box of its own.
-	 *
-	 * @return the page
-	 */
-	public static PDPage pdPage() {
-		return new PDPage(unsharedPageSize(PDRectangle.LETTER));
-	}
-
-	/**
-	 * Sandboxed replacement for {@code new PDPage(PDRectangle)}: a page whose media
-	 * box is its own, also when it is given a shared page size.
-	 *
-	 * @param mediaBox the page's size
-	 * @return the page
-	 */
-	public static PDPage pdPage(PDRectangle mediaBox) {
-		return new PDPage(unsharedPageSize(mediaBox));
-	}
-
-	/**
-	 * Sandboxed replacement for {@code new PDPage(COSDictionary)}.
-	 *
-	 * @param page the page's dictionary
-	 * @return the page
-	 */
-	public static PDPage pdPage(COSDictionary page) {
-		return new PDPage(page);
 	}
 
 	// ---------------------------------------------------------- Class loaders
