@@ -79,6 +79,7 @@ Custom reactors in a project run in a sandbox: [SemossClassLoader](../../src/pre
 - `Utility.getDIHelperProperty(key)` returns an RDF_Map setting, and null for every key the RDF_Map editor hides. Use it in place of `DIHelper.getInstance().getProperty(key)`.
 - `Utility.loadProperties` reads a file under the same path rule as `new File(...)`: inside the user's folder when `CHROOT_ENABLE` is on.
 - `Utility.getDIHelperLocalProperty` throws.
+- An engine's settings (`getSmssProp()`, `getOrigSmssProp()`, `getProperty(key)`, `getConnectionUrl()`, `getDataSource()`) need `OWNER` on the engine from a custom reactor, and a permission an engine gives an app never reaches them. The query utility an RDBMS engine hands out builds SQL, and its user name, password and connection URL stay with the engine. See [engine access](engine_access.md).
 - A method reference to a method the sandbox rewrites or refuses, such as `File::getAbsolutePath` or `System::getenv`, behaves exactly like the call it stands for. A method handle constant to one is refused when the class loads.
 
 ## Python in a model engine

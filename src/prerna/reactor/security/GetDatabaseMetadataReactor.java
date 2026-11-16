@@ -96,7 +96,7 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 						Returns metadata for a single engine (legacy GetDatabaseMetadata name) when the user can access it or it is discoverable.
 
 						Inputs: database, metaKeys.
-						Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys and last_updated.
+						Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys and last_updated.
 						Any response key prefixed with app_* or database_* is legacy and should not be used.
 						""");
 	}

@@ -63,6 +63,8 @@ public class SemossJarClassLoader extends JarClassLoader {
 
 	private final List<String> approvedPackages = SemossClassLoader.approvedLibraryPackages();
 
+	private final String projectId;
+
 	/**
 	 * Constructs a SemossJarClassLoader and registers additional system properties
 	 * that reactor code loaded from the JAR is permitted to read.
@@ -72,7 +74,29 @@ public class SemossJarClassLoader extends JarClassLoader {
 	 * @see SemossClassLoader#SemossClassLoader(ClassLoader, Map)
 	 */
 	public SemossJarClassLoader(Map<String, String> additionalProperties) {
+		this(additionalProperties, null);
+	}
+
+	/**
+	 * Constructs the loader for the Maven dependencies of one project.
+	 *
+	 * @param additionalProperties extra properties to expose to reactor code;
+	 *                             {@code null} is treated as an empty map
+	 * @param projectId            the id of the project the dependencies belong to,
+	 *                             or null when they belong to no project
+	 */
+	public SemossJarClassLoader(Map<String, String> additionalProperties, String projectId) {
+		this.projectId = projectId;
 		SandboxedJavaExecution.addPlatformProperties(additionalProperties);
+	}
+
+	/**
+	 * The project whose Maven dependencies this loader loads.
+	 *
+	 * @return the project id, or null when they belong to no project
+	 */
+	String getProjectId() {
+		return this.projectId;
 	}
 
 	@Override

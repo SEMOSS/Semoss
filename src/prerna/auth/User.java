@@ -533,7 +533,7 @@ public class User implements Serializable {
 					String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
 					String chrootDir = Utility.getDIHelperProperty(Constants.CHROOT_DIR);
 					chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
-					symlinkHelper = new SymlinkHelper(chrootPath);
+					symlinkHelper = new SymlinkHelper(chrootPath, this);
 
 					// symlink the user asset folder into the chroot on boot
 					try {

@@ -82,9 +82,11 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -286,6 +288,22 @@ public final class InternalUtility {
 			classLogger.error("Failed to load engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
+	}
+
+	/**
+	 * Returns a model for the platform's own use: a feature that uses the model a
+	 * platform setting names, for every user of the feature, whether or not they
+	 * have access to the model. The access check on the returned proxy lets the
+	 * platform's own calls through, where {@link Utility#getModel(String)} checks
+	 * the signed in user. The model's pipeline and usage limits apply as on any
+	 * call. Use it only for an engine id that comes from a platform setting, never
+	 * for one a user sends.
+	 *
+	 * @param engineId the id of the model the platform setting names
+	 * @return the model, or null when it cannot be loaded
+	 */
+	public static IModelEngine getPlatformModel(String engineId) {
+		return EngineProxyFactory.createPlatformModelEngine((IModelEngine) baseGetEngine(engineId, true));
 	}
 
 	/**

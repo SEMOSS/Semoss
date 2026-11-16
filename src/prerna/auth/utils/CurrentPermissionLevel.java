@@ -228,6 +228,75 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
+	 * Whether the user can open at least one insight of a project now: a public
+	 * insight, or one given to them directly or to a login provider group or custom
+	 * team they are in. A grant, or a membership of a custom team, that has ended
+	 * does not count, and neither does a row with no level.
+	 *
+	 * @param user      the user
+	 * @param projectId the project
+	 * @return whether the project has an insight the user can open
+	 * @throws IllegalArgumentException when the rows cannot be read
+	 */
+	static boolean canOpenAnInsightOf(User user, String projectId) {
+		if (user == null) {
+			return false;
+		}
+		PermissionTargetResource project = PermissionTargetResource.project(projectId);
+		SelectQueryStruct publicInsights = new SelectQueryStruct();
+		publicInsights.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
+		publicInsights.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
+		publicInsights.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		if (hasRow(publicInsights, project)) {
+			return true;
+		}
+
+		SelectQueryStruct ownInsights = insightGrantsQuery("USERINSIGHTPERMISSION", projectId);
+		ownInsights.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==",
+				AbstractSecurityUtils.getUserFiltersQs(user)));
+		if (hasRow(ownInsights, project)) {
+			return true;
+		}
+
+		IQueryFilter teams = currentTeamsFilter(user, "GROUPINSIGHTPERMISSION");
+		if (teams == null) {
+			return false;
+		}
+		SelectQueryStruct teamInsights = insightGrantsQuery("GROUPINSIGHTPERMISSION", projectId);
+		teamInsights.addExplicitFilter(teams);
+		return hasRow(teamInsights, project);
+	}
+
+	/**
+	 * Builds a query for the insight grants in effect on any insight of a project,
+	 * in a user or group insight permission table.
+	 *
+	 * @return a query for the grants, leaving out rows with no level and grants
+	 *         that have ended
+	 */
+	private static SelectQueryStruct insightGrantsQuery(String table, String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(table + "__INSIGHTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(table + "__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(table + "__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
+		qs.addExplicitFilter(AbstractSecurityUtils.getUnexpiredFilter(table + "__ENDDATE"));
+		return qs;
+	}
+
+	private static boolean hasRow(SelectQueryStruct qs, PermissionTargetResource target) {
+		qs.setLimit(1);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
+				.getRawWrapper(SystemEngineRegistry.getSecurityDb(), qs)) {
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			classLogger.error("Could not read the user's access to {}", target.describe(), e);
+			throw new IllegalArgumentException("Could not read your access to " + target.describe());
+		}
+	}
+
+	/**
 	 * Runs the query on the security database and keeps the highest level it reads.
 	 *
 	 * @return the highest level the query reads, where a lower id is a higher

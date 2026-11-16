@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.reactor.IReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -43,6 +44,7 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * 
 	 * @return
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	GuardrailTypeEnum getGuardrailType();
 
 	/**
@@ -52,6 +54,7 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * @return default markdown, or null when the guardrail has no example
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default String getDefaultMarkdown() {
 		return null;
 	}
@@ -62,6 +65,7 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * @param curRow
 	 * @return
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow);
 
 	/**
@@ -77,6 +81,7 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * @return the guardrail decision
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow, IEngine targetEngine) {
 		return execute(ns, curRow);
 	}

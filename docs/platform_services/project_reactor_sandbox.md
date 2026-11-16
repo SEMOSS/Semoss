@@ -31,7 +31,7 @@ Guarded by [SandboxBlockedClassesUnitTests](../../test/prerna/util/SandboxBlocke
 
 | Group | Classes | Test |
 | --- | --- | --- |
-| Platform state and internal helpers | `prerna.util.DIHelper`, `prerna.util.SystemEngineRegistry`, `prerna.security.SecretRedactor`, `prerna.util.InternalUtility` | `platformStateAndInternalHelpersAreBlocked` |
+| Platform state and internal helpers | `prerna.util.DIHelper`, `prerna.util.SystemEngineRegistry`, `prerna.security.SecretRedactor`, `prerna.util.InternalUtility`, the classes that build the proxy that checks every call to an engine, `prerna.engine.impl.pipeline.EngineProxyFactory` and `PipelineInvocationHandler`, `prerna.engine.impl.pipeline.PlatformOperation`, which marks the platform's own work for that check, and `prerna.om.InsightStore`, which holds every open insight of every user | `platformStateAndInternalHelpersAreBlocked` |
 | The secret store | `prerna.io.connector.secrets.*` | `theSecretStoreIsBlocked` |
 | Classes that require an admin | Every `prerna` class whose name starts with `Admin`, and `prerna.auth.utils.SecurityAdminUtils` | `classesThatRequireAnAdminAreBlocked`, `everyAdminNamedClassInThePlatformSourceIsBlocked` |
 | Reflection | `java.lang.reflect.*`, `java.lang.invoke.MethodHandles` and its `Lookup`, `sun.misc.Unsafe`, `jdk.internal.misc.Unsafe` | `reflectionIsBlocked` |
@@ -67,6 +67,8 @@ Guarded by [SandboxReplacedCallsUnitTests](../../test/prerna/util/SandboxReplace
 | `DriverManager.registerDriver`, `deregisterDriver`, `setLogWriter`, `setLogStream` | `SecurityException` | `registeredJdbcDriversCannotBeChanged` |
 | `TimeZone.setDefault`, `Locale.setDefault` | `SecurityException` | `theDefaultTimeZoneAndLocaleCannotBeChanged` |
 | The calls that change who the signed in user is: `Insight.setUser`, `ThreadStore.setUser` and `setThreadMapObject`, `User.setAccessToken`, `setGlobalAccessToken`, `dropAccessToken` and `setPrimaryLogin`, and `AccessToken.setId`, `setProvider`, `setUserGroups`, `setUserGroupType` and `setLocked` | `SecurityException` | `theSignedInUserCannotBeChanged` |
+| The `ThreadStore` calls that change which request the thread serves: `setInsightId`, `setSessionId`, `setRouteId`, `setJobId`, `setSchedulerMode`, `setLocalHostname`, `setLocalProtocol`, `setLocalPort`, `setContextProjectIdOverride`, `setContextProjectNameOverride`, `clearContextProjectOverride`, `remove`, and `getTheadMapObject`, which hands out the thread's map itself | `SecurityException` | `theRequestTheThreadServesCannotBeChanged` |
+| The calls that read an RDBMS engine's credentials from its query utility or change where it connects, on any class of `prerna.util.sql`: `getUsername`, `getPassword`, `getAdditionalProps`, `getConnectionUrl`, `setHostname`, `setPort`, `setDatabase`, `setSchema`, `setUsername`, `setPassword`, `setAdditionalProps`, `setConnectionUrl` | `SecurityException` | `anEnginesCredentialsCannotBeReadOrChangedThroughItsQueryUtility` |
 | Extending a class that has refused calls, such as `User`, `AccessToken`, `Insight` or `TimeZone` | The class is refused when it loads | `aClassWithRefusedCallsCannotBeExtended` |
 | `URL.openStream`, `openConnection`, `getContent`, `setURLStreamHandlerFactory` | `SecurityException` | `aUrlCannotOpenAConnection` |
 | `Files.createSymbolicLink`, `FileChannel.open` | `SecurityException` | `symbolicLinksAndFileChannelsAreRefused` |
@@ -96,6 +98,8 @@ With `CHROOT_ENABLE` on, every file a project's code opens is inside the user's 
 | File work happens on the thread that runs the reactor. With `CHROOT_ENABLE` on, a thread that does not carry the user's folder, such as one from an executor or a parallel stream, cannot open files | `withChrootOnAThreadWithoutTheUsersFolderCannotOpenFiles` |
 | `java.util.logging.FileHandler` cannot be used | `logFilesAreWrittenByThePlatform` in `SandboxBlockedClassesUnitTests` |
 | With `CHROOT_ENABLE` off, as on a developer machine, a reactor opens files exactly as named, and the platform logs a warning that this would typically require `CHROOT_ENABLE` for security | `withChrootOffAReactorStillRunsAndThePlatformWarns`, `withNoUsersFolderAFileOpenedByNameIsTheOneNamed` |
+
+A project reaches a user's folder in one of two ways, by what the user may do with it. Someone who can edit the project works on the project's own folder, through a symlink. Anyone else, through a public app or a read-only permission, gets a copy that nobody can write to. The copy holds the project's files without its `java`, `classes` and `portals` folders, since the server compiles and loads custom reactors and serves portals from the project's own folder, and without its `.git` folder, which a copy nobody can change has no use for; what an app has for the people who only view it goes in its other folders, such as `public`. The copy is made again when the project's files change, and a change of the user's permission is followed the next time the project is loaded. Whichever folder of a project a reactor asks for, the whole project is placed by this one rule ([SymlinkHelperUnitTests](../../test/prerna/util/SymlinkHelperUnitTests.java): `aReadOnlyCopyLeavesOutTheReactorSourceTheClassesThePortalsAndTheGitFolder`, `aReadOnlyCopyKeepsEveryOtherFileOfTheProject`, `nobodyCanWriteToAViewersCopy`, `aViewersCopyIsMadeAgainInTheSameFolder`, `someoneWhoWasAnEditorGetsACopyInPlaceOfTheLink`, `someoneWhoBecomesAnEditorLosesTheCopySoTheProjectCanBeLinked`, `aChangedProjectIsToldFromTheOneThatWasCopied`, `aFolderOfAProjectIsTracedToTheProject`, `aProjectFolderThatCannotBePutInTheChrootIsLoggedAndSkipped`).
 
 ## XML
 
@@ -191,7 +195,9 @@ Requests from a project's code follow these rules as well, guarded by [SandboxHt
 | Need | Use |
 | --- | --- |
 | An RDF_Map setting | `Utility.getDIHelperProperty(key)` |
-| An engine or project | `Utility.getDatabase`, `Utility.getModel`, `Utility.getStorage`, `Utility.getProject` and the other typed getters, after checking the user's access to the id with `SecurityEngineUtils` or `SecurityProjectUtils` |
+| An engine or project | `Utility.getDatabase`, `Utility.getModel`, `Utility.getStorage`, `Utility.getProject` and the other typed getters. Every call on what they return is checked against the signed in user's permission or the permission the engine gave the app; see [engine access](engine_access.md#calls-from-custom-reactors) |
+| An engine for people who have no access to it | A permission the engine's owner gives the app; see [giving an app a permission on an engine](engine_access.md#giving-an-app-a-permission-on-an-engine) |
+| SQL for an engine's dialect | `engine.getQueryUtil()`, with `EDIT` on the engine |
 | An HTTP call | [HttpHelperUtility](../../src/prerna/security/HttpHelperUtility.java); see [calling web services](../how-to-guides/writing_custom_reactors.md#calling-web-services) |
 | XML from a web address | Fetch the text with `HttpHelperUtility`, then parse it from a `StringReader` |
 | An email | [EmailUtility](../../src/prerna/util/EmailUtility.java) |

@@ -178,7 +178,9 @@ class SandboxBlockedClassesUnitTests {
 
 	@ParameterizedTest
 	@ValueSource(strings = { "prerna.util.DIHelper", "prerna.util.SystemEngineRegistry",
-			"prerna.security.SecretRedactor", "prerna.util.InternalUtility", "prerna.util.InternalUtility$Nested" })
+			"prerna.security.SecretRedactor", "prerna.util.InternalUtility", "prerna.util.InternalUtility$Nested",
+			"prerna.engine.impl.pipeline.EngineProxyFactory", "prerna.engine.impl.pipeline.PipelineInvocationHandler",
+			"prerna.engine.impl.pipeline.PlatformOperation", "prerna.om.InsightStore" })
 	void platformStateAndInternalHelpersAreBlocked(String name) {
 		assertTrue(SemossClassLoader.isReflectionApiBlocked(name));
 	}

@@ -53,7 +53,23 @@ public class SandboxInjector {
 	}
 
 	public boolean inject(String absPath, boolean readWrite) {
-		return send("INJECT\t" + (readWrite ? "rw" : "ro") + "\t" + absPath);
+		return inject(absPath, null, readWrite);
+	}
+
+	/**
+	 * Mounts a folder inside the sandbox at a path. With a source, that folder is
+	 * what shows at the path: the read-only copy of a project, in place of the
+	 * project's own folder.
+	 *
+	 * @param absPath    the path the folder shows at inside the sandbox
+	 * @param sourcePath the folder to mount there, or null to mount the folder at
+	 *                   the path itself
+	 * @param readWrite  whether the sandbox may write to it
+	 * @return whether the supervisor mounted it
+	 */
+	public boolean inject(String absPath, String sourcePath, boolean readWrite) {
+		String command = "INJECT\t" + (readWrite ? "rw" : "ro") + "\t" + absPath;
+		return send(sourcePath == null || sourcePath.equals(absPath) ? command : command + "\t" + sourcePath);
 	}
 
 	public boolean remove(String absPath) {

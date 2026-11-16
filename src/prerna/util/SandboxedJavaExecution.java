@@ -700,6 +700,34 @@ public final class SandboxedJavaExecution {
 	}
 
 	/**
+	 * The project a class belongs to: the project of the sandbox loader that loaded
+	 * it, or of the nearest sandbox loader above that one, which covers the loaders
+	 * a project's own code creates.
+	 *
+	 * @param candidate a class, or null
+	 * @return the project id, or null when the class is not project code or its
+	 *         loader belongs to no project
+	 */
+	public static String projectIdOf(Class<?> candidate) {
+		ClassLoader loader = candidate == null ? null : candidate.getClassLoader();
+		while (SemossClassLoader.isSandboxLoader(loader)) {
+			String projectId = null;
+			if (loader instanceof SemossClassLoader projectLoader) {
+				projectId = projectLoader.getProjectId();
+			} else if (loader instanceof SemossJarClassLoader dependencyLoader) {
+				projectId = dependencyLoader.getProjectId();
+			}
+			if (projectId != null) {
+				return projectId;
+			}
+			if (loader != null) {
+				loader = loader.getParent();
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * The sandbox loader that loaded a project class.
 	 *
 	 * @param caller the project class

@@ -11,6 +11,7 @@ Unlimited.
 | --- | --- | --- |
 | Direct Limit | `usageLimit` on a person's grant on the model | the model's owners; admins in admin mode |
 | Team Limit | `usageLimit` on a team's grant on the model | the model's owners |
+| App Limit | `usageLimit` on the permission the model gives an app (a `PROJECT` subject) | the model's owners; admins in admin mode |
 | Public Use Limit | a `PUBLIC` change on the model | the model's owners |
 | Model Total | a `MODEL` change on the model | the model's owners |
 | User's Total Model Limit | `SecurityAdminUtils.editUser` (`model_usage_limit`), `registerUser`, `addNativeUser` | admins |

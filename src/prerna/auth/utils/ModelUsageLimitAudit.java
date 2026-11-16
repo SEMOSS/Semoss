@@ -76,7 +76,8 @@ final class ModelUsageLimitAudit {
 	 *
 	 * @param key where a limit is set
 	 * @return {@code DIRECT}, {@code TEAM}, {@code PUBLIC}, {@code MODEL_TOTAL},
-	 *         {@code TEAM_TOTAL}, {@code ALL_MODELS} or {@code PLATFORM}
+	 *         {@code TEAM_TOTAL}, {@code APP}, {@code ALL_MODELS} or
+	 *         {@code PLATFORM}
 	 */
 	static String limitTypeOf(ModelUsageLimitKey key) {
 		switch (key.type()) {
@@ -88,6 +89,8 @@ final class ModelUsageLimitAudit {
 			return "PUBLIC";
 		case MODEL:
 			return "MODEL_TOTAL";
+		case PROJECT:
+			return "APP";
 		default:
 			return "PLATFORM";
 		}
@@ -124,7 +127,8 @@ final class ModelUsageLimitAudit {
 	 * Builds the details of a limit's change, for the caller to add to.
 	 *
 	 * @param key where the limit is set
-	 * @return the limit type and, for a team's limit or total, the team
+	 * @return the limit type and, for a team's limit or total, the team, or for an
+	 *         app's limit, the project
 	 */
 	static Map<String, Object> details(ModelUsageLimitKey key) {
 		Map<String, Object> details = new LinkedHashMap<>();
@@ -132,6 +136,9 @@ final class ModelUsageLimitAudit {
 		if (key.type() == ModelUsageLimitKey.Type.TEAM) {
 			details.put("groupId", key.subjectId());
 			details.put("groupType", key.subjectType());
+		}
+		if (key.type() == ModelUsageLimitKey.Type.PROJECT) {
+			details.put("projectId", key.subjectId());
 		}
 		return details;
 	}

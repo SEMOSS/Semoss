@@ -167,6 +167,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private final String engineId;
 	private final String engineName;
 	private final IEngine.CATALOG_TYPE catalogType;
+	private final boolean forPlatformUse;
 	private final String engineType;
 	private final String engineSubType;
 
@@ -180,6 +181,22 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param jsonFile
 	 */
 	public PipelineInvocationHandler(IEngine realEngine, File jsonFile) {
+		this(realEngine, jsonFile, false);
+	}
+
+	/**
+	 * Builds the handler of a proxy, saying whether the proxy is handed out for the
+	 * platform's own use: a feature that uses an engine a platform setting names,
+	 * for every user of the feature, whether or not they have access to the engine.
+	 * The access check lets the platform's own calls on such a proxy through, and
+	 * still checks a project's custom code.
+	 *
+	 * @param realEngine     the engine the proxy stands for
+	 * @param jsonFile       the engine's pipeline file, or null
+	 * @param forPlatformUse true when the proxy is for the platform's own use
+	 */
+	PipelineInvocationHandler(IEngine realEngine, File jsonFile, boolean forPlatformUse) {
+		this.forPlatformUse = forPlatformUse;
 		// Capture realEngine in a closure - not accessible via reflection
 		this.engineInvoker = (method, args) -> method.invoke(realEngine, args);
 		this.engineId = realEngine.getEngineId();
@@ -202,9 +219,73 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		parseAndLoadPipelines(pipelineJson);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		String appId = EngineAccessGuard.check(this.engineId, this.catalogType == IEngine.CATALOG_TYPE.PROJECT,
+				this.forPlatformUse, method, args);
+		String previousAppId = EngineCallAppPermission.begin(appId);
+		try {
+			return invokeWithPipeline(method, args);
+		} finally {
+			EngineCallAppPermission.restore(previousAppId);
+		}
+	}
+
+	/**
+	 * Reads the arguments a pipeline reactor hands back as the value of its result,
+	 * each under its name.
+	 *
+	 * @param value the value of the reactor's result
+	 * @return the arguments by name, in the order the reactor gave them
+	 * @throws IllegalStateException when the reactor handed back no arguments
+	 */
+	private static Map<String, Object> argumentsOf(Object value) {
+		return namedValues(value, "A pipeline reactor returned no arguments");
+	}
+
+	/**
+	 * Reads what a pipeline reactor found, which it leaves among its arguments:
+	 * whether the call passes, whether content was masked, and the response to
+	 * answer with in place of the engine's.
+	 *
+	 * @param arguments the arguments the reactor handed back
+	 * @return what the reactor found
+	 * @throws IllegalStateException when the reactor left no result
+	 */
+	private static Map<String, Object> interimResultOf(Map<String, Object> arguments) {
+		return namedValues(arguments.get(PipelineReactorUtils.INTERIM_RESULT),
+				"A pipeline reactor returned no result");
+	}
+
+	/**
+	 * Reads a map a pipeline reactor handed back as values by name.
+	 *
+	 * @param value   what the reactor handed back
+	 * @param missing what to say when it is not a map
+	 * @return the values by name, in the order the reactor gave them
+	 * @throws IllegalStateException when the value is not a map
+	 */
+	private static Map<String, Object> namedValues(Object value, String missing) {
+		if (!(value instanceof Map<?, ?> given)) {
+			throw new IllegalStateException(missing);
+		}
+		Map<String, Object> values = new LinkedHashMap<>();
+		for (Map.Entry<?, ?> entry : given.entrySet()) {
+			values.put(String.valueOf(entry.getKey()), entry.getValue());
+		}
+		return values;
+	}
+
+	/**
+	 * Passes a call the access check let through on to the engine, with the
+	 * engine's pipeline and its audit log around it.
+	 *
+	 * @param method the interface method being called
+	 * @param args   the call's arguments, or null
+	 * @return what the engine returned
+	 * @throws Throwable what the engine or its pipeline threw
+	 */
+	private Object invokeWithPipeline(Method method, Object[] args) throws Throwable {
 		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
 			try {
 				return this.engineInvoker.invoke(method, args);
@@ -359,15 +440,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					// Reactors return a NounMetadata whose value is the
 					// updated processedArguments map
-					processedArguments = (Map<String, Object>) resultNoun.getValue();
+					processedArguments = argumentsOf(resultNoun.getValue());
 
 					// Fold any argument rewrites (e.g. PII masking) back into the args
 					// array so they (a) survive the next input reactor's mapArguments
 					// reseed and (b) are passed to the real engine method below.
 					args = unmapArguments(method, processedArguments);
 
-					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
-							.get(PipelineReactorUtils.INTERIM_RESULT);
+					Map<String, Object> resultMap = interimResultOf(processedArguments);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
 					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
 					String cannedResponse = (String) resultMap.get(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE);
@@ -495,10 +575,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					}
 					Instant end = Instant.now();
 
-					processedArguments = (Map<String, Object>) resultNoun.getValue();
+					processedArguments = argumentsOf(resultNoun.getValue());
 
-					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
-							.get(PipelineReactorUtils.INTERIM_RESULT);
+					Map<String, Object> resultMap = interimResultOf(processedArguments);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
 					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
 					String guardrailAction = masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);

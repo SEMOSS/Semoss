@@ -42,6 +42,12 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SecurityOwlCreator extends AbstractOwlCreator {
 
+	/**
+	 * Columns the security database no longer has, as table then column. An OWL
+	 * that still describes one is made again, so nothing reads it from there.
+	 */
+	private static final List<Pair<String, String>> REMOVED_COLUMNS = List.of(Pair.with("ENGINE", "TOOL_APP"));
+
 	private static List<String[]> relationshipsRequired = new ArrayList<String[]>();
 	static {
 		relationshipsRequired.add(
@@ -78,8 +84,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("COST", VARCHAR_255),
 				Pair.with("CREATEDBY", VARCHAR_255),
 				Pair.with("CREATEDBYTYPE", VARCHAR_255),
-				Pair.with("DATECREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("TOOL_APP", VARCHAR_255)));
+				Pair.with("DATECREATED", TIMESTAMP_DATATYPE_NAME)));
 
 		addTable("ENGINEMETA", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),
@@ -129,10 +134,10 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME)));
 
 		// a model usage limit: one row per key (ModelUsageLimitKey), such as a
-		// person's grant on a model, a team's, a model's public use or total, or a
-		// limit across all models (ENGINEID null). Its rules are in MODELUSAGELIMITRULE.
-		// LIMITTYPE is USER, TEAM, PUBLIC, PLATFORM or MODEL; SUBJECTTYPE is the
-		// login type or team type
+		// person's grant on a model, a team's, an app's, a model's public use or
+		// total, or a limit across all models (ENGINEID null). Its rules are in
+		// MODELUSAGELIMITRULE. LIMITTYPE is USER, TEAM, PROJECT, PUBLIC, PLATFORM or
+		// MODEL; SUBJECTTYPE is the login type or team type, and null for an app
 		addTable("MODELUSAGELIMIT", Arrays.asList(
 				Pair.with("ID", VARCHAR_255),
 				Pair.with("ENGINEID", VARCHAR_255),
@@ -428,6 +433,15 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
 				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255)));
 
+		addTable("PROJECTENGINEPERMISSION", Arrays.asList(
+				Pair.with("PROJECTID", VARCHAR_255),
+				Pair.with("ENGINEID", VARCHAR_255),
+				Pair.with("PERMISSION", INTEGER_DATATYPE_NAME),
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PERMISSIONGRANTEDBY", VARCHAR_255),
+				Pair.with("PERMISSIONGRANTEDBYTYPE", VARCHAR_255)));
+
 		addTable("GROUPPROJECTPERMISSION", Arrays.asList(
 				Pair.with("ID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
@@ -587,6 +601,9 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		owler.addRelation("SMSS_GROUP", "GROUPENGINEPERMISSION", "SMSS_GROUP.TYPE.GROUPENGINEPERMISSION.TYPE");
 		owler.addRelation("ENGINE", "GROUPENGINEPERMISSION", "ENGINE.ENGINEID.GROUPENGINEPERMISSION.ENGINEID");
 
+		owler.addRelation("ENGINE", "PROJECTENGINEPERMISSION", "ENGINE.ENGINEID.PROJECTENGINEPERMISSION.ENGINEID");
+		owler.addRelation("PROJECT", "PROJECTENGINEPERMISSION", "PROJECT.PROJECTID.PROJECTENGINEPERMISSION.PROJECTID");
+
 		owler.addRelation("SMSS_GROUP", "GROUPPROJECTPERMISSION", "SMSS_GROUP.ID.GROUPPROJECTPERMISSION.ID");
 		owler.addRelation("SMSS_GROUP", "GROUPPROJECTPERMISSION", "SMSS_GROUP.TYPE.GROUPPROJECTPERMISSION.TYPE");
 		owler.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "PROJECT.PROJECTID.GROUPPROJECTPERMISSION.PROJECTID");
@@ -606,6 +623,11 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 
 	@Override
 	protected boolean additionalRemakeChecks(IDatabaseEngine engine) {
+		for (Pair<String, String> removed : REMOVED_COLUMNS) {
+			if (!columnMissing(engine, removed.getValue0(), removed.getValue1())) {
+				return true;
+			}
+		}
 		List<String[]> allRelationships = engine.getPhysicalRelationships();
 		HAS_REQUIRED_REL_LOOP: for (String[] requiredRel : relationshipsRequired) {
 			for (String[] existingRel : allRelationships) {

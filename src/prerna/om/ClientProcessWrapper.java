@@ -229,7 +229,8 @@ public class ClientProcessWrapper {
 								.toString();
 
 						Object[] ret = ClientProcessWrapper.startTCPServerNativePySandbox(this.serverDirectory,
-								this.port + "", this.timeout, this.loggerLevel, ioDirName);
+								this.port + "", this.timeout, this.loggerLevel, ioDirName,
+								this.chrootSymlinkHelper.getUserChrootFolder());
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 						this.udsPath = (String) ret[2];
@@ -1148,6 +1149,26 @@ public class ClientProcessWrapper {
 	 */
 	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
 			String loggerLevel, String ioDirName) {
+		return startTCPServerNativePySandbox(insightFolder, port, timeout, loggerLevel, ioDirName, null);
+	}
+
+	/**
+	 * Starts the native Python server inside the namespace sandbox, for a user
+	 * whose chroot folder holds the read-only copies of the projects they can only
+	 * view. The sandbox may mount a folder from there in place of a project's own
+	 * folder.
+	 *
+	 * @param insightFolder    the folder the server starts in
+	 * @param port             the port the server is given
+	 * @param timeout          idle timeout in minutes ("-1" for none)
+	 * @param loggerLevel      log level for the spawned process
+	 * @param ioDirName        name for this worker's io-dir and jail folder
+	 * @param injectSourceRoot the user's chroot folder, or null for none
+	 * @return { Process, prefix, udsPath, controlSocketPath, ioDir, jailDir,
+	 *         controlDir }
+	 */
+	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
+			String loggerLevel, String ioDirName, String injectSourceRoot) {
 		String prefix = "";
 		Process thisProcess = null;
 		String udsPath = null;
@@ -1204,6 +1225,10 @@ public class ClientProcessWrapper {
 			commands.add(controlSocketPath);
 			commands.add("--inject-root");
 			commands.add(injectRoot);
+			if (!Strings.isNullOrEmpty(injectSourceRoot)) {
+				commands.add("--inject-source-root");
+				commands.add(injectSourceRoot.replace("\\", "/"));
+			}
 			commands.add("--jail-root");
 			commands.add(jailDir);
 			addSandboxPathMounts(commands);

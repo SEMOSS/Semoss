@@ -60,6 +60,7 @@ import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Constants;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 // One avatar option for a Digital Twin, made by the image model an admin names in RDF_Map (COLLAB_AVATAR_ENGINE_ID):
@@ -167,7 +168,7 @@ public final class WorkTwinAvatar {
 			throw new IllegalArgumentException("Avatar generation has no image model; an admin sets "
 					+ Constants.COLLAB_AVATAR_ENGINE_ID + " in RDF_Map.prop or the environment");
 		}
-		IModelEngine model = Utility.getModel(id);
+		IModelEngine model = InternalUtility.getPlatformModel(id);
 		if (model == null) {
 			throw new IllegalArgumentException("The avatar model could not be loaded; an admin checks "
 					+ Constants.COLLAB_AVATAR_ENGINE_ID + " in RDF_Map.prop or the environment");

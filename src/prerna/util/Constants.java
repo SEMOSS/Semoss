@@ -755,7 +755,6 @@ public class Constants {
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
 	public static final String PROJECT_REACTOR_SHARED_PACKAGES = "PROJECT_REACTOR_SHARED_PACKAGES";
-	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
 	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)

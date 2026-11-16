@@ -1673,23 +1673,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	}
 
 	///
-	/// updateEngineToolApp
-	///
-
-	@Test
-	void testUpdateEngineToolApp() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "ta", user);
-
-		SecurityEngineUtils.updateEngineToolApp("testId", "testToolApp");
-
-		List<Map<String, Object>> engineList = SecurityEngineUtils.getUserEngineList(user, null, null);
-		assertEquals(1, engineList.size());
-
-		assertEquals("testToolApp", engineList.getFirst().get("engine_tool_app"));
-	}
-
-	///
 	/// access request decisions and permission changes: one transaction, then
 	/// notifications
 	///

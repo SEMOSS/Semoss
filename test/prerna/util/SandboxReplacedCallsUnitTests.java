@@ -127,6 +127,39 @@ class SandboxReplacedCallsUnitTests {
 	}
 
 	@ParameterizedTest
+	@CsvSource({ "setInsightId, (Ljava/lang/String;)V", "setSessionId, (Ljava/lang/String;)V",
+			"setRouteId, (Ljava/lang/String;)V", "setJobId, (Ljava/lang/String;)V",
+			"setSchedulerMode, (Ljava/lang/Boolean;)V", "setLocalHostname, (Ljava/lang/String;)V",
+			"setLocalProtocol, (Ljava/lang/String;)V", "setLocalPort, (Ljava/lang/Integer;)V",
+			"setContextProjectIdOverride, (Ljava/lang/String;)V",
+			"setContextProjectNameOverride, (Ljava/lang/String;)V", "clearContextProjectOverride, ()V",
+			"getTheadMapObject, ()Ljava/util/Map;", "remove, ()V" })
+	void theRequestTheThreadServesCannotBeChanged(String name, String descriptor) throws Exception {
+		assertRefused("prerna/om/ThreadStore", name, descriptor, true);
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "prerna/util/sql/AbstractSqlQueryUtil, getPassword, ()Ljava/lang/String;, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, getUsername, ()Ljava/lang/String;, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, getConnectionUrl, ()Ljava/lang/String;, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, getAdditionalProps, ()Ljava/lang/String;, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, setPassword, (Ljava/lang/String;)V, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, setUsername, (Ljava/lang/String;)V, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, setHostname, (Ljava/lang/String;)V, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, setPort, (Ljava/lang/String;)V, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, setDatabase, (Ljava/lang/String;)V, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, setSchema, (Ljava/lang/String;)V, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, setConnectionUrl, (Ljava/lang/String;)V, false",
+			"prerna/util/sql/AbstractSqlQueryUtil, setAdditionalProps, (Ljava/lang/String;)V, false",
+			"prerna/util/sql/AnsiSqlQueryUtil, getPassword, ()Ljava/lang/String;, false",
+			"prerna/util/sql/PostgresQueryUtil, getPassword, ()Ljava/lang/String;, false",
+			"prerna/util/sql/AthenaQueryUtil, getUsername, ()Ljava/lang/String;, false" })
+	void anEnginesCredentialsCannotBeReadOrChangedThroughItsQueryUtility(String owner, String name,
+			String descriptor, boolean isStatic) throws Exception {
+		assertRefused(owner, name, descriptor, isStatic);
+	}
+
+	@ParameterizedTest
 	@ValueSource(strings = { "prerna/auth/User", "prerna/auth/AccessToken", "prerna/om/Insight",
 			"prerna/om/ThreadStore", "java/util/TimeZone", "com/zaxxer/hikari/HikariConfig",
 			"org/apache/logging/log4j/LogManager" })
