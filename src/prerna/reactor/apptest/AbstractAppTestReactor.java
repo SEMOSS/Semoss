@@ -35,7 +35,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 
 /** App targets are always explicit; an MCP toolbox is never the target app. */
-abstract class AbstractAppTestReactor extends AbstractReactor {
+public abstract class AbstractAppTestReactor extends AbstractReactor {
 	@Override
 	public Map<String, String> getMcpToolMetadata() {
 		Map<String, String> meta = super.getMcpToolMetadata();
