@@ -160,12 +160,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 			// merge the joins
 			mQs.mergeRelations(queryQs.getRelations());
 
+			Double max = null;
 			try (IRawSelectWrapper it = query(mQs)) {
-				return ((Number) it.next().getValues()[1]).doubleValue();
+				max = ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
 				logger.error("Failed to query the max value for column {}", columnHeader);
 				classLogger.error("Failed to query the max value for column {}", columnHeader, e);
 			}
+			return max;
 		}
 		return null;
 	}
@@ -188,12 +190,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 			// merge the joins
 			mQs.mergeRelations(queryQs.getRelations());
 
+			Double min = null;
 			try (IRawSelectWrapper it = query(mQs)) {
-				return ((Number) it.next().getValues()[1]).doubleValue();
+				min = ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
 				logger.error("Failed to query the min value for column {}", columnHeader);
 				classLogger.error("Failed to query the min value for column {}", columnHeader, e);
 			}
+			return min;
 		}
 		return null;
 	}
@@ -494,24 +498,27 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Object querySQL(String query) {
-		Map<String, Object> retMap = new HashMap<>();
-		List<List<Object>> data = new ArrayList<List<Object>>();
+		Map<String, Object> retMap = null;
 
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
 		try (IRawSelectWrapper it = query(qs)) {
+			List<List<Object>> data = new ArrayList<List<Object>>();
 			while (it.hasNext()) {
 				data.add(Arrays.asList(it.next().getValues()));
 			}
+			retMap = new HashMap<>();
 			retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr(it.getTypes()));
 			retMap.put("columns", it.getHeaders());
+			retMap.put("data", data);
 		} catch (Exception e) {
 			logger.error("Failed to execute sql query {}", query);
 			classLogger.error("Failed to execute sql query {}", query, e);
-			throw new IllegalArgumentException("Error executing sql: " + query);
 		}
 
-		retMap.put("data", data);
+		if (retMap == null) {
+			throw new IllegalArgumentException("Error executing sql: " + query);
+		}
 		return retMap;
 	}
 

@@ -1212,6 +1212,8 @@ class WorkInboxRoutineUnitTests {
 				.filter(pixel -> ((String) pixel).startsWith("MicrosoftOutlookReplyMail(")).toList();
 		assertEquals(1, written.size());
 		assertTrue(((String) written.get(0)).startsWith("MicrosoftOutlookReplyMail(id=[\"report-ask\"]"), written.toString());
+		// one div a line, the shape the draft format drops a typed signature from
+		assertTrue(((String) written.get(0)).contains("body=[\"\\u003cdiv>Attached.\\u003c/div>\"]"), written.toString());
 		Map<?, ?> saved = (Map<?, ?>) ((Map<?, ?>) run.get("scope")).get("saved");
 		assertEquals(List.of("saved", "saved"),
 				((List<?>) saved.get("replies")).stream().map(reply -> ((Map<?, ?>) reply).get("draft")).toList());
@@ -1223,6 +1225,75 @@ class WorkInboxRoutineUnitTests {
 		run = runSteps(scope, steps, answers);
 		assertEquals(Set.of("gather"), ((Map<?, ?>) run.get("pixels")).keySet());
 		assertEquals(scope.get("drafted"), ((Map<?, ?>) ((Map<?, ?>) run.get("scope")).get("saved")).get("drafted"));
+	}
+
+	@Test
+	void replyDraftsLearnTheOwnersVoiceFromMailTheyWroteToPeopleAndFirstToThePersonBeingAnswered() throws Exception {
+		List<List<String>> steps = List.of(List.of("gather",
+				WorkInboxRoutine.briefDefinition("engine-1").nodeSources().get("gather"), "context"));
+		String received = Instant.now().minusSeconds(3600).truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString();
+		// Sent Items, newest first, with recipients as the mail connector lists them
+		List<Map<String, Object>> sent = List.of(
+				// a routine's result, mailed to the owner alone
+				Map.of("subject", "Vendor tracker", "to", List.of("owner@example.com"), "cc", List.of(), "body",
+						"Done. I saved the draft."),
+				// a meeting answer with no words
+				Map.of("subject", "Accepted: Budget sync", "to", List.of("lee@example.com"), "cc", List.of(), "body", ""),
+				// their own words end where Outlook quotes the mail being answered
+				Map.of("subject", "RE: Budget", "to", List.of("lee@example.com"), "cc", List.of(), "body",
+						"Works for me.\r\n\r\nSam\r\n________________________________\r\nFrom: Lee <lee@example.com>\r\n"
+								+ "Sent: Monday\r\nTo: Sam\r\n\r\nCan we meet on the budget?"),
+				Map.of("subject", "RE: Estimate", "to", List.of("lee@example.com"), "cc", List.of("Dana@Example.com"), "body",
+						"Looks right. Thanks, Dana.\n\nSam"));
+		List<List<Object>> answers = List.of(List.of("MicrosoftOutlookListMail", Map.of("messages", sent)),
+				List.of("WorkListItems", Map.of("items", List.of(ask("estimate", received)))),
+				List.of("threadId=[\"estimate\"]", Map.of("messages", List.of(Map.of("id", "estimate-ask",
+						"fromAddress", "Dana@example.com", "text", "Can you approve the estimate?")))));
+		Map<String, Object> scope = new HashMap<>(Map.of("owner_email", "owner@example.com", "timezone", "UTC",
+				"lookback_hours", 24, "brief_model", "engine-1", "sections", List.of("replies"), "write_drafts", true));
+
+		Map<?, ?> context = (Map<?, ?>) ((Map<?, ?>) runSteps(scope, steps, answers).get("scope")).get("context");
+		Map<?, ?> input = AutomationRuntimeUtils.GSON.fromJson((String) context.get("draftsInput"), Map.class);
+		Map<String, String> toLee = Map.of("subject", "RE: Budget", "text", "Works for me.\r\n\r\nSam");
+		Map<String, String> toDana = Map.of("subject", "RE: Estimate", "text", "Looks right. Thanks, Dana.\n\nSam");
+		assertEquals(List.of(toLee, toDana), ((Map<?, ?>) input.get("owner")).get("recentSentEmails"));
+		Map<?, ?> reply = (Map<?, ?>) ((List<?>) input.get("replies")).get(0);
+		assertEquals(List.of(toDana), reply.get("sentToSender"));
+		assertFalse(reply.containsKey("fromAddress"), "The model matches drafts back by n and needs no address.");
+
+		// with reply drafts off there is no voice to learn, so Sent Items is left unread
+		scope.put("write_drafts", false);
+		assertTrue(((List<?>) ((Map<?, ?>) runSteps(scope, steps, answers).get("pixels")).get("gather")).stream()
+				.noneMatch(pixel -> ((String) pixel).startsWith("MicrosoftOutlookListMail(")));
+	}
+
+	@Test
+	void anAskRaisedDaysAgoIsNewAgainWhenMailCameOnItsThreadInsideTheLookback() throws Exception {
+		List<List<String>> steps = List.of(List.of("gather",
+				WorkInboxRoutine.briefDefinition("engine-1").nodeSources().get("gather"), "context"));
+		Instant now = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
+		String raised = now.minusSeconds(3 * 86400).toString();
+		String today = now.minusSeconds(3600).toString();
+		// Work dates both asks to when they were first raised; only the estimate thread has had mail since
+		List<List<Object>> answers = List.of(
+				List.of("WorkListItems", Map.of("items", List.of(ask("estimate", raised), ask("report", raised)))),
+				List.of("BrainListThreads", Map.of("items", List.of(Map.of("id", "estimate", "lastAt", today),
+						Map.of("id", "report", "lastAt", raised)))),
+				List.of("threadId=[\"estimate\"]", Map.of("messages", List.of(Map.of("id", "estimate-nudge",
+						"fromAddress", "dana@example.com", "at", today, "text", "Any news on the estimate?")))),
+				List.of("threadId=[\"report\"]", Map.of("messages", List.of(Map.of("id", "report-ask",
+						"fromAddress", "lee@example.com", "at", raised, "text", "Can you send the report?")))));
+		Map<String, Object> scope = new HashMap<>(Map.of("owner_email", "owner@example.com", "timezone", "UTC",
+				"lookback_hours", 24, "brief_model", "engine-1", "sections", List.of("replies"), "write_drafts", true));
+
+		Map<?, ?> context = (Map<?, ?>) ((Map<?, ?>) runSteps(scope, steps, answers).get("scope")).get("context");
+		List<?> replies = (List<?>) context.get("replies");
+		assertEquals(List.of("estimate-nudge"), replies.stream().map(reply -> ((Map<?, ?>) reply).get("messageId")).toList());
+		assertEquals(today, ((Map<?, ?>) replies.get(0)).get("received"), "The message being answered came today.");
+		// an ask with nothing new stays listed as waiting, for as long as it has waited
+		List<?> waiting = (List<?>) context.get("waiting");
+		assertEquals(List.of("item-report"), waiting.stream().map(item -> ((Map<?, ?>) item).get("itemId")).toList());
+		assertEquals(raised, ((Map<?, ?>) waiting.get(0)).get("received"));
 	}
 
 	@Test

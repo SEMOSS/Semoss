@@ -231,7 +231,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		if (isEmpty()) {
 			return 0;
 		}
-		return this.builder.getNumRecords(tableName);
+		return this.builder.getNumRows(tableName);
 	}
 
 	@Override

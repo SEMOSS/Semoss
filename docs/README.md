@@ -54,6 +54,9 @@ Documentation for the SEMOSS core runtime, agents and harnesses, engine integrat
 
 - [Internal databases and agent persistence](platform_services/internal_databases.md)
 - [Authentication and authorization](platform_services/authentication_and_authorization.md)
+- [Secret settings](platform_services/secret_settings.md): which settings are secret, where their values are hidden, and how secrets are kept out of error text and model provider errors.
+- [Project reactor sandbox](platform_services/project_reactor_sandbox.md): what a project's custom reactors can use, what the sandbox replaces, and the test that guards each rule.
+- [Engine access](platform_services/engine_access.md): the permission every engine and project method needs, how each call is checked, how an engine gives an app a permission for its custom reactors, and the test that guards each rule.
 - [Model usage limits](model_usage_limits/README.md): token, cost and compute-time limits on model calls, who sets them, and how every call is checked and billed.
 - [Java–Python communication](platform_services/java_python_communication.md)
 - [Monolith integration and API request flow](integrations/monolith_interaction.md)

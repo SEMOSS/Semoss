@@ -386,35 +386,60 @@ public final class ResourceAuditReadService {
 		}
 	}
 
+	/**
+	 * Reduces the details an event recorded to what an owner of the resource may
+	 * see. Each kind of event keeps its own short list of fields, and everything
+	 * else it recorded is dropped, since details can hold private metadata.
+	 *
+	 * @param value     the DETAILS the event recorded, as JSON, or null
+	 * @param eventType the kind of event
+	 * @return the details to show, as JSON, or null to show none
+	 */
 	private static String permissionDetails(String value, AuditEventType eventType) {
+		// A usage limit set, changed or removed on a model: which limit (a person's, a
+		// team's, an app's, public use or the model's total) and whose it is
 		if (value != null && eventType == USAGE_LIMIT_EVENT) {
 			return usageLimitDetails(value);
 		}
+		// A write to a database: what kind of statement ran and how many rows it
+		// touched, never the statement or its values
 		if (value != null && eventType == AuditEventType.DATABASE_WRITE) {
 			return databaseWriteDetails(value);
 		}
+		// A guardrail blocked, masked or answered a call, or locked a user or closed a
+		// room: the guardrail's short fields and counts
 		if (value != null && GUARDRAIL_EVENTS.contains(eventType)) {
 			return keptFields(value, GUARDRAIL_TEXT_FIELDS, GUARDRAIL_NUMBER_FIELDS);
 		}
+		// An export of a project or an engine: what was exported
 		if (value != null && EXPORT_EVENTS.contains(eventType)) {
 			return exportDetails(value);
 		}
+		// A project or engine setting changed: which setting and its new value
 		if (value != null && SETTING_DETAIL_EVENTS.contains(eventType)) {
 			return settingDetails(value);
 		}
+		// Any other event shows no details, and neither does one that recorded none
 		if (value == null || !COMMON_EVENTS.contains(eventType)) {
 			return null;
 		}
+		// From here on the event is an access change: a permission added, changed or
+		// removed, a bulk grant, or an access request approved or rejected
 		try {
 			var object = JsonParser.parseString(value).getAsJsonObject();
 			var safe = new JsonObject();
-			for (String key : List.of("groupId", "groupType", "granteeId", "granteeType")) {
+			// Who the access was given to or taken from: a team (groupId, groupType), a
+			// person (granteeId, granteeType), or an app given a permission on an engine
+			// (granteeProjectId)
+			for (String key : List.of("groupId", "groupType", "granteeId", "granteeType", "granteeProjectId")) {
 				var item = object.get(key);
+				// Kept only when it is a short piece of text, as an id or a type is
 				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
 						&& item.getAsString().length() <= 255) {
 					safe.addProperty(key, item.getAsString());
 				}
 			}
+			// The platform removed the access because its end date passed
 			if (object.has("reason") && object.get("reason").isJsonPrimitive()
 					&& "EXPIRED".equals(object.get("reason").getAsString())) {
 				safe.addProperty("reason", "EXPIRED");
@@ -543,7 +568,7 @@ public final class ResourceAuditReadService {
 		try {
 			var object = JsonParser.parseString(value).getAsJsonObject();
 			var safe = new JsonObject();
-			for (String key : List.of("limitType", "groupId", "groupType")) {
+			for (String key : List.of("limitType", "groupId", "groupType", "projectId")) {
 				var item = object.get(key);
 				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
 						&& item.getAsString().length() <= 255) {

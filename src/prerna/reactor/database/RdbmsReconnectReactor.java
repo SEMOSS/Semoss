@@ -29,7 +29,6 @@ package prerna.reactor.database;
 
 import java.sql.SQLException;
 
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
@@ -51,11 +50,9 @@ public class RdbmsReconnectReactor extends AbstractReactor {
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
 
 		// make sure user has at least edit access
-		if (!SecurityAdminUtils.userIsAdmin(this.insight.getUser())) {
-			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-				throw new IllegalArgumentException(
-						"User does not have permission to re-establish the connection for this database");
-			}
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException(
+					"User does not have permission to re-establish the connection for this database");
 		}
 
 		IDatabaseEngine database = Utility.getDatabase(databaseId);

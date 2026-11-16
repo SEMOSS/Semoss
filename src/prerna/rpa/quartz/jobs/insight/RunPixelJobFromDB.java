@@ -122,7 +122,7 @@ public class RunPixelJobFromDB implements InterruptableJob {
 			// the csrf token is bound to the session cookie, so the token fetch and the
 			// execution have to share a single client and cookie store
 			CookieStore httpCookieStore = new BasicCookieStore();
-			try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(httpCookieStore, keyStore,
+			try (CloseableHttpClient httpClient = HttpHelperUtility.getSchedulerClient(httpCookieStore, keyStore,
 					keyStorePass, keyPass)) {
 				String csrfToken = null;
 				if (FETCH_CSRF) {

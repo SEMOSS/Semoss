@@ -28,12 +28,14 @@
 package prerna.auth.access;
 
 /**
- * Someone, or some group, whose access a permission batch changes.
+ * Someone, some group, or on an engine some project, whose access a permission
+ * batch changes.
  */
 public class PermissionSubject {
 
 	/**
-	 * The categories of subject: a person, a team, or a model's public use or total
+	 * The categories of subject: a person, a team, a model's public use or total,
+	 * or a project whose custom reactors use an engine
 	 */
 	public enum SubjectCategory {
 		USER, TEAM,
@@ -48,7 +50,14 @@ public class PermissionSubject {
 		 * A model's total, for everyone together, whose usage limit a batch can change,
 		 * with the same rules as {@link #PUBLIC}
 		 */
-		MODEL
+		MODEL,
+		/**
+		 * A project, on an engine: the access the project's custom reactors have to
+		 * the engine, whoever runs them. It has an id and no type, takes a level of
+		 * {@code READ_ONLY} or {@code EDIT} with an end date, and only the engine's
+		 * owners, or admin mode, change it.
+		 */
+		PROJECT
 	}
 
 	/** What the subject is */
@@ -98,7 +107,18 @@ public class PermissionSubject {
 	}
 
 	/**
-	 * What the subject is: a person, a team, or a model's public use or total.
+	 * Builds the subject for a project whose custom reactors use an engine.
+	 *
+	 * @param id the project id
+	 * @return the project
+	 */
+	public static PermissionSubject ofProject(String id) {
+		return new PermissionSubject(SubjectCategory.PROJECT, id, null);
+	}
+
+	/**
+	 * What the subject is: a person, a team, a model's public use or total, or a
+	 * project.
 	 *
 	 * @return the subject's category
 	 */
@@ -116,7 +136,7 @@ public class PermissionSubject {
 
 	/**
 	 * Describes the subject as its category and id, or as public use or the model's
-	 * total.
+	 * total. A project is called an app, as the access screens call it.
 	 *
 	 * @return the subject in words, for messages, such as "user jdoe"
 	 */
@@ -128,6 +148,8 @@ public class PermissionSubject {
 			return "public use";
 		case MODEL:
 			return "the model's total";
+		case PROJECT:
+			return "app " + id;
 		default:
 			return "user " + id;
 		}

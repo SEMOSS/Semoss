@@ -32,8 +32,8 @@ import prerna.om.Variable;
 public interface ICodeExecution {
 
 	String getExecutedCode();
-	
+
 	Variable.LANGUAGE getLanguage();
-	
+
 	boolean isUserScript();
 }

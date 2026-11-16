@@ -31,10 +31,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.AdditionalAnswers.delegatesTo;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -114,7 +114,8 @@ public class AdminUploadUsersReactorUnitTests {
 		when(insight.getUser()).thenReturn(user);
 
 		// a security database of its own, where an id of "refused" cannot be saved
-		connection = spy(DriverManager.getConnection("jdbc:h2:mem:upload_users_" + UUID.randomUUID()));
+		connection = mock(Connection.class,
+				delegatesTo(DriverManager.getConnection("jdbc:h2:mem:upload_users_" + UUID.randomUUID())));
 		try (Statement statement = connection.createStatement()) {
 			statement.execute("CREATE TABLE SMSS_USER (NAME VARCHAR(255), EMAIL VARCHAR(255), TYPE VARCHAR(255), "
 					+ "ID VARCHAR(255) CHECK (ID <> 'refused'), PASSWORD VARCHAR(255), SALT VARCHAR(255), "

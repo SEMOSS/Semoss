@@ -141,7 +141,6 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 		if (existingDatabase) {
 			// check if input is alias since we are adding to existing
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
 			if (!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
 				NounMetadata noun = new NounMetadata(
 						"User does not have sufficient priviledges to create or update a database",

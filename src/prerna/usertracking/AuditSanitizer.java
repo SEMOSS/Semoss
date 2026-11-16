@@ -27,9 +27,7 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,6 +38,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+
+import prerna.security.SensitiveKeys;
 
 /**
  * Redacts secrets and bounds the size of everything written to the audit trail,
@@ -57,23 +57,13 @@ public final class AuditSanitizer {
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().serializeNulls().create();
 
-	/** Normalized (lower case, no separators) key names that are always secret. */
-	private static final Set<String> SENSITIVE_KEYS = Set.of("password", "passwd", "pwd", "pass", "newpassword",
-			"oldpassword", "currentpassword", "confirmpassword", "secret", "token", "salt", "hash", "otp", "pin",
-			"credential", "credentials", "authorization", "cookie", "cookies", "sessionid", "jsessionid", "apikey",
-			"accesskey", "secretkey", "privatekey", "accesstoken", "refreshtoken", "idtoken", "bearertoken",
-			"authtoken", "clientsecret", "connectionurl", "connectionstring", "jdbcurl", "connectionstr",
-			"awssecretaccesskey");
-
-	/** Normalized key suffixes that indicate a secret value. */
-	private static final String[] SENSITIVE_SUFFIXES = { "password", "passwd", "secret", "apikey", "accesskey",
-			"secretkey", "privatekey", "accesstoken", "refreshtoken", "idtoken", "bearertoken", "authtoken",
-			"clientsecret", "connectionstring", "connectionurl", "jdbcurl", "sessionid" };
-
 	private static final Pattern BEARER = Pattern.compile("(?i)(bearer\\s+)[A-Za-z0-9._~+/=-]+");
 	private static final Pattern KEY_VALUE_SECRET = Pattern.compile("(?i)([\"']?)([a-z][a-z0-9_.-]*)\\1(\\s*[=:]\\s*)"
 			+ "(\"(?:\\\\.|[^\"\\\\])*\"|'(?:\\\\.|[^'\\\\])*'|[^\\s,;&\"'}]+)");
 	private static final Pattern ESCAPED_KEY = Pattern.compile("\\\\+[\"']([a-zA-Z][a-zA-Z0-9_.-]*)\\\\+[\"']\\s*:");
+	private static final Pattern ESCAPED_KEY_VALUE = Pattern
+			.compile("(\\\\+[\"'])([a-zA-Z][a-zA-Z0-9_.-]*)(\\\\+[\"']\\s*:\\s*)"
+					+ "(?:(\\\\+[\"'])(.*?)(\\\\+[\"'])|([^\\s,;&\\\\}\\]]+))");
 	private static final Pattern JDBC_URL = Pattern.compile("(?i)jdbc:[^\\s\"'<>]+");
 	private static final Pattern URL_USER_INFO = Pattern
 			.compile("(?i)\\b([a-z][a-z0-9+.-]*://)[^\\s/@:\"']+:[^\\s/@\"']+@");
@@ -86,23 +76,14 @@ public final class AuditSanitizer {
 	}
 
 	/**
+	 * Whether values stored under a key must never be written, decided by
+	 * {@link SensitiveKeys#isSensitiveKey(String)}.
+	 *
 	 * @param key a JSON/map key
 	 * @return true if values stored under the key must never be written
 	 */
 	public static boolean isSensitiveKey(String key) {
-		if (key == null) {
-			return false;
-		}
-		String normalized = key.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
-		if (SENSITIVE_KEYS.contains(normalized)) {
-			return true;
-		}
-		for (String suffix : SENSITIVE_SUFFIXES) {
-			if (normalized.endsWith(suffix)) {
-				return true;
-			}
-		}
-		return false;
+		return SensitiveKeys.isSensitiveKey(key);
 	}
 
 	/**
@@ -166,18 +147,42 @@ public final class AuditSanitizer {
 	 * @return text with secrets replaced by {@link #REDACTED}
 	 */
 	public static String scrubText(String text) {
+		return scrub(text, true);
+	}
+
+	/**
+	 * Removes secrets from error text the way {@link #scrubText(String)} does,
+	 * except that a secret key inside nested escaped JSON (such as
+	 * {@code \"token\":\"abc\"}) has only its value masked, so the rest of the
+	 * error stays readable.
+	 *
+	 * @param text raw error text
+	 * @return text with secrets replaced by {@link #REDACTED}
+	 */
+	public static String scrubErrorText(String text) {
+		return scrub(text, false);
+	}
+
+	private static String scrub(String text, boolean omitNestedSecretJson) {
 		if (text == null || text.isEmpty()) {
 			return text;
 		}
 		String scrubbed = PRIVATE_KEY.matcher(text).replaceAll(Matcher.quoteReplacement(REDACTED));
 		scrubbed = BEARER.matcher(scrubbed).replaceAll("$1" + Matcher.quoteReplacement(REDACTED));
-		// Nested encoded JSON has ambiguous quoting: omit it rather than risk partial
-		// redaction.
-		Matcher escaped = ESCAPED_KEY.matcher(scrubbed);
-		while (escaped.find()) {
-			if (isSensitiveKey(escaped.group(1))) {
-				return REDACTED;
+		if (omitNestedSecretJson) {
+			// Nested encoded JSON has ambiguous quoting: omit it rather than risk partial
+			// redaction.
+			Matcher escaped = ESCAPED_KEY.matcher(scrubbed);
+			while (escaped.find()) {
+				if (isSensitiveKey(escaped.group(1))) {
+					return REDACTED;
+				}
 			}
+		} else {
+			scrubbed = ESCAPED_KEY_VALUE.matcher(scrubbed)
+					.replaceAll(m -> Matcher.quoteReplacement(!isSensitiveKey(m.group(2)) ? m.group()
+							: m.group(1) + m.group(2) + m.group(3)
+									+ (m.group(4) != null ? m.group(4) + REDACTED + m.group(6) : REDACTED)));
 		}
 		Matcher assignments = KEY_VALUE_SECRET.matcher(scrubbed);
 		StringBuffer safe = new StringBuffer();

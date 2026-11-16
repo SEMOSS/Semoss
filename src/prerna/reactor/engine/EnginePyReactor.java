@@ -64,10 +64,10 @@ public class EnginePyReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an engine id");
 		}
 
-		User user = this.insight.getUser();
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
+		User user = requireUser();
+		if (!SecurityEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalArgumentException(
-					"Model " + engineId + " does not exist or user does not have editor access to this model");
+					"Model " + engineId + " does not exist or user is not an owner of this model");
 		}
 
 		String code = this.keyValue.get(ReactorKeysEnum.CODE.getKey());
@@ -112,23 +112,23 @@ public class EnginePyReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Runs Python code in the Python process of a Python model engine the user can edit, and returns the output as text.")
-				.key(ReactorKeysEnum.ENGINE,
-						"The id of the Python model engine to run the code in; the user needs edit access to it.")
-				.key(ReactorKeysEnum.CODE, """
-						The python code to execute against the engine. \
-						For convenience, instead of escaping quotes or backslashes you can wrap \
-						the input within "<encode>your_text</encode>" and the system will encode it for you.
-						""");
-	}
-
-	@Override
 	public JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
 		properties.getJSONObject(ReactorKeysEnum.CODE.getKey()).put("description",
 				"The python code to execute against the engine.");
 		return properties;
+	}
+
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Runs Python code in the Python process of a Python model engine the user owns, and returns the output as text.")
+				.key(ReactorKeysEnum.ENGINE,
+						"The id of the Python model engine to run the code in; the user must be an owner of it.")
+				.key(ReactorKeysEnum.CODE, """
+						The python code to execute against the engine. \
+						For convenience, instead of escaping quotes or backslashes you can wrap \
+						the input within "<encode>your_text</encode>" and the system will encode it for you.
+						""");
 	}
 }

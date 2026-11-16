@@ -718,7 +718,7 @@ def create_new_db_script(database_name, initial_sql=None):
     # Create new database
     debug_info.append("Creating new database...")
     insight = Insight()
-    create_pixel = f'CreateEmptyRdbmsDatabase(database=[{json.dumps(normalized_name)}], rdbmsType=["H2_DB"], username=["sa"], password=[""]);'
+    create_pixel = f'CreateEmptyRdbmsDatabase(catalogName=[{json.dumps(normalized_name)}], rdbmsType=["H2_DB"], username=["sa"], password=[""]);'
     debug_info.append(f"Pixel command: {create_pixel}")
 
     try:
@@ -737,10 +737,10 @@ def create_new_db_script(database_name, initial_sql=None):
             pixel_returns = item.get("pixelReturn", [])
             for pixel_return in pixel_returns:
                 output = pixel_return.get("output", {})
-                if isinstance(output, dict) and output.get("database_id"):
-                    database_id = output.get("database_id")
-                    database_name = output.get("database_name", normalized_name)
-                    debug_info.append(f"Found database_id in response: {database_id}")
+                if isinstance(output, dict) and output.get("engine_id"):
+                    database_id = output.get("engine_id")
+                    database_name = output.get("engine_name", normalized_name)
+                    debug_info.append(f"Found engine_id in response: {database_id}")
                     break
 
             if database_id:

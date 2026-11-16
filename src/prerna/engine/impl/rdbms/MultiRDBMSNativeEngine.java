@@ -56,6 +56,7 @@ import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.om.ThreadStore;
 import prerna.query.interpreters.IQueryInterpreter;
+import prerna.security.SecretRedactor;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -63,9 +64,6 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IRDBMSEngine {
-
-	// TODO: NEED TO ACCOUNT FOR PASSWORD ENCRYPTION
-	// TODO: NEED TO DETERMINE IF DELETE DB NEEDS ANYTHING DIFFERENT
 
 	private static final Logger classLogger = LogManager.getLogger(MultiRDBMSNativeEngine.class);
 
@@ -89,6 +87,7 @@ public class MultiRDBMSNativeEngine extends AbstractDatabaseEngine implements IR
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
+		SecretRedactor.recordSecrets(smssProp.getProperty(Constants.ENGINE), smssProp);
 		/*
 		 * contextToConnectionMap needs to be built and the keys need to be stored we
 		 * will grab all the connection urls and populate the map

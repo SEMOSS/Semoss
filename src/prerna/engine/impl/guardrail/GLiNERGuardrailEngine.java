@@ -39,16 +39,16 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.ds.py.PyUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 
 public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(GLiNERGuardrailEngine.class);
 
 	private static final String MODEL_NAME = "MODEL_NAME";
 	private static final String NER_LABELS = "NER_LABELS";
@@ -133,9 +133,10 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 			threshold = Double.parseDouble(keyValue.get(this.keysToGet[2]));
 		}
 
-		String script = "model.predict_entities(\"\"\"" + prompt + "\"\"\", " + new Gson().toJson(labels) + ")";
+		String script = "model.predict_entities(" + PyUtils.determineStringType(prompt) + ", "
+				+ PyUtils.determineStringType(labels) + ")";
 		List<Map<String, Object>> predictions = (List<Map<String, Object>>) pyTranslator
-				.runDirectPyNoCancelTrace(script);
+				.runDirectPyNoCancelTrace(null, this.timeout, this.timeoutMessage, script);
 		boolean pass = true;
 		// collect the entities that breach the threshold so we can build a masked
 		// variant of the prompt for interceptors that mask rather than block
@@ -169,10 +170,24 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 
 	/**
 	 * Build a masked copy of the prompt where every flagged entity span is replaced
-	 * with the configured mask template (default {@code [label]}). Spans are
-	 * replaced from right to left so the character offsets returned by GLiNER stay
-	 * valid as the string is rewritten. Overlapping spans are skipped defensively.
-	 * When there are no flagged entities the original prompt is returned unchanged.
+	 * with the configured mask template (default {@code [label]}). When there are
+	 * no flagged entities the original prompt is returned unchanged. It works in
+	 * three steps:
+	 * <ol>
+	 * <li>Keep the spans with usable offsets: a start of 0 or more, before the
+	 * end, and an end inside the prompt.</li>
+	 * <li>Sort them by start, the widest first when several start together, and
+	 * merge each span that starts before the previous one ends into that one. The
+	 * merged span covers both and keeps the first span's label, so no part of an
+	 * overlapping entity is left unmasked.</li>
+	 * <li>Replace the merged spans from the last to the first. GLiNER's offsets
+	 * point into the original prompt, and replacing from the end leaves the text
+	 * before each span, and so every earlier offset, as it was.</li>
+	 * </ol>
+	 * For example, in {@code call Adam now} GLiNER may flag {@code Adam}
+	 * (characters 5 to 9) and the {@code da} inside it (6 to 8). The two merge into
+	 * one span from 5 to 9, and the result is {@code call [person] now} rather than
+	 * {@code call A[person]m now}.
 	 *
 	 * @param prompt  the original prompt
 	 * @param flagged the entity predictions (each a map with start/end/label) that
@@ -183,28 +198,51 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 		if (prompt == null || flagged == null || flagged.isEmpty()) {
 			return prompt;
 		}
-		// sort a copy by start offset descending so right-to-left splicing keeps
-		// offsets valid
-		List<Map<String, Object>> ordered = new ArrayList<>(flagged);
-		ordered.sort((a, b) -> Integer.compare(getInt(b.get("start")), getInt(a.get("start"))));
-
-		StringBuilder masked = new StringBuilder(prompt);
-		// tracks the left edge of the last span we replaced; the next span must end at
-		// or before this to be a non-overlapping, still-valid region of the original
-		// text
-		int lastStart = prompt.length();
-		for (Map<String, Object> entity : ordered) {
+		// 1. keep only the spans whose offsets fall inside the prompt
+		List<MaskSpan> spans = new ArrayList<>();
+		for (Map<String, Object> entity : flagged) {
 			int start = getInt(entity.get("start"));
 			int end = getInt(entity.get("end"));
-			if (start < 0 || start >= end || end > lastStart) {
+			if (start < 0 || start >= end || end > prompt.length()) {
 				continue;
 			}
 			Object label = entity.get("label");
-			String replacement = this.maskTemplate.replace("{label}", label == null ? "" : label.toString());
-			masked.replace(start, end, replacement);
-			lastStart = start;
+			spans.add(new MaskSpan(start, end, label == null ? "" : label.toString()));
+		}
+
+		// 2. sort by start, the widest first on a tie, then merge each span that
+		// starts before the previous one ends into it, keeping the first span's label
+		spans.sort((a, b) -> a.start() != b.start() ? Integer.compare(a.start(), b.start())
+				: Integer.compare(b.end(), a.end()));
+		List<MaskSpan> merged = new ArrayList<>();
+		for (MaskSpan span : spans) {
+			int last = merged.size() - 1;
+			if (last >= 0 && span.start() < merged.get(last).end()) {
+				MaskSpan group = merged.get(last);
+				merged.set(last, new MaskSpan(group.start(), Math.max(group.end(), span.end()), group.label()));
+			} else {
+				merged.add(span);
+			}
+		}
+
+		// 3. replace from the last span to the first, so the offsets of the spans
+		// still to replace keep pointing at the right characters
+		StringBuilder masked = new StringBuilder(prompt);
+		for (int i = merged.size() - 1; i >= 0; i--) {
+			MaskSpan span = merged.get(i);
+			masked.replace(span.start(), span.end(), this.maskTemplate.replace("{label}", span.label()));
 		}
 		return masked.toString();
+	}
+
+	/**
+	 * A flagged span of the prompt to mask, by its character offsets.
+	 *
+	 * @param start the first character of the span
+	 * @param end   the character after the span
+	 * @param label the entity label the span is masked with
+	 */
+	private record MaskSpan(int start, int end, String label) {
 	}
 
 	/**
@@ -232,7 +270,7 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 	protected String getStartupScript() {
 		// @formatter:off
 		return "from gliner import GLiNER\n" 
-				+ "model = GLiNER.from_pretrained(\"" + this.modelName + "\")";
+				+ "model = GLiNER.from_pretrained(" + PyUtils.determineStringType(this.modelName) + ")";
 		// @formatter:on
 	}
 
@@ -248,7 +286,7 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 
 				This guardrail detects named entities with the configured GLiNER model. Any entity whose score is greater than the threshold fails the check. Its returned prompt replaces flagged spans with `MASK_TEMPLATE`, which defaults to `[{label}]`.
 
-				`MODEL_NAME` is required in the guardrail SMSS. `NER_LABELS` may hold the default JSON label list, while `DEFAULT_THRESHOLD` and `MASK_TEMPLATE` control matching and replacement. Labels and the threshold can also be supplied by a pipeline for a specific use case.
+				`MODEL_NAME` is required in the guardrail SMSS: the Hugging Face repository of the GLiNER model to load, for example `urchade/gliner_multi-v2.1`. `NER_LABELS` may hold the default JSON label list, while `DEFAULT_THRESHOLD` and `MASK_TEMPLATE` control matching and replacement. Labels and the threshold can also be supplied by a pipeline for a specific use case.
 
 				## Example: mask sensitive entities before model inference
 

@@ -59,7 +59,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
+import prerna.util.InternalUtility;
 
 public class UnitTestSecurityAuthUtils {
 
@@ -265,12 +266,22 @@ public class UnitTestSecurityAuthUtils {
 	}
 
 	static void createProject(String id, String name, User user) {
-		createProject(id, name, user, false);
-	}
-
-	static void createProject(String id, String name, User user, boolean hasPortal) {
 		String userId = user.getPrimaryLoginToken().getId();
 		SecurityProjectUtils.addProject(id, name, "APP", null, false, user);
+		SecurityProjectUtils.addProjectOwner(user, id, userId);
+	}
+
+	/**
+	 * Creates a project of the given type owned by the user.
+	 *
+	 * @param id   the project id
+	 * @param name the project name
+	 * @param type the project type, such as CODE or BLOCKS
+	 * @param user the owner
+	 */
+	static void createProjectOfType(String id, String name, String type, User user) {
+		String userId = user.getPrimaryLoginToken().getId();
+		SecurityProjectUtils.addProject(id, name, type, null, false, user);
 		SecurityProjectUtils.addProjectOwner(user, id, userId);
 	}
 
@@ -439,11 +450,11 @@ public class UnitTestSecurityAuthUtils {
 	}
 
 	public static void addEngineStoreProp(String testdb, Path smssFile) {
-		DIHelper.getInstance().setEngineProperty(testdb + "_" + Constants.STORE, smssFile.toAbsolutePath().toString());
+		InternalUtility.setEngineSmssPath(testdb, smssFile.toAbsolutePath().toString());
 	}
 
 	public static void removeEngineStoreProp(String testdb) {
-		DIHelper.getInstance().removeEngineProperty(testdb + "_" + Constants.STORE);
+		DIHelperTestUtils.removeEngineSmssPath(testdb);
 	}
 
 	static Properties getDefaultOpenAiProperties(String engineId) {

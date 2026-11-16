@@ -176,7 +176,8 @@ public class LocalPythonGuardrailReactorFunctionEngine extends AbstractPythonGua
 		StringBuilder callMaker = new StringBuilder(this.functionName);
 		callMaker.append("(**").append(PyUtils.determineStringType(kwargs)).append(")");
 
-		Object resultObj = this.pyTranslator.runDirectPyNoCancelTrace(getExecutionInsight(ns), callMaker.toString());
+		Object resultObj = this.pyTranslator.runDirectPyNoCancelTrace(getExecutionInsight(ns), this.timeout,
+				this.timeoutMessage, callMaker.toString());
 
 		return hydrateGuardrailResult(resultObj, kwargs);
 	}

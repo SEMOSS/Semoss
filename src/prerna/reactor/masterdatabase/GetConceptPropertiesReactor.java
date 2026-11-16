@@ -27,12 +27,11 @@
  *******************************************************************************/
 package prerna.reactor.masterdatabase;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -54,7 +53,7 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 		if (conceptNamesGrs == null) {
 			throw new IllegalArgumentException("Need to define the concepts to find relations");
 		}
-		List<String> conceptLogicals = new Vector<String>();
+		List<String> conceptLogicals = new ArrayList<>();
 		int size = conceptNamesGrs.size();
 		for (int i = 0; i < size; i++) {
 			conceptLogicals.add(conceptNamesGrs.get(i).toString());
@@ -64,9 +63,8 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 		List<String> eFilters = null;
 		GenRowStruct engineFilterGrs = this.store.getGenRowStruct(keysToGet[1]);
 		if (engineFilterGrs != null) {
-			eFilters = new Vector<String>();
+			eFilters = new ArrayList<>();
 			String engineFilter = engineFilterGrs.get(0).toString();
-			engineFilter = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineFilter);
 			eFilters.add(engineFilter);
 		}
 
@@ -77,7 +75,7 @@ public class GetConceptPropertiesReactor extends AbstractReactor {
 						"Databases " + eFilters.get(0) + " does not exist or user does not have access");
 			}
 		} else {
-			eFilters = new Vector<String>();
+			eFilters = new ArrayList<>();
 			eFilters.addAll(dbFilters);
 		}
 

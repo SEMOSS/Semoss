@@ -37,10 +37,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
@@ -88,7 +86,6 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 		}
 
 		User user = this.insight.getUser();
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("Model engine does not exist or user does not have access to edit it");
 		}
@@ -100,8 +97,8 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 		boolean dryRun = Boolean.parseBoolean(this.keyValue.get(DRY_RUN_KEY) + "");
 
 		// prices decide how far the model's usage limits go, so only the model's owners
-		// and admins can change them, here as anywhere
-		if (!dryRun && !SecurityEngineUtils.userIsOwner(user, engineId) && SecurityAdminUtils.getInstance(user) == null
+		// can change them, here as anywhere
+		if (!dryRun && !SecurityEngineUtils.userIsOwner(user, engineId)
 				&& changesPrices(SecurityModelMetadataUtils.applyCatalogMetadata(engineId, catalogKey, true))) {
 			throw new IllegalArgumentException("Only the model's owners can change its prices, and applying the "
 					+ "model catalog would change them");

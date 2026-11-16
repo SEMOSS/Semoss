@@ -36,7 +36,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -91,8 +90,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	protected PyTranslator pyTranslator = null;
 	protected File cacheFolder;
-	private ClientProcessWrapper cpw = null;
-	private final ReentrantLock startServerLock = new ReentrantLock();
+	private final ClientProcessWrapper cpw = new ClientProcessWrapper();
 
 	protected String varName = null;
 
@@ -149,115 +147,86 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	/**
-	 * This method is responsible for starting the python process that is linked to
-	 * this model engine.
+	 * Starts the python process linked to this model engine, runs its init commands
+	 * and sends it the process prefix. Called through
+	 * {@link ClientProcessWrapper#getOrStartSocketClient(Runnable)}, which holds
+	 * the wrapper's create lock, when the process is not running.
 	 * 
 	 * @param port The port number to use when creating the server/client
 	 *             connection.
 	 */
 	protected void startServer(int port) {
-		this.startServerLock.lock();
-		try {
-			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-				return;
-			}
-			if (this.workingDirectoryBasePath == null) {
-				this.createCacheFolder();
-			}
+		if (this.workingDirectoryBasePath == null) {
+			this.createCacheFolder();
+		}
 
-			// check if we have already created a process wrapper
-			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-			if (this.cpw != null) {
-				this.cpw.shutdown(false);
-			}
+		String timeout = "30";
+		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+		}
+		boolean debug = false;
 
-			String timeout = "30";
-			if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-				timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-			}
-			if (cpwToInit.getSocketClient() == null) {
-				boolean debug = false;
+		// pull the relevant values from the smss
+		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
+		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 
-				// pull the relevant values from the smss
-				String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-				String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
-				String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-				String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-
-				if (port < 0) {
-					// port has not been forced
-					if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-						try {
-							port = Integer.parseInt(forcePort);
-							debug = true;
-						} catch (NumberFormatException e) {
-							// ignore
-							classLogger.warn("Model {} has an invalid FORCE_PORT value",
-									SmssUtilities.getUniqueName(this.engineName, this.engineId));
-						}
-					}
-				}
-
-				String serverDirectory = this.cacheFolder.getAbsolutePath();
-				boolean nativePyServer = true;
+		if (port < 0) {
+			// port has not been forced
+			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
 				try {
-					cpwToInit.setEngineOwned(true);
-					cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, debug,
-							timeout, loggerLevel);
-				} catch (Exception e) {
-					classLogger.error("Failed to create the python process for engine: {}",
-							SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-					throw new IllegalArgumentException("Unable to connect to server for python model engine.");
-				}
-			} else if (!cpwToInit.getSocketClient().isConnected()) {
-				cpwToInit.shutdown(false);
-				try {
-					cpwToInit.reconnect();
-				} catch (Exception e) {
-					classLogger.error("Failed to reconnect to the python process for engine: {}",
-							SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-					throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine: "
-							+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				}
-			}
-
-			// create the py translator
-			Insight processInsight = new Insight();
-			InsightStore.getInstance().put(processInsight);
-			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-			try {
-				// execute all the basic commands
-				String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
-				// break the commands seperated by ;
-				String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-				// replace the Vars
-				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-					commands[commandIndex] = fillVars(commands[commandIndex]);
-				}
-				this.pyTranslator.runEmptyPyNoCancelTrace(commands);
-				// for debugging...
-				classLogger.info("Initializing '{}' python process with commands >>> {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
-
-				// run a prefix command
-				setPrefix(cpwToInit);
-
-				// finally set the cpw in the class
-				this.cpw = cpwToInit;
-			} catch (Exception e) {
-				classLogger.error("Failed to  to the python process for engine: {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-				if (cpwToInit != null) {
-					classLogger.warn(
-							"Able to start the python process for the python model engine {} but the start script failed",
+					port = Integer.parseInt(forcePort);
+					debug = true;
+				} catch (NumberFormatException e) {
+					// ignore
+					classLogger.warn("Model {} has an invalid FORCE_PORT value",
 							SmssUtilities.getUniqueName(this.engineName, this.engineId));
-					cpwToInit.shutdown(false);
 				}
-				throw e;
 			}
-		} finally {
-			this.startServerLock.unlock();
+		}
+
+		String serverDirectory = this.cacheFolder.getAbsolutePath();
+		boolean nativePyServer = true;
+		try {
+			this.cpw.setEngineOwned(true);
+			this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, debug, timeout,
+					loggerLevel);
+		} catch (Exception e) {
+			classLogger.error("Failed to create the python process for engine: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			throw new IllegalArgumentException("Unable to connect to server for python model engine.");
+		}
+
+		// create the py translator
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(this.cpw.getSocketClient(), processInsight);
+
+		try {
+			// execute all the basic commands
+			String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
+			// break the commands seperated by ;
+			String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+			// replace the Vars
+			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+				commands[commandIndex] = fillVars(commands[commandIndex]);
+			}
+			this.pyTranslator.runEmptyPyNoCancelTrace(commands);
+			// for debugging...
+			classLogger.info("Initializing '{}' python process with commands >>> {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
+
+			// run a prefix command
+			setPrefix();
+		} catch (Exception e) {
+			classLogger.error("Failed to initialize the python process for engine: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			classLogger.warn(
+					"Able to start the python process for the python model engine {} but the start script failed",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			this.cpw.shutdown(false);
+			throw e;
 		}
 	}
 
@@ -314,20 +283,18 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	 * This method checks whether the socket client is instantiated and connected.
 	 */
 	protected void checkSocketStatus() {
-		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
-		}
+		this.cpw.getOrStartSocketClient(() -> startServer(-1));
 	}
 
 	/**
 	 * 
 	 */
-	private void setPrefix(ClientProcessWrapper cpwToInit) {
-		this.prefix = cpwToInit.getPrefix();
+	private void setPrefix() {
+		this.prefix = this.cpw.getPrefix();
 		PayloadStruct prefixPayload = new PayloadStruct();
 		prefixPayload.payload = new String[] { "prefix", this.prefix };
 		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
-		cpwToInit.getSocketClient().executeCommand(prefixPayload);
+		this.cpw.getSocketClient().executeCommand(prefixPayload);
 	}
 
 	@Override
@@ -666,9 +633,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	@Override
 	public void close() throws IOException {
-		if (this.cpw != null) {
-			this.cpw.shutdown(true);
-		}
+		this.cpw.shutdown(true);
 	}
 
 	/**

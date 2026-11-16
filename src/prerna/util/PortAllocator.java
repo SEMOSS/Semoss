@@ -28,6 +28,7 @@
 package prerna.util;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 public final class PortAllocator {
 
 	private static final Logger classLogger = LogManager.getLogger(PortAllocator.class);
+	private static final String LOOPBACK_HOST = "127.0.0.1";
 
 	private static volatile PortAllocator instance;
 	private final int MIN_PORT;
@@ -119,16 +121,35 @@ public final class PortAllocator {
 	}
 
 	/**
-	 * 
-	 * @param port
-	 * @return
+	 * Returns whether a server can bind the port. The workers listen on the IPv4
+	 * loopback address, and some systems let a wildcard bind succeed while another
+	 * process holds the loopback address, so both are checked.
+	 *
+	 * @param port the port to check
+	 * @return true when both the wildcard and the loopback address are free on the
+	 *         port
 	 */
 	public static boolean isPortAvailable(int port) {
-		try (ServerSocket ignored = new ServerSocket(port)) {
+		if (canBind(port, null) && canBind(port, LOOPBACK_HOST)) {
 			classLogger.info("Port {} is available", port);
 			return true;
+		}
+		classLogger.info("Port {} is unavailable", port);
+		return false;
+	}
+
+	/**
+	 * Returns whether a server socket can bind the port on the address, closing it
+	 * right away.
+	 *
+	 * @param port the port to bind
+	 * @param host the address to bind, or null for the wildcard address
+	 * @return true when the bind succeeds
+	 */
+	private static boolean canBind(int port, String host) {
+		try (ServerSocket ignored = new ServerSocket(port, 1, host == null ? null : InetAddress.getByName(host))) {
+			return true;
 		} catch (IOException e) {
-			classLogger.info("Port {} is unavailable", port);
 			return false;
 		}
 	}

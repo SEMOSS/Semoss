@@ -60,6 +60,7 @@ import prerna.reactor.agent.run.AgentRunStore;
 import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
+import prerna.security.SecretRedactor;
 import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
@@ -290,7 +291,8 @@ public final class AgentToolDecisionHandler {
 		if (boundedOutput != null && !boundedOutput.isBlank()) {
 			item.put("output", boundedOutput);
 		}
-		String boundedError = AgentStreamItems.truncate(error, AgentStreamItems.MAX_TOOL_OUTPUT_CHARS);
+		String boundedError = AgentStreamItems.truncate(SecretRedactor.redactError(error),
+				AgentStreamItems.MAX_TOOL_OUTPUT_CHARS);
 		if (boundedError != null && !boundedError.isBlank()) {
 			item.put("error", boundedError);
 		}

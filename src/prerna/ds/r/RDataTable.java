@@ -313,7 +313,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		if (this.builder.isEmpty(tableName)) {
 			return 0;
 		}
-		return this.builder.getFrameSize(tableName);
+		return this.builder.getNumRows(tableName);
 	}
 
 	public int getNumRows(String varName) {

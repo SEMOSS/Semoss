@@ -50,7 +50,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 
 public class SnowflakeCopyIntoReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(SnowflakePutReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(SnowflakeCopyIntoReactor.class);
 
 	public SnowflakeCopyIntoReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.TABLE.getKey(), "userStage",

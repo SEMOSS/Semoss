@@ -949,6 +949,7 @@ class BrainMemoryDbUnitTests {
 		// GPT-6 sent accountId "" and status "": ListTopics then failed or matched no
 		// topic
 		Insight insight = mock(Insight.class);
+		when(insight.getInsightId()).thenReturn("insight");
 		PixelRunner runner = mock(PixelRunner.class);
 		when(runner.getResults()).thenReturn(List.of(new NounMetadata("ok", PixelDataType.CONST_STRING)));
 		when(insight.runPixel(anyString())).thenReturn(runner);

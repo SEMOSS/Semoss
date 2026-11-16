@@ -673,7 +673,7 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 	@Test
 	void testGetProjectsForGroup_groupDoesNotExist() {
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> instance.getProjectsForGroup("nope", "CUSTOM", null, 0, 0, false));
+				() -> instance.getProjectsForGroup("nope", "CUSTOM", null, 0, 0, null));
 		assertEquals("Group nope with type CUSTOM does not exist", e.getMessage());
 	}
 
@@ -694,7 +694,7 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid2", 1, null);
 		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid3", 1, null);
 
-		List<Map<String, Object>> values = instance.getProjectsForGroup("gid", "CUSTOM", "pid", 1, 1, false);
+		List<Map<String, Object>> values = instance.getProjectsForGroup("gid", "CUSTOM", "pid", 1, 1, null);
 
 		// make sure that the only value we get back is the one for the group id, that
 		// starts with pid,
@@ -705,17 +705,20 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 	}
 
 	@Test
-	void testGetProjectsForGroup_onlyApps() throws Exception {
+	void testGetProjectsForGroup_projectTypes() throws Exception {
 		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
 
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", adminUser);
+		UnitTestSecurityAuthUtils.createProjectOfType("pid1", "pname1", "CODE", adminUser);
+		UnitTestSecurityAuthUtils.createProjectOfType("pid2", "pname2", "BLOCKS", adminUser);
 
 		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid1", 1, null);
+		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid2", 1, null);
 
-		List<Map<String, Object>> values = instance.getProjectsForGroup("gid", "CUSTOM", null, 0, 0, true);
+		List<Map<String, Object>> values = instance.getProjectsForGroup("gid", "CUSTOM", null, 0, 0, List.of("CODE"));
+		assertEquals(1, values.size());
+		assertEquals("pid1", values.getFirst().get("project_id"));
 
-		// only apps being true filters out only value
-		assertEquals(0, values.size());
+		assertEquals(2, instance.getProjectsForGroup("gid", "CUSTOM", null, 0, 0, null).size());
 	}
 
 	///
@@ -725,7 +728,7 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 	@Test
 	void testGetNumProjectsForGroup_groupDoesNotExist() {
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> instance.getNumProjectsForGroup("nope", "CUSTOM", null, false));
+				() -> instance.getNumProjectsForGroup("nope", "CUSTOM", null, null));
 		assertEquals("Group nope with type CUSTOM does not exist", e.getMessage());
 	}
 
@@ -746,24 +749,24 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid2", 1, null);
 		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid3", 1, null);
 
-		long count = instance.getNumProjectsForGroup("gid", "CUSTOM", "pid", false);
+		long count = instance.getNumProjectsForGroup("gid", "CUSTOM", "pid", null);
 
 		// make sure its 3, pid1, pid2, pid3 are correct
 		assertEquals(3, count);
 	}
 
 	@Test
-	void testGetNumProjectsForGroup_onlyApps() throws Exception {
+	void testGetNumProjectsForGroup_projectTypes() throws Exception {
 		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
 
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", adminUser);
+		UnitTestSecurityAuthUtils.createProjectOfType("pid1", "pname1", "CODE", adminUser);
+		UnitTestSecurityAuthUtils.createProjectOfType("pid2", "pname2", "BLOCKS", adminUser);
 
 		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid1", 1, null);
+		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid2", 1, null);
 
-		long count = instance.getNumProjectsForGroup("gid", "CUSTOM", null, true);
-
-		// only apps being true filters out only value
-		assertEquals(0, count);
+		assertEquals(1, instance.getNumProjectsForGroup("gid", "CUSTOM", null, List.of("BLOCKS")));
+		assertEquals(2, instance.getNumProjectsForGroup("gid", "CUSTOM", null, null));
 	}
 
 	///
@@ -772,7 +775,7 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 	@Test
 	void testGetAvailableProjectsFroGroup_groupDoesNotExist() {
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> instance.getAvailableProjectsForGroup("nope", "CUSTOM", null, 0, 0, false));
+				() -> instance.getAvailableProjectsForGroup("nope", "CUSTOM", null, 0, 0, null));
 		assertEquals("Group nope with type CUSTOM does not exist", e.getMessage());
 	}
 
@@ -790,7 +793,7 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		instance.addGroupProjectPermission(adminUser, "gid2", "CUSTOM", "pid", 1, null);
 		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid1", 1, null);
 
-		List<Map<String, Object>> values = instance.getAvailableProjectsForGroup("gid", "CUSTOM", "pid", 0, 0, false);
+		List<Map<String, Object>> values = instance.getAvailableProjectsForGroup("gid", "CUSTOM", "pid", 0, 0, null);
 
 		// filter out pid1 and projectid1, limit to one and offset to 1 to pid3.
 		assertEquals(3, values.size());
@@ -802,25 +805,27 @@ public class AdminSecurityGroupUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		assertEquals("pid3", map3.get("project_id"));
 
 		// limit and offset check
-		values = instance.getAvailableProjectsForGroup("gid", "CUSTOM", "pid", 1, 1, false);
+		values = instance.getAvailableProjectsForGroup("gid", "CUSTOM", "pid", 1, 1, null);
 		assertEquals(1, values.size());
 		map = values.getFirst();
 		assertEquals("pid2", map.get("project_id"));
 	}
 
 	@Test
-	void testGetAvailableProjectsForGroup_onlyApps() throws Exception {
+	void testGetAvailableProjectsForGroup_projectTypes() throws Exception {
 		instance.addGroup(adminUser, "gid", "CUSTOM", "desc");
 
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", adminUser);
-		UnitTestSecurityAuthUtils.createProject("pid2", "pname2", adminUser, true);
+		UnitTestSecurityAuthUtils.createProjectOfType("pid1", "pname1", "CODE", adminUser);
+		UnitTestSecurityAuthUtils.createProjectOfType("pid2", "pname2", "CODE", adminUser);
+		UnitTestSecurityAuthUtils.createProjectOfType("pid3", "pname3", "BLOCKS", adminUser);
+		instance.addGroupProjectPermission(adminUser, "gid", "CUSTOM", "pid1", 1, null);
 
-		List<Map<String, Object>> values = instance.getAvailableProjectsForGroup("gid", "CUSTOM", null, 0, 0, true);
-
-		// only apps being true filters out only value
+		List<Map<String, Object>> values = instance.getAvailableProjectsForGroup("gid", "CUSTOM", null, 0, 0,
+				List.of("BLOCKS"));
 		assertEquals(1, values.size());
-		Map<String, Object> map = values.getFirst();
-		assertEquals("pid2", map.get("project_id"));
+		assertEquals("pid3", values.getFirst().get("project_id"));
+
+		assertEquals(2, instance.getAvailableProjectsForGroup("gid", "CUSTOM", null, 0, 0, null).size());
 	}
 
 	///
