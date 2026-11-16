@@ -37,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IDatabaseEngine;
@@ -77,7 +76,6 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 		organizeKeys();
 
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 			throw new IllegalArgumentException(
 					"Database " + databaseId + " does not exist or user does not have access to database");
@@ -296,7 +294,8 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close numerical profile data query iterator for selector {}", selector, e);
+					classLogger.error("Failed to close numerical profile data query iterator for selector {}", selector,
+							e);
 				}
 			}
 		}
@@ -337,7 +336,8 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 				try {
 					nullIt.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close null value count query iterator for numerical selector {}", selector, e);
+					classLogger.error("Failed to close null value count query iterator for numerical selector {}",
+							selector, e);
 				}
 			}
 		}
@@ -368,7 +368,8 @@ public class DatabaseProfileReactor extends AbstractFrameReactor {
 				try {
 					it.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close {} aggregate query iterator for selector {}", functionName, selector, e);
+					classLogger.error("Failed to close {} aggregate query iterator for selector {}", functionName,
+							selector, e);
 				}
 			}
 		}

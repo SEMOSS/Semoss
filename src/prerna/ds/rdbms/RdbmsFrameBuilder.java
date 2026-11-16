@@ -650,30 +650,21 @@ public class RdbmsFrameBuilder {
 	}
 
 	/**
-	 * Get the number of elements in this table
-	 * 
-	 * @param tableName
-	 * @return
+	 * Returns the number of rows in the table.
+	 *
+	 * @param tableName the table name
+	 * @return the number of rows, or 0 when they cannot be counted
 	 */
-	public int getNumRecords(String tableName) {
+	public long getNumRows(String tableName) {
 		String safeTableName = validateTableIdentifier(tableName);
-		int columnCount = getHeaders(tableName).length;
-		String query = "SELECT COUNT(*) * ? FROM " + safeTableName;
-		PreparedStatement stmt = null;
-		ResultSet rs = null;
-		try {
-			stmt = this.conn.prepareStatement(query);
-			stmt.setInt(1, columnCount);
-			rs = stmt.executeQuery();
-			while (rs.next()) {
-				return rs.getInt(1);
+		String query = "SELECT COUNT(*) FROM " + safeTableName;
+		try (PreparedStatement stmt = this.conn.prepareStatement(query); ResultSet rs = stmt.executeQuery()) {
+			if (rs.next()) {
+				return rs.getLong(1);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			ConnectionUtils.closeAllConnections(stmt, rs);
+			classLogger.error("Failed to count the rows of table {}", tableName, e);
 		}
-
 		return 0;
 	}
 

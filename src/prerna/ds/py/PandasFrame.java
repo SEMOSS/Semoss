@@ -70,16 +70,12 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.task.BasicIteratorTask;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Constants;
-import prerna.util.Settings;
 import prerna.util.Utility;
 
 public class PandasFrame extends AbstractTableDataFrame {
 
 	private static final Logger classLogger = LogManager.getLogger(PandasFrame.class);
-
-	public static final String DATA_MAKER_NAME = "PandasFrame";
 
 	public static final String PANDAS_IMPORT_VAR = "pd";
 	public static final String PANDAS_IMPORT_STRING = "import pandas as " + PANDAS_IMPORT_VAR;
@@ -100,14 +96,16 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	static {
 		pyS.put("object", SemossDataType.STRING);
-		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA variant)
+		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA
+		// variant)
 		pyS.put("str", SemossDataType.STRING);
 		pyS.put("string", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
 		pyS.put("datetime64", SemossDataType.DATE);
-		// real pandas dtype names always carry a resolution, so the bare key above never matched
+		// real pandas dtype names always carry a resolution, so the bare key above
+		// never matched
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[us]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[ms]", SemossDataType.TIMESTAMP);
@@ -126,7 +124,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		spy.put(SemossDataType.DOUBLE, "np.float64");
 		spy.put(SemossDataType.DATE, "np.datetime32");
 		spy.put(SemossDataType.TIMESTAMP, "np.datetime32");
-//		spy.put(SemossDataType.BOOLEAN, "np.bool");
+		// spy.put(SemossDataType.BOOLEAN, "np.bool");
 
 		spy.put("float64", "np.float32");
 		spy.put("int64", "np.int32");
@@ -136,9 +134,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		spy.put("dtype('float64')", "float32");
 	}
 
-//	public PandasFrame() {
-//		this(null);
-//	} 
+	// public PandasFrame() {
+	// this(null);
+	// }
 
 	public PandasFrame(PyTranslator pyTranslator) {
 		this(null, pyTranslator);
@@ -505,9 +503,9 @@ public class PandasFrame extends AbstractTableDataFrame {
 		String colScript = PandasSyntaxHelper.getColumns(wrapperTableName + ".cache['data']");
 		String typeScript = PandasSyntaxHelper.getTypes(wrapperTableName + ".cache['data']");
 
-		List<String> headerList = (List) pyTranslator.getList(colScript);
+		List<String> headerList = toStrings(pyTranslator.getList(colScript));
 		String[] headers = headerList.toArray(new String[headerList.size()]);
-		List<String> types = (List) pyTranslator.getList(typeScript);
+		List<String> types = toStrings(pyTranslator.getList(typeScript));
 
 		StringBuffer allTypes = new StringBuffer();
 		// here we run and see if the types are good
@@ -534,7 +532,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 			if (proposedType != null && pyproposedType != null && !pyproposedType.equalsIgnoreCase(colType)) {
 				// create and execute the type
 				if (proposedType == SemossDataType.DATE || proposedType == SemossDataType.TIMESTAMP) {
-					// pandas 3 removed to_datetime(errors='ignore'), so leave the column as-is when it will not parse
+					// pandas 3 removed to_datetime(errors='ignore'), so leave the column as-is when
+					// it will not parse
 					String dateSuffix = proposedType == SemossDataType.DATE ? ".dt.date" : "";
 					String typeChanger = "try:\n    " + tableName + "['" + colName + "'] = pd.to_datetime(" + tableName
 							+ "['" + colName + "'])" + dateSuffix + "\nexcept (ValueError, TypeError):\n    pass";
@@ -563,18 +562,29 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return sync;
 	}
 
+	/**
+	 * Returns the text of each value in a list that python returned, such as column
+	 * names or types, keeping nulls.
+	 *
+	 * @param values the values
+	 * @return the text of each value
+	 */
+	private static List<String> toStrings(List<?> values) {
+		return values.stream().map(value -> value == null ? null : value.toString()).toList();
+	}
+
 	// get the types of headers
 	public Object[] getHeaderAndTypes(String targetFrame) {
 		String colScript = PandasSyntaxHelper.getColumns(targetFrame);
 		String typeScript = PandasSyntaxHelper.getTypes(targetFrame);
 
-		List<String> headerList = (List) pyTranslator.getList(colScript);
+		List<String> headerList = toStrings(pyTranslator.getList(colScript));
 		String[] headers = new String[headerList.size()];
 		headerList.toArray(headers);
 
 		SemossDataType[] stypes = new SemossDataType[headerList.size()];
 
-		List<String> types = (List) pyTranslator.getList(typeScript);
+		List<String> types = toStrings(pyTranslator.getList(typeScript));
 
 		for (int colIndex = 0; colIndex < headers.length; colIndex++) {
 			String colType = types.get(colIndex);
@@ -616,7 +626,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return processInterpreter(interp, qs);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public IRawSelectWrapper query(String query) {
 		// NOTE: this only works if you have an interp!
@@ -625,7 +634,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		// need to grab the headers and types via the output object
 
 		Object output = pyTranslator.runScript(query);
-		List<Object> response = null;
+		List<?> response = null;
 
 		PandasInterpreter interp = new PandasInterpreter();
 		String[] headers = interp.getHeaders();
@@ -635,23 +644,15 @@ public class PandasFrame extends AbstractTableDataFrame {
 		boolean sync = true;
 		// get the types for headers also
 		if (interp.isScalar()) {
-			List<Object> val = new ArrayList<Object>();
-			val.add(output);
-			response = new ArrayList<Object>();
-			response.add(val);
-
-		} else if (output instanceof HashMap) {
-			Map<String, Object> map = (Map<String, Object>) output;
-			response = (List<Object>) map.get("data");
+			response = new ArrayList<>(List.of(Arrays.asList(output)));
+		} else if (output instanceof HashMap<?, ?> map) {
+			response = map.get("data") instanceof List<?> data ? data : null;
 
 			// get the columns
-			List<Object> columns = (List<Object>) map.get("columns");
-			actHeaders = mapColumns(interp, columns);
+			actHeaders = mapColumns(interp, map.get("columns") instanceof List<?> columns ? columns : List.of());
 			sync = sync(headers, actHeaders);
-		}
-
-		else if (output instanceof List) {
-			response = (List<Object>) output;
+		} else if (output instanceof List<?> list) {
+			response = list;
 			actHeaders = null;
 			sync = true;
 		}
@@ -692,7 +693,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return newFrame;
 	}
 
-	@SuppressWarnings("unchecked")
 	private IRawSelectWrapper processInterpreter(PandasInterpreter interp, SelectQueryStruct qs) {
 		String query = null;
 		// make it into a full frame
@@ -733,10 +733,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// run the query
 			Object output = pyTranslator.runDirectPy(query);
 
-			// if using native py server, and cant'structure output, try convert.
-			if (Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER) != null
-					&& Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER).equalsIgnoreCase("true")
-					&& output instanceof String) {
+			if (output instanceof String) {
 				output = PandasTimestampDeserializer.MAPPER.convertValue(output, Object.class);
 			}
 
@@ -750,26 +747,21 @@ public class PandasFrame extends AbstractTableDataFrame {
 			SemossDataType[] types = interp.getTypes();
 
 			if (format.equalsIgnoreCase("grid")) {
-				List<Object> response = null;
+				List<?> response = null;
 				List<String> actHeaders = null;
 
 				boolean sync = true;
 				// get the types for headers also
 				if (interp.isScalar()) {
-					List<Object> val = new ArrayList<Object>();
-					val.add(output);
-					response = new ArrayList<Object>();
-					response.add(val);
-
+					response = new ArrayList<>(List.of(Arrays.asList(output)));
 				}
 				// this is our main map
-				else if (output instanceof Map) {
-					Map<String, Object> map = (Map<String, Object>) output;
-					response = (List<Object>) map.get("data");
+				else if (output instanceof Map<?, ?> map) {
+					response = map.get("data") instanceof List<?> data ? data : null;
 
 					// get the columns
-					List<Object> columns = (List<Object>) map.get("columns");
-					actHeaders = mapColumns(interp, columns);
+					actHeaders = mapColumns(interp,
+							map.get("columns") instanceof List<?> columns ? columns : List.of());
 
 					if (headers != null) {
 						// regular compose query
@@ -781,8 +773,8 @@ public class PandasFrame extends AbstractTableDataFrame {
 						headers = (String[]) typesAndHeaders[1];
 						sync = true;
 					}
-				} else if (output instanceof List) {
-					response = (List<Object>) output;
+				} else if (output instanceof List<?> list) {
+					response = list;
 					actHeaders = null;
 					sync = true;
 				}
@@ -820,16 +812,14 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return retWrapper;
 	}
 
-	@SuppressWarnings("unchecked")
-	private List<String> mapColumns(PandasInterpreter interp, List<Object> columns) {
+	private List<String> mapColumns(PandasInterpreter interp, List<?> columns) {
 		List<String> newHeaders = new ArrayList<String>();
 		Map<String, String> funcMap = interp.functionMap();
 
 		for (int colIndex = 0; colIndex < columns.size(); colIndex++) {
 			// every element here is List
 			Object item = columns.get(colIndex);
-			if (item instanceof List) {
-				List<Object> elem = (List<Object>) columns.get(colIndex);
+			if (item instanceof List<?> elem) {
 				String key = elem.get(1) + "" + elem.get(0);
 				if (funcMap.containsKey(key)) {
 					newHeaders.add(funcMap.get(key));
@@ -900,7 +890,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 		cf.setFrameCacheLocation(frameFilePath);
 
 		// trying to write the pickle instead
-		frameFilePath = frameFilePath.replace("\\\\", "/");
+		frameFilePath = frameFilePath.replace("\\", "/");
 
 		String[] commands = new String[] { "import pickle",
 				PandasSyntaxHelper.getWritePandasToPickle("pickle", this.frameName, frameFilePath) };
@@ -945,11 +935,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		return DataFrameTypeEnum.PYTHON;
 	}
 
-	@Override
-	public String getDataMakerName() {
-		return DATA_MAKER_NAME;
-	}
-
 	/**
 	 * Recreate the metadata for this existing frame
 	 */
@@ -989,7 +974,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		pyTranslator.runScript(wrapperFrameName + ".cache['data'] = " + frameName);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public Object querySQL(String sql) {
 		// columns
@@ -1026,32 +1010,26 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// will delete later
 			pyTranslator.runEmptyPy(deleteAll);
 
-			if (retObject instanceof Map) {
-				classLogger.debug("Valid Output");
-				retMap = (Map<String, Object>) retObject;
+			if (!(retObject instanceof Map<?, ?> retObjectMap)) {
+				throw new IllegalStateException("Could not read the result of the SQL query");
 			}
+			classLogger.debug("Valid Output");
+			retObjectMap.forEach((key, value) -> retMap.put(String.valueOf(key), value));
+
 			// convert types to java object
-			Map<String, Object> typeMap = (Map<String, Object>) retMap.get("types");
-			Iterator<String> keys = typeMap.keySet().iterator();
-			while (keys.hasNext()) {
-				String column = keys.next();
-				String value = (String) typeMap.get(column);
-
-				if (pyJ.containsKey(value)) {
-					typeMap.put(column, pyJ.get(value));
-				} else {
-					typeMap.put(column, java.lang.String.class);
-				}
+			Map<String, Object> typeMap = new HashMap<>();
+			if (retMap.get("types") instanceof Map<?, ?> pyTypes) {
+				pyTypes.forEach((column, value) -> typeMap.put(String.valueOf(column),
+						pyJ.getOrDefault(String.valueOf(value), java.lang.String.class)));
 			}
 
-			List<String> columns = null;
-			columns = (List<String>) retMap.get("columns");
+			List<?> columns = retMap.get("columns") instanceof List<?> list ? list : List.of();
 
 			String[] colArray = new String[columns.size()];
 			Object[] typesArray = new Object[columns.size()];
 
 			for (int columnIndex = 0; columnIndex < columns.size(); columnIndex++) {
-				String thisColumn = columns.get(columnIndex);
+				String thisColumn = String.valueOf(columns.get(columnIndex));
 				Object colType = typeMap.get(thisColumn);
 				typesArray[columnIndex] = colType;
 				colArray[columnIndex] = thisColumn;
@@ -1274,10 +1252,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 
 	@Override
 	public void removeColumn(String columnHeader) {
-	}
-
-	@Override
-	public void processDataMakerComponent(DataMakerComponent component) {
 	}
 
 }

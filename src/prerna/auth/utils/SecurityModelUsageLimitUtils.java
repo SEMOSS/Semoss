@@ -544,6 +544,14 @@ public final class SecurityModelUsageLimitUtils {
 	}
 
 	/**
+	 * Removes the limits on the permissions models give a project, for when the
+	 * project is deleted.
+	 */
+	static void deleteProjectLimits(Connection connection, String projectId) throws Exception {
+		deleteWhere(connection, "LIMITTYPE = ? AND SUBJECTID = ?", List.of(Type.PROJECT.name(), projectId));
+	}
+
+	/**
 	 * Removes a team's limits on every model and its total, for when the team is
 	 * deleted.
 	 */
@@ -784,7 +792,8 @@ public final class SecurityModelUsageLimitUtils {
 			}
 			return null;
 		}
-		boolean canShare = key.type() == Type.TEAM || key.type() == Type.PUBLIC || key.type() == Type.MODEL;
+		boolean canShare = key.type() == Type.TEAM || key.type() == Type.PUBLIC || key.type() == Type.MODEL
+				|| key.type() == Type.PROJECT;
 		Set<String> measures = new HashSet<>();
 		for (ModelUsageLimitRule rule : limit.getRules()) {
 			if (rule.getMetric() == null || rule.getWindow() == null || rule.getCounts() == null) {
@@ -798,7 +807,7 @@ public final class SecurityModelUsageLimitUtils {
 				return "Each rule's amount is 1 or more";
 			}
 			if (rule.getCounts() == Counts.SHARED && !canShare) {
-				return "Only a team, public use and a model's total can have shared rules";
+				return "Only a team, an app, public use and a model's total can have shared rules";
 			}
 			if (rule.getCounts() == Counts.EACH_PERSON && ceiling) {
 				return describe(key) + " has shared rules only";
@@ -841,6 +850,8 @@ public final class SecurityModelUsageLimitUtils {
 			return key.engineId() == null ? "A team's total" : "A team's limit";
 		case PUBLIC:
 			return "The Public Use Limit";
+		case PROJECT:
+			return "An app's limit";
 		default:
 			return "A person's limit";
 		}

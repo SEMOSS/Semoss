@@ -23,6 +23,7 @@ The native harness builds a prompt from these sources:
 - Platform behavior from [SemossHarnessPrompts](../../src/prerna/reactor/agent/runtime/SemossHarnessPrompts.java).
 - Delegation instructions for the subagent tools actually exposed to the run.
 - Available skill names, descriptions, and paths discovered in the working directory.
+- The agent's own files, when it has any (see [Agent files](#agent-files)).
 - Resolved agent context: working-directory instructions, workspace/room authored instructions, and selected-engine context when applicable.
 - Runtime context, including identifiers and the execution target.
 - Specialized workflow instructions when configured, such as the presentation workflow.
@@ -70,13 +71,28 @@ policy are unchanged; old cards are not automatically reclassified.
 | Tool group | Examples | Notes |
 | --- | --- | --- |
 | File operations | `ReadFile`, `WriteFile`, `EditFile`, `MultiEdit`, `MoveFile`, `DeleteFile` | Paths resolve within the working target; tool policy can protect configured paths |
-| File discovery | `ListDirectory`, `GlobFiles`, `GrepFiles` | Operate on the working target |
+| File discovery | `ListDirectory`, `GlobFiles`, `GrepFiles` | Operate on the working target; a pattern that starts with `**/` also finds the files at the top of the folder searched |
+| Agent files | `CopyAgentFile` | Copies one of the agent's own files into the working target; offered only when the agent has files |
 | Task state | `TodoRead`, `TodoWrite` | Track the agent's task list |
 | Skill discovery and loading | `ListSkill`, `LoadSkill` | Load instructions and supporting files on demand |
 | Managed code | `ExecutePythonCode`, `ExecuteNodeCode` | Availability depends on runtime settings; state lasts while the worker remains alive |
 | Shell operations | `BashCommand` | Optional restricted command handler; consult its current schema and allowlist |
 | Resource integrations | Workspace/room MCP tools | Run against configured engines and projects with the caller's access |
 | Delegation | Spawn, check, wait, and named subagent tools | Subject to workspace policy and run-tree limits |
+
+### Agent files
+
+An agent's own files are the files in the `public` assets folder of its project, the folder a user with only view access to the agent may read. A run reads them in place and never writes them:
+
+- `ReadFile`, `ListDirectory`, `GlobFiles` and `GrepFiles` take a path that starts with `agent:/`, such as `agent:/guide.pdf`, and name the files they find the same way.
+- Every tool that writes refuses an `agent:/` path. `CopyAgentFile` copies a file into the working target, where it can be changed. Shell and managed code see only the working target, so a file is copied before code uses it.
+- The prompt names the files, up to 50 of them.
+- An upload stores a file under a cleaned name, so `R&D plan.md` is on disk as `R&amp;D plan.md`. When no file has the name a tool was given, the tool looks for the cleaned name, in the working target as well, and its answer shows the name on disk.
+- Nothing else in the agent's project is offered to a run. The CLI harnesses do not have agent files.
+
+### Provider tools called beside ours
+
+A model's built-in tools, such as web search, run at the provider, and their results come back inside the model's response. The exception is a response that calls one of them together with a tool of ours: the provider then stops without running its own tool and waits. The harness runs our tools and continues with their results alone, with no runtime status after them, because the provider resumes its waiting tool only when our results are all the message holds. The call has no stored result until the next response brings it, so the room's payload check does not count it as unanswered.
 
 `useDefaultAgentTools` and `disabledDefaultTools` control the agent's general built-in tools. Default-tool availability can also be supplied by a deployment-configured MCP project. Explicit resource attachments and their permission checks still matter; a skill does not grant an engine, filesystem, or tool permission.
 

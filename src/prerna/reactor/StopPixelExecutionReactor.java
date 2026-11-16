@@ -30,7 +30,6 @@ package prerna.reactor;
 import java.util.Objects;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.agent.AgentCancelHook;
 import prerna.sablecc2.comm.JobStreamEnvelopes;
 import prerna.sablecc2.comm.PixelJobManager;
@@ -65,8 +64,7 @@ public class StopPixelExecutionReactor extends AbstractReactor {
 		User jobUser = jobRunner.getInsight() == null ? null : jobRunner.getInsight().getUser();
 		boolean isOwner = user != null && jobUser != null
 				&& Objects.equals(User.getSingleLogginName(user), User.getSingleLogginName(jobUser));
-		boolean isAdmin = user != null && SecurityAdminUtils.userIsAdmin(user);
-		if (!isOwner && !isAdmin) {
+		if (!isOwner) {
 			throw new IllegalArgumentException("User does not have permission to stop this pixel job");
 		}
 

@@ -45,7 +45,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
@@ -78,7 +77,6 @@ public class UpdateModelMetadataReactor extends AbstractReactor {
 		}
 
 		User user = this.insight.getUser();
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("Model engine does not exist or user does not have access to edit it");
 		}

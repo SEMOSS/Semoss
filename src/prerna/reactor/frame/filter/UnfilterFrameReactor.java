@@ -75,7 +75,7 @@ public class UnfilterFrameReactor extends AbstractFilterReactor {
 		fFilterVal.setFilterVal(foundFilter);
 		NounMetadata noun = new NounMetadata(fFilterVal, PixelDataType.BOOLEAN_METADATA, PixelOperationType.FRAME_FILTER_CHANGE);
 		if(foundFilter && isRefreshTasks()) {
-			Logger logger = getLogger(SetFrameFilterReactor.class.getName());
+			Logger logger = getLogger(UnfilterFrameReactor.class.getName());
 			InsightUtility.addInsightPanelRefreshFromFrameFilter(this.insight, frame, noun, logger);
 		}
 		return noun;

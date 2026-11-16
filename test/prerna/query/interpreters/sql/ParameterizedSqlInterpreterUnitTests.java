@@ -562,6 +562,40 @@ public class ParameterizedSqlInterpreterUnitTests {
 		}
 	}
 
+	@Test
+	void h2ArithmeticKeepsFractionalDigitsInBothInterpreters() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			when(db.engine.isBasic()).thenReturn(true);
+			when(db.engine.getDatabaseZoneId()).thenReturn(ZoneOffset.UTC);
+			db.execute("CREATE TABLE ITEMS (ID INT, PRICE DOUBLE)", "INSERT INTO ITEMS VALUES (1, 1.75)");
+			QueryArithmeticSelector doubled = new QueryArithmeticSelector();
+			doubled.setLeftSelector(new QueryColumnSelector("ITEMS__PRICE"));
+			doubled.setRightSelector(new QueryConstantSelector(2));
+			doubled.setMathExpr("*");
+			doubled.setAlias("doubled");
+			QueryArithmeticSelector half = new QueryArithmeticSelector();
+			half.setLeftSelector(new QueryColumnSelector("ITEMS__ID"));
+			half.setRightSelector(new QueryConstantSelector(2));
+			half.setMathExpr("/");
+			half.setAlias("half");
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(doubled);
+			qs.addSelector(half);
+			try (var wrapper = new ParameterizedSqlInterpreter(db.engine).execute(qs)) {
+				Object[] row = wrapper.next().getValues();
+				assertEquals(3.5, ((Number) row[0]).doubleValue(), 0.000001);
+				assertEquals(0.5, ((Number) row[1]).doubleValue(), 0.000001);
+			}
+			var legacy = db.engine.getQueryUtil().getInterpreter(db.engine);
+			legacy.setQueryStruct(qs);
+			List<Object[]> legacyRows = QueryExecutionUtility.queryList(db.engine, legacy.composeQuery(),
+					QueryExecutionUtility.NO_PARAMETERS, rs -> new Object[] { rs.getObject(1), rs.getObject(2) });
+			assertEquals(1, legacyRows.size());
+			assertEquals(3.5, ((Number) legacyRows.get(0)[0]).doubleValue(), 0.000001);
+			assertEquals(0.5, ((Number) legacyRows.get(0)[1]).doubleValue(), 0.000001);
+		}
+	}
+
 	/** Shared assertions for the database execution fixtures. */
 	public static void roundTrip(IRDBMSEngine engine) throws Exception {
 		boolean sqlServer = engine.getQueryUtil().getDbType() == RdbmsTypeEnum.SQL_SERVER;

@@ -75,7 +75,7 @@ class UtilityFilePermissionsUnitTests {
 		Files.setPosixFilePermissions(dir, PosixFilePermissions.fromString("rwxrwxrwx"));
 		Files.setPosixFilePermissions(nested, PosixFilePermissions.fromString("rwxrwxrwx"));
 
-		Utility.setOwnerAndGroupPermissionsRecursively(dir.toFile());
+		InternalUtility.setOwnerAndGroupPermissionsRecursively(dir.toFile());
 
 		Set<PosixFilePermission> dirPerms = Files.getPosixFilePermissions(dir);
 		assertEquals(

@@ -48,9 +48,9 @@ import java.io.ObjectInputFilter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.data.Stat;
@@ -192,6 +192,7 @@ class ZKClusterSynchronizerUnitTests {
 			// nodeId is sourced from the shared CONTAINER_IP resolved by
 			// AppCloudClientProperties
 			assertEquals(IClusterSynchronizer.CONTAINER_IP, syncEvent.getNodeId());
+			assertEquals("/sync/engine/eng1", syncEvent.getPath());
 			assertEquals("pullOwl", syncEvent.getMethodName());
 			List<Object> params = syncEvent.getParams();
 			assertEquals(1, params.size());
@@ -211,6 +212,7 @@ class ZKClusterSynchronizerUnitTests {
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(captured[0]));
 			ClusterSyncEvent syncEvent = (ClusterSyncEvent) ois.readObject();
 			assertEquals(IClusterSynchronizer.CONTAINER_IP, syncEvent.getNodeId());
+			assertEquals("/sync/project/proj1", syncEvent.getPath());
 			assertEquals("pullInsightsDB", syncEvent.getMethodName());
 			List<Object> params = syncEvent.getParams();
 			assertEquals(2, params.size());
@@ -229,8 +231,7 @@ class ZKClusterSynchronizerUnitTests {
 			instance.publishEngineChange("eng1", ClusterSyncMethod.PULL_OWL);
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(captured[0]));
 			ClusterSyncEvent syncEvent = (ClusterSyncEvent) ois.readObject();
-			List<Object> params = syncEvent.getParams();
-			assertTrue(params.isEmpty());
+			assertTrue(syncEvent.getParams().isEmpty());
 		}
 	}
 

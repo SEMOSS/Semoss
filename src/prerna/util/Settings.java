@@ -56,7 +56,6 @@ public class Settings {
 	public static final String PY_HOME = "PY_HOME";
 	public static final String PYTHONHOME = "PYTHONHOME";
 	public static final String PYTHONHOME_SITE_PACKAGES = "PYTHONHOME_SITE_PACKAGES";
-	public static final String NATIVE_PY_SERVER = "NATIVE_PY_SERVER";
 	public static final String PY_SERVER_USER = "PY_SERVER_USER";
 
 	// node.js agent execution environment
@@ -95,6 +94,7 @@ public class Settings {
 
 	// the port to force the connection on
 	public static final String FORCE_PORT = "FORCE_PORT";
+	public static final String JAVA_FORCE_PORT = "JAVA_FORCE_PORT";
 	// the python logger level � DEBUG, INFO, WARNING, or CRITICAL
 	public static final String LOGGER_LEVEL = "LOGGER_LEVEL";
 

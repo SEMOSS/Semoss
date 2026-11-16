@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -51,26 +52,34 @@ class FileSystemUtilCopyResolvedFileTest {
 		Path file = source.resolve("deck.pptx");
 		Files.write(file, new byte[] { 1, 2, 3 });
 		Path destination = target.resolve("version/assets/office-studio/presentations/deck-v1.pptx");
-		long size = FileSystemUtil.copyResolvedFile(file.toString(), destination.toString(), false);
-		assertEquals(3, size);
+		File written = FileSystemUtil.copyResolvedFile(file.toString(), destination.toString(), false);
+		assertEquals(destination.toFile().getAbsolutePath(), written.getAbsolutePath());
+		assertEquals(3, written.length());
 		assertTrue(Files.exists(destination));
 		assertTrue(Files.exists(file), "source is left in place");
 	}
 
 	@Test
-	void refusesExistingDestinationUnlessOverride() throws Exception {
+	void keepsExistingDestinationUnlessOverride() throws Exception {
 		Path file = source.resolve("deck.pptx");
 		Files.write(file, new byte[] { 9, 9 });
 		Path destination = target.resolve("deck.pptx");
 		Files.write(destination, new byte[] { 1 });
-		IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
-				() -> FileSystemUtil.copyResolvedFile(file.toString(), destination.toString(), false));
-		assertTrue(error.getMessage().contains("override=true"));
-		assertFalse(error.getMessage().contains(target.toString()), "error must not leak absolute paths");
-		assertEquals(1, Files.size(destination));
 
-		assertEquals(2, FileSystemUtil.copyResolvedFile(file.toString(), destination.toString(), true));
+		File numbered = FileSystemUtil.copyResolvedFile(file.toString(), destination.toString(), false);
+		assertEquals("deck (2).pptx", numbered.getName());
+		assertEquals(2, numbered.length());
+		assertEquals(1, Files.size(destination), "the existing file is kept");
+
+		assertEquals(2, FileSystemUtil.copyResolvedFile(file.toString(), destination.toString(), true).length());
 		assertEquals(2, Files.size(destination));
+	}
+
+	@Test
+	void missingSourceErrorDoesNotLeakAbsolutePaths() {
+		IllegalArgumentException error = assertThrows(IllegalArgumentException.class, () -> FileSystemUtil
+				.copyResolvedFile(source.resolve("missing.txt").toString(), target.resolve("x").toString(), false));
+		assertFalse(error.getMessage().contains(source.toString()), "error must not leak absolute paths");
 	}
 
 	@Test

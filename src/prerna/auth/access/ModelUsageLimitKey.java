@@ -47,8 +47,8 @@ package prerna.auth.access;
  *
  * @param type        what type of limit it is, kept in {@code LIMITTYPE}
  * @param engineId    the model, or null for a limit across all models
- * @param subjectId   the user or team id, or null for public use, the platform
- *                    and a model's total
+ * @param subjectId   the user, team or project id, or null for public use, the
+ *                    platform and a model's total
  * @param subjectType the person's login type, or the team's type. A person's
  *                    grant on a model keeps the login type too, though
  *                    {@code ENGINEPERMISSION} keeps only the user id; it is
@@ -68,7 +68,12 @@ public record ModelUsageLimitKey(Type type, String engineId, String subjectId, S
 		/** The platform default, for everyone with no other limit */
 		PLATFORM,
 		/** A model's total, for everyone together */
-		MODEL
+		MODEL,
+		/**
+		 * The permission a model gives a project, for the calls the project's custom
+		 * reactors make with it
+		 */
+		PROJECT
 	}
 
 	/**
@@ -137,6 +142,20 @@ public record ModelUsageLimitKey(Type type, String engineId, String subjectId, S
 	 */
 	public static ModelUsageLimitKey modelTotal(String engineId) {
 		return new ModelUsageLimitKey(Type.MODEL, engineId, null, null);
+	}
+
+	/**
+	 * The key of an App Limit: the limit on the permission a model gives a project.
+	 * It counts the calls the project's custom reactors make to the model for
+	 * people with no grant of their own and no team's grant on it: together for
+	 * its shared rules, and for each person for the others.
+	 *
+	 * @param engineId  the model
+	 * @param projectId the project
+	 * @return the project's limit on the model
+	 */
+	public static ModelUsageLimitKey app(String engineId, String projectId) {
+		return new ModelUsageLimitKey(Type.PROJECT, engineId, projectId, null);
 	}
 
 	/**

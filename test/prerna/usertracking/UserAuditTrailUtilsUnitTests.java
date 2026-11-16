@@ -97,7 +97,7 @@ class UserAuditTrailUtilsUnitTests {
 			createAuditTable(db);
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
 			UserAuditTrailUtils.recordPixelFailure(null,
-					"CreatePythonFunctionEngine(function=[\"Test\"],content=[\"private-source\"]);",
+					"CreatePythonFunctionEngine(catalogName=[\"Test\"],content=[\"private-source\"]);",
 					"CreatePythonFunctionEngineReactor", new IllegalArgumentException("Unable to create function"),
 					null);
 			assertEquals("FUNCTION_CREATE", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS"));
@@ -532,6 +532,33 @@ class UserAuditTrailUtilsUnitTests {
 					db.value("SELECT TARGET_TYPE FROM USER_AUDIT_EVENTS WHERE EVENT_TYPE='PROJECT_EXPORT'"));
 			assertEquals(0,
 					((Number) db.value("SELECT COUNT(*) FROM USER_AUDIT_EVENTS WHERE STATUS='SUCCESS'")).intValue());
+		}
+	}
+
+	/**
+	 * An admin reactor that deletes, exports or clones fails as the action of the
+	 * reactor it is the counterpart of, so the audit trail reads the same in admin
+	 * mode.
+	 */
+	@Test
+	void failuresOfAdminReactorsAreAuditedAsTheActionOfTheirCounterpart() throws Exception {
+		Map<String, String> eventOfEachReactor = Map.of("AdminDeleteEngine", "ENGINE_DELETE", "AdminExportEngine",
+				"ENGINE_EXPORT", "AdminCloneEngine", "ENGINE_CREATE", "AdminDeleteProject", "PROJECT_DELETE",
+				"AdminExportProject", "PROJECT_EXPORT", "AdminExportProjectApp", "PROJECT_EXPORT",
+				"AdminDeleteWorkspace", "WORKSPACE_DELETE", "AdminDeleteSkill", "SKILL_DELETE");
+		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
+			createAuditTable(db);
+			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+			for (String reactor : eventOfEachReactor.keySet()) {
+				UserAuditTrailUtils.recordPixelFailure(null, reactor + "(id=[\"id-1\"]);", null,
+						new IllegalStateException("Disk full"), null);
+			}
+
+			for (Map.Entry<String, String> each : eventOfEachReactor.entrySet()) {
+				String where = " FROM USER_AUDIT_EVENTS WHERE SOURCE_CLASS='" + each.getKey() + "Reactor'";
+				assertEquals(each.getValue(), db.value("SELECT EVENT_TYPE" + where), each.getKey());
+				assertEquals("FAILURE", db.value("SELECT STATUS" + where), each.getKey());
+			}
 		}
 	}
 

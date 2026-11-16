@@ -166,7 +166,7 @@ public final class EngineCloneUtility {
 			logger.info("Registering the clone...");
 			DIHelper.getInstance().setEngineProperty(cloneId + "_" + Constants.STORE, cloneSmss.getAbsolutePath());
 			if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
-				Utility.synchronizeEngineMetadata(cloneId);
+				InternalUtility.synchronizeEngineMetadata(cloneId);
 			}
 			SecurityEngineUtils.addEngine(cloneId, false, user);
 			copyMetadata(engineType, sourceEngineId, cloneId);
@@ -294,7 +294,7 @@ public final class EngineCloneUtility {
 		identity.put(Constants.ENGINE, rewrite.cloneId);
 		identity.put(Constants.ENGINE_ALIAS, rewrite.cloneName);
 		identity.put(Constants.ENGINE_DISPLAY_NAME, rewrite.cloneName);
-		Utility.changePropertiesFileValue(cloneSmss.getAbsolutePath(), identity, false);
+		InternalUtility.changePropertiesFileValue(cloneSmss.getAbsolutePath(), identity, false);
 	}
 
 	/**

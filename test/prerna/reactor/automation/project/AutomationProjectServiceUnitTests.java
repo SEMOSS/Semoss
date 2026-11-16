@@ -120,15 +120,13 @@ public class AutomationProjectServiceUnitTests {
 			// runs.
 			security.when(() -> SecurityProjectUtils.userCanViewProject(any(), anyString())).thenReturn(true);
 			security.when(() -> SecurityProjectUtils.userCanEditProject(any(), anyString())).thenReturn(true);
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(any(), anyString()))
-					.thenReturn(otherScope);
 
 			IllegalArgumentException direct = assertThrows(IllegalArgumentException.class,
 					() -> AutomationProjectService.getViewableAutomationProject(owner, otherScope));
 			assertEquals("Project does not exist or user does not have access.", direct.getMessage());
-			IllegalArgumentException alias = assertThrows(IllegalArgumentException.class,
-					() -> AutomationProjectService.getEditableAutomationProject(owner, "alias"));
-			assertEquals("Project does not exist or user does not have edit access.", alias.getMessage());
+			IllegalArgumentException edit = assertThrows(IllegalArgumentException.class,
+					() -> AutomationProjectService.getEditableAutomationProject(owner, otherScope));
+			assertEquals("Project does not exist or user does not have edit access.", edit.getMessage());
 			security.verify(() -> SecurityProjectUtils.userCanViewProject(any(), anyString()), never());
 			security.verify(() -> SecurityProjectUtils.userCanEditProject(any(), anyString()), never());
 		}
@@ -138,9 +136,6 @@ public class AutomationProjectServiceUnitTests {
 	void namedProjectStillUsesTheProjectAcl() {
 		User owner = user("owner");
 		try (MockedStatic<SecurityProjectUtils> security = mockStatic(SecurityProjectUtils.class)) {
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(owner, "project-id"))
-					.thenReturn("project-id");
-
 			IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
 					() -> AutomationProjectService.resolveRunScope(owner, "project-id", true));
 			assertEquals("Project does not exist or user does not have edit access.", error.getMessage());

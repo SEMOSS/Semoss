@@ -63,8 +63,10 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateGuardrailEngineReactor.class);
 
+	private static final String CATALOG_NAME_KEYS = ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.GUARDRAIL.getKey();
+
 	public CreateGuardrailEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.GUARDRAIL.getKey(), ReactorKeysEnum.GUARDRAIL_DETAILS.getKey(),
+		this.keysToGet = new String[] { CATALOG_NAME_KEYS, ReactorKeysEnum.GUARDRAIL_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
@@ -176,15 +178,12 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getGuardrailName() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.GUARDRAIL.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if (strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
+		List<String> strValues = getListStringForAliasedKey(CATALOG_NAME_KEYS);
+		if (!strValues.isEmpty()) {
+			return strValues.get(0).trim();
 		}
 
-		List<String> strValues = this.curRow.getAllStrValues();
+		strValues = this.curRow.getAllStrValues();
 		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}

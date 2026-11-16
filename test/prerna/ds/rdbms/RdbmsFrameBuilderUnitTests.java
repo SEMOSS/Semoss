@@ -213,49 +213,23 @@ public class RdbmsFrameBuilderUnitTests {
     }
 
     @Test
-    void getNumRecordsTest() throws Exception {
+    void getNumRows_returnsTheRowCount() throws Exception {
         PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
-        when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-		when(conn.prepareStatement("SELECT COUNT(*) * ? FROM " + TABLE_NAME)).thenReturn(stmt);
+        when(conn.prepareStatement("SELECT COUNT(*) FROM " + TABLE_NAME)).thenReturn(stmt);
         when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
-        when(rs.getInt(1)).thenReturn(1);
-        doNothing().when(rs).close();
-        doNothing().when(stmt).close();
+        when(rs.getLong(1)).thenReturn(5L);
 
-        int ans = reactor.getNumRecords(TABLE_NAME);
-
-        assertEquals(1, ans);
+        assertEquals(5L, reactor.getNumRows(TABLE_NAME));
     }
 
     @Test
-    void getNumRecordsExceptionTest() throws Exception {
-        when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
+    void getNumRows_isZeroWhenTheQueryFails() throws Exception {
         when(conn.prepareStatement(anyString())).thenThrow(new SQLException());
 
-        int ans = reactor.getNumRecords(TABLE_NAME);
-
-        assertEquals(0, ans);
-    }
-
-    @Test
-    void getNumRecordsTestCloseException() throws Exception {
-        PreparedStatement stmt = mock(PreparedStatement.class);
-        ResultSet rs = mock(ResultSet.class);
-
-        when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-		when(conn.prepareStatement("SELECT COUNT(*) * ? FROM " + TABLE_NAME)).thenReturn(stmt);
-        when(stmt.executeQuery()).thenReturn(rs);
-        when(rs.next()).thenReturn(true);
-        when(rs.getInt(1)).thenReturn(1);
-        doThrow(new SQLException()).when(rs).close();
-        doThrow(new SQLException()).when(stmt).close();
-
-        int ans = reactor.getNumRecords(TABLE_NAME);
-
-        assertEquals(1, ans);
+        assertEquals(0L, reactor.getNumRows(TABLE_NAME));
     }
 
     @Test
@@ -288,32 +262,30 @@ public class RdbmsFrameBuilderUnitTests {
     }
 
     @Test
-    void getNumRecordsTestRejectsMaliciousTableName() throws Exception {
+    void getNumRowsTestRejectsMaliciousTableName() throws Exception {
         String maliciousTableName = "TABLE; DROP TABLE OTHER;--";
 
-        assertThrows(IllegalArgumentException.class, () -> reactor.getNumRecords(maliciousTableName));
+        assertThrows(IllegalArgumentException.class, () -> reactor.getNumRows(maliciousTableName));
         // the query should never even be built/sent to the driver
         verify(conn, Mockito.never()).prepareStatement(anyString());
     }
 
     @Test
-    void getNumRecordsTestAllowsLegitimateTableName() throws Exception {
+    void getNumRowsTestAllowsLegitimateTableName() throws Exception {
         PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
         String legitTableName = "RDBMSFRAME_1234_ABCD";
 
-        when(absSqlQueryUtil.getTableColumns(conn, legitTableName, DATABASE_NAME, SCHEMA))
-            .thenReturn(new ArrayList(){{add("col1");}});
-        when(conn.prepareStatement("SELECT COUNT(*) * ? FROM " + legitTableName)).thenReturn(stmt);
+        when(conn.prepareStatement("SELECT COUNT(*) FROM " + legitTableName)).thenReturn(stmt);
         when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
-        when(rs.getInt(1)).thenReturn(5);
+        when(rs.getLong(1)).thenReturn(5L);
         doNothing().when(rs).close();
         doNothing().when(stmt).close();
 
-        int ans = reactor.getNumRecords(legitTableName);
+        long ans = reactor.getNumRows(legitTableName);
 
-        assertEquals(5, ans);
+        assertEquals(5L, ans);
     }
 
     @Test

@@ -51,8 +51,8 @@ import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -101,10 +101,10 @@ public class ExternalAuthorizationHelper {
 				}
 				
 				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+				InternalUtility.setEngineSmssPath(engineId, tempSmss.getAbsolutePath());
 				File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 				FileUtils.copyFile(tempSmss, smssFile);
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+				InternalUtility.setEngineSmssPath(engineId, smssFile.getAbsolutePath());
 				tempSmss.delete();
 				
 				// also make the folder to persist... even if empty

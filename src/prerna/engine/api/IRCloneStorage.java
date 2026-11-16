@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.storage.StorageSyncStatus;
 import prerna.logging.IgnoreEngineLogging;
 
@@ -42,6 +43,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean canReuseRcloneConfig();
 
 	/**
@@ -50,6 +52,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @param folderPath
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setRCloneConfigFolder(String folderPath);
 
 	/**
@@ -60,6 +63,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws InterruptedException
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	String createRCloneConfig() throws IOException, InterruptedException;
 
 	/**
@@ -69,6 +73,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws InterruptedException
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void deleteRcloneConfig(String rCloneConfig) throws IOException, InterruptedException;
 
 	/**
@@ -81,6 +86,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<String> listWithConfig(String path, String rCloneConfig) throws IOException, InterruptedException;
 
 	/**
@@ -90,6 +96,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<Map<String, Object>> listDetailsWithConfig(String path, String rCloneConfig)
 			throws IOException, InterruptedException;
 
@@ -102,6 +109,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	StorageSyncStatus syncLocalToStorageWithConfig(String localPath, String storagePath, String rCloneConfig,
 			Map<String, Object> metadata) throws IOException, InterruptedException;
 
@@ -113,6 +121,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	void syncStorageToLocalWithConfig(String storagePath, String localPath, String rCloneConfig)
 			throws IOException, InterruptedException;
 
@@ -126,6 +135,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void copyToStorageWithConfig(String localFilePath, String storageFolderPath, String rCloneConfig,
 			Map<String, Object> metadata) throws IOException, InterruptedException;
 
@@ -138,6 +148,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	void copyToLocalWithConfig(String storageFilePath, String localFolderPath, String rCloneConfig)
 			throws IOException, InterruptedException;
 
@@ -150,6 +161,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void deleteFromStorageWithConfig(String storageFilePath, String rCloneConfig)
 			throws IOException, InterruptedException;
 
@@ -162,6 +174,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void deleteFromStorageWithConfig(String storageFilePath, boolean leaveFolderStructure, String rCloneConfig)
 			throws IOException, InterruptedException;
 
@@ -172,6 +185,7 @@ public interface IRCloneStorage extends IStorageEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void deleteFolderFromStorageWithConfig(String storageFolderPath, String rCloneConfig)
 			throws IOException, InterruptedException;
 

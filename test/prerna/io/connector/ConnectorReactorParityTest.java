@@ -32,11 +32,13 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -48,6 +50,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import io.github.classgraph.ClassGraph;
 import io.github.classgraph.ClassInfo;
 import io.github.classgraph.ScanResult;
+import prerna.io.connector.mail.AbstractMailReactor;
+import prerna.io.connector.mail.AbstractSaveDraftReactor;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 
@@ -69,6 +73,16 @@ class ConnectorReactorParityTest {
 	 * thing.
 	 */
 	private static final Set<String> EXTRA_KEYS = Set.of("saveToSentItems", "importance");
+
+	/**
+	 * Keys only one provider takes for one operation, which only that provider's
+	 * descriptions name. Outlook's SaveDraft also saves a reply in the original
+	 * thread through Outlook's own reply draft, so it alone takes replyTo and
+	 * replyAll.
+	 */
+	private static final Map<String, Set<String>> OPERATION_EXTRA_KEYS = Map.of(
+			AbstractSaveDraftReactor.class.getSimpleName(),
+			Set.of(AbstractSaveDraftReactor.REPLY_TO, AbstractMailReactor.REPLY_ALL));
 
 	/**
 	 * Keys every provider takes, whose accepted values, and so descriptions,
@@ -100,8 +114,9 @@ class ConnectorReactorParityTest {
 		JSONObject microsoftTool = tool(microsoft);
 		JSONObject googleTool = tool(google);
 
-		assertEquals(normalize(microsoftTool.getString("description")), normalize(googleTool.getString("description")),
-				"descriptions of " + operation);
+		Set<String> operationKeys = OPERATION_EXTRA_KEYS.getOrDefault(operation, Set.of());
+		assertEquals(normalize(microsoftTool.getString("description"), operationKeys),
+				normalize(googleTool.getString("description"), operationKeys), "descriptions of " + operation);
 
 		JSONObject microsoftKeys = microsoftTool.getJSONObject("inputSchema").getJSONObject("properties");
 		JSONObject googleKeys = googleTool.getJSONObject("inputSchema").getJSONObject("properties");
@@ -110,7 +125,9 @@ class ConnectorReactorParityTest {
 		Set<String> shared = new HashSet<>(microsoftKeys.keySet());
 		shared.retainAll(googleKeys.keySet());
 		onlyOne.removeAll(shared);
-		assertTrue(EXTRA_KEYS.containsAll(onlyOne), operation + " has keys only one provider takes: " + onlyOne);
+		Set<String> extraKeys = new HashSet<>(EXTRA_KEYS);
+		extraKeys.addAll(operationKeys);
+		assertTrue(extraKeys.containsAll(onlyOne), operation + " has keys only one provider takes: " + onlyOne);
 
 		for (String key : shared) {
 			JSONObject microsoftKey = microsoftKeys.getJSONObject(key);
@@ -119,8 +136,8 @@ class ConnectorReactorParityTest {
 			assertEquals(String.valueOf(microsoftKey.opt("items")), String.valueOf(googleKey.opt("items")),
 					operation + " " + key);
 			if (!PROVIDER_CHECKED_KEYS.contains(key)) {
-				assertEquals(normalize(microsoftKey.getString("description")),
-						normalize(googleKey.getString("description")), operation + " " + key);
+				assertEquals(normalize(microsoftKey.getString("description"), operationKeys),
+						normalize(googleKey.getString("description"), operationKeys), operation + " " + key);
 			}
 		}
 
@@ -157,6 +174,27 @@ class ConnectorReactorParityTest {
 					.equals(tool.getJSONObject("_meta").getString(MCPUtility.SMSS_MCP_EXECUTION));
 			assertEquals(asks, tool.getString("description").endsWith(AbstractConnectorAppReactor.ASK_NOTE),
 					reactor.getSimpleName());
+		}
+	}
+
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("pairs")
+	void descriptionsNameOnlyTheKeysTheReactorTakes(String operation, Class<?> microsoft, Class<?> google)
+			throws Exception {
+		for (Class<?> reactor : List.of(microsoft, google)) {
+			JSONObject tool = tool(reactor);
+			JSONObject keys = tool.getJSONObject("inputSchema").getJSONObject("properties");
+			for (String extraKey : OPERATION_EXTRA_KEYS.getOrDefault(operation, Set.of())) {
+				if (keys.has(extraKey)) {
+					continue;
+				}
+				assertFalse(tool.getString("description").contains(extraKey),
+						reactor.getSimpleName() + " names " + extraKey);
+				for (String key : keys.keySet()) {
+					assertFalse(keys.getJSONObject(key).getString("description").contains(extraKey),
+							reactor.getSimpleName() + " " + key + " names " + extraKey);
+				}
+			}
 		}
 	}
 
@@ -213,8 +251,18 @@ class ConnectorReactorParityTest {
 		return keys;
 	}
 
-	private static String normalize(String description) {
-		String normalized = description;
+	/**
+	 * A description with each provider's name made the same and the sentences that
+	 * name a key only one provider takes left out.
+	 *
+	 * @param description   the description a reactor advertises
+	 * @param operationKeys the keys only one provider takes for the operation
+	 * @return the description to compare
+	 */
+	private static String normalize(String description, Set<String> operationKeys) {
+		String normalized = Arrays.stream(description.split("(?<=\\.)\\s+"))
+				.filter(sentence -> operationKeys.stream().noneMatch(sentence::contains))
+				.collect(Collectors.joining(" "));
 		for (String word : APP_WORDS) {
 			normalized = normalized.replace(word, "<app>");
 		}

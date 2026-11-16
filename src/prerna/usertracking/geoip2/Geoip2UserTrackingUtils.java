@@ -56,17 +56,25 @@ public final class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 	private static volatile Geoip2UserTrackingUtils instance;
 	private static volatile DatabaseReader reader;
 
-	private static String workdir = Utility.getBaseFolder();
-	private static String folder = "GeoIp2Artifacts";
-	private static String fileName = "GeoLite2-City.mmdb";
-	private static String filePath = workdir + File.separator + folder + File.separator + fileName;
+	private static final String GEOIP_FOLDER = "GeoIp2Artifacts";
+	private static final String GEOIP_FILE_NAME = "GeoLite2-City.mmdb";
 
 	public Geoip2UserTrackingUtils() {
 		loadDatabaseReader();
 	}
 
+	/**
+	 * Returns the path of the GeoIP2 city database under the base folder, which is
+	 * read on each call.
+	 *
+	 * @return the database path
+	 */
+	private static String getDatabasePath() {
+		return Utility.getBaseFolder() + File.separator + GEOIP_FOLDER + File.separator + GEOIP_FILE_NAME;
+	}
+
 	private void loadDatabaseReader() {
-		File database = new File(filePath);
+		File database = new File(getDatabasePath());
 		try {
 			reader = new DatabaseReader.Builder(database).build();
 		} catch (IOException e) {
@@ -81,15 +89,16 @@ public final class Geoip2UserTrackingUtils extends AbstractUserTrackingUtils {
 		}
 
 		synchronized (Geoip2UserTrackingUtils.class) {
-				if (instance == null) {
-					try {
-						instance = new Geoip2UserTrackingUtils();
-					} catch (Exception e) {
-						classLogger.error("Failed to initialize Geoip2UserTrackingUtils singleton using database path "
-								+ filePath + ". User tracking will continue without GeoIP enrichment.", e);
-					}
+			if (instance == null) {
+				try {
+					instance = new Geoip2UserTrackingUtils();
+				} catch (Exception e) {
+					classLogger.error(
+							"Failed to initialize Geoip2UserTrackingUtils singleton using database path {}. User tracking will continue without GeoIP enrichment.",
+							getDatabasePath(), e);
 				}
 			}
+		}
 
 		return instance;
 	}

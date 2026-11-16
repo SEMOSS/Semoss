@@ -46,6 +46,7 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ import org.mockito.MockedStatic;
 
 import com.google.gson.Gson;
 
+import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
 
 /**
@@ -67,7 +69,9 @@ import prerna.security.HttpHelperUtility;
  * with, and to the size cap however large it is. It remembers the file it was
  * copied from, so a later download brings the same copy up to date, a copy
  * changed here is never written over, and a copy goes back over its original
- * only while the original is unchanged.
+ * only while the original is unchanged. The recently changed files are the files
+ * whose contents changed since a moment, and nothing else the change feed
+ * reports.
  */
 class MicrosoftOneDriveHelperUnitTests {
 
@@ -513,6 +517,45 @@ class MicrosoftOneDriveHelperUnitTests {
 		assertEquals(Map.of(), MicrosoftOneDriveSources.list(folder.toFile()));
 		Files.writeString(copy().toPath(), "made here");
 		assertNull(MicrosoftOneDriveSources.read(copy()));
+	}
+
+	@Test
+	void recentFilesAreTheFilesChangedSinceTheMomentNewestFirstAndNothingElseTheFeedReports() throws Exception {
+		String delta = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/me/drive/root/delta?";
+		// the moment goes in as the token, cut to the second and url encoded
+		String first = delta + "token=2026-11-05T12%3A00%3A00Z&$top=200";
+		String second = delta + "token=next";
+		http.when(() -> HttpHelperUtility.getRequest(eq(first), anyMap(), isNull(), isNull(), isNull()))
+				.thenReturn(new Gson().toJson(Map.of("value",
+						List.of(changed("f1", "Deck.pptx", "2026-11-06T09:00:00Z"),
+								Map.of("id", "folder", "name", "Reports", "folder", Map.of("childCount", 2),
+										"lastModifiedDateTime", "2026-11-11T09:00:00Z"),
+								changed("f2", "Plan.docx", "2026-11-10T09:00:00Z"),
+								// reported for a new share, with contents last changed before the moment
+								changed("f3", "Shared again.xlsx", "2026-10-01T09:00:00Z"),
+								changed("f4", "Gone.txt", "2026-11-09T09:00:00Z"),
+								changed("f5", "Notes.one", "2026-11-11T10:00:00Z")),
+						"@odata.nextLink", second)));
+		http.when(() -> HttpHelperUtility.getRequest(eq(second), anyMap(), isNull(), isNull(), isNull()))
+				.thenReturn(new Gson().toJson(Map.of("value",
+						List.of(changed("f1", "Deck v2.pptx", "2026-11-11T08:00:00Z"),
+								Map.of("id", "f4", "deleted", Map.of("state", "deleted"))),
+						"@odata.deltaLink", delta + "token=later")));
+		Instant since = Instant.parse("2026-11-05T12:00:00.500Z");
+
+		List<Map<String, Object>> files = MicrosoftOneDriveHelper.listRecentFiles("token", since, 0);
+
+		// the file reported twice is listed once, as it was last reported
+		assertEquals(List.of("Deck v2.pptx", "Plan.docx"), files.stream().map(file -> file.get("name")).toList());
+		assertEquals("2026-11-11T08:00:00Z", files.get(0).get("lastModifiedDateTime"));
+		assertEquals("d1", files.get(0).get("driveId"));
+		assertEquals(List.of("f1"),
+				MicrosoftOneDriveHelper.listRecentFiles("token", since, 1).stream().map(file -> file.get("id")).toList());
+	}
+
+	private static Map<String, Object> changed(String id, String name, String modified) {
+		return Map.of("id", id, "name", name, "file", Map.of("mimeType", "application/octet-stream"),
+				"parentReference", Map.of("driveId", "d1"), "lastModifiedDateTime", modified);
 	}
 
 	private Map<String, Object> download() throws Exception {

@@ -58,6 +58,7 @@ public final class UploadInputUtility {
 	private static final Logger classLogger = LogManager.getLogger(UploadInputUtility.class);
 
 	public static final String ENGINE = ReactorKeysEnum.ENGINE.getKey();
+	public static final String CATALOG_NAME = ReactorKeysEnum.CATALOG_NAME.getKey();
 	public static final String DATABASE = ReactorKeysEnum.DATABASE.getKey();
 	public static final String PROJECT = ReactorKeysEnum.PROJECT.getKey();
 	public static final String FILE_PATH = ReactorKeysEnum.FILE_PATH.getKey();
