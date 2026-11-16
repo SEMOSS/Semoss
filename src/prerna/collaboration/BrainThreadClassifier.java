@@ -309,6 +309,9 @@ public final class BrainThreadClassifier {
 		} finally {
 			pool.shutdown();
 		}
+		if (!dryRun) {
+			recordSort(ownerId, ownerType, results);
+		}
 		Map<String, Object> summary = summary(classifier.version(), dryRun, results);
 		if (vote != null) {
 			summary.put("automatedSenders", vote.typed());
@@ -376,6 +379,17 @@ public final class BrainThreadClassifier {
 		return BrainOrgDomains.load(ownerId, ownerType, myDomain);
 	}
 
+	// the newest message on the thread is from someone not typed automated (the owner included): the thread
+	// is live again. A thread with no messages has no reply to wait for.
+	static boolean newestFromPerson(String ownerId, String ownerType, String threadId) {
+		String relationship = CollaborationDbUtils.queryOne(CollaborationDbUtils.page("SELECT p.RELATIONSHIP FROM "
+				+ "BRAIN_MESSAGE m LEFT JOIN BRAIN_PERSON p ON p.OWNER_ID = m.OWNER_ID AND p.OWNER_TYPE = m.OWNER_TYPE "
+				+ "AND p.PERSON_ID = m.SENDER_PERSON_ID WHERE m.OWNER_ID = ? AND m.OWNER_TYPE = ? AND m.THREAD_ID = ? "
+				+ "ORDER BY m.RECEIVED_AT DESC", 1, 0),
+				rs -> CollaborationDbUtils.getString(rs, "RELATIONSHIP"), ownerId, ownerType, threadId);
+		return relationship != null ? !BrainSenderTyping.AUTOMATED.equals(relationship) : false;
+	}
+
 	private static Result classifyOne(Context ctx, String threadId) {
 		// database checks first: an automated thread needs no Graph read and no model call
 		Map<String, Object> thread = CollaborationDbUtils
@@ -393,12 +407,19 @@ public final class BrainThreadClassifier {
 		}
 		// the owner said "not automated": no automated verdict from any check below may stick
 		boolean notAutomated = Boolean.TRUE.equals(thread.get("override"));
-		// marked automated by an earlier run: no model call
-		if (!ctx.dryRun() && !notAutomated && Boolean.TRUE.equals(thread.get("automated"))) {
+		// marked automated by an earlier run: no model call, unless a person (or the owner) has written since
+		if (!ctx.dryRun() && !notAutomated && Boolean.TRUE.equals(thread.get("automated"))
+				&& !newestFromPerson(ctx.ownerId(), ctx.ownerType(), threadId)) {
 			// a sender typed as automated marks its threads without their being read here: its notices are
 			// asked about once all the same
 			return new Result(threadId, null, null, null, notice(ctx, threadId, thread, null) ? "notice" : "automated",
 					null, null, null);
+		}
+		if (!ctx.dryRun() && Boolean.TRUE.equals(thread.get("automated")) && !notAutomated) {
+			// a person replied on a thread an announcement once made automated: it is sorted like any other
+			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND "
+					+ "OWNER_TYPE = ? AND THREAD_ID = ?", false, ctx.ownerId(), ctx.ownerType(), threadId);
+			thread.put("automated", false);
 		}
 		// the owner never wrote here and everyone else is an automated sender or says machine-sent: no model call.
 		// A dry run takes this branch too (and writes nothing), or it scores filings the product never makes
@@ -1280,6 +1301,23 @@ public final class BrainThreadClassifier {
 			BrainReviewUtils.dismissForRef(ctx.ownerId(), ctx.ownerType(), "thread", threadId);
 		}
 		return written[0];
+	}
+
+	// sort attempts a thread may fail before it is left alone; each sync retries the ones still under this
+	static final int SORT_TRIES = 3;
+
+	// a failed sort counts one try, a sorted thread starts again from zero; the next sync reads the count
+	private static void recordSort(String ownerId, String ownerType, List<Result> results) {
+		for (Result r : results) {
+			if (r.error() != null) {
+				CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET SORT_FAILS = COALESCE(SORT_FAILS, 0) + 1 WHERE "
+						+ "OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", ownerId, ownerType, r.threadId());
+			} else {
+				CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET SORT_FAILS = NULL WHERE OWNER_ID = ? AND "
+						+ "OWNER_TYPE = ? AND THREAD_ID = ? AND SORT_FAILS IS NOT NULL", ownerId, ownerType,
+						r.threadId());
+			}
+		}
 	}
 
 	private static Map<String, Object> summary(String version, boolean dryRun, List<Result> results) {

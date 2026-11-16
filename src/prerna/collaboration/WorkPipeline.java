@@ -567,9 +567,17 @@ public final class WorkPipeline {
 		List<Map<String, Object>> older = new ArrayList<>();
 		// the other people each message was written to (To, not Cc), by its time
 		Map<String, Set<String>> writtenTo = new LinkedHashMap<>();
+		String ownerAddress = selfId == null ? null : CollaborationDbUtils.queryOne(
+				"SELECT EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+				rs -> rs.getString(1), ownerId, ownerType, selfId);
+		// mail whose only To recipient is the owner, with no Cc, by its time
+		Set<String> aloneAt = new HashSet<>();
 		for (Map<String, Object> m : (List<Map<String, Object>>) read.get("messages")) {
 			String at = String.valueOf(m.get("at"));
 			end = end == null || at.compareTo(end) > 0 ? at : end;
+			if (sentToOwnerAlone(m, ownerAddress)) {
+				aloneAt.add(at);
+			}
 			// an invite, reply or cancellation: the calendar has it, as for the thread's card
 			// (BrainThreadClassifier), so it asks nothing of anyone here
 			if (Boolean.TRUE.equals(m.get("meeting"))) {
@@ -656,18 +664,21 @@ public final class WorkPipeline {
 		boolean bulk = Boolean.TRUE.equals(facts.get("bulk"));
 		int size = facts.get("people") instanceof Integer n ? n : 0;
 		Timestamp now = CollaborationDbUtils.now();
-		int[] kept = { 0 };
+int[] kept = { 0 };
 		CollaborationDbUtils.inTransaction(conn -> {
 			for (Map<String, Object> c : found) {
 				String kind = str(c.get("kind"));
 				String assignee = assignee(str(c.get("assignee")), people);
-				boolean directed = Boolean.TRUE.equals(c.get("directedAtOwner"));
 				Map<String, Object> source = null;
 				for (Map<String, Object> m : messages) {
 					if (m.get("id").equals(c.get("message"))) {
 						source = m;
 					}
 				}
+				// the model's reading, or the mail itself: an ask sent to the owner alone is theirs
+				boolean directed = Boolean.TRUE.equals(c.get("directedAtOwner"))
+						|| (source != null && aloneAt.contains(String.valueOf(source.get("at")))
+								&& !bulk && size <= 2 && !ME.equals(source.get("from")));
 				// an ask the owner wrote is for the people it went to, in code: the model often gives the owner
 				// their own request ("Schedule the inspection." to Peter). Their own promise is a commitment
 				if (ME.equals(assignee) && "task".equals(kind) && source != null && ME.equals(source.get("from"))) {
@@ -703,6 +714,17 @@ public final class WorkPipeline {
 			moveCursor(conn, ownerId, ownerType, threadId, ref, reached);
 		});
 		return kept[0];
+	}
+
+	// the only To recipient is the owner and nobody is on Cc: a raw Graph-style message as read
+	private static boolean sentToOwnerAlone(Map<String, Object> m, String ownerAddress) {
+		if (ownerAddress == null) {
+			return false;
+		}
+		List<?> to = m.get("to") instanceof List<?> list ? list : List.of();
+		List<?> cc = m.get("cc") instanceof List<?> list ? list : List.of();
+		return cc.isEmpty() && to.size() == 1 && to.get(0) instanceof Map<?, ?> r
+				&& ownerAddress.trim().equalsIgnoreCase(String.valueOf(r.get("address")).trim());
 	}
 
 	// a second before at, in whole seconds, so the next read takes at again

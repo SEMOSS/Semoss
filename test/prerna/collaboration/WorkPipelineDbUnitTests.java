@@ -357,6 +357,25 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
+	void anAskSentToTheOwnerAloneIsTheOwnersEvenWhenTheModelReadsItAsGroupTalk() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("ask", at, null);
+		person("self", "Owner", "owner@test.com", "self");
+		person("kyle", "Kyle", "kyle@test.com", null);
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, "
+				+ "'ask', 'kyle')", ownerId, ownerType);
+		email("ask", "g2", at, "Can you send the budget by Friday?");
+		sql("UPDATE BRAIN_MESSAGE SET SENDER_PERSON_ID = 'kyle' WHERE GRAPH_ID = 'g2'");
+		sentTo.put("g2", List.of("owner@test.com"));
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the budget\", \"assignee\": "
+				+ "\"me\", \"askedBy\": \"kyle\", \"directedAtOwner\": false, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}]}";
+		WorkPipeline.extract(user, ownerId, ownerType, "ask", model, new String[] { "self", "Owner" });
+		assertEquals("me", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Send the budget'"));
+		assertNull(value("SELECT DROP_REASON FROM WORK_CANDIDATE WHERE TEXT = 'Send the budget'"));
+	}
+
+	@Test
 	void anAskTheOwnerWroteToSeveralPeopleIsNoOnesInParticular() {
 		assertEquals("group", WorkPipeline.askedOf(Set.of("peter", "marco"), Map.of("p1", "peter", "p2", "marco")));
 		assertEquals("peter", WorkPipeline.askedOf(Set.of("peter"), Map.of("p1", "peter", "p2", "marco")));

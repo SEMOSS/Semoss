@@ -643,11 +643,15 @@ public final class BrainSync {
 		return since;
 	}
 
-	private static List<String> threadsSince(String ownerId, String ownerType, Timestamp last) {
+	// threads with mail since the last run, plus threads whose sort failed and still has tries left
+	static List<String> threadsSince(String ownerId, String ownerType, Timestamp last) {
 		return CollaborationDbUtils.query(
 				"SELECT DISTINCT THREAD_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-						+ "AND THREAD_ID IS NOT NULL AND RECEIVED_AT >= ?",
-				rs -> rs.getString(1), ownerId, ownerType, last);
+						+ "AND THREAD_ID IS NOT NULL AND RECEIVED_AT >= ? "
+						+ "UNION SELECT THREAD_ID FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND SORT_FAILS > 0 AND SORT_FAILS < ?",
+				rs -> rs.getString(1), ownerId, ownerType, last, ownerId, ownerType,
+				BrainThreadClassifier.SORT_TRIES);
 	}
 
 	// stored times are UTC wall time

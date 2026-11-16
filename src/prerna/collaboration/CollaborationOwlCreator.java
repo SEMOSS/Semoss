@@ -345,7 +345,10 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("LAST_MESSAGE_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				// the newest message work candidates were pulled from
-				Pair.with("WORK_REF", VARCHAR_255)));
+				Pair.with("WORK_REF", VARCHAR_255),
+				// sort attempts that failed in a row; a thread is tried again on each sync until it succeeds or
+				// has failed BrainThreadClassifier.SORT_TRIES times
+				Pair.with("SORT_FAILS", INTEGER_DATATYPE_NAME)));
 		addTable("BRAIN_THREAD_TOPIC", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("THREAD_ID", VARCHAR_50),

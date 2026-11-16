@@ -1092,4 +1092,40 @@ class BrainSyncDbUnitTests {
 			return rs.next() ? rs.getObject(1) : null;
 		}
 	}
+
+	@Test
+	void aThreadWhoseSortFailedIsReadAgainUntilItHasHadTheLastTry() throws Exception {
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT, SORT_FAILS) "
+				+ "VALUES (?, ?, 'failed-once', 'email', 'x', 1)", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT, SORT_FAILS) "
+				+ "VALUES (?, ?, 'failed-last', 'email', 'x', ?)", ownerId, ownerType,
+				BrainThreadClassifier.SORT_TRIES);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT) "
+				+ "VALUES (?, ?, 'sorted', 'email', 'x')", ownerId, ownerType);
+
+		List<String> ids = BrainSync.threadsSince(ownerId, ownerType, utc(NOW));
+
+		assertTrue(ids.contains("failed-once"));
+		assertFalse(ids.contains("failed-last"));
+		assertFalse(ids.contains("sorted"));
+	}
+
+	@Test
+	void aThreadFlaggedAutomatedIsLiveAgainOnceAPersonWritesOnIt() throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, RELATIONSHIP) VALUES (?, ?, 'bot', ?)",
+				ownerId, ownerType, BrainSenderTyping.AUTOMATED);
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, RELATIONSHIP) VALUES (?, ?, 'kyle', 'colleague')",
+				ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT, AUTOMATED) "
+				+ "VALUES (?, ?, 'announcement', 'email', 'x', TRUE)", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT) "
+				+ "VALUES (?, ?, 'a1', 'announcement', 'bot', ?)", ownerId, ownerType, utc(NOW.minus(Duration.ofHours(2))));
+
+		assertFalse(BrainThreadClassifier.newestFromPerson(ownerId, ownerType, "announcement"));
+
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT) "
+				+ "VALUES (?, ?, 'a2', 'announcement', 'kyle', ?)", ownerId, ownerType, utc(NOW.minus(Duration.ofHours(1))));
+
+		assertTrue(BrainThreadClassifier.newestFromPerson(ownerId, ownerType, "announcement"));
+	}
 }
