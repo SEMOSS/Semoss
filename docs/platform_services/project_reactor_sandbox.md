@@ -69,6 +69,7 @@ Guarded by [SandboxReplacedCallsUnitTests](../../test/prerna/util/SandboxReplace
 | The calls that change who the signed in user is: `Insight.setUser`, `ThreadStore.setUser` and `setThreadMapObject`, `User.setAccessToken`, `setGlobalAccessToken`, `dropAccessToken` and `setPrimaryLogin`, and `AccessToken.setId`, `setProvider`, `setUserGroups`, `setUserGroupType` and `setLocked` | `SecurityException` | `theSignedInUserCannotBeChanged` |
 | The `ThreadStore` calls that change which request the thread serves: `setInsightId`, `setSessionId`, `setRouteId`, `setJobId`, `setSchedulerMode`, `setLocalHostname`, `setLocalProtocol`, `setLocalPort`, `setContextProjectIdOverride`, `setContextProjectNameOverride`, `clearContextProjectOverride`, `remove`, and `getTheadMapObject`, which hands out the thread's map itself | `SecurityException` | `theRequestTheThreadServesCannotBeChanged` |
 | The calls that read an RDBMS engine's credentials from its query utility or change where it connects, on any class of `prerna.util.sql`: `getUsername`, `getPassword`, `getAdditionalProps`, `getConnectionUrl`, `setHostname`, `setPort`, `setDatabase`, `setSchema`, `setUsername`, `setPassword`, `setAdditionalProps`, `setConnectionUrl` | `SecurityException` | `anEnginesCredentialsCannotBeReadOrChangedThroughItsQueryUtility` |
+| Assigning a static field of a JDK, platform or shared library class, such as `SchedulerListener.schedulerLeader` or `PDDeviceCMYK.INSTANCE` | `SecurityException` | `aStaticFieldOfThePlatformCannotBeAssigned` |
 | Extending a class that has refused calls, such as `User`, `AccessToken`, `Insight` or `TimeZone` | The class is refused when it loads | `aClassWithRefusedCallsCannotBeExtended` |
 | `URL.openStream`, `openConnection`, `getContent`, `setURLStreamHandlerFactory` | `SecurityException` | `aUrlCannotOpenAConnection` |
 | `Files.createSymbolicLink`, `FileChannel.open` | `SecurityException` | `symbolicLinksAndFileChannelsAreRefused` |
@@ -152,6 +153,7 @@ A project shares a short list of the platform's libraries. Every other library o
 | Logging | The log4j API: `org.apache.logging.log4j` with its `message` and `spi` packages, and the types its logging methods take |
 | Database connection pools | `com.zaxxer.hikari` |
 | Tuples | `org.javatuples.*` |
+| PDF files | `org.apache.pdfbox.*` and `org.apache.fontbox.*` |
 | Mail and attachments | `jakarta.mail.*`, `jakarta.activation.*` |
 
 An admin shares more packages with the RDF_Map setting `PROJECT_REACTOR_SHARED_PACKAGES`, a comma separated list of package names such as `org.apache.commons.lang3, com.mycompany.shared`. The block list applies to an approved package like any other.
@@ -161,12 +163,16 @@ An admin shares more packages with the RDF_Map setting `PROJECT_REACTOR_SHARED_P
 | A class of a shared library, a `prerna` class and a JDK class are the platform's own | `aSharedLibraryClassIsThePlatformsOwn` |
 | A class of any other library is the project's own sandboxed copy | `anyOtherLibraryClassIsTheProjectsOwnCopy`, `eachProjectGetsItsOwnCopy` |
 | A copy works like the library and follows the sandbox rules: environment variables are hidden from it, and its files stay inside the user's folder | `aLibraryCopyWorksAndFollowsTheSandboxRules` |
+| A library compiled for any Java version, back to Java 1.1, loads and runs as a copy, `finally` blocks from old compilers included | `aLibraryCompiledForAnOldJavaRunsInTheSandbox`, `aFinallyBlockFromAnOldCompilerRunsInTheSandbox` |
 | A library class that needs a blocked class, such as a mail transport, cannot be loaded | `aLibraryCopyThatTheSandboxRefusesCannotBeLoaded` |
 | An admin approves more packages in RDF_Map, under the block list | `anAdminCanApproveMorePackages`, `anApprovedPackageStaysUnderTheBlockList` |
 | A project's Maven dependencies share the same libraries and copy the rest | `mavenDependenciesShareTheSameLibrariesAndCopyTheRest` |
 | Jackson reads and writes JSON, and the calls and the `@JsonTypeInfo` settings that create objects of classes the data names are refused: `enableDefaultTyping`, `activateDefaultTyping`, `setDefaultTyping`, `TypeFactory.constructFromCanonical` and `findClass`, and `use = Id.CLASS` or `Id.MINIMAL_CLASS` | `aJacksonMapperStillReadsAndWritesJson`, `jacksonCannotCreateObjectsOfClassesTheDataNames`, `aJacksonAnnotationThatNamesClassesInTheJsonIsRefused`, `aJacksonAnnotationThatNamesTypesByALogicalNameIsAllowed` |
 | A reactor gets its logger from `LogManager.getLogger`; `LogManager.setFactory` and `shutdown` are refused | `aReactorStillGetsALogger`, `platformLoggingCannotBeReplacedOrShutDown` |
 | A HikariCP pool connects through its JDBC URL; `setDataSourceJNDI`, `setDataSourceClassName` and the same settings in a `Properties` are refused | `aConnectionPoolCannotLookUpItsDataSourceByName`, `aConnectionPoolBuiltFromPropertiesFollowsTheSameRule` |
+| PDFBox reads and writes PDFs, and a path it is given as text, such as `PDDocument.save(String)` or `new RandomAccessReadBufferedFile(String)`, is the one inside the user's folder | `pdfBoxWritesAndReadsPdfsInsideTheUsersFolder` |
+| The PDFBox calls that change what every document in the JVM shares, or free memory other code may still read, are refused: `IOUtils.unmap`, `COSName.clearResources`, `ResourceCacheFactory.setResourceCacheCreateFunction`, `FontMappers.set`, `SecurityProvider.setProvider`, `SecurityHandlerFactory.registerHandler`, `getInstance` of `CFFISOAdobeCharset`, `CFFExpertCharset` and `CFFExpertSubsetCharset`, and `Overlay.overlay`, which reads file paths out of a map; `Overlay.overlayDocuments` takes the documents themselves | `pdfBoxCannotChangeWhatEveryUserShares` |
+| A page size such as `PDRectangle.A4`, the media box of a new `PDPage`, and a page size PDFBox hands back are the project's own copy | `aPageSizeEveryDocumentSharesStaysTheSame` |
 
 ## HTTP requests
 
