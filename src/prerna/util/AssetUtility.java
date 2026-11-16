@@ -52,8 +52,8 @@ public class AssetUtility {
 
 	private static final String DIR_SEPARATOR = "/";
 
-	public static String USER_SPACE_KEY = "USER";
-	public static String INSIGHT_SPACE_KEY = "INSIGHT";
+	public static final String USER_SPACE_KEY = "USER";
+	public static final String INSIGHT_SPACE_KEY = "INSIGHT";
 
 	/**
 	 * Grab the root folder to work with asset files
