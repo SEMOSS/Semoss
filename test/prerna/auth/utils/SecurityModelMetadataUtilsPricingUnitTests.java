@@ -58,7 +58,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 /**
- * Checks the rules on a model's prices: only its owners and admins change them,
+ * Checks the rules on a model's prices: only its owners change them, admins too,
  * they cannot be removed, and the catalog replaces them only with prices of its
  * own. Runs against an in-memory MODELMETADATA table, with the catalog and the
  * permission checks replaced with static mocks.
@@ -158,7 +158,7 @@ class SecurityModelMetadataUtilsPricingUnitTests {
 	}
 
 	@Test
-	void onlyOwnersAndAdminsChangePrices() {
+	void onlyOwnersChangePricesAndBeingAnAdminIsNotEnough() {
 		engines.when(() -> SecurityEngineUtils.userIsOwner(any(), any())).thenReturn(false);
 
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> SecurityModelMetadataUtils
@@ -170,13 +170,18 @@ class SecurityModelMetadataUtilsPricingUnitTests {
 		assertEquals(4L, outputRate());
 
 		admins.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(mock(SecurityAdminUtils.class));
-		SecurityModelMetadataUtils.updateModelMetadata(user, MODEL, Map.of(Constants.PRICING, CATALOG_PRICES));
-		assertEquals(8L, outputRate());
+		admins.when(() -> SecurityAdminUtils.userIsAdmin(user)).thenReturn(true);
+		IllegalArgumentException forAnAdmin = assertThrows(IllegalArgumentException.class,
+				() -> SecurityModelMetadataUtils.updateModelMetadata(user, MODEL,
+						Map.of(Constants.PRICING, CATALOG_PRICES)));
+		assertEquals("Only the model's owners can change its prices", forAnAdmin.getMessage());
+		assertEquals(4L, outputRate());
 
 		admins.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(null);
+		admins.when(() -> SecurityAdminUtils.userIsAdmin(user)).thenReturn(false);
 		engines.when(() -> SecurityEngineUtils.userIsOwner(user, MODEL)).thenReturn(true);
-		SecurityModelMetadataUtils.updateModelMetadata(user, MODEL, Map.of(Constants.PRICING, CONTRACT_PRICES));
-		assertEquals(4L, outputRate());
+		SecurityModelMetadataUtils.updateModelMetadata(user, MODEL, Map.of(Constants.PRICING, CATALOG_PRICES));
+		assertEquals(8L, outputRate());
 	}
 
 	@Test

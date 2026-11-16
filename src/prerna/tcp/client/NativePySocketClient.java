@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -273,14 +274,15 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 									classLogger.warn("Ignoring unable to gson.fromJson() of {}", ps.payload[0]);
 								}
 
-								// put it in response
-								responseMap.put(ps.epoc, ps);
-								classLogger.debug("Added response to responseMap for epoc: {}", ps.epoc);
-
 								if (lock != null) {
+									responseMap.put(ps.epoc, ps);
+									classLogger.debug("Added response to responseMap for epoc: {}", ps.epoc);
 									classLogger.debug("About to notify waiters for epoc: {}", ps.epoc);
 									lock.signalResponse();
 									classLogger.debug("Notified waiters for epoc: {}", ps.epoc);
+								} else {
+									classLogger.debug("Dropping the response for epoc {}: no request is waiting for it",
+											ps.epoc);
 								}
 							}
 							// this is a request for a reactor
@@ -372,8 +374,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 							else {
 								classLogger.info("Message not handled by py server");
 								lock = requestMap.remove(ps.epoc);
-								responseMap.put(ps.epoc, ps);
 								if (lock != null) {
+									responseMap.put(ps.epoc, ps);
 									lock.signalResponse();
 								}
 							}
@@ -598,7 +600,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				int maxWait = 1_000;
 				if (!ps.response) // this is a response to something the socket has asked
 				{
-					long waitDeadline = System.nanoTime() + MAX_RESPONSE_WAIT.toNanos();
+					Duration responseWait = ps.maxWait != null && ps.maxWait.compareTo(MAX_RESPONSE_WAIT) < 0
+							? ps.maxWait
+							: MAX_RESPONSE_WAIT;
+					long waitDeadline = System.nanoTime() + responseWait.toNanos();
 					int pollNum = 1;
 					while (!responseMap.containsKey(ps.epoc) && (pollNum < maxWait || ps.longRunning) && !killAll
 							&& !cancelledEpocs.contains(ps.epoc) && System.nanoTime() < waitDeadline) {
@@ -665,9 +670,12 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 						// that persists its own results can still finish
 						this.requestMap.remove(ps.epoc);
 						classLogger.warn(
-								"Stopped waiting for epoc {} method {} after the {}h max wait; python continues running in the background",
-								ps.epoc, ps.methodName, MAX_RESPONSE_WAIT.toHours());
-						throw new SemossPixelException("This execution exceeded the maximum wait time of "
+								"Stopped waiting for epoc {} method {} after {} seconds; python continues running in the background",
+								ps.epoc, ps.methodName, responseWait.toSeconds());
+						if (ps.maxWaitMessage != null) {
+							throw new ResponseTimeoutException(ps.maxWaitMessage);
+						}
+						throw new ResponseTimeoutException("This execution exceeded the maximum wait time of "
 								+ MAX_RESPONSE_WAIT.toHours()
 								+ " hours. The python process is still running in the background - if your script persists its results, you can retrieve them later.");
 					} else if (!responseMap.containsKey(ps.epoc) && ps.hasReturn) {

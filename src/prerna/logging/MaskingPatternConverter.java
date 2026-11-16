@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.logging;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -39,74 +37,60 @@ import org.apache.logging.log4j.core.pattern.ConverterKeys;
 import org.apache.logging.log4j.core.pattern.LogEventPatternConverter;
 import org.apache.logging.log4j.core.pattern.PatternConverter;
 
-import prerna.engine.impl.SmssUtilities;
+import prerna.security.SensitiveKeys;
 import prerna.util.Constants;
 
+/**
+ * The {@code %maskMsg} log pattern: the log message with the values of secret
+ * keys masked. A value is masked in a URL query ({@code ?key=value}), a JSON
+ * string property ({@code "key":"value"}) or an assignment ({@code key=value})
+ * when {@link SensitiveKeys#isSensitiveKey(String)} says its key is secret.
+ */
 @Plugin(name = "MaskMsg", category = PatternConverter.CATEGORY)
 @ConverterKeys({ "maskMsg" })
 public class MaskingPatternConverter extends LogEventPatternConverter {
 
-	private final List<MaskRule> rules;
+	private static final Pattern QUERY_PARAMETER = Pattern.compile("([?&])([A-Za-z0-9_.-]+)=[^&\\s\"']+");
+	private static final Pattern JSON_PROPERTY = Pattern.compile("(\"\\s*([A-Za-z0-9_.-]+)\\s*\"\\s*:\\s*\")[^\"]*\"");
+	private static final Pattern ASSIGNMENT = Pattern
+			.compile("(?<![A-Za-z0-9_.-])([A-Za-z0-9_.-]+)(\\s*=\\s*)[^,&\\s]+");
 
-	protected MaskingPatternConverter(List<MaskRule> rules) {
+	protected MaskingPatternConverter() {
 		super("maskMsg", "maskMsg");
-		this.rules = rules;
 	}
 
 	@Override
 	public void format(LogEvent event, StringBuilder toAppendTo) {
-		String message = event.getMessage().getFormattedMessage();
-		for (MaskRule rule : rules) {
-			Matcher m = rule.regex.matcher(message);
-			message = m.replaceAll(rule.replacement);
+		toAppendTo.append(mask(event.getMessage().getFormattedMessage()));
+	}
+
+	/**
+	 * Masks the values of secret keys in a log message.
+	 *
+	 * @param message the formatted log message
+	 * @return the message with secret values replaced by
+	 *         {@link Constants#SENSITIVE_INFO_MASK}
+	 */
+	static String mask(String message) {
+		if (message == null || message.isEmpty()) {
+			return message;
 		}
-		toAppendTo.append(message);
+		String masked = QUERY_PARAMETER.matcher(message)
+				.replaceAll(m -> Matcher.quoteReplacement(SensitiveKeys.isSensitiveKey(m.group(2))
+						? m.group(1) + m.group(2) + "=" + Constants.SENSITIVE_INFO_MASK
+						: m.group()));
+		masked = JSON_PROPERTY.matcher(masked)
+				.replaceAll(m -> Matcher.quoteReplacement(
+						SensitiveKeys.isSensitiveKey(m.group(2)) ? m.group(1) + Constants.SENSITIVE_INFO_MASK + "\""
+								: m.group()));
+		return ASSIGNMENT.matcher(masked)
+				.replaceAll(m -> Matcher.quoteReplacement(SensitiveKeys.isSensitiveKey(m.group(1))
+						? m.group(1) + m.group(2) + Constants.SENSITIVE_INFO_MASK
+						: m.group()));
 	}
 
 	@PluginFactory
 	public static MaskingPatternConverter newInstance() {
-		List<MaskRule> rules = new ArrayList<MaskRule>();
-
-		List<String> valuesToMask = new ArrayList<>();
-		valuesToMask.addAll(SmssUtilities.SENSITIVE_KEYWORDS);
-		valuesToMask.add("private_key");
-		valuesToMask.add("secret_key");
-		valuesToMask.add("access_key");
-		valuesToMask.add("client_secret");
-
-		valuesToMask.forEach(key -> {
-			String escapedKey = Pattern.quote(key);
-
-			// Pattern 1: key=value format in pixel
-			String pattern1 = "(?i)(" + escapedKey + "\\s*=\\s*)[^, ]+";
-			Pattern regex1 = Pattern.compile(pattern1);
-			rules.add(new MaskRule(regex1, "$1" + Constants.SENSITIVE_INFO_MASK));
-
-			// Pattern 2: JSON-style "key":"value" format
-			String pattern2 = "(?i)(\"\\s*" + escapedKey + "\\s*\"\\s*:\\s*\")[^\"]*(\")";
-			Pattern regex2 = Pattern.compile(pattern2);
-			rules.add(new MaskRule(regex2, "$1" + Constants.SENSITIVE_INFO_MASK + "$2"));
-
-			// Pattern 3: JDBC URL format - example for password parameter in connection
-			String pattern3 = "(?i)([?&]" + escapedKey + "=)[^&\\s]+";
-			Pattern regex3 = Pattern.compile(pattern3);
-			rules.add(new MaskRule(regex3, "$1" + Constants.SENSITIVE_INFO_MASK));
-		});
-
-		return new MaskingPatternConverter(rules);
+		return new MaskingPatternConverter();
 	}
-
-	/*
-	 * Simple utility class for regex replacements
-	 */
-	private static class MaskRule {
-		final Pattern regex;
-		final String replacement;
-
-		MaskRule(Pattern regex, String replacement) {
-			this.regex = regex;
-			this.replacement = replacement;
-		}
-	}
-
 }

@@ -70,6 +70,7 @@ import prerna.om.ThreadStore;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -949,7 +950,7 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
 		if (pythonUser != null && !pythonUser.trim().isEmpty()) {
 			try {
-				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
+				InternalUtility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
 			} catch (IOException e) {
 				classLogger.error("Failed to set owner/group permissions on vector schema folder: '{}'",
 						this.schemaFolder.getAbsolutePath(), e);

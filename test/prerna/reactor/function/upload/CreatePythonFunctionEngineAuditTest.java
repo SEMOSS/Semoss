@@ -56,6 +56,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.om.Insight;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
@@ -87,11 +88,7 @@ class CreatePythonFunctionEngineAuditTest {
 		var reactor = new CreatePythonFunctionEngineReactor() {
 			@Override
 			protected void organizeKeys() {
-			}
-
-			@Override
-			protected String getStringFromKeyOrCurRowStringValue(String key) {
-				return "Test function";
+				keyValue.put(ReactorKeysEnum.CATALOG_NAME.getKey(), "Test function");
 			}
 
 			@Override

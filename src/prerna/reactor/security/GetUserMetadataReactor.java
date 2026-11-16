@@ -36,7 +36,6 @@ import org.apache.commons.lang3.StringUtils;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityUserUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -81,8 +80,7 @@ public class GetUserMetadataReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Provider parameter required");
 			}
 			AccessToken tokenForProvider = user.getAccessToken(provider);
-			if (!SecurityAdminUtils.userIsAdmin(user)
-					&& (tokenForProvider == null || !userId.equalsIgnoreCase(tokenForProvider.getId()))) {
+			if (tokenForProvider == null || !userId.equalsIgnoreCase(tokenForProvider.getId())) {
 				throw new IllegalArgumentException("User does not have access to the requested user");
 			}
 		}

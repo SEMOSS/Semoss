@@ -45,6 +45,8 @@ import com.google.common.cache.CacheBuilder;
 import prerna.cluster.sync.IClusterSynchronizer;
 import prerna.cluster.sync.impl.ClusterSynchronizerFactory;
 import prerna.cluster.util.clients.CentralCloudStorage;
+import prerna.cluster.util.clients.ClusterSyncCloudClient;
+import prerna.cluster.util.clients.ICloudClient;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.project.api.IProject;
@@ -177,12 +179,15 @@ public class ClusterUtil {
 	/**
 	 * Returns the client for the cluster's central cloud storage, which holds the
 	 * engines, projects, insights, rooms, user assets and images every node pulls.
+	 * Each call the client makes runs as a platform operation
+	 * ({@link ClusterSyncCloudClient}), since a sync is the platform's own work,
+	 * whoever's request set it off.
 	 *
 	 * @return the central cloud storage client
 	 * @throws Exception if the client cannot be created from the storage settings
 	 */
-	public static CentralCloudStorage getCentralStorageClient() throws Exception {
-		return CentralCloudStorage.getInstance();
+	public static ICloudClient getCentralStorageClient() throws Exception {
+		return ClusterSyncCloudClient.of(CentralCloudStorage.getInstance());
 	}
 
 	/**
@@ -1367,7 +1372,7 @@ public class ClusterUtil {
 		if (ClusterUtil.IS_CLUSTER) {
 			classLogger.info("ClusterUtil.pushRoom - pushing room '{}' to cloud storage", roomId);
 			try {
-				getCentralStorageClient().pushRoomFolderToCloud(roomId);
+				CentralCloudStorage.getInstance().pushRoomFolderToCloud(roomId);
 			} catch (Exception e) {
 				classLogger.error("Failed to push room '{}' to cloud storage", roomId, e);
 				SemossPixelException err = new SemossPixelException("Failed to push room to cloud storage");
@@ -1389,7 +1394,7 @@ public class ClusterUtil {
 			Thread.ofVirtual().start(() -> {
 				classLogger.info("ClusterUtil.pushRoom - pushing room '{}' to cloud storage", roomId);
 				try {
-					getCentralStorageClient().pushRoomFolderToCloud(roomId);
+					CentralCloudStorage.getInstance().pushRoomFolderToCloud(roomId);
 				} catch (Exception e) {
 					classLogger.error("Failed to push room '{}' to cloud storage", roomId, e);
 					SemossPixelException err = new SemossPixelException("Failed to push room to cloud storage");
@@ -1410,7 +1415,7 @@ public class ClusterUtil {
 	public static void pullRoom(String roomId) {
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
-				getCentralStorageClient().pullRoomFolderFromCloud(roomId);
+				CentralCloudStorage.getInstance().pullRoomFolderFromCloud(roomId);
 			} catch (Exception e) {
 				classLogger.error("Failed to pull room '{}' from cloud storage", roomId, e);
 				SemossPixelException err = new SemossPixelException("Failed to pull room to cloud storage");

@@ -146,11 +146,11 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 		// assign permsission
 		SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "1", endDate);
 
+		ExpiredAccessRemoval.removeAllEndedAccess();
+
 		// check to see if user can view project
 		assertFalse(SecurityGroupProjectUtils.userGroupCanViewProject(user, "pid1"));
-
-		// make sure that expired group permission was removed
-		assertNull(SecurityGroupProjectUtils.getGroupProjectPermission("pid1", "groupId1", "CUSTOM"));
+		assertNull(SecurityGroupProjectUtils.getGroupProjectPermission("groupId1", "CUSTOM", "pid1"));
 	}
 
 	@Test
@@ -234,11 +234,11 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 		// assign permsission
 		SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "1", endDate);
 
+		ExpiredAccessRemoval.removeAllEndedAccess();
+
 		// check to see if user can edit project
 		assertFalse(SecurityGroupProjectUtils.userGroupCanEditProject(user, "pid1"));
-
-		// make sure that expired group permission was removed
-		assertNull(SecurityGroupProjectUtils.getGroupProjectPermission("pid1", "groupId1", "CUSTOM"));
+		assertNull(SecurityGroupProjectUtils.getGroupProjectPermission("groupId1", "CUSTOM", "pid1"));
 	}
 
 	@Test
@@ -556,44 +556,6 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 
 		// set to read only
 		SecurityGroupProjectUtils.removeProjectGroupPermission(user2, "groupId1", "CUSTOM", "pid1");
-
-		// verify permissions removed
-		assertNull(SecurityGroupProjectUtils.getGroupProjectPermission("groupId1", "CUSTOM", "pid1"));
-	}
-
-	/**
-	 * remove Expired Project Group Permissions Tests
-	 */
-	@Test
-	void testExpiredRemoveProjectGroupPermission_NoPermission() throws Exception {
-		// create user, group, and project
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
-		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
-
-		// set to read only
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> SecurityGroupProjectUtils.removeExpiredProjectGroupPermission("groupId1", "CUSTOM", "pid1"));
-
-		assertEquals(e.getMessage(),
-				"Attempting to modify group permission for a user who does not currently have access to the project");
-	}
-
-	@Test
-	void testExpiredRemoveProjectGroupPermission() throws Exception {
-		// create user, group, and project
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
-		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
-
-		// minus days to go back 2 days
-		String endDate = ZonedDateTime.now().minusDays(2).toString();
-		SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "EDIT", endDate);
-
-		// set to read only
-		SecurityGroupProjectUtils.removeExpiredProjectGroupPermission("groupId1", "CUSTOM", "pid1");
 
 		// verify permissions removed
 		assertNull(SecurityGroupProjectUtils.getGroupProjectPermission("groupId1", "CUSTOM", "pid1"));

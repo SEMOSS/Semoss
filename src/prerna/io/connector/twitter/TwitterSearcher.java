@@ -64,8 +64,10 @@ public class TwitterSearcher implements IConnectorIOp {
 		String accessToken = IConnectorIOp.requireAccessToken(user, AuthProvider.TWITTER).getAccess_token();
 
 		// make the API call
-		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, true);
-//		System.out.println(output);
+		String output = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(),
+				HttpHelperUtility.withQueryParameters(url, params),
+				HttpHelperUtility.bearerJsonHeaders(accessToken));
+		// System.out.println(output);
 
 		List<JsonNode> nodes = BeanFiller.getJmesObjects(output, jsonPattern);
 		if (nodes.isEmpty()) {

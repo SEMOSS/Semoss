@@ -80,6 +80,6 @@ public class StopAutomationAgentRunReactor extends AbstractReactor {
 				.key(AUTOMATION_RUN_ID_KEY, "The id of the Automation run that started the agent run.")
 				.key(NODE_ID_KEY, "The id of the Automation node that started the agent run.")
 				.key(ReactorKeysEnum.PROJECT,
-						"The id or alias of the Automation project the run belongs to; the caller needs edit access. Without it, the run must be in the caller's own inline run scope.");
+						"The id of the Automation project the run belongs to; the caller needs edit access. Without it, the run must be in the caller's own inline run scope.");
 	}
 }

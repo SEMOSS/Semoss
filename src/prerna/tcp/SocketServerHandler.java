@@ -58,8 +58,8 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.FstUtil;
+import prerna.util.InternalUtility;
 import prerna.util.TCPChromeDriverUtility;
 import prerna.util.Utility;
 
@@ -378,7 +378,7 @@ public class SocketServerHandler implements Runnable {
 		// dont give me a wrapper.. give me the real reactor
 		projectMap.put(projectId, project);
 		String projectSock = projectId + "__SOCKET";
-		DIHelper.getInstance().setProjectProperty(projectSock, project);
+		InternalUtility.setLoadedProject(projectSock, project);
 
 		return project;
 	}
@@ -532,7 +532,7 @@ public class SocketServerHandler implements Runnable {
 				}
 
 				// we should also close all the dbs that were opened
-				String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
+				String engines = InternalUtility.getEngineIds() + "";
 				if (engines != null) {
 					String[] engineList = engines.split(";");
 					for (int engineIndex = 0; engineIndex < engineList.length; engineIndex++) {
@@ -729,7 +729,7 @@ public class SocketServerHandler implements Runnable {
 			return translator;
 		}
 
-		String useR = DIHelper.getInstance().getProperty(Constants.USE_R);
+		String useR = Utility.getDIHelperProperty(Constants.USE_R);
 		if (useR != null && !Boolean.parseBoolean(useR.trim())) {
 			throw new IllegalArgumentException("R is set to false for this instance");
 		}
@@ -740,8 +740,8 @@ public class SocketServerHandler implements Runnable {
 				return translator;
 			}
 
-			boolean useJri = DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI) == null
-					|| DIHelper.getInstance().getProperty(Constants.R_CONNECTION_JRI).equalsIgnoreCase("true");
+			boolean useJri = Utility.getDIHelperProperty(Constants.R_CONNECTION_JRI) == null
+					|| Utility.getDIHelperProperty(Constants.R_CONNECTION_JRI).equalsIgnoreCase("true");
 			if (useJri) {
 				translator = new RJavaJriTranslator();
 				translator.setLogger(classLogger);

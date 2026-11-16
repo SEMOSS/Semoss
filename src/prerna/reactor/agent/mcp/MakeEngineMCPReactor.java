@@ -78,6 +78,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -325,7 +326,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			Map<String, String> mcpEnabledMap = new HashMap<>();
 			mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
 			try {
-				Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
+				InternalUtility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
 				engine.open(smssFilePath);
 			} catch (Exception e) {
 				throw new IllegalArgumentException("Error enabling mcp in smss");

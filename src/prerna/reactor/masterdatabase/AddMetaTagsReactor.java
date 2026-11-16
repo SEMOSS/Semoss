@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.ReactorDefinition;
@@ -59,7 +58,6 @@ public class AddMetaTagsReactor extends AbstractMetaDBReactor {
 	@Override
 	public NounMetadata execute() {
 		String engineId = getEngineId();
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 		}

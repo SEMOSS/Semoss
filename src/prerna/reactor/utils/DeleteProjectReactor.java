@@ -38,7 +38,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
@@ -78,19 +77,15 @@ public class DeleteProjectReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 
 			// we may have the alias
-			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-			if (!isAdmin) {
-				if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
-					throwFunctionalityOnlyExposedForAdminsError();
-				}
+			if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
+				throwFunctionalityOnlyExposedForAdminsError();
+			}
 
-				boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-				if (!isOwner) {
-					throw new IllegalArgumentException("Project " + projectId
-							+ " does not exist or user does not have permissions to delete the project. "
-							+ "User must be the owner to perform this function.");
-				}
+			boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
+			if (!isOwner) {
+				throw new IllegalArgumentException("Project " + projectId
+						+ " does not exist or user does not have permissions to delete the project. "
+						+ "User must be the owner to perform this function.");
 			}
 
 			if (SystemDefaultEngines.getSystemApps().contains(projectId)

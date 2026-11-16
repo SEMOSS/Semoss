@@ -243,7 +243,7 @@ public class SchedulerDatabaseUtility {
 	private static final String DELETE_JOB_TAGS_QUERY = "DELETE FROM SMSS_JOB_TAGS WHERE JOB_ID=?";
 	private static final String INSERT_JOB_TAGS_QUERY = "INSERT INTO SMSS_JOB_TAGS (JOB_ID, JOB_TAG) VALUES (?,?)";
 
-	// SchedulerStats queries - audit-trail aggregation + worst-job streak
+	// AdminSchedulerStats queries - audit-trail aggregation + worst-job streak
 	private static final String SCHEDULER_AUDIT_STATS_QUERY = """
 			SELECT at.JOB_ID, at.SUCCESS, at.EXECUTION_DELTA, jr.JOB_NAME \
 			FROM SMSS_AUDIT_TRAIL at \
@@ -251,7 +251,7 @@ public class SchedulerDatabaseUtility {
 			WHERE at.EXECUTION_START >= ? \
 			ORDER BY at.JOB_ID, at.EXECUTION_START DESC""";
 
-	// SchedulerStats queries - current Quartz trigger state
+	// AdminSchedulerStats queries - current Quartz trigger state
 	private static final String TRIGGER_STATE_COUNT_QUERY = """
 			SELECT TRIGGER_STATE, COUNT(*) \
 			FROM QRTZ_TRIGGERS \

@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -367,17 +366,10 @@ public class User implements Serializable {
 	 */
 	public void addOpenInsight(String engineId, String rdbmsId, String insightId) {
 		if (this.openInsights == null) {
-			this.openInsights = new HashMap<>();
+			this.openInsights = new ConcurrentHashMap<>();
 		}
 		String id = getUid(engineId, rdbmsId);
-		List<String> openInstances = null;
-		if (this.openInsights.containsKey(id)) {
-			openInstances = this.openInsights.get(id);
-		} else {
-			openInstances = new Vector<>();
-			this.openInsights.put(id, openInstances);
-		}
-		openInstances.add(insightId);
+		this.openInsights.computeIfAbsent(id, k -> Collections.synchronizedList(new ArrayList<>())).add(insightId);
 	}
 
 	/**
@@ -392,11 +384,12 @@ public class User implements Serializable {
 			return;
 		}
 		String id = getUid(engineId, rdbmsId);
-		List<String> openInstances = null;
-		if (this.openInsights.containsKey(id)) {
-			openInstances = this.openInsights.get(id);
+		this.openInsights.computeIfPresent(id, (k, openInstances) -> {
 			openInstances.remove(insightId);
-		}
+			// Returning null automatically removes the key from the map if the list is now
+			// empty
+			return openInstances.isEmpty() ? null : openInstances;
+		});
 	}
 
 	/**
@@ -533,7 +526,7 @@ public class User implements Serializable {
 					String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
 					String chrootDir = Utility.getDIHelperProperty(Constants.CHROOT_DIR);
 					chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
-					symlinkHelper = new SymlinkHelper(chrootPath);
+					symlinkHelper = new SymlinkHelper(chrootPath, this);
 
 					// symlink the user asset folder into the chroot on boot
 					try {

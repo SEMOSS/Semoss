@@ -68,6 +68,7 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.SemossClassLoader;
 import prerna.util.SemossJarClassLoader;
+import prerna.util.SemossProjectJarClassLoader;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.git.GitAssetUtils;
@@ -132,7 +133,8 @@ public class ProjectReactorHelper {
 	 */
 	// loads classes through this specific class loader for the insight
 	public Map<String, Class<IReactor>> loadReactors(String folder, String outputFolder) {
-		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader());
+		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader(),
+				this.project.getProjectId());
 
 		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
@@ -308,8 +310,9 @@ public class ProjectReactorHelper {
 			}
 		}
 
-		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader());
-		urlClassLoader = new URLClassLoader(urls, this.projectClassLoader);
+		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader(),
+				this.project.getProjectId());
+		urlClassLoader = new SemossProjectJarClassLoader(urls, this.projectClassLoader);
 		try {
 			// scan all abstract reactors
 			ScanResult sr = new ClassGraph().overrideClasspath((Object[]) urls).enableClassInfo().scan();
@@ -370,7 +373,7 @@ public class ProjectReactorHelper {
 			// add the jars
 			// locate all the reactors
 			// and keep access to it
-			mvnClassLoader = new SemossJarClassLoader(Map.of());
+			mvnClassLoader = new SemossJarClassLoader(Map.of(), this.project.getProjectId());
 
 			// classes are in
 			// appRoot / classes

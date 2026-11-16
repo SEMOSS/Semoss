@@ -548,6 +548,11 @@ public class Constants {
 	public static final String TRANSACTION_SERIALIZABLE = "TRANSACTION_SERIALIZABLE";
 
 	public static final String SENSITIVE_INFO_MASK = "********";
+	/**
+	 * RDF_Map setting with a comma separated list of more key names whose values
+	 * are secret, on top of the names {@link prerna.security.SensitiveKeys} knows.
+	 */
+	public static final String SENSITIVE_KEYS = "SENSITIVE_KEYS";
 
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
@@ -749,7 +754,7 @@ public class Constants {
 
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
-	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
+	public static final String PROJECT_REACTOR_SHARED_PACKAGES = "PROJECT_REACTOR_SHARED_PACKAGES";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
 	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
@@ -987,6 +992,7 @@ public class Constants {
 	public static final String ULIMIT_PROCESS = "ULIMIT_PROCESS";
 
 	public static final String WHITE_LIST_DOMAINS = "WHITE_LIST_DOMAINS";
+	public static final String BLACK_LIST_DOMAINS = "BLACK_LIST_DOMAINS";
 
 	public static final String SMSS_USER_NAME = "name";
 	public static final String SMSS_USER_EMAIL = "email";
@@ -1068,6 +1074,10 @@ public class Constants {
 	// a general text model for topic grouping and naming, thread summaries and work
 	// items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
+	// true shows Digital Twin avatar options (default false), made by this image
+	// model; both are also read from an environment variable of the same name
+	public static final String COLLAB_AVATAR_GENERATION_ENABLED = "COLLAB_AVATAR_GENERATION_ENABLED";
+	public static final String COLLAB_AVATAR_ENGINE_ID = "COLLAB_AVATAR_ENGINE_ID";
 	// work items runs at once across owners; each owner's own runs still go one at
 	// a time (default 3)
 	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
@@ -1086,6 +1096,11 @@ public class Constants {
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
+
+	// playground user preference keys
+	public static final String PLAYGROUND_DEFAULT_INPUT_TEXT_MODEL_KEY = "playground--default-input-text-model";
+	public static final String PLAYGROUND_DEFAULT_CHAT_MODE_KEY = "playground--default-chat-mode";
+	public static final String PLAYGROUND_DEFAULT_CHAT_AGENT_KEY = "playground--default-chat-agent";
 
 	// system (platform) app names
 	public static final String APP_REACT_TEMPLATE = "react-template";

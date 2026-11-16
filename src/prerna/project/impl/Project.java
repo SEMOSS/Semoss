@@ -108,10 +108,12 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.ParserException;
+import prerna.security.SecretRedactor;
 import prerna.tcp.client.CustomReactorWrapper;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
+import prerna.util.InternalUtility;
 import prerna.util.Settings;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -198,6 +200,7 @@ public class Project implements IProject {
 		setSmssProp(smssProp);
 		this.projectId = this.smssProp.getProperty(Constants.PROJECT);
 		this.projectName = this.smssProp.getProperty(Constants.PROJECT_ALIAS);
+		SecretRedactor.recordSecrets(this.projectId, this.smssProp);
 		String smssDisplayName = this.smssProp.getProperty(Constants.PROJECT_DISPLAY_NAME);
 		this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName
 				: this.projectName;
@@ -666,7 +669,7 @@ public class Project implements IProject {
 	private void compileReactorsFromJavaFiles() {
 		// have the classes been loaded already?
 		if (ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
-			int status = Utility.compileJava(this.projectAssetFolder, getCP());
+			int status = InternalUtility.compileJava(this.projectAssetFolder, getCP());
 			if (status == 0) {
 				ProjectCustomReactorCompilator.setCompiled(this.projectId);
 			} else {
@@ -963,8 +966,8 @@ public class Project implements IProject {
 		}
 
 		// secondary check to execute reactor here
-		if (executeReactorOnSocket() && ((Utility.getDIHelperLocalProperty("core") == null
-				|| Utility.getDIHelperLocalProperty("core").toString().equalsIgnoreCase("true")) && retReac != null)) {
+		if (executeReactorOnSocket() && ((InternalUtility.getLocalProperty("core") == null
+				|| InternalUtility.getLocalProperty("core").toString().equalsIgnoreCase("true")) && retReac != null)) {
 
 			// need to convert this to reactor wrapper before I give it to be executed
 			CustomReactorWrapper wrapper = new CustomReactorWrapper();

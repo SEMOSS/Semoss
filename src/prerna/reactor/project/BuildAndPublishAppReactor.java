@@ -169,8 +169,8 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			String absoluteAsset = findAbsoluteAssetUrl(portalsDir);
 			if (absoluteAsset != null) {
 				classLogger.warn(
-						"BuildAndPublishApp: absolute asset url '" + absoluteAsset + "' in " + Constants.PORTALS_FOLDER
-								+ "/" + INDEX_HTML + " for project " + projectId + "; skipping publish");
+						"BuildAndPublishApp: absolute asset url '{}' in {}/{} for project {}; skipping publish",
+						absoluteAsset, Constants.PORTALS_FOLDER, INDEX_HTML, projectId);
 				return getWarning("""
 						Build completed but was not published: it produced absolute asset urls. \
 						%s/%s references "%s", and a portal is served from a project-scoped path, \
@@ -306,7 +306,6 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		if (projectId.isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		return projectId;
 	}
 
@@ -350,7 +349,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 				return matcher.group(1);
 			}
 		} catch (IOException e) {
-			classLogger.warn("BuildAndPublishApp: could not read " + indexHtml + " to check asset urls", e);
+			classLogger.warn("BuildAndPublishApp: could not read {} to check asset urls", indexHtml, e);
 		}
 		return null;
 	}
@@ -359,6 +358,6 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
 				"Build the app from assets/client using the configured builder service, write output to assets/portals, and publish the project. Output that could not be served, such as absolute asset urls from a missing base setting, is reported instead of published.")
-				.key(PROJECT_ID, "The unique id (or alias) of the project to build and publish.");
+				.key(PROJECT_ID, "The unique id of the project to build and publish.");
 	}
 }

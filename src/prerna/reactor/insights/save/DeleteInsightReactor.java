@@ -83,7 +83,6 @@ public class DeleteInsightReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must define the project to delete the insights from");
 		}
 		String projectId = projectGrs.get(0).toString();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException(
 					"Project " + projectId + " does not exist or user does not have access to the project");
