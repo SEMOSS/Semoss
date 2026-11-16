@@ -68,8 +68,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -78,18 +78,18 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 
 	@BeforeAll
 	public static void setUp() {
-		DIHelper.getInstance().setCoreProp(null);
+		InternalUtility.setCoreProp(null);
 	}
 
 	@AfterAll
 	public static void tearDown() {
-		DIHelper.getInstance().setCoreProp(null);
+		InternalUtility.setCoreProp(null);
 	}
 
 	@BeforeEach
 	public void beforeEach() throws IOException {
 		FileUtils.cleanDirectory(tempDir.toFile());
-		DIHelper.getInstance().setCoreProp(null);
+		InternalUtility.setCoreProp(null);
 	}
 
 	@Test
@@ -264,7 +264,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path engineFolder = Paths.get(base.toAbsolutePath().toString(), "db", "alias__uuid");
 		Files.createDirectories(engineFolder);
@@ -295,7 +295,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path engineFolder = Paths.get(base.toAbsolutePath().toString(), "db", "alias__uuid");
 		Files.createDirectories(engineFolder);
@@ -326,7 +326,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path engineFolder = Paths.get(base.toAbsolutePath().toString(), "db", "alias__uuid");
 		Files.createDirectories(engineFolder);
@@ -357,7 +357,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path project = base.resolve("project");
 		Files.createDirectories(project);
@@ -402,7 +402,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path project = base.resolve("project");
 		Files.createDirectories(project);
@@ -433,7 +433,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path user = base.resolve("user");
 		Files.createDirectories(user);
@@ -484,7 +484,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		User u = new User();
 		try (MockedStatic<AbstractSecurityUtils> mockedStatic = Mockito.mockStatic(AbstractSecurityUtils.class)) {
@@ -503,7 +503,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path project = Paths.get(base.toAbsolutePath().toString(), "project", "pname__id");
 		Files.createDirectories(project);
@@ -530,7 +530,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path project = Paths.get(base.toAbsolutePath().toString(), "project");
 		Files.createDirectories(project);
@@ -621,7 +621,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
 		coreProp.setProperty(Constants.DEFAULT_INSIGHTS_RDBMS, " sqlite ");
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path project = base.resolve("project");
 		Files.createDirectories(project);
@@ -646,7 +646,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Properties coreProp = new Properties();
 		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
 		coreProp.setProperty(Constants.DEFAULT_INSIGHTS_RDBMS, " sqlite ");
-		DIHelper.getInstance().setCoreProp(coreProp);
+		InternalUtility.setCoreProp(coreProp);
 
 		Path user = base.resolve("user");
 		Files.createDirectories(user);

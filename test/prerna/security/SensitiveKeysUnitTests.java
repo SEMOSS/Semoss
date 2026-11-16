@@ -39,7 +39,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 
 class SensitiveKeysUnitTests {
 
@@ -47,13 +47,13 @@ class SensitiveKeysUnitTests {
 
 	@BeforeEach
 	void saveRdfMap() {
-		this.savedCoreProp = DIHelper.getInstance().getCoreProp();
-		DIHelper.getInstance().setCoreProp(new Properties());
+		this.savedCoreProp = InternalUtility.getCoreProp();
+		InternalUtility.setCoreProp(new Properties());
 	}
 
 	@AfterEach
 	void restoreRdfMap() {
-		DIHelper.getInstance().setCoreProp(this.savedCoreProp);
+		InternalUtility.setCoreProp(this.savedCoreProp);
 	}
 
 	@ParameterizedTest
@@ -101,7 +101,7 @@ class SensitiveKeysUnitTests {
 
 		Properties rdfMap = new Properties();
 		rdfMap.setProperty(Constants.SENSITIVE_KEYS, " vendor_signing_seed , PARTNER-LICENSE,, ");
-		DIHelper.getInstance().setCoreProp(rdfMap);
+		InternalUtility.setCoreProp(rdfMap);
 
 		assertTrue(SensitiveKeys.isSensitiveKey("VENDOR_SIGNING_SEED"));
 		assertTrue(SensitiveKeys.isSensitiveKey("partnerLicense"));

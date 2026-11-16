@@ -65,7 +65,6 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
@@ -228,8 +227,6 @@ public class UploadEngineReactor extends AbstractReactor {
 		String engineFolderPath = EngineUtility.getLocalEngineBaseDirectory(engineType);
 		logger.info("Determined the engine type = " + engineType);
 
-		String engines = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-
 		File finalEngineSmss = null;
 		File finalEngineFolder = null;
 		boolean engineAddedToDIHelper = false;
@@ -244,10 +241,7 @@ public class UploadEngineReactor extends AbstractReactor {
 					+ SmssUtilities.getUniqueName(engineName, engineId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
-			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
-					|| engines.endsWith(";" + engineId))) {
-				String newEngines = engines + ";" + engineId;
-				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, newEngines);
+			if (InternalUtility.addEngineId(engineId)) {
 				engineAddedToDIHelper = true;
 			} else {
 				SemossPixelException exception = new SemossPixelException(
@@ -286,7 +280,7 @@ public class UploadEngineReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE,
+			InternalUtility.setEngineSmssPath(engineId,
 					finalEngineSmss.getAbsolutePath());
 			if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
 				logger.info(step + ") Synchronizing database structure");

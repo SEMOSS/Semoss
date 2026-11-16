@@ -77,8 +77,8 @@ import prerna.om.Insight;
 import prerna.security.HttpHelperUtility;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -212,10 +212,8 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		Files.write(propsFilePath, lines);
 		assertLinesMatch(lines, Files.readAllLines(propsFilePath));
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -261,10 +259,8 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -310,10 +306,8 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -796,10 +790,8 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		Path indexFileDirPath = indexDirPath.resolve(AbstractVectorDatabaseEngine.INDEXED_FOLDER_NAME);
 		Files.createDirectories(indexFileDirPath);
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 					MockedStatic<UploadUtilities> uu = Mockito.mockStatic(UploadUtilities.class);) {
@@ -851,10 +843,8 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))

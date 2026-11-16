@@ -1896,22 +1896,6 @@ public class Insight implements Serializable {
 	}
 
 	/**
-	 * Looks up a property by first checking the VarStore and then falling back to
-	 * the DIHelper server properties.
-	 *
-	 * @param propName the property name
-	 * @return the property value, or null if not found in either location
-	 */
-	public String getProperty(String propName) {
-		Object retObject = this.varStore.get(propName);
-		if (retObject != null) {
-			return ((NounMetadata) retObject).getValue().toString();
-		}
-
-		return Utility.getDIHelperProperty(propName);
-	}
-
-	/**
 	 * Sets the ornament map, which holds arbitrary key-value metadata for the
 	 * insight (e.g. UI hints or workflow annotations).
 	 *

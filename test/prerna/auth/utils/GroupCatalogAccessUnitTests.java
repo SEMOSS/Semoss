@@ -77,7 +77,8 @@ import prerna.reactor.security.GetProjectMetaValuesReactor;
 import prerna.reactor.security.MyEnginesReactor;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
+import prerna.util.InternalUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.SystemEngineRegistry;
 
@@ -103,7 +104,7 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	@AfterEach
 	void cleanup() throws Exception {
 		for (String projectId : loadedProjects) {
-			DIHelper.getInstance().removeProjectProperty(projectId);
+			DIHelperTestUtils.removeLoadedProject(projectId);
 		}
 		tables = UnitTestSecurityAuthUtils.clearSecurityDB(securityDb, tables);
 	}
@@ -359,7 +360,7 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 			when(project.getSmssProp()).thenReturn(new Properties());
 			when(project.getEngineId()).thenReturn(id);
 			when(project.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.PROJECT);
-			DIHelper.getInstance().setProjectProperty(id, project);
+			InternalUtility.setLoadedProject(id, project);
 			loadedProjects.add(id);
 		}
 	}

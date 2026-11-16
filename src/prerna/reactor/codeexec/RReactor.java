@@ -78,13 +78,14 @@ public final class RReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		this.rJavaTranslator = this.insight.getRJavaTranslator(logger);
 		rJavaTranslator.startR();
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null)
-				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		NounMetadata smartSyncVar = insight.getVarStore().get("SMART_SYNC");
+		boolean smartSync = Boolean.parseBoolean(smartSyncVar != null ? smartSyncVar.getValue().toString()
+				: Utility.getDIHelperProperty("SMART_SYNC"));
 		// forcing smartSync to be true all the time
 		smartSync = true;
 		if (smartSync) {
 			// see if the var has been set for first time
-			if (insight.getProperty("FIRST_SYNC") == null) {
+			if (insight.getVarStore().get("FIRST_SYNC") == null) {
 				smartSync(rJavaTranslator);
 				insight.getVarStore().put("FIRST_SYNC", new NounMetadata("True", PixelDataType.CONST_STRING));
 			}

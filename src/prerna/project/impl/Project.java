@@ -966,8 +966,8 @@ public class Project implements IProject {
 		}
 
 		// secondary check to execute reactor here
-		if (executeReactorOnSocket() && ((Utility.getDIHelperLocalProperty("core") == null
-				|| Utility.getDIHelperLocalProperty("core").toString().equalsIgnoreCase("true")) && retReac != null)) {
+		if (executeReactorOnSocket() && ((InternalUtility.getLocalProperty("core") == null
+				|| InternalUtility.getLocalProperty("core").toString().equalsIgnoreCase("true")) && retReac != null)) {
 
 			// need to convert this to reactor wrapper before I give it to be executed
 			CustomReactorWrapper wrapper = new CustomReactorWrapper();

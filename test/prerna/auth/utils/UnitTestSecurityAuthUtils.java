@@ -59,7 +59,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
+import prerna.util.InternalUtility;
 
 public class UnitTestSecurityAuthUtils {
 
@@ -449,11 +450,11 @@ public class UnitTestSecurityAuthUtils {
 	}
 
 	public static void addEngineStoreProp(String testdb, Path smssFile) {
-		DIHelper.getInstance().setEngineProperty(testdb + "_" + Constants.STORE, smssFile.toAbsolutePath().toString());
+		InternalUtility.setEngineSmssPath(testdb, smssFile.toAbsolutePath().toString());
 	}
 
 	public static void removeEngineStoreProp(String testdb) {
-		DIHelper.getInstance().removeEngineProperty(testdb + "_" + Constants.STORE);
+		DIHelperTestUtils.removeEngineSmssPath(testdb);
 	}
 
 	static Properties getDefaultOpenAiProperties(String engineId) {
