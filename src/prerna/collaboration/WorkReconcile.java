@@ -923,8 +923,11 @@ public final class WorkReconcile {
 	// was written: the same words, or most of the telling ones
 	static boolean settledBefore(Map<String, Object> c, List<Map<String, Object>> settled) {
 		for (Map<String, Object> step : settled) {
+			// "not mine" is about whose the ask is, not about when: a later reminder of it is still not the owner's.
+			// A step the owner finished or removed can be asked again by newer mail
+			boolean notMine = "not mine".equalsIgnoreCase(String.valueOf(step.get("note")).trim());
 			if (!String.valueOf(c.get("threadId")).equals(String.valueOf(step.get("threadId")))
-					|| after(c.get("at"), step.get("ownerSetAt")) || c.get("at") == null) {
+					|| (!notMine && (after(c.get("at"), step.get("ownerSetAt")) || c.get("at") == null))) {
 				continue;
 			}
 			String a = String.valueOf(c.get("text"));

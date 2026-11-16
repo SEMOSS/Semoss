@@ -515,7 +515,8 @@ class WorkPipelineDbUnitTests {
 		// the owner removed one step and reopened another that a message had closed; then the mail is read again
 		step("s-gone", "deck", null, "Send Kira the deck");
 		step("s-back", "quote", null, "Approve the Tarnwick quote 4471");
-		WorkTaskUtils.updateStep(user, "s-gone", Map.of("status", "dropped", "note", "not mine"), "owner");
+		// removed, not "not mine": newer mail may raise a removed step again, a "not mine" one stays away
+		WorkTaskUtils.updateStep(user, "s-gone", Map.of("status", "dropped"), "owner");
 		WorkTaskUtils.updateStep(user, "s-back", Map.of("status", "open"), "owner");
 		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
 				+ "{\"candidate\": \"c2\", \"action\": \"closes\", \"ref\": \"s1\", \"reason\": \"\"}, "
@@ -539,6 +540,17 @@ class WorkPipelineDbUnitTests {
 				on(claim("c2", "Approved the Tarnwick quote"), "quote", later));
 		assertEquals(1, ((List<?>) next.get("looseSteps")).size());
 		assertEquals(1, ((List<?>) next.get("closes")).size());
+	}
+
+	@Test
+	void aReminderOfAnAskTheOwnerSaidIsNotTheirsDoesNotComeBackButAFinishedOneCanBeAskedAgain() {
+		Map<String, Object> reminder = on(task("c1", "Send Kira the deck"), "deck", "2026-11-09T10:00:00Z");
+		Map<String, Object> notMine = new HashMap<>(Map.of("threadId", "deck", "text", "Send Kira the deck", "note",
+				"not mine", "ownerSetAt", "2026-11-06 10:00:00"));
+		Map<String, Object> finished = new HashMap<>(Map.of("threadId", "deck", "text", "Send Kira the deck",
+				"ownerSetAt", "2026-11-06 10:00:00"));
+		assertTrue(WorkReconcile.settledBefore(reminder, List.of(notMine)));
+		assertFalse(WorkReconcile.settledBefore(reminder, List.of(finished)));
 	}
 
 	@Test
