@@ -60,7 +60,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 
 public class ImportReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(NativeImporter.class);
+	private static final Logger classLogger = LogManager.getLogger(ImportReactor.class);
 	private static final String CLASS_NAME = ImportReactor.class.getName();
 
 	public ImportReactor() {

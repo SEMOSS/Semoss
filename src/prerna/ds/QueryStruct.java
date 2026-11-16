@@ -42,7 +42,7 @@ import java.util.Vector;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 @Deprecated
@@ -619,7 +619,7 @@ public class QueryStruct {
 //	}
 
 //	private static void loadEngine4Test(){
-//		DIHelper.getInstance().loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
+//		InternalUtility.loadCoreProp("C:\\Users\\bisutton\\workspace\\SEMOSSDev\\RDF_Map.prop");
 //		FileInputStream fileIn = null;
 //		try{
 //			Properties prop = new Properties();

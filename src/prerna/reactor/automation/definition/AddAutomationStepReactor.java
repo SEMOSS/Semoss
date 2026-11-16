@@ -325,7 +325,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("Adds one typed automation node after a specified node.")
-				.key(ReactorKeysEnum.PROJECT, "The Automation project ID or alias to update.")
+				.key(ReactorKeysEnum.PROJECT, "The Automation project ID to update.")
 				.key(NODE_TYPE_KEY, "The supported typed node to add, such as model.chat or developer.python.")
 				.key(CONFIG_KEY, "The node configuration as a JSON object or Base64-encoded JSON object.")
 				.key(LABEL_KEY, "The user-facing node label.")

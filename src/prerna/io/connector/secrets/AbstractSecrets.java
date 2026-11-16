@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.io.connector.secrets;
 
+import java.util.List;
+
 import prerna.engine.api.IEngine;
 import prerna.util.Utility;
 
@@ -82,5 +84,31 @@ public abstract class AbstractSecrets implements ISecrets {
 		}
 
 		throw new IllegalArgumentException("Unhandled engine type = " + type);
+	}
+
+	/**
+	 * Converts the stored initialization vector of an insight encryption secret to
+	 * its bytes. A store that saves the secret as JSON returns the vector as an
+	 * array of numbers.
+	 *
+	 * @param value the stored value, the bytes or an array of numbers
+	 * @return the bytes
+	 * @throws IllegalArgumentException when the value is not an array of numbers
+	 */
+	protected static byte[] toInitializationVector(Object value) {
+		if (value instanceof byte[] bytes) {
+			return bytes;
+		}
+		if (value instanceof List<?> list) {
+			byte[] bytes = new byte[list.size()];
+			for (int i = 0; i < bytes.length; i++) {
+				if (!(list.get(i) instanceof Number number)) {
+					throw new IllegalArgumentException("Invalid value in the stored " + IV + " at index " + i);
+				}
+				bytes[i] = number.byteValue();
+			}
+			return bytes;
+		}
+		throw new IllegalArgumentException("Invalid format for the stored " + IV + ". Must be an array of bytes");
 	}
 }

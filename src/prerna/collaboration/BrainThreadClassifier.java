@@ -312,7 +312,7 @@ public final class BrainThreadClassifier {
 			boolean dryRun, Self self, Set<String> vips, Map<String, Set<String>> topicVips,
 			List<BrainRulesGate.Rule> rules, Set<String> followed, Set<String> automatedSenders,
 			Map<String, BrainClassifier.Scores> scored, Window window, ZoneId timeZone, BrainMailFolders.Tree folders,
-			Map<String, String> linkedFolders) {
+			Map<String, String> linkedFolders, BrainTopicEvidence.Evidence evidence) {
 	}
 
 	// how much of a thread one model call carries; budget is characters for all messages together
@@ -333,6 +333,7 @@ public final class BrainThreadClassifier {
 		}
 		BrainClassifier classifier = BrainClassifier.forEngine(engine, model);
 		List<BrainClassifier.TopicOption> topics = topicOptions(ownerId, ownerType);
+		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
 		Set<String> vips = new HashSet<>(CollaborationDbUtils.query(
 				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND IS_VIP = ?",
 				rs -> rs.getString(1), ownerId, ownerType, true));
@@ -341,10 +342,12 @@ public final class BrainThreadClassifier {
 				rs -> rs.getString(1), ownerId, ownerType, BrainFollow.FOLLOWING));
 		return new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier), topics,
 				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType),
-				vips, BrainTopicUtils.vipTopics(ownerId, ownerType), BrainRulesGate.activeRules(ownerId, ownerType),
+				vips, BrainTopicUtils.vipTopics(ownerId, ownerType), rules,
 				followed, ConcurrentHashMap.newKeySet(), new ConcurrentHashMap<>(), window(engine),
 				BrainProfileUtils.timeZone(user), BrainMailFolders.load(ownerId, ownerType),
-				BrainMailFolders.linkedTopics(ownerId, ownerType));
+				BrainMailFolders.linkedTopics(ownerId, ownerType),
+				// read once for the run, so results do not depend on the order threads finish in
+				BrainTopicEvidence.load(ownerId, ownerType, topics, rules));
 	}
 
 	private static Result classifyOne(Context ctx, String threadId) {
@@ -615,7 +618,9 @@ public final class BrainThreadClassifier {
 		return ctx.classifier().score(new BrainClassifier.ThreadInput(threadId, ctx.self().name(), subject,
 				participants(ctx, threadId), input, window.earlier(), RuntimeTimeContext.capture(ctx.timeZone()),
 				BrainMailFolders.facts(ctx.ownerId(), ctx.ownerType(), threadId, ctx.folders())),
-				kept ? List.of() : ctx.topics(), ctx.insight());
+				// each topic with what is filed under it, less this thread's own subject
+				kept ? List.of() : BrainTopicEvidence.describe(ctx.topics(), ctx.evidence(), threadId),
+				ctx.insight());
 	}
 
 	private static String clip(Object value, int max) {

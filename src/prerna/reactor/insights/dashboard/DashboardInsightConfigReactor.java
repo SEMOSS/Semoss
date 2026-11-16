@@ -38,7 +38,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.project.api.IProject;
@@ -134,11 +133,9 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 		String[] split = engineId_rdbmsId_concat.split("__");
 		String projectId = split[0];
 		String rdbmsId = split[1];
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
 			throw new IllegalArgumentException("User does not have access to this insight");
 		}
-		// get the engine so i can get the new insight
 
 		IProject project = Utility.getProject(projectId);
 		if (project == null) {
@@ -218,6 +215,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 
 	///////////////////////// KEYS /////////////////////////////////////
 
+	@Deprecated
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(

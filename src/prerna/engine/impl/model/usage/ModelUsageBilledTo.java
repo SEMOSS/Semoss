@@ -35,15 +35,16 @@ import prerna.auth.access.ModelUsageLimitPath.StepLimitType;
 /**
  * The source a call is billed to, as the inference logs record it in
  * {@code BILLED_SOURCE_TYPE}, {@code BILLED_SUBJECT_ID} and
- * {@code BILLED_SUBJECT_TYPE}. Those columns are what a team's or public use's
- * counters are filled from, so a cold counter counts only the calls billed to
- * it.
+ * {@code BILLED_SUBJECT_TYPE}. Those columns are what a team's, an app's or
+ * public use's counters are filled from, so a cold counter counts only the
+ * calls billed to it.
  *
  * @param sourceType  which source was billed: {@code USER}, {@code TEAM},
- *                    {@code PUBLIC}, {@code ALL_MODELS} or {@code PLATFORM}
+ *                    {@code PUBLIC}, {@code PROJECT}, {@code ALL_MODELS} or
+ *                    {@code PLATFORM}
  * @param subjectId   the person's primary login id for {@code USER}, the login
- *                    id of the all-models default, or the team id; null
- *                    otherwise
+ *                    id of the all-models default, the team id, or the project
+ *                    id for {@code PROJECT}; null otherwise
  * @param subjectType the matching login type or team type; null otherwise
  */
 public record ModelUsageBilledTo(String sourceType, String subjectId, String subjectType) {
@@ -51,6 +52,7 @@ public record ModelUsageBilledTo(String sourceType, String subjectId, String sub
 	public static final String USER = "USER";
 	public static final String TEAM = "TEAM";
 	public static final String PUBLIC = "PUBLIC";
+	public static final String PROJECT = "PROJECT";
 	public static final String ALL_MODELS = "ALL_MODELS";
 	public static final String PLATFORM = "PLATFORM";
 
@@ -73,6 +75,8 @@ public record ModelUsageBilledTo(String sourceType, String subjectId, String sub
 			return TEAM;
 		case PUBLIC:
 			return PUBLIC;
+		case APP:
+			return PROJECT;
 		case ALL_MODELS:
 			return ALL_MODELS;
 		case PLATFORM:
@@ -86,9 +90,9 @@ public record ModelUsageBilledTo(String sourceType, String subjectId, String sub
 	 * What the source is called, as the usage limits UI names it, for reports and
 	 * exports.
 	 *
-	 * @return the source's name, such as "Direct Limit", "Ops Team Limit" or
-	 *         "General Platform Limit", or the source type itself when it is not
-	 *         one of the known sources
+	 * @return the source's name, such as "Direct Limit", "Ops Team Limit", "App
+	 *         Limit" or "General Platform Limit", or the source type itself when it
+	 *         is not one of the known sources
 	 */
 	public String label() {
 		if (sourceType == null) {
@@ -101,6 +105,8 @@ public record ModelUsageBilledTo(String sourceType, String subjectId, String sub
 			return subjectId == null ? "Team Limit" : subjectId + " Team Limit";
 		case PUBLIC:
 			return "Public Use Limit";
+		case PROJECT:
+			return "App Limit";
 		case ALL_MODELS:
 			return "User's Total Model Limit";
 		case PLATFORM:

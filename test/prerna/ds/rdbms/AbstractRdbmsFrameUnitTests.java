@@ -466,7 +466,7 @@ public class AbstractRdbmsFrameUnitTests {
 	@Test
 	void sizeTest() {
 		when(builder.isEmpty(anyString())).thenReturn(false).thenReturn(true);
-		when(builder.getNumRecords(anyString())).thenReturn(1);
+		when(builder.getNumRows(anyString())).thenReturn(1L);
 
 		assertEquals(1, frame.size(anyString()));
 		assertEquals(0, frame.size(anyString()));

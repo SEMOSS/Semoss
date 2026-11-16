@@ -39,12 +39,13 @@ import prerna.auth.access.ModelUsageLimitPath.StepLimitType;
 import prerna.auth.access.ModelUsageLimitRule.Counts;
 import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.auth.access.ModelUsageLimitRule.Window;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.usage.ModelUsageEvaluation.RuleCheck;
 
 /**
  * The words a refused call is answered with. Each message says which limit
  * refused the call and when it resets, and names only the model, the caller's
- * own limits and the teams the caller is in.
+ * own limits, the teams the caller is in and the app the caller is using.
  */
 final class ModelUsageFormat {
 
@@ -88,7 +89,8 @@ final class ModelUsageFormat {
 				message += (teams.size() <= 1 ? " It resets at " : " The soonest resets at ") + resetsAt + ".";
 			}
 		} else {
-			message = sentence(step.getLimitType(), check, modelName);
+			message = step.getLimitType() == StepLimitType.APP ? appSentence(step, check, modelName)
+					: sentence(step.getLimitType(), check, modelName);
 			if (resetsAt != null) {
 				message += " It resets at " + resetsAt + ".";
 			}
@@ -144,6 +146,37 @@ final class ModelUsageFormat {
 		}
 	}
 
+	/**
+	 * Words the refusal of a call an app's limit on a model refused: the app's
+	 * shared amount is used up for everyone in the app, or the person's own amount
+	 * in the app is.
+	 *
+	 * @param step      the app's step
+	 * @param check     the rule that refused, or null
+	 * @param modelName the model's name
+	 * @return the sentence
+	 */
+	private static String appSentence(Step step, RuleCheck check, String modelName) {
+		String during = check == null ? "for now" : during(check.window(), check.length());
+		String app = appName(step);
+		if (check != null && check.rule.getCounts() == Counts.SHARED) {
+			return app + " has reached its " + modelName + " limit " + during + ".";
+		}
+		return "You have reached your " + modelName + " limit in " + app + " " + during + ".";
+	}
+
+	/**
+	 * The name of the app an App Limit belongs to, for a message to someone who is
+	 * using the app: its display name, or its name when it has none. The app is
+	 * known to exist, since a path is never resolved for one that does not.
+	 *
+	 * @param step the app's step
+	 * @return the app's name
+	 */
+	private static String appName(Step step) {
+		return SecurityProjectUtils.getProjectDisplayNameForId(step.getKey().subjectId());
+	}
+
 	private static String source(RuleCheck check, String modelName) {
 		switch (check.step.getLimitType()) {
 		case MODEL_TOTAL:
@@ -156,6 +189,9 @@ final class ModelUsageFormat {
 		case PUBLIC:
 			return check.rule.getCounts() == Counts.SHARED ? "the public use limit on " + modelName
 					: "your public allowance of " + modelName;
+		case APP:
+			return check.rule.getCounts() == Counts.SHARED ? appName(check.step) + "'s limit on " + modelName
+					: "your limit on " + modelName + " in " + appName(check.step);
 		case ALL_MODELS:
 			return "your limit across all models";
 		case PLATFORM:

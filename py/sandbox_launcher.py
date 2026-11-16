@@ -639,17 +639,21 @@ def _self_test():
 # control socket.  (Plumbing is in place; exercised once Java sends commands
 # over the UDS channel -- plan steps 6c/6d.)
 # ===========================================================================
-def _serve_control(jail, inject_roots, control_sock, child_pid):
+def _serve_control(jail, inject_roots, control_sock, child_pid, source_only_roots=()):
     """Supervisor loop: accept line commands from Java and (un)mount projects.
     Protocol (tab-separated, newline-terminated): one reply line per command.
-        INJECT\t<rw|ro>\t<abs_path>   -> OK | ERR <msg>
-        REMOVE\t<abs_path>            -> OK | ERR <msg>
-        PING                          -> PONG
+        INJECT\t<rw|ro>\t<abs_path>             -> OK | ERR <msg>
+        INJECT\t<rw|ro>\t<abs_path>\t<source>   -> OK | ERR <msg>
+        REMOVE\t<abs_path>                      -> OK | ERR <msg>
+        PING                                    -> PONG
     `abs_path` is the real project/asset path; it is bound to the same path
-    inside the jail (mirroring today's symlink). After initialization, dynamic
-    mounts are allowed only when the canonical source resolves under a configured
-    runtime inject-root, normally the SEMOSS home."""
-    source_roots = _canonical_runtime_roots(inject_roots)
+    inside the jail (mirroring today's symlink). With a `source`, that folder is
+    bound at `abs_path` instead: the read-only copy of a project that a user who
+    can only view it gets. After initialization, dynamic mounts are allowed only
+    when the canonical source resolves under a configured runtime inject-root,
+    normally the SEMOSS home, or under a source-only root, the user's chroot
+    folder, and the destination stays under a runtime inject-root."""
+    source_roots = _canonical_runtime_roots(list(inject_roots) + list(source_only_roots))
     destination_roots = _destination_runtime_roots(inject_roots)
     if os.path.exists(control_sock):
         os.unlink(control_sock)
@@ -744,11 +748,12 @@ def _handle_control(jail, source_roots, destination_roots, raw):
         if cmd == "INJECT" and len(parts) >= 3:
             mode = "ro" if parts[1].strip().lower() == "ro" else "rw"
             abs_path = parts[2].strip()
-            if not _under_runtime_root(abs_path, source_roots):
-                return "ERR path not under a runtime inject root: %s" % abs_path
+            source = parts[3].strip() if len(parts) >= 4 and parts[3].strip() else abs_path
+            if not _under_runtime_root(source, source_roots):
+                return "ERR path not under a runtime inject root: %s" % source
             if not _under_mount_destination_root(abs_path, destination_roots):
                 return "ERR destination not under a runtime inject root: %s" % abs_path
-            inject(jail, abs_path, abs_path, mode)
+            inject(jail, source, abs_path, mode)
             return "OK"
         if cmd == "REMOVE" and len(parts) >= 2:
             abs_path = parts[1].strip()
@@ -836,7 +841,8 @@ def _real_mode(args):
 
     try:
         if args.control_socket:
-            _serve_control(jail, inject_roots, args.control_socket, child_pid)
+            _serve_control(jail, inject_roots, args.control_socket, child_pid,
+                           [p for p in args.inject_source_root if p])
         else:
             os.waitpid(child_pid, 0)
     finally:
@@ -861,6 +867,11 @@ def parse_args():
                         "marked a shared mount so mid-session grants propagate "
                         "into the running interpreter (repeatable; normally the "
                         "SEMOSS home)")
+    p.add_argument("--inject-source-root", action="append", default=[],
+                   help="absolute dir a runtime INJECT may also take its source "
+                        "from, such as the user's chroot folder that holds the "
+                        "read-only copy of a project; it is never mounted on its "
+                        "own and is never a destination (repeatable)")
     p.add_argument("--py-folder", default="",
                    help="SEMOSS py/ folder (gaas server code), bound read-only")
     p.add_argument("--insight-folder", default="",

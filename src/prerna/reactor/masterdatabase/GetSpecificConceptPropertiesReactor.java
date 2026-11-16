@@ -30,7 +30,6 @@ package prerna.reactor.masterdatabase;
 import java.util.List;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -61,7 +60,6 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the engine filter");
 		}
 		String engineId = engineFilterGrs.get(0).toString();
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 		List<String> dbFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 		if (!dbFilters.contains(engineId)) {
 			throw new IllegalArgumentException(

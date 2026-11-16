@@ -64,19 +64,13 @@ public final class RReactor extends AbstractRFrameReactor {
 
 	@Override
 	public NounMetadata execute() {
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
+			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 		}
 
 		// check if r is disabled
-		String disable_r_terminal = Utility.getDIHelperProperty(Constants.DISABLE_R_TERMINAL);
-		if (disable_r_terminal != null && !disable_r_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_r_terminal)) {
-				throw new IllegalArgumentException("R terminal has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_R_TERMINAL))) {
+			throw new IllegalArgumentException("R terminal has been disabled.");
 		}
 
 		// if it first time..
@@ -84,13 +78,14 @@ public final class RReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		this.rJavaTranslator = this.insight.getRJavaTranslator(logger);
 		rJavaTranslator.startR();
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null)
-				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		NounMetadata smartSyncVar = insight.getVarStore().get("SMART_SYNC");
+		boolean smartSync = Boolean.parseBoolean(smartSyncVar != null ? smartSyncVar.getValue().toString()
+				: Utility.getDIHelperProperty("SMART_SYNC"));
 		// forcing smartSync to be true all the time
 		smartSync = true;
 		if (smartSync) {
 			// see if the var has been set for first time
-			if (insight.getProperty("FIRST_SYNC") == null) {
+			if (insight.getVarStore().get("FIRST_SYNC") == null) {
 				smartSync(rJavaTranslator);
 				insight.getVarStore().put("FIRST_SYNC", new NounMetadata("True", PixelDataType.CONST_STRING));
 			}
@@ -125,7 +120,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		String panelId = "new_ggplot_panel";
 		String fileName = Utility.getRandomString(6);
 		String dir = insight.getUserFolder() + "/Temp";
-		dir = dir.replace("\\\\", "/");
+		dir = dir.replace("\\", "/");
 		File tempDir = new File(dir);
 		if (!tempDir.exists()) {
 			tempDir.mkdir();

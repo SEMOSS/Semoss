@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +37,6 @@ import org.javatuples.Pair;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
-import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -112,17 +110,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanViewInsight(User user, String projectId, String insightId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// Check to see if permission has expired
-		try {
-			boolean isExpired = insightPermissionIsExpired(User.getSingleLogginName(user), projectId, insightId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user can view insight.", e);
-		}
-
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -154,17 +141,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	public static boolean userCanEditInsight(User user, String projectId, String insightId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Collection<String> userIds = getUserFiltersQs(user);
-
-		// Check to see if permission has expired
-		try {
-			boolean isExpired = insightPermissionIsExpired(User.getSingleLogginName(user), projectId, insightId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user can edit insight.", e);
-		}
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
@@ -202,17 +178,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userIsInsightOwner(User user, String projectId, String insightId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// Check to see if permission has expired
-		try {
-			boolean isExpired = insightPermissionIsExpired(User.getSingleLogginName(user), projectId, insightId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityInsightUtils.removeExpiredInsightUser(User.getSingleLogginName(user), projectId, insightId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user owns the insight.", e);
-		}
-
 		Collection<String> userIds = getUserFiltersQs(user);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -482,36 +447,4 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	/**
-	 * Check if permission to insight has expired
-	 * 
-	 * @param engineId
-	 * @param userId
-	 */
-	public static boolean insightPermissionIsExpired(String userId, String projectId, String insightId)
-			throws Exception {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		LocalDateTime currentTime = LocalDateTime.now();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__ENDDATE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==", userId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", insightId));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				SemossDate endDate = (SemossDate) wrapper.next().getValues()[0];
-				if (endDate == null) {
-					return false;
-				}
-				LocalDateTime formattedEndDate = endDate.getLocalDateTime();
-				return formattedEndDate.isBefore(currentTime);
-			} else {
-				return false;
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to delete insight.", e);
-			throw e;
-		}
-	}
 }

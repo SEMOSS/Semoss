@@ -74,7 +74,7 @@ public class RollbackAutomationReactor extends AbstractReactor {
 		organizeKeys();
 		User user = requireUser();
 
-		String projectIdOrAlias = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String requestedProjectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String revision = this.keyValue.get(REVISION_KEY);
 		String expectedRevision = this.keyValue.get(AutomationConstants.EXPECTED_REVISION_KEY);
 		if (revision == null || revision.isBlank()) {
@@ -82,7 +82,7 @@ public class RollbackAutomationReactor extends AbstractReactor {
 		}
 
 		// Edit-level ACL - restoring writes a new commit, so the user needs edit access
-		IProject project = AutomationProjectService.getEditableAutomationProject(user, projectIdOrAlias);
+		IProject project = AutomationProjectService.getEditableAutomationProject(user, requestedProjectId);
 		String projectId = project.getProjectId();
 		AutomationDefinitionService.DefinitionFiles files = AutomationVersionService.restore(project, revision,
 				expectedRevision, user);
@@ -110,7 +110,7 @@ public class RollbackAutomationReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
 				"Restores an automation project's definition to the state at the given Git revision and saves it as a new version.")
-				.key(ReactorKeysEnum.PROJECT, "ID or alias of the automation project.")
+				.key(ReactorKeysEnum.PROJECT, "ID of the automation project.")
 				.key(REVISION_KEY, "Full Git commit SHA returned by ListAutomationVersions.")
 				.key(AutomationConstants.EXPECTED_REVISION_KEY,
 						"Current definition revision returned by GetAutomation. The restore is rejected if the automation "

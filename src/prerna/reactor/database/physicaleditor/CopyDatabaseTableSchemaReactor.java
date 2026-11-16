@@ -53,8 +53,8 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -65,90 +65,82 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 
 	private static final String SOURCE_DATABASE = "sourceDatabase";
 	private static final String SOURCE_TABLE = "sourceTable";
-	
+
 	private static final String TARGET_DATABASE = "targetDatabase";
 	private static final String TARGET_TABLE = "targetTable";
-	
+
 	private static final String IGNORE_OWL = "ignoreOWL";
 	private static final String NAME_CONVERSION_KEY = "nameConversions";
 	private static final String TYPE_CONVERSION_KEY = "typeConversions";
 	private static final String FUZZY_CONVERSION_KEY = "fuzzyConversions";
 
 	public CopyDatabaseTableSchemaReactor() {
-		this.keysToGet = new String[]{ 
-				SOURCE_DATABASE,
-				SOURCE_TABLE,
-				TARGET_DATABASE, 
-				TARGET_TABLE, 
-				ReactorKeysEnum.OVERRIDE.getKey(), 
-				IGNORE_OWL,
-				NAME_CONVERSION_KEY,
-				TYPE_CONVERSION_KEY,
-				FUZZY_CONVERSION_KEY
-			};
+		this.keysToGet = new String[] { SOURCE_DATABASE, SOURCE_TABLE, TARGET_DATABASE, TARGET_TABLE,
+				ReactorKeysEnum.OVERRIDE.getKey(), IGNORE_OWL, NAME_CONVERSION_KEY, TYPE_CONVERSION_KEY,
+				FUZZY_CONVERSION_KEY };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		Logger logger = this.getLogger(CLASS_NAME);
 
 		organizeKeys();
-		
+
 		User user = this.insight.getUser();
 		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
-		
+
 		// grab the source
 		String sourceDatabaseId = this.keyValue.get(SOURCE_DATABASE);
-		sourceDatabaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), sourceDatabaseId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), sourceDatabaseId)) {
-			throw new IllegalArgumentException("Database " + sourceDatabaseId + " does not exist or user does not have view access to the database");
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), sourceDatabaseId)) {
+			throw new IllegalArgumentException("Database " + sourceDatabaseId
+					+ " does not exist or user does not have view access to the database");
 		}
 		String sourceTable = this.keyValue.get(SOURCE_TABLE);
 
 		// grab the target
 		String targetDatabaseId = this.keyValue.get(TARGET_DATABASE);
-		targetDatabaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), targetDatabaseId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), targetDatabaseId)) {
-			throw new IllegalArgumentException("Database " + targetDatabaseId + " does not exist or user does not have edit access to the database");
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), targetDatabaseId)) {
+			throw new IllegalArgumentException("Database " + targetDatabaseId
+					+ " does not exist or user does not have edit access to the database");
 		}
 		String targetTable = this.keyValue.get(TARGET_TABLE);
 
 		IDatabaseEngine sourceDatabase = Utility.getDatabase(sourceDatabaseId);
-		if(!(sourceDatabase instanceof IRDBMSEngine)) {
+		if (!(sourceDatabase instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("This operation only works on relational databases");
 		}
 		IRDBMSEngine sourceRDBMS = (IRDBMSEngine) sourceDatabase;
-		
+
 		IDatabaseEngine targetDatabase = Utility.getDatabase(targetDatabaseId);
-		if(!(targetDatabase instanceof IRDBMSEngine)) {
+		if (!(targetDatabase instanceof IRDBMSEngine)) {
 			throw new IllegalArgumentException("This operation only works on relational databases");
 		}
 		IRDBMSEngine targetRDBMS = (IRDBMSEngine) targetDatabase;
-		
+
 		Map<String, String> nameConversionMap = getConversions(NAME_CONVERSION_KEY);
 		Map<String, String> typeConversionMap = getConversions(TYPE_CONVERSION_KEY);
 		Map<String, String> fuzzyConversionMap = getConversions(FUZZY_CONVERSION_KEY);
 
-		boolean override = Boolean.parseBoolean( this.keyValue.get(ReactorKeysEnum.OVERRIDE.getKey())+"" );
-		boolean ignoreOWL = Boolean.parseBoolean( this.keyValue.get(IGNORE_OWL)+"" );
-		
+		boolean override = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.OVERRIDE.getKey()) + "");
+		boolean ignoreOWL = Boolean.parseBoolean(this.keyValue.get(IGNORE_OWL) + "");
+
 		// grab the details from the source
 		LinkedHashMap<String, String> finalTypes = new LinkedHashMap<>();
 		LinkedHashMap<String, String> sourceDetails = getColumnDetails(sourceRDBMS, sourceTable);
-		REPLACEMENT_LOOP : for(String name : sourceDetails.keySet()) {
+		REPLACEMENT_LOOP: for (String name : sourceDetails.keySet()) {
 			String currentType = sourceDetails.get(name);
 			// we do in order
 			// did the person give this name a new type
 			// is the exact type getting a new type
 			// or are we doing a fuzzy replacement
 			// finally, no change, set as normal
-			
+
 			// by name
-			if(nameConversionMap != null){
-				if(nameConversionMap.containsKey(name)) {
+			if (nameConversionMap != null) {
+				if (nameConversionMap.containsKey(name)) {
 					String newType = nameConversionMap.get(name);
 					finalTypes.put(name, newType);
 					continue REPLACEMENT_LOOP;
@@ -156,111 +148,118 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 			}
 
 			// by type
-			if(typeConversionMap != null) {
-				if(typeConversionMap.containsKey(currentType)) {
+			if (typeConversionMap != null) {
+				if (typeConversionMap.containsKey(currentType)) {
 					String newType = typeConversionMap.get(currentType);
 					finalTypes.put(name, newType);
 					continue REPLACEMENT_LOOP;
 				}
 			}
-			
+
 			// fuzzy matching
-			if(fuzzyConversionMap != null) {
-				for(String thisFuzzy : fuzzyConversionMap.keySet()) {
+			if (fuzzyConversionMap != null) {
+				for (String thisFuzzy : fuzzyConversionMap.keySet()) {
 					String replacement = fuzzyConversionMap.get(thisFuzzy);
-					
+
 					// see if this fuzzy match hits the current type
 					Pattern pattern = Pattern.compile(thisFuzzy, Pattern.CASE_INSENSITIVE);
 					// test the matcher with the current type
 					Matcher matcher = pattern.matcher(currentType);
 					boolean matchFound = matcher.find();
-					if(matchFound) {
+					if (matchFound) {
 						String newType = currentType.replace(matcher.group(), replacement);
 						finalTypes.put(name, newType);
 						continue REPLACEMENT_LOOP;
 					}
 				}
 			}
-			
+
 			// nothing matched
 			// just add
 			finalTypes.put(name, currentType);
 		}
-		
+
 		// only attempt to drop if the table already exists
-		if(override && targetRDBMS.getQueryUtil().tableExists(targetRDBMS, targetTable, targetRDBMS.getDatabase(), targetRDBMS.getSchema())) {
+		if (override && targetRDBMS.getQueryUtil().tableExists(targetRDBMS, targetTable, targetRDBMS.getDatabase(),
+				targetRDBMS.getSchema())) {
 			String dropTable = targetRDBMS.getQueryUtil().dropTable(targetTable);
 			try {
-				classLogger.info(User.getSingleLogginName(user) + " is droping existing table on " + targetDatabaseId + " with sql: " + dropTable);
+				classLogger.info("{} is dropping the existing table on {} with sql: {}", User.getSingleLogginName(user),
+						targetDatabaseId, dropTable);
 				targetRDBMS.removeData(dropTable);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error occured dropping the table in the target database " + targetDatabaseId + ". Detailed message = " 
-						+ e.getMessage() + ". SQL Executed = " + dropTable);
+				classLogger.error("Failed to drop table {} in database {}", targetTable, targetDatabaseId, e);
+				throw new IllegalArgumentException(
+						"Error occured dropping the table in the target database " + targetDatabaseId
+								+ ". Detailed message = " + e.getMessage() + ". SQL Executed = " + dropTable);
 			}
 		}
-		
+
 		// write it to the target
 		String createTable = targetRDBMS.getQueryUtil().createTable(targetTable, finalTypes);
 		try {
-			classLogger.info(User.getSingleLogginName(user) + " is creating table on " + targetDatabaseId + " with sql: " + createTable);
+			classLogger.info("{} is creating a table on {} with sql: {}", User.getSingleLogginName(user),
+					targetDatabaseId, createTable);
 			targetRDBMS.insertData(createTable);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured creating the table in the target database " + targetDatabaseId + ". Detailed message = " 
-					+ e.getMessage() + ". SQL Executed = " + createTable);
+			classLogger.error("Failed to create table {} in database {}", targetTable, targetDatabaseId, e);
+			throw new IllegalArgumentException("Error occured creating the table in the target database "
+					+ targetDatabaseId + ". Detailed message = " + e.getMessage() + ". SQL Executed = " + createTable);
 		}
-		
+
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
-		if(ignoreOWL) {
+		if (ignoreOWL) {
 			logger.info("Ignoring any OWL modifications");
 		} else {
 			try {
 				long start = System.currentTimeMillis();
 				logger.info("Start to add the new exisitng concept from the OWL");
-				try (WriteOWLEngine owlEngine = targetDatabase.getOWLEngineFactory().getWriteOWL()){
+				try (WriteOWLEngine owlEngine = targetDatabase.getOWLEngineFactory().getWriteOWL()) {
 					ClusterUtil.pullOwl(targetDatabaseId, owlEngine);
-	
+
 					// if we are overwriting the existing value
 					// we need to grab the current concept/columns
 					// and we need to delete them
 					// then do the add new table logic
 					String conceptPhysical = owlEngine.getPhysicalUriFromPixelSelector(targetTable);
-					if(conceptPhysical != null)
-					{
+					if (conceptPhysical != null) {
 						long start2 = System.currentTimeMillis();
 						logger.info("Need to first remove the exisitng concept from the OWL");
 						owlEngine.removeConcept(targetTable);
 						long end2 = System.currentTimeMillis();
-						logger.info("Finished removing concept from the OWL. Total time = "+((end2-start2)/1000)+" seconds");
+						logger.info("Finished removing concept from the OWL. Total time = {} seconds",
+								(end2 - start2) / 1000);
 					}
 					// choose the first column as the prim key
 					owlEngine.addConcept(targetTable, null, null);
 					// add all properties
-					for(String columnName : sourceDetails.keySet()) {
+					for (String columnName : sourceDetails.keySet()) {
 						owlEngine.addProp(targetTable, columnName, sourceDetails.get(columnName), null);
 					}
-					
+
 					try {
 						logger.info("Persisting engine metadata and synchronizing with local master");
 						owlEngine.export();
-						Utility.synchronizeEngineMetadata(targetDatabaseId);
+						InternalUtility.synchronizeEngineMetadata(targetDatabaseId);
 						// also push to cloud
 						ClusterUtil.pushOwl(targetDatabaseId, owlEngine);
 						EngineSyncUtility.clearEngineCache(targetDatabaseId);
 						logger.info("Finished persisting engine metadata and synchronizing with local master");
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to save and sync the metadata of database {}", targetDatabaseId, e);
 					}
-	
+
 				} catch (InterruptedException | IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to add table {} to the metadata of database {}", targetTable,
+							targetDatabaseId, e);
 				}
 				long end = System.currentTimeMillis();
-				logger.info("Finished adding concept to the OWL. Total time = "+((end-start)/1000)+" seconds");
+				logger.info("Finished adding concept to the OWL. Total time = {} seconds", (end - start) / 1000);
 			} catch (Exception e2) {
-				classLogger.error(Constants.STACKTRACE, e2);
-				noun.addAdditionalReturn(NounMetadata.getWarningNounMessage("Physical database changed but unable to update OWL. Detailed message = " + e2.getMessage()));
+				classLogger.error("Failed to update the metadata of database {} after copying table {}",
+						targetDatabaseId, targetTable, e2);
+				noun.addAdditionalReturn(NounMetadata.getWarningNounMessage(
+						"Physical database changed but unable to update OWL. Detailed message = " + e2.getMessage()));
 			}
 		}
 		// push the target
@@ -268,7 +267,7 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 
 		return noun;
 	}
-	
+
 	/**
 	 * 
 	 * @param databaseId
@@ -281,31 +280,33 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 		try {
 			con = rdbms.getConnection();
 			// the final map
-			LinkedHashMap<String, String> columnDetails = queryUtil.getAllTableColumnTypesSimple(con, table, rdbms.getDatabase(), rdbms.getSchema());
+			LinkedHashMap<String, String> columnDetails = queryUtil.getAllTableColumnTypesSimple(con, table,
+					rdbms.getDatabase(), rdbms.getSchema());
 			return columnDetails;
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occured getting the physical table structure. Detailed message = " + e.getMessage());
+			classLogger.error("Failed to read the columns of table {}", table, e);
+			throw new IllegalArgumentException(
+					"Error occured getting the physical table structure. Detailed message = " + e.getMessage());
 		} finally {
-			if(rdbms.isConnectionPooling()) {
+			if (rdbms.isConnectionPooling()) {
 				ConnectionUtils.closeConnection(con);
 			}
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	private Map<String, String> getConversions(String key) {
 		GenRowStruct mapGrs = this.store.getGenRowStruct(key);
-		if(mapGrs != null && !mapGrs.isEmpty()) {
+		if (mapGrs != null && !mapGrs.isEmpty()) {
 			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if(mapInputs != null && !mapInputs.isEmpty()) {
+			if (mapInputs != null && !mapInputs.isEmpty()) {
 				return (Map<String, String>) mapInputs.get(0).getValue();
 			}
 		}
 		return null;
 	}
-	
+
 }

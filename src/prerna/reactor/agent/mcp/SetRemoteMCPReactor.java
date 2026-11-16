@@ -46,7 +46,9 @@ import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.SecretRedactor;
 import prerna.util.Constants;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
@@ -80,7 +82,6 @@ public class SetRemoteMCPReactor extends AbstractReactor {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
 			throw new IllegalArgumentException("Project " + projectId
 					+ " does not exist or user does not have permissions to set the remote MCP. User must be the owner to perform this function.");
@@ -122,7 +123,7 @@ public class SetRemoteMCPReactor extends AbstractReactor {
 
 		String smssFilePath = project.getSmssFilePath();
 		try {
-			Utility.changePropertiesFileValue(smssFilePath, smssUpdates, false);
+			InternalUtility.changePropertiesFileValue(smssFilePath, smssUpdates, false);
 		} catch (IOException e) {
 			classLogger.error("Error occurred updating the project smss file for the remote MCP", e);
 			throw new IllegalArgumentException(
@@ -135,6 +136,9 @@ public class SetRemoteMCPReactor extends AbstractReactor {
 		if (smssProp != null) {
 			smssUpdates.forEach(smssProp::setProperty);
 		}
+		Properties updatedValues = new Properties();
+		updatedValues.putAll(smssUpdates);
+		SecretRedactor.recordSecrets(projectId, updatedValues);
 		project.resetMCP();
 		ClusterUtil.pushProjectSmss(projectId);
 

@@ -53,7 +53,7 @@ public class GetNLPVizOptionsReactor extends AbstractRFrameReactor {
 	 */
 
 	protected static final String SORT_PIXEL = "sortPixel";
-	protected static final String CLASS_NAME = CreateNLPVizReactor.class.getName();
+	protected static final String CLASS_NAME = GetNLPVizOptionsReactor.class.getName();
 
 	public GetNLPVizOptionsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.COLUMNS.getKey(),

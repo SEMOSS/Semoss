@@ -1067,20 +1067,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	}
 
 	///
-	/// removeExpiredEngineUser
-	///
-
-	@Test
-	void testRemoveExpiredEngineUser() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
-
-		SecurityEngineUtils.removeExpiredEngineUser("adminid", "testId");
-		assertFalse(SecurityEngineUtils.userIsOwner(user, "testId"));
-		assertFalse(SecurityEngineUtils.userCanViewEngine(user, "testId"));
-	}
-
-	///
 	/// setEngineGlobal
 	///
 
@@ -1670,23 +1656,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	private static ModelUsageLimit tokensADay(long amount) {
 		return ModelUsageLimit
 				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, amount, Window.DAY, Counts.EACH_PERSON)));
-	}
-
-	///
-	/// updateEngineToolApp
-	///
-
-	@Test
-	void testUpdateEngineToolApp() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "ta", user);
-
-		SecurityEngineUtils.updateEngineToolApp("testId", "testToolApp");
-
-		List<Map<String, Object>> engineList = SecurityEngineUtils.getUserEngineList(user, null, null);
-		assertEquals(1, engineList.size());
-
-		assertEquals("testToolApp", engineList.getFirst().get("engine_tool_app"));
 	}
 
 	///

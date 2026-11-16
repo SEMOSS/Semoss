@@ -113,8 +113,7 @@ class AppCreationAuditTest {
 		try (var security = mockStatic(SecurityProjectUtils.class);
 				var inputs = mockStatic(UploadInputUtility.class);
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
-			inputs.when(() -> UploadInputUtility.getProjectNameOrId(store)).thenReturn("alias");
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "alias")).thenReturn("project");
+			inputs.when(() -> UploadInputUtility.getProjectNameOrId(store)).thenReturn("project");
 			security.when(() -> SecurityProjectUtils.userCanEditProject(user, "project")).thenReturn(true);
 			security.when(SecurityProjectUtils::getAllMetakeys).thenReturn(List.of("description"));
 			if (fail) {
@@ -168,7 +167,6 @@ class AppCreationAuditTest {
 				var cluster = mockStatic(ClusterUtil.class);
 				var portals = mockStatic(ProjectPortalsHelper.class);
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "project")).thenReturn("project");
 			security.when(() -> SecurityProjectUtils.userCanEditProject(user, "project")).thenReturn(true);
 			utility.when(() -> Utility.getProject("project")).thenReturn(project);
 			assets.when(() -> AssetUtility.getProjectPortalsFolder("project")).thenReturn(directory.toString());
@@ -200,7 +198,7 @@ class AppCreationAuditTest {
 		var reactor = new CreateAppFromBlocksReactor() {
 			@Override
 			protected void organizeKeys() {
-				keyValue.put("project", "Test app");
+				keyValue.put("catalogName", "Test app");
 				keyValue.put("global", "false");
 			}
 		};
@@ -251,7 +249,7 @@ class AppCreationAuditTest {
 		var reactor = new CreateAppFromTemplateReactor() {
 			@Override
 			protected void organizeKeys() {
-				keyValue.put("project", "Copy of my twin");
+				keyValue.put("catalogName", "Copy of my twin");
 				keyValue.put("projectTemplate", "twin");
 			}
 		};
@@ -284,7 +282,7 @@ class AppCreationAuditTest {
 		var reactor = new CreateAppFromTemplateReactor() {
 			@Override
 			protected void organizeKeys() {
-				keyValue.put("project", "Cloned app");
+				keyValue.put("catalogName", "Cloned app");
 				keyValue.put("projectTemplate", "template");
 			}
 		};

@@ -75,7 +75,6 @@ public class ImageCaptureReactor extends AbstractReactor {
 		if (projectId == null || projectId.trim().isEmpty()) {
 			throw new IllegalArgumentException("Project is required.");
 		}
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId.trim());
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException(
 					"Project does not exist or user does not have access to edit the project.");
