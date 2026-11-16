@@ -45,6 +45,7 @@ import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -180,29 +181,17 @@ public class VectorFileDownloadReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(FILE_NAMES)) {
-			return MCP_KEY_TYPE.ARRAY;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return """
-				Downloads original document files from a vector database. \
-				Retrieves the actual source files that were uploaded to the vector database. \
-				Downloads a single file if one file is specified, or a zip archive containing multiple files. \
-				Returns a download key. If this is being called as an MCP, ignore the download key and alert the user it's been added to the room.\
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(FILE_NAMES)) {
-			return "The list of file names to download from the vector database";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Downloads original document files from a vector database. \
+								Retrieves the actual source files that were uploaded to the vector database. \
+								Downloads a single file if one file is specified, or a zip archive containing multiple files. \
+								Returns a download key. If this is being called as an MCP, ignore the download key and alert the user it's been added to the room.\
+								""")
+				.key(FILE_NAMES, key -> key.type(List.class)
+						.description("The list of file names to download from the vector database"));
 	}
 
 }

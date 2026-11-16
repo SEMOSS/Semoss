@@ -54,6 +54,7 @@ import org.eclipse.jgit.treewalk.EmptyTreeIterator;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -66,14 +67,18 @@ import prerna.util.Utility;
  * This reactor returns the list of changed files for a specific commit in an
  * engine's git repository, with optional unified diff text for a single file.
  * 
- * <p>When called without a filePath, it returns a summary of all changed files
- * and their change types (ADD, MODIFY, DELETE, RENAME, COPY). When called with
- * a filePath, it additionally returns the unified diff text for that specific
+ * <p>
+ * When called without a filePath, it returns a summary of all changed files and
+ * their change types (ADD, MODIFY, DELETE, RENAME, COPY). When called with a
+ * filePath, it additionally returns the unified diff text for that specific
  * file, along with flags indicating if the file is binary or if the diff was
- * truncated due to size.</p>
+ * truncated due to size.
+ * </p>
  * 
- * <p>For merge commits, the diff is computed against the first parent. For the
- * initial commit (no parent), the diff is computed against an empty tree.</p>
+ * <p>
+ * For merge commits, the diff is computed against the first parent. For the
+ * initial commit (no parent), the diff is computed against an empty tree.
+ * </p>
  */
 public class EngineCommitDiffReactor extends AbstractReactor {
 
@@ -113,8 +118,8 @@ public class EngineCommitDiffReactor extends AbstractReactor {
 		}
 
 		IEngine engine = Utility.getEngine(engineId);
-		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
-				engine.getCatalogType(), engineId, engine.getEngineName());
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(), engineId,
+				engine.getEngineName());
 
 		List<Map<String, Object>> result = new ArrayList<>();
 
@@ -213,16 +218,16 @@ public class EngineCommitDiffReactor extends AbstractReactor {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Error getting commit diff for engine {} and commit {}", engineId, commitId, e);
-			throw new SemossPixelException(
-					"Error occurred getting the commit diff. Detailed error = " + e.getMessage(), e);
+			throw new SemossPixelException("Error occurred getting the commit diff. Detailed error = " + e.getMessage(),
+					e);
 		}
 
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.ENGINE_INFO);
 	}
 
 	/**
-	 * Strips the git plumbing headers from a unified diff, returning only the
-	 * hunk content lines (starting from the first @@ marker).
+	 * Strips the git plumbing headers from a unified diff, returning only the hunk
+	 * content lines (starting from the first @@ marker).
 	 *
 	 * @param rawDiff the full diff output including headers
 	 * @return the diff content without plumbing headers
@@ -243,8 +248,8 @@ public class EngineCommitDiffReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Prepares a tree parser for a given commit, used to compute diffs between
-	 * two commits.
+	 * Prepares a tree parser for a given commit, used to compute diffs between two
+	 * commits.
 	 *
 	 * @param repo   the git repository
 	 * @param commit the commit to parse the tree for
@@ -260,20 +265,11 @@ public class EngineCommitDiffReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor returns the changed files and optional diff for a commit in an engine";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The engine id";
-		} else if (key.equals(COMMIT_ID_KEY)) {
-			return "The commit SHA to get the diff for";
-		} else if (key.equals(FILE_PATH_KEY)) {
-			return "Optional file path to get a specific file diff";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This reactor returns the changed files and optional diff for a commit in an engine")
+				.key(ReactorKeysEnum.ENGINE, "The engine id").key(COMMIT_ID_KEY, "The commit SHA to get the diff for")
+				.key(FILE_PATH_KEY, "Optional file path to get a specific file diff");
 	}
 
 }

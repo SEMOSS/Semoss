@@ -30,6 +30,7 @@ package prerna.reactor.task.modifiers;
 import java.util.ArrayList;
 import java.util.List;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.om.GenRowStruct;
 
@@ -67,13 +68,8 @@ public abstract class AbstractLambdaTaskReactor extends TaskBuilderReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("CODE")) {
-			return "The code block for the lambda function";
-		} else if (key.equals(IMPORTS_KEY)) {
-			return "The imports to add as part of the class";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().key("CODE", "The code block for the lambda function").key(IMPORTS_KEY,
+				"The imports to add as part of the class");
 	}
 }

@@ -30,6 +30,7 @@ package prerna.reactor.frame.r;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -41,19 +42,19 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * left and right of the index
  */
 public class SeparateColumnReactor extends AbstractRFrameReactor {
-	
+
 	/**
-	 * R example 
-	 * library(tidyr) 
-	 * df <- data.frame(date = c(201401, 201402, 201403,201412), test=c('a', 'b', 'c', 'd')) 
-	 * df = df %>% separate(date, into = c('year', 'month'), sep = 4, remove=FALSE)
+	 * R example library(tidyr) df <- data.frame(date = c(201401, 201402,
+	 * 201403,201412), test=c('a', 'b', 'c', 'd')) df = df %>% separate(date, into =
+	 * c('year', 'month'), sep = 4, remove=FALSE)
 	 */
-	
+
 	private static final String LEFT_COLUMN_NAME_INPUT = "lName";
 	private static final String RIGHT_COLUMN_NAME_INPUT = "rName";
 
 	public SeparateColumnReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.INDEX.getKey(), LEFT_COLUMN_NAME_INPUT, RIGHT_COLUMN_NAME_INPUT};
+		this.keysToGet = new String[] { ReactorKeysEnum.COLUMN.getKey(), ReactorKeysEnum.INDEX.getKey(),
+				LEFT_COLUMN_NAME_INPUT, RIGHT_COLUMN_NAME_INPUT };
 	}
 
 	@Override
@@ -105,7 +106,7 @@ public class SeparateColumnReactor extends AbstractRFrameReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
-		
+
 		// update meta data
 		metadata.addProperty(dataFrame, dataFrame + "__" + leftColumnName);
 		metadata.setAliasToProperty(dataFrame + "__" + leftColumnName, leftColumnName);
@@ -118,22 +119,19 @@ public class SeparateColumnReactor extends AbstractRFrameReactor {
 		metadata.setDerivedToProperty(dataFrame + "__" + rightColumnName, true);
 		frame.syncHeaders();
 
-
-		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,PixelOperationType.FRAME_DATA_CHANGE);
+		NounMetadata retNoun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_HEADERS_CHANGE,
+				PixelOperationType.FRAME_DATA_CHANGE);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully separated " + column + " ."));
 		return retNoun;
 	}
-	
-	
+
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(LEFT_COLUMN_NAME_INPUT)) {
-			return "The new column name for the left side";
-		} else if(key.equals(RIGHT_COLUMN_NAME_INPUT)) {
-			return "The new column name for the right side";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Splits a column of the R frame at a character position into two new string columns with the given left and right names, keeping the original column.")
+				.key(ReactorKeysEnum.INDEX, "The character position at which to split the column.")
+				.key(LEFT_COLUMN_NAME_INPUT, "The new column name for the left side")
+				.key(RIGHT_COLUMN_NAME_INPUT, "The new column name for the right side");
 	}
 
 }

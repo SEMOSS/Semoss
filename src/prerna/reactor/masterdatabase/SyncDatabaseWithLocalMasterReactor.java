@@ -36,12 +36,13 @@ import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -72,7 +73,7 @@ public class SyncDatabaseWithLocalMasterReactor extends AbstractReactor {
 		logger.info("Finished removing existing metadata");
 
 		logger.info("Starting to add metadata");
-		String smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
+		String smssFile = InternalUtility.getEngineSmssPath(databaseId);
 		Properties prop = Utility.loadProperties(smssFile);
 		AddToMasterDB adder = new AddToMasterDB();
 		adder.registerEngineLocal(smssFile, prop);
@@ -87,16 +88,9 @@ public class SyncDatabaseWithLocalMasterReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Synchronizes a database's metadata with the local master database by removing existing metadata and re-registering from the database files";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id to synchronize metadata for";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Synchronizes a database's metadata with the local master database by removing existing metadata and re-registering from the database files")
+				.key(ReactorKeysEnum.DATABASE, "The database id to synchronize metadata for");
 	}
 }

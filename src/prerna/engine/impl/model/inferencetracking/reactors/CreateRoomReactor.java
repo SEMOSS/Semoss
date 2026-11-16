@@ -61,7 +61,7 @@ public class CreateRoomReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = insight.getUser();
+		User user = requireUser();
 
 		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());

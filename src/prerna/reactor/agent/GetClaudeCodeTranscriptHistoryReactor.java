@@ -38,20 +38,21 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.RoomUtils;
 
 /**
  * One-shot reactor that reads an existing room's Claude Code JSONL transcript
  * from disk and returns each line parsed through
  * {@link ClaudeCodeTranscriptParser} - the same parser the live websocket
- * tailer uses - so the frontend can render existing history with the same
- * logic it uses for streamed updates.
+ * tailer uses - so the frontend can render existing history with the same logic
+ * it uses for streamed updates.
  */
 public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
 
@@ -71,13 +72,13 @@ public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Room id is required");
 		}
 		String finalRoomId = roomId.trim();
-		
+
 		List<Object> events = new ArrayList<>();
-		
+
 		Room room;
 		try {
-		    room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-		} catch(Exception e) {
+			room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		} catch (Exception e) {
 			return new NounMetadata(events, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		}
 
@@ -110,15 +111,10 @@ public class GetClaudeCodeTranscriptHistoryReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reads an existing room's Claude Code JSONL transcript from disk and returns the parsed events in the same shape the live websocket emits.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Room identifier whose Claude Code transcript should be read and parsed.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Reads an existing room's Claude Code JSONL transcript from disk and returns the parsed events in the same shape the live websocket emits.")
+				.key(ReactorKeysEnum.ROOM_ID,
+						"Room identifier whose Claude Code transcript should be read and parsed.");
 	}
 }

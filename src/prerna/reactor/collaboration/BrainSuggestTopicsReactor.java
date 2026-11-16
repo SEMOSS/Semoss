@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicSuggest;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSuggestTopics(dryRun=[true]); previews the standard onboarding proposals.
@@ -43,18 +44,12 @@ public class BrainSuggestTopicsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Onboarding topic proposals from imported headers using structure clustering and three complete model votes. "
-				+ "Sorted mail uses the wider pool; otherwise proposals require engagement. dryRun returns proposals without "
-				+ "writing topics. A successful write replaces undecided brain suggestions; owner-accepted topics remain. "
-				+ "Accept by saving with status active. Model or header failure returns modelError";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		return switch (key) {
-		case "dryRun" -> "true to preview without replacing or writing topics; default false";
-		default -> super.getDescriptionForKey(key);
-		};
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Onboarding topic proposals from imported headers using structure clustering and three complete model votes. "
+						+ "Sorted mail uses the wider pool; otherwise proposals require engagement. dryRun returns proposals without "
+						+ "writing topics. A successful write replaces undecided brain suggestions; owner-accepted topics remain. "
+						+ "Accept by saving with status active. Model or header failure returns modelError")
+				.key("dryRun", "true to preview without replacing or writing topics; default false");
 	}
 }

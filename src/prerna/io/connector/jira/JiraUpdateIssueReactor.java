@@ -31,12 +31,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -68,8 +69,7 @@ public class JiraUpdateIssueReactor extends AbstractReactor {
 
 			Map<String, Object> inputMap = getInputFieldMap();
 			if (inputMap == null || inputMap.isEmpty()) {
-				throw new SemossPixelException(
-						"paramMap is required and must be passed as a JSON object / MAP");
+				throw new SemossPixelException("paramMap is required and must be passed as a JSON object / MAP");
 			}
 
 			Map<String, Object> fieldMap = new HashMap<>(inputMap);
@@ -110,7 +110,6 @@ public class JiraUpdateIssueReactor extends AbstractReactor {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	private String extractStringValue(Object value) {
 		if (value instanceof String && !((String) value).trim().isEmpty()) {
 			return ((String) value).trim();
@@ -128,9 +127,8 @@ public class JiraUpdateIssueReactor extends AbstractReactor {
 		return null;
 	}
 
-	@SuppressWarnings("unchecked")
 	private Map<String, Object> getInputFieldMap() {
-		GenRowStruct grs = this.store.getNoun(PARAM_MAP);
+		GenRowStruct grs = this.store.getGenRowStruct(PARAM_MAP);
 		if (grs != null && !grs.isEmpty()) {
 			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
 			if (mapNouns != null && !mapNouns.isEmpty()) {
@@ -145,17 +143,10 @@ public class JiraUpdateIssueReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Updates an existing Jira issue. Only accepts editable issue fields as returned by JiraGetUpdateFields, plus status or transition for workflow changes.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(JIRAID)) {
-			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
-		} else if (key.equals(PARAM_MAP)) {
-			return "Required object / MAP of editable field key-value pairs as returned by JiraGetUpdateFields. Pass paramMap as a raw JSON object / MAP, not as a quoted JSON string. Also accepts status (target status name) or transition (transition id or name) for workflow changes.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Updates an existing Jira issue. Only accepts editable issue fields as returned by JiraGetUpdateFields, plus status or transition for workflow changes.")
+				.key(JIRAID, "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).").key(PARAM_MAP,
+						"Required object / MAP of editable field key-value pairs as returned by JiraGetUpdateFields. Pass paramMap as a raw JSON object / MAP, not as a quoted JSON string. Also accepts status (target status name) or transition (transition id or name) for workflow changes.");
 	}
 }

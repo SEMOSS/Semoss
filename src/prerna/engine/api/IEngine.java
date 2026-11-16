@@ -33,6 +33,7 @@ import java.util.Properties;
 
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.logging.IgnoreEngineLogging;
 
 public interface IEngine extends Closeable {
@@ -61,6 +62,7 @@ public interface IEngine extends Closeable {
 	 * @param engineId - id to set the engine
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setEngineId(String engineId);
 
 	/**
@@ -69,6 +71,7 @@ public interface IEngine extends Closeable {
 	 * @return Name of the engine
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getEngineId();
 
 	/**
@@ -78,6 +81,7 @@ public interface IEngine extends Closeable {
 	 * @param engineName - Name of the engine that this is being set to
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setEngineName(String engineName);
 
 	/**
@@ -86,6 +90,7 @@ public interface IEngine extends Closeable {
 	 * @return Name of the engine
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getEngineName();
 
 	/**
@@ -94,6 +99,7 @@ public interface IEngine extends Closeable {
 	 * @param displayName - Display name of the engine
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setDisplayName(String displayName);
 
 	/**
@@ -103,6 +109,7 @@ public interface IEngine extends Closeable {
 	 * @return Display name of the engine
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getDisplayName();
 
 	/**
@@ -116,6 +123,7 @@ public interface IEngine extends Closeable {
 	 *                     connection details
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
 	void open(String smssFilePath) throws Exception;
 
 	/**
@@ -129,6 +137,7 @@ public interface IEngine extends Closeable {
 	 *                 the engine connection details
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
 	void open(Properties smssProp) throws Exception;
 
 	/**
@@ -136,6 +145,7 @@ public interface IEngine extends Closeable {
 	 * @param smssFilePath
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setSmssFilePath(String smssFilePath);
 
 	/**
@@ -143,6 +153,7 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
 	String getSmssFilePath();
 
 	/**
@@ -151,6 +162,7 @@ public interface IEngine extends Closeable {
 	 * @param prop
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
 	void setSmssProp(Properties smssProp);
 
 	/**
@@ -159,6 +171,7 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
 	Properties getSmssProp();
 
 	/**
@@ -169,6 +182,7 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
 	Properties getOrigSmssProp();
 
 	/**
@@ -176,6 +190,7 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	CATALOG_TYPE getCatalogType();
 
 	/**
@@ -183,6 +198,7 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getCatalogSubType(Properties smssProp);
 
 	/**
@@ -190,6 +206,7 @@ public interface IEngine extends Closeable {
 	 * 
 	 * @throws IOException
 	 */
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void delete() throws IOException;
 
 	/**
@@ -199,6 +216,7 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean holdsFileLocks();
 
 	/**
@@ -207,6 +225,7 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean isBasic();
 
 	/**
@@ -215,6 +234,7 @@ public interface IEngine extends Closeable {
 	 * @param isBasic
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setBasic(boolean isBasic);
 
 	/**
@@ -222,6 +242,7 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean isMCPEnabled();
 
 	/**
@@ -229,6 +250,7 @@ public interface IEngine extends Closeable {
 	 * @param loggerName
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Logger getEngineLogger(String loggerName);
 
 	/**
@@ -244,5 +266,6 @@ public interface IEngine extends Closeable {
 	 * @return true when the engine's calls keep their input and output
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean keepInputOutput();
 }

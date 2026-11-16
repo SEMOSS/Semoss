@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -76,18 +77,12 @@ public class GoogleDocsUpdateReactor extends AbstractGoogleReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Update an existing document in Google Docs.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ID.getKey())) {
-			return "Unique identifier of the document to update (" + ReactorKeysEnum.ID.getKey() + ").";
-		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
-			return "Updated content to write to the document (" + ReactorKeysEnum.CONTENT.getKey() + ").";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Update an existing document in Google Docs.")
+				.key(ReactorKeysEnum.ID,
+						"Unique identifier of the document to update (" + ReactorKeysEnum.ID.getKey() + ").")
+				.key(ReactorKeysEnum.CONTENT,
+						"Updated content to write to the document (" + ReactorKeysEnum.CONTENT.getKey() + ").");
 	}
 
 }

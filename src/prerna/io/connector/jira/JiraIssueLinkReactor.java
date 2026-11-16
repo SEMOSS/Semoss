@@ -29,12 +29,13 @@ package prerna.io.connector.jira;
 
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -82,7 +83,8 @@ public class JiraIssueLinkReactor extends AbstractReactor {
 					throw new SemossPixelException(
 							"Cannot link an issue to itself. inwardIssue and outwardIssue must be different.");
 				}
-				Map<String, Object> result = JiraHelper.linkIssues(accessToken, baseUrl, linkType, inwardIssue, outwardIssue);
+				Map<String, Object> result = JiraHelper.linkIssues(accessToken, baseUrl, linkType, inwardIssue,
+						outwardIssue);
 				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 			case "unlink": {
@@ -104,23 +106,17 @@ public class JiraIssueLinkReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Manages links between Jira issues. Supports link and unlink operations.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ACTION)) {
-			return "Required operation to perform. Valid values: link - creates a link between two issues (linkType, inwardIssue, outwardIssue required). unlink - removes an existing link (linkId required).";
-		} else if (key.equals(LINK_TYPE)) {
-			return "Exact link type name (for example, Blocks, Relates, Duplicate). Required for link action.";
-		} else if (key.equals(INWARD_ISSUE)) {
-			return "Jira issue key for the inward side of the link (for example, RTJ-123). Required for link action.";
-		} else if (key.equals(OUTWARD_ISSUE)) {
-			return "Jira issue key for the outward side of the link (for example, RTJ-456). Required for link action.";
-		} else if (key.equals(LINK_ID)) {
-			return "Numeric issue link id to remove. Required for unlink action.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Manages links between Jira issues. Supports link and unlink operations.")
+				.key(ACTION,
+						"Required operation to perform. Valid values: link - creates a link between two issues (linkType, inwardIssue, outwardIssue required). unlink - removes an existing link (linkId required).")
+				.key(LINK_TYPE,
+						"Exact link type name (for example, Blocks, Relates, Duplicate). Required for link action.")
+				.key(INWARD_ISSUE,
+						"Jira issue key for the inward side of the link (for example, RTJ-123). Required for link action.")
+				.key(OUTWARD_ISSUE,
+						"Jira issue key for the outward side of the link (for example, RTJ-456). Required for link action.")
+				.key(LINK_ID, "Numeric issue link id to remove. Required for unlink action.");
 	}
 }

@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -409,46 +410,24 @@ public class GitHubIssueReactor extends AbstractReactor {
 		}
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
-	public String getReactorDescription() {
-		return "Lists, retrieves, creates, updates, comments on, and searches GitHub issues, and can list labels and collaborators.";
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ACTION.equals(key)) {
-			return "Required action: list, get, get_comments, create, update, add_comment, edit_comment, delete_comment, search, list_labels, or list_collaborators.";
-		} else if (OWNER.equals(key)) {
-			return "Repository owner. Required for all actions except search.";
-		} else if (REPO.equals(key)) {
-			return "Repository name. Required for all actions except search.";
-		} else if (ISSUE_NUMBER.equals(key)) {
-			return "Issue number. Required for get, get_comments, update, and add_comment.";
-		} else if (TITLE.equals(key)) {
-			return "Issue title. Required for create. Optional for update.";
-		} else if (BODY.equals(key)) {
-			return "Issue body or comment text. Required for add_comment and edit_comment. Optional for create and update.";
-		} else if (STATE.equals(key)) {
-			return "Issue state filter (list) or update value (update). Valid values: open, closed.";
-		} else if (ASSIGNEES.equals(key)) {
-			return "Comma-separated GitHub usernames. Used by create and update.";
-		} else if (LABELS.equals(key)) {
-			return "Comma-separated labels. Used by create and update.";
-		} else if (COMMENT_ID.equals(key)) {
-			return "Comment ID. Required for edit_comment and delete_comment.";
-		} else if (QUERY.equals(key)) {
-			return "GitHub issue search query. Required for search.";
-		} else if (PAGE.equals(key)) {
-			return "Pagination page number. Defaults to 1.";
-		} else if (PER_PAGE.equals(key)) {
-			return "Pagination size per page. Defaults to 30 and is capped at 100.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists, retrieves, creates, updates, comments on, and searches GitHub issues, and can list labels and collaborators.")
+				.key(ACTION,
+						"Required action: list, get, get_comments, create, update, add_comment, edit_comment, delete_comment, search, list_labels, or list_collaborators.")
+				.key(OWNER, "Repository owner. Required for all actions except search.")
+				.key(REPO, "Repository name. Required for all actions except search.")
+				.key(ISSUE_NUMBER, "Issue number. Required for get, get_comments, update, and add_comment.")
+				.key(TITLE, "Issue title. Required for create. Optional for update.")
+				.key(BODY,
+						"Issue body or comment text. Required for add_comment and edit_comment. Optional for create and update.")
+				.key(STATE, "Issue state filter (list) or update value (update). Valid values: open, closed.")
+				.key(ASSIGNEES, "Comma-separated GitHub usernames. Used by create and update.")
+				.key(LABELS, "Comma-separated labels. Used by create and update.")
+				.key(COMMENT_ID, "Comment ID. Required for edit_comment and delete_comment.")
+				.key(QUERY, "GitHub issue search query. Required for search.")
+				.key(PAGE, "Pagination page number. Defaults to 1.")
+				.key(PER_PAGE, "Pagination size per page. Defaults to 30 and is capped at 100.");
 	}
 }

@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.agent.AutomationAgentRunAccess;
@@ -74,8 +75,7 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CancelAutomationRunReactor.class);
 
 	// Not standardized in ReactorKeysEnum - matches the local-key convention used
-	// by
-	// prerna.reactor.agent (e.g. StopAgentRunReactor.RUN_ID_KEY).
+	// by prerna.reactor.agent (e.g. StopAgentRunReactor.RUN_ID_KEY).
 	private static final String RUN_ID_KEY = "runId";
 
 	public CancelAutomationRunReactor() {
@@ -167,15 +167,10 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Requests cancellation of a running or agent-waiting Automation run for the given project.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RUN_ID_KEY.equals(key)) {
-			return "Identifier of the running automation execution to cancel.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Requests cancellation of a running or agent-waiting Automation run for the given project.")
+				.key(RUN_ID_KEY, "Identifier of the running automation execution to cancel.");
 	}
 }

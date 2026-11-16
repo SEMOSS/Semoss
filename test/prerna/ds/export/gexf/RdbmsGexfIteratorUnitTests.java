@@ -30,7 +30,6 @@ package prerna.ds.export.gexf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.util.HashMap;
@@ -39,13 +38,11 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import prerna.SemossUnitTest;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.MockedDIHelper;
 
 public class RdbmsGexfIteratorUnitTests extends SemossUnitTest {
 
@@ -77,11 +74,9 @@ public class RdbmsGexfIteratorUnitTests extends SemossUnitTest {
 		File insightCacheFolder = new File(baseFolderPath, "insight");
 		insightCacheFolder.mkdir();
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
-			when(instance.getProperty(Constants.INSIGHT_CACHE_DIR)).thenReturn(insightCacheFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
+			mockedSingleton.withProperty(Constants.INSIGHT_CACHE_DIR, insightCacheFolder.getAbsolutePath());
 			H2Frame frame = new H2Frame(colNames, types);
 			frame.addRow(values, colNames);
 			RdbmsGexfIterator it = new RdbmsGexfIterator(frame, nodeMap, edgeMap, aliasMap);
@@ -101,11 +96,9 @@ public class RdbmsGexfIteratorUnitTests extends SemossUnitTest {
 		File insightCacheFolder = new File(baseFolderPath, "insight");
 		insightCacheFolder.mkdir();
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
-			when(instance.getProperty(Constants.INSIGHT_CACHE_DIR)).thenReturn(insightCacheFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
+			mockedSingleton.withProperty(Constants.INSIGHT_CACHE_DIR, insightCacheFolder.getAbsolutePath());
 			H2Frame frame = new H2Frame(colNames, types);
 			frame.addRow(values, colNames);
 
@@ -170,11 +163,9 @@ public class RdbmsGexfIteratorUnitTests extends SemossUnitTest {
 		File insightCacheFolder = new File(baseFolderPath, "insight");
 		insightCacheFolder.mkdir();
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
-			when(instance.getProperty(Constants.INSIGHT_CACHE_DIR)).thenReturn(insightCacheFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
+			mockedSingleton.withProperty(Constants.INSIGHT_CACHE_DIR, insightCacheFolder.getAbsolutePath());
 			H2Frame frame = new H2Frame(colNames, types);
 			frame.addRow(values, colNames);
 
@@ -194,11 +185,9 @@ public class RdbmsGexfIteratorUnitTests extends SemossUnitTest {
 		File insightCacheFolder = new File(baseFolderPath, "insight");
 		insightCacheFolder.mkdir();
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
-			when(instance.getProperty(Constants.INSIGHT_CACHE_DIR)).thenReturn(insightCacheFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
+			mockedSingleton.withProperty(Constants.INSIGHT_CACHE_DIR, insightCacheFolder.getAbsolutePath());
 
 			H2Frame frame = new H2Frame(colNames, types);
 			frame.addRow(values, colNames);

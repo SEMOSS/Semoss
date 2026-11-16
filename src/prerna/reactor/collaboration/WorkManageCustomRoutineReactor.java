@@ -31,6 +31,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkCustomRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -57,7 +58,8 @@ public class WorkManageCustomRoutineReactor extends AbstractCollaborationReactor
 			return mapResult(WorkCustomRoutine.setEnabled(user, routineId, true));
 		case "run":
 			WorkCustomRoutine.runNow(user, routineId);
-			// a routine is not a sub-agent of this chat; say so, or the model waits on it with sub-agent tools
+			// a routine is not a sub-agent of this chat; say so, or the model waits on it
+			// with sub-agent tools
 			return mapResult(Map.of("routineId", routineId, "status", "started", "note",
 					"The routine now runs on its own, apart from this chat, and usually takes a few minutes. It is "
 							+ "not a sub-agent: do not wait for it or check it with sub-agent tools. Tell the owner "
@@ -80,23 +82,14 @@ public class WorkManageCustomRoutineReactor extends AbstractCollaborationReactor
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Pauses, resumes, runs now, or deletes one of the owner's routines, by its id from ListRoutines. When "
-				+ "the owner asks to run, test, try or preview a routine, call this with action run right away: the "
-				+ "owner approves it on a card, so never tell them to do it themselves. A run uses today's data and "
-				+ "runs on its own, apart from this chat, for a few minutes; it is not a sub-agent, so do not wait "
-				+ "for it. Its result shows in Routines and goes where the routine delivers; ListRoutines shows "
-				+ "whether it is still running.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROUTINE_ID.equals(key)) {
-			return "Id of the routine, from ListRoutines.";
-		}
-		if (ACTION.equals(key)) {
-			return "pause, resume, run or delete.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Pauses, resumes, runs now, or deletes one of the owner's routines, by its id from ListRoutines. When "
+						+ "the owner asks to run, test, try or preview a routine, call this with action run right away: the "
+						+ "owner approves it on a card, so never tell them to do it themselves. A run uses today's data and "
+						+ "runs on its own, apart from this chat, for a few minutes; it is not a sub-agent, so do not wait "
+						+ "for it. Its result shows in Routines and goes where the routine delivers; ListRoutines shows "
+						+ "whether it is still running.")
+				.key(ROUTINE_ID, "Id of the routine, from ListRoutines.").key(ACTION, "pause, resume, run or delete.");
 	}
 }

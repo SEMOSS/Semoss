@@ -35,7 +35,8 @@ import prerna.io.connector.mail.MailFolder;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 
 /**
- * Lists the mail folders of the signed in user's own Microsoft 365 mailbox.
+ * Lists the mail folders of the signed in user's own Microsoft 365 mailbox, the
+ * ones nested inside others included, each followed by the folders inside it.
  *
  * <p>
  * Required delegated Microsoft Graph scope: {@code Mail.Read}.
@@ -50,10 +51,15 @@ public class MicrosoftOutlookListMailFoldersReactor extends AbstractListMailFold
 
 	@Override
 	protected ConnectorPage<MailFolder> listFolders(User user, int offset, int limit) throws Exception {
-		// one more than the page holds, which is how a short page is told from a full
-		// one with more after it
-		return ConnectorPage.ofWindow(new MicrosoftOutlookMailHelper()
-				.listFolders(MicrosoftLoginUtils.getValidAccessToken(user), null, limit + 1, offset).stream()
-				.map(MicrosoftOutlookMessageMapper::toMailFolder).toList(), limit);
+		String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+		MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
+		// the inbox is named in the user's language, so it is told apart by its id
+		String inboxId = helper.wellKnownFolderId(accessToken, null, MailFolder.INBOX);
+		// graph lists one level at a time, so the whole tree is read and the page cut
+		// from it
+		return ConnectorPage.of(
+				helper.listFolderTree(accessToken, null).stream()
+						.map(node -> MicrosoftOutlookMessageMapper.toMailFolder(node, inboxId)).toList(),
+				offset, limit);
 	}
 }

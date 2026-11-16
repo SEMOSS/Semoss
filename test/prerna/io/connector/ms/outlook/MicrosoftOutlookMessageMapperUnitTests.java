@@ -28,6 +28,7 @@
 package prerna.io.connector.ms.outlook;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -36,6 +37,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import prerna.io.connector.mail.MailAttachment;
+import prerna.io.connector.mail.MailFolder;
 import prerna.io.connector.mail.MailMessage;
 
 class MicrosoftOutlookMessageMapperUnitTests {
@@ -86,5 +88,20 @@ class MicrosoftOutlookMessageMapperUnitTests {
 		Map<String, Object> output = message.toMap(true, 4);
 		assertEquals("0123 ... [truncated]", output.get("body"));
 		assertEquals(true, output.get("bodyTruncated"));
+	}
+
+	@Test
+	void theInboxIsKnownByItsIdWhateverTheUserCallsIt() {
+		MicrosoftOutlookMailHelper.FolderNode inbox = new MicrosoftOutlookMailHelper.FolderNode(
+				Map.of("id", "inbox-id", "displayName", "Posteingang", "unreadItemCount", 4), null, "Posteingang", 0);
+		MicrosoftOutlookMailHelper.FolderNode nested = new MicrosoftOutlookMailHelper.FolderNode(
+				Map.of("id", "irs-id", "displayName", "IRS"), "inbox-id", "Posteingang/IRS", 1);
+
+		MailFolder folder = MicrosoftOutlookMessageMapper.toMailFolder(inbox, "inbox-id");
+		assertEquals(MailFolder.INBOX, folder.wellKnownName());
+		assertEquals("Posteingang", folder.name());
+		assertEquals(4L, folder.unreadCount());
+		assertNull(MicrosoftOutlookMessageMapper.toMailFolder(nested, "inbox-id").wellKnownName());
+		assertNull(MicrosoftOutlookMessageMapper.toMailFolder(inbox, null).wellKnownName());
 	}
 }

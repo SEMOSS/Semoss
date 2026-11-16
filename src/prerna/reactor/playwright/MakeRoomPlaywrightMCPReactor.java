@@ -39,6 +39,7 @@ import org.json.JSONObject;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -143,7 +144,8 @@ public class MakeRoomPlaywrightMCPReactor extends AbstractReactor {
 		JSONObject mcpJson = PlaywrightMCPToolBuilder.wrapMcpJson(mergedTools);
 
 		String prettyJson = mcpJson.toString(4);
-		FileSystemUtil.saveAssetFiles(assetFolder, List.of(MCPUtility.PIXEL_MCP_RELATIVE_PATH), List.of(prettyJson));
+		FileSystemUtil.saveAssetFiles(assetFolder, List.of(MCPUtility.PIXEL_MCP_RELATIVE_PATH), List.of(prettyJson),
+				true);
 
 		classLogger.info("Saved room MCP to {}{} ({} playback tool(s) generated, {} other tool(s) preserved)",
 				assetFolder, MCPUtility.PIXEL_MCP_RELATIVE_PATH, toolsArray.length(),
@@ -152,8 +154,9 @@ public class MakeRoomPlaywrightMCPReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Generates mcp/pixel_mcp.json for the current room insight from all playwright/*.json recordings "
-				+ "saved in the same insight assets. Mirrors MakePlaywrightMCPReactor for room-level recordings.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Generates mcp/pixel_mcp.json for the current room insight from all playwright/*.json recordings "
+						+ "saved in the same insight assets. Mirrors MakePlaywrightMCPReactor for room-level recordings.");
 	}
 }

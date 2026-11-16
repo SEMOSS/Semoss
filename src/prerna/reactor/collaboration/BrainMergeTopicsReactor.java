@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainMergeTopics(sourceTopicId=["..."], targetTopicId=["..."]);
@@ -54,17 +55,11 @@ public class BrainMergeTopicsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Merges one Brain topic into another; threads, people, goals, notes, and keywords move to the target";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SOURCE_TOPIC_ID.equals(key)) {
-			return "Topic to merge away; it is removed after the merge";
-		} else if (TARGET_TOPIC_ID.equals(key)) {
-			return "Topic that receives everything";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Merges one Brain topic into another; threads, people, notes, and keywords move to the target")
+				.key(SOURCE_TOPIC_ID, "Topic to merge away; it is removed after the merge")
+				.key(TARGET_TOPIC_ID, "Topic that receives everything");
 	}
 }

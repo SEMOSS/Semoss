@@ -49,6 +49,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.CSVFileHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
@@ -94,16 +95,11 @@ public class RdbmsUploadTableDataReactor extends AbstractDatabaseUploadFileReact
 				UploadInputUtility.REPLACE_EXISTING };
 	}
 
-	/**
-	 * Make a new database with the file data
-	 * 
-	 * @param newDatabaseName
-	 * @param filePath
-	 */
 	@Override
-	public String getReactorDescription() {
-		return "Uploads a delimited file (CSV, TSV, etc.) to create a new relational (RDBMS) database or append to an existing one as a single flat table. "
-				+ "When adding to an existing database, it first tries to insert into a matching table before creating a new one.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Uploads a delimited file (CSV, TSV, etc.) to create a new relational (RDBMS) database or append to an existing one as a single flat table. "
+						+ "When adding to an existing database, it first tries to insert into a matching table before creating a new one.");
 	}
 
 	@Override

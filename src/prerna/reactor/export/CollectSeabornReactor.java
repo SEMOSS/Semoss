@@ -49,6 +49,7 @@ import prerna.om.Insight;
 import prerna.query.interpreters.PandasInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.convert.ConvertReactor;
 import prerna.reactor.task.TaskBuilderReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -254,11 +255,8 @@ public class CollectSeabornReactor extends TaskBuilderReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The number to collect";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Draws a seaborn chart in Python from the data of the incoming task and returns it as an embedded image, PNG by default. The plot expression refers to the data as plotterframe, and data=<frame name> is rewritten to it.");
 	}
 }

@@ -30,6 +30,7 @@ package prerna.reactor.agent;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -65,18 +66,10 @@ public class DeclineDelegationReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Decline a delegation assigned to the logged-in user. The optional reason is sent to the requester.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ACTION_ID_KEY)) {
-			return "The delegation's action ID, as listed by GetAssignedDelegations.";
-		}
-		if (key.equals(REASON_KEY)) {
-			return "Optional reason sent back to the requester.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Decline a delegation assigned to the logged-in user. The optional reason is sent to the requester.")
+				.key(ACTION_ID_KEY, "The delegation's action ID, as listed by GetAssignedDelegations.")
+				.key(REASON_KEY, "Optional reason sent back to the requester.");
 	}
 }

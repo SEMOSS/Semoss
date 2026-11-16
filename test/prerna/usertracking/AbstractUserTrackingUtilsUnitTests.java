@@ -38,6 +38,7 @@ import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.util.JdbcTestDatabase;
@@ -51,13 +52,15 @@ class AbstractUserTrackingUtilsUnitTests {
 	};
 
 	@Test
-	void anonymousSessionBindsNullableLocationAndLogoutCommits() throws Exception {
+	void sessionBindsNullableLocationAndLogoutCommits() throws Exception {
 		try (var db = new JdbcTestDatabase()) {
 			db.execute(
 					"CREATE TABLE USER_TRACKING (SESSIONID VARCHAR, USERID VARCHAR, TYPE VARCHAR, CREATED_ON TIMESTAMP, ENDED_ON TIMESTAMP, IP_ADDR VARCHAR, IP_LAT VARCHAR, IP_LONG VARCHAR, IP_COUNTRY VARCHAR, IP_STATE VARCHAR, IP_CITY VARCHAR)");
+			AccessToken token = new AccessToken();
+			token.setProvider(AuthProvider.NATIVE);
+			token.setId("user-1");
 			User user = mock(User.class);
-			when(user.isAnonymous()).thenReturn(true);
-			when(user.getAnonymousId()).thenReturn("anonymous");
+			when(user.getAccessToken(AuthProvider.NATIVE)).thenReturn(token);
 			var details = new UserTrackingDetails(null, null, null, null, null, null);
 			details.setIpAddr("  address  ");
 			db.manual();
@@ -65,7 +68,8 @@ class AbstractUserTrackingUtilsUnitTests {
 			db.connection.rollback();
 			assertEquals("  address  ", db.value("SELECT IP_ADDR FROM USER_TRACKING"));
 			assertNull(db.value("SELECT IP_LAT FROM USER_TRACKING"));
-			assertEquals("ANONYMOUS", db.value("SELECT TYPE FROM USER_TRACKING"));
+			assertEquals("user-1", db.value("SELECT USERID FROM USER_TRACKING"));
+			assertEquals(AuthProvider.NATIVE.toString(), db.value("SELECT TYPE FROM USER_TRACKING"));
 			tracker.registerLogout("session");
 			assertNotNull(db.value("SELECT ENDED_ON FROM USER_TRACKING"));
 		}

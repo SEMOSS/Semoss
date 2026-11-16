@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,7 +42,6 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitKey;
-import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -57,7 +54,6 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
 class SecurityUserEngineUtils extends AbstractSecurityUtils {
@@ -220,16 +216,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsOwner(User user, String engineId) {
-		try {
-			boolean isExpired = enginePermissionIsExpired(User.getSingleLogginName(user), engineId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityEngineUtils.removeExpiredEngineUser(User.getSingleLogginName(user), engineId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user has owner-level access.", e);
-		}
-
 		return userIsOwner(getUserFiltersQs(user), engineId);
 	}
 
@@ -268,19 +254,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanViewEngine(User user, String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// Check to see if permission has expired
-		try {
-			boolean isExpired = enginePermissionIsExpired(Utility.inputSQLSanitizer(User.getSingleLogginName(user)),
-					engineId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityEngineUtils.removeExpiredEngineUser(Utility.inputSQLSanitizer(User.getSingleLogginName(user)),
-						engineId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user can view engine.", e);
-		}
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -314,16 +287,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanEditEngine(User user, String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// Check to see if permission has expired
-		try {
-			boolean isExpired = enginePermissionIsExpired(User.getSingleLogginName(user), engineId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityEngineUtils.removeExpiredEngineUser(User.getSingleLogginName(user), engineId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user can edit engine.", e);
-		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
@@ -347,37 +310,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		}
 
 		return canEdit;
-	}
-
-	/**
-	 * Check if permission to engine has expired
-	 * 
-	 * @param engineId
-	 * @param userId
-	 */
-	public static boolean enginePermissionIsExpired(String userId, String engineId) throws Exception {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		LocalDateTime currentTime = LocalDateTime.now();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENDDATE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				SemossDate endDate = (SemossDate) wrapper.next().getValues()[0];
-				if (endDate == null) {
-					return false;
-				}
-				LocalDateTime formattedEndDate = endDate.getLocalDateTime();
-				return formattedEndDate.isBefore(currentTime);
-			} else {
-				return false;
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to determine whether the engine permission has expired.", e);
-			throw e;
-		}
 	}
 
 	/**
@@ -419,15 +351,6 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean checkUserHasAccessToEngine(String engineId, String userId) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			boolean isExpired = enginePermissionIsExpired(userId, engineId);
-			if (isExpired) {
-				SecurityEngineUtils.removeExpiredEngineUser(userId, engineId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user has access to the engine.", e);
-			throw e;
-		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__USERID"));
@@ -507,9 +430,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 					new QueryColumnSelector("ENGINEPERMISSION__PERMISSIONGRANTEDBYTYPE", "permission_granted_by_type"));
 			qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__DATEADDED", "date_added"));
 			// filter to owners and editors
-			List<Integer> permissionValues = new Vector<Integer>(2);
-			permissionValues.add(1);
-			permissionValues.add(2);
+			List<Integer> permissionValues = new ArrayList<>(List.of(1, 2));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PERMISSION__ID", "==", permissionValues,
 					PixelDataType.CONST_INT));
 			// filter to the engine

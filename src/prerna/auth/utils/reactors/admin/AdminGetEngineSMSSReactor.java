@@ -33,6 +33,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import org.apache.commons.text.StringEscapeUtils;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IEngine;
@@ -90,7 +92,8 @@ public class AdminGetEngineSMSSReactor extends AbstractReactor {
 				currentSmssContent += "#Comments below this section will be lost\n#These values are stored in a secret store\n";
 
 				for (String key : engineSecrets.keySet()) {
-					currentSmssContent += "\n" + key + "\t" + engineSecrets.get(key);
+					currentSmssContent += "\n" + key + "\t"
+							+ StringEscapeUtils.escapeJava(String.valueOf(engineSecrets.get(key)));
 				}
 			}
 		}

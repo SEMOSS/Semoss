@@ -55,6 +55,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -67,14 +68,18 @@ import prerna.util.Utility;
  * This reactor returns the list of changed files for a specific commit in a
  * project's git repository, with optional unified diff text for a single file.
  * 
- * <p>When called without a filePath, it returns a summary of all changed files
- * and their change types (ADD, MODIFY, DELETE, RENAME, COPY). When called with
- * a filePath, it additionally returns the unified diff text for that specific
+ * <p>
+ * When called without a filePath, it returns a summary of all changed files and
+ * their change types (ADD, MODIFY, DELETE, RENAME, COPY). When called with a
+ * filePath, it additionally returns the unified diff text for that specific
  * file, along with flags indicating if the file is binary or if the diff was
- * truncated due to size.</p>
+ * truncated due to size.
+ * </p>
  * 
- * <p>For merge commits, the diff is computed against the first parent. For the
- * initial commit (no parent), the diff is computed against an empty tree.</p>
+ * <p>
+ * For merge commits, the diff is computed against the first parent. For the
+ * initial commit (no parent), the diff is computed against an empty tree.
+ * </p>
  */
 public class ProjectCommitDiffReactor extends AbstractReactor {
 
@@ -114,8 +119,8 @@ public class ProjectCommitDiffReactor extends AbstractReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
-		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
-				IEngine.CATALOG_TYPE.PROJECT, projectId, project.getEngineName());
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
+				project.getEngineName());
 
 		List<Map<String, Object>> changedFiles = new ArrayList<>();
 
@@ -233,8 +238,8 @@ public class ProjectCommitDiffReactor extends AbstractReactor {
 	 * @param fileInfo
 	 * @param displayPath
 	 */
-	private void addDiffText(DiffFormatter diffFormatter, ByteArrayOutputStream diffOutputStream,
-			DiffEntry entry, Map<String, Object> fileInfo, String displayPath) {
+	private void addDiffText(DiffFormatter diffFormatter, ByteArrayOutputStream diffOutputStream, DiffEntry entry,
+			Map<String, Object> fileInfo, String displayPath) {
 		boolean isBinary = false;
 		boolean isTruncated = false;
 		String diffText = "";
@@ -251,12 +256,10 @@ public class ProjectCommitDiffReactor extends AbstractReactor {
 
 			long lineCount = diffText.lines().count();
 			if (lineCount > MAX_DIFF_LINES) {
-				classLogger.info("Truncating diff for file {} ({} lines exceeds max {})",
-						displayPath, lineCount, MAX_DIFF_LINES);
+				classLogger.info("Truncating diff for file {} ({} lines exceeds max {})", displayPath, lineCount,
+						MAX_DIFF_LINES);
 				isTruncated = true;
-				diffText = diffText.lines()
-						.limit(MAX_DIFF_LINES)
-						.collect(Collectors.joining("\n"));
+				diffText = diffText.lines().limit(MAX_DIFF_LINES).collect(Collectors.joining("\n"));
 			}
 		} catch (Exception e) {
 			classLogger.warn("Could not format diff for file {}", displayPath, e);
@@ -286,20 +289,11 @@ public class ProjectCommitDiffReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor returns the list of changed files for a specific commit, "
-				+ "with optional unified diff text for a single file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The project id";
-		} else if (key.equals(COMMIT_ID_KEY)) {
-			return "The commit SHA to inspect";
-		} else if (key.equals(FILE_PATH_KEY)) {
-			return "Optional file path to get diff text for a specific file";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This reactor returns the list of changed files for a specific commit, "
+						+ "with optional unified diff text for a single file")
+				.key(ReactorKeysEnum.PROJECT, "The project id").key(COMMIT_ID_KEY, "The commit SHA to inspect")
+				.key(FILE_PATH_KEY, "Optional file path to get diff text for a specific file");
 	}
 }

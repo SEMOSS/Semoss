@@ -251,13 +251,15 @@ public final class BrainPeopleUtils {
 				+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", params.toArray());
 
 		// the Blocked list: never ingest is an exclude_everywhere rule; clearing it
-		// drops any person-level never rule
+		// drops any never rule on the person or on one of their addresses
 		if (Boolean.TRUE.equals(neverIngest)) {
 			BrainRuleUtils.addRule(ownerId, ownerType, BrainRuleUtils.EXCLUDE_EVERYWHERE, null, null, personId, null,
 					"Never ingest");
 		} else if (Boolean.FALSE.equals(neverIngest)) {
-			for (String ruleId : BrainRuleUtils.activeForPerson(ownerId, ownerType, personId,
-					List.of(BrainRuleUtils.EXCLUDE_EVERYWHERE, BrainRuleUtils.NEVER_SENDER), null)) {
+			Set<String> rules = new HashSet<>(BrainRuleUtils.activeForPerson(ownerId, ownerType, personId,
+					List.of(BrainRuleUtils.EXCLUDE_EVERYWHERE, BrainRuleUtils.NEVER_SENDER), null));
+			addressRules(ownerId, ownerType, List.of(personId)).forEach(row -> rules.add(row.getValue1()));
+			for (String ruleId : rules) {
 				BrainRuleUtils.disable(ownerId, ownerType, ruleId);
 			}
 		}
@@ -366,14 +368,19 @@ public final class BrainPeopleUtils {
 		CollaborationDbUtils.setIfPresent(changes, "name", "NAME", sets, params);
 		CollaborationDbUtils.setIfPresent(changes, "kind", "KIND", sets, params);
 		CollaborationDbUtils.setIfPresent(changes, "color", "COLOR", sets, params);
+		String domain = CollaborationDbUtils.asString(changes.get("domain"));
+		domain = domain == null || domain.isBlank() ? null : domain.trim().toLowerCase().replaceFirst("^@", "");
 		if (changes.containsKey("domain")) {
-			String domain = CollaborationDbUtils.asString(changes.get("domain"));
-			CollaborationDbUtils.addSet(sets, params, "DOMAINS_JSON", domain == null || domain.isBlank() ? null
-					: CollaborationDbUtils.toJson(List.of(domain.trim().toLowerCase().replaceFirst("^@", ""))));
+			CollaborationDbUtils.addSet(sets, params, "DOMAINS_JSON",
+					domain == null ? null : CollaborationDbUtils.toJson(List.of(domain)));
 		}
 
 		Timestamp now = CollaborationDbUtils.now();
-		if (accountId == null) {
+		// a create for a domain the owner already keeps returns that account as it is, so a retried save adds none
+		String kept = accountId == null && domain != null ? accountWithDomain(ownerId, ownerType, domain) : null;
+		if (kept != null) {
+			accountId = kept;
+		} else if (accountId == null) {
 			accountId = UUID.randomUUID().toString();
 			List<String> columns = new ArrayList<>();
 			for (String set : sets) {
@@ -414,6 +421,18 @@ public final class BrainPeopleUtils {
 				ownerType, accountId)) {
 			throw new IllegalArgumentException("Account not found");
 		}
+	}
+
+	private static String accountWithDomain(String ownerId, String ownerType, String domain) {
+		for (Pair<String, String> account : CollaborationDbUtils.query(
+				"SELECT ACCOUNT_ID, DOMAINS_JSON FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				rs -> Pair.with(rs.getString(1), CollaborationDbUtils.getString(rs, "DOMAINS_JSON")), ownerId,
+				ownerType)) {
+			if (CollaborationDbUtils.toStringList(CollaborationDbUtils.parseList(account.getValue1())).contains(domain)) {
+				return account.getValue0();
+			}
+		}
+		return null;
 	}
 
 	// a personId from the caller must be one of the owner's people; null is allowed
@@ -482,6 +501,10 @@ public final class BrainPeopleUtils {
 				ruleParams.toArray())) {
 			blocked.computeIfAbsent(row.getValue0(), k -> new HashSet<>()).add(row.getValue1());
 		}
+		for (Pair<String, String> row : addressRules(ownerId, ownerType,
+				people.stream().map(person -> person.get("id")).toList())) {
+			blocked.computeIfAbsent(row.getValue0(), k -> new HashSet<>()).add(NEVER);
+		}
 
 		for (Map<String, Object> person : people) {
 			Map<String, Integer> mine = counts.getOrDefault(person.get("id"), Map.of());
@@ -499,6 +522,22 @@ public final class BrainPeopleUtils {
 			person.put("channelScope", scope);
 			person.put("topics", topics.getOrDefault(person.get("id"), new ArrayList<>()));
 		}
+	}
+
+	// active never_sender rules on one of these people's addresses, as onboarding's Keep out saves them: person id
+	// and rule id. The gate blocks whoever sends from the address, so the person is blocked too
+	private static List<Pair<String, String>> addressRules(String ownerId, String ownerType, List<?> personIds) {
+		String value = "r." + BrainRuleUtils.valueColumn();
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
+		params.addAll(personIds);
+		params.add(BrainRuleUtils.NEVER_SENDER);
+		return CollaborationDbUtils.query("SELECT p.PERSON_ID, r.RULE_ID FROM BRAIN_PERSON p JOIN BRAIN_RULE r "
+				+ "ON r.OWNER_ID = p.OWNER_ID AND r.OWNER_TYPE = p.OWNER_TYPE WHERE p.OWNER_ID = ? AND p.OWNER_TYPE = ? "
+				+ "AND p.PERSON_ID IN (" + CollaborationDbUtils.placeholders(personIds.size()) + ") AND r.KIND = ? "
+				+ "AND r.DISABLED_AT IS NULL AND (" + value + " = p.EMAIL_NORM OR EXISTS (SELECT 1 FROM "
+				+ "BRAIN_PERSON_ADDRESS a WHERE a.OWNER_ID = p.OWNER_ID AND a.OWNER_TYPE = p.OWNER_TYPE "
+				+ "AND a.PERSON_ID = p.PERSON_ID AND a.VALUE_NORM = " + value + "))",
+				rs -> Pair.with(rs.getString(1), rs.getString(2)), params.toArray());
 	}
 
 	// ---- mapping ----

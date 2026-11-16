@@ -42,6 +42,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.auth.User;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -92,7 +93,8 @@ public class CreateSkillReactor extends AbstractReactor {
 	private static final String SKILL_CONTENT = "skillContent";
 
 	public CreateSkillReactor() {
-		this.keysToGet = new String[] { SKILL_CONTENT, ReactorKeysEnum.NAME.getKey(),
+		this.keysToGet = new String[] { SKILL_CONTENT,
+				ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.NAME.getKey(),
 				ReactorKeysEnum.DESCRIPTION.getKey(), };
 		this.keyRequired = new int[] { 1, 0, 0 };
 	}
@@ -102,11 +104,15 @@ public class CreateSkillReactor extends AbstractReactor {
 		organizeKeys();
 
 		Map<String, Object> response = create(this.insight.getUser(), this.keyValue.get(SKILL_CONTENT),
-				this.keyValue.get(ReactorKeysEnum.NAME.getKey()), this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey()));
+				this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey()),
+				this.keyValue.get(ReactorKeysEnum.DESCRIPTION.getKey()));
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
-	/** Creates a private skill owned by {@code user}; returns skill_id, project_id, slug and name. */
+	/**
+	 * Creates a private skill owned by {@code user}; returns skill_id, project_id,
+	 * slug and name.
+	 */
 	public static Map<String, Object> create(User user, String skillContent, String nameInput, String descInput) {
 		if (skillContent == null || skillContent.isEmpty()) {
 			throw new IllegalArgumentException("skillContent is required");
@@ -148,6 +154,7 @@ public class CreateSkillReactor extends AbstractReactor {
 			}
 			Path skillFile = skillDir.toPath().resolve(Skill.SKILL_FILE);
 			Files.write(skillFile, contentToWrite.getBytes(StandardCharsets.UTF_8));
+			SkillProjects.pushContent(skillId);
 		} catch (Exception e) {
 			classLogger.error("Failed to create skill '{}' (id {})", name, skillId, e);
 			throw new IllegalArgumentException("Failed to create skill: " + e.getMessage(), e);
@@ -174,24 +181,17 @@ public class CreateSkillReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates a new skill (a SKILL-type Project) and writes its SKILL.md into the project's version/assets/public/ folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SKILL_CONTENT.equals(key)) {
-			return "SKILL.md body, with or without a YAML frontmatter block. "
-					+ "A frontmatter block will be synthesized from 'name' and 'description' if absent";
-		}
-		if (ReactorKeysEnum.NAME.getKey().equals(key)) {
-			return "Display name. Wins over the SKILL.md frontmatter's 'name' when supplied; "
-					+ "frontmatter is the fallback only when this param is omitted entirely";
-		}
-		if (ReactorKeysEnum.DESCRIPTION.getKey().equals(key)) {
-			return "Description. Wins over the SKILL.md frontmatter's 'description' when supplied; "
-					+ "frontmatter is the fallback only when this param is omitted entirely";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates a new skill (a SKILL-type Project) and writes its SKILL.md into the project's version/assets/public/ folder")
+				.key(SKILL_CONTENT,
+						"SKILL.md body, with or without a YAML frontmatter block. "
+								+ "A frontmatter block will be synthesized from 'name' and 'description' if absent")
+				.key(ReactorKeysEnum.CATALOG_NAME,
+						"Display name. Wins over the SKILL.md frontmatter's 'name' when supplied; "
+								+ "frontmatter is the fallback only when this param is omitted entirely")
+				.key(ReactorKeysEnum.DESCRIPTION,
+						"Description. Wins over the SKILL.md frontmatter's 'description' when supplied; "
+								+ "frontmatter is the fallback only when this param is omitted entirely");
 	}
 }

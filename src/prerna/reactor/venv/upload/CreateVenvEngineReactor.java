@@ -53,12 +53,10 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -66,28 +64,17 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateVenvEngineReactor.class);
 
+	private static final String CATALOG_NAME_KEYS = ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.VENV.getKey();
+
 	public CreateVenvEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.VENV.getKey(), ReactorKeysEnum.VENV_DETAILS.getKey(),
+		this.keysToGet = new String[] { CATALOG_NAME_KEYS, ReactorKeysEnum.VENV_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a venv engine",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-			if (this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new databases
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
@@ -185,7 +172,7 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create venv engine {} ({})", venvName, venvId, e);
 			UploadUtilities.cleanUpCreateNewError(venv, venvId, tempSmss, smssFile, specificEngineFolder);
 		}
 
@@ -203,15 +190,12 @@ public class CreateVenvEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getVenvName() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.VENV.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if (strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
+		List<String> strValues = getListStringForAliasedKey(CATALOG_NAME_KEYS);
+		if (!strValues.isEmpty()) {
+			return strValues.get(0).trim();
 		}
 
-		List<String> strValues = this.curRow.getAllStrValues();
+		strValues = this.curRow.getAllStrValues();
 		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}

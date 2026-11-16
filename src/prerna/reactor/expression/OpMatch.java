@@ -35,6 +35,7 @@ import java.util.Objects;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -188,11 +189,8 @@ public class OpMatch extends OpBasic {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("matchType")) {
-			return "The type of match, either 0 (first matching value), 1 (largest value less than or equal to), or -1 (smallest value greater than or equal to)";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().key("matchType",
+				"The type of match, either 0 (first matching value), 1 (largest value less than or equal to), or -1 (smallest value greater than or equal to)");
 	}
 }

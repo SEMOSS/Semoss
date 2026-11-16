@@ -40,13 +40,13 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 import prerna.om.FileReference;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.export.mustache.MustacheUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
@@ -109,7 +109,7 @@ public class SendEmailReactor extends AbstractReactor {
 					try {
 						message = FileUtils.readFileToString(messageFile, "UTF-8");
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Could not read the message file {}", messageFile, e);
 						throw new IllegalArgumentException("Error reading message file. Check logs for details.");
 					}
 				}
@@ -292,34 +292,26 @@ public class SendEmailReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SMTP_HOST)) {
-			return "The smtp host.";
-		} else if (key.equals(SMTP_PORT)) {
-			return "The smtp port.";
-		} else if (key.equals(SMTP_SECURITY)) {
-			return "How the smtp connection is encrypted: starttls, ssl, or none. Defaults to none when no credentials are passed, ssl on port 465, and starttls otherwise.";
-		} else if (key.equals(EMAIL_MESSAGE)) {
-			return "The message of the email to send.";
-		} else if (key.equals(EMAIL_MESSAGE_ENCODED)) {
-			return "Has the message of the email been passed in encoded using <encode></encode> blocks. Default false";
-		} else if (key.equals(EMAIL_TO_RECEIVER)) {
-			return "The to receipient(s) of the email.";
-		} else if (key.equals(EMAIL_CC_RECEIVER)) {
-			return "The cc receipient(s) of the email.";
-		} else if (key.equals(EMAIL_BCC_RECEIVER)) {
-			return "The bcc receipient(s) of the email.";
-		} else if (key.equals(EMAIL_SENDER)) {
-			return "The email sender.";
-		} else if (key.equals(EMAIL_SUBJECT)) {
-			return "The subject of the email.";
-		} else if (key.equals(ATTACHMENTS)) {
-			return "The file path of email attachments";
-		} else if (key.equals(MESSAGE_HTML)) {
-			return "Boolean is the message is html";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Sends an email to the given to, cc and bcc recipients and returns whether it was sent. It uses the instance mail server, or a one-time SMTP connection when smtpHost and smtpPort are given, and the message can be text or HTML, read from a file, or filled from a mustache template.")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"The relative path of a file to read the message from when message is empty.")
+				.key(ReactorKeysEnum.MUSTACHE, key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.MUSTACHE_VARMAP, key -> key.type(Map.class)).key(SMTP_HOST, "The smtp host.")
+				.key(SMTP_PORT, "The smtp port.")
+				.key(SMTP_SECURITY,
+						"How the smtp connection is encrypted: starttls, ssl, or none. Defaults to none when no credentials are passed, ssl on port 465, and starttls otherwise.")
+				.key(EMAIL_SUBJECT, "The subject of the email.").key(EMAIL_SENDER, "The email sender.")
+				.key(EMAIL_MESSAGE, "The message of the email to send.")
+				.key(EMAIL_MESSAGE_ENCODED, key -> key.type(Boolean.class).description(
+						"Has the message of the email been passed in encoded using <encode></encode> blocks. Default false"))
+				.key(MESSAGE_HTML, key -> key.type(Boolean.class).description("Boolean is the message is html"))
+				.key(EMAIL_TO_RECEIVER, key -> key.list(String.class).description("The to receipient(s) of the email."))
+				.key(EMAIL_CC_RECEIVER, key -> key.list(String.class).description("The cc receipient(s) of the email."))
+				.key(EMAIL_BCC_RECEIVER,
+						key -> key.list(String.class).description("The bcc receipient(s) of the email."))
+				.key(ATTACHMENTS, key -> key.list(String.class).description("The file path of email attachments"));
 	}
 
 }

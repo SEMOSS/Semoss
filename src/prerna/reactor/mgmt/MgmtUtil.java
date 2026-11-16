@@ -27,28 +27,23 @@
  *******************************************************************************/
 package prerna.reactor.mgmt;
 
-import java.io.File;
-import java.lang.reflect.Field;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.sun.jna.Pointer;
-import com.sun.jna.platform.win32.Kernel32;
-import com.sun.jna.platform.win32.WinNT;
 
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
 import oshi.software.os.OSProcess;
 import oshi.software.os.OperatingSystem;
-import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.Utility;
 
@@ -63,9 +58,6 @@ public class MgmtUtil {
 	static AtomicLong freeMemory = new AtomicLong(-1);
 	static AtomicLong userCount = new AtomicLong(0);
 
-	private static final String TEMP_FOLDER = (Utility.getBaseFolder() + "/" + "R" + "/" + "Temp" + "/").replace('\\',
-			'/');
-
 	public static void diskUtilizationPerProcess(int pid) {
 		/**
 		 * ByteRead : Returns the number of bytes the process has read from disk.
@@ -74,8 +66,8 @@ public class MgmtUtil {
 		OSProcess process;
 		process = os.getProcess(pid);
 		classLogger.info("Disk I/O Usage :");
-		classLogger.info("I/O Reads: " + process.getBytesRead());
-		classLogger.info("I/O Writes: " + process.getBytesWritten());
+		classLogger.info("I/O Reads: {}", process.getBytesRead());
+		classLogger.info("I/O Writes: {}", process.getBytesWritten());
 	}
 
 	public static void cpuUtilizationPerProcess(int processId) {
@@ -95,7 +87,7 @@ public class MgmtUtil {
 		double processCpu = (100 * (timeDifference / 5000d)) / cpuNumber;
 		previousTime = currentTime;
 		classLogger.info("CPU Usage :");
-		classLogger.info("CPU : " + (int) processCpu + "%");
+		classLogger.info("CPU : {}%", (int) processCpu);
 	}
 
 	public static long memoryUtilizationPerProcess(int pid) {
@@ -105,58 +97,32 @@ public class MgmtUtil {
 		OSProcess process;
 
 		process = os.getProcess(pid);
+		if (process == null) {
+			return 0;
+		}
 		return process.getResidentSetSize();
 	}
 
+	/**
+	 * Returns the operating system process id of a process.
+	 *
+	 * @param p the process
+	 * @return the process id, or -1 when the process is null
+	 */
 	public static int getProcessID(Process p) {
-		long result = -1;
-		try {
-			// for windows
-			if (p.getClass().getName().equals("java.lang.Win32Process")
-					|| p.getClass().getName().equals("java.lang.ProcessImpl")) {
-				Field f = p.getClass().getDeclaredField("handle");
-				f.setAccessible(true);
-				long handl = f.getLong(p);
-				Kernel32 kernel = Kernel32.INSTANCE;
-				WinNT.HANDLE hand = new WinNT.HANDLE();
-				hand.setPointer(Pointer.createConstant(handl));
-				result = kernel.GetProcessId(hand);
-				f.setAccessible(false);
-			}
-			// for unix based operating systems
-			else if (p.getClass().getName().equals("java.lang.UNIXProcess")) {
-				Field f = p.getClass().getDeclaredField("pid");
-				f.setAccessible(true);
-				result = f.getLong(p);
-				f.setAccessible(false);
-			}
-		} catch (Exception ex) {
-			result = -1;
+		if (p == null) {
+			return -1;
 		}
-		return new Long(result).intValue();
+		return (int) p.pid();
 	}
 
 	public static void printChild(int pid) {
 		List<OSProcess> childProcesses = os.getChildProcesses(pid, null, null, 10);
 
 		for (int childIndex = 0; childIndex < childProcesses.size(); childIndex++) {
-			classLogger.info("Process id " + childProcesses.get(childIndex).getProcessID() + " <> "
-					+ childProcesses.get(childIndex).getCommandLine());
+			classLogger.info("Process id {} <> {}", childProcesses.get(childIndex).getProcessID(),
+					childProcesses.get(childIndex).getCommandLine());
 		}
-	}
-
-	public static int findChild(int pid, String name) {
-		List<OSProcess> childProcesses = os.getChildProcesses(pid, null, null, 10);
-
-		for (int childIndex = 0; childIndex < childProcesses.size(); childIndex++) {
-			OSProcess op = childProcesses.get(childIndex);
-			String pName = op.getCommandLine();
-			if (pName.contains(name)) {
-				return op.getProcessID();
-			}
-		}
-
-		return -1;
 	}
 
 	public static long getFreeMemory() {
@@ -164,13 +130,13 @@ public class MgmtUtil {
 			long availableMemory = gm.getAvailable();
 			// convert to gigs
 			freeMemory.set(availableMemory / (1024 * 1024 * 1024));
-			classLogger.info("Server total available memory = " + freeMemory.longValue() + " GB");
+			classLogger.info("Server total available memory = {} GB", freeMemory.longValue());
 			// give a 2GB limit
 			String reservedJavaMem = Utility.getDIHelperProperty(Settings.RESERVED_JAVA_MEM);
 			if (reservedJavaMem != null && !(reservedJavaMem = reservedJavaMem.trim()).isEmpty()) {
 				long javaReservedMemory = Long.parseLong(reservedJavaMem);
 				freeMemory.getAndAdd(-1 * javaReservedMemory);
-				classLogger.info("Total available memory minus RESERVED_JAVA_MEM = " + freeMemory.longValue() + " GB");
+				classLogger.info("Total available memory minus RESERVED_JAVA_MEM = {} GB", freeMemory.longValue());
 
 			}
 		}
@@ -185,106 +151,96 @@ public class MgmtUtil {
 		return gm.getTotal();
 	}
 
-	public static int getPidByPort(int port) {
-//		SecurityManager priorManager = System.getSecurityManager();
-//		System.setSecurityManager(null);
-		File tempFile = new File(TEMP_FOLDER + Utility.getRandomString(12) + ".txt");
+	/**
+	 * Returns the ids of the processes listening on a port, read from the output of
+	 * netstat on Windows and lsof elsewhere.
+	 *
+	 * @param port the port
+	 * @return the process ids, empty when nothing listens on the port or they
+	 *         cannot be read
+	 */
+	public static List<Integer> getPidsByPort(int port) {
+		List<String> command = SystemUtils.IS_OS_WINDOWS ? List.of("netstat", "-ano")
+				: List.of("lsof", "-t", "-i:" + port, "-sTCP:LISTEN");
+		List<Integer> pids = new ArrayList<>();
 		try {
-			if (SystemUtils.IS_OS_WINDOWS) {
-
-				// Dump the output of netstat to a file
-				ProcessBuilder pbNetstat = new ProcessBuilder("netstat", "-ano");
-				pbNetstat.redirectOutput(tempFile);
-				Process processNetstat = pbNetstat.start();
-				processNetstat.waitFor(7L, TimeUnit.SECONDS);
-
-				// Parse netstat output to get the PIDs of processes running on Rserve's port
-				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
-				List<String> pids = lines.stream().filter(l -> l.contains("LISTENING")) // Only grab processes in
-																						// LISTENING state
-						.map(l -> l.trim().split("\\s+")) // Trim the empty characters and split into rows
-						.filter(r -> r[1].contains(":" + port)) // Only use those that are listening on the right port
-						.map(r -> r[4]) // Grab the pid
-						.collect(Collectors.toList());
-				for (String pid : pids) {
-					try {
-						return Integer.parseInt(pid.trim());
-					} catch (NumberFormatException e) {
-						classLogger.error("pid is not a valid pid");
-						classLogger.error(Constants.STACKTRACE, e);
-						throw e;
-					}
+			Process process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+			List<String> lines;
+			try (BufferedReader reader = process.inputReader(StandardCharsets.UTF_8)) {
+				lines = reader.lines().toList();
+			}
+			process.waitFor(7L, TimeUnit.SECONDS);
+			for (String line : lines) {
+				String pid = SystemUtils.IS_OS_WINDOWS ? getWindowsListenerPid(line, port) : line.trim();
+				if (pid == null || pid.isEmpty()) {
+					continue;
 				}
-
-			} else {
-
-				// Dump the output of lsof to a file
-				ProcessBuilder pbLsof = new ProcessBuilder("lsof", "-t", "-i:" + port, "-sTCP:LISTEN");
-				pbLsof.redirectOutput(tempFile);
-				Process processLsof = pbLsof.start();
-				processLsof.waitFor(7L, TimeUnit.SECONDS);
-
-				// Parse lsof output to get the PIDs of processes (in this case each line is
-				// just the pid)
-				List<String> lines = FileUtils.readLines(tempFile, "UTF-8");
-				for (String pid : lines) {
-					try {
-						return Integer.parseInt(pid.trim());
-					} catch (NumberFormatException e) {
-						classLogger.error("pid is not a valid pid");
-						classLogger.error(Constants.STACKTRACE, e);
-						throw e;
-					}
+				try {
+					pids.add(Integer.parseInt(pid));
+				} catch (NumberFormatException e) {
+					classLogger.warn("Skipping '{}', which is not a process id, in the listeners of port {}",
+							Utility.cleanLogString(pid), port);
 				}
 			}
-		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			tempFile.delete();
-
-			// Restore the prior security manager
-//			System.setSecurityManager(priorManager);
+		} catch (IOException e) {
+			classLogger.error("Failed to find the processes listening on port {}", port, e);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			classLogger.error("Interrupted while finding the processes listening on port {}", port, e);
 		}
-		return -1;
+		return pids;
+	}
+
+	/**
+	 * Returns the id of the first process listening on a port.
+	 *
+	 * @param port the port
+	 * @return the process id, or -1 when nothing listens on the port
+	 */
+	public static int getPidByPort(int port) {
+		List<Integer> pids = getPidsByPort(port);
+		return pids.isEmpty() ? -1 : pids.get(0);
+	}
+
+	/**
+	 * Returns the process id in a line of Windows netstat output when the line is a
+	 * listener on the port.
+	 *
+	 * @param line the netstat line
+	 * @param port the port
+	 * @return the process id, or null when the line is not a listener on the port
+	 */
+	private static String getWindowsListenerPid(String line, int port) {
+		if (!line.contains("LISTENING")) {
+			return null;
+		}
+		String[] columns = line.trim().split("\\s+");
+		if (columns.length < 5 || !columns[1].endsWith(":" + port)) {
+			return null;
+		}
+		return columns[4];
 	}
 
 	public static void removeMemory4User(long memoryInGigs) {
 		// remove the user
 		// add the memory back
 		userCount.decrementAndGet();
-		classLogger.info("User logging out releasing " + memoryInGigs + " GB of memory");
+		classLogger.info("User logging out releasing {} GB of memory", memoryInGigs);
 		freeMemory.addAndGet(memoryInGigs);
-		classLogger.info("Total available memory after removing user = " + freeMemory.longValue() + " GB");
+		classLogger.info("Total available memory after removing user = {} GB", freeMemory.longValue());
 	}
 
 	public static void addMemory4User(long memoryInGigs) {
 		// add number of users
 		// remove the memory
 		userCount.incrementAndGet();
-		classLogger.info("User logging in consuming " + memoryInGigs + " GB of memory");
+		classLogger.info("User logging in consuming {} GB of memory", memoryInGigs);
 		freeMemory.addAndGet(-1 * memoryInGigs);
-		classLogger.info("Total available memory after adding user = " + freeMemory.longValue() + " GB");
+		classLogger.info("Total available memory after adding user = {} GB", freeMemory.longValue());
 	}
 
 	public static long getUserCount() {
 		return userCount.longValue();
 	}
-
-//	public static void main(String[] args) {
-//		// TODO Auto-generated method stub
-//		int pid=9696;
-//		pid = 7672;
-//		printChild(pid);
-//		
-//		getFreeMemory();
-//		
-//		/*
-//        for (int i = 0; i < 10; i++) {
-//            diskUtilizationPerProcess(pid);
-//            memoryUtilizationPerProcess(pid);
-//            Util.sleep(5000);
-//        }
-//        */
-//    }
 
 }

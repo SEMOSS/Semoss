@@ -43,7 +43,7 @@ public enum CollaborationRunMode {
 
 	/** The mode of a run in this room; null for a room outside Collaboration and for a delegation room. */
 	public static CollaborationRunMode of(Room room) {
-		if (CollaborationUtils.isRoutineRoom(room)) {
+		if (CollaborationUtils.isUnattendedRoom(room)) {
 			return ROUTINE;
 		}
 		if (CollaborationUtils.isAssistantRoom(room)) {
@@ -65,7 +65,7 @@ public enum CollaborationRunMode {
 		return this == CHAT;
 	}
 
-	/** Tools about the chat itself (TagTopic, CompleteGoal), the thread brief and the after-run memory review. */
+	/** Tools about the chat itself (TagTopic, ShowItem), the thread brief and the after-run memory review. */
 	public boolean chatOnly() {
 		return this == CHAT;
 	}

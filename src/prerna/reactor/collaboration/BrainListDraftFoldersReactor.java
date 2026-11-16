@@ -35,6 +35,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -42,7 +43,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 // The Outlook folders a draft can be left in: the top level and one level below it, without Drafts itself
 public class BrainListDraftFoldersReactor extends AbstractCollaborationReactor {
 
-	// subfolders are read for at most this many parents, so a large mailbox stays quick
+	// subfolders are read for at most this many parents, so a large mailbox stays
+	// quick
 	private static final int MAX_PARENTS = 25;
 
 	public BrainListDraftFoldersReactor() {
@@ -94,7 +96,9 @@ public class BrainListDraftFoldersReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's Outlook folders that Collaboration drafts can be left in";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Lists the signed-in user's Outlook folders that Collaboration drafts can be left in")
+				.noKeys();
 	}
 }

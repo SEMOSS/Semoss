@@ -38,6 +38,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -135,19 +136,11 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Detaches a skill from a workspace: removes the WORKSPACE_RESOURCE__ row and the matching "
-				+ "CONFIG_JSON.skills[] entry. No-op when the skill is not attached.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.WORKSPACE_ID.getKey().equals(key)) {
-			return "Workspace identifier";
-		}
-		if (SKILL_ID.equals(key)) {
-			return "Identifier of the skill project to detach";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Detaches a skill from a workspace: removes the WORKSPACE_RESOURCE__ row and the matching "
+						+ "CONFIG_JSON.skills[] entry. No-op when the skill is not attached.")
+				.key(ReactorKeysEnum.WORKSPACE_ID, "Workspace identifier")
+				.key(SKILL_ID, "Identifier of the skill project to detach");
 	}
 }

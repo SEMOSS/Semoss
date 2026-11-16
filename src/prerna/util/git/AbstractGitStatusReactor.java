@@ -31,6 +31,8 @@ import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
 
+import prerna.reactor.ReactorDefinition;
+
 /**
  * Returns the git working-tree status (branch, HEAD, staged/unstaged/
  * untracked/conflicted files) for the target's repository. A target without a
@@ -69,7 +71,8 @@ public abstract class AbstractGitStatusReactor extends AbstractGitWorktreeReacto
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor returns the git working tree status for " + this.target.getLabelWithArticle();
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"This reactor returns the git working tree status for " + this.target.getLabelWithArticle());
 	}
 }

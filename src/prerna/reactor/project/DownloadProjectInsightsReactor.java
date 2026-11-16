@@ -35,57 +35,67 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.InsightFile;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class DownloadProjectInsightsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(DownloadProjectInsightsReactor.class);
 
 	/*
-	 * This class is used to construct a new project
-	 * This project only contains insights
+	 * This class is used to construct a new project This project only contains
+	 * insights
 	 */
 
 	public DownloadProjectInsightsReactor() {
-		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
-		
+
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project " + projectId + " does not exist or user does not have access to edit assets.");
+			throw new IllegalArgumentException(
+					"Project " + projectId + " does not exist or user does not have access to edit assets.");
 		}
-		
+
+		IProject project = Utility.getProject(projectId);
+		if (!project.getProjectType().holdsInsights()) {
+			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
+					+ " project, which does not hold insights");
+		}
+
 		File insightsFile = null;
 		try {
 			insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred attemping to generate the insights database for this project");
+			classLogger.error("Failed to generate the insights database of project {} for download", projectId, e);
+			throw new IllegalArgumentException(
+					"Error occurred attemping to generate the insights database for this project");
 		}
-		
+
 		String downloadKey = UUID.randomUUID().toString();
 		InsightFile insightFile = new InsightFile();
 		insightFile.setFileKey(downloadKey);
 		insightFile.setDeleteOnInsightClose(false);
 		insightFile.setFilePath(insightsFile.getAbsolutePath());
 
-		// store the insight file 
+		// store the insight file
 		// in the insight so the FE can download it
 		// only from the given insight
 		this.insight.addExportFile(downloadKey, insightFile);
 
-		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+		NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+				PixelOperationType.FILE_DOWNLOAD);
 		retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the csv file"));
 		return retNoun;
 	}
-	
+
 }

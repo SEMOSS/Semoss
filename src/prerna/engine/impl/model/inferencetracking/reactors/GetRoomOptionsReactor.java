@@ -39,7 +39,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetRoomOptionsReactor extends AbstractReactor {
-    @SuppressWarnings("unused")
+
 	private static final Logger classLogger = LogManager.getLogger(GetRoomOptionsReactor.class);
 
 	public GetRoomOptionsReactor() {
@@ -47,18 +47,13 @@ public class GetRoomOptionsReactor extends AbstractReactor {
 		this.keyRequired = new int[] { 1 };
 	}
 
-    @Override
-    public NounMetadata execute() {
-
-        organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
-
-        String roomId = this.keyValue.get(this.keysToGet[0]);
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		User user = requireUser();
+		String roomId = this.keyValue.get(this.keysToGet[0]);
 
 		Map<String, Object> roomOptions = RoomUtils.getRoomOptions(roomId, user.getPrimaryLoginToken().getId());
 		return new NounMetadata(roomOptions, PixelDataType.MAP);
-    }
+	}
 }

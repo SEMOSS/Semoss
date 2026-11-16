@@ -32,6 +32,7 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -44,8 +45,11 @@ public class GetServiceNowConnectionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns all configured ServiceNow connections stored in the security database for UI display.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Returns all configured ServiceNow connections stored in the security database for UI display.")
+				.noKeys();
 	}
 
 }

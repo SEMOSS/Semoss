@@ -60,6 +60,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -130,16 +131,11 @@ public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admin-only query struct for reading business/security audit events from the user tracking database. "
-				+ "Records query preparation only. Use AdminAuditEvents for bounded, completed-retrieval auditing.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (EXPORT_KEY.equals(key)) {
-			return "Whether this legacy query is intended for export; records preparation only, not completed retrieval";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Query struct for reading business/security audit events from the user tracking database. "
+						+ "Records query preparation only. Use AdminAuditEvents for bounded, completed-retrieval auditing.")
+				.key(EXPORT_KEY,
+						"Whether this legacy query is intended for export; records preparation only, not completed retrieval");
 	}
 }

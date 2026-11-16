@@ -40,6 +40,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -176,6 +177,7 @@ public class UpdateSkillReactor extends AbstractReactor {
 				throw new IllegalStateException("Failed to create skill content folder: " + skillDir.getAbsolutePath());
 			}
 			Files.write(skillFile, finalContent.getBytes(StandardCharsets.UTF_8));
+			SkillProjects.pushContent(skillId);
 		} catch (Exception e) {
 			classLogger.error("Failed to update skill '{}'", skillId, e);
 			throw new IllegalArgumentException("Failed to update skill: " + e.getMessage(), e);
@@ -192,22 +194,14 @@ public class UpdateSkillReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Updates a skill's SKILL.md body and/or description. Name is immutable.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SKILL_ID.equals(key)) {
-			return "Identifier of the skill to update (== underlying project id)";
-		}
-		if (SKILL_CONTENT.equals(key)) {
-			return "New SKILL.md body. Any supplied frontmatter is replaced on write with the "
-					+ "canonical block built from the skill's immutable name and the resolved description";
-		}
-		if (ReactorKeysEnum.DESCRIPTION.getKey().equals(key)) {
-			return "New description. Wins over any frontmatter description in skillContent";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Updates a skill's SKILL.md body and/or description. Name is immutable.")
+				.key(SKILL_ID, "Identifier of the skill to update (== underlying project id)")
+				.key(SKILL_CONTENT,
+						"New SKILL.md body. Any supplied frontmatter is replaced on write with the "
+								+ "canonical block built from the skill's immutable name and the resolved description")
+				.key(ReactorKeysEnum.DESCRIPTION,
+						"New description. Wins over any frontmatter description in skillContent");
 	}
 }

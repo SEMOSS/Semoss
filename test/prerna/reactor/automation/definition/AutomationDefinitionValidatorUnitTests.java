@@ -453,6 +453,18 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
+	void anAgentRunTakesExtraToolsAsTheRoomsMcpEntries() {
+		AutomationDefinitionValidator.parseAndValidate(definition(Map.of(), workNode(AutomationConstants.NODE_AGENT_RUN,
+				Map.of(AutomationConstants.CONFIG_COMMAND, "Summarize", AutomationConstants.CONFIG_MCPS,
+						List.of(Map.of("id", "engine-1", "name", "Sales DB", "type", "DATABASE"))))));
+		for (Object mcps : List.of("engine-1", List.of("engine-1"), List.of(Map.of("id", "engine-1")))) {
+			assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidate(
+					definition(Map.of(), workNode(AutomationConstants.NODE_AGENT_RUN,
+							Map.of(AutomationConstants.CONFIG_COMMAND, "Summarize", AutomationConstants.CONFIG_MCPS, mcps)))));
+		}
+	}
+
+	@Test
 	void acceptsABoundedLoopWithAnAcyclicBody() {
 		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DEVELOPER_PYTHON, Map.of());
 		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-python");

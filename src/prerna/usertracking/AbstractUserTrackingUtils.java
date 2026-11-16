@@ -43,9 +43,8 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 	private static Logger classLogger = LogManager.getLogger(AbstractUserTrackingUtils.class);
 
 	/**
-	 * Persists a login session for the user, keyed by the anonymous id for
-	 * anonymous users or by the access token id for the given auth provider
-	 * otherwise.
+	 * Persists a login session for the user, keyed by the access token id for the
+	 * given auth provider.
 	 *
 	 * @param sessionId the HTTP session id
 	 * @param utd       the tracking details (IP and geolocation) for the session
@@ -54,14 +53,10 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 	 */
 	protected static void saveSession(String sessionId, UserTrackingDetails utd, User user, AuthProvider ap) {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-		if (user.isAnonymous()) {
-			addSession(sessionId, utd, user.getAnonymousId(), "ANONYMOUS", timestamp);
-		} else {
-			// since we dont want to insert the same login multiple times
-			// we will only store for the parameter ap
-			AccessToken token = user.getAccessToken(ap);
-			addSession(sessionId, utd, token.getId(), ap.toString(), timestamp);
-		}
+		// since we dont want to insert the same login multiple times
+		// we will only store for the parameter ap
+		AccessToken token = user.getAccessToken(ap);
+		addSession(sessionId, utd, token.getId(), ap.toString(), timestamp);
 	}
 
 	/**
@@ -70,8 +65,8 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 	 *
 	 * @param sessionId the HTTP session id
 	 * @param utd       the tracking details (IP and geolocation) for the session
-	 * @param userId    the resolved user id (anonymous id or access token id)
-	 * @param type      the credential type (e.g. "ANONYMOUS" or the auth provider)
+	 * @param userId    the access token id
+	 * @param type      the auth provider
 	 * @param timestamp the session creation time
 	 */
 	private static void addSession(String sessionId, UserTrackingDetails utd, String userId, String type,

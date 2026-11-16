@@ -37,6 +37,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IOpenAIDecisionsEngine;
 import prerna.engine.impl.model.responses.OpenAIDecisionsModelEngineResponse;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -77,8 +78,8 @@ public class OpenAIDecisionsReactor extends AbstractReactor {
 		if (values.size() == 1 && values.get(0) instanceof String) {
 			return values.get(0);
 		}
-		if (values.isEmpty() || values.stream().anyMatch(value -> !isStringKeyMap(value)
-				|| !(((Map<?, ?>) value).get("role") instanceof String
+		if (values.isEmpty() || values.stream()
+				.anyMatch(value -> !isStringKeyMap(value) || !(((Map<?, ?>) value).get("role") instanceof String
 						|| ((Map<?, ?>) value).get("type") instanceof String))) {
 			throw new IllegalArgumentException("input must be text or a list of native OpenAI input items");
 		}
@@ -88,8 +89,8 @@ public class OpenAIDecisionsReactor extends AbstractReactor {
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> getQuestions() {
 		List<?> values = getValues(2);
-		if (values.isEmpty() || values.stream().anyMatch(value -> !isStringKeyMap(value)
-				|| ((Map<?, ?>) value).isEmpty())) {
+		if (values.isEmpty()
+				|| values.stream().anyMatch(value -> !isStringKeyMap(value) || ((Map<?, ?>) value).isEmpty())) {
 			throw new IllegalArgumentException("questions must be a nonempty list of OpenAI question maps");
 		}
 		return (List<Map<String, Object>>) values;
@@ -139,21 +140,14 @@ public class OpenAIDecisionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Evaluate native OpenAI predicate, choice, and score questions using an OpenAI model engine.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if ("input".equals(key)) {
-			return "Text or a list of native OpenAI input items, including messages with role and content.";
-		}
-		if ("questions".equals(key)) {
-			return "List of native OpenAI question objects with type (predicate, choice, score), instructions, and optional name.";
-		}
-		if (ReactorKeysEnum.PARAM_VALUES_MAP.getKey().equals(key)) {
-			return "Optional OpenAI Decisions request options; model selection comes from the engine.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Evaluate native OpenAI predicate, choice, and score questions using an OpenAI model engine.")
+				.key("input", "Text or a list of native OpenAI input items, including messages with role and content.")
+				.key("questions",
+						"List of native OpenAI question objects with type (predicate, choice, score), instructions, and optional name.")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP,
+						"Optional OpenAI Decisions request options; model selection comes from the engine.");
 	}
 }

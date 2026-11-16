@@ -66,7 +66,7 @@ import prerna.engine.api.ModelCapabilityEnum;
 import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.impl.model.usage.ModelUsageCost;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.StaticBuiltinToolsCatalog;
 import prerna.util.StaticModelMetadataCatalog;
@@ -80,7 +80,7 @@ import prerna.util.Utility;
  * databases.
  * <p>
  * A model's prices ({@link Constants#PRICING}) decide how far its cost limits
- * go, so only its owners and admins change them, and they can be changed but
+ * go, so only its owners change them, and they can be changed but
  * never removed. A catalog sync, or a new catalog match, replaces them only
  * with prices of its own.
  */
@@ -276,8 +276,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	/**
 	 * Update the user-editable metadata for a user who edits the model, which the
 	 * caller checks: {@link Constants#PRICING} needs an owner of the model,
-	 * directly or through a team, or an admin, since the prices decide how far the
-	 * model's cost limits go. Editors change every other key.
+	 * directly or through a team, since the prices decide how far the model's cost
+	 * limits go. Editors change every other key.
 	 *
 	 * @param user     the user, an editor of the model
 	 * @param engineId the model
@@ -288,7 +288,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateModelMetadata(User user, String engineId, Map<String, Object> updates) {
 		if (updates != null && updates.containsKey(Constants.PRICING)
-				&& !SecurityEngineUtils.userIsOwner(user, engineId) && SecurityAdminUtils.getInstance(user) == null) {
+				&& !SecurityEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalArgumentException(PRICES_OWNERS_ONLY);
 		}
 		updateModelMetadata(engineId, updates);
@@ -515,7 +515,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * that rather than failing, since one unreadable smss should not stop the rest.
 	 */
 	private static String getModelIdFromSmss(String engineId) {
-		Object smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+		Object smssFile = InternalUtility.getEngineSmssPath(engineId);
 		if (smssFile == null) {
 			return null;
 		}

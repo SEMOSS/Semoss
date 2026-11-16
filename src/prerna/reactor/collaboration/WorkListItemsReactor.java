@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkItemUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkListItems(view=["needs_me"], topicId=["..."], channel=["email"], sort=["priority"], limit=[30], offset=[0]);
@@ -56,25 +57,12 @@ public class WorkListItemsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's Work items for one queue view as { items, total, fyiCount, automatedSkippedCount }";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (VIEW.equals(key)) {
-			return "needs_me (default), waiting, suggested, done_today, or all";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Only items on this topic";
-		} else if (CHANNEL.equals(key)) {
-			return "email, teams, calendar, room, or task";
-		} else if (SORT.equals(key)) {
-			return "priority (default), received, or closed";
-		} else if (LIMIT.equals(key)) {
-			return "Page size, default 30";
-		} else if (OFFSET.equals(key)) {
-			return "Rows to skip, default 0";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the signed-in user's Work items for one queue view as { items, total, fyiCount, automatedSkippedCount }")
+				.key(VIEW, "needs_me (default), waiting, suggested, done_today, or all")
+				.key(TOPIC_ID, "Only items on this topic").key(CHANNEL, "email, teams, calendar, room, or task")
+				.key(SORT, "priority (default), received, or closed").key(LIMIT, "Page size, default 30")
+				.key(OFFSET, "Rows to skip, default 0");
 	}
 }

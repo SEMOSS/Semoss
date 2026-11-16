@@ -41,13 +41,11 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.query.querystruct.transform.QSRenameTableConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.reactor.imports.ImportUtility;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 import org.apache.logging.log4j.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -82,7 +80,7 @@ public class AbstractRdbmsFrameUnitTests {
 	private AbstractRdbmsFrame frame;
 	private RdbmsFrameBuilder builder;
 	private IQueryInterpreter interpreter;
-	private AbstractSqlQueryUtil util;	
+	private AbstractSqlQueryUtil util;
 	private Connection conn;
 	private OwlTemporalEngineMeta owl;
 
@@ -90,11 +88,11 @@ public class AbstractRdbmsFrameUnitTests {
 
 	@BeforeEach
 	void setup() {
-		conn =  mock(Connection.class);
+		conn = mock(Connection.class);
 		util = mock(AbstractSqlQueryUtil.class);
 		builder = mock(RdbmsFrameBuilder.class);
 		owl = mock(OwlTemporalEngineMeta.class);
-		interpreter  = mock(IQueryInterpreter.class);
+		interpreter = mock(IQueryInterpreter.class);
 
 		frame = new AbstractRdbmsFrame() {
 			@Override
@@ -203,7 +201,7 @@ public class AbstractRdbmsFrameUnitTests {
 
 		@Test
 		void constuctorHeaders() throws Exception {
-			String[] headers = {"col1"};
+			String[] headers = { "col1" };
 
 			try (MockedStatic<UUID> uuidStatic = Mockito.mockStatic(UUID.class)) {
 				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
@@ -235,11 +233,11 @@ public class AbstractRdbmsFrameUnitTests {
 
 		@Test
 		void constuctorHeadersTypes() throws Exception {
-			String[] headers = {"col1"};
-			String[] types = {"STRING"};
+			String[] headers = { "col1" };
+			String[] types = { "STRING" };
 
 			try (MockedStatic<UUID> uuidStatic = Mockito.mockStatic(UUID.class);
-				MockedStatic<ImportUtility> util = Mockito.mockStatic(ImportUtility.class)) {
+					MockedStatic<ImportUtility> util = Mockito.mockStatic(ImportUtility.class)) {
 				uuidStatic.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
 				doNothing().when(builder).alterTableNewColumns(eq("RDBMSFRAME_UUID"), eq(headers), eq(types));
 
@@ -273,14 +271,17 @@ public class AbstractRdbmsFrameUnitTests {
 		assertNotNull(frame.getQueryUtil());
 		assertNotNull(frame.getBuilder());
 		assertNotNull(frame.getConn());
-		assertNull(frame.getDataMakerName());
 
 		assertEquals(DataFrameTypeEnum.GRID, frame.getFrameType());
 	}
 
 	@Test
 	void addRowsViaIterator() throws Exception {
-		Map<String, SemossDataType> typesMap = new HashMap(){{put("col1", SemossDataType.INT);}};
+		Map<String, SemossDataType> typesMap = new HashMap() {
+			{
+				put("col1", SemossDataType.INT);
+			}
+		};
 		RawRDBMSSelectWrapper wrapper = mock(RawRDBMSSelectWrapper.class);
 
 		doNothing().when(builder).addRowsViaIterator(eq(wrapper), anyString(), eq(typesMap));
@@ -291,9 +292,9 @@ public class AbstractRdbmsFrameUnitTests {
 
 	@Test
 	void addRow() {
-		String[] cols = {"colName"};
-		Object[] vals = {"foo"};
-		String[] types = {"STRING"};
+		String[] cols = { "colName" };
+		Object[] vals = { "foo" };
+		String[] types = { "STRING" };
 		OwlTemporalEngineMeta owl = mock(OwlTemporalEngineMeta.class);
 
 		when(owl.getHeaderTypeAsString(eq(cols[0]), anyString())).thenReturn(null);
@@ -309,8 +310,8 @@ public class AbstractRdbmsFrameUnitTests {
 	@Test
 	void addNewColumn() {
 		String tableName = "table";
-		String[] headers = {"col1"};
-		String[] types = {"STRING"};
+		String[] headers = { "col1" };
+		String[] types = { "STRING" };
 		// OwlTemporalEngineMeta owl = mock(OwlTemporalEngineMeta.class);
 
 		doNothing().when(builder).alterTableNewColumns(tableName, headers, types);
@@ -330,7 +331,7 @@ public class AbstractRdbmsFrameUnitTests {
 	@Test
 	void removeColumn() throws Exception {
 		String headers = "col1";
-		
+
 		when(util.allowDropColumn()).thenReturn(true);
 		when(util.alterTableDropColumn(anyString(), eq(headers))).thenReturn("DROP COL1 FROM TABLENAME");
 
@@ -351,10 +352,11 @@ public class AbstractRdbmsFrameUnitTests {
 		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
 
 		try (MockedStatic<RawRDBMSSelectWrapper> wrapperStatic = Mockito.mockStatic(RawRDBMSSelectWrapper.class)) {
-			wrapperStatic.when(() -> RawRDBMSSelectWrapper.directExecutionViaConnection(frame.conn, "query", false)).thenReturn(wrapper);
+			wrapperStatic.when(() -> RawRDBMSSelectWrapper.directExecutionViaConnection(frame.conn, "query", false))
+					.thenReturn(wrapper);
 
 			IRawSelectWrapper ans = frame.query("query");
-			
+
 			assertNotNull(ans);
 			assertEquals(wrapper, ans);
 		}
@@ -366,11 +368,13 @@ public class AbstractRdbmsFrameUnitTests {
 
 		RawRDBMSSelectWrapper wrapper = new RawRDBMSSelectWrapper();
 
-		try (MockedStatic<QSAliasToPhysicalConverter> qsAliasStatic = Mockito.mockStatic(QSAliasToPhysicalConverter.class);
-			MockedStatic<QSRenameTableConverter> qsRemaeStatic = Mockito.mockStatic(QSRenameTableConverter.class);
-			MockedStatic<RawRDBMSSelectWrapper> wrapperStatic = Mockito.mockStatic(RawRDBMSSelectWrapper.class)) {
-			
-			qsAliasStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(eq(qs), any(OwlTemporalEngineMeta.class))).thenReturn(qs);
+		try (MockedStatic<QSAliasToPhysicalConverter> qsAliasStatic = Mockito
+				.mockStatic(QSAliasToPhysicalConverter.class);
+				MockedStatic<QSRenameTableConverter> qsRemaeStatic = Mockito.mockStatic(QSRenameTableConverter.class);
+				MockedStatic<RawRDBMSSelectWrapper> wrapperStatic = Mockito.mockStatic(RawRDBMSSelectWrapper.class)) {
+
+			qsAliasStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(eq(qs), any(OwlTemporalEngineMeta.class)))
+					.thenReturn(qs);
 			qsRemaeStatic.when(() -> QSRenameTableConverter.convertQs(eq(qs), any(Map.class), eq(true))).thenReturn(qs);
 
 			when(frame.util.getInterpreter(any(IDatabaseEngine.class))).thenReturn(interpreter);
@@ -379,10 +383,11 @@ public class AbstractRdbmsFrameUnitTests {
 			doNothing().when(interpreter).setLogger(any(Logger.class));
 			when(interpreter.composeQuery()).thenReturn("query");
 
-			wrapperStatic.when(() -> RawRDBMSSelectWrapper.directExecutionViaConnection(frame.conn, "query", false)).thenReturn(wrapper);
+			wrapperStatic.when(() -> RawRDBMSSelectWrapper.directExecutionViaConnection(frame.conn, "query", false))
+					.thenReturn(wrapper);
 
 			IRawSelectWrapper ans = frame.query(qs);
-			
+
 			assertNotNull(ans);
 			assertEquals(wrapper, ans);
 		}
@@ -396,12 +401,14 @@ public class AbstractRdbmsFrameUnitTests {
 		HardSelectQueryStruct qs = mock(HardSelectQueryStruct.class);
 
 		doNothing().when(qs).setQuery(query);
-		
-		try (MockedStatic<QSAliasToPhysicalConverter> qsAliasStatic = Mockito.mockStatic(QSAliasToPhysicalConverter.class);
-			MockedStatic<QSRenameTableConverter> qsRemaeStatic = Mockito.mockStatic(QSRenameTableConverter.class);
-			MockedStatic<RawRDBMSSelectWrapper> wrapperStatic = Mockito.mockStatic(RawRDBMSSelectWrapper.class)) {
-			
-			qsAliasStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(eq(qs), any(OwlTemporalEngineMeta.class))).thenReturn(qs);
+
+		try (MockedStatic<QSAliasToPhysicalConverter> qsAliasStatic = Mockito
+				.mockStatic(QSAliasToPhysicalConverter.class);
+				MockedStatic<QSRenameTableConverter> qsRemaeStatic = Mockito.mockStatic(QSRenameTableConverter.class);
+				MockedStatic<RawRDBMSSelectWrapper> wrapperStatic = Mockito.mockStatic(RawRDBMSSelectWrapper.class)) {
+
+			qsAliasStatic.when(() -> QSAliasToPhysicalConverter.getPhysicalQs(eq(qs), any(OwlTemporalEngineMeta.class)))
+					.thenReturn(qs);
 			qsRemaeStatic.when(() -> QSRenameTableConverter.convertQs(eq(qs), any(Map.class), eq(true))).thenReturn(qs);
 
 			when(frame.util.getInterpreter(any(IDatabaseEngine.class))).thenReturn(interpreter);
@@ -410,7 +417,8 @@ public class AbstractRdbmsFrameUnitTests {
 			doNothing().when(interpreter).setLogger(any(Logger.class));
 			when(interpreter.composeQuery()).thenReturn("query");
 
-			wrapperStatic.when(() -> RawRDBMSSelectWrapper.directExecutionViaConnection(frame.conn, "query", false)).thenReturn(wrapper);
+			wrapperStatic.when(() -> RawRDBMSSelectWrapper.directExecutionViaConnection(frame.conn, "query", false))
+					.thenReturn(wrapper);
 
 			when(wrapper.hasNext()).thenReturn(true).thenReturn(false).thenThrow(NullPointerException.class);
 			when(wrapper.next()).thenReturn(dataRow);
@@ -429,9 +437,9 @@ public class AbstractRdbmsFrameUnitTests {
 
 	@Test
 	void createUpdatePreparedStatementTestOne() {
-		String[] cols = {"col1"};
+		String[] cols = { "col1" };
 		PreparedStatement ps = mock(PreparedStatement.class);
-		
+
 		when(builder.createInsertPreparedStatement(anyString(), eq(cols))).thenReturn(ps);
 
 		assertEquals(ps, frame.createInsertPreparedStatement(cols));
@@ -439,10 +447,10 @@ public class AbstractRdbmsFrameUnitTests {
 
 	@Test
 	void createUpdatePreparedStatementTestTwo() {
-		String[] cols = {"col1"};
-		String[] where = {"table"};
+		String[] cols = { "col1" };
+		String[] where = { "table" };
 		PreparedStatement ps = mock(PreparedStatement.class);
-		
+
 		when(builder.createUpdatePreparedStatement(anyString(), eq(cols), eq(where))).thenReturn(ps);
 
 		assertEquals(ps, frame.createUpdatePreparedStatement(cols, where));
@@ -458,24 +466,19 @@ public class AbstractRdbmsFrameUnitTests {
 	@Test
 	void sizeTest() {
 		when(builder.isEmpty(anyString())).thenReturn(false).thenReturn(true);
-		when(builder.getNumRecords(anyString())).thenReturn(1);
+		when(builder.getNumRows(anyString())).thenReturn(1L);
 
 		assertEquals(1, frame.size(anyString()));
 		assertEquals(0, frame.size(anyString()));
 	}
 
 	@Test
-	void closeTest() throws Exception{
+	void closeTest() throws Exception {
 		doNothing().doThrow(SQLException.class).when(conn).close();
 
 		frame.close();
 		frame.close();
 
 		verify(conn, times(2)).close();
-	}
-
-	@Test
-	void processDataMakerComponent() {
-		frame.processDataMakerComponent(new DataMakerComponent(null));
 	}
 }

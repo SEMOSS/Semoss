@@ -40,6 +40,7 @@ import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -295,14 +296,16 @@ public class SemanticBlendingReactor extends AbstractRFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(GENERATE_FRAME)) {
-			return "Boolean indicator of whether an RDataFrame should be created - defaults to false";
-		}
-		if (key.equals(FRAME_NAME)) {
-			return "The name for the RDataFrame, if one is to be created";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Predicts the concept each given text column of the frame holds by looking up some of its values in Wikidata, and returns the top predicted concepts with their probabilities and URLs. With genFrame true it stores the results as a new R frame instead.")
+				.key(ReactorKeysEnum.COLUMNS, key -> key.list(String.class))
+				.key(ReactorKeysEnum.RANDOM_VALS,
+						key -> key.type(Integer.class)
+								.description("How many of each column's values to look up (default 20)."))
+				.key(GENERATE_FRAME,
+						key -> key.type(Boolean.class).description(
+								"Boolean indicator of whether an RDataFrame should be created - defaults to false"))
+				.key(FRAME_NAME, "The name for the RDataFrame, if one is to be created");
 	}
 }

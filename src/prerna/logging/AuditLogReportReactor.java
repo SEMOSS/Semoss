@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.logging;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -52,7 +53,7 @@ public class AuditLogReportReactor extends AuditLogsReportReactor {
 
 	@Deprecated
 	@Override
-	public String getReactorDescription() {
-		return "Deprecated. Use the AuditLogsReport reactor instead.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Deprecated. Use the AuditLogsReport reactor instead.");
 	}
 }

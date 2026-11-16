@@ -38,6 +38,7 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -354,6 +355,45 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						    ]
 						}
 						```
+
+						Decisions (TypeSafe engines)
+
+						Only for model engines registered with `MODEL_TYPE` `TYPESAFE` (for example Jev). Instead of generating text, the model answers named questions about `state` with calibrated values. It creates no chat messages and uses no room. Pixel is the only way to call it for now; the Python, JavaScript, and LangChain clients do not wrap it yet.
+
+						```
+						TypeSafe(engine = "<engineid>", state = [{"ticket": "I was charged twice and need a refund today."}], questions = [{
+						    "department": {"type": "choice", "instructions": "Which team should handle this ticket?", "criteria": {"billing": "Payments and refunds", "technical": "Bugs and errors"}},
+						    "frustration": {"type": "score", "instructions": "How frustrated is the customer?", "criteria": ["Calm", "Frustrated but civil", "Very angry"]},
+						    "is_urgent": {"type": "noul", "instructions": "Does this require action today?"}
+						}], paramValues = [{"timeout": 30, "max_retries": 2}]);
+						```
+
+						| Argument | What to pass |
+						| --- | --- |
+						| `state` | text, a map, or a list to judge. Put a list inside a map (`{"records": [...]}`) to keep its shape |
+						| `questions` | a map of answer names to questions. `type` is `choice` (criteria is a map of option to description), `score` (criteria is a list of levels, lowest first), or `noul` (yes/no, no criteria) |
+						| `paramValues` | optional; only `timeout` (seconds) and `max_retries`. The engine owns the model and credentials |
+
+						Example Output
+
+						Same envelope; `pixelReturn[0].output.response.answers` is keyed by your question names.
+
+						```json
+						"output": {
+						    "response": {
+						        "model": "jev-1.13.0",
+						        "answers": {
+						            "department": {"type": "choice", "choice": "billing", "confidence": 0.8, "probabilities": {"billing": 0.9, "technical": 0.1}},
+						            "frustration": {"type": "score", "score": 0.75, "confidence": 0.6, "legend": {"0": "Calm", "1": "Frustrated but civil", "2": "Very angry"}},
+						            "is_urgent": {"type": "noul", "noul": 0.99}
+						        }
+						    },
+						    "numberOfTokensInPrompt": 425,
+						    "numberOfTokensInResponse": 73
+						}
+						```
+
+						`score` is the level index, counting from 0 and possibly fractional (`legend` maps each index to its level); `noul` is the probability of yes. OpenAI models with the Decisions API use the separate `OpenAIDecisions(engine, input, questions, paramValues)` reactor, which takes OpenAI's native question format.
 
 						Additional parameters: [OpenAI Parameter Spec](https://platform.openai.com/docs/api-reference/chat/create)
 						""",
@@ -2562,46 +2602,44 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Builds tutorial-style usage snippets for a selected engine across Pixel, JavaScript/TypeScript, Python, Java, Guardrail pipeline JSON, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Builds tutorial-style usage snippets for a selected engine across Pixel, JavaScript/TypeScript, Python, Java, Guardrail pipeline JSON, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
 
-				Platform context (useful for both human readers and machine consumers): on the Semoss AI Server platform every capability is an *engine* registered in a shared catalog - Model (LLMs), Vector (semantic search), Database (SQL/graph), Storage (files), Function (callable tools), and Guardrail (input/output policy checks) - addressed by a stable `engineId`. Pixel is the server-side scripting language executed through the `runPixel` REST endpoint; the `@semoss/sdk` JavaScript package, the `ai_server` Python SDK, and the Java `Utility` helpers call the same engines. Model/chat calls are stateful via a *room* (insight) that holds conversation history.
+								Platform context (useful for both human readers and machine consumers): on the Semoss AI Server platform every capability is an *engine* registered in a shared catalog - Model (LLMs), Vector (semantic search), Database (SQL/graph), Storage (files), Function (callable tools), and Guardrail (input/output policy checks) - addressed by a stable `engineId`. Pixel is the server-side scripting language executed through the `runPixel` REST endpoint; the `@semoss/sdk` JavaScript package, the `ai_server` Python SDK, and the Java `Utility` helpers call the same engines. Model/chat calls are stateful via a *room* (insight) that holds conversation history.
 
-				- Input resolution order is: `engine` first, then `type` if `engine` is not provided.
-				- When only `type` is supplied, snippets are generated with `SAMPLE_ENGINE_ID` as the placeholder engine identifier.
-				- The returned vector contains one object per usage channel with `type`, `label`, and `code`.
-				- The first channel is always `type = "introduction"`: a markdown primer explaining what this engine type does. The remaining channels (`pixel`, `javascript`, `python`, `java`, `guardrail`, ...) are per-integration or configuration format.
-				- Each integration channel's `code` is markdown with per-operation example calls, each followed by an "Example Output" block showing the JSON/dict payload it returns. Pixel outputs show the full `runPixel` envelope (`pixelReturn[i].output`); Python SDK outputs show the unwrapped payload.
-				- The `javascript` channel covers the `@semoss/sdk` front-end package: `runPixel` (which returns the parsed envelope plus a pre-collected `errors` array), insight sessions, engine discovery via `MyEngines`, and, for Model engines, room-threaded chat, file uploads, and streaming through `runPixelAsync`/`getPixelJobStreaming`.
-				- Model responses are schemaVersion 2: `response` is the convenience concatenated text while `parts` is the full ordered content (text, tool_call, media, etc.) that can mix modalities in one turn.
-				- Function-engine responses also include `parameters`, where each item contains `name`, `type`, `description`, and `required`.
-				""";
+								- Input resolution order is: `engine` first, then `type` if `engine` is not provided.
+								- When only `type` is supplied, snippets are generated with `SAMPLE_ENGINE_ID` as the placeholder engine identifier.
+								- The returned vector contains one object per usage channel with `type`, `label`, and `code`.
+								- The first channel is always `type = "introduction"`: a markdown primer explaining what this engine type does. The remaining channels (`pixel`, `javascript`, `python`, `java`, `guardrail`, ...) are per-integration or configuration format.
+								- Each integration channel's `code` is markdown with per-operation example calls, each followed by an "Example Output" block showing the JSON/dict payload it returns. Pixel outputs show the full `runPixel` envelope (`pixelReturn[i].output`); Python SDK outputs show the unwrapped payload.
+								- The `javascript` channel covers the `@semoss/sdk` front-end package: `runPixel` (which returns the parsed envelope plus a pre-collected `errors` array), insight sessions, engine discovery via `MyEngines`, and, for Model engines, room-threaded chat, file uploads, and streaming through `runPixelAsync`/`getPixelJobStreaming`.
+								- Model responses are schemaVersion 2: `response` is the convenience concatenated text while `parts` is the full ordered content (text, tool_call, media, etc.) that can mix modalities in one turn.
+								- Function-engine responses also include `parameters`, where each item contains `name`, `type`, `description`, and `required`.
+								""")
+				.key(ReactorKeysEnum.ENGINE, """
+						Engine ID used to derive both the catalog type and engine-specific usage examples.
+
+						- If both `engine` and `type` are provided, this value takes precedence.
+						""").key(ReactorKeysEnum.TYPE, typeDescription());
 	}
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return """
-					Engine ID used to derive both the catalog type and engine-specific usage examples.
+	/** The type key's description, listing the catalog types it accepts. */
+	private static String typeDescription() {
+		String validValues = String.join(", ", IEngine.CATALOG_TYPE.DATABASE.toString(),
+				IEngine.CATALOG_TYPE.STORAGE.toString(), IEngine.CATALOG_TYPE.MODEL.toString(),
+				IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString(),
+				IEngine.CATALOG_TYPE.GUARDRAIL.toString());
+		return """
+				Fallback engine catalog type used only when `engine` is not provided.
 
-					- If both `engine` and `type` are provided, this value takes precedence.
-					""";
-		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
-			String validValues = String.join(", ", IEngine.CATALOG_TYPE.DATABASE.toString(),
-					IEngine.CATALOG_TYPE.STORAGE.toString(), IEngine.CATALOG_TYPE.MODEL.toString(),
-					IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString(),
-					IEngine.CATALOG_TYPE.GUARDRAIL.toString());
-			return """
-					Fallback engine catalog type used only when `engine` is not provided.
-
-					- Values are case-insensitive. If valid, examples are generated with `SAMPLE_ENGINE_ID`.
-					- Valid values: %s.
-					- If neither a valid `engine` nor a valid `type` is provided, the reactor throws an `IllegalArgumentException`.
-					"""
-					.formatted(validValues);
-		}
-		return super.getDescriptionForKey(key);
+				- Values are case-insensitive. If valid, examples are generated with `SAMPLE_ENGINE_ID`.
+				- Valid values: %s.
+				- If neither a valid `engine` nor a valid `type` is provided, the reactor throws an `IllegalArgumentException`.
+				"""
+				.formatted(validValues);
 	}
 
 }

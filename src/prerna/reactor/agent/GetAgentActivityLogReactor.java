@@ -35,6 +35,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -99,29 +100,14 @@ public class GetAgentActivityLogReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Retrieves a page of runs for the specified agent and current user, ordered newest first. When grouped by room, the page identifies rooms and all runs for each identified room are returned.";
-	}
-
-	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (SORT_BY_ROOM_KEY.equals(key)) {
-			return MCP_KEY_TYPE.BOOLEAN;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (AGENT_ID_KEY.equals(key)) {
-			return "The agent ID to filter by. This corresponds to AGENT_RUN.WORKSPACE_ID.";
-		} else if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Maximum number of agent runs to return. Defaults to 20 and must be greater than 0.";
-		} else if (ReactorKeysEnum.OFFSET.getKey().equals(key)) {
-			return "Number of agent runs to skip. Defaults to 0 and must not be negative.";
-		} else if (SORT_BY_ROOM_KEY.equals(key)) {
-			return "When true, uses the paginated results to identify rooms, then returns a map keyed by room ID containing all current-user runs for each room.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Retrieves a page of runs for the specified agent and current user, ordered newest first. When grouped by room, the page identifies rooms and all runs for each identified room are returned.")
+				.key(AGENT_ID_KEY, "The agent ID to filter by. This corresponds to AGENT_RUN.WORKSPACE_ID.")
+				.key(ReactorKeysEnum.LIMIT,
+						"Maximum number of agent runs to return. Defaults to 20 and must be greater than 0.")
+				.key(ReactorKeysEnum.OFFSET, "Number of agent runs to skip. Defaults to 0 and must not be negative.")
+				.key(SORT_BY_ROOM_KEY, key -> key.type(Boolean.class).description(
+						"When true, uses the paginated results to identify rooms, then returns a map keyed by room ID containing all current-user runs for each room."));
 	}
 }

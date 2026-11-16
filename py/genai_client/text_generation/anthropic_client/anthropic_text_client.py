@@ -61,6 +61,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     # providers whose client supports messages.count_tokens
     _COUNT_TOKENS_PROVIDERS = ("anthropic", "google", "azure")
 
+    # rejected on every model by API version 2026-10-21, which anthropic 2.x uses
+    _SAMPLING_PARAMS = ("temperature", "top_p", "top_k")
+
     def __init__(
         self,
         provider: str,
@@ -399,6 +402,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             request_config = msg_builder_response.request_config
             streaming = msg_builder_response.streaming
             self.has_schema = msg_builder_response.has_structured_input
+
+            if self.provider == "bedrock":
+                # shortcut: keeps every Bedrock call on the old API version, since
+                # Bedrock serves 2026-10-21 (anthropic 2.x's default) only for Claude
+                # 4.7 and later; drop it once all Bedrock engines run Claude 4.7+
+                request_config.extra_body = {
+                    **(request_config.extra_body or {}),
+                    "anthropic_version": "bedrock-2023-05-31",
+                }
 
             if self.prompt_caching:
                 if self.provider in ("anthropic", "azure"):
@@ -1325,6 +1337,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         lines = []
         for req in requests or []:
             params = dict(req.get("body") or req.get("params") or {})
+            for key in self._SAMPLING_PARAMS:
+                params.pop(key, None)
             # model is set at the job level, not per line
             params.pop("model", None)
             params.setdefault("max_tokens", default_max_tokens)
@@ -1486,6 +1500,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         batch_requests = []
         for req in requests or []:
             params = dict(req.get("body") or req.get("params") or {})
+            for key in self._SAMPLING_PARAMS:
+                params.pop(key, None)
             model = params.pop("model", None) or self.model_settings.model_name
             params.setdefault("max_tokens", default_max_tokens)
             request = Request(

@@ -54,6 +54,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.remoteviewer.service.RemoteBrowserSession;
 import prerna.remoteviewer.service.RemoteBrowserSessionManager;
 import prerna.sablecc2.om.PixelDataType;
@@ -675,11 +676,11 @@ public class GeneratePlaywrightFieldActionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Generates validated fill/select actions for one or all visible editable fields using recent Playground \
 				room context. With x/y it returns only the selected editable field; without coordinates it returns \
 				all context-supported fields. Actions are executed and recorded through the remote-browser WebSocket.\
-				""";
+				""");
 	}
 }

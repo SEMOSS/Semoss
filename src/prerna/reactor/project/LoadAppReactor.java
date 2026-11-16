@@ -27,12 +27,11 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
-import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class LoadAppReactor extends AbstractReactor {
@@ -49,14 +48,7 @@ public class LoadAppReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to set app context",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+		requireUser();
 
 		organizeKeys();
 		String context = keyValue.get(keysToGet[0]);
@@ -76,13 +68,9 @@ public class LoadAppReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Set the context for the insight in order to have access to app assets including custom reactors and python scripts";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Set the context for the insight in order to have access to app assets including custom reactors and python scripts");
 	}
 
 }

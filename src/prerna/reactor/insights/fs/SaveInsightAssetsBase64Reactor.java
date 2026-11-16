@@ -29,16 +29,19 @@ package prerna.reactor.insights.fs;
 
 import java.util.List;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 
 public class SaveInsightAssetsBase64Reactor extends AbstractSaveInsightAssetsReactor {
 
 	private static final String DECODE = "decode";
 
 	public SaveInsightAssetsBase64Reactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(), DECODE };
-		this.keyRequired = new int[] { 1, 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(), DECODE,
+				ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 
 //		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
 //		ReactorKeysEnum.COMMENT_KEY.getKey(), DECODE };
@@ -46,28 +49,20 @@ public class SaveInsightAssetsBase64Reactor extends AbstractSaveInsightAssetsRea
 	}
 
 	@Override
-	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
+	protected List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents,
+			boolean override) {
 		boolean decode = getBoolean(DECODE, true);
-		FileSystemUtil.saveAssetFilesBase64(assetFolder, filePaths, contents, decode);
+		return FileSystemUtil.saveAssetFilesBase64(assetFolder, filePaths, contents, decode, override);
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Save a single or multiple files in the insight assets folder. Content for each file is provided as base64 utf-8 encoded input.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file(s) to save";
-		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
-			return "Contents of the file(s) to save. Content is base64 utf-8 string.";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the insight";
-		} else if (key.equals(DECODE)) {
-			return "Boolean to decode the base64 utf-8 content string before writing to the file. Default is true";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Save a single or multiple files in the insight assets folder. Content for each file is provided as base64 utf-8 encoded input.")
+				.key(ReactorKeysEnum.FILE_PATH, "Names of the file(s) to save")
+				.key(ReactorKeysEnum.CONTENT, "Contents of the file(s) to save. Content is base64 utf-8 string.")
+				.key(DECODE,
+						"Boolean to decode the base64 utf-8 content string before writing to the file. Default is true");
 	}
 
 }

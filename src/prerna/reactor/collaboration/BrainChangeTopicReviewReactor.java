@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.BrainTopicReviewUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /** Apply a typed, reversible change to the draft only. */
@@ -47,12 +48,20 @@ public class BrainChangeTopicReviewReactor extends AbstractCollaborationReactor 
 		if (revision == null || change == null) {
 			throw new IllegalArgumentException("Pass a saved review revision and a change map");
 		}
-		return mapResult(BrainTopicReviewUtils.change(user, getString("reviewId"), revision,
-				getString("operationId"), change));
+		return mapResult(
+				BrainTopicReviewUtils.change(user, getString("reviewId"), revision, getString("operationId"), change));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Revision-checked, idempotent topic-review draft correction. Changes: confirm/reject/move/also_link with topicKey, threadIds, preview versions and targetKey where needed; organize with reviewed groups and scopeVersion; undo with changeId. Real links and combinations are applied only by BrainApplyTopicReview";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Revision-checked, idempotent topic-review draft correction. Changes: confirm/reject/move/also_link with topicKey, threadIds, preview versions and targetKey where needed; organize with reviewed groups and scopeVersion; undo with changeId. Real links and combinations are applied only by BrainApplyTopicReview")
+				.key("change", key -> key.type(Map.class).description(
+						"The change to make to the draft, as a map whose type is confirm, reject, move, also_link, organize, reconcile_profile or undo, with the fields that type needs."))
+				.key("operationId",
+						"A caller-chosen id for this change, up to 100 characters. Sending the same id with the same change again does nothing; reusing it for a different change fails.")
+				.key("reviewId", "The id of the signed-in user's topic review.")
+				.key("revision", key -> key.type(Integer.class).description(
+						"The review revision the caller last read. The call fails when the saved review has changed since."));
 	}
 }

@@ -28,6 +28,7 @@
 package prerna.reactor.panel;
 
 import prerna.om.InsightPanel;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -38,51 +39,50 @@ public class GetPanelStateReactor extends AbstractInsightPanelReactor {
 	/*
 	 * This class is complimentary to SetPanelStateReactor
 	 */
-	
+
 	public GetPanelStateReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PANEL.getKey(), InsightUtility.OUTPUT_TYPE};
+		this.keysToGet = new String[] { ReactorKeysEnum.PANEL.getKey(), InsightUtility.OUTPUT_TYPE };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		InsightPanel panel = getInsightPanel();
-		if(panel == null) {
+		if (panel == null) {
 			throw new NullPointerException("No panel was passed in to get the state");
 		}
 		String outputType = getOutput();
-		
+
 		// we will just serialize the insight panel
 		return InsightUtility.getPanelState(panel, outputType);
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(InsightUtility.OUTPUT_TYPE)) {
-			return "The value to return - as a 'string' or 'map'";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns the current state of the given insight panel, serialized as a map or a string.")
+				.key(InsightUtility.OUTPUT_TYPE, "The value to return - as a 'string' or 'map'");
 	}
-	
+
 	private String getOutput() {
 		GenRowStruct grs = this.store.getGenRowStruct(InsightUtility.OUTPUT_TYPE);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			String input = grs.get(0).toString();
-			if(input.equalsIgnoreCase(InsightUtility.STRING_OUTPUT)) {
+			if (input.equalsIgnoreCase(InsightUtility.STRING_OUTPUT)) {
 				return InsightUtility.STRING_OUTPUT;
 			} else {
 				return InsightUtility.MAP_OUTPUT;
 			}
 		}
-		
-		if(!this.curRow.isEmpty()) {
-			if(this.curRow.toString().equalsIgnoreCase(InsightUtility.STRING_OUTPUT)) {
+
+		if (!this.curRow.isEmpty()) {
+			if (this.curRow.toString().equalsIgnoreCase(InsightUtility.STRING_OUTPUT)) {
 				return InsightUtility.STRING_OUTPUT;
 			} else {
 				return InsightUtility.MAP_OUTPUT;
 			}
 		}
-		
+
 		return InsightUtility.MAP_OUTPUT;
 	}
-	
+
 }

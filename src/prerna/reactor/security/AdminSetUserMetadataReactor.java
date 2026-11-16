@@ -35,6 +35,7 @@ import org.apache.commons.lang3.StringUtils;
 import prerna.auth.AuthProvider;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityUserUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -78,18 +79,16 @@ public class AdminSetUserMetadataReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Define metadata on a user";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(META)) {
-			return "Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the user. The list of values will determine the order that is defined for field";
-		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
-			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Admin Only: Define metadata on a user").key(
+				ReactorKeysEnum.PROVIDER,
+				"The login type of the user to update, such as NATIVE; together with userId it identifies the user.")
+				.key("userId",
+						"The id of the user to set the metadata on; together with provider it identifies the user.")
+				.key(META, key -> key.type(Map.class).description(
+						"Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the user. The list of values will determine the order that is defined for field"))
+				.key(ReactorKeysEnum.JSON_CLEANUP, key -> key.type(Boolean.class).description(
+						"Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this."));
 	}
 
 }

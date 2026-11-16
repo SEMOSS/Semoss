@@ -189,7 +189,7 @@ public class ZKClusterSynchronizer implements IClusterSynchronizer {
 													"Unrecognized cluster sync method '{}' for path='{}', id='{}'. Skipping.",
 													methodToken, fullPath, id);
 										} else {
-											method.invoke(params.toArray());
+											method.apply(params.toArray());
 										}
 									} catch (Exception e) {
 										classLogger.error(

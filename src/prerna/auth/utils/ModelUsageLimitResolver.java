@@ -76,6 +76,14 @@ import prerna.util.ValueUtils;
  * decision on; Unlimited ends it.
  * </p>
  *
+ * <p>
+ * A call an app's custom reactors make, when the model gives the app a
+ * permission, has one more source, the App Limit, after the person's teams and
+ * before public use. It applies to a person whose only way to the model is the
+ * app, one with no grant of their own and no team's grant; for anyone else the
+ * step is skipped.
+ * </p>
+ *
  * <ul>
  * <li><b>Ceilings.</b> The model's total is the path's ceiling, and each team
  * step carries the team's total; both are checked on every call, whatever is
@@ -147,10 +155,11 @@ public final class ModelUsageLimitResolver {
 	 *
 	 * @param user the signed in user
 	 * @return the user as a person limits apply to, with every login's teams
-	 * @throws IllegalArgumentException for an anonymous user, who cannot use models
+	 * @throws IllegalArgumentException for a missing user or one with no login, who
+	 *                                  cannot use models
 	 */
 	public static Person personOf(User user) {
-		if (user == null || user.isAnonymous()) {
+		if (user == null) {
 			throw new IllegalArgumentException("Sign in to use models");
 		}
 		Pair<String, String> primary = User.getPrimaryUserIdAndTypePair(user);
@@ -217,7 +226,29 @@ public final class ModelUsageLimitResolver {
 	 * @return how limits apply to the person on the model
 	 */
 	public static ModelUsageLimitPath resolve(Person person, String engineId) {
-		return resolve(person, EngineContext.load(engineId));
+		return resolve(person, engineId, null);
+	}
+
+	/**
+	 * Resolves how limits apply to a person on a model for a call the custom
+	 * reactors of an app make, when the model gives the app a permission. The path
+	 * has one more source, the App Limit, after the person's teams and before
+	 * public use. It applies to a person whose only way to the model is the app:
+	 * one with no grant of their own and no team's grant. For anyone else the step
+	 * is skipped.
+	 *
+	 * @param person       the person the app's reactor runs for
+	 * @param engineId     the model
+	 * @param appProjectId the app making the call, which the model gives a
+	 *                     permission, or null for a call no such app makes
+	 * @return how limits apply to the call
+	 * @throws IllegalArgumentException when the app does not exist
+	 */
+	public static ModelUsageLimitPath resolve(Person person, String engineId, String appProjectId) {
+		if (appProjectId != null && !SecurityProjectUtils.projectExists(appProjectId)) {
+			throw new IllegalArgumentException("App " + appProjectId + " does not exist");
+		}
+		return resolve(person, EngineContext.load(engineId), appProjectId);
 	}
 
 	/**
@@ -233,12 +264,12 @@ public final class ModelUsageLimitResolver {
 		EngineContext context = EngineContext.load(engineId);
 		Map<Pair<String, String>, ModelUsageLimitPath> paths = new LinkedHashMap<>();
 		for (Pair<String, String> person : people) {
-			paths.put(person, resolve(storedPerson(person.getValue0(), person.getValue1()), context));
+			paths.put(person, resolve(storedPerson(person.getValue0(), person.getValue1()), context, null));
 		}
 		return paths;
 	}
 
-	private static ModelUsageLimitPath resolve(Person person, EngineContext context) {
+	private static ModelUsageLimitPath resolve(Person person, EngineContext context, String appProjectId) {
 		String engineId = context.engineId;
 		ModelUsageLimitPath path = new ModelUsageLimitPath(engineId, person.userId(), person.type());
 
@@ -313,6 +344,18 @@ public final class ModelUsageLimitResolver {
 		definedTeams.forEach(path::addStep);
 		otherTeams.forEach(path::addStep);
 
+		Step app = null;
+		boolean appApplies = false;
+		if (appProjectId != null) {
+			ModelUsageLimitKey appKey = ModelUsageLimitKey.app(engineId, appProjectId);
+			app = new Step(Layer.BILLED, StepLimitType.APP, appKey, context.engineLimits.get(appKey));
+			appApplies = direct.getReason() == Reason.NO_GRANT && teamsWithGrant.isEmpty();
+			if (!appApplies) {
+				app.skipped(Reason.HAS_GRANT);
+			}
+			path.addStep(app);
+		}
+
 		// 3. public use, only on a public model
 		ModelUsageLimitKey publicUseKey = ModelUsageLimitKey.publicUse(engineId);
 		Step publicUse = new Step(Layer.BILLED, StepLimitType.PUBLIC, publicUseKey,
@@ -354,6 +397,9 @@ public final class ModelUsageLimitResolver {
 		} else if (!definedTeams.isEmpty()) {
 			billed = StepLimitType.TEAM;
 			order.addAll(definedTeams);
+		} else if (appApplies && app.isDefined()) {
+			billed = StepLimitType.APP;
+			order.add(app);
 		} else if (context.isPublic && publicUse.isDefined()) {
 			billed = StepLimitType.PUBLIC;
 			order.add(publicUse);

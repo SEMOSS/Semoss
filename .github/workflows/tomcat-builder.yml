@@ -18,9 +18,9 @@ env:
 jobs:
   # ---------------------------------------------------------------------------
   # Build each architecture on its OWN native runner and push the result to the
-  # registry BY DIGEST (no tag yet). amd64 builds on a GitHub amd64 runner,
-  # arm64 on a GitHub arm64 runner - no QEMU emulation, so each builds at full
-  # speed in parallel.
+  # registry BY DIGEST (no tag yet). amd64 and arm64 build on their own
+  # CodeBuild fleets - no QEMU emulation, so each builds at full speed in
+  # parallel.
   #
   # PREREQUISITE: the arm64 leg only succeeds once Dockerfile.tomcat is
   # architecture-aware. Today the Zulu JDK is installed by install_java.sh (in
@@ -34,18 +34,24 @@ jobs:
         # Cross-product: 4 jobs (amd64|arm64) x (standard|fips). The include
         # entries match on `arch`, so they fill in platform/runner/uname_arch for
         # both fips values rather than adding extra jobs.
+        # CodeBuild fleets like the image builders: anonymous base-image pulls from
+        # public.ecr.aws hit "429 Data limit exceeded" on GitHub-hosted runners.
         fips: [false, true]
         arch: [amd64, arm64]
         include:
           - arch: amd64
             platform: linux/amd64
-            runner: ubuntu-latest
             uname_arch: x86_64
+            runner_prefix: codebuild-semoss-github-runner
+            container: quay.io/semoss/test-quay:ubuntu-dind
           - arch: arm64
             platform: linux/arm64
-            runner: ubuntu-24.04-arm
             uname_arch: aarch64
-    runs-on: ${{ matrix.runner }}
+            runner_prefix: codebuild-semoss-github-runner-arm64
+            container: quay.io/semoss/test-quay:ubuntu-dind-arm64
+    runs-on: ${{ matrix.runner_prefix }}-${{ github.run_id }}-${{ github.run_attempt }}
+    container:
+      image: ${{ matrix.container }}
     env:
       TOMCAT_VERSION: ${{ github.event.inputs.version || '11.0.27' }}
     steps:

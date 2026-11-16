@@ -33,6 +33,7 @@ import prerna.auth.utils.ModelUsageLimitResolver;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.usage.ModelUsagePathView;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -54,12 +55,8 @@ public class GetUserModelUsageRestrictionsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = insight.getUser();
+		User user = requireUser();
 		String engineId = this.keyValue.get(ENGINE);
-
-		if (user == null || user.isAnonymous()) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 			throw new IllegalArgumentException(
 					"Model " + engineId + " does not exist or user does not have access to this model");
@@ -69,16 +66,10 @@ public class GetUserModelUsageRestrictionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns how model usage limits apply to the signed in user on a model: each limit, what is used, "
-				+ "when it resets, and which limit calls are billed to.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ENGINE)) {
-			return "Engine id of the model whose usage limits to return";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns how model usage limits apply to the signed in user on a model: each limit, what is used, "
+						+ "when it resets, and which limit calls are billed to.")
+				.key(ENGINE, "Engine id of the model whose usage limits to return");
 	}
 }

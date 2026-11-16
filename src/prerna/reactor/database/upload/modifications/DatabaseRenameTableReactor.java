@@ -33,7 +33,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngineModifier;
@@ -44,49 +43,47 @@ import prerna.reactor.masterdatabase.SyncDatabaseWithLocalMasterReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.Utility;
 
 public class DatabaseRenameTableReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(DatabaseRenameTableReactor.class);
 
 	public DatabaseRenameTableReactor() {
-		this.keysToGet = new String[] { 
-				ReactorKeysEnum.DATABASE.getKey(), 
-				ReactorKeysEnum.CONCEPT.getKey(),
-				ReactorKeysEnum.NEW_VALUE.getKey()
-				};
-		this.keyRequired = new int[] { 1, 1, 1};
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey(),
+				ReactorKeysEnum.NEW_VALUE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if(!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database" + databaseId + " does not exist or user does not have access to database");
+		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+			throw new IllegalArgumentException(
+					"Database" + databaseId + " does not exist or user does not have access to database");
 		}
-		
+
 		String table = this.keyValue.get(this.keysToGet[1]);
 		String newTable = this.keyValue.get(this.keysToGet[2]);
-		
+
 		boolean dbUpdate = false;
 		IDatabaseEngine database = Utility.getDatabase(databaseId);
-		try(WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
+		try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
 			IEngineModifier modifier = EngineModificationFactory.getEngineModifier(database);
-			if(modifier == null) {
-				throw new IllegalArgumentException("This type of data modification has not been implemented for this database type");
+			if (modifier == null) {
+				throw new IllegalArgumentException(
+						"This type of data modification has not been implemented for this database type");
 			}
 			try {
 				modifier.renameConcept(table, newTable);
 			} catch (Exception e) {
-				throw new IllegalArgumentException("Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
+				throw new IllegalArgumentException(
+						"Error occurred to alter the table. Error returned from driver: " + e.getMessage(), e);
 			}
-			
+
 			// update owl
 			try {
 				owlEngine.renameConcept(table, newTable, newTable);
@@ -105,13 +102,12 @@ public class DatabaseRenameTableReactor extends AbstractReactor {
 			EngineSyncUtility.clearEngineCache(databaseId);
 			ClusterUtil.pushOwl(databaseId, owlEngine);
 		} catch (IOException | InterruptedException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Failed to rename table {} in the metadata of database {}", table, databaseId, e1);
 		}
-		
+
 		NounMetadata noun = new NounMetadata(dbUpdate, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully renamed the column"));
 		return noun;
 	}
-
 
 }

@@ -58,6 +58,7 @@ import prerna.poi.main.helper.excel.ExcelSheetPreProcessor;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.poi.main.helper.excel.ExcelWorkbookFilePreProcessor;
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
@@ -101,9 +102,10 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Uploads an Excel file (.xlsx, .xlsm, .xls) to create a new relational (RDBMS) database or append to an existing one. "
-				+ "Each sheet/range is loaded as a table using the user-defined data types, headers, and table names.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Uploads an Excel file (.xlsx, .xlsm, .xls) to create a new relational (RDBMS) database or append to an existing one. "
+						+ "Each sheet/range is loaded as a table using the user-defined data types, headers, and table names.");
 	}
 
 	@Override

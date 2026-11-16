@@ -211,7 +211,8 @@ final class BrainTopicReviewChat {
 		} catch (RuntimeException failure) {
 			throw invalid();
 		}
-		if (!(answer.get("reply") instanceof String reply) || reply.isBlank()) throw invalid();
+		// an empty reply parses to null
+		if (answer == null || !(answer.get("reply") instanceof String reply) || reply.isBlank()) throw invalid();
 		List<Map<String, Object>> changes = new ArrayList<>();
 		for (Map<String, Object> raw : answer.get("changes") instanceof List<?> ? maps(answer.get("changes")) : List.<Map<String, Object>>of()) {
 			Map<String, Object> change = change(raw, byKey, names);

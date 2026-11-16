@@ -41,12 +41,15 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.show.ShowIndexStatement;
+import net.sf.jsqlparser.statement.show.ShowTablesStatement;
 import net.sf.jsqlparser.statement.update.Update;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -118,7 +121,8 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 			Statement statement = CCJSqlParserUtil.parse(sql);
 
 			if (statement instanceof Select || statement instanceof ShowStatement
-					|| statement instanceof ShowColumnsStatement || statement instanceof DescribeStatement
+					|| statement instanceof ShowColumnsStatement || statement instanceof ShowTablesStatement
+					|| statement instanceof ShowIndexStatement || statement instanceof DescribeStatement
 					|| statement instanceof ExplainStatement) {
 				return QueryType.SELECT;
 			} else if (statement instanceof Insert) {
@@ -285,8 +289,13 @@ public class AdminSqlQueryReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admin-only SQL query execution with pagination support (limit and offset), bypassing normal permission checks";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: SQL query execution with pagination support (limit and offset), bypassing normal permission checks")
+				.key("commit",
+						key -> key.type(Boolean.class).description(
+								"A true or false flag sent with statements that change data; false when not given."))
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class));
 	}
 
 }

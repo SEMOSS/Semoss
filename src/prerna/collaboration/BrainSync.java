@@ -123,7 +123,9 @@ public final class BrainSync {
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		if (!Boolean.TRUE.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(EMAIL))) {
-			throw new IllegalArgumentException("Mail is not connected yet; finish the onboarding import first");
+			throw new IllegalArgumentException(lastRun(ownerId, ownerType) == null
+					? "Mail is not connected yet; finish the onboarding import first"
+					: "Mail is turned off; turn it on in Settings > Connections");
 		}
 		Map<String, Object> importing = CollaborationJobUtils.latest(ownerId, ownerType, BrainMailImport.KIND);
 		if (importing != null && CollaborationJobUtils.RUNNING.equals(importing.get("status"))) {
@@ -170,13 +172,20 @@ public final class BrainSync {
 		boolean withTeams = Boolean.TRUE
 				.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(TEAMS));
 		job.count("since", since.toString());
+		// Graph first: a Send from a chat and the webhook wait on the ingest lock, so it is held only to import.
+		// Also mail moved, flagged or categorized since
+		BrainMailImport.Mail mail = BrainMailImport.readMail(user, source, job, ownerId, ownerType, since, true, 5, 10);
+		BrainMailImport.Chats chats = withTeams ? BrainMailImport.readTeams(user, source, job, ownerId, ownerType,
+				teamsSince(ownerId, ownerType, since, floor), 10, 60) : null;
+		String teamsError = chats == null ? null : chats.error();
 		BrainMailImport.Run run;
-		String teamsError;
 		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
 			run = new BrainMailImport.Run(ownerId, ownerType, true);
 			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
-			teamsError = BrainMailImport.importSince(user, source, job, run, since,
-					withTeams ? teamsSince(ownerId, ownerType, since, floor) : null);
+			BrainMailImport.importMail(job, run, mail, 60, 75);
+			if (chats != null) {
+				BrainMailImport.importHeaders(job, run, chats.headers(), 75, 85);
+			}
 			job.step("threads", 86);
 			run.refreshThreads();
 		}
@@ -222,6 +231,7 @@ public final class BrainSync {
 		Set<String> summarize = new LinkedHashSet<>(touched);
 		summarize.removeIf(id -> AUTOMATED.equals(verdicts.get(id)) || "skipped".equals(verdicts.get(id)));
 		WorkThreadInsights.queue(user, ownerId, ownerType, summarize);
+		WorkPipeline.queue(user, ownerId, ownerType, summarize);
 		job.count("summarizing", summarize.size());
 		job.count("resumed", run.owed.size() - run.imported);
 		finishFollowUps(ownerId, ownerType, run);
@@ -251,7 +261,7 @@ public final class BrainSync {
 		if (!pullDue(purpose, ownerId, ownerType, now) || !canIngest(ownerId, ownerType)) {
 			return Set.of();
 		}
-		// a sync holds the ingest lock for minutes; not marked as tried, so the first pull after it runs
+		// a running sync brings this mail in itself; not marked as tried, so the first pull after it runs
 		Map<String, Object> syncing = CollaborationJobUtils.latest(ownerId, ownerType, KIND);
 		if (syncing != null && CollaborationJobUtils.RUNNING.equals(syncing.get("status"))) {
 			return Set.of();
@@ -324,11 +334,16 @@ public final class BrainSync {
 		fresh.sort(Comparator.comparing(header -> String.valueOf(header.get("receivedDateTime"))));
 		BrainMailImport.Run run;
 		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
+			// again under the lock: a reset that held it meanwhile clears the runs. Not canIngest: its job lock is
+			// the one Reset holds while it waits for this lock
+			if (lastRun(ownerId, ownerType) == null) {
+				return Set.of();
+			}
 			run = new BrainMailImport.Run(ownerId, ownerType, true);
 			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
 			CollaborationDbUtils.batch(conn -> {
 				for (Map<String, Object> header : fresh) {
-					run.importOne(header);
+					run.importIsolated(conn, header);
 				}
 			});
 			run.refreshThreads();
@@ -337,6 +352,8 @@ public final class BrainSync {
 			WorkItemUtils.closeOnReply(ownerId, ownerType, sent[0], sent[1]);
 		}
 		WorkThreadInsights.queue(user, ownerId, ownerType, run.threads);
+		// no Work yet: unclassified, a newsletter would raise steps and a new thread would have no topic. The next
+		// sync classifies these threads (threadsSince) and queues them
 		finishFollowUps(ownerId, ownerType, run);
 		return run.threads;
 	}
@@ -476,7 +493,7 @@ public final class BrainSync {
 		AccessToken current = user.getAccessToken(AuthProvider.MICROSOFT);
 		if (current != null && !Objects.equals(current.getAccess_token(), token.getAccess_token())
 				&& MicrosoftGraphCredentialStore.isRefreshable(current) && msUserId.equals(current.getId())) {
-			MicrosoftGraphCredentialStore.save(current);
+			MicrosoftGraphCredentialStore.update(current);
 		}
 		return String.valueOf(status);
 	}
@@ -584,11 +601,32 @@ public final class BrainSync {
 		// When the first Teams import was partial there is no successful Teams checkpoint yet.
 		// Retry its selected window instead of using mail's newer checkpoint and losing skipped chats.
 		Map<String, Object> imported = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
-				"SELECT COUNTS_JSON FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = ? "
-						+ "AND STATUS = ? ORDER BY STARTED_AT DESC", 1, 0),
-				rs -> CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "COUNTS_JSON")),
-				ownerId, ownerType, BrainMailImport.KIND, CollaborationJobUtils.DONE);
-		return retryTeamsSince(since, floor, imported);
+				"SELECT COUNTS_JSON, PARAMS_JSON, STARTED_AT FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND KIND = ? AND STATUS = ? ORDER BY STARTED_AT DESC", 1, 0),
+				rs -> {
+					Map<String, Object> row = new HashMap<>();
+					row.put("counts", CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "COUNTS_JSON")));
+					row.put("params", CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "PARAMS_JSON")));
+					row.put("started", rs.getTimestamp("STARTED_AT"));
+					return row;
+				}, ownerId, ownerType, BrainMailImport.KIND, CollaborationJobUtils.DONE);
+		if (imported == null) {
+			return since;
+		}
+		@SuppressWarnings("unchecked")
+		Map<String, Object> counts = (Map<String, Object>) imported.get("counts");
+		if (counts != null && counts.get("teamsSince") != null) {
+			return retryTeamsSince(since, floor, counts);
+		}
+		// Teams turned on after an import without it: read chats back as far as that import read mail
+		@SuppressWarnings("unchecked")
+		Map<String, Object> params = (Map<String, Object>) imported.get("params");
+		if (params != null && params.get("days") instanceof Number days
+				&& imported.get("started") instanceof Timestamp started) {
+			Instant window = started.toInstant().minus(Duration.ofDays(days.longValue()));
+			return window.isBefore(since) ? later(window, floor) : since;
+		}
+		return since;
 	}
 
 	static Instant retryTeamsSince(Instant since, Instant floor, Map<String, Object> imported) {

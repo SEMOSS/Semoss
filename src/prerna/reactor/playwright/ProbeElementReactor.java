@@ -33,6 +33,7 @@ import com.google.gson.reflect.TypeToken;
 import com.microsoft.playwright.Page;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -399,18 +400,13 @@ public class ProbeElementReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Probe the DOM element at specified coordinates in the current page of the playwright session";
-	}
-
-	@Override
-	public String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "Playwright session ID that stores information about the history of actions done during that session";
-		} else if (key.equals("coords")) {
-			return "Coordinates (x,y) to probe the DOM element at. Format: 'x,y' (e.g., '100,200')";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Probe the DOM element at specified coordinates in the current page of the playwright session")
+				.key("tabId", "The id of the browser tab to probe.")
+				.key("sessionId",
+						"Playwright session ID that stores information about the history of actions done during that session")
+				.key("coords", "Coordinates (x,y) to probe the DOM element at. Format: 'x,y' (e.g., '100,200')");
 	}
 }

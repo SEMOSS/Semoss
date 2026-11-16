@@ -30,6 +30,7 @@ package prerna.reactor.frame.r;
 import org.rosuda.JRI.RFactor;
 
 import prerna.ds.r.RDataTable;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -194,12 +195,11 @@ public class ColumnCountReactor extends AbstractRFrameReactor {
 	////////////////////////////////// KEYS////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(TOP)) {
-			return "Indicates if a column should be sorted by descending frequency";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns bar chart data for a column of the current R frame: its 25 most frequent values with their counts, or the 25 least frequent when top is false. A numeric column returns a histogram instead.")
+				.key(TOP, key -> key.type(Boolean.class)
+						.description("Indicates if a column should be sorted by descending frequency"));
 	}
 
 }

@@ -29,12 +29,13 @@ package prerna.io.connector.jira;
 
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -73,15 +74,10 @@ public class JiraReadIssueReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reads a single Jira issue by key, returning its id, key, and all system and custom fields.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(JIRAID)) {
-			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Reads a single Jira issue by key, returning its id, key, and all system and custom fields.")
+				.key(JIRAID, "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).");
 	}
 }

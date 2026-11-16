@@ -51,6 +51,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.util.AssetUtility;
 import prerna.util.git.GitRepoUtils;
+import prerna.io.connector.mail.AttachmentText;
 
 /**
  * The owner's reference documents for one of their routines: a folder in their user assets at
@@ -164,8 +165,8 @@ public final class WorkRoutineDocuments {
 	// false when it cannot be read as an email; the caller then copies it as it is, under the same name
 	private static boolean copyAsText(Path file, Path copy) {
 		try {
-			Files.writeString(copy, BrainAttachmentText.extract(file, file.getFileName().toString(), "",
-					BrainAttachmentText.MAX_CHARS).text());
+			Files.writeString(copy, AttachmentText.extract(file, file.getFileName().toString(), "",
+					AttachmentText.MAX_CHARS).text());
 			return true;
 		} catch (Exception e) {
 			classLogger.warn("Could not read {} as an email; copying it as it is", file.getFileName(), e);

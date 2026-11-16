@@ -30,6 +30,7 @@ package prerna.reactor.playwright;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -68,17 +69,10 @@ public class PatchSessionMetaReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Reactor that allow the Recorder app to update the title and the description for a recorded file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the current session of the playwright";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Reactor that allow the Recorder app to update the title and the description for a recorded file")
+				.key("sessionId", "The id of the current session of the playwright");
 	}
 
 }

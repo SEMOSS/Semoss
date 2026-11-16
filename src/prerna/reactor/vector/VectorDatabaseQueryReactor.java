@@ -40,6 +40,7 @@ import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum.VectorQueryParamOptions;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -123,51 +124,41 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (key.equals(ReactorKeysEnum.FILTERS.getKey()) || key.equals(ReactorKeysEnum.META_FILTERS.getKey())) {
-			return MCP_KEY_TYPE.OBJECT;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Performs a nearest neighbor search in a vector database. \
 				Takes a search query, converts it to an embedding, and returns the most similar documents \
 				from the vector database based on vector similarity. \
 				Supports optional filtering on document content and metadata.\
-				""";
+				""").key(ReactorKeysEnum.ENGINE, "The vector database engine ID to query.")
+				.key(ReactorKeysEnum.COMMAND, "The search query text to find similar documents for")
+				.key(ReactorKeysEnum.LIMIT,
+						"The maximum number of similar documents to return. Defaults to 5 if not specified")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP, paramValuesDescription())
+				.key(ReactorKeysEnum.FILTERS,
+						key -> key.type(Map.class).description(
+								"Optional filters to apply on the document content before returning results"))
+				.key(ReactorKeysEnum.META_FILTERS, key -> key.type(Map.class)
+						.description("Optional filters to apply on the document metadata before returning results"));
 	}
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The vector database engine ID to query.";
-		} else if (key.equals(ReactorKeysEnum.COMMAND.getKey())) {
-			return "The search query text to find similar documents for";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "The maximum number of similar documents to return. Defaults to 5 if not specified";
-		} else if (key.equals(ReactorKeysEnum.FILTERS.getKey())) {
-			return "Optional filters to apply on the document content before returning results";
-		} else if (key.equals(ReactorKeysEnum.META_FILTERS.getKey())) {
-			return "Optional filters to apply on the document metadata before returning results";
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
+	/**
+	 * The param options each vector database type accepts, listed in the
+	 * paramValues description.
+	 */
+	private static String paramValuesDescription() {
+		StringBuilder finalDescription = new StringBuilder("Param Options depend on the engine implementation");
 
-			for (VectorQueryParamOptions entry : VectorQueryParamOptions.values()) {
-				finalDescription.append("\n").append("\t\t\t\t\t")
-						.append(entry.getVectorDbType().getVectorDatabaseName()).append(":");
+		for (VectorQueryParamOptions entry : VectorQueryParamOptions.values()) {
+			finalDescription.append("\n").append("\t\t\t\t\t").append(entry.getVectorDbType().getVectorDatabaseName())
+					.append(":");
 
-				for (String paramKey : entry.getParamOptionsKeys()) {
-					finalDescription.append("\n").append("\t\t\t\t\t\t").append(paramKey).append("\t").append("-")
-							.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")")
-							.append(" ").append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
-				}
+			for (String paramKey : entry.getParamOptionsKeys()) {
+				finalDescription.append("\n").append("\t\t\t\t\t\t").append(paramKey).append("\t").append("-")
+						.append("\t").append("(").append(entry.getRequirementStatus(paramKey)).append(")").append(" ")
+						.append(VectorDatabaseParamOptionsEnum.getDescriptionFromKey(paramKey));
 			}
-			return finalDescription.toString();
 		}
-
-		return super.getDescriptionForKey(key);
+		return finalDescription.toString();
 	}
 }

@@ -41,129 +41,6 @@ class WorkThreadInsightsUnitTests {
 
 	private static final String ME = "self-person";
 
-	private static WorkThreadInsights.Step brain(String id, String text, String status) {
-		return new WorkThreadInsights.Step(id, text, status, ME, null, true, false);
-	}
-
-	private static WorkThreadInsights.Proposal keep(String stepId, String text) {
-		return new WorkThreadInsights.Proposal(stepId, text, ME, null, false);
-	}
-
-	private static WorkThreadInsights.Proposal added(String text) {
-		return new WorkThreadInsights.Proposal(null, text, ME, null, false);
-	}
-
-	@Test
-	void theSameAnswerAgainChangesNothing() {
-		List<WorkThreadInsights.Step> steps = List.of(brain("s1", "Send Kira the revised budget", "open"),
-				new WorkThreadInsights.Step("s2", "Book the room", "open", ME, null, false, false));
-		WorkThreadInsights.Plan plan = WorkThreadInsights.plan(steps,
-				List.of(keep("s1", "Send Kira the revised budget"), added("Book the room")), ME);
-		assertTrue(plan.inserts().isEmpty());
-		assertTrue(plan.updates().isEmpty());
-		assertTrue(plan.deletes().isEmpty());
-	}
-
-	@Test
-	void anItemWithoutItsIdMatchesTheTrackedStepInsteadOfAddingOne() {
-		List<WorkThreadInsights.Step> steps = List.of(brain("s1", "Send Kira the revised Q3 budget", "open"));
-		WorkThreadInsights.Plan plan = WorkThreadInsights.plan(steps,
-				List.of(added("send kira the revised q3 budget."), added("Send Kira the revised Q3 budget numbers")),
-				ME);
-		assertTrue(plan.inserts().isEmpty());
-		assertTrue(plan.deletes().isEmpty());
-	}
-
-	@Test
-	void dismissedAndFinishedStepsAreNotAddedAgainOrReopened() {
-		List<WorkThreadInsights.Step> steps = List.of(brain("s1", "Call the vendor about pricing", "dismissed"),
-				brain("s2", "Share the deck with the team", "done"));
-		WorkThreadInsights.Plan plan = WorkThreadInsights.plan(steps,
-				List.of(added("Call the vendor about pricing"), keep("s2", "Share the deck with the team")), ME);
-		assertTrue(plan.inserts().isEmpty());
-		assertTrue(plan.updates().isEmpty());
-		assertTrue(plan.deletes().isEmpty());
-	}
-
-	@Test
-	void aReplyClosesGeneratedStepsButNotTheOwnersOwn() {
-		List<WorkThreadInsights.Step> steps = List.of(
-				new WorkThreadInsights.Step("s1", "My reworded ask", "open", ME, null, true, true),
-				new WorkThreadInsights.Step("s2", "My own reminder", "open", ME, null, false, false));
-		WorkThreadInsights.Plan plan = WorkThreadInsights.plan(steps,
-				List.of(new WorkThreadInsights.Proposal("s1", "Different text", ME, null, true),
-						new WorkThreadInsights.Proposal("s2", "My own reminder", ME, null, true)),
-				ME);
-		assertEquals(1, plan.updates().size());
-		WorkThreadInsights.Change change = plan.updates().get(0);
-		assertEquals("s1", change.stepId());
-		assertEquals("done", change.status());
-		assertEquals("My reworded ask", change.text());
-		assertFalse(change.content());
-	}
-
-	@Test
-	void editedTextIsKeptAndUntouchedStepsLeftOutAreRemoved() {
-		List<WorkThreadInsights.Step> steps = List.of(brain("s1", "Old generated ask", "open"),
-				new WorkThreadInsights.Step("s2", "Edited by the owner", "open", ME, null, true, true),
-				brain("s3", "Waiting on Kira", "waiting"), brain("s4", "Finished one", "done"),
-				new WorkThreadInsights.Step("s5", "Manual one", "open", ME, null, false, false));
-		WorkThreadInsights.Plan plan = WorkThreadInsights.plan(steps,
-				List.of(keep("s2", "The model's wording"), added("A brand new ask")), ME);
-		assertEquals(List.of("s1", "s3"), plan.deletes());
-		assertTrue(plan.updates().isEmpty());
-		assertEquals(List.of("A brand new ask"), plan.inserts().stream().map(WorkThreadInsights.Proposal::text).toList());
-	}
-
-	@Test
-	void aGeneratedStepFollowsTheNewOwnerAndDueDate() {
-		List<WorkThreadInsights.Step> steps = List.of(brain("s1", "Send the contract", "open"));
-		WorkThreadInsights.Plan plan = WorkThreadInsights.plan(steps,
-				List.of(new WorkThreadInsights.Proposal("s1", "Send the contract", "kira", "2026-10-09", false)), ME);
-		assertEquals(1, plan.updates().size());
-		WorkThreadInsights.Change change = plan.updates().get(0);
-		assertEquals("waiting", change.status());
-		assertEquals("kira", change.ownerId());
-		assertEquals("2026-10-09", change.due());
-		assertTrue(change.content());
-	}
-
-	@Test
-	void newItemsAreAddedOnceAndFinishedNewOnesAreSkipped() {
-		WorkThreadInsights.Plan plan = WorkThreadInsights.plan(List.of(),
-				List.of(added("Review the draft agreement"), added("Review the draft agreement!"),
-						new WorkThreadInsights.Proposal(null, "Already sent the invite", ME, null, true)),
-				ME);
-		assertEquals(1, plan.inserts().size());
-	}
-
-	@Test
-	void shortIdsMapBackAndUnknownOnesFallBackSafely() {
-		Map<String, String> tracked = Map.of("t1", "step-1");
-		Map<String, String> people = Map.of("p1", "kira");
-		Map<String, Object> item = new LinkedHashMap<>();
-		item.put("id", "t1");
-		item.put("text", "  Send   the deck ");
-		item.put("ownerId", "p1");
-		item.put("due", "2026-10-09");
-		item.put("done", false);
-		WorkThreadInsights.Proposal mapped = WorkThreadInsights.proposal(item, tracked, people, ME);
-		assertEquals("step-1", mapped.stepId());
-		assertEquals("Send the deck", mapped.text());
-		assertEquals("kira", mapped.ownerId());
-		assertEquals("2026-10-09", mapped.due());
-
-		item.put("id", "t9");
-		item.put("ownerId", "someone");
-		item.put("due", "2026-02-31");
-		WorkThreadInsights.Proposal fallback = WorkThreadInsights.proposal(item, tracked, people, ME);
-		assertNull(fallback.stepId());
-		assertEquals(ME, fallback.ownerId());
-		assertNull(fallback.due());
-		assertEquals("open", WorkThreadInsights.statusFor(fallback.ownerId(), ME));
-		assertEquals("waiting", WorkThreadInsights.statusFor("kira", ME));
-	}
-
 	@Test
 	void readsAnswersWrappedInReasoningAndFences() {
 		WorkThreadInsights.Answer answer = WorkThreadInsights.parse("<think>{\"summary\": 1}</think>\n```json\n"
@@ -171,8 +48,7 @@ class WorkThreadInsightsUnitTests {
 				+ "\"ownerId\": \"me\", \"due\": \"\", \"done\": false}, {\"text\": \"\"}]}\n```");
 		assertNotNull(answer);
 		assertEquals("Kira needs the budget.", answer.summary());
-		assertEquals(1, answer.items().size());
-		assertNull(WorkThreadInsights.parse("{\"actionItems\": []}"));
+		assertNull(WorkThreadInsights.parse("{\"summary\": \"\"}"));
 		assertNull(WorkThreadInsights.parse("not json"));
 	}
 

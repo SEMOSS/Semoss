@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -97,20 +98,13 @@ public class SalesforceUpdateRecordReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Updates a Salesforce record using object API name, record Id, and a field/value map.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SOBJECT_NAME.equals(key)) {
-			return "Required Salesforce object API name containing the record (for example, Opportunity).";
-		} else if (RECORD_ID.equals(key)) {
-			return "Required Salesforce record Id to update.";
-		} else if (ReactorKeysEnum.MAP.getKey().equals(key)) {
-			return "Required map of Salesforce field API names to updated values.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Updates a Salesforce record using object API name, record Id, and a field/value map.")
+				.key(SOBJECT_NAME,
+						"Required Salesforce object API name containing the record (for example, Opportunity).")
+				.key(RECORD_ID, "Required Salesforce record Id to update.")
+				.key(ReactorKeysEnum.MAP, "Required map of Salesforce field API names to updated values.");
 	}
 
 }

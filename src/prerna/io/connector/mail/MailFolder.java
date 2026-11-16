@@ -35,13 +35,37 @@ import prerna.io.connector.ConnectorOutput;
 /**
  * One place mail can be filed: an Outlook folder, or a Gmail label.
  *
- * @param id          what the mail reactors take to read or move into it
- * @param name        its name as a person knows it
- * @param kind        one of {@link #FOLDER}, {@link #LABEL} or {@link #SYSTEM}
- * @param totalCount  how many messages it holds, when the provider says
- * @param unreadCount how many of them nobody has opened, when the provider says
+ * <p>
+ * Folders inside other folders, and Gmail labels nested under others, are
+ * listed right after the one they sit in, so a listing read in order with each
+ * folder's {@code depth} draws the mailbox's tree.
+ * </p>
+ *
+ * @param id            what the mail reactors take to read or move into it
+ * @param name          its own name as a person knows it, without the folders
+ *                      it sits in
+ * @param kind          one of {@link #FOLDER}, {@link #LABEL} or
+ *                      {@link #SYSTEM}
+ * @param wellKnownName the name every mailbox takes for it whatever the user
+ *                      calls it, {@link #INBOX} for the inbox, or null for any
+ *                      other folder
+ * @param parentId      the id of the folder it sits in, or null at the top of
+ *                      the mailbox
+ * @param path          its name after the names of the folders it sits in,
+ *                      separated by {@code /}
+ * @param depth         how many folders it sits in, 0 at the top of the mailbox
+ * @param totalCount    how many messages it holds, when the provider says
+ * @param unreadCount   how many of them nobody has opened, when the provider
+ *                      says
  */
-public record MailFolder(String id, String name, String kind, Long totalCount, Long unreadCount) {
+public record MailFolder(String id, String name, String kind, String wellKnownName, String parentId, String path,
+		int depth, Long totalCount, Long unreadCount) {
+
+	/**
+	 * The inbox's well known name, which the mail reactors take as a folder in
+	 * every mailbox and language.
+	 */
+	public static final String INBOX = "inbox";
 
 	/** An Outlook folder. */
 	public static final String FOLDER = "folder";
@@ -60,6 +84,10 @@ public record MailFolder(String id, String name, String kind, Long totalCount, L
 		output.put("id", this.id);
 		ConnectorOutput.putIfPresent(output, "name", this.name);
 		output.put("kind", this.kind);
+		ConnectorOutput.putIfPresent(output, "wellKnownName", this.wellKnownName);
+		ConnectorOutput.putIfPresent(output, "parentId", this.parentId);
+		ConnectorOutput.putIfPresent(output, "path", this.path);
+		output.put("depth", this.depth);
 		ConnectorOutput.putIfPresent(output, "totalCount", this.totalCount);
 		ConnectorOutput.putIfPresent(output, "unreadCount", this.unreadCount);
 		return output;

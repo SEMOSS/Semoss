@@ -39,6 +39,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -58,8 +59,6 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException(
 					"The user does not have access to edit this project or project id is invalid");
@@ -100,16 +99,9 @@ public class SetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Set the engine dependencies for a project";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("dependencies")) {
-			return "The list of engineid's that this project depends on for full functionality";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Set the engine dependencies for a project").key("dependencies",
+				"The list of engineid's that this project depends on for full functionality");
 	}
 
 	@SuppressWarnings("unchecked")

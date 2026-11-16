@@ -126,7 +126,8 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(awsRegion).build();
 
 			IStorageEngine storageEngine = Utility.getStorage(this.storageEngineId);
-			if (storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3
+			if (storageEngine.getStorageType() == StorageTypeEnum.S3
+					|| storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3
 					|| storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3_NATIVE) {
 				this.bucketName = storageEngine.getSmssProp().getProperty(S3StorageEngine.S3_BUCKET_KEY);
 			} else {

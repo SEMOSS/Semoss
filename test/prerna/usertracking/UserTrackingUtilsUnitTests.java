@@ -75,7 +75,7 @@ class UserTrackingUtilsUnitTests {
 	}
 
 	@Test
-	void anonymousQueryTrackingStoresExactSqlWithoutBorrowingExtraConnections() throws Exception {
+	void queryTrackingWithoutUserStoresExactSqlWithoutBorrowingExtraConnections() throws Exception {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class, CALLS_REAL_METHODS)) {
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
 			db.execute(

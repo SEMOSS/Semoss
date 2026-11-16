@@ -69,6 +69,14 @@ public abstract class AbstractMicrosoftOneDriveReactor extends AbstractMicrosoft
 	protected static final String SHARE_URL = "shareUrl";
 	protected static final String CONFLICT_BEHAVIOR = "conflictBehavior";
 
+	// descriptions for keys several of these reactors take; each reactor lists the
+	// keys it takes
+	protected static final String DRIVE_ID_DESCRIPTION = "Optional id of the drive to work against, as returned by the OneDrive listings. The signed in user's own OneDrive is used when omitted, and another person's drive is named here to reach a file they shared.";
+	protected static final String ITEM_ID_DESCRIPTION = "Optional id of the drive item, as returned by the OneDrive listings.";
+	protected static final String PATH_DESCRIPTION = "Optional path relative to the drive root, or relative to the folder the item id names when both are given.";
+	protected static final String SHARE_URL_DESCRIPTION = "Optional sharing link to the file, which stands in for the drive id, item id and path. Use this for a link somebody sent rather than a file already listed.";
+	protected static final String CONFLICT_BEHAVIOR_DESCRIPTION = "Optional behavior when something of the same name is already there: fail, rename or replace.";
+
 	/**
 	 * Read a key that has to be a positive whole number.
 	 *
@@ -130,22 +138,6 @@ public abstract class AbstractMicrosoftOneDriveReactor extends AbstractMicrosoft
 			return null;
 		}
 		return values.toArray(new String[0]);
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(DRIVE_ID)) {
-			return "Optional id of the drive to work against, as returned by the OneDrive listings. The signed in user's own OneDrive is used when omitted, and another person's drive is named here to reach a file they shared.";
-		} else if (key.equals(ITEM_ID)) {
-			return "Optional id of the drive item, as returned by the OneDrive listings.";
-		} else if (key.equals(PATH)) {
-			return "Optional path relative to the drive root, or relative to the folder the item id names when both are given.";
-		} else if (key.equals(SHARE_URL)) {
-			return "Optional sharing link to the file, which stands in for the drive id, item id and path. Use this for a link somebody sent rather than a file already listed.";
-		} else if (key.equals(CONFLICT_BEHAVIOR)) {
-			return "Optional behavior when something of the same name is already there: fail, rename or replace.";
-		}
-		return super.getDescriptionForKey(key);
 	}
 
 }

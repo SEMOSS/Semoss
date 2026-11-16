@@ -37,9 +37,9 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -64,15 +64,11 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 
 		List<Map<String, Object>> baseInfo = null;
-		// make sure valid id for user
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 		if (SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			// user has access!
 			baseInfo = SecurityEngineUtils.getUserEngineList(user, engineId, null);
 		} else if (SecurityEngineUtils.engineIsDiscoverable(engineId)) {
 			baseInfo = SecurityEngineUtils.getDiscoverableEngineList(engineId, null);
 		} else {
-			// you dont have access
 			throw new IllegalArgumentException("Engine does not exist or user does not have access to the database");
 		}
 
@@ -116,15 +112,16 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Returns metadata for a single engine when the user can access it or it is discoverable.
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"""
+						Returns metadata for a single engine when the user can access it or it is discoverable.
 
-				Inputs: engine, metaKeys.
-				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys, last_updated, and pending_access_request (when present).
-				Model engines also include a capabilities object containing model identity, family, modalities, token limits, feature flags, knowledge and release dates, and benchmarks when available.
-				Any response key prefixed with app_* or database_* is legacy and should not be used.
-				""";
+						Inputs: engine, metaKeys.
+						Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name), plus requested metadata keys, last_updated, and pending_access_request (when present).
+						Model engines also include a capabilities object containing model identity, family, modalities, token limits, feature flags, knowledge and release dates, and benchmarks when available.
+						Any response key prefixed with app_* or database_* is legacy and should not be used.
+						""");
 	}
 
 }

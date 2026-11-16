@@ -41,12 +41,12 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -80,8 +80,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		try (RevWalk outerWalk = new RevWalk(outerGit.getRepository())) {
 			targetOuter = outerWalk.parseCommit(targetOuterCommit);
 		}
-		try (TreeWalk assetsEntry = TreeWalk.forPath(outerGit.getRepository(), ASSETS_PATH,
-				targetOuter.getTree())) {
+		try (TreeWalk assetsEntry = TreeWalk.forPath(outerGit.getRepository(), ASSETS_PATH, targetOuter.getTree())) {
 			if (assetsEntry == null || !FileMode.GITLINK.equals(assetsEntry.getFileMode(0))) {
 				return null;
 			}
@@ -94,8 +93,7 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 					"Commit " + commitId + " references a nested assets repository that is not available locally");
 		}
 
-		try (Git assetsGit = Git.open(assetsFolder);
-				RevWalk walk = new RevWalk(assetsGit.getRepository())) {
+		try (Git assetsGit = Git.open(assetsFolder); RevWalk walk = new RevWalk(assetsGit.getRepository())) {
 			ObjectId originalAssetsHead = assetsGit.getRepository().resolve("HEAD");
 			if (originalAssetsHead == null) {
 				throw new IllegalArgumentException("Nested assets repository has no HEAD commit");
@@ -129,11 +127,6 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			classLogger.error("Unauthorized access: you must be logged in to perform this action");
-			throwAnonymousUserError();
-		}
 
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String commitId = this.keyValue.get(COMMIT_ID_KEY);
@@ -232,18 +225,10 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor reverts to the requested commit id";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "This is a required field containing the project id of a project";
-		} else if (key.equals(COMMIT_ID_KEY)) {
-			return "This is a required field containing the commit id of a project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("This reactor reverts to the requested commit id")
+				.key(ReactorKeysEnum.PROJECT, "This is a required field containing the project id of a project")
+				.key(COMMIT_ID_KEY, "This is a required field containing the commit id of a project");
 	}
 
 }

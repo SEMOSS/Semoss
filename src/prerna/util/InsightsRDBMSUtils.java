@@ -119,7 +119,8 @@ public final class InsightsRDBMSUtils {
 						InsightAdministrator.SCHEMA_NAME_COL };
 				types = new String[] { "VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT",
 						"VARCHAR(255)", CLOB_DATATYPE, "VARCHAR(500)", BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, "INT",
-						"VARCHAR(25)", TIMESTAMP_DATATYPE, BOOLEAN_DATATYPE, "ARRAY", "VARCHAR(255)" };
+						"VARCHAR(25)", TIMESTAMP_DATATYPE, BOOLEAN_DATATYPE, "VARCHAR ARRAY", "VARCHAR(255)" };
+				// H2 2.x needs a typed array; matches what migrated 1.4 files get
 				// this is annoying
 				// need to adjust if the engine allows array data types
 				if (!queryUtil.allowArrayDatatype()) {
@@ -232,7 +233,7 @@ public final class InsightsRDBMSUtils {
 			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
 			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
 			retMap.put(AbstractSqlQueryUtil.ADDITIONAL,
-					"query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+					"query_timeout=180000;cache_size=32768");
 		}
 
 		// regardless of OS, connection url is always /
@@ -313,7 +314,7 @@ public final class InsightsRDBMSUtils {
 			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
 			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
 			retMap.put(AbstractSqlQueryUtil.ADDITIONAL,
-					"query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+					"query_timeout=180000;cache_size=32768");
 		}
 
 		// regardless of OS, connection url is always /

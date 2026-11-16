@@ -129,8 +129,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			exportAudit = auditParam.equalsIgnoreCase("yes") || auditParam.equalsIgnoreCase("true");
 		}
 
-		// see if someone has pushed a template file into insight
-		String template = insight.getProperty(EXPORT_TEMPLATE_KEY);
+		String template = Utility.getDIHelperProperty(EXPORT_TEMPLATE_KEY);
 
 		Map<String, InsightSheet> allSheets = insight.getInsightSheets();
 		Map<String, InsightPanel> allPanels = insight.getInsightPanels();

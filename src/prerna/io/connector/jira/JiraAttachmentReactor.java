@@ -28,16 +28,16 @@
 package prerna.io.connector.jira;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -87,8 +87,7 @@ public class JiraAttachmentReactor extends AbstractReactor {
 				String localFilePath = getLocalFilePath(filePath);
 				File localFile = new File(localFilePath);
 				if (!localFile.exists() || !localFile.isFile()) {
-					throw new SemossPixelException(
-							"File not found in insight folder: " + new File(filePath).getName());
+					throw new SemossPixelException("File not found in insight folder: " + new File(filePath).getName());
 				}
 				Map<String, Object> result = JiraHelper.addAttachment(accessToken, baseUrl, issueKey, localFilePath);
 				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
@@ -119,21 +118,15 @@ public class JiraAttachmentReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Manages file attachments on a Jira issue. Supports listing, uploading, and deleting attachments.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ACTION)) {
-			return "Required operation to perform. Valid values: get - lists all attachments (jiraid required). add - uploads a file attachment (jiraid, filePath required). delete - removes an attachment (attachmentId required).";
-		} else if (key.equals(JIRAID)) {
-			return "Jira issue key in KEY-NUMBER format (for example, RTJ-123). Required for get and add actions.";
-		} else if (key.equals(FILE_PATH)) {
-			return "Name or path of the file to upload from the insight folder (for example, screenshot.png). Required for add action.";
-		} else if (key.equals(ATTACHMENT_ID)) {
-			return "Numeric attachment id. Required for delete action.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Manages file attachments on a Jira issue. Supports listing, uploading, and deleting attachments.")
+				.key(ACTION,
+						"Required operation to perform. Valid values: get - lists all attachments (jiraid required). add - uploads a file attachment (jiraid, filePath required). delete - removes an attachment (attachmentId required).")
+				.key(JIRAID,
+						"Jira issue key in KEY-NUMBER format (for example, RTJ-123). Required for get and add actions.")
+				.key(FILE_PATH,
+						"Name or path of the file to upload from the insight folder (for example, screenshot.png). Required for add action.")
+				.key(ATTACHMENT_ID, "Numeric attachment id. Required for delete action.");
 	}
 }

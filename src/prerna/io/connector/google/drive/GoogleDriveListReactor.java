@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -84,15 +85,8 @@ public class GoogleDriveListReactor extends AbstractGoogleReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "List files from the user's Google Drive.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Maximum number of files to return.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("List files from the user's Google Drive.")
+				.key(ReactorKeysEnum.LIMIT, "Maximum number of files to return.");
 	}
 }

@@ -84,7 +84,7 @@ public class FrameSizeRetrictions {
 			return true;
 		}
 		
-		long frameSize = frame.size(frame.getName());
+		long frameSize = getNumCells(frame);
 		if(frameSize > LIMIT_SIZE) {
 			return false;
 		}
@@ -107,7 +107,7 @@ public class FrameSizeRetrictions {
 			return true;
 		}
 
-		long curFrameSize = frame.size(frame.getName());
+		long curFrameSize = getNumCells(frame);
 
 		// we can increase performance since
 		// a file requires us to loop through
@@ -148,7 +148,7 @@ public class FrameSizeRetrictions {
 		int numColumns = it.getHeaders().length;
 		long additionalRecords = (long) ( ((double) (numColumns-1) / numColumns) * it.getNumRecords());
 
-		long curFrameSize = frame.size(frame.getName());
+		long curFrameSize = getNumCells(frame);
 		if(additionalRecords + curFrameSize > LIMIT_SIZE) {
 			return false;
 		}
@@ -157,6 +157,21 @@ public class FrameSizeRetrictions {
 		return true;
 	}
 	
+	/**
+	 * Returns the number of cells in the frame, its rows times its columns, which
+	 * is the unit the frame size limit is measured in.
+	 *
+	 * @param frame the frame
+	 * @return the number of cells
+	 */
+	private static long getNumCells(ITableDataFrame frame) {
+		long rows = frame.size(frame.getName());
+		if (rows == 0) {
+			return 0;
+		}
+		return rows * frame.getQsHeaders().length;
+	}
+
 	/**
 	 * Is the value larger than expected
 	 * @param frame

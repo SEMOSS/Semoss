@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -123,22 +124,12 @@ public class PushToStorageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Push files from a local path to a storage path";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
-			return "The storage engine instance or id";
-		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
-			return "The storage path to upload files to";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The local path(s) to upload from";
-		} else if (key.equals(ReactorKeysEnum.METADATA.getKey())) {
-			return "Optional metadata map to attach to uploaded objects";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Push files from a local path to a storage path")
+				.key(ReactorKeysEnum.STORAGE, "The storage engine instance or id")
+				.key(ReactorKeysEnum.STORAGE_PATH, "The storage path to upload files to")
+				.key(ReactorKeysEnum.FILE_PATH, "The local path(s) to upload from")
+				.key(ReactorKeysEnum.METADATA, "Optional metadata map to attach to uploaded objects");
 	}
 
 }

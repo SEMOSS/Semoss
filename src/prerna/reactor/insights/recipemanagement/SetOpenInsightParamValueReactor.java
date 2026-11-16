@@ -29,6 +29,7 @@ package prerna.reactor.insights.recipemanagement;
 
 import java.util.Map;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -36,34 +37,33 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class SetOpenInsightParamValueReactor extends AbstractInsightParameterReactor {
 
 	private static final String PARAM_MAP = "paramMap";
-	
+
 	public SetOpenInsightParamValueReactor() {
-		this.keysToGet = new String[] {PARAM_MAP};
+		this.keysToGet = new String[] { PARAM_MAP };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		Map<String, Object> paramValues = null;
 		GenRowStruct grs = this.store.getGenRowStruct(PARAM_MAP);
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			paramValues = (Map<String, Object>) grs.get(0);
 		}
-		
-		if(paramValues == null) {
-			if(!this.curRow.isEmpty()) {
+
+		if (paramValues == null) {
+			if (!this.curRow.isEmpty()) {
 				paramValues = (Map<String, Object>) this.curRow.get(0);
 			}
 		}
-		
+
 		return new NounMetadata(paramValues, PixelDataType.PARAM_VALUES_MAP);
 	}
-	
+
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if(key.equals(PARAM_MAP)) {
-			return "The input map of param name to param value";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the given map of parameter names to values as parameter values, which OpenInsight takes as its paramValues input to run an insight with those values.")
+				.key(PARAM_MAP, key -> key.type(Map.class).description("The input map of param name to param value"));
 	}
-	
+
 }

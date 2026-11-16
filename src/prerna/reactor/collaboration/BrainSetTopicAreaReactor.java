@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicReviewUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /** Keep an onboarding area's topics separate, or as one topic again. */
@@ -40,13 +41,21 @@ public class BrainSetTopicAreaReactor extends AbstractCollaborationReactor {
 	@Override
 	public NounMetadata execute() {
 		Integer revision = getIntFromKeyOrCurRow("revision");
-		if (revision == null) throw new IllegalArgumentException("Pass the saved review revision");
+		if (revision == null)
+			throw new IllegalArgumentException("Pass the saved review revision");
 		return mapResult(BrainTopicReviewUtils.area(getUser(), getString("reviewId"), revision, getString("area"),
 				Boolean.TRUE.equals(getBoolean("split"))));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Onboarding topic review: split=true keeps an area's topics as separate topics, split=false combines them into one topic named after the area";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Onboarding topic review: split=true keeps an area's topics as separate topics, split=false combines them into one topic named after the area")
+				.key("area", "The key of the draft area whose topics to split or combine.")
+				.key("reviewId", "The id of the signed-in user's topic review.")
+				.key("revision", key -> key.type(Integer.class).description(
+						"The review revision the caller last read. The call fails when the saved review has changed since."))
+				.key("split", key -> key.type(Boolean.class).description(
+						"True keeps the area's topics as separate topics; false combines them into one topic."));
 	}
 }

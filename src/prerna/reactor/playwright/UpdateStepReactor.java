@@ -35,6 +35,7 @@ import java.util.stream.IntStream;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -157,26 +158,12 @@ public class UpdateStepReactor extends AbstractReactor {
 		}
 	}
 
-	/**
-	 * Returns a description of this reactor.
-	 * 
-	 * @return A string describing the reactor's function.
-	 */
 	@Override
-	public String getReactorDescription() {
-		return "Updates one or more Playwright steps in the current session's history.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The session id of the current playwright session";
-		} else if (key.equals("tabId")) {
-			return "The tab id of the current playwright session";
-		} else if (key.equals("inputs")) {
-			return "A list of PlaywrightStep objects containing the updates for existing steps.";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Updates one or more Playwright steps in the current session's history.")
+				.key("sessionId", "The session id of the current playwright session")
+				.key("tabId", "The tab id of the current playwright session")
+				.key("inputs", "A list of PlaywrightStep objects containing the updates for existing steps.");
 	}
 }

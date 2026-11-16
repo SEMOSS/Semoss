@@ -34,10 +34,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -52,7 +52,8 @@ import prerna.util.Utility;
  * files. This is how an engine is restarted: closing shuts down the python
  * process the engine owns, so the reopened engine picks up changed files. In a
  * cluster the close is published to the other nodes, which close the engine
- * where they have it open. The user must own every engine, or be an admin.
+ * where they have it open. The user must own every engine. An admin closes any
+ * engine with {@code AdminCloseEngine}.
  */
 public class CloseEngineReactor extends AbstractReactor {
 
@@ -66,12 +67,11 @@ public class CloseEngineReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 
 		// check every engine before closing any
 		List<String> engineIds = getEngineIds();
 		for (String engineId : engineIds) {
-			if (!isAdmin && !SecurityEngineUtils.userIsOwner(user, engineId)) {
+			if (!SecurityEngineUtils.userIsOwner(user, engineId)) {
 				throw new IllegalArgumentException("Engine " + engineId
 						+ " does not exist or user does not have permissions to close the engine. User must be the owner to perform this function.");
 			}
@@ -123,19 +123,12 @@ public class CloseEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Close engines so their next use opens them again from their smss file and files. \
 				Use this to restart an engine, for example to pick up changed python files: closing \
 				shuts down the python process the engine owns. In a cluster every node closes the engine. \
-				The user must own the engines.""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The ids of the engines to close";
-		}
-		return super.getDescriptionForKey(key);
+				The user must own the engines. An admin closes any engine with AdminCloseEngine.""")
+				.key(ReactorKeysEnum.ENGINE, "The ids of the engines to close");
 	}
 }

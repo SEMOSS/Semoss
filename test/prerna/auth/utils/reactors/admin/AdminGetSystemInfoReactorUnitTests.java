@@ -77,7 +77,6 @@ public class AdminGetSystemInfoReactorUnitTests {
 	}
 
 	@Test
-	@SuppressWarnings("unchecked")
 	void testSuccess() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
@@ -87,18 +86,19 @@ public class AdminGetSystemInfoReactorUnitTests {
 
 			assertNotNull(result);
 			assertEquals(PixelDataType.MAP, result.getNounType());
-			Map<String, Object> map = (Map<String, Object>) result.getValue();
+			Map<?, ?> map = (Map<?, ?>) result.getValue();
 			assertTrue(map.containsKey("hostname"));
 			assertTrue(map.containsKey("ipaddress"));
 			assertTrue(map.containsKey("isCluster"));
 			assertTrue(map.containsKey("storageProvider"));
 			assertTrue(map.containsKey("isClusterScheduler"));
-			assertTrue(map.containsKey("isClusterZK"));
+			assertTrue(map.containsKey("clusterContainerIp"));
+			assertTrue(map.containsKey("isClusterSync"));
 		}
 	}
 
 	@Test
 	void testGetReactorDescription() {
-		assertNotNull(reactor.getReactorDescription());
+		assertNotNull(reactor.getReactorDefinition().getDescription());
 	}
 }

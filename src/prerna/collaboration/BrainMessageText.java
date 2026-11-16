@@ -47,10 +47,10 @@ public final class BrainMessageText {
 
 	public static final String VERSION = "patterns-v1";
 
-	// Outlook desktop and web, new Outlook, and Gmail mark quoted history and
-	// signatures in the HTML
+	// Outlook desktop and web, new Outlook, Gmail, Apple Mail and Thunderbird mark quoted history and
+	// signatures in the HTML; an unmarked blockquote is an indent, and "On ... wrote:" above one is cut as text
 	private static final String QUOTE_MARKERS = "#appendonsend, #divRplyFwdMsg, [id^=x_divRplyFwdMsg], "
-			+ "#mail-editor-reference-message-container, div.gmail_quote, blockquote";
+			+ "#mail-editor-reference-message-container, .gmail_quote, blockquote[type=cite]";
 	private static final String SIGNATURE_MARKERS = "#Signature, [id^=x_Signature], div.gmail_signature";
 
 	private static final Pattern SUBJECT_PREFIX = Pattern
@@ -85,6 +85,8 @@ public final class BrainMessageText {
 
 	private static final Pattern HEADER_SENT = Pattern.compile("^\\s*\\*?(sent|date):\\*?\\s+(\\S.*)$",
 			Pattern.CASE_INSENSITIVE);
+	// o'brien@x is an address, the quote in From: 'dana@x' <dana@x> is not part of it
+	private static final Pattern ADDRESS = Pattern.compile("[\\w.+-][\\w.'+-]*@[\\w-]+(\\.[\\w-]+)+");
 	// kept history (a forward, or mail from before the thread) can be long
 	private static final int MAX_KEPT_CHARS = 12000;
 	private static final Set<String> FOOTER_RULES = Set.of("banner", "html-signature", "signature-delimiter",
@@ -94,6 +96,11 @@ public final class BrainMessageText {
 	// it
 	private static final int SIGN_OFF_MAX_LINES = 6;
 	private static final int SIGN_OFF_MAX_CHARS = 80;
+	// a disclaimer counts only when it starts in one of the last paragraphs
+	private static final int DISCLAIMER_PARAGRAPHS = 2;
+	private static final Pattern LEGAL = Pattern.compile(
+			"confidential|privileged|recipient|addressee|in error|prohibited|unauthori[sz]ed|solely",
+			Pattern.CASE_INSENSITIVE);
 
 	private BrainMessageText() {
 
@@ -113,21 +120,27 @@ public final class BrainMessageText {
 	 */
 	public static Map<String, Object> extract(String subject, String uniqueBody, String uniqueType, String body,
 			String bodyType, boolean keepHistory) {
+		return extract(subject, uniqueBody, uniqueType, body, bodyType, keepHistory, true);
+	}
+
+	/** keepForward false leaves a forward's history out too; "historyFrom" is the address kept history names. */
+	static Map<String, Object> extract(String subject, String uniqueBody, String uniqueType, String body,
+			String bodyType, boolean keepHistory, boolean keepForward) {
 		boolean forward = subject != null && FORWARD_SUBJECT.matcher(subject).find();
-		boolean keep = forward || keepHistory;
+		boolean keep = (forward && keepForward) || keepHistory;
 		boolean useUnique = uniqueBody != null && !uniqueBody.isBlank() && !(keep && body != null && !body.isBlank());
 		String content = useUnique ? uniqueBody : body;
 		String type = useUnique ? uniqueType : bodyType;
 		List<Map<String, Object>> cuts = new ArrayList<>();
+		Map<String, Object> result = new LinkedHashMap<>();
 
 		String text = "html".equalsIgnoreCase(type) ? htmlToText(content, keep, cuts) : content;
-		text = tidy(cutText(text == null ? "" : text.replace("\r\n", "\n"), keep, forward, cuts));
+		text = tidy(cutText(text == null ? "" : text.replace("\r\n", "\n"), keep, forward, cuts, result));
 		if (text.length() > MAX_KEPT_CHARS) {
 			cut(cuts, "too-long", text.substring(MAX_KEPT_CHARS));
 			text = text.substring(0, MAX_KEPT_CHARS) + "\n[rest of the message cut]";
 		}
 
-		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("subject", cleanSubject(subject));
 		result.put("body", text);
 		result.put("source", useUnique ? "uniqueBody" : "body");
@@ -204,7 +217,8 @@ public final class BrainMessageText {
 					out.append('\n');
 					continue;
 				}
-				boolean block = List.of("p", "div", "tr", "li", "table", "h1", "h2", "h3", "h4", "hr", "pre")
+				boolean block = List
+						.of("p", "div", "tr", "li", "table", "h1", "h2", "h3", "h4", "hr", "pre", "blockquote")
 						.contains(tag);
 				if (block) {
 					out.append('\n');
@@ -219,7 +233,8 @@ public final class BrainMessageText {
 
 	// ---- text: the same cuts for plain-text mail and for what the html left ----
 
-	private static String cutText(String text, boolean keep, boolean forward, List<Map<String, Object>> cuts) {
+	private static String cutText(String text, boolean keep, boolean forward, List<Map<String, Object>> cuts,
+			Map<String, Object> result) {
 		List<String> lines = new ArrayList<>(List.of(text.split("\n", -1)));
 
 		// the gateway banner at the top
@@ -232,6 +247,7 @@ public final class BrainMessageText {
 
 		// quoted history, or the header block of a kept forward or history
 		int historyAt = -1;
+		String from = null;
 		for (int i = 0; i < lines.size(); i++) {
 			String rule = quoteStart(lines, i);
 			if (rule == null) {
@@ -241,10 +257,14 @@ public final class BrainMessageText {
 				historyAt = i;
 				// "On ... wrote:" already says who wrote it
 				if ("on-wrote".equals(rule)) {
+					String line = lines.get(i);
+					from = historyFrom(
+							List.of(WROTE.matcher(line).matches() ? line : line + " " + lines.get(i + 1).trim()));
 					break;
 				}
 				int end = headerEnd(lines, i);
 				String label = historyLabel(lines.subList(i, end), forward);
+				from = historyFrom(lines.subList(i, end));
 				cut(cuts, "forward-header", String.join("\n", lines.subList(i, end)));
 				lines.subList(i, end).clear();
 				// keep who wrote the kept part, so it is not read as the sender's words
@@ -256,6 +276,9 @@ public final class BrainMessageText {
 			cut(cuts, rule, String.join("\n", lines.subList(i, lines.size())));
 			lines.subList(i, lines.size()).clear();
 			break;
+		}
+		if (from != null) {
+			result.put("historyFrom", from);
 		}
 		if (keep) {
 			lines.replaceAll(l -> l.replaceFirst("^(\\s*>)+ ?", ""));
@@ -279,7 +302,7 @@ public final class BrainMessageText {
 			String line = lines.get(i);
 			String rule = SIG_DELIMITER.matcher(line).matches() ? "signature-delimiter"
 					: MOBILE.matcher(line).matches() ? "mobile-footer"
-							: DISCLAIMER.matcher(line).find() ? "disclaimer"
+							: isDisclaimer(lines, i, i < historyAt ? historyAt : lines.size()) ? "disclaimer"
 									: isUnsubscribeFooter(lines, i) ? "unsubscribe-footer" : null;
 			if (rule == null) {
 				continue;
@@ -295,9 +318,9 @@ public final class BrainMessageText {
 			break;
 		}
 
-		// a sign-off with a short block under it, near the end
+		// a sign-off with a short block under it, near the end, below some text
 		for (int i = Math.max(0, lastNonBlank(lines) - SIGN_OFF_MAX_LINES - 2); i < lines.size(); i++) {
-			if (SIGN_OFF.matcher(lines.get(i)).matches() && shortTail(lines, i + 1)) {
+			if (SIGN_OFF.matcher(lines.get(i)).matches() && firstNonBlank(lines, 0) < i && shortTail(lines, i + 1)) {
 				cut(cuts, "sign-off", String.join("\n", lines.subList(i, lines.size())));
 				lines.subList(i, lines.size()).clear();
 				break;
@@ -373,11 +396,55 @@ public final class BrainMessageText {
 		return null;
 	}
 
+	// the address on the header's From: line or "On ... wrote:" line; null when it names none
+	private static String historyFrom(List<String> header) {
+		for (String line : header) {
+			java.util.regex.Matcher m = ADDRESS.matcher(line);
+			if ((HEADER_FROM.matcher(line).matches() || WROTE.matcher(line).matches()) && m.find()) {
+				return m.group();
+			}
+		}
+		return null;
+	}
+
 	private static boolean isUnsubscribeFooter(List<String> lines, int i) {
 		// only in the last paragraphs, so a message about unsubscribing is kept
 		return UNSUBSCRIBE.matcher(lines.get(i)).find() && i >= lastNonBlank(lines) - 3;
 	}
 
+	// a disclaimer is appended last, so a message that opens "This email is for everyone ..." keeps its text
+	private static boolean isDisclaimer(List<String> lines, int i, int end) {
+		java.util.regex.Matcher m = DISCLAIMER.matcher(lines.get(i));
+		if (!m.find() || firstNonBlank(lines, 0) == i) {
+			return false;
+		}
+		// "This email is for everyone attending..." announces something; a notice also says who may read it
+		String found = m.group().trim().toLowerCase(java.util.Locale.ROOT);
+		if (found.startsWith("this") && !found.endsWith("confidential") && !LEGAL.matcher(paragraph(lines, i)).find()) {
+			return false;
+		}
+		int paragraphs = 1;
+		for (int j = i + 1; j < end; j++) {
+			if (SIGN_OFF.matcher(lines.get(j)).matches()) {
+				return false;
+			}
+			if (!lines.get(j).isBlank() && lines.get(j - 1).isBlank()) {
+				paragraphs++;
+			}
+		}
+		return paragraphs <= DISCLAIMER_PARAGRAPHS;
+	}
+
+	// the lines from this one to the next blank line
+	private static String paragraph(List<String> lines, int from) {
+		StringBuilder text = new StringBuilder();
+		for (int j = from; j < lines.size() && !lines.get(j).isBlank(); j++) {
+			text.append(lines.get(j)).append(' ');
+		}
+		return text.toString();
+	}
+
+	// a name-and-title block; a line that ends like a sentence is the message (an ask, a P.S.)
 	private static boolean shortTail(List<String> lines, int from) {
 		int count = 0;
 		for (int j = from; j < lines.size(); j++) {
@@ -385,7 +452,8 @@ public final class BrainMessageText {
 			if (l.isEmpty()) {
 				continue;
 			}
-			if (++count > SIGN_OFF_MAX_LINES || l.length() > SIGN_OFF_MAX_CHARS) {
+			if (++count > SIGN_OFF_MAX_LINES || l.length() > SIGN_OFF_MAX_CHARS
+					|| ".?!".indexOf(l.charAt(l.length() - 1)) >= 0) {
 				return false;
 			}
 		}

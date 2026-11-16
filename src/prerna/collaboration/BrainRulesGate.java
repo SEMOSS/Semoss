@@ -56,6 +56,8 @@ public final class BrainRulesGate {
 	public static final String TOPIC_VIP = "topic_vip";
 	public static final String VIP = "vip";
 	private static final String NEVER_KEYWORD = "never_keyword";
+	// a gate header the import sets on a result one of the owner's routines mailed them (it reads the subject)
+	static final String ROUTINE_RESULT = "routineResult";
 
 	// never-ingest kinds in the order they are checked
 	private static final List<String> NEVER_KINDS = List.of("never_sender", "exclude_everywhere", "never_domain",
@@ -124,6 +126,11 @@ public final class BrainRulesGate {
 						rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"), ownerId, ownerType, source);
 		if (!Boolean.TRUE.equals(enabled)) {
 			return result(OFF, null, null, null);
+		}
+
+		// the owner's own routine result: counted, never listed, like a never-ingest sender
+		if (headers.get(ROUTINE_RESULT) != null) {
+			return record(ownerId, ownerType, messageKey, headers, null, null, receivedAt, NEVER, null, null);
 		}
 
 		String personId = known != null ? known.person().apply(from) : findPerson(ownerId, ownerType, from);
@@ -268,7 +275,7 @@ public final class BrainRulesGate {
 	// active rules, oldest first; the gate and the thread read share them
 	static List<Rule> activeRules(String ownerId, String ownerType) {
 		return CollaborationDbUtils.query(
-				"SELECT RULE_ID, KIND, VALUE, TOPIC_ID, PERSON_ID, CHANNEL FROM BRAIN_RULE "
+				"SELECT RULE_ID, KIND, " + BrainRuleUtils.valueColumn() + ", TOPIC_ID, PERSON_ID, CHANNEL FROM BRAIN_RULE "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DISABLED_AT IS NULL ORDER BY CREATED_AT, RULE_ID",
 				rs -> new Rule(rs.getString("RULE_ID"), rs.getString("KIND"), rs.getString("VALUE"),
 						rs.getString("TOPIC_ID"), rs.getString("PERSON_ID"), rs.getString("CHANNEL")),

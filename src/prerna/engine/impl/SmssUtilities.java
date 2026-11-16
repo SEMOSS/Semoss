@@ -33,8 +33,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -45,16 +43,12 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
-import prerna.engine.impl.storage.AzureBlobStorageEngine;
-import prerna.engine.impl.storage.GoogleCloudStorageEngine;
-import prerna.engine.impl.storage.RCloneAzureBlobStorageEngine;
-import prerna.engine.impl.storage.RCloneMinioStorageEngine;
-import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.project.api.IProject;
+import prerna.security.SensitiveKeys;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -66,42 +60,6 @@ public class SmssUtilities {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 	public static final String ENGINE_REPLACEMENT = "@" + Constants.ENGINE + "@";
 	public static final String PROJECT_REPLACEMENT = "@" + Constants.PROJECT + "@";
-
-	// @formatter:off
-	public static final List<String> SENSITIVE_KEYWORDS = Arrays.asList(
-			// standard 
-			AbstractSqlQueryUtil.PASSWORD.toUpperCase(), 
-			AbstractSqlQueryUtil.SECRET_KEY.toUpperCase(),
-			Constants.API_KEY,
-			// project MCP
-			IProject.MCP_AUTH_TOKEN.toUpperCase(),
-			
-			// model
-			AbstractModelEngine.OPEN_AI_KEY.toUpperCase(), 
-			AbstractModelEngine.AWS_SECRET_KEY.toUpperCase(),
-			AbstractModelEngine.AWS_ACCESS_KEY.toUpperCase(),
-			AbstractModelEngine.GCP_SERVICE_ACCOUNT_KEY.toUpperCase(),
-
-			// storage - the keys the engines read today
-			S3StorageEngine.S3_ACCESS_KEY.toUpperCase(),
-			S3StorageEngine.S3_SECRET_KEY.toUpperCase(),
-			AzureBlobStorageEngine.AZ_CONN_STRING.toUpperCase(),
-			AzureBlobStorageEngine.AZ_SAS_URL.toUpperCase(),
-			GoogleCloudStorageEngine.GCS_SERVICE_ACCOUNT_JSON_KEY.toUpperCase(), 
-
-			// storage - other key names. Still read by the RClone engines, and still
-			// accepted as a fallback by the engines that replaced them, so an smss out
-			// there can hold a secret under any of these
-			GoogleCloudStorageEngine.GCP_SERVICE_ACCOUNT_JSON_KEY.toUpperCase(),
-			RCloneMinioStorageEngine.MINIO_ACCESS_KEY.toUpperCase(),
-			RCloneMinioStorageEngine.MINIO_SECRET_KEY.toUpperCase(), 
-			RCloneAzureBlobStorageEngine.AZ_PRIMARY_KEY.toUpperCase(),
-			RCloneAzureBlobStorageEngine.AZ_SAS_URL.toUpperCase(),
-
-			// TODO should create a constants for this
-			"SERVICE_ACCOUNT_CREDENTIALS"
-		);
-	// @formatter:on
 
 	private SmssUtilities() {
 
@@ -153,7 +111,7 @@ public class SmssUtilities {
 			Path path = Paths.get(owlPropStr);
 			String filename = path.getFileName().toString();
 			try {
-				Utility.changePropertiesFileValue(smssFilePath, Constants.OWL, filename);
+				InternalUtility.changePropertiesFileValue(smssFilePath, Constants.OWL, filename);
 			} catch (IOException e) {
 				classLogger.error("Failed to update the OWL file location in the smss file {} for engine {}",
 						smssFilePath, engineId, e);
@@ -493,7 +451,7 @@ public class SmssUtilities {
 		} else {
 			connectionUrl = "jdbc:h2:nio:" + baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR
 					+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR
-					+ "insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768";
+					+ "insights_database;query_timeout=180000;cache_size=32768";
 		}
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
@@ -501,17 +459,20 @@ public class SmssUtilities {
 	}
 
 	/**
-	 * Generate the SMSS for the project
-	 * 
-	 * @param projectId
-	 * @param projectName
-	 * @param hasPortal
-	 * @param portalName
-	 * @param gitProvider
-	 * @param gitCloneUrl
-	 * @param forceInsightDatabaseType
-	 * @return
-	 * @throws IOException
+	 * Write a new project's smss to a .temp file. Only a project type that holds
+	 * insights gets the insights database properties, so no other project ever
+	 * makes an insights database file.
+	 *
+	 * @param projectId                the project id
+	 * @param projectName              the project name
+	 * @param projectEnumType          the project type
+	 * @param gitProvider              the git provider, or null
+	 * @param gitCloneUrl              the git clone URL, or null
+	 * @param forceInsightDatabaseType the insights database type, or null for the
+	 *                                 DEFAULT_INSIGHTS_RDBMS setting (H2 when it is
+	 *                                 not set)
+	 * @return the .temp smss file
+	 * @throws IOException if the file cannot be written
 	 */
 	public static File createTemporaryProjectSmss(String projectId, String projectName,
 			IProject.PROJECT_TYPE projectEnumType, String gitProvider, String gitCloneUrl,
@@ -548,38 +509,40 @@ public class SmssUtilities {
 				bufferedWriter.write(Constants.PROJECT_GIT_CLONE + tab + gitCloneUrl + newLine);
 			}
 
-			String rdbmsTypeStr = null;
-			RdbmsTypeEnum rdbmsType = null;
-			if (forceInsightDatabaseType != null) {
-				rdbmsType = forceInsightDatabaseType;
-			} else {
-				rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
-				if (rdbmsTypeStr == null) {
-					// default h2
-					rdbmsType = RdbmsTypeEnum.H2_DB;
+			if (projectEnumType.holdsInsights()) {
+				String rdbmsTypeStr = null;
+				RdbmsTypeEnum rdbmsType = null;
+				if (forceInsightDatabaseType != null) {
+					rdbmsType = forceInsightDatabaseType;
 				} else {
-					rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
+					rdbmsTypeStr = Utility.getDIHelperProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
+					if (rdbmsTypeStr == null) {
+						// default h2
+						rdbmsType = RdbmsTypeEnum.H2_DB;
+					} else {
+						rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
+					}
 				}
-			}
-			// the configured value may differ in case or spacing, so the smss gets the
-			// label
-			rdbmsTypeStr = rdbmsType.getLabel();
+				// the configured value may differ in case or spacing, so the smss gets the
+				// label
+				rdbmsTypeStr = rdbmsType.getLabel();
 
-			bufferedWriter.write(
-					Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
-			bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
-			bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + newLine);
-			bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType.getLabel() + newLine);
-			if (rdbmsType == RdbmsTypeEnum.SQLITE) {
-				// sqlite has no username/password
-				bufferedWriter.write(Constants.USERNAME + tab + "" + newLine);
-				bufferedWriter.write(Constants.PASSWORD + tab + "" + newLine);
-			} else {
-				bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
-				bufferedWriter.write(Constants.PASSWORD + tab + "" + newLine);
+				bufferedWriter.write(
+						Constants.RDBMS_INSIGHTS + tab + getParamedSmssInsightDatabaseLocation(rdbmsTypeStr) + newLine);
+				bufferedWriter.write(Constants.RDBMS_INSIGHTS_TYPE + tab + rdbmsTypeStr + newLine);
+				bufferedWriter.write(Constants.DRIVER + tab + rdbmsType.getDriver() + newLine);
+				bufferedWriter.write(Constants.RDBMS_TYPE + tab + rdbmsType.getLabel() + newLine);
+				if (rdbmsType == RdbmsTypeEnum.SQLITE) {
+					// sqlite has no username/password
+					bufferedWriter.write(Constants.USERNAME + tab + "" + newLine);
+					bufferedWriter.write(Constants.PASSWORD + tab + "" + newLine);
+				} else {
+					bufferedWriter.write(Constants.USERNAME + tab + "sa" + newLine);
+					bufferedWriter.write(Constants.PASSWORD + tab + "" + newLine);
+				}
+				String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
+				bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
 			}
-			String connectionUrl = getParamedNewInsightDatabaseConnectionUrl(rdbmsType, projectId, projectName);
-			bufferedWriter.write(Constants.CONNECTION_URL + tab + connectionUrl + newLine);
 
 			bufferedWriter.write(IEngine.PIPELINE + tab + "pipeline.json" + newLine);
 		} catch (IOException e) {
@@ -761,7 +724,8 @@ public class SmssUtilities {
 						"QUESTION_ORDER", "QUESTION_DATA_MAKER", "QUESTION_MAKEUP", "DATA_TABLE_ALIGN",
 						"HIDDEN_INSIGHT", "CACHEABLE", "QUESTION_PKQL" };
 				types = new String[] { "VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT",
-						"VARCHAR(255)", "CLOB", "VARCHAR(500)", "BOOLEAN", "BOOLEAN", "ARRAY" };
+						"VARCHAR(255)", "CLOB", "VARCHAR(500)", "BOOLEAN", "BOOLEAN", "VARCHAR ARRAY" };
+				// H2 2.x needs a typed array; matches what migrated 1.4 files get
 				// this is annoying
 				// need to adjust if the engine allows array data types
 				if (!queryUtil.allowArrayDatatype()) {
@@ -832,52 +796,63 @@ public class SmssUtilities {
 	}
 
 	/**
-	 * 
-	 * @param currentSmssContent
-	 * @return
+	 * Hides the values of the secret keys in smss text, so the text can be shown in
+	 * the smss editor. Each secret key keeps its line, with the value replaced by
+	 * {@link Constants#SENSITIVE_INFO_MASK}; the lines a multi-line secret value
+	 * continues onto are left out. Which keys are secret is decided by
+	 * {@link SensitiveKeys#isSensitiveKey(String)}.
+	 *
+	 * @param currentSmssContent the smss text
+	 * @return the smss text with secret values masked
 	 */
 	public static String concealSmssSensitiveInfo(String currentSmssContent) {
 		StringBuilder concealedSmssContent = new StringBuilder();
-		String[] currentSmssLines = currentSmssContent.split("\n");
-
-		for (String curLine : currentSmssLines) {
-			String curLineUpperMatch = curLine.toUpperCase();
-
-			// loop through all the keys to find
-			boolean found = false;
-			for (String key : SmssUtilities.SENSITIVE_KEYWORDS) {
-				if (curLineUpperMatch.startsWith(key + "\t") || curLineUpperMatch.startsWith(key + " ")
-						|| curLineUpperMatch.startsWith(key + "=")) {
-					concealedSmssContent.append(key).append("\t").append(Constants.SENSITIVE_INFO_MASK);
-					found = true;
-					break;
+		boolean continuesValue = false;
+		boolean maskingValue = false;
+		for (String curLine : currentSmssContent.split("\n")) {
+			if (continuesValue) {
+				continuesValue = continuesOnNextLine(curLine);
+				if (!maskingValue) {
+					concealedSmssContent.append(curLine).append("\n");
 				}
+				continue;
 			}
-			if (!found) {
+			String key = smssLineKey(curLine);
+			maskingValue = key != null && SensitiveKeys.isSensitiveKey(key);
+			if (maskingValue) {
+				concealedSmssContent.append(key).append("\t").append(Constants.SENSITIVE_INFO_MASK);
+			} else {
 				concealedSmssContent.append(curLine);
 			}
 			concealedSmssContent.append("\n");
+			continuesValue = key != null && continuesOnNextLine(curLine);
 		}
-
 		return concealedSmssContent.toString();
 	}
 
 	/**
-	 * 
-	 * @param newSmssContent
-	 * @param currentSmssProperties
-	 * @return
+	 * Puts the saved secret values back into edited smss text. A secret key whose
+	 * value is still {@link Constants#SENSITIVE_INFO_MASK} gets its value from the
+	 * current smss; a secret key given a new value keeps the new value.
+	 *
+	 * @param newSmssContent        the edited smss text
+	 * @param currentSmssProperties the engine's current smss values
+	 * @return the smss text to save
 	 */
 	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties) {
 		return unconcealSmssSensitiveInfo(newSmssContent, currentSmssProperties, null);
 	}
 
 	/**
-	 * 
-	 * @param newSmssContent
-	 * @param currentSmssProperties
-	 * @param secretStoreValues
-	 * @return
+	 * Puts the saved secret values back into edited smss text. A secret key whose
+	 * value is still {@link Constants#SENSITIVE_INFO_MASK} gets its value from the
+	 * current smss or the secret store; a secret key given a new value keeps the
+	 * new value.
+	 *
+	 * @param newSmssContent        the edited smss text
+	 * @param currentSmssProperties the engine's current smss values
+	 * @param secretStoreValues     the engine's values in the secret store, or null
+	 * @return the smss text to save
 	 */
 	public static String unconcealSmssSensitiveInfo(String newSmssContent, Properties currentSmssProperties,
 			Map<String, Object> secretStoreValues) {
@@ -885,63 +860,96 @@ public class SmssUtilities {
 		if (newProperties == null) {
 			throw new IllegalArgumentException("New SMSS content is not a valid properties file format");
 		}
-		CaseInsensitiveProperties allUpperProps = new CaseInsensitiveProperties(newProperties);
 
 		boolean requireProcessing = false;
-		for (String key : SmssUtilities.SENSITIVE_KEYWORDS) {
-			if (allUpperProps.containsKey(key) && allUpperProps.get(key).equals(Constants.SENSITIVE_INFO_MASK)) {
+		for (String key : newProperties.stringPropertyNames()) {
+			if (SensitiveKeys.isSensitiveKey(key)
+					&& Constants.SENSITIVE_INFO_MASK.equals(newProperties.getProperty(key))) {
 				requireProcessing = true;
 				break;
 			}
 		}
-
 		if (!requireProcessing) {
 			return newSmssContent;
 		}
 
-		// okay, we found a key that is all sensitive info
-		// lets fix it
-
-		CaseInsensitiveProperties allUpperCurrentSmss = new CaseInsensitiveProperties(currentSmssProperties);
-		// add any secrets that might be there
+		CaseInsensitiveProperties currentValues = new CaseInsensitiveProperties(currentSmssProperties);
 		if (secretStoreValues != null) {
-			allUpperCurrentSmss.putAll(secretStoreValues);
+			currentValues.putAll(secretStoreValues);
 		}
 		StringBuilder constructedSmssContent = new StringBuilder();
-		String[] currentSmssLines = newSmssContent.split("\n");
-
-		for (String curLine : currentSmssLines) {
-			String curLineUpperMatch = curLine.toUpperCase();
-
-			// loop through all the keys to find
-			boolean found = false;
-			for (String key : SmssUtilities.SENSITIVE_KEYWORDS) {
-				if (curLineUpperMatch.startsWith(key + "\t") || curLineUpperMatch.startsWith(key + " ")
-						|| curLineUpperMatch.startsWith(key + "=")) {
-					// check if we are still the concealed value or not
-					if (allUpperProps.get(key).equals(Constants.SENSITIVE_INFO_MASK)) {
-						// write the key with the original value in the current smss file
-						// value might be an empty string which could return a null
-						Object value = "";
-						if (allUpperCurrentSmss.get(key) != null) {
-							value = allUpperCurrentSmss.get(key);
-						}
-						constructedSmssContent.append(key).append("\t")
-								.append(StringEscapeUtils.escapeJava(value.toString()));
-					} else {
-						// the value has been changed
-						constructedSmssContent.append(curLine);
-					}
-					found = true;
-					break;
-				}
+		boolean continuesValue = false;
+		for (String curLine : newSmssContent.split("\n")) {
+			if (continuesValue) {
+				continuesValue = continuesOnNextLine(curLine);
+				constructedSmssContent.append(curLine).append("\n");
+				continue;
 			}
-			if (!found) {
+			String key = smssLineKey(curLine);
+			if (key != null && SensitiveKeys.isSensitiveKey(key)
+					&& Constants.SENSITIVE_INFO_MASK.equals(newProperties.getProperty(key))) {
+				Object value = currentValues.get(key);
+				constructedSmssContent.append(key).append("\t")
+						.append(StringEscapeUtils.escapeJava(value == null ? "" : value.toString()));
+			} else {
 				constructedSmssContent.append(curLine);
 			}
 			constructedSmssContent.append("\n");
+			continuesValue = key != null && continuesOnNextLine(curLine);
 		}
 		return constructedSmssContent.toString();
+	}
+
+	/**
+	 * The key on an smss line, read the way {@link Properties#load} reads it: after
+	 * any leading white space, up to the first unescaped {@code =}, {@code :} or
+	 * white space.
+	 *
+	 * @param line one line of smss text
+	 * @return the key, or null for a blank or comment line
+	 */
+	private static String smssLineKey(String line) {
+		int start = 0;
+		while (start < line.length() && isSmssWhitespace(line.charAt(start))) {
+			start++;
+		}
+		if (start == line.length() || line.charAt(start) == '\r' || line.charAt(start) == '#'
+				|| line.charAt(start) == '!') {
+			return null;
+		}
+		int end = start;
+		while (end < line.length()) {
+			char c = line.charAt(end);
+			if (c == '\\') {
+				end += 2;
+				continue;
+			}
+			if (c == '=' || c == ':' || c == '\r' || isSmssWhitespace(c)) {
+				break;
+			}
+			end++;
+		}
+		return line.substring(start, Math.min(end, line.length()));
+	}
+
+	/**
+	 * Whether a value goes on past the end of this smss line, which it does when
+	 * the line ends with an odd number of backslashes.
+	 *
+	 * @param line one line of smss text
+	 * @return true when the next line is part of this line's value
+	 */
+	private static boolean continuesOnNextLine(String line) {
+		int end = line.endsWith("\r") ? line.length() - 1 : line.length();
+		int backslashes = 0;
+		while (end - backslashes > 0 && line.charAt(end - backslashes - 1) == '\\') {
+			backslashes++;
+		}
+		return backslashes % 2 == 1;
+	}
+
+	private static boolean isSmssWhitespace(char c) {
+		return c == ' ' || c == '\t' || c == '\f';
 	}
 
 }

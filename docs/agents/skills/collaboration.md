@@ -1,7 +1,7 @@
 # Default skills in collaboration rooms
 
 Every `RunAgent` resolution for a room whose project is `SYSTEM__COLLABORATION`
-includes `collaboration` and `python`. This covers new sessions, thread
+includes `collaboration`, `docx`, `pptx`, `python`, and `xlsx`. This covers new sessions, thread
 rooms, selected-agent runs, follow-ups, and resumed runs. Normal Playground rooms
 retain their existing skill selection.
 
@@ -25,7 +25,10 @@ references/
   actions/update-and-report.md
 ```
 
-The Python and PPTX packages are separate defaults. Root collaboration runs whose
+The Python, Word, Excel, and PPTX packages are separate defaults. Word and Excel use
+managed Python, the existing file panels, and optional UnoServer conversion; see
+[office-documents.md](office-documents.md) for their dependencies and verification limits.
+Root collaboration runs whose
 agent has no managed PPTX workflow are offered `PreparePptxEdit`, `ApplyPptxEdits`
 and `BuildPptx` next to the collaboration tools, and get
 `CollaborationPrompts.PPTX_PROMPT`. The managed workflow (validation, the system PPTX

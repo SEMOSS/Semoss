@@ -20,7 +20,7 @@ from smss_thread_local import get_smss_stream
 from .openai_image_client import OpenAiImageClient
 from .openai_audio_client import OpenAiAudioClient
 from ..model_engine_exception import ModelEngineException, ErrorDetails
-from ...utils import string_to_bool
+from ...utils import azure_openai_client, string_to_bool
 from ...usage_ceiling import (
     PromptCount,
     TextCounter,
@@ -101,8 +101,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             endpoint = kwargs.pop("endpoint", None)
             if endpoint is None:
                 endpoint = kwargs.pop("base_url", None)
-            kwargs["azure_endpoint"] = endpoint
-            return AzureOpenAI(api_key=api_key, **kwargs)
+            return azure_openai_client(api_key, endpoint, **kwargs)
         return OpenAI(api_key=api_key, **kwargs)
 
     def _get_bedrock_client(self, **kwargs) -> OpenAI:

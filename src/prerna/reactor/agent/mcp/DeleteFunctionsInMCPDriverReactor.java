@@ -34,6 +34,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -61,7 +62,7 @@ public class DeleteFunctionsInMCPDriverReactor extends AbstractReactor {
 		if (engine == null) {
 			engine = Utility.getProject(engineId);
 		}
-		User user = this.insight.getUser();
+		User user = requireUser();
 		checkEngineEditSecurity(engine, user);
 
 		Map<String, Boolean> success = new HashMap<>();
@@ -91,16 +92,10 @@ public class DeleteFunctionsInMCPDriverReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Delete an existing function from the mcp_driver.py file and py_mcp.json of the engine";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("functionName")) {
-			return "The name of the exisitng function to delete";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Delete an existing function from the mcp_driver.py file and py_mcp.json of the engine")
+				.key("functionName", "The name of the exisitng function to delete");
 	}
 
 }

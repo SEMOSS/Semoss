@@ -356,7 +356,8 @@ public final class EnterpriseUsageUtils {
 		}
 		case TREND -> {
 			String day = day(source);
-			sql = "SELECT " + day + " AS DAY, " + metrics + " " + scope + " GROUP BY " + day + " ORDER BY " + day;
+			// DAY is reserved on H2 2.x
+			sql = "SELECT " + day + " AS \"DAY\", " + metrics + " " + scope + " GROUP BY " + day + " ORDER BY " + day;
 			bound = 366;
 		}
 		case LATENCY -> {

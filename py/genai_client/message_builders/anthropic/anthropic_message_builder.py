@@ -824,27 +824,8 @@ class AnthropicMessageBuilder:
                 if max_tokens <= budget_tokens:
                     max_tokens = min(budget_tokens + 1024, model_cap)
 
-        temperature = kwargs.pop("temperature", None)
-        top_p = kwargs.pop("top_p", None)
-        top_k = kwargs.pop("top_k", None)
-        if thinking_map and thinking_map.get("type") == "adaptive":
-            temperature = top_p = top_k = None
-        elif thinking_map:
-            if top_p is not None:
-                if top_p < 0.95:
-                    top_p = 0.95
-                elif top_p > 1:
-                    top_p = 1
-            if temperature is not None:
-                temperature = 1
-
-        extra_body: Dict[str, Any] = {}
-        if temperature is not None:
-            extra_body["temperature"] = temperature
-        if top_p is not None:
-            extra_body["top_p"] = top_p
-        if top_k is not None:
-            extra_body["top_k"] = top_k
+        # temperature, top_p and top_k are not sent: API version 2026-10-21, which
+        # anthropic 2.x uses, rejects them on every model, even at their defaults
 
         if "use_history" in kwargs:
             use_history = kwargs.pop("use_history")
@@ -862,7 +843,6 @@ class AnthropicMessageBuilder:
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,
-            extra_body=extra_body or None,
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
             thinking=thinking_map,

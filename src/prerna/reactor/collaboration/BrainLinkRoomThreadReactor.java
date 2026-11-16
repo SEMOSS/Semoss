@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadRoomUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainLinkRoomThread(roomId=["..."], threadId=["..."], remove=[false]);
@@ -51,20 +52,11 @@ public class BrainLinkRoomThreadReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "The owner adds an email thread to a chat or removes one; a removed thread stays out until it is "
-				+ "added again";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROOM_ID.equals(key)) {
-			return "The chat's room id";
-		} else if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (REMOVE.equals(key)) {
-			return "true removes the thread from the chat";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"The owner adds an email thread to a chat or removes one; a removed thread stays out until it is "
+						+ "added again")
+				.key(ROOM_ID, "The chat's room id").key(THREAD_ID, "Thread id")
+				.key(REMOVE, "true removes the thread from the chat");
 	}
 }

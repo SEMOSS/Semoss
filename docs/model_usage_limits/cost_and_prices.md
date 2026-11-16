@@ -118,9 +118,9 @@ to fit the output in the cost left.
 
 [SecurityModelMetadataUtils](../../src/prerna/auth/utils/SecurityModelMetadataUtils.java):
 
-- **Only owners and admins change `PRICING`.** An owner can be one through a team.
-  Editors change every other metadata field ("Only the model's owners can change
-  its prices").
+- **Only owners change `PRICING`.** An owner can be one through a team, and an
+  admin changes a model's prices as one of its owners. Editors change every other
+  metadata field ("Only the model's owners can change its prices").
 - **Prices can be changed, not all removed** ("A model's prices cannot be removed,
   only changed").
 - **The entry cost limits use cannot be removed**, only changed. It is matched on

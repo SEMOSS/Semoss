@@ -289,7 +289,6 @@ import prerna.reactor.panel.rules.RetrievePanelColorByValueReactor;
 import prerna.reactor.panel.sort.AddPanelSortReactor;
 import prerna.reactor.panel.sort.SetPanelSortReactor;
 import prerna.reactor.panel.sort.UnsortPanelReactor;
-import prerna.reactor.planner.GraphPlanReactor;
 import prerna.reactor.project.AddDefaultInsightsReactor;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.reactor.qs.DistinctReactor;
@@ -360,8 +359,6 @@ import prerna.reactor.task.modifiers.FlatMapLambdaReactor;
 import prerna.reactor.task.modifiers.ToNumericTypeReactor;
 import prerna.reactor.task.modifiers.ToUrlTypeReactor;
 import prerna.reactor.task.modifiers.TransposeRowsReactor;
-import prerna.reactor.tax.RetrieveValue;
-import prerna.reactor.tax.StoreValue;
 import prerna.reactor.test.LSASpaceColumnLearnedReactor;
 import prerna.reactor.test.RunLSILearnedReactor;
 import prerna.reactor.utils.AddOperationAliasReactor;
@@ -501,44 +498,26 @@ public class ReactorFactory {
 				// ignore abstract and engines
 				if (!Modifier.isAbstract(actualClass.getModifiers())
 						&& !Arrays.asList(actualClass.getInterfaces()).contains(IEngine.class)) {
-					String[] packagePaths = packageName.split("\\.");
-					// System.out.println("Package name " + packageName);
-					packageName = packagePaths[packagePaths.length - 1];
-					boolean frame = false;
-					if (packagePaths.length > 2) {
-						frame = packagePaths[packagePaths.length - 2].equalsIgnoreCase("frame");
-					}
-					// we will allow for 1 more level
-					// i.e. things of the form so *.frame.r.?
-					if (!frame && packagePaths.length > 3) {
-						packageName = packagePaths[packagePaths.length - 2];
-						frame = packagePaths[packagePaths.length - 3].equalsIgnoreCase("frame");
-					}
-					String reactorName = name;
-					final String REACTOR_KEY = "REACTOR";
-					if (reactorName.toUpperCase().endsWith(REACTOR_KEY)) {
-						reactorName = reactorName.substring(0, reactorName.length() - REACTOR_KEY.length());
-					}
+					// ReactorNames holds these rules so the OpenAPI export reads reactors the same
+					// way
+					String reactorName = ReactorNames.pixelName(name);
+					String frameType = ReactorNames.frameType(packageName);
 
-					if (frame) {
-						if (packageName.equalsIgnoreCase("rdbms")) {
+					if (frameType != null) {
+						if (frameType.equalsIgnoreCase("rdbms")) {
 							h2FrameHash.put(reactorName, actualClass);
-						} else if (packageName.equalsIgnoreCase("r")) {
+						} else if (frameType.equalsIgnoreCase("r")) {
 							rFrameHash.put(reactorName, actualClass);
-						} else if (packageName.equalsIgnoreCase("py")) {
+						} else if (frameType.equalsIgnoreCase("py")) {
 							pandasFrameHash.put(reactorName, actualClass);
-						} else if (packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
+						} else {
+							// tinker or graph
 							tinkerFrameHash.put(reactorName, actualClass);
-						} else {// nullify the package name
-							packageName = null;
-							// general reactor
-							// example - frame filters
-							reactorHash.put(reactorName, actualClass);
 						}
-						if (packageName != null) {
-							reactorName = packageName + "_" + reactorName;
-						}
+						reactorName = frameType + "_" + reactorName;
 					} else {
+						// general reactor, including those under a frame package that is
+						// not a frame type, such as frame filters
 						reactorHash.put(reactorName, actualClass);
 					}
 					nmList.add(reactorName);
@@ -962,11 +941,6 @@ public class ReactorFactory {
 		reactorHash.put("RunClassification", RunClassificationReactor.class);
 		reactorHash.put("RunAssociatedLearning", RunAssociatedLearningReactor.class);
 
-		// In mem storage of data
-		reactorHash.put("StoreValue", StoreValue.class);
-		reactorHash.put("RetrieveValue", RetrieveValue.class);
-		reactorHash.put("GraphPlan", GraphPlanReactor.class);
-
 		// App Metadata
 //		reactorHash.put("MyApps", MyAppsReactor.class);
 		reactorHash.put("MyDatabases", MyDatabasesReactor.class);
@@ -1004,11 +978,6 @@ public class ReactorFactory {
 
 		// Forms
 		reactorHash.put("UpdateForm", UpdateFormReactor.class);
-
-		// Pixels for legacy playsheets
-		reactorHash.put("RunPlaysheetMethod", prerna.reactor.legacy.playsheets.RunPlaysheetMethodReactor.class);
-		reactorHash.put("RunPlaysheet", prerna.reactor.legacy.playsheets.RunPlaysheetReactor.class);
-		reactorHash.put("GetPlaysheetParams", prerna.reactor.legacy.playsheets.GetPlaysheetParamsReactor.class);
 
 		// LSA
 		reactorHash.put("LSASpaceColumnLearned", LSASpaceColumnLearnedReactor.class);
@@ -1237,7 +1206,7 @@ public class ReactorFactory {
 			}
 		}
 		if (frame == null && insight != null) {
-			frame = (ITableDataFrame) insight.getDataMaker();
+			frame = insight.getCurrentFrame();
 		}
 
 		return getReactor(reactorId, frame, parentReactor);

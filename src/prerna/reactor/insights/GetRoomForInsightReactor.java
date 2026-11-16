@@ -28,6 +28,7 @@
 package prerna.reactor.insights;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -43,8 +44,8 @@ public class GetRoomForInsightReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Get the room that is set for the current insight";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Get the room that is set for the current insight").noKeys();
 	}
 
 }

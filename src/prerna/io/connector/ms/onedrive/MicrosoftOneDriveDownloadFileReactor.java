@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -116,20 +117,16 @@ public class MicrosoftOneDriveDownloadFileReactor extends AbstractMicrosoftOneDr
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Download a OneDrive file into the insight folder, from the signed in user's own drive, from a drive shared with them, or from a sharing link.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ITEM_ID)) {
-			return "Id of the file to download, as returned by the OneDrive listings. Not needed when a path or a sharing link is given.";
-		} else if (key.equals(PATH)) {
-			return "Path of the file to download, relative to the drive root. Not needed when an item id or a sharing link is given.";
-		} else if (key.equals(ReactorKeysEnum.FILE_NAME.getKey())) {
-			return "Optional name to save the file as in the insight folder. The name it carries in the drive is used when omitted.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Download a OneDrive file into the insight folder, from the signed in user's own drive, from a drive shared with them, or from a sharing link. A copy of the same file that is already there and was not changed there is brought up to date in place, so the result's filePath can name that copy rather than the name asked for. A copy that was changed there is written over only when the file name names it; otherwise the download lands beside it. The result says when and by whom the file was last changed in OneDrive.")
+				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION).key(SHARE_URL, SHARE_URL_DESCRIPTION)
+				.key(ITEM_ID,
+						"Id of the file to download, as returned by the OneDrive listings. Not needed when a path or a sharing link is given.")
+				.key(PATH,
+						"Path of the file to download, relative to the drive root. Not needed when an item id or a sharing link is given.")
+				.key(ReactorKeysEnum.FILE_NAME,
+						"Optional name to save the file as in the insight folder. The name it carries in the drive is used when omitted.");
 	}
 
 	/**
