@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.images;
+package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -65,9 +65,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * projects, or if we should check the whether the image is already in CouchDB
  * before upload.
  */
-public class MigrateImagesToCouchReactor extends AbstractReactor {
+public class AdminMigrateImagesToCouchReactor extends AbstractReactor {
 
-	private static final Logger LOGGER = LogManager.getLogger(MigrateImagesToCouchReactor.class);
+	private static final Logger LOGGER = LogManager.getLogger(AdminMigrateImagesToCouchReactor.class);
 
 	private static final String SELECTOR_TEMPLATE = "{\"selector\": {\"%s\": {\"$eq\": \"%s\"}, \"_attachments\": {\"%s\": {\"digest\": {\"$eq\": \"%s\"}}}}}";
 	private static final String VERIFY_MISSING = "verifyMissing";
@@ -79,7 +79,7 @@ public class MigrateImagesToCouchReactor extends AbstractReactor {
 	private boolean repull = false;
 	private boolean filterInvalidIds = true;
 
-	public MigrateImagesToCouchReactor() throws NoSuchAlgorithmException {
+	public AdminMigrateImagesToCouchReactor() throws NoSuchAlgorithmException {
 		md5Instance = MessageDigest.getInstance("MD5");
 
 		this.keysToGet = new String[] { VERIFY_MISSING, REPULL, FILTER_INVALID_IDS };

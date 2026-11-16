@@ -69,7 +69,6 @@ public class GitHubCheckInstallationReactor extends AbstractReactor {
 			throw new SemossPixelException("Project is required.");
 		}
 		projectId = projectId.trim();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			throw new SemossPixelException("Project does not exist or user does not have access to view the project.");
 		}

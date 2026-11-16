@@ -271,35 +271,6 @@ public class SecurityUserInsightUtilsUnitTests extends AbstractSecurityUtilsUnit
 	}
 
 	///
-	/// insightPermissionIsExpired
-	///
-
-	@Test
-	void testInsightPermissionIsExpired_NotExpired() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
-		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
-
-		User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
-		String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
-
-		// Give user2 permission without end date
-		List<Map<String, String>> permissions = List.of(Map.of("userid", user2Id, "permission", "EDIT"));
-		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid1", permissions, null);
-
-		assertFalse(SecurityUserInsightUtils.insightPermissionIsExpired(user2Id, "pid1", "iid1"));
-	}
-
-	@Test
-	void testInsightPermissionIsExpired_NoPermission() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
-		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
-
-		assertFalse(SecurityUserInsightUtils.insightPermissionIsExpired("nonexistent", "pid1", "iid1"));
-	}
-
-	///
 	/// getInsightUsers
 	///
 

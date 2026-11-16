@@ -40,7 +40,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteEngineRunner;
 import prerna.engine.api.IEngine;
@@ -78,8 +77,6 @@ public class DeleteEngineReactor extends AbstractReactor {
 				throwFunctionalityOnlyExposedForAdminsError();
 			}
 
-			// we may have the alias
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
 			if (!isOwner) {
 				throw new IllegalArgumentException("Engine " + engineId
@@ -89,8 +86,6 @@ public class DeleteEngineReactor extends AbstractReactor {
 
 		// once all are good, we can delete
 		for (String engineId : engineIds) {
-			// we may have the alias
-			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			IEngine engine = Utility.getEngine(engineId, false);
 			String engineName = null;
 			IEngine.CATALOG_TYPE engineType = null;

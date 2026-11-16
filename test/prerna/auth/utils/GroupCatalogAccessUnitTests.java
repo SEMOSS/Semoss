@@ -193,6 +193,7 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		assertTrue(resourceIds(kind, false, true).isEmpty());
 		assertTrue(details(kind, "shared").isEmpty());
 		assertTrue(groupPermissions(kind, "shared").isEmpty());
+		ExpiredAccessRemoval.removeAllEndedAccess();
 		assertThrows(IllegalArgumentException.class, () -> info(kind, "shared"));
 	}
 

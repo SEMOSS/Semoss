@@ -25,29 +25,38 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.blocks;
+package prerna.auth.utils.reactors.admin;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
 
-public class AddBlockReactor extends AbstractReactor {
+@Deprecated
+public class AdminAddBlockReactor extends AbstractReactor {
 
-	public AddBlockReactor() {
+	private static final Logger classLogger = LogManager.getLogger(AdminAddBlockReactor.class);
+
+	@Deprecated
+	public AdminAddBlockReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.SECTION.getKey(),
 				ReactorKeysEnum.JSON.getKey() };
 		this.keyRequired = new int[] { 1 };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		User user = requireUser();
@@ -75,11 +84,23 @@ public class AddBlockReactor extends AbstractReactor {
 			try {
 				rawJson = URLDecoder.decode(rawJson, "UTF-8");
 			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
+				classLogger.error("Failed to decode the JSON of block {}",
+						this.keyValue.get(ReactorKeysEnum.NAME.getKey()), e);
 			}
 		}
 		blockMap.put("json", rawJson);
 		blockMap.put("created_by", this.insight.getUserId());
 		return blockMap;
+	}
+
+	@Deprecated
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Admin Only: Adds a block to the blocks library and returns the new block's id")
+				.key(ReactorKeysEnum.NAME, "The block's name")
+				.key(ReactorKeysEnum.SECTION, "The section of the blocks library that lists the block")
+				.key(ReactorKeysEnum.JSON, "The block's definition as JSON")
+				.output(String.class, "The id of the new block");
 	}
 }

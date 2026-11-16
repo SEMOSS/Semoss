@@ -109,6 +109,6 @@ public class ResolveAutomationAgentRunActionReactor extends AbstractReactor {
 						"The decision for the action: approve, edit, reject or respond. Approve and edit run the tool; reject and respond record a result without running it.")
 				.key(NODE_ID_KEY, "The id of the Automation node that started the agent run.")
 				.key(ReactorKeysEnum.PARAM_VALUES_MAP, key -> key.type(Map.class)).key(ReactorKeysEnum.PROJECT,
-						"The id or alias of the Automation project the run belongs to; the caller needs edit access. Without it, the run must be in the caller's own inline run scope.");
+						"The id of the Automation project the run belongs to; the caller needs edit access. Without it, the run must be in the caller's own inline run scope.");
 	}
 }

@@ -37,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -65,15 +64,11 @@ public class GetEngineMetadataReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 
 		List<Map<String, Object>> baseInfo = null;
-		// make sure valid id for user
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 		if (SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			// user has access!
 			baseInfo = SecurityEngineUtils.getUserEngineList(user, engineId, null);
 		} else if (SecurityEngineUtils.engineIsDiscoverable(engineId)) {
 			baseInfo = SecurityEngineUtils.getDiscoverableEngineList(engineId, null);
 		} else {
-			// you dont have access
 			throw new IllegalArgumentException("Engine does not exist or user does not have access to the database");
 		}
 

@@ -1067,20 +1067,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	}
 
 	///
-	/// removeExpiredEngineUser
-	///
-
-	@Test
-	void testRemoveExpiredEngineUser() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
-
-		SecurityEngineUtils.removeExpiredEngineUser("adminid", "testId");
-		assertFalse(SecurityEngineUtils.userIsOwner(user, "testId"));
-		assertFalse(SecurityEngineUtils.userCanViewEngine(user, "testId"));
-	}
-
-	///
 	/// setEngineGlobal
 	///
 

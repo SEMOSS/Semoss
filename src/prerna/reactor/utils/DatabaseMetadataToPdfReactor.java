@@ -56,7 +56,6 @@ import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.masterdatabase.utility.MetamodelVertex;
 import prerna.om.InsightFile;
@@ -121,7 +120,6 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 
 		// security
 		User user = this.insight.getUser();
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
 			throw new IllegalArgumentException("Database " + databaseId
 					+ " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
@@ -133,7 +131,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		engineInfo.putIfAbsent("description", "");
 		engineInfo.putIfAbsent("tags", new ArrayList<String>());
 
-		logger.info("Pulling database metadata for database " + databaseId);
+		logger.info("Pulling database metadata for database {}", databaseId);
 		Map<String, Object> metamodelObject = new HashMap<>();
 		{
 			Map<String, Object> cacheMetamodel = EngineSyncUtility.getMetamodel(databaseId);
@@ -146,7 +144,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 			}
 		}
 
-		logger.info("Pulling database logical names for database " + databaseId);
+		logger.info("Pulling database logical names for database {}", databaseId);
 		Map<String, List<String>> logicalNames = EngineSyncUtility.getMetamodelLogicalNamesCache(databaseId);
 		if (logicalNames == null) {
 			logicalNames = MasterDatabaseUtility.getDatabaseLogicalNames(databaseId);
@@ -155,7 +153,7 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		if (logicalNames == null) {
 			logicalNames = Collections.emptyMap();
 		}
-		logger.info("Pulling database descriptions for database " + databaseId);
+		logger.info("Pulling database descriptions for database {}", databaseId);
 		Map<String, String> descriptions = EngineSyncUtility.getMetamodelDescriptionsCache(databaseId);
 		if (descriptions == null) {
 			descriptions = MasterDatabaseUtility.getDatabaseDescriptions(databaseId);

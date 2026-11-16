@@ -94,8 +94,6 @@ public class ReplaySingleStepReactorTest {
 				MockedStatic<ScreenshotReactor> mockedScreenshot = mockStatic(ScreenshotReactor.class);
 				MockedStatic<SecurityProjectUtils> projectSecurity = mockStatic(SecurityProjectUtils.class)) {
 
-			projectSecurity.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(mockUser, "project123"))
-					.thenReturn("project123");
 			projectSecurity.when(() -> SecurityProjectUtils.userCanViewProject(mockUser, "project123"))
 					.thenReturn(true);
 

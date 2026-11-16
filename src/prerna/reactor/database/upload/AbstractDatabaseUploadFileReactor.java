@@ -106,7 +106,6 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 
 		if (existing) {
 			// check if input is alias since we are adding ot existing
-			databaseIdOrName = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseIdOrName);
 			if (!SecurityEngineUtils.userCanEditEngine(user, databaseIdOrName)) {
 				NounMetadata noun = new NounMetadata(
 						"User does not have sufficient priviledges to create or update a database",

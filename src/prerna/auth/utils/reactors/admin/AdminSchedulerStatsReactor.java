@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.scheduler;
+package prerna.auth.utils.reactors.admin;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -37,12 +37,13 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
+import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility.SchedulerAuditStats;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-public class SchedulerStatsReactor extends AbstractReactor {
+public class AdminSchedulerStatsReactor extends AbstractReactor {
 
 	public static final String WINDOW = "window";
 	private static final String DEFAULT_WINDOW = "24h";
@@ -54,7 +55,7 @@ public class SchedulerStatsReactor extends AbstractReactor {
 	private static final String STATE_PAUSED = "PAUSED";
 	private static final String STATE_PAUSED_BLOCKED = "PAUSED_BLOCKED";
 
-	public SchedulerStatsReactor() {
+	public AdminSchedulerStatsReactor() {
 		this.keysToGet = new String[] { WINDOW };
 	}
 

@@ -36,7 +36,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
 import prerna.project.api.IProject;
@@ -68,8 +67,6 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		// need to know what we are updating
 		String existingId = getRdbmsId();
 
-		// we may have the alias
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
 			throw new IllegalArgumentException(
 					"Project does not exist or user does not have permission to edit this insight");
