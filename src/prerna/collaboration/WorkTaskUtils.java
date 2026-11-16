@@ -82,6 +82,9 @@ public final class WorkTaskUtils {
 			+ "DUE_AT, LINK_TOPIC_ID, ORIGIN, NOTE, CLOSED_BY, OWNER_SET_AT, CREATED_AT, UPDATED_AT";
 	private static final int MAX_TITLE = 255;
 	// more than a busy owner has open at once; what is cut is counted (workItemTotal, looseStepTotal)
+	/** The note on a step whose mail did not say who it is for. */
+	public static final String UNCLEAR_WHO = "unclear who";
+
 	private static final int LIST_LIMIT = 500;
 	private static final int LOOSE_LIMIT = 300;
 

@@ -739,6 +739,19 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
+	void aStepWhoseMailDidNotSayWhoItIsForKeepsThatDoubt() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("venue", at, null);
+		candidate("who", "venue", null, "Book the venue", at.plusMinutes(1));
+		sql("UPDATE WORK_CANDIDATE SET KIND = 'task', ASSIGNEE = 'unclear' WHERE CANDIDATE_ID = 'who'");
+		reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\"]}";
+		WorkPipeline.reconcile(user, ownerId, ownerType, model);
+		assertEquals(WorkTaskUtils.UNCLEAR_WHO, CollaborationDbUtils.queryOne("SELECT NOTE FROM WORK_THREAD_STEP "
+				+ "WHERE OWNER_ID = ?", rs -> CollaborationDbUtils.getString(rs, "NOTE"), ownerId));
+	}
+
+	@Test
 	void aDoneClaimThatNamesARepeatedAskClosesTheStepItRepeats() throws Exception {
 		LocalDateTime at = at("2026-11-05T10:00:00");
 		thread("deck", at, null);

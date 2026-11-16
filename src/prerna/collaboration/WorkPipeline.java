@@ -1114,6 +1114,10 @@ int[] kept = { 0 };
 			args.put("due", first.get("due"));
 			args.put("assigneeId", assigneeId);
 			args.put("status", mine ? "open" : "waiting");
+			// the mail did not say whose it is: kept on the step, so it is not read as a group's ask
+			if (UNCLEAR.equals(step.get("assignee")) && assigneeId == null) {
+				args.put("note", WorkTaskUtils.UNCLEAR_WHO);
+			}
 			String stepId;
 			try {
 				stepId = (String) WorkTaskUtils.addStep(user, args, BRAIN).get("id");
