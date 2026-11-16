@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.function.Consumer;
@@ -167,6 +168,23 @@ class SandboxReplacedCallsUnitTests {
 		byte[] subclass = new SandboxProbe("custom/sandbox/Extended", owner).bytes();
 
 		assertThrows(SecurityException.class, () -> SemossClassLoader.applyBytecodeTransformations(subclass));
+	}
+
+	@ParameterizedTest
+	@CsvSource({
+			"org/apache/pdfbox/pdmodel/graphics/color/PDDeviceCMYK, INSTANCE, Lorg/apache/pdfbox/pdmodel/graphics/color/PDDeviceCMYK;",
+			"prerna/cluster/util/SchedulerListener, schedulerLeader, Z" })
+	void aStaticFieldOfThePlatformCannotBeAssigned(String owner, String name, String descriptor) throws Throwable {
+		Field field = Class.forName(owner.replace('/', '.')).getField(name);
+		Object before = field.get(null);
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe().method("assign", mv -> {
+			mv.visitInsn("Z".equals(descriptor) ? Opcodes.ICONST_1 : Opcodes.ACONST_NULL);
+			mv.visitFieldInsn(Opcodes.PUTSTATIC, owner, name, descriptor);
+			mv.visitInsn(Opcodes.ACONST_NULL);
+		}).bytes());
+
+		assertThrows(SecurityException.class, () -> SandboxProbe.run(probe, "assign"));
+		assertEquals(before, field.get(null));
 	}
 
 	@ParameterizedTest
