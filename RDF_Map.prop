@@ -65,6 +65,10 @@ FE_WEB_APP_NAME
 #WHAT SAMESITE COOKIE VALUE DO YOU WANT
 #POSSIBLE VALUES INCLUDE strict, lax, none
 SAMESITE_COOKIE none
+#SET WHITE LIST DOMAINS AND BLACK LIST DOMAINS
+#Both lists are comma separated domains, host names, IP addresses and CIDR ranges
+WHITE_LIST_DOMAINS
+BLACK_LIST_DOMAINS
 #Caching for tasks
 X_CACHE false
 #SET THE EMBED URL IMAGE
@@ -118,6 +122,10 @@ DISABLE_R_TERMINAL
 DISABLE_PY_TERMINAL
 DISABLE_GIT_TERMINAL
 
+# Library packages a project's custom reactors share with the platform, comma separated,
+# on top of the built-in list. The sandbox block list still applies to them.
+PROJECT_REACTOR_SHARED_PACKAGES
+
 #DEFAULT TERMINAL MODE
 #VALID ONLY FOR WINDOWS
 #USE "cmd" or "powershell"
@@ -134,12 +142,12 @@ DEFAULT_GRID_TYPE H2_DB
 #SET THE DEFAULT SCRIPTING LANGUAGE
 #THIS WILL DETERMINE IF WE SWITCH TO R OR PY IN CLEAN/ANALYTICS
 DEFAULT_SCRIPTING_LANGUAGE R
-#SET DEFAULT INSIGHTS RDBMS 
+#SET DEFAULT INSIGHTS RDBMS
 #CURRENTLY ONLY SUPPORT VALUES OF : H2_DB OR SQLITE
 #DEFAULT IS H2_DB IF THIS IS REMOVED
 DEFAULT_INSIGHTS_RDBMS H2_DB
 
-#SIZE LIMIT FOR ROW by COL 
+#SIZE LIMIT FOR ROW by COL
 #FOR NO LIMIT USE -1
 FRAME_SIZE_LIMIT -1
 #DO WE LIMIT FOR NATIVE FRAMES
@@ -257,9 +265,11 @@ REDIS_CLUSTER_MAX_ATTEMPTS=5
 # ------------------------------------------------------------
 # Secrets
 # ------------------------------------------------------------
+#Setting names whose values are secret, comma separated, on top of the built-in rule
+SENSITIVE_KEYS
 SECRET_STORE_ENABLED	false
-#HASHICORP_VAULT or AZURE_KEYVAULT
-SECRET_STORE_TYPE		
+#HASHICORP_VAULT, AZURE_KEYVAULT or AWS_SECRETS_MANAGER
+SECRET_STORE_TYPE
 #Base Paths For Resources
 SECRETS_DB_PATH			semoss-db
 SECRETS_STORAGE_PATH	semoss-storage
@@ -271,23 +281,33 @@ SECRETS_PROJECT_PATH	semoss-project
 SECRETS_VENV_PATH		semoss-venv
 
 #Hashicorp Vault
-VAULT_ADDR				
-VAULT_TOKEN				
+VAULT_ADDR
+VAULT_TOKEN
 
 #Azure KeyVault
 #Note SECRET_*_PATH can only be contain alphanumeric and dashes
 #ClientSecretCredential if passing in client/secret/tenant
-AZURE_AUTHENTICATE_MODE	
-AZURE_KEYVAULT_NAME	
-AZURE_CLIENT_ID	
-AZURE_CLIENT_SECRET	
-AZURE_TENANT_ID 		
+AZURE_AUTHENTICATE_MODE
+AZURE_KEYVAULT_NAME
+AZURE_CLIENT_ID
+AZURE_CLIENT_SECRET
+AZURE_TENANT_ID
+
+#AWS Secrets Manager
+#Note SECRETS_*_PATH can contain alphanumeric and /_+=.@-
+#Leave the access key blank to use the default AWS credential chain
+AWS_SECRETS_MANAGER_REGION
+AWS_SECRETS_MANAGER_ENDPOINT
+AWS_SECRETS_MANAGER_ACCESS_KEY
+AWS_SECRETS_MANAGER_SECRET_KEY
+AWS_SECRETS_MANAGER_SESSION_TOKEN
+AWS_SECRETS_MANAGER_KMS_KEY_ID
 
 # ------------------------------------------------------------
 # Security
 # ------------------------------------------------------------
 #SAML CONFIG
-SAML_PROP_LOC	C:\\workspace\\Semoss\\saml\\mesoc\\conf	
+SAML_PROP_LOC	C:\\workspace\\Semoss\\saml\\mesoc\\conf
 SAML_FEDERATION_LOG_PATH	C:\\workspace\\Semoss\\saml\\mesoc\\conf\\debug\\Federation
 
 #POST MESSAGE SPECIFIC KEYS
@@ -297,8 +317,8 @@ PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD	password123
 VIRUS_SCANNING_ENABLED 	false
 VIRUS_SCANNING_METHOD 	ClamAV
 CLAMAV_SCANNING_PORT 	3310
-CLAMAV_SCANNING_ADDRESS	 
-CLAMAV_SCANNING_FS		
+CLAMAV_SCANNING_ADDRESS
+CLAMAV_SCANNING_FS
 
 # ------------------------------------------------------------
 # Admin only actions
