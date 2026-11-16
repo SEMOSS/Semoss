@@ -357,6 +357,26 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
+	void aLongThreadIsReadBackToItsCursorSoAnAskInItsOldestMailIsFound() throws Exception {
+		LocalDateTime start = at("2026-11-05T08:00:00");
+		thread("long", start.plusMinutes(69), null);
+		person("self", "Owner", "owner@test.com", "self");
+		person("peter", "Peter", "peter@test.com", null);
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, "
+				+ "'long', 'peter')", ownerId, ownerType);
+		for (int i = 0; i < 70; i++) {
+			email("long", "L" + i, start.plusMinutes(i), i == 0 ? "Please send the oldest report." : "Update " + i);
+		}
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the oldest report\", \"assignee\": "
+				+ "\"me\", \"askedBy\": \"peter\", \"directedAtOwner\": true, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}]}";
+		WorkPipeline.extract(user, ownerId, ownerType, "long", model, new String[] { "self", "Owner" });
+		// the oldest message was given to the model, not only the newest sixty
+		assertTrue(prompts.stream().anyMatch(p -> p.contains("Please send the oldest report.")));
+		assertEquals("me", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Send the oldest report'"));
+	}
+
+	@Test
 	void anAskSentToTheOwnerAloneIsTheOwnersEvenWhenTheModelReadsItAsGroupTalk() throws Exception {
 		LocalDateTime at = at("2026-11-05T10:00:00");
 		thread("ask", at, null);

@@ -75,6 +75,8 @@ public final class WorkPipeline {
 	private static final Logger classLogger = LogManager.getLogger(WorkPipeline.class);
 
 	private static final int MESSAGES = 60;
+	// pages of MESSAGES read back from the newest for one thread on one run
+	private static final int MAX_PAGES = 10;
 	// read like mail arriving over days: earlier finds are passed on so a window
 	// does not list them again
 	private static final int WINDOW = 12;
@@ -557,9 +559,8 @@ public final class WorkPipeline {
 					return null;
 				}, ownerId, ownerType, threadId);
 
-		Map<String, Object> read = BrainThreadMessages.read(user, ownerId, ownerType, threadId, MESSAGES,
-				BrainMessageSource.current());
 		String ref = (String) thread.get("ref");
+		Map<String, Object> read = readSince(ownerId, ownerType, threadId, ref, user);
 		// the cursor goes to the thread's newest mail, hidden or gone mail included,
 		// unless some was left unread
 		String end = (String) thread.get("last");
@@ -714,6 +715,31 @@ int[] kept = { 0 };
 			moveCursor(conn, ownerId, ownerType, threadId, ref, reached);
 		});
 		return kept[0];
+	}
+
+	// every message since the cursor, read a page at a time from the newest back to it; a long thread is not cut to
+	// its newest pages. At most MAX_PAGES pages: what is older than that is left for later runs.
+	private static Map<String, Object> readSince(String ownerId, String ownerType, String threadId, String ref,
+			User user) {
+		BrainMessageSource source = BrainMessageSource.current();
+		Map<String, Object> page = BrainThreadMessages.read(user, ownerId, ownerType, threadId, MESSAGES, source,
+				false, null);
+		List<Map<String, Object>> rows = new ArrayList<>(list(page.get("messages")));
+		List<String> failed = new ArrayList<>(strings(page.get("failedAt")));
+		for (int n = 1; n < MAX_PAGES && Boolean.TRUE.equals(page.get("hasMore")) && page.get("nextCursor") != null; n++) {
+			String oldest = rows.isEmpty() ? null : String.valueOf(rows.get(0).get("at"));
+			if (ref != null && oldest != null && oldest.compareTo(ref) <= 0) {
+				break;
+			}
+			page = BrainThreadMessages.read(user, ownerId, ownerType, threadId, MESSAGES, source, false,
+					(String) page.get("nextCursor"));
+			rows.addAll(0, list(page.get("messages")));
+			failed.addAll(strings(page.get("failedAt")));
+		}
+		Map<String, Object> out = new LinkedHashMap<>(page);
+		out.put("messages", rows);
+		out.put("failedAt", failed);
+		return out;
 	}
 
 	// the only To recipient is the owner and nobody is on Cc: a raw Graph-style message as read
@@ -1493,6 +1519,11 @@ int[] kept = { 0 };
 
 	private static String key(String ownerId, String ownerType) {
 		return ownerType + ":" + ownerId;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<String> strings(Object value) {
+		return value instanceof List<?> l ? (List<String>) l : List.of();
 	}
 
 	@SuppressWarnings("unchecked")
