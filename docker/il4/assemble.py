@@ -265,8 +265,9 @@ def main(output=Path("/out")):
         if file.is_file() and file.suffix in (".prop", ".properties", ".smss", ".xml"):
             text = file.read_text(encoding="cp1252")
             file.write_text(linux_paths(text), encoding="cp1252")
+    # NETTY_PYTHON and NATIVE_PY_SERVER are gone from dev's RDF_Map.prop (the Python
+    # worker no longer reads them), so they are not set here.
     runtime_flags = {"USE_PYTHON": "true", "PYTHONHOME": "/opt/semoss-python",
-                     "NETTY_PYTHON": "true", "NATIVE_PY_SERVER": "true",
                      "DEFAULT_SCRIPTING_LANGUAGE": "PY",
                      "R_KILL_ON_STARTUP": "false",
                      "NOTIFICATION_DATABASE_ENABLED": "false"}

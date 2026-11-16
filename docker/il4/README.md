@@ -330,8 +330,9 @@ match `dev`'s CI image.
 
 The complete environment is copied to the same absolute path in the runtime.
 Set `PYTHONHOME /opt/semoss-python` in SEMOSS's RDF properties, **not** as an
-exported CPython `PYTHONHOME` environment variable. `NETTY_PYTHON`,
-`NATIVE_PY_SERVER`, and `USE_PYTHON` are all `true` in newly seeded homes.
+exported CPython `PYTHONHOME` environment variable. `USE_PYTHON` is `true` in
+newly seeded homes (`NETTY_PYTHON` and `NATIVE_PY_SERVER` no longer exist in `dev`'s
+`RDF_Map.prop`, so they are not set).
 The entrypoint checks Python 3.14 and core imports; it performs no installation.
 Model weights, provider credentials, and application-specific assets are not
 implicitly downloaded or supplied by this template.

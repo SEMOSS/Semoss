@@ -251,8 +251,8 @@ class AssemblyTests(unittest.TestCase):
             files["org.apache.tomcat:tomcat:11.0.27:tar.gz"] = tomcat
             home = base / "home.tar.gz"
             make_tar(home, {"semoss-0.0.1-SNAPSHOT/RDF_Map.prop":
-                           b"USE_PYTHON false\nPYTHONHOME /missing\nNETTY_PYTHON false\n"
-                           b"NATIVE_PY_SERVER false\nDEFAULT_SCRIPTING_LANGUAGE R\n"
+                           b"USE_PYTHON false\nPYTHONHOME /missing\n"
+                           b"DEFAULT_SCRIPTING_LANGUAGE R\n"
                            b"R_KILL_ON_STARTUP true\nNOTIFICATION_DATABASE_ENABLED true\n",
                            "semoss-0.0.1-SNAPSHOT/social.properties":
                            b"native_registration true\nredirect http://localhost:9090/SemossWeb/\n"})
@@ -301,8 +301,9 @@ class AssemblyTests(unittest.TestCase):
                 properties = (output / "semosshome/RDF_Map.prop").read_text()
                 self.assertIn("USE_PYTHON\ttrue", properties)
                 self.assertIn("PYTHONHOME\t/opt/semoss-python", properties)
-                self.assertIn("NETTY_PYTHON\ttrue", properties)
-                self.assertIn("NATIVE_PY_SERVER\ttrue", properties)
+                # dev's RDF_Map.prop no longer has these, so they must not be added back
+                self.assertNotIn("NETTY_PYTHON", properties)
+                self.assertNotIn("NATIVE_PY_SERVER", properties)
                 self.assertIn("DEFAULT_SCRIPTING_LANGUAGE\tPY", properties)
                 social = (output / "semosshome/social.properties").read_text()
                 self.assertIn("native_registration\tfalse", social)
