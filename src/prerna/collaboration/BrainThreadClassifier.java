@@ -508,6 +508,11 @@ public final class BrainThreadClassifier {
 			work = "fyi";
 			askType = "fyi";
 			reasons.add("Calendar message");
+		} else if (fromMe && scores.fyi() >= ctx.cutoffs().fyiAt()) {
+			// the model already read the thread: the owner's own closing note ("Thanks, done") waits on nothing
+			work = "fyi";
+			askType = "fyi";
+			reasons.add("You wrote last; nothing is waiting on a reply");
 		} else if (fromMe) {
 			work = "waiting";
 			askType = "waiting_on";

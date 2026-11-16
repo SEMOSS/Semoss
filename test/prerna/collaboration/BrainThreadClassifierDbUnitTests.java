@@ -30,6 +30,7 @@ package prerna.collaboration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -218,6 +219,77 @@ class BrainThreadClassifierDbUnitTests {
 		assertEquals(1, BrainThreadClassifier.fileByFolder(ownerId, ownerType, List.of("th-gone", THREAD)));
 
 		assertEquals(List.of(List.of(A, "confirmed", true)), links());
+	}
+
+	@Test
+	void anOwnersClosingNoteIsNotWaitingButTheirQuestionIs() throws Exception {
+		// the model reads both threads: "Thanks, done" is an update with nothing to do, the question is not
+		assertEquals("fyi", ownerWroteLast("th-done", "Thanks, done - the PO is approved.", 0.95));
+		assertEquals("waiting", ownerWroteLast("th-ask", "Can you send me the signed PO by Friday?", 0.1));
+		assertEquals(List.of("waiting_on", "fyi"), askTypes());
+	}
+
+	private List<String> askTypes() throws Exception {
+		List<String> out = new ArrayList<>();
+		try (Statement statement = connection.createStatement();
+				ResultSet rs = statement.executeQuery("SELECT ASK_TYPE FROM WORK_ITEM ORDER BY THREAD_ID")) {
+			while (rs.next()) {
+				out.add(rs.getString(1));
+			}
+		}
+		return out;
+	}
+
+	// the verdict for a thread whose only message is the owner's, with the model giving it this fyi score
+	@SuppressWarnings("unchecked")
+	private String ownerWroteLast(String threadId, String text, double fyi) throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM) VALUES (?, ?, 'self', "
+				+ "'Owner', 'owner@test.com')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, SUBJECT, MUTED, AUTOMATED) "
+				+ "VALUES (?, ?, ?, ?, 'email', 'PO', FALSE, FALSE)", ownerId, ownerType, threadId, "email:" + threadId);
+		BrainClassifier classifier = new BrainClassifier() {
+			@Override
+			public String version() {
+				return "test-v1";
+			}
+
+			@Override
+			public Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight) {
+				return new Scores(Map.of(), fyi, 0, 0.5, Map.of());
+			}
+		};
+		Map<String, Object> message = new LinkedHashMap<>();
+		message.put("id", "g-" + threadId);
+		message.put("at", "2026-11-05T10:00:00Z");
+		message.put("text", text);
+		message.put("fromId", "self");
+		message.put("fromName", "Owner");
+		message.put("to", List.of());
+		message.put("cc", List.of());
+		try (MockedStatic<BrainThreadMessages> messages = mockStatic(BrainThreadMessages.class)) {
+			messages.when(() -> BrainThreadMessages.read(any(), anyString(), anyString(), anyString(), any(), any()))
+					.thenReturn(Map.of("messages", List.of(message)));
+			Class<?> context = Class.forName(BrainThreadClassifier.class.getName() + "$Context");
+			Map<String, Object> extra = new LinkedHashMap<>();
+			extra.put("classifier", classifier);
+			extra.put("cutoffs", classifier.cutoffs());
+			extra.put("topics", List.of());
+			extra.put("self", new BrainThreadClassifier.Self("self", "Owner", Set.of("owner@test.com")));
+			extra.put("window", BrainThreadClassifier.window((Object) null));
+			extra.put("timeZone", java.time.ZoneOffset.UTC);
+			extra.put("vips", Set.of());
+			extra.put("topicVips", Map.of());
+			extra.put("rules", List.of());
+			extra.put("followed", Set.of());
+			extra.put("automatedSenders", Set.of());
+			extra.put("scored", new java.util.concurrent.ConcurrentHashMap<String, BrainClassifier.Scores>());
+			extra.put("linkedFolders", Map.of());
+			extra.put("ownOrg", BrainOrgDomains.of(List.of(), "test.com"));
+			extra.put("partners", new java.util.concurrent.ConcurrentHashMap<String, Boolean>());
+			Method classify = BrainThreadClassifier.class.getDeclaredMethod("classifyOne", context, String.class);
+			classify.setAccessible(true);
+			return ((BrainThreadClassifier.Result) classify.invoke(null, context(context, extra), threadId)).work();
+		}
 	}
 
 	// ---- helpers ----
