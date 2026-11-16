@@ -35,30 +35,30 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** This reactor will fetch the template information of the app from the corresponding template property file. 
- * @author kprasannakumar
- *
- */
+@Deprecated
 public class GetTemplateList extends AbstractReactor {
 
+	@Deprecated
 	public GetTemplateList() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
 
+	@Deprecated
+	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to view the project");
 		}
 		Map<String, String> templateDataMap = TemplateUtility.getTemplateList(projectId);
 
-		// templateDataMap will contain all the template information with template name as key 
-		// and file name as the value for the corresponding app
+		// templateDataMap will contain all the template information with template name
+		// as key and file name as the value for the corresponding app
 		return new NounMetadata(templateDataMap, PixelDataType.MAP);
 	}
 }

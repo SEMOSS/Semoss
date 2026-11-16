@@ -39,7 +39,6 @@ import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtNewMethod;
 import prerna.algorithm.api.ICodeExecution;
-import prerna.algorithm.api.ITableDataFrame;
 import prerna.om.Variable.LANGUAGE;
 import prerna.reactor.AbstractReactor;
 //import prerna.sablecc2.ReactorSecurityManager;
@@ -59,6 +58,7 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 	// the code that was executed
 	private String code = null;
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		String retString = "Java console is now discontinued. Please use mvn directly for performing all java operations";
@@ -70,27 +70,20 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 	}
 
 	// @Override
+	@Deprecated
 	public NounMetadata execute_old() {
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
+			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 		}
 
 		// check if java terminal is disabled
-		String disable_java_terminal = Utility.getDIHelperProperty(Constants.DISABLE_JAVA_TERMINAL);
-		if (disable_java_terminal != null && !disable_java_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_java_terminal)) {
-				throw new IllegalArgumentException("Java terminal has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_JAVA_TERMINAL))) {
+			throw new IllegalArgumentException("Java terminal has been disabled.");
 		}
 
-//		ReactorSecurityManager tempManager = new ReactorSecurityManager();
 		String className = "c" + System.currentTimeMillis();
 		String packageName = "t" + System.currentTimeMillis();
 		String uniqueName = packageName + "." + className;
-//		tempManager.addClass(uniqueName);
 
 		Logger logger = getLogger(CLASS_NAME);
 		this.store.toString();
@@ -128,8 +121,8 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 				pool.importPackage(packageStr);
 			}
 
-			CtClass cc = pool.makeClass(uniqueName); // the only reason I do this is if the user wants to do something
-														// else
+			// the only reason I do this is if the user wants to do something else
+			CtClass cc = pool.makeClass(uniqueName);
 
 			// the configuration of JRI vs. RServe
 			// is now encapsulated within Abstract + RJavaTranslator
@@ -149,22 +142,17 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			cc.addMethod(CtNewMethod.make("public void runCompiledCode() {" + content + ";}", cc));
 			long end = System.currentTimeMillis();
 			logger.debug(">>> Time to compile and add new class ::: " + (end - start) + " ms");
-			Class retClass = cc.toClass();
+			Class<?> retClass = cc.toClass();
 
 			// next step is calling it
 			AbstractBaseRClass jR = (AbstractBaseRClass) retClass.newInstance();
 			jR.setInsight(this.insight);
-			jR.setDataFrame((ITableDataFrame) this.insight.getDataMaker());
+			jR.setDataFrame(this.insight.getCurrentFrame());
 			jR.setPixelPlanner(this.planner);
 			jR.setLogger(logger);
 			jR.setRJavaTranslator(this.insight.getRJavaTranslator(this.getLogger(jR.getClass().getName())));
-			// pass the managers inside
-//			jR.setCurSecurityManager(defaultManager);
-//			jR.setReactorManager(tempManager);
 			jR.In();
 
-			// set the security so we cant send some crazy virus into semoss
-//			System.setSecurityManager(tempManager);
 			// call the process
 			jR.runCompiledCode();
 
@@ -181,33 +169,32 @@ public final class JavaReactor extends AbstractReactor implements ICodeExecution
 			}
 			return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
 		} catch (RuntimeException re) {
-			logger.error(Constants.STACKTRACE, re);
+			logger.error("Failed to run the java code", re);
 			throw re;
 		} catch (CannotCompileException cce) {
-			logger.error(Constants.STACKTRACE, cce);
+			logger.error("Failed to compile the java code", cce);
 			throw new IllegalArgumentException(
 					"Code had syntax errors which could not be compiled for execution: " + cce.getMessage());
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
-		} finally {
-//			tempManager.removeClass(uniqueName);
-			// set back the original security manager
-//			System.setSecurityManager(defaultManager);	
+			logger.error("Failed to run the java code", ex);
 		}
 
 		return new NounMetadata("no output", PixelDataType.CONST_STRING, PixelOperationType.CODE_EXECUTION);
 	}
 
+	@Deprecated
 	@Override
 	public String getExecutedCode() {
 		return this.code;
 	}
 
+	@Deprecated
 	@Override
 	public LANGUAGE getLanguage() {
 		return LANGUAGE.JAVA;
 	}
 
+	@Deprecated
 	@Override
 	public boolean isUserScript() {
 		return true;

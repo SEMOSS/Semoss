@@ -37,8 +37,9 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.configure.Me;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.Utility;
 
 public class ApiSemossTestPropsUtils {
 
@@ -48,19 +49,19 @@ public class ApiSemossTestPropsUtils {
 		Files.copy(ApiTestsSemossConstants.BASE_RDF_MAP, ApiTestsSemossConstants.TEST_RDF_MAP,
 				StandardCopyOption.REPLACE_EXISTING);
 		Me configurationManager = new Me();
-		configurationManager.changeRDFMap(ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'), "80",
+		configurationManager.changeRDFMap(ApiTestsSemossConstants.TEST_BASE_DIRECTORY.replace('\\', '/'),
 				ApiTestsSemossConstants.TEST_RDF_MAP.toAbsolutePath().toString());
-		DIHelper.getInstance().loadCoreProp(ApiTestsSemossConstants.TEST_RDF_MAP.toAbsolutePath().toString());
+		InternalUtility.loadCoreProp(ApiTestsSemossConstants.TEST_RDF_MAP.toAbsolutePath().toString());
 
-		Properties coreProps = DIHelper.getInstance().getCoreProp();
+		Properties coreProps = InternalUtility.getCoreProp();
 		coreProps.setProperty(Constants.PY_BASE_FOLDER, ApiTestsSemossConstants.BASE_DIRECTORY);
 
 		// Just in case, manually override USE_PYTHON to be true for testing purposes
 		// Warn if this was not the case to begin with
-		if (!Boolean.parseBoolean(DIHelper.getInstance().getProperty(Constants.USE_PYTHON))) {
+		if (!Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.USE_PYTHON))) {
 			classLogger.warn("Python must be functional for local testing.");
 			coreProps.setProperty(Constants.USE_PYTHON, "true");
-			DIHelper.getInstance().setCoreProp(coreProps);
+			InternalUtility.setCoreProp(coreProps);
 		}
 
 		// override use r to be true
@@ -72,15 +73,15 @@ public class ApiSemossTestPropsUtils {
 		coreProps.setProperty("IS_USER_RSERVE", "false");
 		coreProps.setProperty("R_USER_CONNECTION_TYPE", "dedicated");
 
-		DIHelper.getInstance().setCoreProp(coreProps);
+		InternalUtility.setCoreProp(coreProps);
 	}
 
 	private static void unloadDIHelper() {
-		DIHelper.getInstance().loadCoreProp(ApiTestsSemossConstants.BASE_RDF_MAP.toAbsolutePath().toString());
+		InternalUtility.loadCoreProp(ApiTestsSemossConstants.BASE_RDF_MAP.toAbsolutePath().toString());
 		try {
 			Files.delete(ApiTestsSemossConstants.TEST_RDF_MAP);
 		} catch (IOException e) {
-			classLogger.warn("Unable to delete " + ApiTestsSemossConstants.TEST_RDF_MAP, e);
+			classLogger.warn("Unable to delete {}", ApiTestsSemossConstants.TEST_RDF_MAP, e);
 		}
 	}
 

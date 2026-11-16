@@ -56,6 +56,8 @@ one window bucket. The scope says whose use it counts
 | `TEAM_SHARED` | The calls billed to a team on one model | a Team Limit's shared rules |
 | `TEAM_MEMBER` | The calls billed to a team on one model, by one member | a Team Limit's each-member rules |
 | `PUBLIC_SHARED` | The calls billed to a model's public use | the Public Use Limit's shared rules |
+| `APP_SHARED` | The calls billed to an app on one model | an App Limit's shared rules |
+| `APP_MEMBER` | The calls billed to an app on one model, by one person | an App Limit's each-person rules |
 | `TEAM_TOTAL` | The calls billed to a team, on any model | the Team Total |
 | `MODEL_TOTAL` | Every call the model answers | the Model Total |
 | `PERSON_ALL_MODELS` | A person's use of every model | the User's Total Model Limit and the General Platform Limit |
@@ -101,7 +103,10 @@ of the next window.
 **Check.** For every rule, `counted = used + reserved + carried`. A rule has usage
 left while `counted < amount`. A ceiling with nothing left refuses the call. A
 source other than a team refuses it when it has nothing left; teams pass it to the
-next team in the billing order.
+next team in the billing order. An App Limit refuses the call for everyone using
+the app when its shared amount is used up ("Claims has reached its GPT-5 limit
+for today."), and for one person when their own amount in the app is ("You have
+reached your GPT-5 limit in Claims for today.").
 
 **Reserve.** For tokens and for cost:
 

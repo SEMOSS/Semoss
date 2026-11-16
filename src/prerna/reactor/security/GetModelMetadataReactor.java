@@ -42,7 +42,6 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.usage.ModelUsageCost;
 import prerna.reactor.AbstractReactor;
@@ -71,8 +70,8 @@ public class GetModelMetadataReactor extends AbstractReactor {
 		}
 
 		User user = this.insight.getUser();
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)
+				&& !SecurityEngineUtils.engineIsDiscoverable(engineId)) {
 			throw new IllegalArgumentException("Model engine does not exist or user does not have access to view it");
 		}
 		if (SecurityEngineUtils.getEngineType(engineId) != IEngine.CATALOG_TYPE.MODEL) {

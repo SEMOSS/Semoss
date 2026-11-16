@@ -219,6 +219,13 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	private static final String DELETE_ENGINE_GROUP = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=? "
 			+ "AND ENGINEID=?";
 
+	private static final String INSERT_ENGINE_PROJECT = "INSERT INTO PROJECTENGINEPERMISSION (PROJECTID, ENGINEID, "
+			+ "PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES (?,?,?,?,?,?,?)";
+	private static final String UPDATE_ENGINE_PROJECT = "UPDATE PROJECTENGINEPERMISSION SET PERMISSION=?, ENDDATE=?, "
+			+ "PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE PROJECTID=? AND ENGINEID=?";
+	private static final String DELETE_ENGINE_PROJECT = "DELETE FROM PROJECTENGINEPERMISSION WHERE PROJECTID=? "
+			+ "AND ENGINEID=?";
+
 	private static final String INSERT_INSIGHT_GROUP = "INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, "
 			+ "INSIGHTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) "
 			+ "VALUES (?,?,?,?,?,?,?,?,?)";
@@ -938,7 +945,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			validation.block(PermissionProblem.ErrorCode.INVALID_TARGET, e.getMessage());
 			return validation;
 		}
-		if (!allowed.canChangePeople() && !allowed.canChangeTeams() && !isOnlyLeaving(user, validation, options)) {
+		if (!allowed.canChangePeople() && !allowed.canChangeTeams() && !allowed.canChangeProjects()
+				&& !isOnlyLeaving(user, validation, options)) {
 			blockForNoPermission(target, allowed, validation);
 			return validation;
 		}
@@ -991,6 +999,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 				validateModelLimitChange(target, allowed, change, limits);
 			} else if (subject.getCategory() == PermissionSubject.SubjectCategory.TEAM) {
 				validateTeamChange(target, allowed, change, options, limits);
+			} else if (subject.getCategory() == PermissionSubject.SubjectCategory.PROJECT) {
+				validateProjectChange(target, allowed, change, options, limits);
 			} else {
 				validatePersonChange(user, target, allowed, change, existingLevels, options, limits);
 			}
@@ -1001,9 +1011,10 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	/**
 	 * Blocks the changes of a user who can change nothing on the target, without
 	 * reading them, so a malformed change gets the same answer. Each change says
-	 * what it needs: giving a team access, and a model's public use limit and
-	 * total, need an owner; anything else the permissions to change people. A batch
-	 * with no changes is blocked as a whole.
+	 * what it needs: giving a team access, a model's public use limit and total,
+	 * and an app's permission on an engine need an owner; anything else the
+	 * permissions to change people. A batch with no changes is blocked as a
+	 * whole.
 	 */
 	private static void blockForNoPermission(PermissionTargetResource target, PermissionAllowedChanges allowed,
 			PermissionBatchValidation validation) {
@@ -1018,6 +1029,9 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 				change.block(PermissionProblem.ErrorCode.NO_PERMISSION, allowed.getTeamsReason());
 			} else if (!isTeamTarget(target) && isModelLimitSubject(subject)) {
 				change.block(PermissionProblem.ErrorCode.NO_PERMISSION, allowed.getModelLimitsReason());
+			} else if (!isTeamTarget(target) && subject != null
+					&& subject.getCategory() == PermissionSubject.SubjectCategory.PROJECT) {
+				change.block(PermissionProblem.ErrorCode.NO_PERMISSION, allowed.getProjectsReason());
 			} else {
 				change.block(allowed.getPeopleCode(), allowed.getPeopleReason());
 			}
@@ -1158,6 +1172,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		allowed.setPeopleReason("Only this " + noun + "'s editors and owners can change who can use it");
 		allowed.setTeamsReason("Only this " + noun + "'s owners can change which teams can use it");
 		allowed.setModelLimitsReason("Only this " + noun + "'s owners can change its public use limit and its total");
+		allowed.setProjectsReason("Only this " + noun + "'s owners can change which apps can use it");
 		String id = target.getId();
 		switch (target.getResourceType()) {
 		case PROJECT:
@@ -1168,6 +1183,16 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			allowed.setCanChangePeople(level != null && AccessPermissionEnum.isEditor(level));
 			allowed.setOwner(level != null && AccessPermissionEnum.isOwner(level));
 			allowed.setCanChangeTeams(allowed.isOwner());
+			allowed.setCanChangeProjects(allowed.isOwner()
+					&& target.getResourceType() == PermissionTargetResource.TargetResourceType.ENGINE);
+			// a Digital Twin is shared with named people, never with a team. It is
+			// read only for someone who could change teams, so nobody else learns
+			// the project is one
+			if (allowed.isOwner() && target.getResourceType() == PermissionTargetResource.TargetResourceType.PROJECT
+					&& SecurityProjectUtils.isDigitalTwin(id)) {
+				allowed.setCanChangeTeams(false);
+				allowed.setTeamsReason(SecurityProjectUtils.DIGITAL_TWIN_PEOPLE_ONLY);
+			}
 			allowed.setAddsAreAdminOnly(!adminMode && allowed.canChangePeople() && isAddAdminOnly(target));
 			// only owners set usage limits, at any level: letting editors set them on
 			// Read-Only and Editor people would let an editor demote another editor,
@@ -1242,7 +1267,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 * type, since those tables keep only the id; a team's members and managers do.
 	 * A team's members and managers have no level, so they can only be added or
 	 * removed, and managers have no end date. A model's public use and total have
-	 * no id; see {@link #readModelLimitChangeFields}.
+	 * no id; see {@link #readModelLimitChangeFields}. An app on an engine has an
+	 * id and no type; see {@link #readProjectChangeFields}.
 	 * </p>
 	 */
 	private static void readChangeFields(PermissionTargetResource target, PermissionChangeValidation validation,
@@ -1262,6 +1288,10 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			return;
 		}
 		validation.setSubjectId(subject.getId().trim());
+		if (subject.getCategory() == PermissionSubject.SubjectCategory.PROJECT) {
+			readProjectChangeFields(target, validation);
+			return;
+		}
 		boolean isTeamTarget = isTeamTarget(target);
 		boolean isManagers = target.getResourceType() == PermissionTargetResource.TargetResourceType.TEAM_MANAGERS;
 		if (subject.getCategory() == PermissionSubject.SubjectCategory.TEAM) {
@@ -1311,6 +1341,49 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 		if (change.getAction() != PermissionChange.Action.REMOVE && to != null
 				&& !ValueUtils.isBlank(to.getEndDate())) {
+			try {
+				validation.setEndDate(AbstractSecurityUtils.calculateEndDate(to.getEndDate().trim()));
+			} catch (DateTimeParseException e) {
+				validation.block(PermissionProblem.ErrorCode.INVALID_DATE,
+						"The end date " + to.getEndDate() + " for " + subject.describe() + " is not a valid date");
+			}
+		}
+	}
+
+	/**
+	 * Reads a change to the access an engine gives a project, which the project's
+	 * custom reactors use: the level, {@code READ_ONLY} or {@code EDIT}, and its
+	 * end date. Blocks it as {@code NOT_WELL_FORMED} when the target is not an
+	 * engine, or when an add or a change gives no level or gives {@code OWNER}, and
+	 * as {@code INVALID_DATE} when its end date cannot be read. The usage limit a
+	 * model's grant carries is read with the others, in
+	 * {@link #validateGrantUsageLimit}.
+	 */
+	private static void readProjectChangeFields(PermissionTargetResource target,
+			PermissionChangeValidation validation) {
+		PermissionChange change = validation.getChange();
+		PermissionSubject subject = change.getSubject();
+		if (target.getResourceType() != PermissionTargetResource.TargetResourceType.ENGINE) {
+			validation.block(PermissionProblem.ErrorCode.NOT_WELL_FORMED,
+					"An app can be given access only to an engine");
+			return;
+		}
+		if (change.getAction() == PermissionChange.Action.REMOVE) {
+			return;
+		}
+		PermissionGrant to = change.getTo();
+		validation.setLevelId(levelId(to == null ? null : to.getLevel()));
+		if (validation.getLevelId() == null) {
+			validation.block(PermissionProblem.ErrorCode.NOT_WELL_FORMED,
+					"The change for " + subject.describe() + " does not say which access level to give");
+			return;
+		}
+		if (AccessPermissionEnum.isOwner(validation.getLevelId())) {
+			validation.block(PermissionProblem.ErrorCode.NOT_WELL_FORMED,
+					"An app can be given Read-Only or Editor access to an engine, not Author access");
+			return;
+		}
+		if (!ValueUtils.isBlank(to.getEndDate())) {
 			try {
 				validation.setEndDate(AbstractSecurityUtils.calculateEndDate(to.getEndDate().trim()));
 			} catch (DateTimeParseException e) {
@@ -1628,6 +1701,69 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Validates a change to the access an engine gives a project, and blocks it
+	 * when it cannot be made:
+	 * <ul>
+	 * <li>{@code NO_PERMISSION}: the user is not an owner of the engine, directly
+	 * or through a team.</li>
+	 * <li>An add: {@code ADMIN_ONLY} when only admins can give access to the
+	 * engine and the options check that; {@code SUBJECT_MISSING} when the project
+	 * does not exist; {@code ALREADY_HAS_ACCESS}.</li>
+	 * <li>A change: {@code NO_ACCESS} when the project has none to change.</li>
+	 * <li>A removal: {@code NO_ACCESS} when the project has none to take away.</li>
+	 * <li>The App Limit the change leaves ({@link #validateGrantUsageLimit}):
+	 * {@code INVALID_USAGE_LIMIT} when the engine is not a model or the limit
+	 * cannot be defined there.</li>
+	 * </ul>
+	 *
+	 * @param target     the engine the change is on
+	 * @param allowed    what the user may change on the engine
+	 * @param validation the change, read, to block when it cannot be made
+	 * @param options    how the batch is saved, which says whether adds are left
+	 *                   to admins
+	 * @param limits     the usage limits defined on the engine now
+	 */
+	private static void validateProjectChange(PermissionTargetResource target, PermissionAllowedChanges allowed,
+			PermissionChangeValidation validation, PermissionBatchOptions options, EngineUsageLimits limits) {
+		PermissionSubject subject = validation.getChange().getSubject();
+		if (!allowed.canChangeProjects()) {
+			validation.block(PermissionProblem.ErrorCode.NO_PERMISSION, allowed.getProjectsReason());
+			return;
+		}
+		Integer currentLevelId = SecurityProjectEngineUtils.getProjectEnginePermission(validation.getSubjectId(),
+				target.getId());
+		validation.setCurrentLevelId(currentLevelId);
+		switch (validation.getChange().getAction()) {
+		case ADD:
+			if (allowed.addsAreAdminOnly() && options.enforcesAdminOnlyAdds()) {
+				validation.block(PermissionProblem.ErrorCode.ADMIN_ONLY,
+						"Only admins can give apps access to this " + nounFor(target));
+			} else if (!SecurityProjectUtils.projectExists(validation.getSubjectId())) {
+				validation.block(PermissionProblem.ErrorCode.SUBJECT_MISSING, subject.describe() + " does not exist");
+			} else if (currentLevelId != null) {
+				validation.block(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+						subject.describe() + " already has access");
+			}
+			break;
+		case CHANGE:
+			if (currentLevelId == null) {
+				validation.block(PermissionProblem.ErrorCode.NO_ACCESS,
+						subject.describe() + " no longer has access to change");
+			}
+			break;
+		case REMOVE:
+			if (currentLevelId == null) {
+				validation.block(PermissionProblem.ErrorCode.NO_ACCESS,
+						subject.describe() + " no longer has access to remove");
+			}
+			break;
+		}
+		if (!validation.isBlocked() && limits != null) {
+			validateGrantUsageLimit(target, allowed, validation, options, limits);
+		}
+	}
+
+	/**
 	 * Validates a change to a model's public use limit or total, and blocks it when
 	 * it cannot be made:
 	 * <ul>
@@ -1704,12 +1840,16 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 */
 	private static void validateGrantUsageLimit(PermissionTargetResource target, PermissionAllowedChanges allowed,
 			PermissionChangeValidation validation, PermissionBatchOptions options, EngineUsageLimits limits) {
-		boolean isTeam = validation.getChange().getSubject().getCategory() == PermissionSubject.SubjectCategory.TEAM;
+		PermissionSubject.SubjectCategory category = validation.getChange().getSubject().getCategory();
+		boolean isTeam = category == PermissionSubject.SubjectCategory.TEAM;
+		boolean isProject = category == PermissionSubject.SubjectCategory.PROJECT;
 		ModelUsageLimitKey key = isTeam
 				? ModelUsageLimitKey.team(target.getId(), validation.getSubjectId(), validation.getSubjectType())
-				// a change that does not give the login type gets it from SMSS_USER when the
-				// limit is written
-				: ModelUsageLimitKey.direct(target.getId(), validation.getSubjectId(), validation.getSubjectType());
+				: isProject ? ModelUsageLimitKey.app(target.getId(), validation.getSubjectId())
+						// a change that does not give the login type gets it from SMSS_USER when the
+						// limit is written
+						: ModelUsageLimitKey.direct(target.getId(), validation.getSubjectId(),
+								validation.getSubjectType());
 		ModelUsageLimit current = limits.current(key);
 		validation.setCurrentUsageLimit(current);
 
@@ -2000,6 +2140,12 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			return;
 		}
 
+		if (subject.getCategory() == PermissionSubject.SubjectCategory.PROJECT) {
+			writeProjectGrant(conn, id, action, subjectId, level, endDate, grantor, now);
+			writeUsageLimit(conn, validation, grantor);
+			return;
+		}
+
 		if (target.getResourceType() == PermissionTargetResource.TargetResourceType.TEAM_MANAGERS) {
 			if (action == PermissionChange.Action.ADD) {
 				QueryExecutionUtility.executeUpdate(conn, SecurityGroupManagerUtils.INSERT_MANAGER_QUERY, ps -> {
@@ -2221,6 +2367,44 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * Writes the access an engine gives a project: its one row in
+	 * {@code PROJECTENGINEPERMISSION} is added, changed or removed. A change keeps
+	 * the date the access was first given.
+	 */
+	private static void writeProjectGrant(Connection conn, String engineId, PermissionChange.Action action,
+			String projectId, int level, Timestamp endDate, Pair<String, String> grantor, Timestamp now)
+			throws Exception {
+		if (action == PermissionChange.Action.ADD) {
+			QueryExecutionUtility.executeUpdate(conn, INSERT_ENGINE_PROJECT, ps -> {
+				int i = 1;
+				ps.setString(i++, projectId);
+				ps.setString(i++, engineId);
+				ps.setInt(i++, level);
+				ps.setTimestamp(i++, now);
+				setNullableTimestamp(ps, i++, endDate);
+				ps.setString(i++, grantor.getValue0());
+				ps.setString(i++, grantor.getValue1());
+			});
+		} else if (action == PermissionChange.Action.CHANGE) {
+			QueryExecutionUtility.executeUpdate(conn, UPDATE_ENGINE_PROJECT, ps -> {
+				int i = 1;
+				ps.setInt(i++, level);
+				setNullableTimestamp(ps, i++, endDate);
+				ps.setString(i++, grantor.getValue0());
+				ps.setString(i++, grantor.getValue1());
+				ps.setString(i++, projectId);
+				ps.setString(i++, engineId);
+			});
+		} else {
+			QueryExecutionUtility.executeUpdate(conn, DELETE_ENGINE_PROJECT, ps -> {
+				int i = 1;
+				ps.setString(i++, projectId);
+				ps.setString(i++, engineId);
+			});
+		}
+	}
+
 	private static void setNullableTimestamp(PreparedStatement ps, int index, Timestamp value) throws SQLException {
 		if (value == null) {
 			ps.setNull(index, Types.TIMESTAMP);
@@ -2379,6 +2563,12 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("people", people);
 		result.put("teams", teams);
+		if (target.getResourceType() == PermissionTargetResource.TargetResourceType.ENGINE) {
+			boolean canViewProjects = canViewProjects(user, target.getId(), asAdmin);
+			allowedChanges.put("canViewProjects", canViewProjects);
+			allowedChanges.put("canChangeProjects", allowed.canChangeProjects());
+			result.put("projects", canViewProjects ? readProjects(target.getId(), limits) : new ArrayList<>());
+		}
 		result.put("allowedPermissionChanges", allowedChanges);
 		if (limits != null && limits.isModel()) {
 			// a model's own limits, and what the user may change of them: limitLevels
@@ -2400,6 +2590,55 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			result.put("price", ModelUsageCost.priceEntry(engineId));
 		}
 		return result;
+	}
+
+	/**
+	 * Whether a user may see which apps an engine gives a permission to: its editors
+	 * and owners, and anyone in admin mode. The apps, their levels and their App
+	 * Limits are not shown to someone who can only view the engine.
+	 *
+	 * @param user     the user reading the engine's permissions
+	 * @param engineId the engine
+	 * @param asAdmin  true in admin mode
+	 * @return true when the user may see the engine's apps
+	 */
+	static boolean canViewProjects(User user, String engineId, boolean asAdmin) {
+		return asAdmin || SecurityEngineUtils.userCanEditEngine(user, engineId);
+	}
+
+	/**
+	 * Reads the projects an engine gives access to, for their custom reactors to
+	 * use, in the shape batches use: each with its subject, the project's id and
+	 * name (its display name when it has one), and its access, the level, the end
+	 * date and on a model the App Limit.
+	 *
+	 * @param engineId the engine
+	 * @return one entry for each project, ordered by project id
+	 */
+	static List<Map<String, Object>> readProjects(String engineId) {
+		return readProjects(engineId, EngineUsageLimits.read(engineId));
+	}
+
+	private static List<Map<String, Object>> readProjects(String engineId, EngineUsageLimits limits) {
+		List<Map<String, Object>> projects = new ArrayList<>();
+		for (Map<String, Object> row : SecurityProjectEngineUtils.getEngineProjects(engineId)) {
+			Map<String, Object> subject = new LinkedHashMap<>();
+			subject.put("category", PermissionSubject.SubjectCategory.PROJECT.name());
+			subject.put("id", row.get("PROJECTID"));
+			Object displayName = row.get("PROJECTDISPLAYNAME");
+			subject.put("name", displayName == null || String.valueOf(displayName).isBlank() ? row.get("PROJECTNAME")
+					: displayName);
+			Map<String, Object> access = new LinkedHashMap<>();
+			access.put("level", AccessPermissionEnum.getPermissionValueById(String.valueOf(row.get("PERMISSION"))));
+			access.put("endDate", toIsoUtc(row.get("ENDDATE")));
+			access.put("usageLimit", limits == null ? null
+					: limits.current(ModelUsageLimitKey.app(engineId, String.valueOf(row.get("PROJECTID")))));
+			Map<String, Object> project = new LinkedHashMap<>();
+			project.put("subject", subject);
+			project.put("access", access);
+			projects.add(project);
+		}
+		return projects;
 	}
 
 	/*
@@ -2693,6 +2932,9 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 		if (subject.getCategory() == PermissionSubject.SubjectCategory.TEAM) {
 			return "TEAM:" + validation.getSubjectId() + ":" + validation.getSubjectType();
+		}
+		if (subject.getCategory() == PermissionSubject.SubjectCategory.PROJECT) {
+			return "PROJECT:" + validation.getSubjectId();
 		}
 		// a project's, engine's or insight's people are keyed by id alone
 		return isTeamTarget(target) ? "USER:" + validation.getSubjectId() + ":" + validation.getSubjectType()

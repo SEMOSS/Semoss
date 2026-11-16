@@ -33,7 +33,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
@@ -76,15 +78,12 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Utility;
 import prerna.util.gson.SelectQueryStructAdapter;
 
 public class NativeFrame extends AbstractTableDataFrame {
 
 	private static final Logger classLogger = LogManager.getLogger(NativeFrame.class);
-
-	public static final String DATA_MAKER_NAME = "NativeFrame";
 
 	private static List<IDatabaseEngine.DATABASE_TYPE> cacheEngines = new ArrayList<>();
 	static {
@@ -93,8 +92,6 @@ public class NativeFrame extends AbstractTableDataFrame {
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.JENA);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.JENA_TDB);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.RDBMS);
-		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.IMPALA);
-//		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.NEO4J_EMBEDDED);
 		cacheEngines.add(IDatabaseEngine.DATABASE_TYPE.NEO4J);
 	}
 
@@ -163,22 +160,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 			// merge the joins
 			mQs.mergeRelations(queryQs.getRelations());
 
-			IRawSelectWrapper it = null;
-			try {
-				it = query(mQs);
-				return ((Number) it.next().getValues()[1]).doubleValue();
+			Double max = null;
+			try (IRawSelectWrapper it = query(mQs)) {
+				max = ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
 				logger.error("Failed to query the max value for column {}", columnHeader);
 				classLogger.error("Failed to query the max value for column {}", columnHeader, e);
-			} finally {
-				if (it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error("Error closing the result set after querying the max value", e);
-					}
-				}
 			}
+			return max;
 		}
 		return null;
 	}
@@ -201,22 +190,14 @@ public class NativeFrame extends AbstractTableDataFrame {
 			// merge the joins
 			mQs.mergeRelations(queryQs.getRelations());
 
-			IRawSelectWrapper it = null;
-			try {
-				it = query(mQs);
-				return ((Number) it.next().getValues()[1]).doubleValue();
+			Double min = null;
+			try (IRawSelectWrapper it = query(mQs)) {
+				min = ((Number) it.next().getValues()[1]).doubleValue();
 			} catch (Exception e) {
 				logger.error("Failed to query the min value for column {}", columnHeader);
 				classLogger.error("Failed to query the min value for column {}", columnHeader, e);
-			} finally {
-				if (it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error("Error closing the result set after querying the min value", e);
-					}
-				}
 			}
+			return min;
 		}
 		return null;
 	}
@@ -238,23 +219,13 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 		List<Object> values = new Vector<Object>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = query(newQs);
+		try (IRawSelectWrapper it = query(newQs)) {
 			while (it.hasNext()) {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
 			logger.error("Failed to query the numeric column {}", columnHeader);
 			classLogger.error("Failed to query the numeric column {}", columnHeader, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing the result set after querying the numeric column", e);
-				}
-			}
 		}
 		return values.toArray(new Double[values.size()]);
 	}
@@ -276,31 +247,16 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 		List<Object> values = new Vector<>();
 
-		IRawSelectWrapper it = null;
-		try {
-			it = query(newQs);
+		try (IRawSelectWrapper it = query(newQs)) {
 			while (it.hasNext()) {
 				values.add(it.next().getValues()[0]);
 			}
 		} catch (Exception e) {
 			logger.error("Failed to query the column {}", columnHeader);
 			classLogger.error("Failed to query the column {}", columnHeader, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing the result set after querying the column", e);
-				}
-			}
 		}
 
 		return values.toArray();
-	}
-
-	@Override
-	public String getDataMakerName() {
-		return DATA_MAKER_NAME;
 	}
 
 	public void mergeQueryStruct(SelectQueryStruct qs) {
@@ -337,21 +293,11 @@ public class NativeFrame extends AbstractTableDataFrame {
 		}
 
 		boolean empty = false;
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(engine, this.queryQs);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(engine, this.queryQs)) {
 			empty = !(it.hasNext());
 		} catch (Exception e) {
 			logger.error("Failed to check if the native frame is empty");
 			classLogger.error("Failed to check if the native frame is empty", e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing the result set after checking if the native frame is empty", e);
-				}
-			}
 		}
 
 		return empty;
@@ -497,39 +443,17 @@ public class NativeFrame extends AbstractTableDataFrame {
 		cf.setFrameName(randFrameName);
 		String frameFileName = folderDir + DIR_SEPARATOR + randFrameName + ".json";
 		File frameFile = new File(Utility.normalizePath(frameFileName));
-		Writer writer = null;
-		JsonWriter jWriter = null;
-		try {
-			if (cipher != null) {
-				writer = new BufferedWriter(
-						new OutputStreamWriter(new CipherOutputStream(new FileOutputStream(frameFile), cipher)));
-			} else {
-				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(frameFile)));
-			}
-			jWriter = new JsonWriter(writer);
+		try (OutputStream fileStream = new FileOutputStream(frameFile);
+				Writer writer = new BufferedWriter(new OutputStreamWriter(
+						cipher != null ? new CipherOutputStream(fileStream, cipher) : fileStream));
+				JsonWriter jWriter = new JsonWriter(writer)) {
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 			adapter.write(jWriter, this.originalQs);
 			jWriter.flush();
-			jWriter.close();
 		} catch (IOException e) {
 			logger.error("Failed to save the native frame to {}", frameFileName);
 			classLogger.error("Failed to save the native frame to {}", frameFileName, e);
-			throw new IOException("Error occurred attempting to save native frame");
-		} finally {
-			if (writer != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing the writer after saving the native frame", e);
-				}
-			}
-			if (jWriter != null) {
-				try {
-					jWriter.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing the json writer after saving the native frame", e);
-				}
-			}
+			throw new IOException("Error occurred attempting to save native frame", e);
 		}
 		cf.setFrameCacheLocation(frameFileName);
 
@@ -542,38 +466,17 @@ public class NativeFrame extends AbstractTableDataFrame {
 	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// load the frame
 		// this is just the QS
-		Reader reader = null;
-		JsonReader jReader = null;
-		try {
-			File frameFile = new File(Utility.normalizePath(cf.getFrameCacheLocation()));
-			if (cipher != null) {
-				reader = new BufferedReader(
-						new InputStreamReader(new CipherInputStream(new FileInputStream(frameFile), cipher)));
-			} else {
-				reader = new BufferedReader(new InputStreamReader(new FileInputStream(frameFile)));
-			}
-			jReader = new JsonReader(reader);
+		File frameFile = new File(Utility.normalizePath(cf.getFrameCacheLocation()));
+		try (InputStream fileStream = new FileInputStream(frameFile);
+				Reader reader = new BufferedReader(
+						new InputStreamReader(cipher != null ? new CipherInputStream(fileStream, cipher) : fileStream));
+				JsonReader jReader = new JsonReader(reader)) {
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 			this.originalQs = adapter.read(jReader);
 			this.queryQs = this.originalQs;
 		} catch (IOException e) {
 			logger.error("Failed to open the native frame from cache");
 			classLogger.error("Failed to open the native frame from cache", e);
-		} finally {
-			if (reader != null) {
-				try {
-					reader.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing the reader after opening the native frame", e);
-				}
-			}
-			if (jReader != null) {
-				try {
-					jReader.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing the json reader after opening the native frame", e);
-				}
-			}
 		}
 
 		// open the meta details
@@ -595,69 +498,28 @@ public class NativeFrame extends AbstractTableDataFrame {
 
 	@Override
 	public Object querySQL(String query) {
-		Map<String, Object> retMap = new HashMap<>();
-		List<List<Object>> data = new ArrayList<List<Object>>();
+		Map<String, Object> retMap = null;
 
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
-		IRawSelectWrapper it = null;
-		try {
-			it = query(qs);
+		try (IRawSelectWrapper it = query(qs)) {
+			List<List<Object>> data = new ArrayList<List<Object>>();
 			while (it.hasNext()) {
 				data.add(Arrays.asList(it.next().getValues()));
 			}
+			retMap = new HashMap<>();
+			retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr(it.getTypes()));
+			retMap.put("columns", it.getHeaders());
+			retMap.put("data", data);
 		} catch (Exception e) {
 			logger.error("Failed to execute sql query {}", query);
 			classLogger.error("Failed to execute sql query {}", query, e);
-			throw new IllegalArgumentException("Error executing sql: " + query);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error("Error closing the result set after executing the sql query", e);
-				}
-			}
 		}
 
-		retMap.put("data", data);
-		retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr(it.getTypes()));
-		retMap.put("columns", it.getHeaders());
+		if (retMap == null) {
+			throw new IllegalArgumentException("Error executing sql: " + query);
+		}
 		return retMap;
-	}
-
-	/*******************************
-	 * UNNECESSARY ON NATIVE FRAME FOR NOW BUT NEED TO OVERRIDE
-	 *************************************************/
-
-//	@Override
-//	@Deprecated
-//	public Map<String, String> getScriptReactors() {
-//		Map<String, String> reactorNames = super.getScriptReactors();
-//		reactorNames.put(PKQLEnum.DATA_CONNECTDB, "prerna.sablecc.DataConnectDBReactor");
-//		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-//		reactorNames.put(PKQLEnum.API, "prerna.sablecc.NativeApiReactor");
-//		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.NativeImportDataReactor");
-//
-//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-//		reactorNames.put(PKQLReactor.MATH_FUN.toString(),"prerna.sablecc.MathReactor");
-//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-//		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-//		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-//		reactorNames.put(PKQLEnum.DATA_CONNECT, "prerna.sablecc.DataConnectReactor");
-//
-//		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.NativeApiReactor");
-//		return reactorNames;
-//	}
-
-	@Override
-	@Deprecated
-	public void processDataMakerComponent(DataMakerComponent component) {
 	}
 
 	@Override

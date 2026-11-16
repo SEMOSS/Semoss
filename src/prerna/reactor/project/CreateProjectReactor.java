@@ -60,7 +60,8 @@ public class CreateProjectReactor extends AbstractReactor {
 	private static final String CLASS_NAME = CreateProjectReactor.class.getName();
 
 	public CreateProjectReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TYPE.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.PROJECT_TYPE.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
 
@@ -73,9 +74,9 @@ public class CreateProjectReactor extends AbstractReactor {
 
 		User user = requireUser();
 
-		int index = 0;
+		int index = 1;
 
-		String projectName = this.keyValue.get(this.keysToGet[index++]);
+		String projectName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 		// if projectName is valid then set the name, else throw error
 		if (!Utility.validateName(projectName)) {
 			// error and redirect to try again
@@ -121,17 +122,17 @@ public class CreateProjectReactor extends AbstractReactor {
 			}
 			if (projectType == IProject.PROJECT_TYPE.SKILL) {
 				throw new IllegalArgumentException("CreateProject cannot create SKILL-type projects. "
-						+ "Use CreateSkill(...) instead — it performs the additional skill-metadata "
+						+ "Use CreateSkill(...) instead; it performs the additional skill-metadata "
 						+ "wiring that CreateProject skips.");
 			}
 			if (projectType == IProject.PROJECT_TYPE.NOTEBOOK) {
 				throw new IllegalArgumentException("CreateProject cannot create NOTEBOOK-type projects. "
-						+ "Use CreateNotebook(project='...') instead — it scaffolds the sample .ipynb "
+						+ "Use CreateNotebook(catalogName='...') instead; it scaffolds the sample .ipynb "
 						+ "file that CreateProject skips.");
 			}
 			if (projectType == IProject.PROJECT_TYPE.AUTOMATION) {
 				throw new IllegalArgumentException("CreateProject cannot create AUTOMATION-type projects. "
-						+ "Use CreateAutomation(projectName='...') instead — it scaffolds the automation "
+						+ "Use CreateAutomation(catalogName='...') instead; it scaffolds the automation "
 						+ "definition, configuration, and MCP tool metadata.");
 			}
 		}
@@ -158,7 +159,7 @@ public class CreateProjectReactor extends AbstractReactor {
 		return super.getReactorDefinition().description(
 				"Creates a new CODE, BLOCKS or INSIGHTS project with the given name and returns its details. The type defaults to INSIGHTS, and a public request from a non-admin is made private with a warning when only admins may make projects public.")
 				.key(ReactorKeysEnum.GLOBAL, key -> key.type(Boolean.class))
-				.key(ReactorKeysEnum.PROJECT,
+				.key(ReactorKeysEnum.CATALOG_NAME,
 						"The name for this project. Note: the project ID is randomly generated and is not passed into this method")
 				.key(ReactorKeysEnum.PROVIDER,
 						"The GIT provider - user must be logged in with this provider for credentials")

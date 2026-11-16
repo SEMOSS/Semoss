@@ -288,7 +288,7 @@ class AdminExportEnterpriseUsageReactorUnitTests {
 						}
 					}
 				}
-				assertEquals(2, imageCount);
+				assertEquals(3, imageCount);
 				assertTrue(text.contains("Executive Summary"));
 				assertTrue(text.contains("Usage Over Time"));
 				assertTrue(text.contains("KPI Comparison"));

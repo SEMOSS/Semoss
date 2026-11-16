@@ -29,11 +29,16 @@ package prerna.reactor.insights.fs;
 
 import java.util.List;
 
+import org.json.JSONObject;
+
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 
 public abstract class AbstractSaveInsightAssetsReactor extends AbstractReactor {
@@ -63,7 +68,8 @@ public abstract class AbstractSaveInsightAssetsReactor extends AbstractReactor {
 		// Check strict script source settings once
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 		FileSystemUtil.validateAssetFiles(filePaths, strictScriptSource);
-		saveAssetFiles(assetFolder, filePaths, contents);
+		List<SavedAsset> savedAssets = saveAssetFiles(assetFolder, filePaths, contents,
+				getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true));
 
 		// add file to git
 //		List<String> gitRelativeFilePaths = new ArrayList<>();
@@ -94,16 +100,33 @@ public abstract class AbstractSaveInsightAssetsReactor extends AbstractReactor {
 			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
-		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		return retNoun;
+		return FileSystemUtil.savedAssetsAsNounMetadata(savedAssets);
 	}
 
 	/**
-	 * 
-	 * @param assetFolder
-	 * @param filePaths
-	 * @param contents
+	 * Writes the files into the asset folder.
+	 *
+	 * @param assetFolder the insight assets folder
+	 * @param filePaths   the normalized file paths
+	 * @param contents    the content for each path
+	 * @param override    whether an existing file at a path is replaced
+	 * @return where each file was saved
 	 */
-	protected abstract void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents);
+	protected abstract List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths,
+			List<String> contents, boolean override);
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", true);
+		return properties;
+	}
+
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().key(ReactorKeysEnum.OVERRIDE,
+				key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_SAVE_DESCRIPTION))
+				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
+	}
 
 }

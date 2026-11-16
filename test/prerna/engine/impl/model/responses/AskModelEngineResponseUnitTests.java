@@ -84,10 +84,10 @@ public class AskModelEngineResponseUnitTests {
         map.put("numberOfTokensInResponse",0);
         map.put("messageType",0);
         
-        ClassCastException e = assertThrows(ClassCastException.class, () -> {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> {
             abs.fromMap(map);
         });
-        assertNotNull(e.getMessage());
+        assertEquals("MESSAGE_TYPE is not a String", e.getMessage());
     }
 
     @Test

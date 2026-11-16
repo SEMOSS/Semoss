@@ -57,8 +57,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.InternalUtility;
 import prerna.util.UploadUtilities;
-import prerna.util.Utility;
 
 public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor {
 
@@ -105,7 +105,7 @@ public abstract class AbstractCreateExternalGraphReactor extends AbstractReactor
 			// add to DIHelper
 			UploadUtilities.addEngineToDIHelper(this.newDatabaseId, this.newDatabaseName, this.database, this.smssFile);
 			// synchronize the engine metadata
-			Utility.synchronizeEngineMetadata(this.newDatabaseId);
+			InternalUtility.synchronizeEngineMetadata(this.newDatabaseId);
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {

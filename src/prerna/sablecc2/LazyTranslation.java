@@ -130,7 +130,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -197,16 +196,16 @@ public class LazyTranslation extends DepthFirstAdapter {
 		}
 		// need to account for META variables
 		// that were defined
-//		if(this.isMeta) {
-//			for(String var : this.metaVariables) {
-//				this.planner.removeVariable(var);
-//			}
-//			
-//			// now add back the other variables we had to keep
-//			for(String var : this.prevVariables.keySet()) {
-//				this.planner.addVariable(var, this.prevVariables.get(var));
-//			}
-//		}
+		// if(this.isMeta) {
+		// for(String var : this.metaVariables) {
+		// this.planner.removeVariable(var);
+		// }
+		//
+		// // now add back the other variables we had to keep
+		// for(String var : this.prevVariables.keySet()) {
+		// this.planner.addVariable(var, this.prevVariables.get(var));
+		// }
+		// }
 	}
 
 	protected void postRuntimeErrorProcess(String pixelExpression, NounMetadata errorNoun,
@@ -249,7 +248,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 				this.currentFrame = null;
 			} catch (SemossPixelException ex) {
 				trackError(e.toString(), this.pixelObj.isMeta(), ex);
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to run a pixel routine", ex);
 				// if we want to continue the thread of execution
 				// nothing special
 				// just add the error to the return
@@ -266,7 +265,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 				}
 			} catch (Exception ex) {
 				trackError(e.toString(), this.pixelObj.isMeta(), ex);
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Failed to run a pixel routine", ex);
 				planner.addVariable(this.resultKey,
 						new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
 				postProcess(e.toString().trim());
@@ -368,13 +367,13 @@ public class LazyTranslation extends DepthFirstAdapter {
 		defaultIn(node);
 		String var = node.getId().toString().trim();
 
-//    	if(this.pixelObj.isMeta()) {
-//    		if(this.planner.hasVariable(var)) {
-//    			this.prevVariables.put(var, this.planner.getVariable(var));
-//    		}
-//    		// make sure we remove this at the end
-//    		this.metaVariables.add(var);
-//    	}
+		// if(this.pixelObj.isMeta()) {
+		// if(this.planner.hasVariable(var)) {
+		// this.prevVariables.put(var, this.planner.getVariable(var));
+		// }
+		// // make sure we remove this at the end
+		// this.metaVariables.add(var);
+		// }
 
 		AssignmentReactor assignmentReactor = new AssignmentReactor(this.resultKey);
 		assignmentReactor.setPixel(var, node.toString().trim());
@@ -501,7 +500,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 				try {
 					this.pixelObj.addFrameInput(((ITableDataFrame) prevResult.getValue()).getName());
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to record the input frame of the pixel", e);
 				}
 			}
 		}
@@ -769,7 +768,7 @@ public class LazyTranslation extends DepthFirstAdapter {
 	}
 
 	private void processAliasReference(String colName) {
-		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame frame = this.insight.getCurrentFrame();
 		if (frame != null) {
 			QueryColumnSelector colSelector = new QueryColumnSelector(colName);
 			if (curReactor != null) {
@@ -783,7 +782,8 @@ public class LazyTranslation extends DepthFirstAdapter {
 				try {
 					iterator = frame.query(qs);
 				} catch (Exception e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to query column {} of the current frame", Utility.cleanLogString(colName),
+							e);
 					throw new SemossPixelException(e.getMessage());
 				}
 				ITask task = new BasicIteratorTask(qs, iterator);
@@ -1262,11 +1262,11 @@ public class LazyTranslation extends DepthFirstAdapter {
 
 	protected void initReactor(IReactor reactor) {
 		// TODO
-//    	if(reactorRoot == null) {
-//    		reactorRoot = new ReactorNode(reactor);
-//    	} else {
-//    		reactorRoot.addChild(new ReactorNode(reactor));
-//    	}
+		// if(reactorRoot == null) {
+		// reactorRoot = new ReactorNode(reactor);
+		// } else {
+		// reactorRoot.addChild(new ReactorNode(reactor));
+		// }
 		// make a check to see if the curReactor is not null
 		IReactor parentReactor = curReactor;
 		if (parentReactor != null) {
@@ -1309,7 +1309,8 @@ public class LazyTranslation extends DepthFirstAdapter {
 				curReactor.mergeUp();
 				curReactor.updatePlan();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to merge reactor {} into its parent", curReactor.getClass().getSimpleName(),
+						e);
 				throw new IllegalArgumentException(e.getMessage());
 			}
 			// get the parent
@@ -1320,10 +1321,10 @@ public class LazyTranslation extends DepthFirstAdapter {
 				curReactor = (IReactor) parent;
 			} else {
 				curReactor = null;
-//    			// store the noun map in the pixel
-//    			if(this.pixelObj != null) {
-//    				this.pixelObj.addReactorInput(prevReactor.getStoreMap());
-//    			}
+				// // store the noun map in the pixel
+				// if(this.pixelObj != null) {
+				// this.pixelObj.addReactorInput(prevReactor.getStoreMap());
+				// }
 			}
 		}
 	}
@@ -1437,51 +1438,55 @@ public class LazyTranslation extends DepthFirstAdapter {
 	@Override
 	public void defaultIn(Node node) {
 		// Do nothing
-//    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-//    	if(ste.length > 2) {
-//    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
-//    		LOGGER.info("CURRENT NODE:" + node.toString());
-// 
-//    		
-//    		if(curReactor != null && curReactor.getParentReactor() != null) {
-//    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
-//    			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
-//    		} 
-//    		
-//    		else if (curReactor != null) {
-//    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() + "\n");
-//    		}
-//    		
-//    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
-//    		
-//    	} else {
-//    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
-//    	}
+		// StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+		// if(ste.length > 2) {
+		// LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
+		// LOGGER.info("CURRENT NODE:" + node.toString());
+		//
+		//
+		// if(curReactor != null && curReactor.getParentReactor() != null) {
+		// LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
+		// LOGGER.info("PARENT REACTOR:
+		// "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
+		// }
+		//
+		// else if (curReactor != null) {
+		// LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() +
+		// "\n");
+		// }
+		//
+		// else LOGGER.info("CURRENT REACTOR: null" + "\n");
+		//
+		// } else {
+		// LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
+		// }
 	}
 
 	@Override
 	public void defaultOut(Node node) {
 		// Do nothing
-//    	StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-//    	if(ste.length > 2) {
-//    		LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
-//    		LOGGER.info("CURRENT NODE:" + node.toString());
-// 
-//    		
-//    		if(curReactor != null && curReactor.getParentReactor() != null) {
-//    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
-//    			LOGGER.info("PARENT REACTOR: "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
-//    		} 
-//    		
-//    		else if (curReactor != null) {
-//    			LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() + "\n");
-//    		}
-//    		
-//    		else LOGGER.info("CURRENT REACTOR: null" + "\n");
-//    		
-//    	} else {
-//    		LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
-//    	}
+		// StackTraceElement[] ste = Thread.currentThread().getStackTrace();
+		// if(ste.length > 2) {
+		// LOGGER.info("CURRENT METHOD: "+ste[2].getMethodName());
+		// LOGGER.info("CURRENT NODE:" + node.toString());
+		//
+		//
+		// if(curReactor != null && curReactor.getParentReactor() != null) {
+		// LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName());
+		// LOGGER.info("PARENT REACTOR:
+		// "+curReactor.getParentReactor().getClass().getSimpleName() + "\n");
+		// }
+		//
+		// else if (curReactor != null) {
+		// LOGGER.info("CURRENT REACTOR: "+curReactor.getClass().getSimpleName() +
+		// "\n");
+		// }
+		//
+		// else LOGGER.info("CURRENT REACTOR: null" + "\n");
+		//
+		// } else {
+		// LOGGER.info("THIS SHOULD NOT HAPPEN!!!!!!!!!!");
+		// }
 	}
 
 }

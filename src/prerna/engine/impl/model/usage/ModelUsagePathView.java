@@ -46,15 +46,16 @@ import prerna.engine.impl.model.usage.ModelUsageEvaluation.RuleCheck;
  *
  * <pre>
  * { "engineId": "...", "person": { "id": "...", "type": "..." },
- *   "billedLimitType": "DIRECT" | "TEAM" | "PUBLIC" | "ALL_MODELS" | "PLATFORM" | null,
+ *   "billedLimitType": "DIRECT" | "TEAM" | "APP" | "PUBLIC" | "ALL_MODELS" | "PLATFORM" | null,
  *   "ceilings": [ Step ], "steps": [ Step ] }
  *
  * Step = { "layer": "CEILING" | "BILLED",
- *          "limitType": "MODEL_TOTAL" | "DIRECT" | "TEAM" | "PUBLIC" | "ALL_MODELS" | "PLATFORM",
+ *          "limitType": "MODEL_TOTAL" | "DIRECT" | "TEAM" | "APP" | "PUBLIC" | "ALL_MODELS"
+ *                       | "PLATFORM",
  *          "id": ... | null, "type": ... | null,
  *          "state": "DEFINED" | "NOT_DEFINED" | "SKIPPED" | "NOT_REACHED" | "CHECKED"
  *                   | "BILLED" | "NEXT" | "REACHED",
- *          "reason": "NOT_PUBLIC" | "NO_GRANT" | null,
+ *          "reason": "NOT_PUBLIC" | "NO_GRANT" | "HAS_GRANT" | null,
  *          "accessSince": "2026-10-12T14:00:00Z" | null,
  *          "unlimited": bool,
  *          "rules": [ RuleUsage ],

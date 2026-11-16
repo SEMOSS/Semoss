@@ -39,7 +39,6 @@ public class Constants {
 	public static final String TECH_ERROR_MESSAGE = "techErrorMessage";
 
 	public static final String DIHELPER_PROP_FILE_LOCATION = "DIHELPER_PROP_FILE_LOCATION";
-	public static final String PLAYSHEETS_DEFINED = "PLAYSHEETS_DEFINED";
 	public static final String SUBJECT = "SUBJECT";
 	public static final String OBJECT = "OBJECT";
 	public static final String TRANSPARENT = "TRANSPARENT";
@@ -98,17 +97,6 @@ public class Constants {
 	public static final String LOCAL_MASTER_DB = "LocalMasterDatabase";
 
 	public static final String OWL_TEMPORAL_ENGINE_META = "OWL_TEMPORAL_ENGINE_META";
-
-	// graphplaysheet option constants
-	// layouts
-	public static final String GPSSudowl = "GPS_SUDOWL_DEFAULT";
-	public static final String GPSSearch = "GPS_SEARCH_DEFAULT";
-	public static final String GPSProp = "GPS_PROPERTIES_DEFAULT";
-	public static final String highQualityExport = "GPSHighQualityExport";
-	public static final String sudowlCheck = "sudowlCheck";
-	public static final String searchCheck = "searchCheck";
-	public static final String propertyCheck = "propertyCheck";
-	public static final String highQualityExportCheck = "highQualityExportCheck";
 
 	// Used by POIReader
 	public static final String RELATION_URI_CONCATENATOR = ":"; // used in
@@ -237,7 +225,6 @@ public class Constants {
 	public static final String URI = "URI";
 	public static final String CALC_NAMES_LIST = "_Names";
 	public static final String CALC_NAMES_TECH_STD_LIST = "_Names_Tech_Std";
-	public static final String GRID_VIEW = "prerna.ui.components.playsheets.GridPlaySheet";
 	public static final String PROP_HASH = "_PropHash";
 	public static final String TRAVERSE_JENA_MODEL = "traverseJenaModel";
 	public static final String UNDO_BOOLEAN = "undoBoolean";
@@ -287,7 +274,6 @@ public class Constants {
 	public static final String TRAVERSE_FREELY_QUERY_MULTI_TYPE = "TRAVERSE_FREELY_QUERY_MULTI_TYPE";
 	public static final String TRAVERSE_FREELY_QUERY_JENA = "TRAVERSE_FREELY_QUERY_JENA";
 	public static final String TRAVERSE_INSTANCE_FREELY_QUERY = "TRAVERSE_INSTANCE_FREELY_QUERY";
-	public static final String SUBJECT_TYPE_QUERY = "SUBJECT_TYPE_QUERY";
 	public static final String PREDICATE = "PREDICATE";
 	public static final String IGNORE_URI = "IGNORE_URI";
 
@@ -562,6 +548,11 @@ public class Constants {
 	public static final String TRANSACTION_SERIALIZABLE = "TRANSACTION_SERIALIZABLE";
 
 	public static final String SENSITIVE_INFO_MASK = "********";
+	/**
+	 * RDF_Map setting with a comma separated list of more key names whose values
+	 * are secret, on top of the names {@link prerna.security.SensitiveKeys} knows.
+	 */
+	public static final String SENSITIVE_KEYS = "SENSITIVE_KEYS";
 
 	// Auto generate queries
 	public static final String AUTO_GENERATE_INSIGHTS_FOR_ENGINE_COMBOBOX = "autoGenerateQueriesForEngineSelector";
@@ -683,8 +674,8 @@ public class Constants {
 	public static final String SCHEDULER_FORCE_DISABLE = "SCHEDULER_FORCE_DISABLE";
 
 	// RDBMS specific
-	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";// if present and true use outer joins instead of
-																	// inner joins
+	// if present and true use outer joins instead of inner joins
+	public static final String USE_OUTER_JOINS = "USE_OUTER_JOINS";
 	public static final String USE_CONNECTION_POOLING = "USE_CONNECTION_POOLING";
 	public static final String H2_BASE_CONNECTION_URL = "jdbc:h2:@" + Constants.BASE_FOLDER + "@"
 			+ System.getProperty("file.separator") + "@ENGINE" + Constants.ENGINE + "@"
@@ -748,8 +739,6 @@ public class Constants {
 	// max file transfer size
 	public static final String FILE_TRANSFER_LIMIT = "FILE_TRANSFER_LIMIT";
 
-	// is this server running locally
-	public static final String LOCAL_DEPLOYMENT = "LOCAL_DEPLOYMENT";
 	public static final String SAMESITE_COOKIE = "SAMESITE_COOKIE";
 
 	// moose configurations
@@ -760,13 +749,12 @@ public class Constants {
 
 	// if python is installed
 	public static final String USE_PYTHON = "USE_PYTHON";
-	public static final String NETTY_PYTHON = "NETTY_PYTHON";
 	public static final String PY_LOG_CAPTURE_ENABLED = "PY_LOG_CAPTURE_ENABLED";
 	public static final String PY_LOGGER_NAME = "py.native";
 
 	// if chroot is enabled
 	public static final String CHROOT_ENABLE = "CHROOT_ENABLE";
-	public static final String CHROOT_READ_ONLY_COPY = "CHROOT_READ_ONLY_COPY";
+	public static final String PROJECT_REACTOR_SHARED_PACKAGES = "PROJECT_REACTOR_SHARED_PACKAGES";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
 	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
@@ -1001,10 +989,10 @@ public class Constants {
 
 	// starting process for r/py
 	public static final String JAVA_HOME = "JAVA_HOME";
-	public static final String TCP_WORKER = "TCP_WORKER";
 	public static final String ULIMIT_PROCESS = "ULIMIT_PROCESS";
 
 	public static final String WHITE_LIST_DOMAINS = "WHITE_LIST_DOMAINS";
+	public static final String BLACK_LIST_DOMAINS = "BLACK_LIST_DOMAINS";
 
 	public static final String SMSS_USER_NAME = "name";
 	public static final String SMSS_USER_EMAIL = "email";
@@ -1067,7 +1055,8 @@ public class Constants {
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 
-	// web search platform MCP; it needs a SearXNG service, so each instance turns it on in RDF_Map
+	// web search platform MCP; it needs a SearXNG service, so each instance turns
+	// it on in RDF_Map
 	public static final String WEB_SEARCH_ENABLED = "WEB_SEARCH_ENABLED";
 
 	// notification db
@@ -1085,6 +1074,10 @@ public class Constants {
 	// a general text model for topic grouping and naming, thread summaries and work
 	// items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
+	// true shows Digital Twin avatar options (default false), made by this image
+	// model; both are also read from an environment variable of the same name
+	public static final String COLLAB_AVATAR_GENERATION_ENABLED = "COLLAB_AVATAR_GENERATION_ENABLED";
+	public static final String COLLAB_AVATAR_ENGINE_ID = "COLLAB_AVATAR_ENGINE_ID";
 	// work items runs at once across owners; each owner's own runs still go one at
 	// a time (default 3)
 	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
@@ -1097,9 +1090,17 @@ public class Constants {
 	// minutes a routine's agent step may run before the routine stops (default 10)
 	public static final String COLLAB_ROUTINE_TIMEOUT_MINUTES = "COLLAB_ROUTINE_TIMEOUT_MINUTES";
 
+	// largest file in MB the agents' ReadFile tool extracts as a document: pdf, docx, pptx, xlsx (default 100)
+	public static final String DOCUMENT_READ_MAX_FILE_MB = "DOCUMENT_READ_MAX_FILE_MB";
+
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
+
+	// playground user preference keys
+	public static final String PLAYGROUND_DEFAULT_INPUT_TEXT_MODEL_KEY = "playground--default-input-text-model";
+	public static final String PLAYGROUND_DEFAULT_CHAT_MODE_KEY = "playground--default-chat-mode";
+	public static final String PLAYGROUND_DEFAULT_CHAT_AGENT_KEY = "playground--default-chat-agent";
 
 	// system (platform) app names
 	public static final String APP_REACT_TEMPLATE = "react-template";

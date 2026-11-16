@@ -93,6 +93,20 @@ public class MessageInputMedia {
 		return info;
 	}
 
+	/**
+	 * Factory method for media held in memory: nothing is written to a room folder
+	 * or pushed to cloud storage, so the caller keeps no copy
+	 */
+	public static MessageInputMedia fromBase64(String fileName, String mimeType, String base64Data) {
+		MessageInputMedia info = new MessageInputMedia();
+		info.fileName = fileName;
+		info.fileFormat = extractFormat(fileName);
+		info.mimeType = mimeType;
+		info.base64Data = base64Data;
+		info.mediaInputType = MEDIA_INPUT_TYPE.FILE;
+		return info;
+	}
+
 	public static MessageInputMedia fromUrlOrFile(String url, String roomId, String roomFolderPath) {
 		if (url != null && RoomUtils.isBase64MediaDataUri(url) && roomId != null && roomFolderPath != null) {
 			try {

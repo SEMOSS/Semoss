@@ -125,7 +125,7 @@ public class SaveAutomationReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description("Validates and saves an automation graph with Python source for each non-start node.")
-				.key(ReactorKeysEnum.PROJECT, "The project ID or alias of the automation to save.")
+				.key(ReactorKeysEnum.PROJECT, "The project ID of the automation to save.")
 				.key(ReactorKeysEnum.JSON, "Base64-encoded workflow graph JSON.")
 				.key(NODE_SOURCES_KEY, "Optional raw or Base64-encoded JSON object: { nodeId: Python source }. "
 						+ "The trigger source may declare non-private globals; omitted entries receive generated source.")

@@ -59,7 +59,13 @@ public class ModelUsageLimitPath {
 	 * be billed to
 	 */
 	public enum StepLimitType {
-		MODEL_TOTAL, DIRECT, TEAM, PUBLIC, ALL_MODELS, PLATFORM
+		MODEL_TOTAL, DIRECT, TEAM,
+		/**
+		 * The limit on the permission the model gives an app. The step is on a path
+		 * only for a call the app's custom reactors make, and applies to a person with
+		 * no grant of their own and no team's grant on the model.
+		 */
+		APP, PUBLIC, ALL_MODELS, PLATFORM
 	}
 
 	/** Where a step stands */
@@ -89,7 +95,12 @@ public class ModelUsageLimitPath {
 		/** Public use applies only to a public model */
 		NOT_PUBLIC,
 		/** The person has no grant of their own on the model */
-		NO_GRANT
+		NO_GRANT,
+		/**
+		 * An app's limit applies only to a person with no grant of their own and no
+		 * team's grant on the model
+		 */
+		HAS_GRANT
 	}
 
 	/** One step */

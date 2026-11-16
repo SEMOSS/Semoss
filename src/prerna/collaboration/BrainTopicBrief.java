@@ -162,6 +162,23 @@ public final class BrainTopicBrief {
 		if (description != null && !description.isBlank()) {
 			out.append("\nDescription: ").append(clip(description.trim(), MAX_DESCRIPTION));
 		}
+		try {
+			BrainThreadFinder.TopicThreads threads = BrainThreadFinder.topicThreads(ownerId, ownerType, topicId);
+			out.append("\nEmail threads: ").append(threads.confirmed());
+			if (threads.suggested() > 0) {
+				out.append(" (and ").append(threads.suggested()).append(" more only suggested)");
+			}
+			if (threads.newest() != null) {
+				out.append(", the newest with mail on ").append(CollaborationDbUtils.toIso(threads.newest()), 0, 10);
+			}
+			if (threads.confirmed() + threads.suggested() > 0) {
+				out.append(". SearchMail looks inside this topic's threads by default, in their message text as well; "
+						+ "ReadThread reads one.");
+			}
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not count the threads of topic {} for the brief", topicId, e);
+		}
+		out.append(BrainTopicFiles.brief(ownerId, ownerType, topicId));
 		// the topic's work items, each with the owner's next step or who they wait on
 		List<Map<String, Object>> items = new ArrayList<>();
 		for (Object o : (List<?>) WorkTaskUtils.listMyWork(user, Map.of("topicId", topicId)).get("workItems")) {

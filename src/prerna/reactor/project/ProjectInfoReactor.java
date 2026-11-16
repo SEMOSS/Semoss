@@ -60,16 +60,12 @@ public class ProjectInfoReactor extends AbstractReactor {
 
 		boolean hasAccess = false;
 		List<Map<String, Object>> baseInfo = null;
-		// make sure valid id for user
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			hasAccess = true;
-			// user has access!
 			baseInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
 		} else if (SecurityProjectUtils.projectIsDiscoverable(projectId)) {
 			baseInfo = SecurityProjectUtils.getDiscoverableProjectList(projectId, null);
 		} else {
-			// you dont have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
