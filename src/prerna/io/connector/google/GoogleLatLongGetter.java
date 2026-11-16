@@ -56,7 +56,9 @@ public class GoogleLatLongGetter implements IConnectorIOp {
 
 		// make the API call
 		String url = "https://maps.googleapis.com/maps/api/geocode/json";
-		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
+		String output = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(),
+				HttpHelperUtility.withQueryParameters(url, params),
+				Map.of("Accept", "application/json"));
 
 		JsonNode result = BeanFiller.getJmesResult(output, jsonPattern);
 		float latitude = 0;
