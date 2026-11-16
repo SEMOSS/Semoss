@@ -8,9 +8,8 @@ outbound database CA trust; see [GovCloud RDS trust](./RDS.md).
 | Image variant | Server keystore | Format |
 | --- | --- | --- |
 | BC-FIPS / `IL4-dev` | `/run/secrets/server.bcfks` | BCFKS |
-| Experimental ACCP / `IL4-dev-ACCP` | `/run/secrets/server.p12` | PKCS12 |
 
-Both require `/run/secrets/server.password`, with the same password protecting
+It requires `/run/secrets/server.password`, with the same password protecting
 the keystore and its private-key entry. Mount secrets read-only, readable by
 UID/GID `10001:10001`. Do not bake private keys or passwords into images, Git,
 build arguments, command lines, or logs. A certificate chain **without its
