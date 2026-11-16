@@ -222,12 +222,8 @@ public final class ProjectHelper {
 			logger.info("Finished creating project");
 			InternalUtility.setProjectSmssPath(projectId, smssFile.getAbsolutePath());
 
-			if (ClusterUtil.IS_CLUSTER) {
-				logger.info("Syncing project for cloud backup");
-				ClusterUtil.pushProject(projectId);
-				pushedToCluster = true;
-			}
-
+			// before the cluster push: the push re-opens the project, and a project that
+			// is not registered yet is then registered with no creator and not global
 			SecurityProjectUtils.addProject(projectId, global, user);
 			addedToSecurity = true;
 			if (user != null) {
@@ -235,6 +231,12 @@ public final class ProjectHelper {
 				for (AuthProvider ap : logins) {
 					SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
 				}
+			}
+
+			if (ClusterUtil.IS_CLUSTER) {
+				logger.info("Syncing project for cloud backup");
+				ClusterUtil.pushProject(projectId);
+				pushedToCluster = true;
 			}
 
 			return project;
