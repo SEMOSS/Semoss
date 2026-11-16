@@ -35,6 +35,13 @@ services:
       - type: volume
         source: hardened-dev-home
         target: /opt/semosshome
+      # Published SEMOSS apps are copied here. The image's root is read-only, so
+      # without a writable mount publishing fails, and a tmpfs here would lose
+      # every published app on each restart. A new named volume is seeded from
+      # the image's directory, which is owned by 10001:10001.
+      - type: volume
+        source: hardened-dev-public-home
+        target: /opt/tomcat/webapps/Monolith/public_home
       - type: bind
         source: ${SEMOSS_TLS_KEYSTORE:?Set an absolute path to server.bcfks}
         target: /run/secrets/server.bcfks
@@ -87,3 +94,4 @@ services:
 # Default Compose networking retains outbound connectivity; no egress denial.
 volumes:
   hardened-dev-home: {}
+  hardened-dev-public-home: {}

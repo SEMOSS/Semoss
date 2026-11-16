@@ -17,6 +17,8 @@ REPO_COMPONENT = r"[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*"
 IMAGE_REF = (r"(?:[a-z0-9][a-z0-9.-]*(?::[0-9]+)?/)?"
              + REPO_COMPONENT + r"(?:/" + REPO_COMPONENT + r")*@sha256:[0-9a-f]{64}")
 HOME = "/opt/semosshome"
+# where published apps are copied; must be a persistent volume, never a tmpfs
+PUBLIC_HOME = "/opt/tomcat/webapps/Monolith/public_home"
 TMPFS = ("/tmp", "/opt/tomcat/temp", "/opt/tomcat/work", "/opt/tomcat/logs")
 TLS = ("/run/secrets/server.bcfks", "/run/secrets/server.password",
        "/run/secrets/readiness-ca.pem")
@@ -167,7 +169,7 @@ def audit(container, image, expected):
         socket_mount |= bool(source) and not volume_data and runtime_path(source)
         socket_mount |= runtime_path(destination)
         unapproved_writable += int(writable and not (
-            (destination == HOME and mount_type in ("bind", "volume")) or
+            (destination in (HOME, PUBLIC_HOME) and mount_type in ("bind", "volume")) or
             (destination in TMPFS and mount_type == "tmpfs")))
         other_readonly += int(not writable and destination not in TLS)
     tmpfs = nullable_field(host, "Tmpfs", dict)

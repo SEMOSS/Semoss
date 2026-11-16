@@ -180,6 +180,9 @@ class AuditTests(unittest.TestCase):
             ("hardened_tmpfs", lambda d: d["Mounts"].append(
                 {"Type": "bind", "Source": "/" + SECRET, "Destination": "/tmp", "RW": True})),
             ("approved_writable_mounts", lambda d: d["HostConfig"]["Tmpfs"].update({"/extra": "rw"})),
+            # a tmpfs public_home would lose every published app on restart
+            ("approved_writable_mounts", lambda d: d["HostConfig"]["Tmpfs"].update(
+                {"/opt/tomcat/webapps/Monolith/public_home": "rw,noexec,nosuid,nodev"})),
             ("writable_home", lambda d: d["HostConfig"]["Tmpfs"].update({"/opt/semosshome": "rw"})),
         ]
         for name, mutate in cases:
@@ -187,6 +190,14 @@ class AuditTests(unittest.TestCase):
                 self.data = container()
                 mutate(self.data)
                 self.assertFalse(self.invoke()[1]["checks"][name])
+
+    def test_a_persistent_public_home_volume_is_an_approved_writable_mount(self):
+        self.data["Mounts"].append({"Type": "volume", "Source": "/" + SECRET,
+                                    "Destination": "/opt/tomcat/webapps/Monolith/public_home",
+                                    "RW": True})
+        checks = self.invoke()[1]["checks"]
+        self.assertTrue(checks["approved_writable_mounts"])
+        self.assertTrue(checks["hardened_tmpfs"])
 
     def test_valid_alternate_metadata(self):
         self.data["Mounts"][0]["Type"] = "bind"

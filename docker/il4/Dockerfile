@@ -135,8 +135,10 @@ RUN java -version && \
       'keystore.type=BCFKS' >> /opt/fips/java.security && \
     chmod 0555 /usr/local/bin/semoss-entrypoint && \
     mkdir -p /opt/tomcat/work /opt/tomcat/temp /opt/tomcat/logs \
+      /opt/tomcat/webapps/Monolith/public_home \
       /opt/tomcat/conf/Catalina/localhost && \
     chown -R 10001:10001 /opt/tomcat/work /opt/tomcat/temp /opt/tomcat/logs && \
+    chown 10001:10001 /opt/tomcat/webapps/Monolith/public_home && \
     rpm -qa | sort > /opt/provenance/rpm-packages.txt
 
 RUN --network=none javac -d /opt/tomcat/lib /opt/tomcat/lib/FipsPreferredSecureRandom.java

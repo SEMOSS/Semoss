@@ -56,6 +56,7 @@ Example local startup, with an unused container/home name and port 8443 free:
 
 ```bash
 docker volume create semoss-cert-demo-home
+docker volume create semoss-cert-demo-public-home
 docker run --detach --name semoss-cert-demo --platform linux/amd64 \
   --env "SEMOSS_ALLOW_NONVALIDATED_ACCP=${SEMOSS_ALLOW_NONVALIDATED_ACCP:-false}" \
   --read-only --cap-drop=ALL --security-opt=no-new-privileges \
@@ -66,6 +67,7 @@ docker run --detach --name semoss-cert-demo --platform linux/amd64 \
   --tmpfs /opt/tomcat/logs:rw,noexec,nosuid,nodev,uid=10001,gid=10001 \
   --log-driver local --log-opt max-size=10m --log-opt max-file=3 \
   --mount type=volume,src=semoss-cert-demo-home,dst=/opt/semosshome \
+  --mount type=volume,src=semoss-cert-demo-public-home,dst=/opt/tomcat/webapps/Monolith/public_home \
   --mount "type=volume,src=$TLS_VOLUME,dst=/run/secrets,readonly" \
   --publish 127.0.0.1:8443:8443 "$SEMOSS_IMAGE"
 

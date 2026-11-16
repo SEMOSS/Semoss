@@ -618,6 +618,7 @@ Example, after provisioning `./tls` with the two secret files:
 
 ```sh
 docker volume create semoss-home
+docker volume create semoss-public-home
 docker run --detach --name semoss --platform linux/amd64 \
   --read-only --cap-drop=ALL --security-opt=no-new-privileges \
   --pids-limit=512 --memory=8g --cpus=4 \
@@ -626,10 +627,19 @@ docker run --detach --name semoss --platform linux/amd64 \
   --tmpfs /opt/tomcat/work:rw,noexec,nosuid,nodev,uid=10001,gid=10001 \
   --tmpfs /opt/tomcat/logs:rw,noexec,nosuid,nodev,uid=10001,gid=10001 \
   --mount type=volume,src=semoss-home,dst=/opt/semosshome \
+  --mount type=volume,src=semoss-public-home,dst=/opt/tomcat/webapps/Monolith/public_home \
   --mount type=bind,src="$(pwd)/tls",dst=/run/secrets,readonly \
   --publish 127.0.0.1:8443:8443 \
   semoss:5.4.0-ubi10-python314-bcfips
 ```
+
+`/opt/tomcat/webapps/Monolith/public_home` is where SEMOSS copies a published
+app's portal. The image root is read-only, so it needs its own writable mount,
+and it must be a **persistent** volume, not a tmpfs: a tmpfs loses every published
+app whenever the container stops or is recreated, and the app then has to be
+republished. The image creates the directory owned by `10001:10001`, so a new named
+volume starts writable; a bind mount or PVC must be made writable by that UID/GID
+first. Back this volume up with the home volume.
 
 Docker initializes a **new named volume** from the image's semosshome payload.
 An empty bind mount or Kubernetes PVC will hide that payload: seed it in a
