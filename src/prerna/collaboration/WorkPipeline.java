@@ -468,6 +468,8 @@ public final class WorkPipeline {
 					}
 					before = after;
 				}
+				// an item whose steps are all finished is finished; one with a step open again is open again
+				WorkTaskUtils.settleAll(ownerId, ownerType);
 				status.put("state", "done");
 			} catch (Throwable e) {
 				classLogger.error("Work items run failed", e);

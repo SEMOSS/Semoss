@@ -510,6 +510,8 @@ public final class WorkTaskUtils {
 			String task = taskId != null ? taskId : (String) before.get("taskId");
 			if (task != null) {
 				touch(conn, ownerId, ownerType, task, now);
+				// the last step closing closes its item; a step reopened reopens an item closed that way
+				settleTasks(conn, ownerId, ownerType, List.of(task), now);
 			}
 		});
 		return requireStep(ownerId, ownerType, stepId);
@@ -832,6 +834,73 @@ public final class WorkTaskUtils {
 						+ "ORIGIN, STATE, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)",
 				ownerId, ownerType, taskId, threadId, origin == null ? OWNER : origin,
 				BRAIN.equals(origin) ? PROPOSED : ACCEPTED, now);
+	}
+
+	/** After a build: every item with steps is checked once, so closes and reopens follow the steps. */
+	public static void settleAll(String ownerId, String ownerType) {
+		List<String> tasks = CollaborationDbUtils.query(
+				"SELECT DISTINCT TASK_ID FROM WORK_THREAD_STEP WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TASK_ID IS NOT NULL",
+				rs -> rs.getString(1), ownerId, ownerType);
+		if (tasks.isEmpty()) {
+			return;
+		}
+		Timestamp now = CollaborationDbUtils.now();
+		CollaborationDbUtils.inTransaction(conn -> settleTasks(conn, ownerId, ownerType, tasks, now));
+	}
+
+	// A work item is finished when its last step is: no open or waiting step left, at least one step, and not
+	// ongoing. The timeline says so in its text, so a reopened step can tell an item closed this way from one the
+	// owner closed (which stays closed).
+	static final String ALL_STEPS_FINISHED = "all its steps are finished";
+
+	/** Closes the items in taskIds whose steps are all finished; reopens a closed-this-way item that has an open step. */
+	static void settleTasks(java.sql.Connection conn, String ownerId, String ownerType, Collection<String> taskIds,
+			Timestamp now) throws SQLException {
+		for (String taskId : taskIds) {
+			List<Map<String, Object>> rows = CollaborationDbUtils.query(conn,
+					"SELECT STATUS, ONGOING, (SELECT COUNT(*) FROM WORK_THREAD_STEP s WHERE s.OWNER_ID = t.OWNER_ID "
+							+ "AND s.OWNER_TYPE = t.OWNER_TYPE AND s.TASK_ID = t.TASK_ID) AS TOTAL, "
+							+ "(SELECT COUNT(*) FROM WORK_THREAD_STEP s WHERE s.OWNER_ID = t.OWNER_ID "
+							+ "AND s.OWNER_TYPE = t.OWNER_TYPE AND s.TASK_ID = t.TASK_ID AND s.STATUS IN (?, ?)) AS LEFT_OPEN "
+							+ "FROM WORK_TASK t WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.TASK_ID = ?",
+					rs -> {
+						Map<String, Object> row = new LinkedHashMap<>();
+						row.put("status", rs.getString("STATUS"));
+						row.put("ongoing", CollaborationDbUtils.getBoolean(rs, "ONGOING"));
+						row.put("total", rs.getInt("TOTAL"));
+						row.put("open", rs.getInt("LEFT_OPEN"));
+						return row;
+					}, "open", "waiting", ownerId, ownerType, taskId);
+			if (rows.isEmpty()) {
+				continue;
+			}
+			Map<String, Object> row = rows.get(0);
+			String status = (String) row.get("status");
+			boolean finished = (int) row.get("total") > 0 && (int) row.get("open") == 0
+					&& !Boolean.TRUE.equals(row.get("ongoing"));
+			if (OPEN_STATUSES.contains(status) && finished) {
+				CollaborationDbUtils.update(conn, "UPDATE WORK_TASK SET STATUS = ?, CLOSED_AT = ?, UPDATED_AT = ?"
+						+ OWNED + " AND TASK_ID = ?", DONE, now, now, ownerId, ownerType, taskId);
+				insertUpdate(conn, ownerId, ownerType, taskId, "status",
+						"Status: " + status + " -> " + DONE + " (" + ALL_STEPS_FINISHED + ")", null, BRAIN, now);
+			} else if (DONE.equals(status) && (int) row.get("open") > 0 && closedThisWay(conn, ownerId, ownerType,
+					taskId)) {
+				CollaborationDbUtils.update(conn, "UPDATE WORK_TASK SET STATUS = ?, CLOSED_AT = ?, UPDATED_AT = ?"
+						+ OWNED + " AND TASK_ID = ?", ACTIVE, null, now, ownerId, ownerType, taskId);
+				insertUpdate(conn, ownerId, ownerType, taskId, "status",
+						"Status: " + DONE + " -> " + ACTIVE + " (a step is open again)", null, BRAIN, now);
+			}
+		}
+	}
+
+	// the item's latest status change is the one settleTasks made
+	private static boolean closedThisWay(java.sql.Connection conn, String ownerId, String ownerType, String taskId)
+			throws SQLException {
+		List<String> last = CollaborationDbUtils.query(conn,
+				"SELECT TEXT FROM WORK_TASK_UPDATE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TASK_ID = ? "
+						+ "AND KIND = ? ORDER BY CREATED_AT DESC LIMIT 1",
+				rs -> rs.getString(1), ownerId, ownerType, taskId, "status");
+		return !last.isEmpty() && last.get(0) != null && last.get(0).endsWith("(" + ALL_STEPS_FINISHED + ")");
 	}
 
 	private static void insertUpdate(java.sql.Connection conn, String ownerId, String ownerType, String taskId,

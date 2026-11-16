@@ -1100,6 +1100,37 @@ class WorkPipelineDbUnitTests {
 				Timestamp.valueOf("2026-11-04 09:00:00"));
 	}
 
+	// an item closes when its last open step is done, and reopens when a step on it is open again; one the owner
+	// closed stays closed, and one with no steps is left alone
+	@Test
+	void anItemFollowsItsStepsUnlessTheOwnerClosedIt() throws Exception {
+		sql("INSERT INTO WORK_TASK (OWNER_ID, OWNER_TYPE, TASK_ID, KIND, TITLE, STATUS, ORIGIN, STATE) VALUES (?, ?, "
+				+ "'bill', 'work', 'Answer Bill', 'active', 'brain', 'proposed')", ownerId, ownerType);
+		itemStep("a", "open", "owner", "Reply to Bill");
+		itemStep("b", "waiting", "brain", "Send Bill the file");
+		WorkTaskUtils.updateStep(user, "a", Map.of("status", "done"), "owner");
+		assertEquals("active", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+		WorkTaskUtils.updateStep(user, "b", Map.of("status", "done"), "brain");
+		assertEquals("done", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+		WorkTaskUtils.updateStep(user, "b", Map.of("status", "open"), "owner");
+		assertEquals("active", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+
+		// the owner closed the item itself: a step reopened on it does not reopen the item
+		WorkTaskUtils.saveWork(user, Map.of("id", "bill", "title", "Answer Bill", "status", "done"), "owner");
+		WorkTaskUtils.updateStep(user, "a", Map.of("status", "open"), "owner");
+		assertEquals("done", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+
+		// an ongoing item is never closed by its steps
+		sql("INSERT INTO WORK_TASK (OWNER_ID, OWNER_TYPE, TASK_ID, KIND, TITLE, STATUS, ONGOING, ORIGIN, STATE) VALUES "
+				+ "(?, ?, 'ongoing', 'work', 'Watch the line', 'active', ?, 'brain', 'proposed')", ownerId, ownerType,
+				true);
+		sql("INSERT INTO WORK_THREAD_STEP (OWNER_ID, OWNER_TYPE, STEP_ID, TASK_ID, TEXT, KIND, STATUS, ORIGIN, CREATED_AT, "
+				+ "UPDATED_AT) VALUES (?, ?, 'watch', 'ongoing', 'Check the line', 'task', 'open', 'owner', ?, ?)",
+				ownerId, ownerType, Timestamp.valueOf("2026-11-04 09:00:00"), Timestamp.valueOf("2026-11-04 09:00:00"));
+		WorkTaskUtils.updateStep(user, "watch", Map.of("status", "done"), "owner");
+		assertEquals("active", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'ongoing'"));
+	}
+
 	// a step of the work item 'bill'
 	private void itemStep(String stepId, String status, String origin, String text) throws Exception {
 		sql("INSERT INTO WORK_THREAD_STEP (OWNER_ID, OWNER_TYPE, STEP_ID, TASK_ID, TEXT, KIND, STATUS, ORIGIN, CREATED_AT, "
