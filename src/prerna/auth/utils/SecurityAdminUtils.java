@@ -1658,7 +1658,6 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "engine_tool_app"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
@@ -2691,6 +2690,88 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 						"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
 						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
 								"An error occurred updating the user permissions for this insight"));
+	}
+
+	/**
+	 * Gives a project a permission on an engine, or changes the one it has, in
+	 * admin mode, as a permission batch. The project's custom reactors use the
+	 * permission in place of the signed in user's own.
+	 *
+	 * @param projectId  the project
+	 * @param engineId   the engine
+	 * @param permission the level, READ_ONLY or EDIT
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null
+	 */
+	public void setEngineProjectPermission(String projectId, String engineId, String permission, User user,
+			String endDate) {
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(SecurityEngineUtils.projectPermissionChange(projectId, engineId,
+						new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.bulkAccessManagement(true).keepingModelLimits(),
+				projectErrorRules(endDate));
+	}
+
+	/**
+	 * Gives a project a permission on a model with its App Limit, or changes both,
+	 * in admin mode, as a permission batch.
+	 *
+	 * @param projectId  the project
+	 * @param engineId   the model
+	 * @param permission the level, READ_ONLY or EDIT
+	 * @param user       the admin
+	 * @param endDate    when the access ends, or null
+	 * @param usageLimit the App Limit, or null for no limit defined
+	 */
+	public void setEngineProjectPermission(String projectId, String engineId, String permission, User user,
+			String endDate, ModelUsageLimit usageLimit) {
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(SecurityEngineUtils.projectPermissionChange(projectId, engineId,
+						new PermissionGrant(permission, endDate).withUsageLimit(usageLimit))),
+				PermissionBatchOptions.bulkAccessManagement(true), projectErrorRules(endDate));
+	}
+
+	private static PermissionErrorRules projectErrorRules(String endDate) {
+		return new PermissionErrorRules(endDate)
+				.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING, SecurityEngineUtils.APP_DOES_NOT_EXIST)
+				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, SecurityEngineUtils.APP_WRITE_FAILED);
+	}
+
+	/**
+	 * Takes away the permission an engine gives a project, in admin mode, as a
+	 * permission batch.
+	 *
+	 * @param projectId the project
+	 * @param engineId  the engine
+	 * @param user      the admin
+	 */
+	public void removeEngineProjectPermission(String projectId, String engineId, User user) {
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.remove(PermissionSubject.ofProject(projectId))),
+				PermissionBatchOptions.bulkAccessManagement(true),
+				new PermissionErrorRules()
+						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, SecurityEngineUtils.APP_HAS_NO_ACCESS)
+						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, SecurityEngineUtils.APP_WRITE_FAILED));
+	}
+
+	/**
+	 * Reads the projects an engine gives a permission to, in admin mode: each with
+	 * its subject, the project's id and name (its display name when it has one),
+	 * and its access, the level, the end date and on a model the App Limit.
+	 *
+	 * @param engineId the engine
+	 * @return one entry for each project, ordered by project id
+	 * @throws IllegalArgumentException when the engine does not exist
+	 */
+	public List<Map<String, Object>> getEngineProjectPermissions(String engineId) {
+		if (engineId == null || engineId.isBlank()) {
+			throw new IllegalArgumentException("The engine id must not be null or blank");
+		}
+		String id = engineId.trim();
+		if (!SecurityEngineUtils.engineExists(id)) {
+			throw new IllegalArgumentException("Engine " + id + " does not exist");
+		}
+		return PermissionBatchUtils.readProjects(id);
 	}
 
 	/**

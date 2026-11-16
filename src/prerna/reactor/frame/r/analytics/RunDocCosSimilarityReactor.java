@@ -48,7 +48,7 @@ import prerna.util.Utility;
 
 public class RunDocCosSimilarityReactor extends AbstractRFrameReactor {
 
-	private static final String CLASS_NAME = RunNumericalCorrelationReactor.class.getName();
+	private static final String CLASS_NAME = RunDocCosSimilarityReactor.class.getName();
 
 	public RunDocCosSimilarityReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.INSTANCE_KEY.getKey(), ReactorKeysEnum.DESCRIPTION.getKey(),

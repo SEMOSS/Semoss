@@ -562,7 +562,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 				it.execute();
 				List<Double> columnList = new ArrayList<>();
 				while (it.hasNext()) {
-					columnList.add(((Number) it.next().getValues()[0]).doubleValue());
+					Object value = it.next().getValues()[0];
+					columnList.add(value instanceof Number number ? number.doubleValue() : null);
 				}
 
 				return columnList.toArray(new Double[columnList.size()]);

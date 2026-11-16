@@ -41,6 +41,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -61,7 +62,6 @@ import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -764,16 +764,29 @@ class CentralCloudStorageUnitTests {
 
 		// ------- propertiesMigratePut -------
 
+		/**
+		 * Calls the private propertiesMigratePut helper to copy a value onto NEW_KEY.
+		 *
+		 * @param props       the properties to update
+		 * @param clientProps the resolver the helper reads from
+		 * @param lookupKeys  the keys to try, most preferred first
+		 * @throws Exception if the reflective call fails
+		 */
+		private void invokePropertiesMigratePut(Properties props, AppCloudClientProperties clientProps,
+				String... lookupKeys) throws Exception {
+			Method m = CentralCloudStorage.class.getDeclaredMethod("propertiesMigratePut", Properties.class,
+					String.class, AppCloudClientProperties.class, String[].class);
+			m.setAccessible(true);
+			m.invoke(null, props, "NEW_KEY", clientProps, lookupKeys);
+		}
+
 		@Test
 		void testPropertiesMigratePut_copiesValue() throws Exception {
 			Properties props = new Properties();
 			AppCloudClientProperties clientProps = mock(AppCloudClientProperties.class);
 			when(clientProps.get("OLD_KEY")).thenReturn("myValue");
 
-			Method m = CentralCloudStorage.class.getDeclaredMethod("propertiesMigratePut", Properties.class,
-					String.class, AppCloudClientProperties.class, String.class);
-			m.setAccessible(true);
-			m.invoke(null, props, "NEW_KEY", clientProps, "OLD_KEY");
+			invokePropertiesMigratePut(props, clientProps, "OLD_KEY");
 
 			assertEquals("myValue", props.getProperty("NEW_KEY"));
 		}
@@ -784,10 +797,7 @@ class CentralCloudStorageUnitTests {
 			AppCloudClientProperties clientProps = mock(AppCloudClientProperties.class);
 			when(clientProps.get("OLD_KEY")).thenReturn(null);
 
-			Method m = CentralCloudStorage.class.getDeclaredMethod("propertiesMigratePut", Properties.class,
-					String.class, AppCloudClientProperties.class, String.class);
-			m.setAccessible(true);
-			m.invoke(null, props, "NEW_KEY", clientProps, "OLD_KEY");
+			invokePropertiesMigratePut(props, clientProps, "OLD_KEY");
 
 			assertNull(props.getProperty("NEW_KEY"));
 		}
@@ -799,10 +809,7 @@ class CentralCloudStorageUnitTests {
 			AppCloudClientProperties clientProps = mock(AppCloudClientProperties.class);
 			when(clientProps.get("OLD_KEY")).thenReturn("newValue");
 
-			Method m = CentralCloudStorage.class.getDeclaredMethod("propertiesMigratePut", Properties.class,
-					String.class, AppCloudClientProperties.class, String.class);
-			m.setAccessible(true);
-			m.invoke(null, props, "NEW_KEY", clientProps, "OLD_KEY");
+			invokePropertiesMigratePut(props, clientProps, "OLD_KEY");
 
 			assertEquals("newValue", props.getProperty("NEW_KEY"));
 		}
@@ -814,13 +821,34 @@ class CentralCloudStorageUnitTests {
 			AppCloudClientProperties clientProps = mock(AppCloudClientProperties.class);
 			when(clientProps.get("OLD_KEY")).thenReturn("myValue");
 
-			Method m = CentralCloudStorage.class.getDeclaredMethod("propertiesMigratePut", Properties.class,
-					String.class, AppCloudClientProperties.class, String.class);
-			m.setAccessible(true);
-			m.invoke(null, props, "NEW_KEY", clientProps, "OLD_KEY");
+			invokePropertiesMigratePut(props, clientProps, "OLD_KEY");
 
 			assertEquals("keep", props.getProperty("EXISTING"));
 			assertEquals("myValue", props.getProperty("NEW_KEY"));
+		}
+
+		@Test
+		void testPropertiesMigratePut_firstResolvedKeyWins() throws Exception {
+			Properties props = new Properties();
+			AppCloudClientProperties clientProps = mock(AppCloudClientProperties.class);
+			when(clientProps.get("PREFERRED_KEY")).thenReturn("preferred");
+			when(clientProps.get("FALLBACK_KEY")).thenReturn("fallback");
+
+			invokePropertiesMigratePut(props, clientProps, "PREFERRED_KEY", "FALLBACK_KEY");
+
+			assertEquals("preferred", props.getProperty("NEW_KEY"));
+		}
+
+		@Test
+		void testPropertiesMigratePut_fallsBackToLaterKey() throws Exception {
+			Properties props = new Properties();
+			AppCloudClientProperties clientProps = mock(AppCloudClientProperties.class);
+			when(clientProps.get("PREFERRED_KEY")).thenReturn(null);
+			when(clientProps.get("FALLBACK_KEY")).thenReturn("fallback");
+
+			invokePropertiesMigratePut(props, clientProps, "PREFERRED_KEY", "FALLBACK_KEY");
+
+			assertEquals("fallback", props.getProperty("NEW_KEY"));
 		}
 
 		// ------- Additional getSqlLiteFile edge cases -------
@@ -1007,17 +1035,6 @@ class CentralCloudStorageUnitTests {
 
 		private CentralCloudStorage instance;
 		private AbstractStorageEngine mockStorageEngine;
-
-		@BeforeAll
-		void ensureEngineUtilityLoaded() {
-			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class)) {
-				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
-				try (MockedStatic<EngineUtility> ignored = mockStatic(EngineUtility.class)) {
-					// Force EngineUtility class loading with mocked Utility
-				}
-			} catch (Throwable ignored) {
-			}
-		}
 
 		@BeforeEach
 		void setUp() throws Exception {
@@ -1467,6 +1484,7 @@ class CentralCloudStorageUnitTests {
 				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("MyProject");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyProject", "proj1")).thenReturn("MyProject__proj1");
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 				instance.pushProjectSmss("proj1");
@@ -1481,11 +1499,13 @@ class CentralCloudStorageUnitTests {
 			ReentrantLock lock = new ReentrantLock();
 			try (MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
 					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
 					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 
 				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("MyProject");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyProject", "proj1")).thenReturn("MyProject__proj1");
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 				instance.pullProjectSmss("proj1");
@@ -2042,7 +2062,9 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testCatalogPulledEngine_DATABASE() {
-			try (MockedStatic<SMSSWebWatcher> watcherMock = mockStatic(SMSSWebWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
+					MockedStatic<SMSSWebWatcher> watcherMock = mockStatic(SMSSWebWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				instance.catalogPulledEngine("alias__id", "file.smss", IEngine.CATALOG_TYPE.DATABASE);
 				watcherMock.verify(() -> SMSSWebWatcher.catalogEngine(eq("file.smss"), any()));
 			}
@@ -2050,7 +2072,9 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testCatalogPulledEngine_STORAGE() {
-			try (MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
+					MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				instance.catalogPulledEngine("alias__id", "file.smss", IEngine.CATALOG_TYPE.STORAGE);
 				watcherMock.verify(() -> SMSSNoInitEngineWatcher.catalogEngine(eq("file.smss"), any()));
 			}
@@ -2058,7 +2082,9 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testCatalogPulledEngine_MODEL() {
-			try (MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
+					MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				instance.catalogPulledEngine("alias__id", "file.smss", IEngine.CATALOG_TYPE.MODEL);
 				watcherMock.verify(() -> SMSSNoInitEngineWatcher.catalogEngine(eq("file.smss"), any()));
 			}
@@ -2066,7 +2092,9 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testCatalogPulledEngine_VECTOR() {
-			try (MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
+					MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				instance.catalogPulledEngine("alias__id", "file.smss", IEngine.CATALOG_TYPE.VECTOR);
 				watcherMock.verify(() -> SMSSNoInitEngineWatcher.catalogEngine(eq("file.smss"), any()));
 			}
@@ -2074,7 +2102,9 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testCatalogPulledEngine_FUNCTION() {
-			try (MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
+					MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				instance.catalogPulledEngine("alias__id", "file.smss", IEngine.CATALOG_TYPE.FUNCTION);
 				watcherMock.verify(() -> SMSSNoInitEngineWatcher.catalogEngine(eq("file.smss"), any()));
 			}
@@ -2082,7 +2112,9 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testCatalogPulledEngine_GUARDRAIL() {
-			try (MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
+					MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				instance.catalogPulledEngine("alias__id", "file.smss", IEngine.CATALOG_TYPE.GUARDRAIL);
 				watcherMock.verify(() -> SMSSNoInitEngineWatcher.catalogEngine(eq("file.smss"), any()));
 			}
@@ -2090,7 +2122,9 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testCatalogPulledEngine_VENV() {
-			try (MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
+					MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				instance.catalogPulledEngine("alias__id", "file.smss", IEngine.CATALOG_TYPE.VENV);
 				watcherMock.verify(() -> SMSSNoInitEngineWatcher.catalogEngine(eq("file.smss"), any()));
 			}
@@ -2098,7 +2132,9 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testCatalogPulledEngine_PROJECT() {
-			try (MockedStatic<ProjectWatcher> watcherMock = mockStatic(ProjectWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
+					MockedStatic<ProjectWatcher> watcherMock = mockStatic(ProjectWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn("/test/base");
 				instance.catalogPulledEngine("alias__id", "file.smss", IEngine.CATALOG_TYPE.PROJECT);
 				watcherMock.verify(() -> ProjectWatcher.catalogProject(eq("file.smss"), any()));
 			}
@@ -2223,18 +2259,6 @@ class CentralCloudStorageUnitTests {
 			}
 		}
 
-		// ------- Helper to set static final fields via Unsafe -------
-
-		private static void setStaticFinalField(Class<?> clazz, String fieldName, Object value) throws Exception {
-			Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-			unsafeField.setAccessible(true);
-			Unsafe unsafe = (Unsafe) unsafeField.get(null);
-			Field target = clazz.getDeclaredField(fieldName);
-			Object base = unsafe.staticFieldBase(target);
-			long offset = unsafe.staticFieldOffset(target);
-			unsafe.putObject(base, offset, value);
-		}
-
 		// ------- pushProjectFolder / pullProjectFolder happy path -------
 
 		@Test
@@ -2313,160 +2337,145 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testPushProject_happyPath(@TempDir Path testDir) throws Exception {
-			String origProjectFolder = EngineUtility.PROJECT_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
+			Path projectFolder = testDir.resolve(Constants.PROJECT_FOLDER);
+			Files.createDirectories(projectFolder);
 
-				IProject mockProject = mock(IProject.class);
-				when(mockProject.getProjectName()).thenReturn("MyProj");
-				ReentrantLock lock = new ReentrantLock();
+			IProject mockProject = mock(IProject.class);
+			when(mockProject.getProjectName()).thenReturn("MyProj");
+			ReentrantLock lock = new ReentrantLock();
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class);
-						MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class);
+					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
-					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
-					instance.pushProject("proj1");
+				instance.pushProject("proj1");
 
-					verify(mockDI).removeProjectProperty("proj1");
-					verify(mockProject).close();
-					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
-					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(), any());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
+				verify(mockDI).removeProjectProperty("proj1");
+				verify(mockProject).close();
+				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
+				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(), any());
 			}
 		}
 
 		@Test
 		void testPushProject_nameNull_fallsBackToAlias(@TempDir Path testDir) throws Exception {
-			String origProjectFolder = EngineUtility.PROJECT_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
+			Path projectFolder = testDir.resolve(Constants.PROJECT_FOLDER);
+			Files.createDirectories(projectFolder);
 
-				IProject mockProject = mock(IProject.class);
-				when(mockProject.getProjectName()).thenReturn(null);
-				ReentrantLock lock = new ReentrantLock();
+			IProject mockProject = mock(IProject.class);
+			when(mockProject.getProjectName()).thenReturn(null);
+			ReentrantLock lock = new ReentrantLock();
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class);
-						MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class);
+					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
-					secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
-					secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("AliasProj");
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
-					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
+				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
+				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("AliasProj");
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
-					instance.pushProject("proj1");
+				instance.pushProject("proj1");
 
-					verify(mockStorageEngine).syncLocalToStorage(argThat(s -> s.contains("AliasProj__proj1")),
-							anyString(), any());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
+				verify(mockStorageEngine).syncLocalToStorage(argThat(s -> s.contains("AliasProj__proj1")), anyString(),
+						any());
 			}
 		}
 
 		@Test
 		void testPullProject_notLoaded(@TempDir Path testDir) throws Exception {
-			String origProjectFolder = EngineUtility.PROJECT_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
+			Path projectFolder = testDir.resolve(Constants.PROJECT_FOLDER);
+			Files.createDirectories(projectFolder);
 
-				ReentrantLock lock = new ReentrantLock();
+			ReentrantLock lock = new ReentrantLock();
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
-						MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class);
-						MockedStatic<ProjectWatcher> watcherMock = mockStatic(ProjectWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
+					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class);
+					MockedStatic<ProjectWatcher> watcherMock = mockStatic(ProjectWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
-					secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
-					secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
-					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
+				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
-					instance.pullProject("proj1", false);
+				instance.pullProject("proj1", false);
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
-					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)),
-							eq(testDir.toString()));
-					watcherMock.verify(() -> ProjectWatcher.catalogProject(eq("P__proj1.smss"), any()));
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
+				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
+				verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)),
+						eq(projectFolder.toString()));
+				watcherMock.verify(() -> ProjectWatcher.catalogProject(eq("P__proj1.smss"), any()));
 			}
 		}
 
 		@Test
 		void testPullProject_alreadyLoaded(@TempDir Path testDir) throws Exception {
-			String origProjectFolder = EngineUtility.PROJECT_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
+			Path projectFolder = testDir.resolve(Constants.PROJECT_FOLDER);
+			Files.createDirectories(projectFolder);
 
-				IProject mockProject = mock(IProject.class);
-				ReentrantLock lock = new ReentrantLock();
+			IProject mockProject = mock(IProject.class);
+			ReentrantLock lock = new ReentrantLock();
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class);
-						MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class);
+					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
-					utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
-					secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
-					secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
-					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
+				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
+				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
-					instance.pullProject("proj1", true);
+				instance.pullProject("proj1", true);
 
-					verify(mockDI).removeProjectProperty("proj1");
-					verify(mockProject).close();
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
+				verify(mockDI).removeProjectProperty("proj1");
+				verify(mockProject).close();
+				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 			}
 		}
 
 		@Test
 		void testPullProject_singleArg_delegates(@TempDir Path testDir) throws Exception {
-			String origProjectFolder = EngineUtility.PROJECT_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
+			Path projectFolder = testDir.resolve(Constants.PROJECT_FOLDER);
+			Files.createDirectories(projectFolder);
 
-				ReentrantLock lock = new ReentrantLock();
+			ReentrantLock lock = new ReentrantLock();
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
-						MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class);
-						MockedStatic<ProjectWatcher> watcherMock = mockStatic(ProjectWatcher.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
+					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class);
+					MockedStatic<ProjectWatcher> watcherMock = mockStatic(ProjectWatcher.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
-					secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
-					secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
-					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
+				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
-					instance.pullProject("proj1");
+				instance.pullProject("proj1");
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
+				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 			}
 		}
 
@@ -2474,149 +2483,137 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testPushLocalDatabaseFile_sqlite(@TempDir Path testDir) throws Exception {
-			String origDbFolder = EngineUtility.DATABASE_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", testDir.toString());
+			Path databaseFolder = testDir.resolve(Constants.DATABASE_FOLDER);
+			Files.createDirectories(databaseFolder);
 
-				// Create a sqlite file in the expected directory
-				Path dbDir = testDir.resolve("MyDb__db1");
-				Files.createDirectories(dbDir);
-				Files.createFile(dbDir.resolve("mydata.sqlite"));
+			// Create a sqlite file in the expected directory
+			Path dbDir = databaseFolder.resolve("MyDb__db1");
+			Files.createDirectories(dbDir);
+			Files.createFile(dbDir.resolve("mydata.sqlite"));
 
-				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
-				ReentrantLock lock = new ReentrantLock();
+			IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
+			ReentrantLock lock = new ReentrantLock();
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-						MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
-					secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
-					smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
-					syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
+				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
+				smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
+				syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
-					instance.pushLocalDatabaseFile("db1", RdbmsTypeEnum.SQLITE);
+				instance.pushLocalDatabaseFile("db1", RdbmsTypeEnum.SQLITE);
 
-					verify(mockDb).close();
-					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("mydata.sqlite")), anyString(),
-							(Map<String, Object>) isNull());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
+				verify(mockDb).close();
+				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("mydata.sqlite")), anyString(),
+						(Map<String, Object>) isNull());
 			}
 		}
 
 		@Test
 		void testPushLocalDatabaseFile_h2(@TempDir Path testDir) throws Exception {
-			String origDbFolder = EngineUtility.DATABASE_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", testDir.toString());
+			Path databaseFolder = testDir.resolve(Constants.DATABASE_FOLDER);
+			Files.createDirectories(databaseFolder);
 
-				Path dbDir = testDir.resolve("MyDb__db1");
-				Files.createDirectories(dbDir);
-				Files.createFile(dbDir.resolve("mydata.mv.db"));
+			Path dbDir = databaseFolder.resolve("MyDb__db1");
+			Files.createDirectories(dbDir);
+			Files.createFile(dbDir.resolve("mydata.mv.db"));
 
-				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
-				ReentrantLock lock = new ReentrantLock();
+			IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
+			ReentrantLock lock = new ReentrantLock();
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-						MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
-					secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
-					smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
-					syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
+				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
+				smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
+				syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
-					instance.pushLocalDatabaseFile("db1", RdbmsTypeEnum.H2_DB);
+				instance.pushLocalDatabaseFile("db1", RdbmsTypeEnum.H2_DB);
 
-					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("mydata.mv.db")), anyString(),
-							(Map<String, Object>) isNull());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
+				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("mydata.mv.db")), anyString(),
+						(Map<String, Object>) isNull());
 			}
 		}
 
 		@Test
 		void testPullLocalDatabaseFile_sqlite(@TempDir Path testDir) throws Exception {
-			String origDbFolder = EngineUtility.DATABASE_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", testDir.toString());
+			Path databaseFolder = testDir.resolve(Constants.DATABASE_FOLDER);
+			Files.createDirectories(databaseFolder);
 
-				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
-				ReentrantLock lock = new ReentrantLock();
-				when(mockStorageEngine.list(anyString())).thenReturn(Arrays.asList("mydata.sqlite", "other.txt"));
+			IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
+			ReentrantLock lock = new ReentrantLock();
+			when(mockStorageEngine.list(anyString())).thenReturn(Arrays.asList("mydata.sqlite", "other.txt"));
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-						MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
-					secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
-					smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
-					syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
+				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
+				smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
+				syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
-					instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.SQLITE);
+				instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.SQLITE);
 
-					// Should only pull .sqlite files, not other.txt
-					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.sqlite")), anyString());
-					verify(mockStorageEngine, times(1)).copyToLocal(anyString(), anyString());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
+				// Should only pull .sqlite files, not other.txt
+				verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.sqlite")), anyString());
+				verify(mockStorageEngine, times(1)).copyToLocal(anyString(), anyString());
 			}
 		}
 
 		@Test
 		void testPullLocalDatabaseFile_h2(@TempDir Path testDir) throws Exception {
-			String origDbFolder = EngineUtility.DATABASE_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", testDir.toString());
+			Path databaseFolder = testDir.resolve(Constants.DATABASE_FOLDER);
+			Files.createDirectories(databaseFolder);
 
-				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
-				ReentrantLock lock = new ReentrantLock();
-				when(mockStorageEngine.list(anyString())).thenReturn(Arrays.asList("mydata.mv.db", "other.txt"));
+			IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
+			ReentrantLock lock = new ReentrantLock();
+			when(mockStorageEngine.list(anyString())).thenReturn(Arrays.asList("mydata.mv.db", "other.txt"));
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-						MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
-					secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
-					smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
-					syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
+				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
+				smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
+				syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
-					instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.H2_DB);
+				instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.H2_DB);
 
-					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.mv.db")), anyString());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
+				verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.mv.db")), anyString());
 			}
 		}
 
@@ -2667,83 +2664,75 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testPullUserAsset_notLoaded(@TempDir Path testDir) throws Exception {
-			String origUserFolder = EngineUtility.USER_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
+			Path userFolder = testDir.resolve(Constants.USER_FOLDER);
+			Files.createDirectories(userFolder);
 
-				try (MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
-					smssMock.when(
-							() -> SmssUtilities.getUniqueName(prerna.auth.utils.UserAssetUtils.ASSET_APP_NAME, "proj1"))
-							.thenReturn("Asset__proj1");
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class, CALLS_REAL_METHODS);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
+				smssMock.when(
+						() -> SmssUtilities.getUniqueName(prerna.auth.utils.UserAssetUtils.ASSET_APP_NAME, "proj1"))
+						.thenReturn("Asset__proj1");
 
-					instance.pullUserAsset("proj1", false);
+				instance.pullUserAsset("proj1", false);
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
-					verify(mockStorageEngine).copyToLocal(anyString(), eq(testDir.toString()));
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
+				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
+				verify(mockStorageEngine).copyToLocal(anyString(), eq(userFolder.toString()));
 			}
 		}
 
 		@Test
 		void testPullUserAsset_loaded(@TempDir Path testDir) throws Exception {
-			String origUserFolder = EngineUtility.USER_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
+			Path userFolder = testDir.resolve(Constants.USER_FOLDER);
+			Files.createDirectories(userFolder);
 
-				IProject mockProject = mock(IProject.class);
-				when(mockProject.getProjectName()).thenReturn("AssetApp");
+			IProject mockProject = mock(IProject.class);
+			when(mockProject.getProjectName()).thenReturn("AssetApp");
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
-					smssMock.when(() -> SmssUtilities.getUniqueName("AssetApp", "proj1")).thenReturn("AssetApp__proj1");
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
+				smssMock.when(() -> SmssUtilities.getUniqueName("AssetApp", "proj1")).thenReturn("AssetApp__proj1");
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
-					instance.pullUserAsset("proj1", true);
+				instance.pullUserAsset("proj1", true);
 
-					verify(mockDI).removeProjectProperty("proj1");
-					verify(mockProject).close();
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
+				verify(mockDI).removeProjectProperty("proj1");
+				verify(mockProject).close();
+				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 			}
 		}
 
 		@Test
 		void testPushUserAsset_happyPath(@TempDir Path testDir) throws Exception {
-			String origUserFolder = EngineUtility.USER_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
+			Path userFolder = testDir.resolve(Constants.USER_FOLDER);
+			Files.createDirectories(userFolder);
 
-				IProject mockProject = mock(IProject.class);
-				when(mockProject.getProjectName()).thenReturn("AssetApp");
+			IProject mockProject = mock(IProject.class);
+			when(mockProject.getProjectName()).thenReturn("AssetApp");
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
-					instance.pushUserAsset("proj1");
+				instance.pushUserAsset("proj1");
 
-					verify(mockDI).removeProjectProperty("proj1");
-					verify(mockProject).close();
-					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
-					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(), any());
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
+				verify(mockDI).removeProjectProperty("proj1");
+				verify(mockProject).close();
+				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
+				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(), any());
 			}
 		}
 
@@ -2751,69 +2740,62 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testPullOwl_withOwlEngine(@TempDir Path testDir) throws Exception {
-			String origDbFolder = EngineUtility.DATABASE_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", testDir.toString());
+			Path databaseFolder = testDir.resolve(Constants.DATABASE_FOLDER);
+			Files.createDirectories(databaseFolder);
 
-				Path owlFile = Files.createFile(testDir.resolve("mydb.owl"));
-				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
-				WriteOWLEngine mockOwlEngine = mock(WriteOWLEngine.class);
+			Path owlFile = Files.createFile(databaseFolder.resolve("mydb.owl"));
+			IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
+			WriteOWLEngine mockOwlEngine = mock(WriteOWLEngine.class);
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
-					secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("Db");
-					smssMock.when(() -> SmssUtilities.getUniqueName("Db", "db1")).thenReturn("Db__db1");
-					smssMock.when(() -> SmssUtilities.getOwlFile(any(), any())).thenReturn(owlFile.toFile());
+				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
+				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("Db");
+				smssMock.when(() -> SmssUtilities.getUniqueName("Db", "db1")).thenReturn("Db__db1");
+				smssMock.when(() -> SmssUtilities.getOwlFile(any(), any())).thenReturn(owlFile.toFile());
 
-					instance.pullOwl("db1", mockOwlEngine);
+				instance.pullOwl("db1", mockOwlEngine);
 
-					verify(mockOwlEngine).closeOwl();
-					verify(mockStorageEngine, times(2)).copyToLocal(anyString(), anyString());
-					verify(mockOwlEngine).reloadOWLFile();
-					// owlEngine was provided, so close should NOT be called
-					verify(mockOwlEngine, never()).close();
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
+				verify(mockOwlEngine).closeOwl();
+				verify(mockStorageEngine, times(2)).copyToLocal(anyString(), anyString());
+				verify(mockOwlEngine).reloadOWLFile();
+				// owlEngine was provided, so close should NOT be called
+				verify(mockOwlEngine, never()).close();
 			}
 		}
 
 		@Test
 		void testPullOwl_nullOwlEngine_autoCloses(@TempDir Path testDir) throws Exception {
-			String origDbFolder = EngineUtility.DATABASE_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", testDir.toString());
+			Path databaseFolder = testDir.resolve(Constants.DATABASE_FOLDER);
+			Files.createDirectories(databaseFolder);
 
-				Path owlFile = Files.createFile(testDir.resolve("mydb.owl"));
-				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
-				WriteOWLEngine mockOwlEngine = mock(WriteOWLEngine.class);
-				prerna.engine.impl.owl.OWLEngineFactory mockFactory = mock(
-						prerna.engine.impl.owl.OWLEngineFactory.class);
-				when(mockDb.getOWLEngineFactory()).thenReturn(mockFactory);
-				when(mockFactory.getWriteOWL()).thenReturn(mockOwlEngine);
+			Path owlFile = Files.createFile(databaseFolder.resolve("mydb.owl"));
+			IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
+			WriteOWLEngine mockOwlEngine = mock(WriteOWLEngine.class);
+			prerna.engine.impl.owl.OWLEngineFactory mockFactory = mock(prerna.engine.impl.owl.OWLEngineFactory.class);
+			when(mockDb.getOWLEngineFactory()).thenReturn(mockFactory);
+			when(mockFactory.getWriteOWL()).thenReturn(mockOwlEngine);
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
-					secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("Db");
-					smssMock.when(() -> SmssUtilities.getUniqueName("Db", "db1")).thenReturn("Db__db1");
-					smssMock.when(() -> SmssUtilities.getOwlFile(any(), any())).thenReturn(owlFile.toFile());
+				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
+				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("Db");
+				smssMock.when(() -> SmssUtilities.getUniqueName("Db", "db1")).thenReturn("Db__db1");
+				smssMock.when(() -> SmssUtilities.getOwlFile(any(), any())).thenReturn(owlFile.toFile());
 
-					instance.pullOwl("db1", null);
+				instance.pullOwl("db1", null);
 
-					verify(mockOwlEngine).closeOwl();
-					verify(mockStorageEngine, times(2)).copyToLocal(anyString(), anyString());
-					verify(mockOwlEngine).reloadOWLFile();
-					// autoClose should be true - owlEngine.close() should be called
-					verify(mockOwlEngine).close();
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
+				verify(mockOwlEngine).closeOwl();
+				verify(mockStorageEngine, times(2)).copyToLocal(anyString(), anyString());
+				verify(mockOwlEngine).reloadOWLFile();
+				// autoClose should be true - owlEngine.close() should be called
+				verify(mockOwlEngine).close();
 			}
 		}
 
@@ -2821,88 +2803,82 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testPullInsightsDB_happyPath(@TempDir Path testDir) throws Exception {
-			String origProjectFolder = EngineUtility.PROJECT_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
+			Path projectFolder = testDir.resolve(Constants.PROJECT_FOLDER);
+			Files.createDirectories(projectFolder);
 
-				// Create project dir with insight db
-				Path projDir = testDir.resolve("P__proj1");
-				Files.createDirectories(projDir);
-				Files.createFile(projDir.resolve("insights_database.sqlite"));
+			// Create project dir with insight db
+			Path projDir = projectFolder.resolve("P__proj1");
+			Files.createDirectories(projDir);
+			Files.createFile(projDir.resolve("insights_database.sqlite"));
 
-				IProject mockProject = mock(IProject.class);
-				when(mockProject.getProjectName()).thenReturn("P");
-				when(mockProject.getProjectType()).thenReturn(IProject.PROJECT_TYPE.INSIGHTS);
-				IRDBMSEngine mockInsightDb = mock(IRDBMSEngine.class);
-				when(mockProject.getInsightDatabase()).thenReturn(mockInsightDb);
-				when(mockInsightDb.getDbType()).thenReturn(RdbmsTypeEnum.SQLITE);
-				ReentrantLock lock = new ReentrantLock();
+			IProject mockProject = mock(IProject.class);
+			when(mockProject.getProjectName()).thenReturn("P");
+			when(mockProject.getProjectType()).thenReturn(IProject.PROJECT_TYPE.INSIGHTS);
+			IRDBMSEngine mockInsightDb = mock(IRDBMSEngine.class);
+			when(mockProject.getInsightDatabase()).thenReturn(mockInsightDb);
+			when(mockInsightDb.getDbType()).thenReturn(RdbmsTypeEnum.SQLITE);
+			ReentrantLock lock = new ReentrantLock();
 
-				java.io.File mockInsightFile = new java.io.File(projDir.resolve("insights_database.sqlite").toString());
+			java.io.File mockInsightFile = new java.io.File(projDir.resolve("insights_database.sqlite").toString());
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-						MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class);
-						MockedStatic<ProjectHelper> phMock = mockStatic(ProjectHelper.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class);
+					MockedStatic<ProjectHelper> phMock = mockStatic(ProjectHelper.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
-					smssMock.when(() -> SmssUtilities.getUniqueName("P", "proj1")).thenReturn("P__proj1");
-					smssMock.when(() -> SmssUtilities.getInsightsRdbmsFile(any())).thenReturn(mockInsightFile);
-					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
-					phMock.when(() -> ProjectHelper.loadInsightsEngine(any(), any())).thenReturn(mockInsightDb);
+				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
+				smssMock.when(() -> SmssUtilities.getUniqueName("P", "proj1")).thenReturn("P__proj1");
+				smssMock.when(() -> SmssUtilities.getInsightsRdbmsFile(any())).thenReturn(mockInsightFile);
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+				phMock.when(() -> ProjectHelper.loadInsightsEngine(any(), any())).thenReturn(mockInsightDb);
 
-					instance.pullInsightsDB("proj1");
+				instance.pullInsightsDB("proj1");
 
-					verify(mockInsightDb).close();
-					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("insights_database.sqlite")),
-							anyString());
-					verify(mockProject).setInsightDatabase(mockInsightDb);
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
+				verify(mockInsightDb).close();
+				verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("insights_database.sqlite")),
+						anyString());
+				verify(mockProject).setInsightDatabase(mockInsightDb);
 			}
 		}
 
 		@Test
 		void testPushInsightDB_happyPath(@TempDir Path testDir) throws Exception {
-			String origProjectFolder = EngineUtility.PROJECT_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
+			Path projectFolder = testDir.resolve(Constants.PROJECT_FOLDER);
+			Files.createDirectories(projectFolder);
 
-				Path projDir = testDir.resolve("P__proj1");
-				Files.createDirectories(projDir);
-				Files.createFile(projDir.resolve("insights_database.sqlite"));
+			Path projDir = projectFolder.resolve("P__proj1");
+			Files.createDirectories(projDir);
+			Files.createFile(projDir.resolve("insights_database.sqlite"));
 
-				IProject mockProject = mock(IProject.class);
-				when(mockProject.getProjectName()).thenReturn("P");
-				when(mockProject.getProjectType()).thenReturn(IProject.PROJECT_TYPE.INSIGHTS);
-				IRDBMSEngine mockInsightDb = mock(IRDBMSEngine.class);
-				when(mockProject.getInsightDatabase()).thenReturn(mockInsightDb);
-				when(mockInsightDb.getDbType()).thenReturn(RdbmsTypeEnum.SQLITE);
-				ReentrantLock lock = new ReentrantLock();
+			IProject mockProject = mock(IProject.class);
+			when(mockProject.getProjectName()).thenReturn("P");
+			when(mockProject.getProjectType()).thenReturn(IProject.PROJECT_TYPE.INSIGHTS);
+			IRDBMSEngine mockInsightDb = mock(IRDBMSEngine.class);
+			when(mockProject.getInsightDatabase()).thenReturn(mockInsightDb);
+			when(mockInsightDb.getDbType()).thenReturn(RdbmsTypeEnum.SQLITE);
+			ReentrantLock lock = new ReentrantLock();
 
-				java.io.File mockInsightFile = new java.io.File(projDir.resolve("insights_database.sqlite").toString());
+			java.io.File mockInsightFile = new java.io.File(projDir.resolve("insights_database.sqlite").toString());
 
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-						MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class);
-						MockedStatic<ProjectHelper> phMock = mockStatic(ProjectHelper.class)) {
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class);
+					MockedStatic<ProjectHelper> phMock = mockStatic(ProjectHelper.class)) {
+				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
-					utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
-					smssMock.when(() -> SmssUtilities.getUniqueName("P", "proj1")).thenReturn("P__proj1");
-					smssMock.when(() -> SmssUtilities.getInsightsRdbmsFile(any())).thenReturn(mockInsightFile);
-					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
-					phMock.when(() -> ProjectHelper.loadInsightsEngine(any(), any())).thenReturn(mockInsightDb);
+				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
+				smssMock.when(() -> SmssUtilities.getUniqueName("P", "proj1")).thenReturn("P__proj1");
+				smssMock.when(() -> SmssUtilities.getInsightsRdbmsFile(any())).thenReturn(mockInsightFile);
+				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
+				phMock.when(() -> ProjectHelper.loadInsightsEngine(any(), any())).thenReturn(mockInsightDb);
 
-					instance.pushInsightDB("proj1");
+				instance.pushInsightDB("proj1");
 
-					verify(mockInsightDb).close();
-					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("insights_database.sqlite")),
-							anyString(), (Map<String, Object>) isNull());
-					verify(mockProject).setInsightDatabase(mockInsightDb);
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
+				verify(mockInsightDb).close();
+				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("insights_database.sqlite")),
+						anyString(), (Map<String, Object>) isNull());
+				verify(mockProject).setInsightDatabase(mockInsightDb);
 			}
 		}
 

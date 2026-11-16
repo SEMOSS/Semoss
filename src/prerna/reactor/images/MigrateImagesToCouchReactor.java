@@ -33,10 +33,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FilenameUtils;
@@ -90,14 +90,14 @@ public class MigrateImagesToCouchReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		loadInputs();
 
-		List<String> outcomes = new Vector<>();
-		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases",
+		List<String> outcomes = new ArrayList<>();
+		uploadRemoteToCouch(ClusterUtil.getImagesFolderPath() + DIR_SEPARATOR + "databases",
 				SecurityEngineUtils.getAllEngineIds(), CouchUtil.DATABASE, outcomes);
-		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "storages",
+		uploadRemoteToCouch(ClusterUtil.getImagesFolderPath() + DIR_SEPARATOR + "storages",
 				SecurityEngineUtils.getAllEngineIds(), CouchUtil.STORAGE, outcomes);
-		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "models",
+		uploadRemoteToCouch(ClusterUtil.getImagesFolderPath() + DIR_SEPARATOR + "models",
 				SecurityEngineUtils.getAllEngineIds(), CouchUtil.MODEL, outcomes);
-		uploadRemoteToCouch(ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects",
+		uploadRemoteToCouch(ClusterUtil.getImagesFolderPath() + DIR_SEPARATOR + "projects",
 				SecurityProjectUtils.getAllProjectIds(), CouchUtil.PROJECT, outcomes);
 
 		return new NounMetadata(outcomes, PixelDataType.VECTOR);

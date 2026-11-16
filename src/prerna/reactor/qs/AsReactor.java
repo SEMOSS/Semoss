@@ -51,7 +51,7 @@ public class AsReactor extends AbstractQueryStructReactor {
 			
 			// I need to make sure there are no __ since it causes issues
 			for(int i = 0; i < size; i++) {
-				String origHeader = aliasInput.get(i).replaceAll("_{2}", "_");
+				String origHeader = aliasInput.get(i).replace("__", "_");
 				aliasArray[i] = headerChecker.recursivelyFixHeaders(origHeader, aliasArray);
 			}
 			parentReactor.setAs(aliasArray);

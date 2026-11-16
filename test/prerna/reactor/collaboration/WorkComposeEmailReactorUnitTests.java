@@ -73,6 +73,7 @@ class WorkComposeEmailReactorUnitTests {
 		user = mock(User.class);
 		insight = mock(Insight.class);
 		room = mock(Room.class);
+		when(insight.getInsightId()).thenReturn("insight");
 		when(insight.getRoomId()).thenReturn("room");
 		when(room.getOptionsMap()).thenReturn(Map.of("source",
 				Map.of("channel", "email", "messages", List.of(Map.of("id", "source-id")))));

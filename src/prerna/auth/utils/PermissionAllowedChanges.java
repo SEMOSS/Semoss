@@ -63,6 +63,13 @@ final class PermissionAllowedChanges {
 	/** Why the user cannot change which teams have access */
 	private String teamsReason;
 	/**
+	 * Whether the user can change which apps have access to an engine, for their
+	 * custom reactors to use: only its owners can, and anyone in admin mode
+	 */
+	private boolean canChangeProjects;
+	/** Why the user cannot change which apps have access */
+	private String projectsReason;
+	/**
 	 * The access levels whose usage limits the user may change on a model, by name:
 	 * every level for owners, none for anyone else, since only owners set usage
 	 * limits. Letting editors set the limits of Read-Only and Editor people would
@@ -134,6 +141,22 @@ final class PermissionAllowedChanges {
 
 	void setTeamsReason(String teamsReason) {
 		this.teamsReason = teamsReason;
+	}
+
+	boolean canChangeProjects() {
+		return canChangeProjects;
+	}
+
+	void setCanChangeProjects(boolean canChangeProjects) {
+		this.canChangeProjects = canChangeProjects;
+	}
+
+	String getProjectsReason() {
+		return projectsReason;
+	}
+
+	void setProjectsReason(String projectsReason) {
+		this.projectsReason = projectsReason;
 	}
 
 	/**

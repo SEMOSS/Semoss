@@ -29,6 +29,7 @@ package prerna.engine.impl.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
@@ -109,9 +110,7 @@ class RoomMCPTest {
 		assertEquals("play_checkout", meta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME));
 		assertEquals("PlayPlaywrightSocketsRoomRecording", meta.get(MCPUtility.SMSS_FUNCTION_NAME));
 
-		// no project id is threaded through for the UI any more; the engine level
-		// value is all that remains
-		assertEquals(MCPUtility.ROOM_MCP_ID, meta.get(MCPUtility.SMSS_PROJECT_ID));
+		assertNull(meta.get(MCPUtility.SMSS_PROJECT_ID));
 
 		// the system app URI survives the engine/tool meta merge intact
 		Map<String, Object> ui = (Map<String, Object>) meta.get(MCPUtility.SMSS_MCP_UI);

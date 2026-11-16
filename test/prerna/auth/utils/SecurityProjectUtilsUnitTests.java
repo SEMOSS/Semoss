@@ -72,6 +72,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.notifications.NotificationDbUtils;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.util.ConnectionUtils;
@@ -109,6 +110,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 			DIHelper.getInstance().removeProjectProperty(projectId + "_" + Constants.STORE);
 		}
 		stagedProjects.clear();
+		ThreadStore.remove();
 		assertTrue(securityDb.getOwlFilePath().contains("junit"));
 		tables = UnitTestSecurityAuthUtils.clearSecurityDB(securityDb, tables);
 	}
@@ -1756,7 +1758,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testSetPortalPublish() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		// Verify no timestamp before publish
 		assertNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
@@ -1771,7 +1773,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testGetPortalPublishedTimestamp_noTimestamp() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		LocalDateTime timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
 		assertNull(timestamp);
@@ -1780,7 +1782,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testInitPortalPublishedTimestamp() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		assertNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
 
@@ -1792,7 +1794,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testInitPortalPublishedTimestamp_doesNotOverwriteExisting() {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		SecurityProjectUtils.setPortalPublish(user, "testProjectId");
 		LocalDateTime reported = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
@@ -2135,6 +2137,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testAddProject_registersTheProjectWithItsInsights() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		ThreadStore.setUser(user);
 		stageProject("newProject", false, "first", "second");
 
 		SecurityProjectUtils.addProject("newProject", false, user);
@@ -2162,6 +2165,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testAddProject_aFailedInsightCopyKeepsTheProjectRegistered() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		ThreadStore.setUser(user);
 		stageProject("newProject", false, "first", "reject");
 
 		// the second insight fails after the first insight was written
@@ -2182,6 +2186,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testAddProject_aFailedProjectRowCopiesNoInsights() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		ThreadStore.setUser(user);
 		stageProject("newProject", false, "first", "second");
 
 		addCheck("ADD_PROJECT_ROW_FAIL", "PROJECT", "PROJECTID <> 'newProject'");
@@ -2198,6 +2203,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testAddProject_reloadReplacesTheInsightsAndTheirPermissions() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		ThreadStore.setUser(user);
 		UnitTestSecurityAuthUtils.createUser("second", false);
 		stageRegisteredProject(user);
 		Path smss = stageProject("reloaded", true, "kept");
@@ -2216,6 +2222,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testAddProject_aFailedReloadKeepsWhatWasThere() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		ThreadStore.setUser(user);
 		UnitTestSecurityAuthUtils.createUser("second", false);
 		stageRegisteredProject(user);
 		Path smss = stageProject("reloaded", true, "kept", "reject");
@@ -2256,6 +2263,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testCreateInsightsDatabase_copiesTheInsightsAndTheirMetadata() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		ThreadStore.setUser(user);
 		UnitTestSecurityAuthUtils.createProject("exported", "exportedName", user);
 		SecurityInsightUtils.addInsight("exported", "insightId", "insightName", true, "grid", false, -1, null, null,
 				false, List.of("AddPanel(0);"), null);
@@ -2280,6 +2288,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@Test
 	void testCreateInsightsDatabase_aFailureLeavesNoFile() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		ThreadStore.setUser(user);
 		UnitTestSecurityAuthUtils.createProject("exported", "exportedName", user);
 		SecurityInsightUtils.addInsight("exported", "insightId", "insightName", true, "grid", false, -1, null, null,
 				false, List.of("AddPanel(0);"), null);
@@ -2303,10 +2312,21 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	private void stageLoadedProject(String projectId) {
 		IRDBMSEngine insightsDb = mock(IRDBMSEngine.class);
 		when(insightsDb.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
-		IProject project = mock(IProject.class);
-		when(project.getInsightDatabase()).thenReturn(insightsDb);
-		DIHelper.getInstance().setProjectProperty(projectId, project);
+		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
+	}
+
+	/**
+	 * A loaded project with its smss properties and the insights database given, as
+	 * Utility.getProject reads it.
+	 */
+	private static IProject loadedProject(String projectId, IRDBMSEngine insightsDb) {
+		IProject project = mock(IProject.class);
+		when(project.getEngineId()).thenReturn(projectId);
+		when(project.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.PROJECT);
+		when(project.getSmssProp()).thenReturn(new Properties());
+		when(project.getInsightDatabase()).thenReturn(insightsDb);
+		return project;
 	}
 
 	/**
@@ -2343,9 +2363,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 					null, false, null);
 			admin.updateInsightTags(insightId, List.of(insightName + "Tag"));
 		}
-		IProject project = mock(IProject.class);
-		when(project.getInsightDatabase()).thenReturn(insightsDb);
-		DIHelper.getInstance().setProjectProperty(projectId, project);
+		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
 
 		Properties props = new Properties();

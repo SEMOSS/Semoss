@@ -100,6 +100,7 @@ import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
+import prerna.util.InternalUtility;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -126,8 +127,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	/**
 	 * Marks a project as a Digital Twin: an agent that holds copies of its owner's
 	 * emails, chats and files, so it is shared with named people only. Only
-	 * {@link #markDigitalTwin} writes it; {@link #updateProjectMetadata} never
-	 * sets or clears it.
+	 * {@link #markDigitalTwin} writes it; {@link #updateProjectMetadata} never sets
+	 * or clears it.
 	 */
 	public static final String DIGITAL_TWIN_METAKEY = "digital_twin";
 	/** Why sharing a Digital Twin beyond named people is refused. */
@@ -354,7 +355,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (reloadInsights) {
 			classLogger.info("Modifying force reload to false");
 			try {
-				Utility.changePropertiesFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");
+				InternalUtility.changePropertiesFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");
 			} catch (IOException e) {
 				classLogger.error("Failed to set RELOAD_INSIGHTS to false in the smss file of project {}",
 						Utility.cleanLogString(projectId), e);
@@ -533,6 +534,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			});
+			SecurityModelUsageLimitUtils.markChanged();
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -1364,6 +1366,33 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * The user's access level on the project now, for a request that checks several
+	 * things against one reading of it. It is the highest level among the grants in
+	 * effect, given to the user directly or to a team they are in, as
+	 * {@link #userCanEditProject} reads it, or read-only on a public project they
+	 * have no grant on, as {@link #userCanViewProject} allows. A grant that has
+	 * ended does not count, and is not removed.
+	 *
+	 * @param user      the user
+	 * @param projectId the project
+	 * @return the level, or null when the user has no access to the project
+	 */
+	public static AccessPermissionEnum getCurrentUserProjectLevel(User user, String projectId) {
+		if (user == null) {
+			return null;
+		}
+		Integer levelId = CurrentPermissionLevel.ofOrNull(user, PermissionTargetResource.project(projectId));
+		if (levelId != null) {
+			for (AccessPermissionEnum level : AccessPermissionEnum.values()) {
+				if (level.getId() == levelId) {
+					return level;
+				}
+			}
+		}
+		return projectIsGlobal(projectId) ? AccessPermissionEnum.READ_ONLY : null;
+	}
+
+	/**
 	 * Whether the user can edit the project, as an editor or an owner. Grants that
 	 * have ended do not count.
 	 *
@@ -1578,6 +1607,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTACCESSREQUEST WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?");
+		deletes.add("DELETE FROM PROJECTENGINEPERMISSION WHERE PROJECTID=?");
 		for (String deleteQuery : deletes) {
 			try {
 				QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> ps.setString(1, projectId));
@@ -1586,6 +1616,18 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			} catch (Exception e) {
 				classLogger.error("Failed to delete project", e);
 			}
+		}
+		try {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				SecurityModelUsageLimitUtils.deleteProjectLimits(connection, projectId);
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to delete the project's model usage limits", e);
+		} finally {
+			SecurityModelUsageLimitUtils.markChanged();
 		}
 	}
 
@@ -4279,6 +4321,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addRelation("PROJECTACCESSREQUEST__REQUEST_USERID", "SMSS_USER__ID", "inner.join");
 		qs.addRelation("PROJECTACCESSREQUEST__REQUEST_TYPE", "SMSS_USER__TYPE", "inner.join");
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * The signed in user's own access request on a project that waits for a
+	 * decision, made with any of their logins. Asking again replaces it, so there
+	 * is at most one.
+	 *
+	 * @param user      the signed in user
+	 * @param projectId the project
+	 * @return the request: {@code id}, {@code permission} (the level asked for),
+	 *         {@code comment} and {@code requestedAt} (UTC, ISO 8601); null when the
+	 *         user has none waiting
+	 */
+	public static Map<String, Object> getUserWaitingAccessRequest(User user, String projectId) {
+		return OwnAccessRequests.waiting(OwnAccessRequests.PROJECT, projectId, user);
+	}
+
+	/**
+	 * Withdraws the signed in user's own access request on a project that waits
+	 * for a decision. The request is kept, marked withdrawn by the user.
+	 *
+	 * @param user      the signed in user
+	 * @param projectId the project
+	 * @return true when a waiting request was withdrawn, false when the user had
+	 *         none
+	 */
+	public static boolean withdrawUserAccessRequest(User user, String projectId) {
+		return OwnAccessRequests.withdraw(OwnAccessRequests.PROJECT, projectId, user);
 	}
 
 	/**

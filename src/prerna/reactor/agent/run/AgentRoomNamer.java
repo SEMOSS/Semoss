@@ -40,6 +40,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.util.Utility;
 
 /**
@@ -95,6 +96,10 @@ public final class AgentRoomNamer {
 		}
 		Thread namer = new Thread(() -> {
 			try {
+				if (insight != null) {
+					ThreadStore.setInsightId(insight.getInsightId());
+					ThreadStore.setUser(insight.getUser());
+				}
 				nameRoom(roomId, input, modelId, userId, insight);
 			} catch (Exception e) {
 				logger.warn("AgentRoomNamer: room rename failed for room='{}' - run unaffected: {}", roomId,

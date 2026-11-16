@@ -99,8 +99,8 @@ public class EngineInfoReactor extends AbstractReactor {
 
 								Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
 								  Core engine fields: engine_id, engine_name, engine_display_name, engine_type, engine_subtype,
-								    engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by,
-								    engine_created_by_type, engine_date_created, low_engine_name, engine_description.
+								    engine_cost, engine_discoverable, engine_global, engine_created_by, engine_created_by_type,
+								    engine_date_created, low_engine_name, engine_description.
 								  Permission fields (relative to the calling user): engine_user_permission, engine_group_permission, engine_favorite.
 								  Metadata: one entry per metadata tag (e.g. tag, domain, etc.); a tag with multiple values is returned as a list.
 								""")

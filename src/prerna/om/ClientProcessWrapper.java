@@ -67,6 +67,7 @@ import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.PortAllocator;
 import prerna.util.SandboxInjector;
 import prerna.util.Settings;
@@ -99,8 +100,10 @@ public class ClientProcessWrapper {
 	private final ReentrantLock lockCreate = new ReentrantLock();
 	private final ReentrantLock lockDestroy = new ReentrantLock();
 
-	private SocketClient socketClient;
-	private Process process;
+	private volatile SocketClient socketClient;
+	private volatile Process process;
+	private volatile long shutdownCount = 0;
+	private volatile boolean lastShutdownCleansUp = false;
 	private String prefix;
 	private int port;
 	private String venvPath;
@@ -196,7 +199,11 @@ public class ClientProcessWrapper {
 			Map<String, String> threadLoggerCtx) throws Exception {
 		lockCreate.lock();
 		try {
+			long shutdownsAtStart = this.shutdownCount;
 			this.nativePyServer = nativePyServer;
+			this.nodeServer = false;
+			this.udsPath = null;
+			this.threadLoggerCtx = threadLoggerCtx;
 			this.chrootSymlinkHelper = chrootSymlinkHelper;
 			this.port = calculatePort(port);
 			this.venvPath = venvPath;
@@ -222,7 +229,8 @@ public class ClientProcessWrapper {
 								.toString();
 
 						Object[] ret = ClientProcessWrapper.startTCPServerNativePySandbox(this.serverDirectory,
-								this.port + "", this.timeout, this.loggerLevel, ioDirName);
+								this.port + "", this.timeout, this.loggerLevel, ioDirName,
+								this.chrootSymlinkHelper.getUserChrootFolder());
 						this.process = (Process) ret[0];
 						this.prefix = (String) ret[1];
 						this.udsPath = (String) ret[2];
@@ -329,16 +337,63 @@ public class ClientProcessWrapper {
 						this.port, e);
 				throw e;
 			}
+			stopIfShutDownWhileStarting(shutdownsAtStart);
 		} finally {
 			lockCreate.unlock();
 		}
 	}
 
 	/**
-	 * Stop the server (best-effort, bounded to 15s) and destroy the process. The
-	 * server stop runs on a virtual thread so a hung process cannot block the
-	 * caller indefinitely. If the port is still held by the OS afterwards it is
-	 * reset to -1 so the next start auto-allocates a fresh one.
+	 * Returns the connected socket client, running the starter when there is no
+	 * client yet or the client lost its connection. A lost process is shut down
+	 * first and the starter then starts it from scratch, so the owner's own setup,
+	 * such as an engine's init script, runs again. Starts hold the create lock, so
+	 * callers that arrive together share one process: the ones that waited get the
+	 * client the first one connected.
+	 *
+	 * @param starter starts the process on this wrapper with
+	 *                {@link #createProcessAndClient} and sets it up
+	 * @return the socket client
+	 */
+	public SocketClient getOrStartSocketClient(Runnable starter) {
+		lockCreate.lock();
+		try {
+			SocketClient client = this.socketClient;
+			if (client == null || !client.isConnected()) {
+				if (client != null || this.process != null) {
+					shutdown(false);
+				}
+				starter.run();
+			}
+			return this.socketClient;
+		} finally {
+			lockCreate.unlock();
+		}
+	}
+
+	/**
+	 * Stops the process that was just started when {@link #shutdown(boolean)} ran
+	 * while it was starting. That shutdown found no client to stop, so without this
+	 * the new process would keep running with no owner.
+	 *
+	 * @param shutdownsAtStart the shutdown count when the start began
+	 * @throws IllegalStateException when the process was stopped
+	 */
+	private void stopIfShutDownWhileStarting(long shutdownsAtStart) {
+		if (this.shutdownCount != shutdownsAtStart) {
+			classLogger.warn("The process on port {} was shut down while it was starting, so it is stopped", this.port);
+			shutdown(this.lastShutdownCleansUp);
+			throw new IllegalStateException("The process was shut down while it was starting");
+		}
+	}
+
+	/**
+	 * Stop the server (best-effort, bounded to 15s) and destroy the process along
+	 * with every process it started. The server stop runs on a virtual thread so a
+	 * hung process cannot block the caller indefinitely. If the port is still held
+	 * by the OS afterwards it is reset to -1 so the next start auto-allocates a
+	 * fresh one. A process that is still starting is stopped once its start
+	 * finishes.
 	 *
 	 * @param cleanUpFolder true to also recursively delete the server scratch
 	 *                      directory and any namespace-sandbox folders
@@ -346,6 +401,8 @@ public class ClientProcessWrapper {
 	public void shutdown(boolean cleanUpFolder) {
 		lockDestroy.lock();
 		try {
+			this.lastShutdownCleansUp = cleanUpFolder;
+			this.shutdownCount++;
 			if (this.socketClient != null && this.socketClient.isConnected()) {
 				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
@@ -392,6 +449,9 @@ public class ClientProcessWrapper {
 			// you know what, always try this...
 			if (this.process != null) {
 				try {
+					for (ProcessHandle child : this.process.descendants().toList()) {
+						child.destroy();
+					}
 					this.process.destroy();
 				} catch (Exception e) {
 					classLogger.error("Failed to destroy isolated analytics process for port {}", this.port, e);
@@ -449,23 +509,28 @@ public class ClientProcessWrapper {
 	/**
 	 * Re-run {@link #createProcessAndClient} with the same settings used on the
 	 * last start, reusing the existing venv path. Used to revive a dropped
-	 * connection.
+	 * connection. The new process gets a fresh port, unless this wrapper attaches
+	 * to a debug server on a fixed port, so the client cannot reach an old process
+	 * that still holds the last port.
 	 *
 	 * @throws Exception if the process cannot be restarted or the socket client
 	 *                   never becomes ready
 	 */
 	public void reconnect() throws Exception {
+		int reconnectPort = this.debug ? this.port : -1;
 		if (nodeServer) {
-			createNodeProcessAndClient(port, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
+			createNodeProcessAndClient(reconnectPort, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
 			return;
 		}
-		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, debug, timeout,
-				loggerLevel, threadLoggerCtx);
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, reconnectPort, venvPath, serverDirectory, debug,
+				timeout, loggerLevel, threadLoggerCtx);
 	}
 
 	/**
 	 * Re-run {@link #createProcessAndClient} with the same settings as the last
-	 * start, but resolving the Python executable from the given venv engine.
+	 * start, but resolving the Python executable from the given venv engine. Like
+	 * {@link #reconnect()}, the new process gets a fresh port unless this wrapper
+	 * attaches to a debug server.
 	 *
 	 * @param venvEngineId id of the venv engine whose Python executable to use, or
 	 *                     null to use the configured base Python
@@ -473,14 +538,15 @@ public class ClientProcessWrapper {
 	 *                   never becomes ready
 	 */
 	public void reconnect(String venvEngineId) throws Exception {
+		int reconnectPort = this.debug ? this.port : -1;
 		if (nodeServer) {
 			// venvs do not apply to the node worker
-			createNodeProcessAndClient(port, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
+			createNodeProcessAndClient(reconnectPort, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
 			return;
 		}
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, debug, timeout,
-				loggerLevel, threadLoggerCtx);
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, reconnectPort, venvPath, serverDirectory, debug,
+				timeout, loggerLevel, threadLoggerCtx);
 	}
 
 	/**
@@ -576,6 +642,15 @@ public class ClientProcessWrapper {
 	}
 
 	/**
+	 * Returns the Python executable of the virtual environment the process runs in.
+	 *
+	 * @return the path to the venv Python executable, or null for the base Python
+	 */
+	public String getVenvPath() {
+		return this.venvPath;
+	}
+
+	/**
 	 * @return the working/scratch directory for the server process
 	 */
 	public String getServerDirectory() {
@@ -599,7 +674,7 @@ public class ClientProcessWrapper {
 	 */
 	public static Process startTCPServer(String insightFolder, String port) {
 		Process thisProcess = null;
-		String specificPath = Utility.getCP(insightFolder);
+		String specificPath = InternalUtility.getCP(insightFolder);
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
@@ -656,8 +731,9 @@ public class ClientProcessWrapper {
 			classLogger.info("Starting user process with ::: {}", commands);
 			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
-			pb.redirectError();
+			pb.redirectErrorStream(true);
 			Process p = pb.start();
+			drainJavaWorkerOutput(p);
 			try {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
@@ -686,7 +762,7 @@ public class ClientProcessWrapper {
 	 */
 	public static Process startTCPServerChroot(String chrootDir, String insightFolder, String port) {
 		Process thisProcess = null;
-		String specificPath = Utility.getCP(insightFolder);
+		String specificPath = InternalUtility.getCP(insightFolder);
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
@@ -744,8 +820,9 @@ public class ClientProcessWrapper {
 			classLogger.info("Starting user process with ::: {}", commands);
 			String[] starterFile = writeStarterFile(commands, chrootDir, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
-			pb.redirectError();
+			pb.redirectErrorStream(true);
 			Process p = pb.start();
+			drainJavaWorkerOutput(p);
 
 			try {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
@@ -760,6 +837,30 @@ public class ClientProcessWrapper {
 		}
 
 		return thisProcess;
+	}
+
+	/**
+	 * Drain the Java worker's console output, with its errors merged in, on a
+	 * daemon thread, logging each line. The worker writes its error logs and R's
+	 * console output there, and would block once the pipe buffer fills if nothing
+	 * read it.
+	 *
+	 * @param process the Java worker process
+	 */
+	private static void drainJavaWorkerOutput(Process process) {
+		Thread t = new Thread(() -> {
+			try (BufferedReader r = new BufferedReader(
+					new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+				String line;
+				while ((line = r.readLine()) != null) {
+					classLogger.info("Java worker: {}", line);
+				}
+			} catch (IOException e) {
+				classLogger.debug("Stopped reading the Java worker output: {}", e.getMessage());
+			}
+		});
+		t.setDaemon(true);
+		t.start();
 	}
 
 	/**
@@ -1048,6 +1149,26 @@ public class ClientProcessWrapper {
 	 */
 	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
 			String loggerLevel, String ioDirName) {
+		return startTCPServerNativePySandbox(insightFolder, port, timeout, loggerLevel, ioDirName, null);
+	}
+
+	/**
+	 * Starts the native Python server inside the namespace sandbox, for a user
+	 * whose chroot folder holds the read-only copies of the projects they can only
+	 * view. The sandbox may mount a folder from there in place of a project's own
+	 * folder.
+	 *
+	 * @param insightFolder    the folder the server starts in
+	 * @param port             the port the server is given
+	 * @param timeout          idle timeout in minutes ("-1" for none)
+	 * @param loggerLevel      log level for the spawned process
+	 * @param ioDirName        name for this worker's io-dir and jail folder
+	 * @param injectSourceRoot the user's chroot folder, or null for none
+	 * @return { Process, prefix, udsPath, controlSocketPath, ioDir, jailDir,
+	 *         controlDir }
+	 */
+	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
+			String loggerLevel, String ioDirName, String injectSourceRoot) {
 		String prefix = "";
 		Process thisProcess = null;
 		String udsPath = null;
@@ -1104,6 +1225,10 @@ public class ClientProcessWrapper {
 			commands.add(controlSocketPath);
 			commands.add("--inject-root");
 			commands.add(injectRoot);
+			if (!Strings.isNullOrEmpty(injectSourceRoot)) {
+				commands.add("--inject-source-root");
+				commands.add(injectSourceRoot.replace("\\", "/"));
+			}
 			commands.add("--jail-root");
 			commands.add(jailDir);
 			addSandboxPathMounts(commands);
@@ -1212,6 +1337,7 @@ public class ClientProcessWrapper {
 			String loggerLevel, Map<String, String> threadLoggerCtx) throws Exception {
 		lockCreate.lock();
 		try {
+			long shutdownsAtStart = this.shutdownCount;
 			// the node worker speaks the same JSON protocol as the native python
 			// server, so the connection layer below reuses NativePySocketClient
 			this.nativePyServer = true;
@@ -1273,6 +1399,7 @@ public class ClientProcessWrapper {
 				classLogger.error("Failed to initialize socket client for the node worker on port {}", this.port, e);
 				throw e;
 			}
+			stopIfShutDownWhileStarting(shutdownsAtStart);
 		} finally {
 			lockCreate.unlock();
 		}

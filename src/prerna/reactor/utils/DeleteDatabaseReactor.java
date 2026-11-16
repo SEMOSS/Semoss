@@ -36,7 +36,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.UserAssetUtils;
@@ -75,23 +74,19 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 		List<String> databaseIds = getDatabaseIds();
 		// first validate all the inputs
 		User user = this.insight.getUser();
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin) {
-			for (String databaseId : databaseIds) {
-				if (AbstractSecurityUtils.adminOnlyEngineDelete(databaseId)) {
-					throwFunctionalityOnlyExposedForAdminsError();
-				}
-				if (UserAssetUtils.isAssetProject(databaseId)) {
-					throw new IllegalArgumentException(
-							"Users are not allowed to delete your workspace or asset database.");
-				}
-				// we may have the alias
-				databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-				boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
-				if (!isOwner) {
-					throw new IllegalArgumentException("Database " + databaseId
-							+ " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");
-				}
+		for (String databaseId : databaseIds) {
+			if (AbstractSecurityUtils.adminOnlyEngineDelete(databaseId)) {
+				throwFunctionalityOnlyExposedForAdminsError();
+			}
+			if (UserAssetUtils.isAssetProject(databaseId)) {
+				throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
+			}
+			// we may have the alias
+			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+			boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
+			if (!isOwner) {
+				throw new IllegalArgumentException("Database " + databaseId
+						+ " does not exist or user does not have permissions to delete the database. User must be the owner to perform this function.");
 			}
 		}
 

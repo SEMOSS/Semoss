@@ -48,6 +48,7 @@ import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.security.SecretRedactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -89,6 +90,7 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
+		SecretRedactor.recordSecrets(this.engineId, this.smssProp);
 
 		this.targetEngineId = this.smssProp.getProperty(TARGET_ENGINE_ID);
 		if (targetEngineId == null || (targetEngineId = targetEngineId.trim()).isEmpty()) {

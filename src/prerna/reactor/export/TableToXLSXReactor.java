@@ -1154,9 +1154,9 @@ public class TableToXLSXReactor extends AbstractReactor {
 			}
 			if (result != null) // && !result.isEmpty() - empty can be legit value
 			{
-				placeHolderValue = placeHolderValue.replaceAll(matcher.group(), result);
+				placeHolderValue = placeHolderValue.replace(matcher.group(), result);
 			} else {
-				placeHolderValue = placeHolderValue.replaceAll(matcher.group(), "");
+				placeHolderValue = placeHolderValue.replace(matcher.group(), "");
 			}
 		}
 		// for getting data from Query mentioned in Template

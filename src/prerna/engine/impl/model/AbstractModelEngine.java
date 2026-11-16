@@ -591,15 +591,17 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				// a failed call is billed what the provider reported, which is usually
 				// nothing
 				usageTicket.bill(ModelUsageReport.of(errorDetails, 0));
+				String reference = GUID.v7().toUUID().toString();
 				classLogger.error(
-						"An error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}",
-						errorDetails.getClient(), errorDetails.getCode(), errorDetails.getModel(),
+						"Model error {}: an error occurred in the {} client with status code {} for model {}. ERROR: {} TRACEBACK: {}",
+						reference, errorDetails.getClient(), errorDetails.getCode(), errorDetails.getModel(),
 						errorDetails.getStringResponse(), errorDetails.getTraceback());
 
 				askModelResponse.setMessageId(GUID.v7().toUUID().toString());
 				askModelResponse.setRoomId(room.getId());
 
-				throw new SemossModelEngineException(askModelResponse);
+				throw new SemossModelEngineException(askModelResponse, SemossModelEngineException
+						.providerErrorMessage(errorDetails.getCode(), errorDetails.getReason(), reference));
 			}
 
 			askModelResponse.setMessageId(GUID.v7().toUUID().toString());

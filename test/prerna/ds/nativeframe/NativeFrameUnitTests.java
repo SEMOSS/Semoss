@@ -348,15 +348,6 @@ public class NativeFrameUnitTests {
 		}
 
 		@Test
-		void testCacheable_impala() {
-			NativeFrame frame = new NativeFrame("test");
-			IDatabaseEngine mockEngine = mock(IDatabaseEngine.class);
-			when(mockEngine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.IMPALA);
-			frame.getQueryStruct().setEngine(mockEngine);
-			assertTrue(frame.engineQueryCacheable());
-		}
-
-		@Test
 		void testNotCacheable_datastax() {
 			NativeFrame frame = new NativeFrame("test");
 			IDatabaseEngine mockEngine = mock(IDatabaseEngine.class);

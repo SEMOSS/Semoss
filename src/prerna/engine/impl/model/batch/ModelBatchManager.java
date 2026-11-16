@@ -589,10 +589,8 @@ public class ModelBatchManager {
 				return own;
 			}
 			for (String bodyKey : NATIVE_BODY_KEYS) {
-				if (request.get(bodyKey) instanceof Map) {
-					@SuppressWarnings("unchecked")
-					Map<String, Object> body = (Map<String, Object>) request.get(bodyKey);
-					own = ModelUsageRestrictionUtility.requestedMaxTokens(body, 0);
+				if (request.get(bodyKey) instanceof Map<?, ?> nativeBody) {
+					own = ModelUsageRestrictionUtility.requestedMaxTokens(namedCopyOf(nativeBody), 0);
 					if (own != null) {
 						return own;
 					}
@@ -609,14 +607,13 @@ public class ModelBatchManager {
 	 * @return a copy of the request whose output maximum is at most the cap, set
 	 *         under the name the request's shape uses
 	 */
-	@SuppressWarnings("unchecked")
 	static Map<String, Object> withMaxOutput(Map<String, Object> request, long cap, ModelTypeEnum modelType) {
 		Map<String, Object> copy = new LinkedHashMap<>(request);
 		// both Vertex clients take max_tokens; Claude on Vertex refuses max_completion_tokens
 		boolean usesMaxTokens = modelType == ModelTypeEnum.ANTHROPIC || modelType == ModelTypeEnum.VERTEX;
 		for (String bodyKey : NATIVE_BODY_KEYS) {
-			if (copy.get(bodyKey) instanceof Map) {
-				Map<String, Object> body = new LinkedHashMap<>((Map<String, Object>) copy.get(bodyKey));
+			if (copy.get(bodyKey) instanceof Map<?, ?> nativeBody) {
+				Map<String, Object> body = namedCopyOf(nativeBody);
 				String added = usesMaxTokens ? "max_tokens"
 						: body.containsKey("input") ? "max_output_tokens" : "max_completion_tokens";
 				capMaxOutput(body, cap, added);
@@ -626,6 +623,19 @@ public class ModelBatchManager {
 		}
 		String added = copy.containsKey("message_json") || usesMaxTokens ? "max_tokens" : "max_completion_tokens";
 		capMaxOutput(copy, cap, added);
+		return copy;
+	}
+
+	/**
+	 * Copies the provider-native body of a batch request into a map keyed by
+	 * name.
+	 *
+	 * @param body the body, as the request holds it
+	 * @return a copy with the same entries in the same order
+	 */
+	private static Map<String, Object> namedCopyOf(Map<?, ?> body) {
+		Map<String, Object> copy = new LinkedHashMap<>();
+		body.forEach((key, value) -> copy.put(String.valueOf(key), value));
 		return copy;
 	}
 
@@ -933,8 +943,7 @@ public class ModelBatchManager {
 	 * Write a single MESSAGE row (method="batch_submit") so that
 	 * assertUserOwnsBatch can later verify the requesting user submitted this
 	 * batch. No-op when inference logging is disabled.
-	 */
-	/**
+	 * <p>
 	 * Also writes one INPUT row per request so the TRANSACTION_ID
 	 * ("batchId.customId") is available for the RESPONSE row written at results
 	 * time to pair with, and for updateBatchInputTokens to back-fill input-side
@@ -947,7 +956,8 @@ public class ModelBatchManager {
 		if (!Utility.isModelInferenceLogsEnabled()) {
 			return;
 		}
-		HeldBatch held = HELD_BATCHES.getIfPresent(batchKey(engine.getEngineId(), providerBatchId));
+		String engineId = engine.getEngineId();
+		HeldBatch held = HELD_BATCHES.getIfPresent(batchKey(engineId, providerBatchId));
 		ModelUsageBilledTo billedTo = held == null ? null : held.ticket().billedTo();
 		String billedSourceType = billedTo == null ? null : billedTo.sourceType();
 		String billedSubjectId = billedTo == null ? null : billedTo.subjectId();
@@ -967,7 +977,7 @@ public class ModelBatchManager {
 				// ownership row
 				ModelInferenceLogsUtils.doRecordMessage(GUID.v7().toUUID().toString(), providerBatchId, "INPUT",
 						String.valueOf(requests.size()), BATCH_SUBMIT_METHOD, null, null, null, null, null, null, null,
-						now, engine.getEngineId(), insightId, sessionId, roomId, userId, userType, userName, userEmail,
+						now, engineId, insightId, sessionId, roomId, userId, userType, userName, userEmail,
 						billedSourceType, billedSubjectId, billedSubjectType, null);
 				// one INPUT row per request; pairs with RESPONSE row at results time
 				for (Map<String, Object> req : requests) {
@@ -976,8 +986,8 @@ public class ModelBatchManager {
 					String txnId = batchTransactionId(providerBatchId, customId);
 					String commandText = command != null ? command.toString() : null;
 					ModelInferenceLogsUtils.doRecordMessage(GUID.v7().toUUID().toString(), txnId, "INPUT", commandText,
-							"batch", null, null, null, null, null, null, null, now, engine.getEngineId(), insightId,
-							sessionId, roomId, userId, userType, userName, userEmail, billedSourceType, billedSubjectId,
+							"batch", null, null, null, null, null, null, null, now, engineId, insightId, sessionId,
+							roomId, userId, userType, userName, userEmail, billedSourceType, billedSubjectId,
 							billedSubjectType, null);
 				}
 			} catch (Exception e) {

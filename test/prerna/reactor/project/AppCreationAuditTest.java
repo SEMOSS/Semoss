@@ -200,7 +200,7 @@ class AppCreationAuditTest {
 		var reactor = new CreateAppFromBlocksReactor() {
 			@Override
 			protected void organizeKeys() {
-				keyValue.put("project", "Test app");
+				keyValue.put("catalogName", "Test app");
 				keyValue.put("global", "false");
 			}
 		};
@@ -251,7 +251,7 @@ class AppCreationAuditTest {
 		var reactor = new CreateAppFromTemplateReactor() {
 			@Override
 			protected void organizeKeys() {
-				keyValue.put("project", "Copy of my twin");
+				keyValue.put("catalogName", "Copy of my twin");
 				keyValue.put("projectTemplate", "twin");
 			}
 		};
@@ -284,7 +284,7 @@ class AppCreationAuditTest {
 		var reactor = new CreateAppFromTemplateReactor() {
 			@Override
 			protected void organizeKeys() {
-				keyValue.put("project", "Cloned app");
+				keyValue.put("catalogName", "Cloned app");
 				keyValue.put("projectTemplate", "template");
 			}
 		};

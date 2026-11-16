@@ -146,6 +146,11 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		assertFalse(AbstractSecurityUtils.adminOnlyGuardrailDelete());
 		assertFalse(AbstractSecurityUtils.adminOnlyGuardrailSetPublic());
 		assertFalse(AbstractSecurityUtils.adminOnlyGuardrailSetDiscoverable());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvAdd());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvDelete());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvAddAccess());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvSetPublic());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvSetDiscoverable());
 		assertFalse(AbstractSecurityUtils.adminOnlyInsightSetPublic());
 		assertFalse(AbstractSecurityUtils.adminOnlyInsightAddAccess());
 		assertFalse(AbstractSecurityUtils.adminOnlyInsightShare());
@@ -214,7 +219,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineAdd(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineAdd(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -234,7 +239,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineDelete(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineDelete(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -254,7 +259,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineAddAccess(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineAddAccess(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -274,7 +279,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineSetPublic(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineSetPublic(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -294,7 +299,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineDiscoverable(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineSetDiscoverable(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -393,8 +398,8 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@Test
 	void testInitialize_indexesModelUsageLimitsByEngineLimitTypeAndSubjectId() throws Exception {
 		List<String> columns = QueryExecutionUtility.queryList(securityDb,
-				"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME = 'MODELUSAGELIMIT_SUBJECT_INDEX' "
-						+ "ORDER BY ORDINAL_POSITION",
+				"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS "
+						+ "WHERE INDEX_NAME = 'MODELUSAGELIMIT_SUBJECT_INDEX' ORDER BY ORDINAL_POSITION",
 				QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(1));
 
 		// SUBJECTTYPE is left out, so the key fits the index size MySQL allows with

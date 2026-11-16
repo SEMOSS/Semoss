@@ -55,7 +55,6 @@ import org.w3c.dom.Document;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -123,13 +122,9 @@ public class DatabaseMetadataToPdfReactor extends AbstractReactor {
 		// security
 		User user = this.insight.getUser();
 		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin) {
-			boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
-			if (!isOwner) {
-				throw new IllegalArgumentException("Database " + databaseId
-						+ " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
-			}
+		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
+			throw new IllegalArgumentException("Database " + databaseId
+					+ " does not exist or user does not have permissions to database. User must be the owner to perform this function.");
 		}
 
 		Map<String, Object> engineInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), databaseId, null)

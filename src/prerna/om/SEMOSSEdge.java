@@ -27,22 +27,17 @@
  *******************************************************************************/
 package prerna.om;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openrdf.model.Literal;
 
+import prerna.query.parsers.RdfLiteralParser;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-/**
- * 
- * @author pkapaleeswaran Something that expresses the edge
- * @version $Revision: 1.0 $
- */
 public class SEMOSSEdge {
 
 	transient public SEMOSSVertex inVertex = null;
@@ -51,8 +46,7 @@ public class SEMOSSEdge {
 	String source = null;
 	String target = null;
 
-	transient Hashtable uriHash = new Hashtable();
-	public Hashtable<String, Object> propHash = new Hashtable();
+	public Map<String, Object> propHash = new HashMap<>();
 	static final Logger classLogger = LogManager.getLogger(SEMOSSEdge.class.getName());
 
 	/**
@@ -79,7 +73,6 @@ public class SEMOSSEdge {
 
 		// out vertex
 		outVertex.addOutEdge(this);
-
 	}
 
 	/**
@@ -103,11 +96,11 @@ public class SEMOSSEdge {
 	}
 
 	/**
-	 * Method getProperty.
+	 * Returns the properties of the edge.
 	 * 
-	 * @return Hashtable<String,Object>
+	 * @return the properties by name
 	 */
-	public Hashtable<String, Object> getProperty() {
+	public Map<String, Object> getProperty() {
 		return propHash;
 	}
 
@@ -138,55 +131,27 @@ public class SEMOSSEdge {
 	 * @param propValue   Object
 	 */
 	public void setProperty(String propNameURI, Object propValue) {
-		// one is a p
-		StringTokenizer tokens = new StringTokenizer(propNameURI + "", "/");
-		int totalTok = tokens.countTokens();
-		String className = Utility.getClassName(propNameURI);
 		String instanceName = Utility.getInstanceName(propNameURI);
 
-		for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
-			if (tokIndex + 2 == totalTok) {
-				className = tokens.nextToken();
-			} else if (tokIndex + 1 == totalTok) {
-				instanceName = tokens.nextToken();
-			} else {
-				tokens.nextToken();
-			}
-		}
-		uriHash.put(instanceName, propNameURI);
-		// I need to convert these decimals and other BS into a proper value
-		// awesome !!
-		// will come to this in a bit
-		// only 2 possibilities for us at this point
-		// double value or a string
-		// TODO incorporate the same for jena too
-
 		boolean converted = false;
-		try {
-			if (propValue instanceof Literal) {
-				// classLogger.info("This is a literal impl >>>>>> " +
-				// ((Literal)propValue).doubleValue());
-				propHash.put(instanceName, ((Literal) propValue).doubleValue());
+		if (propValue instanceof org.openrdf.model.Literal literal
+				&& RdfLiteralParser.readsAsDouble(literal.getLabel())) {
+			try {
+				propHash.put(instanceName, literal.doubleValue());
 				converted = true;
+			} catch (RuntimeException e) {
+				classLogger.error("Could not read property {} on edge {} as a double", instanceName, uri, e);
 			}
-		} catch (RuntimeException ex) {
-			classLogger.debug(ex);
 		}
-		try {
-			if (propValue instanceof org.apache.jena.rdf.model.Literal) {
-				classLogger.info("Class is " + propValue.getClass());
-				String prop = (String) ((org.apache.jena.rdf.model.Literal) propValue).getValue();
-
-				if (prop.contains("XMLSchema#double")) {
-					String[] split = prop.split("\"");
-					Double val = Double.parseDouble(split[1]);
-					propHash.put(instanceName, val);
+		if (propValue instanceof org.apache.jena.rdf.model.Literal literal) {
+			try {
+				if (literal.getValue() instanceof Number number) {
+					propHash.put(instanceName, number.doubleValue());
 					converted = true;
 				}
-
+			} catch (RuntimeException e) {
+				classLogger.error("Could not read the value of property {} on edge {}", instanceName, uri, e);
 			}
-		} catch (RuntimeException ex) {
-			classLogger.debug(ex);
 		}
 		if (!converted) {
 			propHash.put(instanceName, propValue);

@@ -98,10 +98,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	private static final String NO_ACCESS = "Attempting to modify user permission for a user who does not currently have access to the insight";
 
 	/**
-	 * Get an insight
-	 * 
-	 * @param questionIDs
-	 * @return
+	 * Returns an insight built from the pixel recipe saved in the security
+	 * database. An insight with no recipe there is loaded from its project.
+	 *
+	 * @param projectId the id of the project that holds the insight
+	 * @param insightId the id of the insight
+	 * @return the insight
+	 * @throws IllegalArgumentException when the security database has no such
+	 *                                  insight, the insight was saved in the
+	 *                                  retired playsheet format, or it cannot be
+	 *                                  read
 	 */
 	public static Insight getInsight(String projectId, String insightId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -171,9 +177,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 					in.setPixelRecipe(pixelList);
 					insight = in;
 				}
+			} else {
+				throw new IllegalArgumentException("Could not find insight with given insight id");
 			}
-		} catch (Exception e1) {
-			classLogger.error("Unable to retrieve insight.", e1);
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Unable to retrieve insight {} in project {}", insightId, projectId, e);
+			throw new IllegalArgumentException("Unable to retrieve the insight", e);
 		}
 		return insight;
 	}

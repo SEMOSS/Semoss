@@ -97,7 +97,8 @@ public class CloneSkillReactor extends AbstractReactor {
 	private static final String SKILL_ID = "skillId";
 
 	public CloneSkillReactor() {
-		this.keysToGet = new String[] { SKILL_ID, ReactorKeysEnum.NAME.getKey() };
+		this.keysToGet = new String[] { SKILL_ID,
+				ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.NAME.getKey() };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -106,7 +107,7 @@ public class CloneSkillReactor extends AbstractReactor {
 		organizeKeys();
 
 		String sourceSkillId = this.keyValue.get(SKILL_ID);
-		String nameInput = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String nameInput = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 
 		if (sourceSkillId == null || sourceSkillId.isEmpty()) {
 			throw new IllegalArgumentException("skillId is required");
@@ -201,6 +202,6 @@ public class CloneSkillReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("Clones a skill into a new skill-project owned by the caller")
 				.key(SKILL_ID, "Identifier of the source skill to clone")
-				.key(ReactorKeysEnum.NAME, "Name for the cloned skill. Defaults to 'Copy of <original>'");
+				.key(ReactorKeysEnum.CATALOG_NAME, "Name for the cloned skill. Defaults to 'Copy of <original>'");
 	}
 }

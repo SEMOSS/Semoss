@@ -28,7 +28,6 @@
 package prerna.util.gson;
 
 import java.io.IOException;
-import java.util.Hashtable;
 import java.util.Map;
 
 import com.google.gson.TypeAdapter;
@@ -44,8 +43,8 @@ public class SEMOSSEdgeAdapter extends TypeAdapter<SEMOSSEdge> {
 		String uri = value.getURI();
 		String source = value.outVertex.getURI();
 		String target = value.inVertex.getURI();
-		Hashtable propHash = value.getProperty();
-		
+		Map<String, Object> propHash = value.getProperty();
+
 		out.beginObject();
 		out.name("uri").value(uri);
 		out.name("source").value(source);
@@ -53,7 +52,7 @@ public class SEMOSSEdgeAdapter extends TypeAdapter<SEMOSSEdge> {
 		out.name("propHash");
 		out.beginObject();
 		// flush out properties
-		for(Object key : propHash.keySet()) {
+		for (Object key : propHash.keySet()) {
 			out.name(key.toString());
 			Object innerObj = propHash.get(key);
 			writePropHash(out, innerObj);
@@ -61,30 +60,30 @@ public class SEMOSSEdgeAdapter extends TypeAdapter<SEMOSSEdge> {
 		out.endObject();
 		out.endObject();
 	}
-	
+
+	/**
+	 * Writes a property value: a map as a nested object, a number as a number with
+	 * NaN written as 0, null as a JSON null, and anything else as its text.
+	 *
+	 * @param out the writer
+	 * @param obj the property value
+	 * @throws IOException if the value cannot be written
+	 */
 	private void writePropHash(JsonWriter out, Object obj) throws IOException {
-		if(obj instanceof Map) {
+		if (obj == null) {
+			out.nullValue();
+		} else if (obj instanceof Map<?, ?> mapObj) {
 			out.beginObject();
-			Map mapObj = (Map) obj;
-			for(Object key : mapObj.keySet()) {
-				out.name(key.toString());
-				Object value = mapObj.get(key);
-				if(value instanceof Map) {
-					// make it recursive
-					writePropHash(out, value);
-				} else if(value instanceof Number){
-					out.value((Number) value);
-				} else {
-					out.value(value.toString());
-				}
+			for (Map.Entry<?, ?> entry : mapObj.entrySet()) {
+				out.name(String.valueOf(entry.getKey()));
+				writePropHash(out, entry.getValue());
 			}
 			out.endObject();
-		} else if(obj instanceof Number){
-			Number num = (Number) obj;
-			if(Double.isNaN(num.doubleValue())) {
+		} else if (obj instanceof Number num) {
+			if (Double.isNaN(num.doubleValue())) {
 				out.value(0);
 			} else {
-				out.value((Number) obj);
+				out.value(num);
 			}
 		} else {
 			out.value(obj.toString());

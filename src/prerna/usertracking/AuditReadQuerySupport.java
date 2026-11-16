@@ -75,7 +75,9 @@ public final class AuditReadQuerySupport {
 	}
 
 	/**
-	 * Adds an exact match for each allowed filter the options give a value for.
+	 * Adds an exact match for each allowed filter the options give a value for. Each
+	 * match is added beside the read's other filters, never merged into one on the
+	 * same column, so it only narrows the read.
 	 *
 	 * @param qs            the read to filter
 	 * @param allowedFields the option names a reader accepts, by the column each
@@ -91,7 +93,8 @@ public final class AuditReadQuerySupport {
 				if (value.length() > 255) {
 					throw new IllegalArgumentException(lengthError);
 				}
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column(field.getValue()), "==", value));
+				qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(column(field.getValue()), "==", value),
+						true);
 			}
 		}
 	}

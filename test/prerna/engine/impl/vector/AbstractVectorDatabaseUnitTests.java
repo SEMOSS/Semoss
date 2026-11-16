@@ -35,7 +35,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -53,8 +52,10 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -78,7 +79,6 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
-import prerna.util.SymlinkHelper;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -136,15 +136,45 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		}
 	}
 
+	private MockedConstruction<ClientProcessWrapper> wrapperConstruction;
+
 	@BeforeEach
 	void setUp() throws IOException {
 		FileUtils.cleanDirectory(tempDir.toFile());
 
 		user = mock(User.class);
 		// using inner class to access abstract methods
+		wrapperConstruction = mockWorkerWrapper();
 		engine = new VectorDatabaseEngine();
 		insight = mock(Insight.class);
 		modelEmbedder = mock(IModelEngine.class);
+	}
+
+	@AfterEach
+	void closeWrapperConstruction() {
+		wrapperConstruction.close();
+	}
+
+	/**
+	 * Makes the engine's process wrapper a mock whose python process starts once,
+	 * on the first call that needs it, and stays connected. The engine creates its
+	 * wrapper when it is constructed, so this runs before the engine is created.
+	 *
+	 * @return the construction mock, closed after each test
+	 */
+	private static MockedConstruction<ClientProcessWrapper> mockWorkerWrapper() {
+		SocketClient workerClient = mock(SocketClient.class);
+		when(workerClient.isConnected()).thenReturn(true);
+		return Mockito.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
+			AtomicBoolean started = new AtomicBoolean();
+			when(mock.getSocketClient()).thenReturn(workerClient);
+			when(mock.getOrStartSocketClient(any())).thenAnswer(invocation -> {
+				if (started.compareAndSet(false, true)) {
+					invocation.getArgument(0, Runnable.class).run();
+				}
+				return workerClient;
+			});
+		});
 	}
 
 	@Test
@@ -345,26 +375,12 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		fileNames.add(file1.toString());
 		fileNames.add(file2.toString());
 
-		SocketClient scMock = mock(SocketClient.class); // used in addDocument()->checkSocketStatus()->startServer()
-		when(scMock.isConnected()).thenReturn(true);
-		try (MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito// used in
-																			// addDocument()->checkSocketStatus()->startServer()
-				.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
-					doNothing().when(mock).createProcessAndClient(any(boolean.class), nullable(SymlinkHelper.class),
-							any(int.class), nullable(String.class), nullable(String.class), any(boolean.class),
-							any(String.class), any(String.class));
-					doNothing().when(mock).shutdown(false);
-					when(mock.getSocketClient()).thenReturn(scMock);
-
-				});
-				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
+		try (MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
-						(mock, context) -> {
-							// doNothing().when(mock).setSocketClient(scMock);
-							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn("true");
-						});
-				MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
+				(mock, context) -> {
+					doNothing().when(mock).runEmptyPy(any());
+					when(mock.runScript(any())).thenReturn("true");
+				}); MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
 
 			// used for addEmbeddings() portion
 			VectorDatabaseCSVTable vectorCsvTableMock = mock();
@@ -436,26 +452,12 @@ public class AbstractVectorDatabaseUnitTests extends SemossUnitTest {
 		fileNames.add(file1.toString());
 		fileNames.add(file2.toString());
 
-		SocketClient scMock = mock(SocketClient.class); // used in addDocument()->checkSocketStatus()->startServer()
-		when(scMock.isConnected()).thenReturn(true);
-		try (MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito// used in
-																			// addDocument()->checkSocketStatus()->startServer()
-				.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
-					doNothing().when(mock).createProcessAndClient(any(boolean.class), nullable(SymlinkHelper.class),
-							any(int.class), nullable(String.class), nullable(String.class), any(boolean.class),
-							any(String.class), any(String.class));
-					doNothing().when(mock).shutdown(false);
-					when(mock.getSocketClient()).thenReturn(scMock);
-
-				});
-				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
+		try (MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
 																										// addDocument()->checkSocketStatus()->startServer()
-						(mock, context) -> {
-							// doNothing().when(mock).setSocketClient(scMock);
-							doNothing().when(mock).runEmptyPy(any());
-							when(mock.runScript(any())).thenReturn("true");
-						});
-				MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
+				(mock, context) -> {
+					doNothing().when(mock).runEmptyPy(any());
+					when(mock.runScript(any())).thenReturn("true");
+				}); MockedStatic<VectorDatabaseCSVTable> vdcsvt = Mockito.mockStatic(VectorDatabaseCSVTable.class);) {
 
 			// used for addEmbeddings() portion
 			VectorDatabaseCSVTable vectorCsvTableMock = mock();
