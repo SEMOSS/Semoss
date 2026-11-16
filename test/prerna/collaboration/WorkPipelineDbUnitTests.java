@@ -452,6 +452,38 @@ class WorkPipelineDbUnitTests {
 
 	@Test
 	@SuppressWarnings("unchecked")
+	void whatTheOwnerSettledIsNotMadeAgainOrClosedAgainByOlderMail() throws Exception {
+		// the owner removed one step and reopened another that a message had closed; then the mail is read again
+		step("s-gone", "deck", null, "Send Kira the deck");
+		step("s-back", "quote", null, "Approve the Tarnwick quote 4471");
+		WorkTaskUtils.updateStep(user, "s-gone", Map.of("status", "dropped", "note", "not mine"), "owner");
+		WorkTaskUtils.updateStep(user, "s-back", Map.of("status", "open"), "owner");
+		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"closes\", \"ref\": \"s1\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c3\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\", \"c3\"]}";
+		Map<String, Object> topic = plan(reply,
+				// the same ask, from before the owner removed it
+				on(task("c1", "Send Kira the deck"), "deck", "2026-11-05T10:00:00Z"),
+				// the old done message on the reopened step's conversation
+				on(claim("c2", "Approved the Tarnwick quote"), "quote", "2026-11-05T10:00:00Z"),
+				// another ask on the same conversation is still work
+				on(task("c3", "Book the venue for the offsite"), "deck", "2026-11-05T10:00:00Z"));
+		List<Map<String, Object>> loose = (List<Map<String, Object>>) topic.get("looseSteps");
+		assertEquals(List.of("Book the venue for the offsite"), loose.stream().map(st -> st.get("text")).toList());
+		assertEquals(0, ((List<?>) topic.get("closes")).size());
+		assertTrue(((List<Map<String, Object>>) topic.get("dropped")).stream()
+				.anyMatch(d -> "the owner already settled this".equals(d.get("reason"))));
+		// mail written after the owner's change is new: it may ask again and may finish the step
+		String later = java.time.Instant.now().plusSeconds(3600).toString();
+		Map<String, Object> next = plan(reply.replace("c3", "c9"), on(task("c1", "Send Kira the deck"), "deck", later),
+				on(claim("c2", "Approved the Tarnwick quote"), "quote", later));
+		assertEquals(1, ((List<?>) next.get("looseSteps")).size());
+		assertEquals(1, ((List<?>) next.get("closes")).size());
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
 	void aDoneClaimFinishesOnlyAnEarlierAskOfItsOwnThreadWhenNoTopicHoldsThem() {
 		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
 				+ "{\"candidate\": \"c2\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "

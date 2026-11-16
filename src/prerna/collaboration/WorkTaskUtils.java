@@ -79,7 +79,7 @@ public final class WorkTaskUtils {
 	private static final String TASK_COLUMNS = "TASK_ID, KIND, TITLE, DESCRIPTION, STATUS, ONGOING, NEXT_STEP, "
 			+ "WAITING_ON_PERSON_ID, PERSON_ID, DUE_AT, PRIORITY, ORIGIN, STATE, CREATED_AT, UPDATED_AT, CLOSED_AT, SORT_ORDER, ROOM_ID";
 	private static final String STEP_COLUMNS = "STEP_ID, THREAD_ID, TASK_ID, TEXT, KIND, STATUS, STEP_OWNER_ID, "
-			+ "DUE_AT, LINK_TOPIC_ID, ORIGIN, NOTE, CLOSED_BY, CREATED_AT, UPDATED_AT";
+			+ "DUE_AT, LINK_TOPIC_ID, ORIGIN, NOTE, CLOSED_BY, OWNER_SET_AT, CREATED_AT, UPDATED_AT";
 	private static final int MAX_TITLE = 255;
 	// more than a busy owner has open at once; what is cut is counted (workItemTotal, looseStepTotal)
 	private static final int LIST_LIMIT = 500;
@@ -215,6 +215,22 @@ public final class WorkTaskUtils {
 		return CollaborationDbUtils.query(CollaborationDbUtils.page("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP"
 				+ OWNED + " AND STATUS IN (?, ?) AND (" + String.join(" OR ", where) + ") ORDER BY CREATED_AT DESC",
 				max, 0), WorkTaskUtils::mapStep, params.toArray());
+	}
+
+	/**
+	 * Steps on these threads that the owner finished or removed themselves, newest first: reconcile does not make
+	 * them again from mail that is older than the owner's change.
+	 */
+	static List<Map<String, Object>> settled(String ownerId, String ownerType, Collection<String> threadIds) {
+		if (threadIds.isEmpty()) {
+			return new ArrayList<>();
+		}
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType, DONE, DROPPED));
+		params.addAll(threadIds);
+		return CollaborationDbUtils.query("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP" + OWNED
+				+ " AND STATUS IN (?, ?) AND OWNER_SET_AT IS NOT NULL AND THREAD_ID IN ("
+				+ CollaborationDbUtils.placeholders(threadIds.size()) + ") ORDER BY OWNER_SET_AT DESC",
+				WorkTaskUtils::mapStep, params.toArray());
 	}
 
 	/** One work item in full: steps, timeline, threads and topics. */
@@ -470,6 +486,14 @@ public final class WorkTaskUtils {
 		}
 		if (args.containsKey("assigneeId")) {
 			CollaborationDbUtils.addSet(sets, values, "STEP_OWNER_ID", assignee);
+		}
+		// the owner's own word on whether it is done and whose it is: the next build keeps it (EDITED), and mail
+		// from before this moment neither closes the step again nor brings it back
+		if (!BRAIN.equals(origin) && (status != null || args.containsKey("assigneeId"))) {
+			CollaborationDbUtils.addSet(sets, values, "OWNER_SET_AT", now);
+			if (args.containsKey("assigneeId") && !args.containsKey("text")) {
+				CollaborationDbUtils.addSet(sets, values, "EDITED", true);
+			}
 		}
 		if (sets.isEmpty()) {
 			return before;
@@ -868,6 +892,7 @@ public final class WorkTaskUtils {
 		putIfNotNull(s, "topicId", rs.getString("LINK_TOPIC_ID"));
 		putIfNotNull(s, "note", CollaborationDbUtils.getString(rs, "NOTE"));
 		putIfNotNull(s, "closedBy", rs.getString("CLOSED_BY"));
+		putIfNotNull(s, "ownerSetAt", CollaborationDbUtils.getTimestamp(rs, "OWNER_SET_AT"));
 		s.put("origin", rs.getString("ORIGIN"));
 		s.put("createdAt", CollaborationDbUtils.getTimestamp(rs, "CREATED_AT"));
 		return s;

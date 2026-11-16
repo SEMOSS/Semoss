@@ -275,6 +275,23 @@ public final class WorkReconcile {
 						}, ownerId, ownerType, topicId);
 		out.put("topic", topic == null ? topicId : topic.get("name"));
 
+		// what the owner already finished or removed themselves is not made again from mail older than that
+		Set<String> onThreads = new LinkedHashSet<>();
+		for (Map<String, Object> c : candidates) {
+			if (c.get("threadId") != null) {
+				onThreads.add(String.valueOf(c.get("threadId")));
+			}
+		}
+		List<Map<String, Object>> settled = WorkTaskUtils.settled(ownerId, ownerType, onThreads);
+		List<Map<String, Object>> settledAgain = new ArrayList<>();
+		if (settled != null && !settled.isEmpty()) {
+			List<Map<String, Object>> kept = new ArrayList<>();
+			for (Map<String, Object> c : candidates) {
+				(isTask(c) && settledBefore(c, settled) ? settledAgain : kept).add(c);
+			}
+			candidates = kept;
+		}
+
 		// the same ask said twice merges in code first; the model sees one with how
 		// often it was said
 		Map<String, List<String>> mergedInto = new LinkedHashMap<>();
@@ -327,6 +344,7 @@ public final class WorkReconcile {
 					stepIds.put(s, String.valueOf(step.get("id")));
 					items.stepThreads.put(String.valueOf(step.get("id")), String.valueOf(step.get("threadId")));
 					items.stepTexts.put(String.valueOf(step.get("id")), String.valueOf(step.get("text")));
+					items.stepOwnerSet.put(String.valueOf(step.get("id")), step.get("ownerSetAt"));
 					steps.add(Map.of("id", s, "text", String.valueOf(step.get("text"))));
 				}
 				Map<String, Object> item = new LinkedHashMap<>();
@@ -384,6 +402,7 @@ public final class WorkReconcile {
 				stepIds.put(s, id);
 				items.stepThreads.put(id, String.valueOf(step.get("threadId")));
 				items.stepTexts.put(id, String.valueOf(step.get("text")));
+				items.stepOwnerSet.put(id, step.get("ownerSetAt"));
 				otherSteps.add(Map.of("id", s, "text", String.valueOf(step.get("text"))));
 			}
 		}
@@ -428,6 +447,10 @@ public final class WorkReconcile {
 		// or else the instance allows it
 		boolean across = !noTopic && closesAcross(ownerId, ownerType);
 		assemble(answer, shown, mergedInto, items, stepIds, existing, noTopic, across, out);
+		for (Map<String, Object> c : settledAgain) {
+			((List<Map<String, Object>>) out.get("dropped")).add(entry(c,
+					new LinkedHashSet<>(List.of(String.valueOf(c.get("id")))), "reason", "the owner already settled this"));
+		}
 		// unfiled threads have nothing in common but being unfiled; their tasks are not
 		// grouped across threads
 		if (!noTopic) {
@@ -447,6 +470,8 @@ public final class WorkReconcile {
 		final Map<String, String> stepThreads = new LinkedHashMap<>();
 		// what each existing open step says, by step id
 		final Map<String, String> stepTexts = new LinkedHashMap<>();
+		// when the owner last set an existing step's status or owner themselves, by step id
+		final Map<String, Object> stepOwnerSet = new LinkedHashMap<>();
 		Map<String, String> ids = new LinkedHashMap<>();
 
 		Items(Map<String, Set<String>> fedBy) {
@@ -657,6 +682,9 @@ public final class WorkReconcile {
 				if (isTask(c)) {
 					// a new ask never finishes an old one: it is work of its own
 					leftovers.add(id);
+				} else if (asked == null && !after(c.get("at"), items.stepOwnerSet.get(stepIds.get(ref)))) {
+					// the owner reopened this step, or took it over, after this message: it does not close it again
+					topicUpdates.add(entry(c, evidence.get(id), null, null));
 				} else if (finishes(c, thread, asked == null ? null : asked.get("at"))
 						|| (across && finishesAcross(c, said, asked == null ? null : asked.get("at")))) {
 					closes.add(entry(c, evidence.get(id), "closes", stepIds.containsKey(ref) ? stepIds.get(ref) : ref));
@@ -786,6 +814,47 @@ public final class WorkReconcile {
 		}
 		return askedAt == null || claim.get("at") == null
 				|| String.valueOf(claim.get("at")).compareTo(String.valueOf(askedAt)) > 0;
+	}
+
+	// a comes after b; unknown times count as after, so nothing is held back for want of a date
+	static boolean after(Object a, Object b) {
+		java.time.Instant x = instant(a);
+		java.time.Instant y = instant(b);
+		return x == null || y == null || x.isAfter(y);
+	}
+
+	private static java.time.Instant instant(Object value) {
+		if (value instanceof java.util.Date date) {
+			return date.toInstant();
+		}
+		try {
+			return value == null ? null : java.time.OffsetDateTime.parse(String.valueOf(value)).toInstant();
+		} catch (java.time.format.DateTimeParseException e) {
+			return null;
+		}
+	}
+
+	// the ask repeats a step of its own conversation that the owner finished or removed after this message
+	// was written: the same words, or most of the telling ones
+	static boolean settledBefore(Map<String, Object> c, List<Map<String, Object>> settled) {
+		for (Map<String, Object> step : settled) {
+			if (!String.valueOf(c.get("threadId")).equals(String.valueOf(step.get("threadId")))
+					|| after(c.get("at"), step.get("ownerSetAt")) || c.get("at") == null) {
+				continue;
+			}
+			String a = String.valueOf(c.get("text"));
+			String b = String.valueOf(step.get("text"));
+			if (similar(a, b)) {
+				return true;
+			}
+			Set<String> x = telling(a);
+			Set<String> y = telling(b);
+			long shared = x.stream().filter(y::contains).count();
+			if (shared >= 2 && shared * 3 >= 2 * Math.max(x.size(), y.size())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	// the owner's choice (Settings), or else the instance's

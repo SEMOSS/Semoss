@@ -576,6 +576,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// brain when thread insights made it; EDITED once the owner changes its text, owner, due or kind
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("EDITED", BOOLEAN_DATATYPE_NAME),
+				// when the owner last changed its status or whose it is: mail older than that does not undo it
+				Pair.with("OWNER_SET_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),
 				// the work item it serves; null is a loose step under its topic. THREAD_ID is null for one added in chat
