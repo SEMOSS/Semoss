@@ -43,6 +43,7 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -51,6 +52,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
 
 import com.zaxxer.hikari.HikariConfig;
 
@@ -638,6 +642,59 @@ public final class SandboxedJavaExecution {
 			throw new IllegalArgumentException("Cannot read the pool property file " + propertyFileName, e);
 		}
 		return hikariConfig(properties);
+	}
+
+	/**
+	 * A rectangle a project's code gets from PDFBox, or a copy of it when it is one
+	 * of the page sizes PDFBox shares between every document in the JVM, such as
+	 * {@link PDRectangle#A4}, so a change to it stays in the project's own
+	 * document.
+	 *
+	 * @param box the rectangle
+	 * @return the rectangle, or a copy of a shared page size
+	 */
+	public static PDRectangle unsharedPageSize(PDRectangle box) {
+		if (box == null) {
+			return null;
+		}
+		for (PDRectangle size : List.of(PDRectangle.LETTER, PDRectangle.LEGAL, PDRectangle.TABLOID, PDRectangle.A0,
+				PDRectangle.A1, PDRectangle.A2, PDRectangle.A3, PDRectangle.A4, PDRectangle.A5, PDRectangle.A6)) {
+			if (box == size || box.getCOSArray() == size.getCOSArray()) {
+				return new PDRectangle(box.getLowerLeftX(), box.getLowerLeftY(), box.getWidth(), box.getHeight());
+			}
+		}
+		return box;
+	}
+
+	/**
+	 * Sandboxed replacement for {@code new PDPage()}: a US Letter page with a media
+	 * box of its own.
+	 *
+	 * @return the page
+	 */
+	public static PDPage pdPage() {
+		return new PDPage(unsharedPageSize(PDRectangle.LETTER));
+	}
+
+	/**
+	 * Sandboxed replacement for {@code new PDPage(PDRectangle)}: a page whose media
+	 * box is its own, also when it is given a shared page size.
+	 *
+	 * @param mediaBox the page's size
+	 * @return the page
+	 */
+	public static PDPage pdPage(PDRectangle mediaBox) {
+		return new PDPage(unsharedPageSize(mediaBox));
+	}
+
+	/**
+	 * Sandboxed replacement for {@code new PDPage(COSDictionary)}.
+	 *
+	 * @param page the page's dictionary
+	 * @return the page
+	 */
+	public static PDPage pdPage(COSDictionary page) {
+		return new PDPage(page);
 	}
 
 	// ---------------------------------------------------------- Class loaders

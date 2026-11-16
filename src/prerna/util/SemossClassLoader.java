@@ -174,10 +174,12 @@ public class SemossClassLoader extends ClassLoader {
 	 * They load native code (load, loadLibrary), open a network connection
 	 * (URL.getContent), change something for every user of the JVM (its standard
 	 * streams, URL handlers, security providers, registered JDBC drivers, time
-	 * zone, locale and logging), change who the signed in user is or which request
-	 * the thread serves, have a shared
-	 * library find a class or a data source by name, or hand out the SAX1 parser
-	 * under a SAX parser.
+	 * zone, locale and logging, and PDFBox's font mapper, resource cache, security
+	 * handlers, security provider, name cache and built-in font charsets), free
+	 * memory that other code may still read (PDFBox's IOUtils.unmap), read file
+	 * paths out of a map (PDFBox's Overlay.overlay), change who the signed in user
+	 * is or which request the thread serves, have a shared library find a class or
+	 * a data source by name, or hand out the SAX1 parser under a SAX parser.
 	 */
 	private static final Map<String, Set<String>> BLOCKED_CALLS = Map.ofEntries(
 			Map.entry("java/lang/System", Set.of("load", "loadLibrary", "setIn", "setOut", "setErr")),
@@ -200,7 +202,17 @@ public class SemossClassLoader extends ClassLoader {
 			Map.entry("com/zaxxer/hikari/HikariConfig", HIKARI_LOOKUP_SETTERS),
 			Map.entry("com/zaxxer/hikari/HikariDataSource", HIKARI_LOOKUP_SETTERS),
 			Map.entry("com/fasterxml/jackson/databind/type/TypeFactory", Set.of("findClass")),
-			Map.entry("tools/jackson/databind/type/TypeFactory", Set.of("findClass")));
+			Map.entry("tools/jackson/databind/type/TypeFactory", Set.of("findClass")),
+			Map.entry("org/apache/pdfbox/io/IOUtils", Set.of("unmap")),
+			Map.entry("org/apache/pdfbox/cos/COSName", Set.of("clearResources")),
+			Map.entry("org/apache/pdfbox/pdmodel/ResourceCacheFactory", Set.of("setResourceCacheCreateFunction")),
+			Map.entry("org/apache/pdfbox/pdmodel/font/FontMappers", Set.of("set")),
+			Map.entry("org/apache/pdfbox/pdmodel/encryption/SecurityProvider", Set.of("setProvider")),
+			Map.entry("org/apache/pdfbox/pdmodel/encryption/SecurityHandlerFactory", Set.of("registerHandler")),
+			Map.entry("org/apache/pdfbox/multipdf/Overlay", Set.of("overlay")),
+			Map.entry("org/apache/fontbox/cff/CFFISOAdobeCharset", Set.of("getInstance")),
+			Map.entry("org/apache/fontbox/cff/CFFExpertCharset", Set.of("getInstance")),
+			Map.entry("org/apache/fontbox/cff/CFFExpertSubsetCharset", Set.of("getInstance")));
 
 	/**
 	 * The package of the query utilities an RDBMS engine hands out
@@ -245,14 +257,15 @@ public class SemossClassLoader extends ClassLoader {
 	/**
 	 * The library packages project reactor code shares with the platform, as name
 	 * prefixes: JSON (org.json, Jackson), Excel and Office files (the POI family
-	 * with its schema classes), tuples, and the mail and activation APIs. Any other
+	 * with its schema classes), tuples, PDF files (PDFBox and FontBox), and the
+	 * mail and activation APIs. Any other
 	 * library on the platform classpath that a project class names is loaded as the
 	 * project's own sandboxed copy.
 	 */
 	private static final List<String> SHARED_LIBRARY_PACKAGES = List.of("org.json.", "com.fasterxml.jackson.",
 			"tools.jackson.", "org.apache.poi.", "com.github.pjfanning.xlsx.", "org.openxmlformats.schemas.",
-			"com.microsoft.schemas.", "org.etsi.uri.", "org.w3.x2000.", "org.javatuples.", "jakarta.mail.",
-			"jakarta.activation.");
+			"com.microsoft.schemas.", "org.etsi.uri.", "org.w3.x2000.", "org.javatuples.", "org.apache.pdfbox.",
+			"org.apache.fontbox.", "jakarta.mail.", "jakarta.activation.");
 
 	/**
 	 * Library packages shared without their sub-packages: the log4j API, Gson and
@@ -285,6 +298,27 @@ public class SemossClassLoader extends ClassLoader {
 	 * in the transformed bytecode.
 	 */
 	private static final String SANDBOX = "prerna/util/SandboxedJavaExecution";
+
+	/**
+	 * The oldest class file version the sandbox writes: Java 5, the first in which
+	 * {@code ldc} loads a class constant, which the rewritten calls use to pass the
+	 * calling class. A class compiled for an older Java, such as a library built
+	 * for Java 1.1, is written at this version and checked by the same verifier.
+	 */
+	private static final int OLDEST_WRITTEN_VERSION = Opcodes.V1_5;
+
+	/**
+	 * Descriptor of PDFBox's rectangle. Its page sizes, such as {@code A4}, are
+	 * single objects every document in the JVM shares, so project code gets a copy
+	 * of one wherever it reads or is handed one.
+	 */
+	private static final String PD_RECTANGLE_DESCRIPTOR = "Lorg/apache/pdfbox/pdmodel/common/PDRectangle;";
+
+	/**
+	 * Descriptor of PDFBox's page, whose constructors move to
+	 * {@link SandboxedJavaExecution} so a new page gets a media box of its own.
+	 */
+	private static final String PD_PAGE_DESCRIPTOR = "Lorg/apache/pdfbox/pdmodel/PDPage;";
 
 	/**
 	 * Internal name of the sandbox class whose static methods harden the JDK's XML
@@ -470,6 +504,22 @@ public class SemossClassLoader extends ClassLoader {
 			Map.entry("org/apache/poi/hslf/usermodel/HSLFSlideShow", Map.of("<init>", 0)),
 			Map.entry("org/apache/poi/openxml4j/opc/OPCPackage", Map.of("open", 0, "create", 0)),
 			Map.entry("org/apache/poi/ooxml/POIXMLDocument", Map.of("openPackage", 0)),
+			Map.entry("org/apache/pdfbox/Loader", Map.of("loadFDF", 0, "loadXFDF", 0)),
+			Map.entry("org/apache/pdfbox/pdmodel/PDDocument", Map.of("save", 0)),
+			Map.entry("org/apache/pdfbox/pdmodel/fdf/FDFDocument", Map.of("save", 0, "saveXFDF", 0)),
+			Map.entry("org/apache/pdfbox/multipdf/PDFMergerUtility",
+					Map.of("addSource", 0, "setDestinationFileName", 0)),
+			Map.entry("org/apache/pdfbox/multipdf/Overlay",
+					Map.of("setInputFile", 0, "setDefaultOverlayFile", 0, "setFirstPageOverlayFile", 0,
+							"setLastPageOverlayFile", 0, "setAllPagesOverlayFile", 0, "setOddPageOverlayFile", 0,
+							"setEvenPageOverlayFile", 0)),
+			Map.entry("org/apache/pdfbox/pdmodel/graphics/image/PDImageXObject", Map.of("createFromFile", 0)),
+			Map.entry("org/apache/pdfbox/pdmodel/interactive/digitalsignature/visible/PDVisibleSignDesigner",
+					Map.of("<init>", 0, "signatureImage", 0)),
+			Map.entry("org/apache/pdfbox/io/RandomAccessReadBufferedFile", Map.of("<init>", 0)),
+			Map.entry("org/apache/pdfbox/io/RandomAccessReadMemoryMappedFile", Map.of("<init>", 0)),
+			Map.entry("org/apache/fontbox/pfb/PfbParser", Map.of("<init>", 0)),
+			Map.entry("org/apache/fontbox/util/autodetect/FontFileFinder", Map.of("find", 0)),
 			Map.entry("jakarta/activation/FileDataSource", Map.of("<init>", 0)),
 			Map.entry("jakarta/activation/MimetypesFileTypeMap", Map.of("<init>", 0)),
 			Map.entry("jakarta/activation/MailcapCommandMap", Map.of("<init>", 0)),
@@ -1125,6 +1175,14 @@ public class SemossClassLoader extends ClassLoader {
 		}
 		m.put("com/zaxxer/hikari/HikariConfig", hikari);
 
+		Map<String, String[]> pdPage = new HashMap<>();
+		pdPage.put("()V", new String[] { "pdPage", "()" + PD_PAGE_DESCRIPTOR });
+		pdPage.put("(" + PD_RECTANGLE_DESCRIPTOR + ")V",
+				new String[] { "pdPage", "(" + PD_RECTANGLE_DESCRIPTOR + ")" + PD_PAGE_DESCRIPTOR });
+		pdPage.put("(Lorg/apache/pdfbox/cos/COSDictionary;)V",
+				new String[] { "pdPage", "(Lorg/apache/pdfbox/cos/COSDictionary;)" + PD_PAGE_DESCRIPTOR });
+		m.put("org/apache/pdfbox/pdmodel/PDPage", pdPage);
+
 		CONSTRUCTOR_REDIRECTS = Collections.unmodifiableMap(m);
 	}
 
@@ -1140,7 +1198,17 @@ public class SemossClassLoader extends ClassLoader {
 	 * {@code null}, hiding host environment variables.</li>
 	 * <li>Replaces all {@code Runtime.exec(...)} overloads with a call that throws
 	 * {@link SecurityException}.</li>
+	 * <li>Writes a class compiled for Java 1.4 or older at
+	 * {@link #OLDEST_WRITTEN_VERSION}, so the class constants the rewritten calls
+	 * pass are valid in it.</li>
 	 * </ul>
+	 * <p>
+	 * Stack-map frames are rebuilt from scratch for a class file of Java 6 or
+	 * newer, since the replacements change the frame layout; a type that is not on
+	 * the classpath counts as {@code Object} when two types meet. An older class
+	 * file has no frames, so only its stack and local sizes are recomputed, which
+	 * also keeps the {@code jsr} and {@code ret} instructions older compilers write
+	 * for {@code finally} blocks.
 	 *
 	 * @param original raw bytecode of the class to transform
 	 * @return transformed bytecode
@@ -1161,11 +1229,8 @@ public class SemossClassLoader extends ClassLoader {
 				};
 			}
 		}, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
-		// COMPUTE_FRAMES rebuilds stack-map frames from scratch, which is required
-		// because our instruction replacements can change the frame layout.
-		// getCommonSuperClass falls back to Object for any class not on the
-		// current classpath so that transformation never fails hard.
-		ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES) {
+		int frames = cr.readUnsignedShort(6) < Opcodes.V1_6 ? ClassWriter.COMPUTE_MAXS : ClassWriter.COMPUTE_FRAMES;
+		ClassWriter cw = new ClassWriter(cr, frames) {
 			@Override
 			protected String getCommonSuperClass(String type1, String type2) {
 				try {
@@ -1175,8 +1240,6 @@ public class SemossClassLoader extends ClassLoader {
 				}
 			}
 		};
-		// SKIP_FRAMES: let COMPUTE_FRAMES recompute everything instead of trying
-		// to patch the original (potentially stale) frame data.
 		cr.accept(new SandboxClassVisitor(cw, methodLocals, approvedLibraryPackages()), ClassReader.SKIP_FRAMES);
 		return cw.toByteArray();
 	}
@@ -1206,7 +1269,8 @@ public class SemossClassLoader extends ClassLoader {
 		/**
 		 * Moves a class that extends a JDK class loader onto the sandbox class that
 		 * stands in for it, and refuses a class that extends a sandbox class or
-		 * overrides {@code loadClass}.
+		 * overrides {@code loadClass}. A class compiled for Java 1.4 or older is
+		 * written at {@link #OLDEST_WRITTEN_VERSION}.
 		 */
 		@Override
 		public void visit(int version, int access, String name, String signature, String superName,
@@ -1225,8 +1289,9 @@ public class SemossClassLoader extends ClassLoader {
 			this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
 			this.originalSuper = superName;
 			this.sandboxSuper = superName == null ? null : LOADER_BASES.get(superName);
+			int writtenVersion = (version & 0xFFFF) < OLDEST_WRITTEN_VERSION ? OLDEST_WRITTEN_VERSION : version;
 			if (this.sandboxSuper == null) {
-				super.visit(version, access, name, signature, superName, interfaces);
+				super.visit(writtenVersion, access, name, signature, superName, interfaces);
 				return;
 			}
 			for (String loadClass : LOAD_CLASS_METHODS) {
@@ -1235,7 +1300,7 @@ public class SemossClassLoader extends ClassLoader {
 							+ "findClass; overriding loadClass is not permitted");
 				}
 			}
-			super.visit(version, access, name, null, this.sandboxSuper, interfaces);
+			super.visit(writtenVersion, access, name, null, this.sandboxSuper, interfaces);
 		}
 
 		@Override
@@ -1317,7 +1382,8 @@ public class SemossClassLoader extends ClassLoader {
 			if (CONSTRUCTOR_REDIRECTS.containsKey(owner) || PATH_TEXT_ARGUMENTS.containsKey(owner)
 					|| LOADER_BASES.containsKey(owner) || FILE.equals(owner) || XML_FACTORY_LOOKUPS.containsKey(owner)
 					|| XML_USES.containsKey(owner) || SYSTEM_ID_ARGUMENTS.containsKey(owner)
-					|| XPATH_CLASSES.contains(owner) || descriptor.endsWith(")" + CLASS_LOADER_DESCRIPTOR)) {
+					|| XPATH_CLASSES.contains(owner) || descriptor.endsWith(")" + CLASS_LOADER_DESCRIPTOR)
+					|| descriptor.endsWith(")" + PD_RECTANGLE_DESCRIPTOR)) {
 				return true;
 			}
 			for (String argument : ARGUMENT_RULES.keySet()) {
@@ -1521,17 +1587,27 @@ public class SemossClassLoader extends ClassLoader {
 		}
 
 		/**
-		 * Keeps a class loader read from a field in the sandbox, and refuses a field of
-		 * a sandbox class.
+		 * Keeps a class loader read from a field in the sandbox, hands out a copy of a
+		 * page size PDFBox shares, refuses a field of a sandbox class, and replaces an
+		 * assignment to a static field of a JDK, platform or shared library class,
+		 * which every user of the JVM would see, with a call that throws.
 		 */
 		@Override
 		public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
 			suppressNextDup = false;
 			refuseSandboxClass(owner);
+			if (opcode == Opcodes.PUTSTATIC && this.owner.isPlatformSide(owner)) {
+				super.visitInsn(Type.getType(descriptor).getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
+				super.visitLdcInsn(owner.substring(owner.lastIndexOf('/') + 1) + "." + name);
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "blockCall", "(Ljava/lang/String;)V", false);
+				return;
+			}
 			super.visitFieldInsn(opcode, owner, name, descriptor);
 			if ((opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC)
 					&& CLASS_LOADER_DESCRIPTOR.equals(descriptor)) {
 				keepLoaderInSandbox();
+			} else if (opcode == Opcodes.GETSTATIC && PD_RECTANGLE_DESCRIPTOR.equals(descriptor)) {
+				unsharePageSize();
 			}
 		}
 
@@ -1546,13 +1622,25 @@ public class SemossClassLoader extends ClassLoader {
 		}
 
 		/**
-		 * Writes a call as it is, then keeps the class loader it returns, if it returns
-		 * one, in the sandbox.
+		 * With a PDFBox rectangle on top of the stack, swaps it for a copy when it is a
+		 * page size every document shares.
 		 */
-		private void callKeepingLoaderInSandbox(int opcode, String owner, String name, String descriptor, boolean itf) {
+		private void unsharePageSize() {
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "unsharedPageSize",
+					"(" + PD_RECTANGLE_DESCRIPTOR + ")" + PD_RECTANGLE_DESCRIPTOR, false);
+		}
+
+		/**
+		 * Writes a call as it is, then keeps the class loader it returns, if it returns
+		 * one, in the sandbox, and swaps a page size PDFBox shares that it returns for
+		 * a copy.
+		 */
+		private void callKeepingResultInSandbox(int opcode, String owner, String name, String descriptor, boolean itf) {
 			super.visitMethodInsn(opcode, owner, name, descriptor, itf);
 			if (descriptor.endsWith(")" + CLASS_LOADER_DESCRIPTOR)) {
 				keepLoaderInSandbox();
+			} else if (descriptor.endsWith(")" + PD_RECTANGLE_DESCRIPTOR)) {
+				unsharePageSize();
 			}
 		}
 
@@ -1663,7 +1751,7 @@ public class SemossClassLoader extends ClassLoader {
 				return;
 			}
 			if (opcode == Opcodes.INVOKESPECIAL && this.sandboxSuper != null && owner.equals(this.originalSuper)) {
-				callKeepingLoaderInSandbox(opcode, this.sandboxSuper, name, descriptor, itf);
+				callKeepingResultInSandbox(opcode, this.sandboxSuper, name, descriptor, itf);
 				return;
 			}
 			if (opcode == Opcodes.INVOKESTATIC && URL_CLASS_LOADER.equals(owner) && "newInstance".equals(name)) {
@@ -1906,7 +1994,7 @@ public class SemossClassLoader extends ClassLoader {
 				}
 			}
 
-			callKeepingLoaderInSandbox(opcode, owner, name, descriptor, itf);
+			callKeepingResultInSandbox(opcode, owner, name, descriptor, itf);
 		}
 
 		/**
