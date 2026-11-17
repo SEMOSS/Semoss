@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.util;
+package prerna.util.openshell;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -71,8 +71,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-import prerna.util.openshell.TransportedRoots;
 import prerna.util.sandbox.SandboxSettings;
+import prerna.util.Utility;
+import prerna.util.SymlinkHelper;
 
 /**
  * Transport to a SEMOSS python worker running inside an OpenShell sandbox.

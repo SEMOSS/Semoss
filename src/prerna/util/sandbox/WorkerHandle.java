@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.util.sandbox;
 
-import prerna.util.OpenShellTransport;
+import prerna.util.openshell.OpenShellTransport;
 
 /**
  * A started worker: what the caller needs to connect to it and to stop it.

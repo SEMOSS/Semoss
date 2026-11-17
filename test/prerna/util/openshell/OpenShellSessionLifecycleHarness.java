@@ -38,7 +38,7 @@ import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
-import prerna.util.OpenShellTransport;
+import prerna.util.openshell.OpenShellTransport;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
 

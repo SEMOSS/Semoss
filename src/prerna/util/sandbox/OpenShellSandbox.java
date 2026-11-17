@@ -33,8 +33,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.util.OpenShellTransport;
-import prerna.util.OpenShellTransporter;
+import prerna.util.openshell.OpenShellTransport;
+import prerna.util.openshell.OpenShellTransporter;
 import prerna.util.SymlinkHelper;
 import prerna.util.openshell.OpenShellShellRunner;
 import prerna.util.openshell.OpenShellUserSandboxes;

@@ -69,7 +69,7 @@ import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.InternalUtility;
-import prerna.util.OpenShellTransport;
+import prerna.util.openshell.OpenShellTransport;
 import prerna.util.PortAllocator;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;

@@ -43,7 +43,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.om.ClientProcessWrapper;
-import prerna.util.OpenShellTransport;
 
 /**
  * Runs shell commands <b>inside</b> the user's OpenShell sandbox.

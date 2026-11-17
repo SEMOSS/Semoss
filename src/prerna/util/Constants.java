@@ -761,7 +761,7 @@ public class Constants {
 	// Any other value, including OFF and SECCOMP_ONLY, means FAKECHROOT: only
 	// CHROOT_ENABLE=false turns jailing off. Parsed in prerna.util.sandbox.SandboxSettings.
 	// OPENSHELL runs the worker as the main process of an OpenShell sandbox instead of a
-	// child process of Tomcat. See prerna.util.OpenShellTransport.
+	// child process of Tomcat. See prerna.util.openshell.OpenShellTransport.
 	public static final String SANDBOX_MODE = "SANDBOX_MODE";
 	public static final String SANDBOX_MODE_OPENSHELL = "OPENSHELL";
 	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";

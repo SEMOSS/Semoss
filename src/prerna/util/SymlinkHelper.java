@@ -57,7 +57,9 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.project.api.IProject;
+import prerna.util.sandbox.SandboxInjector;
 import prerna.util.sandbox.SandboxSettings;
+import prerna.util.sandbox.SandboxTransporter;
 
 public class SymlinkHelper {
 
@@ -261,7 +263,7 @@ public class SymlinkHelper {
 	 * @param relativeFolder the folder relative to the project's app root
 	 * @return true when the folder and everything under it is left out
 	 */
-	static boolean isLeftOutOfCopy(Path relativeFolder) {
+	public static boolean isLeftOutOfCopy(Path relativeFolder) {
 		return FOLDERS_LEFT_OUT_OF_A_COPY.contains(relativeFolder);
 	}
 
@@ -484,7 +486,7 @@ public class SymlinkHelper {
 	 * @throws UncheckedIOException if a folder cannot be created or a file cannot
 	 *                              be copied
 	 */
-	static void copyProjectForReadOnlyUser(Path appRoot, Path target) throws IOException {
+	public static void copyProjectForReadOnlyUser(Path appRoot, Path target) throws IOException {
 		if (!Files.exists(appRoot)) {
 			return;
 		}

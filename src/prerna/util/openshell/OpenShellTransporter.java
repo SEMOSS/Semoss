@@ -25,10 +25,11 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.util;
+package prerna.util.openshell;
 
-import prerna.util.openshell.OpenShellSecrets;
-import prerna.util.openshell.TransportedRoots;
+import prerna.util.Utility;
+import prerna.util.Constants;
+import prerna.util.sandbox.SandboxTransporter;
 
 /**
  * {@link SandboxTransporter} for {@link prerna.util.sandbox.SandboxSettings.Mode#OPENSHELL}: copies a host path into
