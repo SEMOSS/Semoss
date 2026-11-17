@@ -52,4 +52,16 @@ else
   CATALINA_OPTS="$CATALINA_OPTS -Dcac.piv.truststore.password=changeit"
 fi
 CATALINA_OPTS="$CATALINA_OPTS -Dcac.piv.required=$CAC_PIV_REQUIRED"
+# Login sessions. By default each lives in the memory of the one container that
+# created it, so a deployment with a single container needs nothing. With several
+# containers set SESSION_STORE=jdbc: the entrypoint (session_store.py) writes a
+# Monolith-only context descriptor, with the database settings, into a private
+# directory and this points Tomcat at it. Only the directory name is passed here;
+# no database setting or secret goes through the JVM options, which catalina.sh
+# re-parses with eval. See README "Sessions across several containers".
+case "${SESSION_STORE:-memory}" in
+  memory) ;;
+  jdbc) CATALINA_OPTS="$CATALINA_OPTS -Dsession.xml.base=/tmp/session-store" ;;
+  *) echo "SESSION_STORE must be memory or jdbc" >&2; return 1 2>/dev/null || exit 1 ;;
+esac
 export CLASSPATH CATALINA_OPTS

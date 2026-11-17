@@ -37,7 +37,14 @@
       </SSLHostConfig>
     </Connector>
     <Engine name="Catalina" defaultHost="localhost">
-      <Host name="localhost" appBase="webapps" unpackWARs="false" autoDeploy="false" deployXML="false">
+      <!-- xmlBase is where Tomcat looks for a per-application context descriptor. By
+           default that is conf/Catalina/localhost, which holds none. With
+           SESSION_STORE=jdbc the entrypoint writes a Monolith descriptor to a private
+           temporary directory and setenv.sh points session.xml.base at it, so only
+           Monolith (not the static SemossWeb) keeps its sessions in the shared store.
+           See session_store.py and README "Sessions across several containers". -->
+      <Host name="localhost" appBase="webapps" unpackWARs="false" autoDeploy="false" deployXML="false"
+            xmlBase="${session.xml.base:-conf/Catalina/localhost}">
         <Valve className="org.apache.catalina.valves.ErrorReportValve"
                showReport="false" showServerInfo="false"/>
         <Valve className="org.apache.catalina.valves.AccessLogValve"

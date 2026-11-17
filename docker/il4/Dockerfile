@@ -38,9 +38,9 @@ RUN --mount=type=cache,target=/root/.m2 \
     python3 assemble.py
 # Dereference the RPM JDK's external truststore symlink before changing distributions.
 RUN mkdir -p /out/java && cp -aL "${JAVA_HOME}/." /out/java/
-COPY FipsCheck.java JdbcCheck.java JdbcTls.java /build/
+COPY FipsCheck.java JdbcCheck.java JdbcTls.java SessionStoreInit.java /build/
 RUN mkdir -p /out/fips-check && \
-    javac -cp '/out/fips/*' -d /out/fips-check /build/FipsCheck.java /build/JdbcCheck.java /build/JdbcTls.java \
+    javac -cp '/out/fips/*' -d /out/fips-check /build/FipsCheck.java /build/JdbcCheck.java /build/JdbcTls.java /build/SessionStoreInit.java \
       /build/tests/JdbcTlsTest.java
 
 FROM ${PYTHON_IMAGE} AS python-runtime
@@ -92,6 +92,7 @@ COPY --from=python-dependencies /opt/semoss-python/ /opt/semoss-python/
 COPY --from=python-dependencies /opt/nltk_data/ /opt/nltk_data/
 COPY --from=python-dependencies /build/python/*.json /build/python/*.lock /build/python/*.toml /build/python/*.in /build/python/*.txt /opt/provenance/python/
 COPY python_check.py /opt/python-check/python_check.py
+COPY session_store.py /opt/python-check/session_store.py
 COPY python-dependencies/validate.py /opt/python-check/validate.py
 COPY tests/check_audio.py /opt/python-check/check_audio.py
 COPY --from=assembly /out/java/ /opt/java/

@@ -23,6 +23,8 @@
 !FipsCheck.java
 !JdbcCheck.java
 !JdbcTls.java
+!SessionStoreInit.java
+!session_store.py
 !entrypoint.sh
 !conf/
 !conf/server.xml

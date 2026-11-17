@@ -9,6 +9,8 @@
 !FipsCheck.java
 !JdbcCheck.java
 !JdbcTls.java
+!SessionStoreInit.java
+!session_store.py
 !RdsTrust.java
 !FipsPreferredSecureRandom.java
 !entrypoint.sh

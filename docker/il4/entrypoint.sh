@@ -43,4 +43,23 @@ if [ "${CAC_PIV_REQUIRED:-true}" = "true" ]; then
         exit 1
     fi
 fi
+# Shared login sessions (SESSION_STORE=jdbc): validate the settings, write the
+# Monolith-only Tomcat descriptor to a private temporary directory, and make sure the
+# session table exists. Any failure stops the container rather than letting it run
+# with sessions that other containers cannot see. SESSION_STORE_* are read from the
+# environment, never from the command line.
+case "${SESSION_STORE:-memory}" in
+    memory) ;;
+    jdbc)
+        /opt/semoss-python/bin/python -I /opt/python-check/session_store.py prepare /tmp/session-store
+        (
+            . /opt/tomcat/bin/setenv.sh
+            java $CATALINA_OPTS -cp '/opt/fips/*:/opt/fips-check:/opt/tomcat/webapps/Monolith/WEB-INF/lib/*' SessionStoreInit
+        )
+        ;;
+    *)
+        echo "SESSION_STORE must be memory or jdbc" >&2
+        exit 1
+        ;;
+esac
 exec /opt/tomcat/bin/catalina.sh run

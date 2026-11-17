@@ -76,6 +76,7 @@ the SSP/Controls package for that posture.
 | Identity and authorization | Site IdP, authentication requirements, group/role mapping, administrators, service identities, and account lifecycle. Use documented SEMOSS integration, not invented environment placeholders. |
 | Data and credentials | Storage class/path, ownership, encryption/KMS, backup destination, connector endpoints, trust roots, and supported secret-manager integration. |
 | Network policy | Approved ingress sources and destinations for IdP, databases, AI services, DNS, time, audit, and management. Build-time package access is not automatically runtime access. |
+| Session store (several containers) | Set `SESSION_STORE=jdbc` with `SESSION_STORE_URL` (`sslmode=verify-full`), user and password from the secret store, when more than one container serves users; see [README.md](./README.md#sessions-across-several-containers). Treat the session table as sensitive and accept or mitigate that a logout on one container does not end another's copy. |
 | Operations | Resource sizes, audit destination, retention, alert routes, RPO/RTO, maintenance windows, vulnerability SLAs, and accepted exceptions. |
 
 ## 2. Evidence record

@@ -668,6 +668,80 @@ Bootstrap/admin endpoints and authentication policy must be restricted before
 network exposure. Review data-source passwords, SSO, proxy trust, upload limits,
 external databases, backup, audit retention, and network policy for your deployment.
 
+### Sessions across several containers
+
+A login session normally lives in the memory of the one container that created
+it. With a single container that is all you need and nothing below applies. With
+several (three tasks behind a load balancer, say) a request that reaches a
+container other than the one that holds the user's session is refused, even with
+source-IP stickiness: a load balancer can move a user when a target is added,
+replaced or marked unhealthy. `SESSION_STORE=jdbc` makes Monolith keep its sessions
+in a table in PostgreSQL as well, so any container can pick a session up.
+
+| Variable | Meaning |
+| --- | --- |
+| `SESSION_STORE` | `memory` (default; nothing changes) or `jdbc`. Anything else stops the start. |
+| `SESSION_STORE_URL` | `jdbc:postgresql://host[:port]/database?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory`. `sslmode=verify-full` is **required**, so the chain and host name are checked ([RDS.md](./RDS.md)). |
+| `SESSION_STORE_USER`, `SESSION_STORE_PASSWORD` | Database credentials, supplied as secrets. Read from the environment only; they never appear on a command line or in the JVM options. |
+| `SESSION_STORE_TLS_REQUIRED` | `true` (default). `false` is only for a local test database. |
+| `SESSION_STORE_SYNC_SECONDS` | How often sessions are written to the store, 1-60, default 2. |
+| `SESSION_STORE_POOL_SIZE` | Database connections per container, 1-100, default 10. |
+
+At start the entrypoint validates these, writes a context descriptor for
+Monolith only (the static `SemossWeb` keeps in-memory sessions) into a private
+`/tmp/session-store` directory with mode 600, points Tomcat's `xmlBase` at it, and
+runs `SessionStoreInit`, which creates the `tomcat_sessions` table if it is
+missing. `/tmp` must therefore be writable (the compose profile's tmpfs is). A bad
+setting, an unreachable database or a failed table check **stops the container**
+rather than letting it run with sessions the others cannot see. The database
+user needs `CREATE` on its schema for the first start; if an administrator creates
+the table first (`SessionStoreInit.java` has the statement), only read and write
+on it are needed.
+
+**What it does.** A session is written to the table within `SESSION_STORE_SYNC_SECONDS`
+of a login or a change; a container that receives a session id it does not hold
+loads it from the table. Keep the load balancer's source-IP stickiness anyway, so a
+user normally stays on one container and the table is the failover. A stopping
+container leaves its sessions in the table (`saveOnRestart`), so a rolling
+replacement does not log everyone out, and a starting container loads the sessions
+that are there.
+
+**Checked in a local lab** (two containers, one PostgreSQL 16, the `IL4-dev`
+image with these files):
+
+- the first start creates the table; a second container starting at the same time
+  finds it
+- a user logged in on one container was accepted by the other 1.0 to 1.7 seconds
+  later with the 2-second default (5.6 seconds in the one run made with Tomcat's own
+  10-second background interval); before that moment the other container refused
+  the session
+- stopping the container that held a session kept it in the table and the other
+  container accepted it on its first request; with `saveOnRestart` off the stop
+  deleted it and the request was refused, which is why it is on
+- a replacement container started cleanly and with no session errors
+- with PostgreSQL stopped, containers kept serving requests from memory and logged
+  the connection errors, and recovered when it returned
+- an unchanged idle session is not rewritten, so the table does not churn
+
+**Not checked, and limits to know:**
+
+- A real CAC login moving between ECS tasks or EKS pods, a load balancer, three
+  containers under load. Run the acceptance steps in the deployment runbooks.
+- Only the login moves. What the old container held in memory for the user (open
+  insights, Python/Node/Java worker processes) does not, so the user may have to
+  reopen an insight.
+- **A logout or expiry on one container does not remove a copy another container
+  already loaded.** That copy ends on its own idle timeout (15 minutes). Treat this
+  as a gap against session-termination requirements and decide it explicitly.
+- The table holds each session's serialized user object, which includes the user's
+  access tokens. Treat it as sensitive: encryption at rest, a database account
+  only the application can use, TLS enforced (already required above), and
+  retention that matches the session timeout (Tomcat deletes expired rows).
+- Every request without a session cookie, including load balancer health checks,
+  creates a small session (about 430 bytes) that is stored until it expires.
+- Other multi-container behavior is separate: scheduled jobs, the project watcher
+  and embedded per-project databases are not changed by this.
+
 ### Opt-in hardened development deployment
 
 [compose.dev.yml](./compose.dev.yml) provides a separate `hardened-dev` profile.
