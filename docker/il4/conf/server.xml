@@ -6,11 +6,14 @@
                SSLEnabled="true" scheme="https" secure="true"
                sslImplementationName="org.apache.tomcat.util.net.jsse.JSSEImplementation"
                maxThreads="200" connectionTimeout="20000" allowTrace="false"
-               maxParameterCount="1000" maxPostSize="10485760"
-               clientAuth="${cac.piv.client.auth:-false}">
-      <!-- clientAuth is "want" (request, do not insist on, a client certificate)
-           unless CAC_PIV_REQUIRED=false and CAC_PIV_CLIENT_AUTH is not true (see
-           setenv.sh). It is deliberately not "true": a connector that insists
+               maxParameterCount="1000" maxPostSize="10485760">
+      <!-- certificateVerification (on the SSLHostConfig below) is "want" (request,
+           do not insist on, a client certificate) unless CAC_PIV_REQUIRED=false and
+           CAC_PIV_CLIENT_AUTH is not true (see setenv.sh). It lives on the
+           SSLHostConfig, not on this Connector: Tomcat 11 rejects a Connector-level
+           clientAuth ("failed to set property [clientAuth]" at startup) and a server
+           configured that way never sends a certificate request, so no card is ever
+           asked for. It is deliberately not "true": a connector that insists
            ends the TLS handshake, and the browser then shows its own error page
            with no way to explain what to do. Monolith's CACRequiredFilter makes
            the requirement instead and sends a browser without a certificate to a
@@ -23,6 +26,7 @@
            (Monolith) read the validated certificate from the request; see
            docker/il4/README.md's CAC/PIV section. -->
       <SSLHostConfig protocols="TLSv1.2,+TLSv1.3" sslProtocol="TLS"
+                     certificateVerification="${cac.piv.client.auth:-false}"
                      keyManagerAlgorithm="PKIX"
                      groups="secp256r1,secp384r1,secp521r1,ffdhe2048,ffdhe3072"
                      cipherSuites="TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256"

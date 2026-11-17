@@ -16,6 +16,7 @@
 !audit_runtime.py
 !compose.dev.yml
 !prepare_dev_tls.py
+!check_card_request.sh
 !TLS.md
 !RDS.md
 !RdsTrust.java

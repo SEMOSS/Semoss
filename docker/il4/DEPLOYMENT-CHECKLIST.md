@@ -222,6 +222,22 @@ disrupt shared or production services.
   should fail on differences. This supplies neither scheduling nor alert delivery.
   Evidence: alert routing and configuration comparison.
 
+- [ ] **D15 - Persistence and rotation.** Replace every running container (a
+  forced rolling redeploy) and confirm that nothing a user created changed. Before:
+  record the size and checksum of a test app's `.smss` and published portal, and
+  its rows in `project` and `projectpermission`, plus the user list. After: the
+  same values, the new containers' logs say the home volume was already seeded and
+  the system databases were found, and the app is listed for its owner. With more
+  than one container, confirm session affinity is on and that an app imported
+  through one container opens through the others (restart them if not). Do not
+  import an existing app again to "test" this: a failed duplicate import deletes
+  the app's definition, record and permissions. Evidence: the before/after
+  comparison and the container logs.
+- [ ] **D16 - The card is requested.** Run `docker/il4/check_card_request.sh
+  <host>:8443` against a path that does not terminate TLS; it must list the DoD CA
+  names. "No client certificate CA names sent" means CAC login cannot work.
+  Evidence: the script output.
+
 ## 5. Recovery, assessment, and operational acceptance
 
 - [ ] **O01 - Restore demonstration.** Restore into an isolated new volume/system,

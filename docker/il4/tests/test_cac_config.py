@@ -65,10 +65,17 @@ class ConnectorTests(unittest.TestCase):
         self.host_config = self.connector.find("SSLHostConfig")
 
     def test_connector_requests_but_never_hard_requires_a_certificate(self):
-        client_auth = self.connector.get("clientAuth")
+        client_auth = self.host_config.get("certificateVerification")
         self.assertEqual(client_auth, "${cac.piv.client.auth:-false}")
         # a hard requirement would end the handshake and leave no page to show
         self.assertNotIn("true", client_auth.replace("${cac.piv.client.auth:-false}", ""))
+
+    def test_the_request_is_set_where_tomcat_honours_it_not_on_the_connector(self):
+        """Tomcat 11 rejects a Connector-level clientAuth ("failed to set property [clientAuth]"), and a server
+        configured only that way never sends a certificate request, so a card is never asked for. Found
+        2026-11-17 with openssl s_client: "No client certificate CA names sent"."""
+        self.assertIsNone(self.connector.get("clientAuth"))
+        self.assertIsNotNone(self.host_config.get("certificateVerification"))
 
     def test_client_certificates_are_validated_against_the_cac_trust_store(self):
         self.assertEqual(self.host_config.get("truststoreFile"),

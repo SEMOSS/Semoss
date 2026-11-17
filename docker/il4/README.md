@@ -742,6 +742,73 @@ image with these files):
 - Other multi-container behavior is separate: scheduled jobs, the project watcher
   and embedded per-project databases are not changed by this.
 
+### Persistence, container rotation, and more than one container
+
+An app in SEMOSS is two halves, and it is visible only while both exist:
+
+| Half | What it holds | Where it must live |
+| --- | --- | --- |
+| **Records** | users and their CAC registrations, app records, **permissions** (who owns and can see each app), model and database catalog | the system databases. Set `SEMOSS_REQUIRE_POSTGRES=true` so the container refuses to start rather than fall back to throwaway embedded H2 storage |
+| **Files** | the app's code, its project definition (`project/<name>__<id>.smss`), engines, model definitions | the persistent `/opt/semosshome` volume |
+| **Published portal** | what "Publish" writes, served from `/Monolith/public_home/<id>/` | the persistent `public_home` volume |
+
+Losing either half makes the app disappear: files without a record are never
+listed, and a record without files cannot be loaded. The CAC trust store, TLS
+keystore and other configuration are deployment inputs mounted at
+`/run/secrets`, so they are re-applied on every start and are not part of the
+volume.
+
+**Container refresh (replacement, redeploy, crash).** A new container finds the
+same databases and volumes and the same apps. Three conditions keep it that way:
+both volumes are persistent and outlive the container; the home volume is seeded
+from the image **only when empty** (a populated volume is left alone, so an image
+upgrade never overwrites a user's apps; take a backup before migrating); and the
+volumes are writable by `10001:10001`. The same seed step must also be safe to
+start twice at once, so take a lock (`mkdir` is atomic) and let the loser wait for
+the winner's marker file.
+
+**More than one container.** Mount the *same* two volumes in every container, on
+storage that several hosts can read and write at once (an NFS-class shared file
+system, a `ReadWriteMany` volume), and keep all containers on the same databases.
+Then a user, an app and its permissions created through one container are present
+in all of them. Three behaviours to plan for:
+
+- **Session affinity is required**, unless `SESSION_STORE=jdbc` is set (see
+  "Sessions across several containers" above; keep stickiness even then, so the
+  table is only the failover). By default a login session lives in the memory of the
+  container that created it. Put source-IP stickiness on a TCP (TLS passthrough)
+  listener, which CAC needs anyway because the card's certificate must reach Tomcat;
+  or a cookie on a load balancer that terminates TLS. Without it a user is asked to
+  log in again whenever the balancer switches containers.
+- **An app added while several containers run is not noticed by the others until
+  they restart or are asked to open it.** SEMOSS watches `project/` with a local
+  file watcher, which does not see changes made by another host through a network
+  file system. After importing an app, restart the other containers.
+- **Exercised here:** two containers sharing both volumes and one database started
+  cleanly, found an existing app, and showed no database lock errors. **Not
+  exercised:** both containers using the *same* project's embedded insights
+  database file (H2 allows one process per file) under load. Apps of type `CODE`,
+  such as the chatbot, have no such file.
+
+**Never import an app that already exists.** A second `UploadProjectApp` of an
+existing app fails with "Project id already exists", and the failure path removes
+the existing app's `.smss`, its database record **and its permission rows**, leaving
+only a folder with no owner: the app vanishes from every container and no container
+restart brings it back. To change an app, delete it in the UI first, then import.
+To recover one that was damaged this way, put the `.smss` from the original export
+back in `project/`, restart (startup re-registers the record, with no owner), then
+grant the owner their permission again (permission `1` = owner in
+`projectpermission`); a published portal may also need re-publishing.
+
+**Back both halves up together** (the databases and both volumes) and test the
+restore. A volume backup alone loses permissions; a database backup alone loses
+the app's code.
+
+**Test it before relying on it** (checklist D15): record the size and checksum of
+an app's `.smss` and portal and its rows in `project` and `projectpermission`,
+replace every container, and confirm all of it is unchanged and the new containers'
+logs say the home volume was already seeded.
+
 ### Opt-in hardened development deployment
 
 [compose.dev.yml](./compose.dev.yml) provides a separate `hardened-dev` profile.
@@ -1008,11 +1075,15 @@ them, would authenticate too late for a new user's first request.
 A request with no validated CAC/PIV client certificate never reaches the login
 page. Three pieces make that so:
 
-1. **`server.xml`'s connector requests a certificate** (`clientAuth="want"`) and
-   validates whatever the browser presents against the DoD PKI trust store a
-   site mounts (below). It is deliberately `want`, not `true`: a connector that
-   insists on the certificate ends the TLS handshake, and the browser then shows
-   its own error page with no way to tell the user what to do.
+1. **`server.xml`'s `SSLHostConfig` requests a certificate**
+   (`certificateVerification="want"`) and validates whatever the browser presents
+   against the DoD PKI trust store a site mounts (below). It is set on the
+   `SSLHostConfig`, not on the `<Connector>`: Tomcat 11 rejects a Connector-level
+   `clientAuth`, and a server configured that way never asks for a card at all.
+   It is deliberately `want`, not `true`: a connector that insists on the
+   certificate ends the TLS handshake, and the browser then shows its own error
+   page with no way to tell the user what to do. **Check the running server**
+   with `docker/il4/check_card_request.sh <host>:8443`; it must list the DoD CAs.
 2. **Monolith's `CACRequiredFilter`** (first in the chain after
    `StartUpSuccessFilter`; active when `cac.piv.required` is `true`, which
    `setenv.sh` sets from `CAC_PIV_REQUIRED`) turns a request with no validated
