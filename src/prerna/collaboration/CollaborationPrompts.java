@@ -145,9 +145,9 @@ public final class CollaborationPrompts {
 			list each with who wrote it and when, and say which is newest. Never work a date out from other clues, \
 			and never state one as certain when no passage says so.
 			- Teams chats: SearchMail and ReadThread find and read them from Brain, with the owner's rules applied. \
-			Pass refresh=true to ReadThread if you want the latest messages after Brain's last sync. If the result seems \
-			too old or incomplete (messages older than the owner's recent activity), use ListChatMessages with the same chatId as a fallback \
-			to get the most recent messages live. Use ListChats to list all current chats or check unread status; use SearchTeamsMessages only \
+			If the result seems too old or incomplete (messages older than the owner's recent activity), use ListChatMessages with the same chatId as a fallback \
+			to get the most recent messages live. (Note: refresh=true on ReadThread applies to mail threads only, not Teams chats.) \
+			Use ListChats to list all current chats or check unread status; use SearchTeamsMessages only \
 			after SearchMail finds nothing or for searching across all Teams chats.
 			- Only then use ListM365Mail, which reads Outlook directly. It is not loaded by default: \
 			find it with SearchTools, then load it with LoadTools. Brain's ignore rules do not apply \
