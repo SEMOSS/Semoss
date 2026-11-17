@@ -64,7 +64,8 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Reads a Brain thread's latest messages as clean text, fetched live; never-ingest senders are left out. "
+				"Reads a Brain thread's latest messages as clean text from email or Teams chat, fetched live; never-ingest senders are left out. "
+						+ "Pass refresh=true to check the mailbox for newer messages after the last sync. "
 						+ "In the owner's assistant chat, pass the chosen email's emailRef to ComposeEmail for replies or forwards. "
 						+ "Delegation rooms must use selected or an exact native email id included in their context.")
 				.key(THREAD_ID, "Thread id").key(LIMIT, "Most recent N messages, default 20, at most 100")
@@ -74,7 +75,7 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 				.key("includeAttachments",
 						"List each email's attachments by name and id, without their bytes; defaults to false.")
 				.key(REFRESH,
-						"true first reads the mailbox for mail Brain does not hold yet (at most every 25 seconds); "
-								+ "defaults to false.");
+					"true pulls the mailbox for messages Brain has not held yet, allowing up to one refresh every 25 seconds. "
+						+ "If the result seems older than expected (messages older than recent activity), use ListChatMessages for Teams or ListM365Mail for email as a fallback.");
 	}
 }
