@@ -394,7 +394,7 @@ public final class MCPUtility {
 			// so that the python process can access the files
 			User user = insight.getUser();
 			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				user.getUserSymlinkHelper().symlinkProject(user, engine.getEngineId());
+				user.getSandbox().grantProject(user, engine.getEngineId());
 			}
 		}
 		if (pyt == null) {

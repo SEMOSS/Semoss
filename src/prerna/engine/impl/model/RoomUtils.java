@@ -404,7 +404,7 @@ public final class RoomUtils {
 		try {
 			Path folderPath = Paths.get(roomFolderPath);
 			Files.createDirectories(folderPath);
-			insight.getUser().getUserSymlinkHelper().symlinkFolder(roomFolderPath);
+			insight.getUser().getSandbox().grantFolder(roomFolderPath);
 		} catch (IOException e) {
 			classLogger.warn("Failed to symlink room folder into chroot: " + roomFolderPath, e);
 		}

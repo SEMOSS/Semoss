@@ -757,8 +757,13 @@ public class Constants {
 	public static final String PROJECT_REACTOR_SHARED_PACKAGES = "PROJECT_REACTOR_SHARED_PACKAGES";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
-	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
+	// FAKECHROOT (the default) / NAMESPACE (legacy NSJAIL is accepted) / OPENSHELL.
+	// Any other value, including OFF and SECCOMP_ONLY, means FAKECHROOT: only
+	// CHROOT_ENABLE=false turns jailing off. Parsed in prerna.util.sandbox.SandboxSettings.
+	// OPENSHELL runs the worker as the main process of an OpenShell sandbox instead of a
+	// child process of Tomcat. See prerna.util.openshell.OpenShellTransport.
 	public static final String SANDBOX_MODE = "SANDBOX_MODE";
+	public static final String SANDBOX_MODE_OPENSHELL = "OPENSHELL";
 	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
 	// Colon/semicolon-separated executable directories exposed inside sandboxes
 	public static final String SANDBOX_PATH = "SANDBOX_PATH";
