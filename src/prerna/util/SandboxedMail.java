@@ -25,52 +25,44 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.livekit;
+package prerna.util;
 
-import prerna.auth.utils.SecurityAdminUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.livekit.LiveKitController;
-import prerna.reactor.ReactorDefinition;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import java.io.IOException;
-import livekit.LivekitModels.Room;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-public class LiveKitListRoomsAdminReactor extends AbstractReactor {
-	private static final Logger classLogger = LogManager.getLogger(LiveKitListRoomsAdminReactor.class);
+/**
+ * The sandbox rules for the Jakarta Mail and Activation APIs, which project
+ * reactor code shares with the platform to build messages and attachments. The
+ * classes that send and read mail cannot be used, since a project sends mail
+ * through EmailUtility, and a path the APIs take as text follows the path rule
+ * of {@link SandboxedJavaExecution}.
+ */
+final class SandboxedMail {
 
-	public LiveKitListRoomsAdminReactor() {
-	}
+	/**
+	 * The packages project reactor code shares with the platform, as name
+	 * prefixes.
+	 */
+	static final List<String> SHARED_PACKAGES = List.of("jakarta.mail.", "jakarta.activation.");
 
-	@Override
-	public NounMetadata execute() {
+	/**
+	 * Classes project reactor code can never use, by full name; their nested
+	 * classes are blocked with them. These send and read mail.
+	 */
+	static final Set<String> BLOCKED_CLASSES = Set.of("jakarta.mail.Transport", "jakarta.mail.Store",
+			"jakarta.mail.Service", "jakarta.mail.Folder");
 
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(this.insight.getUser());
-		if (!isAdmin) {
-			throw new IllegalArgumentException("User must be an admin for this operation!");
-		}
+	/**
+	 * Calls that take a path as text, by owner, then method name, then the position
+	 * of the path argument.
+	 */
+	static final Map<String, Map<String, Integer>> PATH_TEXT_ARGUMENTS = Map.of(
+			"jakarta/activation/FileDataSource", Map.of("<init>", 0),
+			"jakarta/activation/MimetypesFileTypeMap", Map.of("<init>", 0),
+			"jakarta/activation/MailcapCommandMap", Map.of("<init>", 0),
+			"jakarta/mail/internet/MimeBodyPart", Map.of("attachFile", 0, "saveFile", 0));
 
-		LiveKitController controller = new LiveKitController();
-
-		try {
-			List<Room> rooms = controller.listRooms();
-
-			return new NounMetadata(rooms, PixelDataType.CUSTOM_DATA_STRUCTURE);
-
-		} catch (IOException e) {
-			String errorMsg = "Failed to list LiveKit rooms: " + e.getMessage();
-			classLogger.error(errorMsg, e);
-
-			return getError(errorMsg);
-		}
-	}
-
-	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Admin Only: List active LiveKit Rooms.").noKeys();
+	private SandboxedMail() {
 	}
 }

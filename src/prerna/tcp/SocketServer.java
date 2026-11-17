@@ -43,7 +43,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.ConfigurationSource;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 /**
@@ -128,7 +128,7 @@ public class SocketServer implements Runnable {
 				.toString();
 
 		// set to say this is not core
-		DIHelper.getInstance().setLocalProperty("core", "false");
+		InternalUtility.setLocalProperty("core", "false");
 
 		classLogger = LogManager.getLogger(CLASS_NAME);
 		try (FileInputStream fis = new FileInputStream(Utility.normalizePath(log4JPropFile))) {
@@ -149,8 +149,8 @@ public class SocketServer implements Runnable {
 		Properties rdfMap = Utility.loadProperties(rdfMapLocation);
 		classLogger.info("Loaded rdf map");
 
-		DIHelper.getInstance().loadCoreProp(rdfMapLocation);
-		DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
+		InternalUtility.loadCoreProp(rdfMapLocation);
+		Utility.getDIHelperProperty(Constants.BASE_FOLDER);
 
 		SocketServer worker = new SocketServer();
 		worker.prop = rdfMap;
@@ -226,7 +226,7 @@ public class SocketServer implements Runnable {
 				try {
 					// One handler instance is bound to one accepted client connection.
 					ssh = new SocketServerHandler();
-					DIHelper.getInstance().setLocalProperty("SSH", ssh);
+					InternalUtility.setLocalProperty("SSH", ssh);
 					ssh.setLogger(classLogger);
 					ssh.setOutputStream(clientSocket.getOutputStream());
 					is = clientSocket.getInputStream();

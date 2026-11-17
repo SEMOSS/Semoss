@@ -50,7 +50,6 @@ public class SetProjectMetadataReactor extends AbstractSetMetadataReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = UploadInputUtility.getProjectNameOrId(this.store);
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
 		}

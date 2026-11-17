@@ -83,8 +83,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.HttpHelperUtility;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 import prerna.util.Utility;
 
 public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
@@ -152,10 +152,8 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());
@@ -741,10 +739,8 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());

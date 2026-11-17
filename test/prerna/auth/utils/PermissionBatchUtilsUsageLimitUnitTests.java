@@ -42,6 +42,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -235,12 +236,18 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 	}
 
 	@Test
-	void removeExpiredEngineUser_removesTheLimitAndMarksTheLimitsChanged() throws Exception {
+	void removingAnEndedGrant_removesTheLimitAndMarksTheLimitsChanged() throws Exception {
 		SecurityAccessPermissionBatchUtils.saveBatches(owner,
 				List.of(modelBatch(changeWith("readerid", "READ_ONLY", tokensADay(5000)))));
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"UPDATE ENGINEPERMISSION SET ENDDATE = ? WHERE USERID = ? AND ENGINEID = ?", ps -> {
+					ps.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now(ZoneOffset.UTC).minusDays(1)));
+					ps.setString(2, "readerid");
+					ps.setString(3, MODEL_ID);
+				});
 		long before = SecurityModelUsageLimitUtils.version();
 
-		SecurityEngineUtils.removeExpiredEngineUser("readerid", MODEL_ID);
+		ExpiredAccessRemoval.removeAllEndedAccess();
 
 		assertNull(direct("readerid"));
 		assertTrue(SecurityModelUsageLimitUtils.version() > before);

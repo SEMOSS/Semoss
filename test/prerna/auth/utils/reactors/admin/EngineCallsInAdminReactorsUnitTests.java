@@ -43,7 +43,8 @@ import prerna.engine.impl.pipeline.StubEngines;
 import prerna.om.ThreadStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 /**
@@ -61,12 +62,12 @@ class EngineCallsInAdminReactorsUnitTests extends AbstractReactorPermissionUnitT
 	 */
 	@AfterEach
 	void unloadTheEngine() {
-		DIHelper.getInstance().removeEngineProperty(ENGINE);
+		InternalUtility.removeLoadedEngine(ENGINE);
 	}
 
 	@Test
 	void outsideAnAdminReactorTheAdminCannotCallTheEngine() {
-		DIHelper.getInstance().setEngineProperty(ENGINE, StubEngines.unguardedDatabase(ENGINE, Map.of()));
+		DIHelperTestUtils.setLoadedEngine(ENGINE, StubEngines.unguardedDatabase(ENGINE, Map.of()));
 		ThreadStore.setUser(anAdminWhoHoldsNothing());
 
 		assertThrows(SemossPixelException.class, () -> Utility.getDatabase(ENGINE).getSmssFilePath());
@@ -75,7 +76,7 @@ class EngineCallsInAdminReactorsUnitTests extends AbstractReactorPermissionUnitT
 	@Test
 	void adminReloadDatabaseReloadsADatabaseForAnAdminWhoHoldsNothing() {
 		List<String> calls = new ArrayList<>();
-		DIHelper.getInstance().setEngineProperty(ENGINE,
+		DIHelperTestUtils.setLoadedEngine(ENGINE,
 				StubEngines.unguardedDatabase(ENGINE, Map.of("getSmssFilePath", () -> "db.smss", "close",
 						() -> calls.add("close"), "open", () -> calls.add("open"))));
 
@@ -91,7 +92,7 @@ class EngineCallsInAdminReactorsUnitTests extends AbstractReactorPermissionUnitT
 		List<String> calls = new ArrayList<>();
 		IRDBMSEngine database = StubEngines.unguardedDatabase(ENGINE,
 				Map.of("isConnectionPooling", () -> true, "closeDataSource", () -> calls.add("closeDataSource")));
-		DIHelper.getInstance().setEngineProperty(ENGINE, database);
+		DIHelperTestUtils.setLoadedEngine(ENGINE, database);
 
 		NounMetadata result = run(new AdminRdbmsReconnectReactor(), anAdminWhoHoldsNothing(),
 				Map.of("database", ENGINE));

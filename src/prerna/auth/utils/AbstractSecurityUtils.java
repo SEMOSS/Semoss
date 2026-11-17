@@ -35,7 +35,6 @@ import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Connection;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -82,7 +81,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.SystemEngineRegistry;
@@ -193,7 +192,7 @@ public abstract class AbstractSecurityUtils {
 		// this is to update the bad naming in the security db for type values
 		updateUserTypeEnum();
 
-		Object adminSetsPublisher = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_PUBLISHER);
+		Object adminSetsPublisher = InternalUtility.getLocalProperty(Constants.ADMIN_SET_PUBLISHER);
 		if (adminSetsPublisher == null) {
 			adminSetPublisher = false;
 		} else {
@@ -201,7 +200,7 @@ public abstract class AbstractSecurityUtils {
 					|| (Boolean.parseBoolean(adminSetsPublisher.toString()));
 		}
 
-		Object adminSetsExporter = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_EXPORTER);
+		Object adminSetsExporter = InternalUtility.getLocalProperty(Constants.ADMIN_SET_EXPORTER);
 		if (adminSetsExporter == null) {
 			adminSetExporter = false;
 		} else {
@@ -3437,7 +3436,7 @@ public abstract class AbstractSecurityUtils {
 			return true;
 		}
 		// so that way all those Asset apps do not appear a bunch of times
-		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";
+		String smssFile = InternalUtility.getEngineSmssPath(databaseId) + "";
 		File smssF = new File(smssFile);
 		if (smssFile != null && smssF.exists() && smssF.isFile()) {
 			Properties prop = Utility.loadProperties(smssFile);
@@ -4230,20 +4229,6 @@ public abstract class AbstractSecurityUtils {
 		ZonedDateTime zdt = ZonedDateTime.parse(endDate);
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
-	}
-
-	/**
-	 * Check if permission end date has expired
-	 * 
-	 * @param endDate
-	 */
-	public static boolean endDateIsExpired(SemossDate endDate) throws Exception {
-		LocalDateTime currentTime = LocalDateTime.now();
-		if (endDate == null) {
-			return false;
-		}
-		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
-		return formattedEndDate.isBefore(currentTime);
 	}
 
 }

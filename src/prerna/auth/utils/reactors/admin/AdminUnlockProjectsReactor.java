@@ -25,51 +25,63 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.utils;
+package prerna.auth.utils.reactors.admin;
 
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantLock;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EngineSyncUtility;
+import prerna.util.ProjectSyncUtility;
 
-public class UnlockEngineReactor extends AbstractReactor {
+public class AdminUnlockProjectsReactor extends AbstractReactor {
 
-	public UnlockEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
+	public AdminUnlockProjectsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
 	
 	@Override
 	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if(adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
+		
 		organizeKeys();
-		String engineId = this.keyValue.get(this.keysToGet[0]);
+		String projectId = this.keyValue.get(this.keysToGet[0]);
 		
 		boolean retBool = false;
-		// this method checks if you are an admin
-		ConcurrentMap<String, ReentrantLock> locks = EngineSyncUtility.getAllLocks(this.insight.getUser());
-		if(engineId == null) {
+		ConcurrentMap<String, ReentrantLock> locks = ProjectSyncUtility.getAllLocks(this.insight.getUser());
+		if(projectId == null) {
 			// unlock any current locks in use
 			for(String key : locks.keySet()) {
-				ReentrantLock thisLock = locks.get(key);
-				if(thisLock != null) {
-					thisLock.unlock();
-				}
+				locks.get(key).unlock();
 			}
 			locks.clear();
 			retBool = true;
 		} else {
-			ReentrantLock lock = locks.remove(engineId);
-			if(lock != null) {
+			ReentrantLock lock = locks.remove(projectId);
+			if (lock != null) {
 				lock.unlock();
 				retBool = true;
 			}
-			retBool = false;
 		}
-		
+
 		return new NounMetadata(retBool, PixelDataType.BOOLEAN);
 	}
-	
+
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Admin Only: Releases the lock this server holds on a project's files, or every "
+						+ "project lock on this server when no project is given")
+				.key(ReactorKeysEnum.PROJECT, "The project to unlock. Without it every project lock is released")
+				.output(Boolean.class, "Whether a lock was released; always true without a project");
+	}
 }

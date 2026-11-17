@@ -119,7 +119,7 @@ class SandboxHttpUnitTests {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "getCustomClient", "getSchedulerClient" })
+	@ValueSource(strings = { "getCustomClient", "getSchedulerClient", "getSystemClient" })
 	void aProjectReactorCannotBuildItsOwnClient(String method) throws Exception {
 		Class<?> probe = SandboxProbe.load(this.folder,
 				new SandboxProbe()

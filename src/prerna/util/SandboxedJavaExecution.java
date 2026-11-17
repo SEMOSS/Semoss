@@ -52,8 +52,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.zaxxer.hikari.HikariConfig;
-
 import prerna.security.SensitiveKeys;
 
 /**
@@ -160,12 +158,6 @@ public final class SandboxedJavaExecution {
 	 * </ul>
 	 */
 	private static final ConcurrentHashMap<String, String> PLATFORM_PROPERTIES = new ConcurrentHashMap<>();
-
-	/**
-	 * The HikariCP settings that make the pool look a data source up by name, or
-	 * create one from a class name.
-	 */
-	private static final Set<String> HIKARI_LOOKUP_SETTINGS = Set.of("dataSourceJNDI", "dataSourceClassName");
 
 	private SandboxedJavaExecution() {
 	}
@@ -531,8 +523,7 @@ public final class SandboxedJavaExecution {
 
 	/**
 	 * Replacement for a call project reactors cannot make, such as
-	 * {@code System.loadLibrary} or {@code Utility.getDIHelperLocalProperty} -
-	 * always throws.
+	 * {@code System.loadLibrary} - always throws.
 	 *
 	 * @param method the method that was called
 	 */
@@ -588,57 +579,6 @@ public final class SandboxedJavaExecution {
 			throw new SecurityException("Loading '" + className + "' is not permitted in project reactors");
 		}
 		return loader.loadClass(className);
-	}
-
-	// --------------------------------------------------------------- HikariCP
-
-	/**
-	 * Sandboxed replacement for {@code new HikariConfig()}.
-	 *
-	 * @return an empty pool configuration
-	 */
-	public static HikariConfig hikariConfig() {
-		return new HikariConfig();
-	}
-
-	/**
-	 * Sandboxed replacement for {@code new HikariConfig(Properties)}: the pool
-	 * connects through its JDBC URL, so a setting that has it look a data source up
-	 * by name, or create one from a class name, is refused.
-	 *
-	 * @param properties the pool settings
-	 * @return the pool configuration
-	 * @throws SecurityException if the settings hold one of the refused ones
-	 */
-	public static HikariConfig hikariConfig(Properties properties) {
-		for (String key : properties.stringPropertyNames()) {
-			for (String refused : HIKARI_LOOKUP_SETTINGS) {
-				if (refused.equalsIgnoreCase(key)) {
-					throw new SecurityException(
-							"The HikariCP setting " + refused + " is not permitted in project reactors");
-				}
-			}
-		}
-		return new HikariConfig(properties);
-	}
-
-	/**
-	 * Sandboxed replacement for {@code new HikariConfig(String)}: reads the
-	 * properties file under the same path rule as {@link #file(String)}, then
-	 * applies {@link #hikariConfig(Properties)}.
-	 *
-	 * @param propertyFileName the properties file
-	 * @return the pool configuration
-	 * @throws IllegalArgumentException if the file cannot be read
-	 */
-	public static HikariConfig hikariConfig(String propertyFileName) {
-		Properties properties = new Properties();
-		try (FileInputStream in = new FileInputStream(sanitize(propertyFileName))) {
-			properties.load(in);
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Cannot read the pool property file " + propertyFileName, e);
-		}
-		return hikariConfig(properties);
 	}
 
 	// ---------------------------------------------------------- Class loaders

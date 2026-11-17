@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
@@ -58,8 +57,6 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		}
 
 		List<Map<String, Object>> baseInfo = null;
-		// make sure valid id for user
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 		if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 			// user has access!
 			baseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), databaseId, null);
@@ -85,6 +82,7 @@ public class DatabaseInfoReactor extends AbstractReactor {
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
+	@Deprecated
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(

@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -69,7 +68,6 @@ public class OpenDatabaseReactor extends AbstractReactor {
 		}
 
 		// make sure valid id for user
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 		if (!(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)
 				|| SecurityEngineUtils.engineIsDiscoverable(databaseId))) {
 			// you dont have access

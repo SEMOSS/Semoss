@@ -160,6 +160,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// minutes between scheduled syncs of the owner's mail while the app is closed (BrainSync); 0 is off,
 				// null the default 15
 				Pair.with("SYNC_EVERY_MINUTES", INTEGER_DATATYPE_NAME),
+				// hours between looks for new topics in incoming mail (BrainTopicSuggest.watch); 0 is off, null the
+				// instance's COLLAB_TOPIC_WATCH_HOURS
+				Pair.with("TOPIC_WATCH_HOURS", INTEGER_DATATYPE_NAME),
+				// whether a done message on another thread of a topic may finish a step (WorkReconcile); null the
+				// instance's COLLAB_WORK_CLOSE_ACROSS
+				Pair.with("WORK_CLOSE_ACROSS", BOOLEAN_DATATYPE_NAME),
 				// when the owner finished setup (Open Work) or skipped the rest of it; null sends them back to it,
 				// unless their import is from before this column (BrainConnection)
 				Pair.with("SETUP_DONE_AT", TIMESTAMP_DATATYPE_NAME),
@@ -339,7 +345,10 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("LAST_MESSAGE_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				// the newest message work candidates were pulled from
-				Pair.with("WORK_REF", VARCHAR_255)));
+				Pair.with("WORK_REF", VARCHAR_255),
+				// sort attempts that failed in a row; a thread is tried again on each sync until it succeeds or
+				// has failed BrainThreadClassifier.SORT_TRIES times
+				Pair.with("SORT_FAILS", INTEGER_DATATYPE_NAME)));
 		addTable("BRAIN_THREAD_TOPIC", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("THREAD_ID", VARCHAR_50),
@@ -570,6 +579,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// brain when thread insights made it; EDITED once the owner changes its text, owner, due or kind
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("EDITED", BOOLEAN_DATATYPE_NAME),
+				// when the owner last changed its status or whose it is: mail older than that does not undo it
+				Pair.with("OWNER_SET_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),
 				// the work item it serves; null is a loose step under its topic. THREAD_ID is null for one added in chat
@@ -619,6 +630,12 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("THREAD_ID", VARCHAR_50),
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("STATE", VARCHAR_20),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// the chat rooms a work item is discussed in; many rooms per task; newest first by CREATED_AT DESC
+		addTable("WORK_TASK_ROOM", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("TASK_ID", VARCHAR_50),
+				Pair.with("ROOM_ID", VARCHAR_50),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// a work item's timeline: updates, decisions, asks, date and status changes, each with its source
 		addTable("WORK_TASK_UPDATE", Arrays.asList(

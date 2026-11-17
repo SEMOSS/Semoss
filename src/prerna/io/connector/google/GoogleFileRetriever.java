@@ -52,7 +52,8 @@ public class GoogleFileRetriever implements IConnectorIOp {
 			throw new IllegalArgumentException("Requires a target file path to write the spreadsheet to");
 		}
 		String url = "https://docs.google.com/spreadsheets/export";
-		try (BufferedReader br = HttpHelperUtility.getHttpStream(url, null, params, false)) {
+		try (BufferedReader br = HttpHelperUtility.getRequestReader(HttpHelperUtility.getSystemClient(),
+				HttpHelperUtility.withQueryParameters(url, params), null)) {
 			// create a file
 			File outputFile = new File(fileName);
 			try (BufferedWriter target = new BufferedWriter(new FileWriter(outputFile))) {

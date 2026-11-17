@@ -1083,12 +1083,22 @@ public class Constants {
 	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
 	// threads one work items run reads at once (default 5)
 	public static final String COLLAB_WORK_EXTRACT_PARALLEL = "COLLAB_WORK_EXTRACT_PARALLEL";
+	// reasoning effort sent with Work's model calls (low, medium, high); unset sends none
+	public static final String COLLAB_WORK_REASONING_EFFORT = "COLLAB_WORK_REASONING_EFFORT";
+	// "false" keeps a done claim to steps of its own thread; otherwise it may finish a step on another thread of the
+	// topic when it names the same thing
+	public static final String COLLAB_WORK_CLOSE_ACROSS = "COLLAB_WORK_CLOSE_ACROSS";
+	// hours between looks for new topics in incoming mail (default 24; 0 turns the look off)
+	public static final String COLLAB_TOPIC_WATCH_HOURS = "COLLAB_TOPIC_WATCH_HOURS";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
 	// characters of memories a thread's assistant gets in its prompt (default 4000)
 	public static final String COLLAB_MEMORY_PROMPT_CHARS = "COLLAB_MEMORY_PROMPT_CHARS";
 	// minutes a routine's agent step may run before the routine stops (default 10)
 	public static final String COLLAB_ROUTINE_TIMEOUT_MINUTES = "COLLAB_ROUTINE_TIMEOUT_MINUTES";
+
+	// largest file in MB the agents' ReadFile tool extracts as a document: pdf, docx, pptx, xlsx (default 100)
+	public static final String DOCUMENT_READ_MAX_FILE_MB = "DOCUMENT_READ_MAX_FILE_MB";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";

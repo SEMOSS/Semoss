@@ -41,7 +41,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.om.InsightFile;
 import prerna.reactor.insights.AbstractInsightReactor;
@@ -66,7 +65,6 @@ public class DownloadInsightRecipeReactor extends AbstractInsightReactor {
 		// need the engine name and id that has the recipe
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
 			throw new IllegalArgumentException("User does not have access to this insight");
 		}

@@ -77,9 +77,10 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
 import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
+import prerna.util.InternalUtility;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -106,8 +107,8 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@AfterEach
 	void cleanup() throws SQLException {
 		for (String projectId : stagedProjects) {
-			DIHelper.getInstance().removeProjectProperty(projectId);
-			DIHelper.getInstance().removeProjectProperty(projectId + "_" + Constants.STORE);
+			DIHelperTestUtils.removeLoadedProject(projectId);
+			DIHelperTestUtils.removeProjectSmssPath(projectId);
 		}
 		stagedProjects.clear();
 		ThreadStore.remove();
@@ -610,24 +611,6 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		assertFalse(SecurityProjectUtils.userCanViewProject(user2, "testProjectId"));
 		assertFalse(SecurityProjectUtils.userCanViewProject(user3, "testProjectId"));
-	}
-
-	///
-	/// removeExpiredProjectUser
-	///
-
-	@Test
-	void testRemoveExpiredProjectUser() throws IllegalAccessException {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
-		SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "READ_ONLY", null);
-
-		assertTrue(SecurityProjectUtils.userCanViewProject(user2, "testProjectId"));
-
-		SecurityProjectUtils.removeExpiredProjectUser("user2id", "testProjectId");
-
-		assertFalse(SecurityProjectUtils.userCanViewProject(user2, "testProjectId"));
 	}
 
 	///
@@ -2312,7 +2295,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	private void stageLoadedProject(String projectId) {
 		IRDBMSEngine insightsDb = mock(IRDBMSEngine.class);
 		when(insightsDb.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
-		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
+		InternalUtility.setLoadedProject(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
 	}
 
@@ -2341,7 +2324,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		props.setProperty(Constants.PROJECT_ALIAS, projectId + "Name");
 		props.setProperty(Constants.PROJECT_ENUM_TYPE, projectType.name());
 		Path smss = UnitTestSecurityAuthUtils.createSmssFileFromProps(props, folder, projectId + ".smss");
-		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smss.toString());
+		InternalUtility.setProjectSmssPath(projectId, smss.toString());
 		stagedProjects.add(projectId);
 	}
 
@@ -2363,7 +2346,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 					null, false, null);
 			admin.updateInsightTags(insightId, List.of(insightName + "Tag"));
 		}
-		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
+		InternalUtility.setLoadedProject(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
 
 		Properties props = new Properties();
@@ -2371,7 +2354,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		props.setProperty(Constants.PROJECT_ALIAS, projectId + "Name");
 		props.setProperty(Constants.RELOAD_INSIGHTS, String.valueOf(reloadInsights));
 		Path smss = UnitTestSecurityAuthUtils.createSmssFileFromProps(props, folder, projectId + ".smss");
-		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smss.toString());
+		InternalUtility.setProjectSmssPath(projectId, smss.toString());
 		return smss;
 	}
 

@@ -54,7 +54,6 @@ import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -76,7 +75,6 @@ public class ExportProjectAppReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 
 		User user = this.insight.getUser();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
 		if (!isOwner) {
 			throw new IllegalArgumentException(
@@ -84,7 +82,7 @@ public class ExportProjectAppReactor extends AbstractReactor {
 		}
 
 		logger.info("Exporting project now...");
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
+		String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER).replace("\\", "/");
 		if (!baseFolder.endsWith("/")) {
 			baseFolder += "/";
 		}

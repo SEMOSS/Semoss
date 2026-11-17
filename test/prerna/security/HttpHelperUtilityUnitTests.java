@@ -32,18 +32,28 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyStore;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
 
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.config.Configurable;
@@ -53,12 +63,15 @@ import org.apache.hc.core5.util.Timeout;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpsConfigurator;
+import com.sun.net.httpserver.HttpsServer;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 
 class HttpHelperUtilityUnitTests {
 
@@ -74,14 +87,14 @@ class HttpHelperUtilityUnitTests {
 
 	@BeforeEach
 	void setRdfMap() {
-		this.savedCoreProp = DIHelper.getInstance().getCoreProp();
+		this.savedCoreProp = InternalUtility.getCoreProp();
 		this.rdfMap = new Properties();
-		DIHelper.getInstance().setCoreProp(this.rdfMap);
+		InternalUtility.setCoreProp(this.rdfMap);
 	}
 
 	@AfterEach
 	void restoreRdfMap() {
-		DIHelper.getInstance().setCoreProp(this.savedCoreProp);
+		InternalUtility.setCoreProp(this.savedCoreProp);
 	}
 
 	@BeforeEach
@@ -267,7 +280,7 @@ class HttpHelperUtilityUnitTests {
 		this.rdfMap.setProperty(Constants.BLACK_LIST_DOMAINS, "localhost, 127.0.0.0/8, ::1");
 
 		IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
-				() -> HttpHelperUtility.makeGetCall(namedUrl + "/count", "token"));
+				() -> HttpHelperUtility.getRequestReader(namedUrl + "/count", null, LIMIT));
 		HttpHelperUtility.makePostCall(baseUrl + "/count", "token", Map.of("a", "b"), true);
 
 		assertTrue(refused.getMessage().contains("You are not allowed to make requests"), refused.getMessage());
@@ -277,11 +290,115 @@ class HttpHelperUtilityUnitTests {
 	}
 
 	@Test
-	void withNoListsTheOlderRequestMethodsStillReachTheServer() {
-		HttpHelperUtility.makeGetCall(baseUrl + "/count", "token");
+	void withNoListsTheOlderRequestMethodsStillReachTheServer() throws IOException {
+		try (BufferedReader reader = HttpHelperUtility.getRequestReader(baseUrl + "/count", null, LIMIT)) {
+			reader.readLine();
+		}
 		HttpHelperUtility.makePostCall(baseUrl + "/count", "token", Map.of("a", "b"), true);
 
 		assertEquals(2, requests.get());
+	}
+
+	@Test
+	void aSystemClientWaitsWithoutLimitUnlessATimeoutIsGiven() throws Exception {
+		try (CloseableHttpClient unlimited = HttpHelperUtility.getSystemClient();
+				CloseableHttpClient limited = HttpHelperUtility.getSystemClient(null, null, null, null,
+						Timeout.ofSeconds(5))) {
+			assertEquals(Timeout.DISABLED, ((Configurable) unlimited).getConfig().getResponseTimeout());
+			assertEquals(Timeout.ofSeconds(5), ((Configurable) limited).getConfig().getResponseTimeout());
+		}
+	}
+
+	@Test
+	void theSystemClientReachesAServerOverPlainHttp() {
+		assertEquals("counted", HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(), baseUrl + "/count",
+				null));
+	}
+
+	@Test
+	void theListsApplyToTheSystemClient() {
+		this.rdfMap.setProperty(Constants.BLACK_LIST_DOMAINS, "localhost, 127.0.0.0/8, ::1");
+
+		IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+				() -> HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(), namedUrl + "/count", null));
+
+		assertTrue(refused.getMessage().contains("You are not allowed to make requests"), refused.getMessage());
+		assertEquals(0, requests.get());
+	}
+
+	@Test
+	void onlyTheCustomClientTrustsASelfSignedCertificate(@TempDir Path folder) throws Exception {
+		Path keytool = Path.of(System.getProperty("java.home"), "bin", "keytool");
+		assumeTrue(Files.isExecutable(keytool), "keytool is not available");
+		Path keyStore = folder.resolve("server.p12");
+		Process process = new ProcessBuilder(keytool.toString(), "-genkeypair", "-alias", "server", "-keyalg", "RSA",
+				"-keysize", "2048", "-validity", "1", "-dname", "CN=localhost", "-ext", "SAN=dns:localhost,ip:127.0.0.1",
+				"-storetype", "PKCS12", "-keystore", keyStore.toString(), "-storepass", "changeit", "-keypass",
+				"changeit").redirectErrorStream(true).start();
+		process.getInputStream().readAllBytes();
+		assumeTrue(process.waitFor(60, TimeUnit.SECONDS) && process.exitValue() == 0,
+				"keytool could not make a certificate");
+		KeyStore store = KeyStore.getInstance("PKCS12");
+		try (InputStream in = Files.newInputStream(keyStore)) {
+			store.load(in, "changeit".toCharArray());
+		}
+		KeyManagerFactory keys = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+		keys.init(store, "changeit".toCharArray());
+		SSLContext context = SSLContext.getInstance("TLS");
+		context.init(keys.getKeyManagers(), null, null);
+		HttpsServer secure = HttpsServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
+		secure.setHttpsConfigurator(new HttpsConfigurator(context));
+		secure.createContext("/secure", exchange -> reply(exchange, 200, "secure"));
+		secure.start();
+		try {
+			String url = "https://localhost:" + secure.getAddress().getPort() + "/secure";
+
+			assertEquals("secure",
+					HttpHelperUtility.getRequest(HttpHelperUtility.getCustomClient(null, null, null, null), url, null));
+			assertThrows(IllegalArgumentException.class,
+					() -> HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(), url, null));
+		} finally {
+			secure.stop(0);
+		}
+	}
+
+	@Test
+	void theReaderStreamsTheBodyWithTheHeadersGiven() throws IOException {
+		try (BufferedReader reader = HttpHelperUtility.getRequestReader(baseUrl + "/header",
+				Map.of("X-Probe", "probe-value"), LIMIT)) {
+			assertEquals("probe-value", reader.readLine());
+		}
+	}
+
+	@Test
+	void theReaderRefusesAStatusThatIsNotASuccess() {
+		HttpStatusException refused = assertThrows(HttpStatusException.class,
+				() -> HttpHelperUtility.getRequestReader(baseUrl + "/busy", null, LIMIT));
+
+		assertEquals(429, refused.getStatusCode());
+	}
+
+	@Test
+	void theReaderDoesNotFollowARedirectToABlacklistedHost() {
+		this.rdfMap.setProperty(Constants.BLACK_LIST_DOMAINS, "blocked.invalid");
+
+		IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
+				() -> HttpHelperUtility.getRequestReader(baseUrl + "/redirect", null, LIMIT));
+
+		assertTrue(refused.getMessage().contains("blocked.invalid"), refused.getMessage());
+	}
+
+	@Test
+	void queryParametersAreEncodedAndAddedAfterAnyQueryTheUrlHas() {
+		Map<String, Object> params = new LinkedHashMap<>();
+		params.put("q", "a b&c");
+		params.put("page size", 10);
+
+		assertEquals("http://example.com/find?q=a+b%26c&page+size=10",
+				HttpHelperUtility.withQueryParameters("http://example.com/find", params));
+		assertEquals("http://example.com/find?sort=name&q=a+b%26c&page+size=10",
+				HttpHelperUtility.withQueryParameters("http://example.com/find?sort=name", params));
+		assertEquals("http://example.com/find", HttpHelperUtility.withQueryParameters("http://example.com/find", null));
 	}
 
 	private static void reply(HttpExchange exchange, int status, String body) throws IOException {

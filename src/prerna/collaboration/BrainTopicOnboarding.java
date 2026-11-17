@@ -47,7 +47,9 @@ import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
-// Adapts the completed import into header discovery and model votes; returns candidates without publishing topics.
+// Adapts the completed import into discovery and model votes; returns candidates without publishing topics.
+// Before a sort only stored headers are used. After one the pool's messages are also read, through the thread
+// read (today's rules, no quoted history, no footer), to group by what they say; nothing read is stored.
 final class BrainTopicOnboarding {
 
 	// Retain the persisted ID namespace and recognize links created by earlier
@@ -57,7 +59,83 @@ final class BrainTopicOnboarding {
 	record Result(List<BrainTopicSuggest.Candidate> candidates, Map<String, Object> diagnostics) {
 	}
 
+	// reading the pool: this many mailbox reads at once, the newest messages of each thread
+	static int readers = 6;
+	private static final int READ_MESSAGES = 8;
+	// reading the pool: when the first reads all fail (no login, mailbox away) stop asking; the headers then decide
+	private static final int GIVE_UP_AFTER = 20;
+
 	private BrainTopicOnboarding() {
+	}
+
+	/**
+	 * What the pool's conversations say, for grouping by wording after a sort. Each is read the way the sort read
+	 * it, so a message today's rules hide is not read here either. A conversation that cannot be read has no text;
+	 * when the mailbox cannot be read at all the answer is empty and discovery falls back to the headers.
+	 */
+	static BrainTopicStructure.Reader reader(User user, String ownerId, String ownerType, BrainMessageSource source,
+			Map<String, Object> notes) {
+		return pool -> {
+			Map<String, List<BrainTopicStructure.Text>> out = new java.util.concurrent.ConcurrentHashMap<>();
+			java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
+			List<Runnable> jobs = new ArrayList<>();
+			for (BrainTopicStructure.Facts thread : pool) {
+				jobs.add(() -> {
+					if (out.isEmpty() && failed.get() >= GIVE_UP_AFTER) {
+						return;
+					}
+					try {
+						Map<String, Object> read = BrainThreadMessages.read(user, ownerId, ownerType, thread.id(),
+								READ_MESSAGES, source);
+						List<BrainTopicStructure.Text> said = new ArrayList<>();
+						if (!Boolean.TRUE.equals(read.get("muted")) && read.get("messages") instanceof List<?> messages) {
+							for (Object each : messages) {
+								if (each instanceof Map<?, ?> message && !Boolean.TRUE.equals(message.get("excluded"))
+										&& message.get("text") instanceof String text && !text.isBlank()) {
+									Object from = message.get("fromId") != null ? message.get("fromId")
+											: message.get("fromAddress");
+									said.add(new BrainTopicStructure.Text(from == null ? "" : from.toString(), text));
+								}
+							}
+						}
+						if (!said.isEmpty()) {
+							out.put(thread.id(), said);
+						}
+					} catch (Exception e) {
+						failed.incrementAndGet();
+					}
+				});
+			}
+			if (readers <= 1) {
+				jobs.forEach(Runnable::run);
+			} else {
+				java.util.concurrent.ExecutorService reads = java.util.concurrent.Executors.newFixedThreadPool(readers,
+						r -> {
+							Thread thread = new Thread(r, "collaboration-topic-read");
+							thread.setDaemon(true);
+							return thread;
+						});
+				try {
+					List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
+					jobs.forEach(job -> pending.add(reads.submit(job)));
+					for (java.util.concurrent.Future<?> each : pending) {
+						try {
+							each.get();
+						} catch (InterruptedException e) {
+							Thread.currentThread().interrupt();
+							break;
+						} catch (java.util.concurrent.ExecutionException e) {
+							failed.incrementAndGet();
+						}
+					}
+				} finally {
+					reads.shutdownNow();
+				}
+			}
+			notes.put("readThreads", out.size());
+			notes.put("unreadThreads", pool.size() - out.size());
+			return out;
+		};
 	}
 
 	static Result propose(User user, String engineId, String ownerId, String ownerType,
@@ -67,10 +145,11 @@ final class BrainTopicOnboarding {
 		if (job != null) {
 			job.step("grouping", 10);
 		}
-		// stored headers after a sort: per-message To/Cc only fed the engagement gate, which WIDE does not use
+		// stored headers after a sort: per-message To/Cc only fed the engagement gate, which WIDE does not use;
+		// what the messages say is read only then, and only for the pool
 		BrainTopicVotes.Caller caller = caller(user, engineId);
 		BrainTopicStructure.Prepared prepared = snapshot(ownerId, ownerType, eligible.keySet(), self, emails, vips,
-				ownOrg, notes, caller);
+				ownOrg, notes, caller, reader(user, ownerId, ownerType, BrainMessageSource.current(), notes));
 		if (job != null) {
 			job.count("conversations", prepared.pool().size());
 			job.count("groups", prepared.seeds().size());
@@ -95,6 +174,13 @@ final class BrainTopicOnboarding {
 		BrainMailFolders.Tree folderTree = BrainMailFolders.load(ownerId, ownerType);
 		Set<String> names = new HashSet<>(takenNames);
 		Set<Integer> grouped = new HashSet<>();
+		// mail already under a topic the owner has: a group made largely of it is that topic, not a new one
+		Set<String> held = new HashSet<>(CollaborationDbUtils.query(
+				"SELECT l.THREAD_ID FROM BRAIN_THREAD_TOPIC l JOIN BRAIN_TOPIC t ON t.OWNER_ID = l.OWNER_ID AND "
+						+ "t.OWNER_TYPE = l.OWNER_TYPE AND t.TOPIC_ID = l.TOPIC_ID WHERE l.OWNER_ID = ? AND l.OWNER_TYPE = ? "
+						+ "AND (t.STATUS IS NULL OR t.ORIGIN IS NULL OR t.STATUS <> ? OR t.ORIGIN <> ?)",
+				rs -> rs.getString(1), ownerId, ownerType, BrainTopicUtils.SUGGESTED, "brain"));
+		int known = 0;
 		// Apply votes after discovery assignment so rejected groups do not spill their
 		// mail into kept groups.
 		for (int i = 0; i < prepared.seeds().size(); i++) {
@@ -107,8 +193,12 @@ final class BrainTopicOnboarding {
 						grouped.add(e.getKey());
 						return eligible.get(prepared.pool().get(e.getKey()).id());
 					}).toList();
-			String name = uniqueName(votes.names().get(i), names);
 			List<String> ids = members.stream().map(BrainTopicSuggest.Thread::id).sorted().toList();
+			if (alreadyATopic(ids, held)) {
+				known++;
+				continue;
+			}
+			String name = uniqueName(votes.names().get(i), names);
 			String key = VERSION + ":"
 					+ CollaborationDbUtils.deterministicId(ownerId, ownerType, ids.toArray(String[]::new));
 			// the card shows threads, people and your part; how it was grouped stays in
@@ -119,9 +209,13 @@ final class BrainTopicOnboarding {
 			String folder = prepared.folders().get(i);
 			String path = folder == null ? null : (String) prepared.cards().get(i).get("outlookFolder");
 			candidates.add(new BrainTopicSuggest.Candidate(key, name, members, List.of(), null, votes.abouts().get(i),
-					BrainTopicStructure.terms(prepared, i, 8),
+					// the clues offered to the owner: what the group's mail says when it was read, else its subjects
+					prepared.cards().get(i).get("words") instanceof List<?> said
+							? said.stream().map(String::valueOf).toList()
+							: BrainTopicStructure.terms(prepared, i, 8),
 					BrainFolderRoles.PROJECT.equals(folderTree.role(folder)) ? folder : null, path));
 		}
+		diagnostics.put("knownTopics", known);
 		diagnostics.put("groupedThreads", grouped.size());
 		diagnostics.put("unsortedThreads", prepared.pool().size() - grouped.size());
 		if (job != null) {
@@ -129,6 +223,16 @@ final class BrainTopicOnboarding {
 			job.step("saving", 70);
 		}
 		return new Result(candidates, diagnostics);
+	}
+
+	/**
+	 * After onboarding the same grouping runs over all the mail, filed or not. A group with a quarter or more of
+	 * its conversations already under the owner's topics is one of those topics showing up again; a new piece of
+	 * work shows up as a group of mail nothing holds yet. On the fixture worlds this proposed no known topic twice
+	 * and 15 of 18 topics that appeared after onboarding.
+	 */
+	static boolean alreadyATopic(List<String> threads, Set<String> held) {
+		return 4 * threads.stream().filter(held::contains).count() >= threads.size() && !threads.isEmpty();
 	}
 
 	// one model call as the owner; each call gets its own insight
@@ -169,10 +273,10 @@ final class BrainTopicOnboarding {
 
 	// The imported headers as stored: sender, time and bulk per message, the thread's included people as its
 	// recipients. Email always; Teams chats with a real name when Teams is on (chats named only by who is in them
-	// never reach here). No mailbox calls.
+	// never reach here). No mailbox calls of its own: after a sort the reader is asked for the pool's wording.
 	private static BrainTopicStructure.Prepared snapshot(String ownerId, String ownerType, Set<String> eligible,
 			String self, Map<String, String> emails, Set<String> vips, BrainOrgDomains.Org ownOrg,
-			Map<String, Object> notes, BrainTopicVotes.Caller caller) {
+			Map<String, Object> notes, BrainTopicVotes.Caller caller, BrainTopicStructure.Reader reader) {
 		if (self == null || emails.get(self) == null) {
 			throw new IllegalStateException("Import the mailbox before proposing topics");
 		}
@@ -326,7 +430,10 @@ final class BrainTopicOnboarding {
 		notes.put("folderRoles", roles.values().stream()
 				.collect(java.util.stream.Collectors.groupingBy(r -> r, LinkedHashMap::new,
 						java.util.stream.Collectors.counting())));
-		return BrainTopicStructure.prepare(input, me, ownOrg::isMine, vipEmails, settings, sentHistory, guides);
+		BrainTopicStructure.Prepared prepared = BrainTopicStructure.prepare(input, me, ownOrg::isMine, vipEmails,
+				settings, sentHistory, guides, settings.wide() ? reader : null);
+		notes.put("groupedBy", prepared.cards().stream().anyMatch(c -> c.containsKey("words")) ? "wording" : "headers");
+		return prepared;
 	}
 
 	// one card per folder with two or more conversations in the window, judged in one model call

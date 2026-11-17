@@ -66,7 +66,6 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
@@ -191,7 +190,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		String projectFolderPath = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT);
 
 		boolean replace = deleteIfExisting();
-		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
 		File finalProjectSmssF = null;
@@ -248,10 +246,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			} else {
 				// first time upload
 				// need to ignore file watcher
-				if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
-						|| projects.endsWith(";" + projectId))) {
-					String newProjects = projects + ";" + projectId;
-					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
+				if (InternalUtility.addProjectId(projectId)) {
 					projectAddedToDIHelper = true;
 				}
 			}
@@ -309,7 +304,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
+			InternalUtility.setProjectSmssPath(projectId,
 					finalProjectSmssF.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
 			if (!replacingExistingProject) {

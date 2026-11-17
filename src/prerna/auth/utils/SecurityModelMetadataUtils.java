@@ -66,7 +66,7 @@ import prerna.engine.api.ModelCapabilityEnum;
 import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.impl.model.usage.ModelUsageCost;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.StaticBuiltinToolsCatalog;
 import prerna.util.StaticModelMetadataCatalog;
@@ -515,7 +515,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * that rather than failing, since one unreadable smss should not stop the rest.
 	 */
 	private static String getModelIdFromSmss(String engineId) {
-		Object smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+		Object smssFile = InternalUtility.getEngineSmssPath(engineId);
 		if (smssFile == null) {
 			return null;
 		}

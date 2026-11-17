@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.model;
+package prerna.auth.utils.reactors.admin;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -54,12 +54,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * engines the catalog does not know are only reported, so a full pass is cheap
  * and can be repeated safely.
  */
-public class SyncModelMetadataReactor extends AbstractReactor {
+public class AdminSyncModelMetadataReactor extends AbstractReactor {
 
 	private static final String FORCE_KEY = "force";
 	private static final String DRY_RUN_KEY = "dryRun";
 
-	public SyncModelMetadataReactor() {
+	public AdminSyncModelMetadataReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), FORCE_KEY, DRY_RUN_KEY };
 		this.keyRequired = new int[] { 0, 0, 0 };
 	}
@@ -67,7 +67,6 @@ public class SyncModelMetadataReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = requireUser();
-
 		if (!SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}

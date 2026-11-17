@@ -639,6 +639,59 @@ class BrainSyncDbUnitTests {
 				.intValue());
 	}
 
+	@Test
+	void mailTheOwnerDeletesOrJunksClosesTheCardItRaisedAndOtherCardsStay() throws Exception {
+		read(true);
+		String thread = (String) value("SELECT THREAD_ID FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-1'");
+		String other = (String) value("SELECT THREAD_ID FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-2'");
+		for (String[] card : new String[][] { { thread, "G1" }, { other, "G2" } }) {
+			WorkItemUtils.ingestOnThread(ownerId, ownerType,
+					new HashMap<>(Map.of("dedupeKey", "classifier:" + card[0] + ":" + card[1], "threadId", card[0],
+							"channel", "email", "title", "Ask " + card[1], "askType", "reply", "receivedAt",
+							"2026-10-29T11:00:00Z", "sourceRef", card[1])));
+		}
+		// G1 moved to Deleted Items (a new Graph id); G2 untouched in the inbox
+		Map<String, Object> deleted = new HashMap<>(mailbox.get(0));
+		deleted.put("id", "G1-deleted");
+		deleted.put("parentFolderId", "deleted-id");
+		BrainMailHeaderSource source = inboxSource(changed -> List.of(deleted, mailbox.get(1)));
+		BrainMailHeaderSource withDeleted = new BrainMailHeaderSource() {
+			@Override
+			public Map<String, Object> me(User user) throws Exception {
+				return source.me(user);
+			}
+
+			@Override
+			public Map<String, Object> manager(User user) {
+				return null;
+			}
+
+			@Override
+			public List<Map<String, Object>> list(User user, String folder, Instant since, int max) {
+				return List.of();
+			}
+
+			@Override
+			public List<Map<String, Object>> folders(User user) throws Exception {
+				List<Map<String, Object>> all = new ArrayList<>(source.folders(user));
+				all.add(Map.of("id", "deleted-id", "displayName", "Deleted Items", "wellKnownName", "deleteditems",
+						"totalItemCount", 1));
+				return all;
+			}
+
+			@Override
+			public List<Map<String, Object>> allMail(User user, Instant since, int max, boolean changed)
+					throws Exception {
+				return source.allMail(user, since, max, changed);
+			}
+		};
+		CollaborationJobUtils.Job job = mock(CollaborationJobUtils.Job.class);
+		BrainMailImport.readMail(user, withDeleted, job, ownerId, ownerType, NOW.minus(Duration.ofHours(1)), true, 0, 0);
+		assertEquals("dismissed", value("SELECT STATUS FROM WORK_ITEM WHERE SOURCE_REF = 'G1'"));
+		assertEquals("deleted", value("SELECT CLOSED_REASON FROM WORK_ITEM WHERE SOURCE_REF = 'G1'"));
+		assertEquals("open", value("SELECT STATUS FROM WORK_ITEM WHERE SOURCE_REF = 'G2'"));
+	}
+
 	// a mailbox with Inbox and Sent whose all-mail read is the given one (changed is whether it filters on change time)
 	private BrainMailHeaderSource inboxSource(java.util.function.Function<Boolean, List<Map<String, Object>>> allMail) {
 		return new BrainMailHeaderSource() {
@@ -951,6 +1004,24 @@ class BrainSyncDbUnitTests {
 	}
 
 	@Test
+	void theOwnerChoosesHowOftenTopicsAreProposedAndWhetherClosingCrossesConversations() throws Exception {
+		try (MockedStatic<BrainThreadClassifier> classifier = mockStatic(BrainThreadClassifier.class)) {
+			// until the owner chooses, the instance's values apply
+			Map<String, Object> first = BrainProfileUtils.getSettings(ownerId, ownerType);
+			assertEquals(24, first.get("newTopicsEveryHours"));
+			assertEquals(true, first.get("closeAcrossThreads"));
+			Map<String, Object> saved = BrainProfileUtils.saveSettings(user,
+					Map.of("newTopicsEveryHours", 168, "closeAcrossThreads", false));
+			assertEquals(168, saved.get("newTopicsEveryHours"));
+			assertEquals(false, saved.get("closeAcrossThreads"));
+			assertThrows(IllegalArgumentException.class,
+					() -> BrainProfileUtils.saveSettings(user, Map.of("newTopicsEveryHours", 5)));
+			assertThrows(IllegalArgumentException.class,
+					() -> BrainProfileUtils.saveSettings(user, Map.of("closeAcrossThreads", "no")));
+		}
+	}
+
+	@Test
 	void aSyncAlreadyRunningIsJoinedAndTheScheduleWaitsItsTurn() throws Exception {
 		CountDownLatch release = new CountDownLatch(1);
 		Map<String, Object> running = CollaborationJobUtils.start(ownerId, ownerType, BrainSync.KIND, Map.of(),
@@ -1073,5 +1144,41 @@ class BrainSyncDbUnitTests {
 		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery(sql)) {
 			return rs.next() ? rs.getObject(1) : null;
 		}
+	}
+
+	@Test
+	void aThreadWhoseSortFailedIsReadAgainUntilItHasHadTheLastTry() throws Exception {
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT, SORT_FAILS) "
+				+ "VALUES (?, ?, 'failed-once', 'email', 'x', 1)", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT, SORT_FAILS) "
+				+ "VALUES (?, ?, 'failed-last', 'email', 'x', ?)", ownerId, ownerType,
+				BrainThreadClassifier.SORT_TRIES);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT) "
+				+ "VALUES (?, ?, 'sorted', 'email', 'x')", ownerId, ownerType);
+
+		List<String> ids = BrainSync.threadsSince(ownerId, ownerType, utc(NOW));
+
+		assertTrue(ids.contains("failed-once"));
+		assertFalse(ids.contains("failed-last"));
+		assertFalse(ids.contains("sorted"));
+	}
+
+	@Test
+	void aThreadFlaggedAutomatedIsLiveAgainOnceAPersonWritesOnIt() throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, RELATIONSHIP) VALUES (?, ?, 'bot', ?)",
+				ownerId, ownerType, BrainSenderTyping.AUTOMATED);
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, RELATIONSHIP) VALUES (?, ?, 'kyle', 'colleague')",
+				ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT, AUTOMATED) "
+				+ "VALUES (?, ?, 'announcement', 'email', 'x', TRUE)", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT) "
+				+ "VALUES (?, ?, 'a1', 'announcement', 'bot', ?)", ownerId, ownerType, utc(NOW.minus(Duration.ofHours(2))));
+
+		assertFalse(BrainThreadClassifier.newestFromPerson(ownerId, ownerType, "announcement"));
+
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT) "
+				+ "VALUES (?, ?, 'a2', 'announcement', 'kyle', ?)", ownerId, ownerType, utc(NOW.minus(Duration.ofHours(1))));
+
+		assertTrue(BrainThreadClassifier.newestFromPerson(ownerId, ownerType, "announcement"));
 	}
 }

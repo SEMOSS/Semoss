@@ -216,6 +216,16 @@ public final class BrainThreadUtils {
 			}
 			boolean makePrimary = primary || links.isEmpty();
 			if (makePrimary) {
+				// a move: the topic Brain had guessed goes, as in BrainTopicMatches.move, and is remembered as
+				// not this conversation's; a link the owner kept stays as a secondary
+				for (BrainTopicMatches.Link old : BrainTopicMatches.links(ownerId, ownerType, threadId)) {
+					if (!old.kept() && !topicId.equals(old.topicId())) {
+						CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? "
+								+ "AND OWNER_TYPE = ? AND THREAD_ID = ? AND TOPIC_ID = ?", ownerId, ownerType,
+								threadId, old.topicId());
+						BrainThreadTopicDecisions.remember(ownerId, ownerType, threadId, old.topicId(), true);
+					}
+				}
 				CollaborationDbUtils.update(conn,
 						"UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ? "
 								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
@@ -236,6 +246,7 @@ public final class BrainThreadUtils {
 						BrainProfileUtils.YOU, 100, makePrimary || Boolean.TRUE.equals(existing.get("primary")),
 						BrainProfileUtils.YOU, now, ownerId, ownerType, threadId, topicId);
 			}
+			BrainTopicUtils.learnPeople(conn, ownerId, ownerType, threadId, topicId);
 		});
 		return getLinks(ownerId, ownerType, threadId);
 	}

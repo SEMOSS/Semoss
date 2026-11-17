@@ -133,7 +133,7 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description("Updates one custom automation Python node after verifying its current source hash.")
-				.key(ReactorKeysEnum.PROJECT, "The Automation project ID or alias to update.")
+				.key(ReactorKeysEnum.PROJECT, "The Automation project ID to update.")
 				.key(NODE_ID_KEY, "The custom node ID whose persisted Python source will be replaced.")
 				.key(SOURCE_KEY, "The complete replacement Python source defining run(scope).")
 				.key(EXPECTED_SOURCE_HASH_KEY,

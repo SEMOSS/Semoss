@@ -25,53 +25,44 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.blocks;
+package prerna.reactor.agent.runtime;
 
-import java.sql.SQLException;
-import java.util.List;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
 
-import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.theme.BlocksThemeUtils;
-import prerna.theme.ThemeDbTable;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
-public class DeleteBlockReactor extends AbstractReactor {
+import prerna.util.Constants;
+import prerna.util.Utility;
 
-	public DeleteBlockReactor() {
-		this.keysToGet = new String[] { "blockId", "hardDelete" };
-		this.keyRequired = new int[] { 1, 0 };
+class PlatformAgentToolHandlersReadLimitUnitTests {
+
+	private static final long MB = 1024L * 1024L;
+
+	private static long limitWith(String setting) {
+		try (MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
+			utility.when(() -> Utility.getDIHelperProperty(anyString())).thenReturn(null);
+			utility.when(() -> Utility.getDIHelperProperty(Constants.DOCUMENT_READ_MAX_FILE_MB)).thenReturn(setting);
+			return PlatformAgentToolHandlers.documentReadMaxFileBytes();
+		}
 	}
 
-	@Override
-	public NounMetadata execute() {
-		User user = requireUser();
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin) {
-			throwFunctionalityOnlyExposedForAdminsError();
-		}
-
-		this.organizeKeys();
-		boolean hardDelete = false;
-		GenRowStruct grs = this.store.getGenRowStruct("hardDelete");
-		if (grs != null && !grs.isEmpty()) {
-			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.BOOLEAN);
-			if (mapNouns != null && !mapNouns.isEmpty()) {
-				hardDelete = (boolean) mapNouns.get(0).getValue();
-			}
-		}
-		String blockId = this.keyValue.get("blockId");
-		String tableName = ThemeDbTable.BLOCKS_TABLE.toString();
-		boolean result = false;
-		try {
-			result = BlocksThemeUtils.deleteBlock(blockId, tableName, hardDelete);
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return new NounMetadata(result, PixelDataType.BOOLEAN);
+	@Test
+	void defaultsTo100Mb() {
+		assertEquals(100 * MB, limitWith(null));
+		assertEquals(100 * MB, limitWith("  "));
 	}
 
+	@Test
+	void rdfMapSettingOverridesTheDefault() {
+		assertEquals(250 * MB, limitWith(" 250 "));
+	}
+
+	@Test
+	void anInvalidOrTooSmallSettingFallsBack() {
+		assertEquals(100 * MB, limitWith("lots"));
+		assertEquals(MB, limitWith("0"));
+	}
 }

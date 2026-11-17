@@ -89,27 +89,25 @@ public final class AutomationProjectService {
 	}
 
 	/**
-	 * Resolves a project ID or alias and requires view access to an automation
-	 * project.
+	 * Reads an automation project the user can view.
 	 *
-	 * @param user             user requesting access
-	 * @param projectIdOrAlias project ID or alias
-	 * @return resolved automation project
+	 * @param user      user requesting access
+	 * @param projectId project ID
+	 * @return the automation project
 	 */
-	public static IProject getViewableAutomationProject(User user, String projectIdOrAlias) {
-		return getAutomationProject(user, projectIdOrAlias, false);
+	public static IProject getViewableAutomationProject(User user, String projectId) {
+		return getAutomationProject(user, projectId, false);
 	}
 
 	/**
-	 * Resolves a project ID or alias and requires edit access to an automation
-	 * project.
+	 * Reads an automation project the user can edit.
 	 *
-	 * @param user             user requesting access
-	 * @param projectIdOrAlias project ID or alias
-	 * @return resolved automation project
+	 * @param user      user requesting access
+	 * @param projectId project ID
+	 * @return the automation project
 	 */
-	public static IProject getEditableAutomationProject(User user, String projectIdOrAlias) {
-		return getAutomationProject(user, projectIdOrAlias, true);
+	public static IProject getEditableAutomationProject(User user, String projectId) {
+		return getAutomationProject(user, projectId, true);
 	}
 
 	/**
@@ -145,31 +143,29 @@ public final class AutomationProjectService {
 	 * the caller's own inline runs; an inline scope is accepted only when it is the
 	 * caller's own; anything else must be an accessible automation project.
 	 *
-	 * @param user             user requesting access
-	 * @param projectIdOrAlias project ID or alias, inline run scope, or blank
-	 * @param requireEdit      whether a project must grant edit access
+	 * @param user        user requesting access
+	 * @param projectId   project ID, inline run scope, or blank
+	 * @param requireEdit whether a project must grant edit access
 	 * @return run scope to match against {@code AUTOMATION_RUNS.PROJECT_ID}
 	 */
-	public static String resolveRunScope(User user, String projectIdOrAlias, boolean requireEdit) {
-		if (projectIdOrAlias == null || projectIdOrAlias.isBlank()) {
+	public static String resolveRunScope(User user, String projectId, boolean requireEdit) {
+		if (projectId == null || projectId.isBlank()) {
 			return inlineRunScope(user);
 		}
-		if (isInlineRunScope(projectIdOrAlias)) {
-			if (!projectIdOrAlias.equals(inlineRunScope(user))) {
+		if (isInlineRunScope(projectId)) {
+			if (!projectId.equals(inlineRunScope(user))) {
 				throw new IllegalArgumentException("Run does not exist or user does not have access.");
 			}
-			return projectIdOrAlias;
+			return projectId;
 		}
-		return getAutomationProject(user, projectIdOrAlias, requireEdit).getProjectId();
+		return getAutomationProject(user, projectId, requireEdit).getProjectId();
 	}
 
-	private static IProject getAutomationProject(User user, String projectIdOrAlias, boolean requireEdit) {
-		if (projectIdOrAlias == null || projectIdOrAlias.isBlank()) {
+	private static IProject getAutomationProject(User user, String projectId, boolean requireEdit) {
+		if (projectId == null || projectId.isBlank()) {
 			throw new IllegalArgumentException("Must provide a project id.");
 		}
 
-		String projectId = isInlineRunScope(projectIdOrAlias) ? projectIdOrAlias
-				: SecurityProjectUtils.testUserProjectIdForAlias(user, projectIdOrAlias);
 		// An inline run scope is never a project, even when an uploaded project claims
 		// that id.
 		boolean hasAccess = !isInlineRunScope(projectId)
