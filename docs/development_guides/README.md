@@ -8,6 +8,8 @@ This section provides guides and information relevant for developers contributin
     *   Core Configuration Files, Build Environment (`pom.xml`), Deployment.
 *   **[Java Developer Onboarding Guide](./java_developer_onboarding.md)**
     *   Getting Started, Running Locally, Key Modules, Contributions.
+*   **[LiveKit Platform Replacement Plan](./livekit_platform_replacement_plan.md)**
+    *   Replace Pipecat with self-hosted LiveKit Agents: architecture, permissions, usage, captions, translation, telephony, and rollout.
 
 ## Agent development
 
