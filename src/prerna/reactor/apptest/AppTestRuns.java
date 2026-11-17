@@ -154,6 +154,7 @@ final class AppTestRuns {
     static List<Map<String, Object>> selectRecordings(List<Map<String, Object>> recordings, String suite, List<String> pages) {
         if (PLATFORM_SMOKE_SUITE.equals(suite)) {
             return List.of(Map.of("id", PLATFORM_SMOKE_SUITE, "name", "Page visibility smoke check; no workflow coverage",
+                    "description", "Open the published app, check visible content and observe immediate unhandled JavaScript errors; no saved workflow is exercised.",
                     "scope", "PAGE_VISIBILITY_SMOKE", "startPath", "", "steps",
                     List.of(Map.of("type", "ASSERT_VISIBLE", "selector", "body", "framePath", List.of()))));
         }

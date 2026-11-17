@@ -63,9 +63,19 @@ class AppTestRunnerUnitTests {
 					+ "<input id='agree' type='checkbox'><button id='save' onclick=\"document.querySelector('#result').textContent='Saved '+document.querySelector('#name').value\">Save</button>"
 					+ "<div id='result'>Ready</div><iframe id='child' srcdoc=\"<span id='nested'>Nested content</span>\"></iframe>"
 					+ "<a id='escape' href='/elsewhere'>Leave app</a>"
+					+ "<a id='details' href='details.html'>Details</a>"
 					+ (throwRuntimeError.get() ? "<script>throw new Error('smoke failure');</script>" : "")
 					+ "</body></html>";
 			if (fixedLayout.get()) html = "<html><body style='margin:0;height:0'><main style='position:fixed;left:10px;top:10px;width:160px;height:60px'>Fixed app content</main></body></html>";
+			byte[] bytes = (authenticated ? html : "Unauthorized").getBytes(StandardCharsets.UTF_8);
+			exchange.getResponseHeaders().set("Content-Type", "text/html");
+			exchange.sendResponseHeaders(authenticated ? 200 : 401, bytes.length);
+			exchange.getResponseBody().write(bytes);
+			exchange.close();
+		});
+		server.createContext("/Monolith/public_home/app-one/portals/details.html", exchange -> {
+			boolean authenticated = "JSESSIONID=test-session".equals(exchange.getRequestHeaders().getFirst("Cookie"));
+			String html = "<html><body><h1 id='details-title'>Order details</h1><a id='home' href='./'>Home</a></body></html>";
 			byte[] bytes = (authenticated ? html : "Unauthorized").getBytes(StandardCharsets.UTF_8);
 			exchange.getResponseHeaders().set("Content-Type", "text/html");
 			exchange.sendResponseHeaders(authenticated ? 200 : 401, bytes.length);
@@ -126,10 +136,37 @@ class AppTestRunnerUnitTests {
 		Map<String, Object> report = run("test-session", steps);
 		assertEquals("COMPLETED", report.get("status"));
 		assertEquals("PASSED", first(report).get("status"));
+		assertEquals("Exercise the selected app steps and expected outcomes.", first(report).get("description"));
 		assertEquals(2L, first(report).get("assertions"));
 		assertTrue(java.nio.file.Files.exists(temporary.resolve(report.get("runId") + ".json")));
 		String savedReport = java.nio.file.Files.readString(temporary.resolve(report.get("runId") + ".json"));
 		assertFalse(savedReport.contains("test-session"));
+	}
+
+	@Test
+	void replaysLinksAcrossPagesInTheSameAppWithTheSameSession() {
+		Map<String, Object> report = run("test-session", List.of(
+				Map.of("type", "CLICK", "selector", "#details"),
+				Map.of("type", "ASSERT_TEXT", "selector", "#details-title", "text", "Order details"),
+				Map.of("type", "CLICK", "selector", "#home"),
+				Map.of("type", "ASSERT_VISIBLE", "selector", "#save")));
+		assertEquals("PASSED", first(report).get("status"));
+		assertEquals(2L, first(report).get("assertions"));
+	}
+
+	@Test
+	void supportsExplicitRelativeNavigationAndStartingOnADeepPage() {
+		Map<String, Object> report = run("test-session", List.of(
+				Map.of("type", "NAVIGATE", "path", "details.html"),
+				Map.of("type", "ASSERT_TEXT", "selector", "#details-title", "text", "Order details"),
+				Map.of("type", "NAVIGATE", "path", "#/orders"),
+				Map.of("type", "ASSERT_VISIBLE", "selector", "#save")));
+		assertEquals("PASSED", first(report).get("status"));
+		Map<String, Object> deepPage = AppTestRecordings.validate(Map.of(
+				"name", "Details", "description", "Open the details page directly and check its title.",
+				"startPath", "details.html", "steps", List.of(Map.of("type", "ASSERT_VISIBLE", "selector", "#details-title"))));
+		Map<String, Object> deepReport = AppTestRunner.run("deep-page", "app-one", root, "test-session", "JSESSIONID", List.of(deepPage), temporary);
+		assertEquals("PASSED", first(deepReport).get("status"));
 	}
 
 	@Test
@@ -176,7 +213,7 @@ class AppTestRunnerUnitTests {
 	}
 
 	private Map<String, Object> run(String session, List<Map<String, Object>> steps) {
-		Map<String, Object> recording = AppTestRecordings.validate(Map.of("name", "Example", "startPath", "", "steps", steps));
+		Map<String, Object> recording = AppTestRecordings.validate(Map.of("name", "Example", "description", "Exercise the selected app steps and expected outcomes.", "startPath", "", "steps", steps));
 		return AppTestRunner.run(UUID.randomUUID().toString(), "app-one", root, session, "JSESSIONID", List.of(recording), temporary);
 	}
 

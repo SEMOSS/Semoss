@@ -135,6 +135,7 @@ final class AppTestRunner {
 		} catch (RuntimeException | AssertionError e) {
 			Map<String, Object> error = new LinkedHashMap<>();
 			error.put("name", "Runner");
+			error.put("description", "Launch the browser and execute the selected app tests within the run budget.");
 			error.put("page", "");
 			error.put("status", "ERROR");
 			error.put("classification", "ERROR");
@@ -158,6 +159,7 @@ final class AppTestRunner {
 		Map<String, Object> test = new LinkedHashMap<>();
 		test.put("id", recording.get("id"));
 		test.put("name", recording.get("name"));
+		test.put("description", recording.getOrDefault("description", "Replay the recorded app workflow."));
 		test.put("page", recording.get("startPath"));
 		boolean smoke = "PAGE_VISIBILITY_SMOKE".equals(recording.get("scope"));
 		test.put("scope", smoke ? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSION");

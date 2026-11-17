@@ -191,7 +191,7 @@ class AppTestDeterminismUnitTests {
 	}
 
 	private static Map<String, Object> recording(Map<String, Object> step) {
-		return Map.of("name", "Example " + UUID.randomUUID(), "startPath", "", "steps", List.of(step));
+		return Map.of("name", "Example " + UUID.randomUUID(), "description", "Verify deterministic replay of the selected action or assertion.", "startPath", "", "steps", List.of(step));
 	}
 
 	private Map<String, Object> run(int repeat, Map<String, Object> step) {

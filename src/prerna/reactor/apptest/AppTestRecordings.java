@@ -113,6 +113,7 @@ final class AppTestRecordings {
 		String name = text(input.get("name"), "name", 120);
 		if (name.equals(AppTestRuns.PLATFORM_SMOKE_SUITE)) throw new IllegalArgumentException("This suite name is reserved for the platform smoke check");
 		out.put("name", name);
+		out.put("description", text(input.get("description"), "description", 2000).trim());
 		out.put("startPath", relativePath(input.get("startPath")));
 		Object rawSteps = input.get("steps");
 		if (!(rawSteps instanceof List<?> steps) || steps.isEmpty() || steps.size() > MAX_STEPS) {
@@ -219,8 +220,12 @@ final class AppTestRecordings {
 				if (Files.size(file) > MAX_BYTES) throw new IOException("Recording exceeds size limit");
 				try {
 					Map<String, Object> recording = GSON.fromJson(Files.readString(file), new TypeToken<Map<String, Object>>() { }.getType());
+					// Older version-1 recordings predate descriptions; migrate only after validation.
+					boolean needsDescription = !recording.containsKey("description");
+					if (needsDescription) recording.put("description", "Replays the recorded workflow: " + recording.get("name") + ".");
 					Map<String, Object> validated = validate(recording);
 					if (recording.get("updatedAt") instanceof String updatedAt) validated.put("updatedAt", updatedAt);
+					if (needsDescription) write(file, validated);
 					recordings.add(validated);
 				} catch (RuntimeException e) {
 					throw new IOException("A saved recording is invalid; review it before running app tests", e);

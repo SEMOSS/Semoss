@@ -103,7 +103,37 @@
           },
           "recording": {
             "type": "object",
-            "description": "version 1: optional id, name, startPath, steps"
+            "description": "Version 1 recording with required name, description and steps; optional id and app-relative startPath.",
+            "required": [
+              "name",
+              "description",
+              "steps"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "Explain the workflow and expected outcome this test verifies."
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "id": {
+                "type": "string"
+              },
+              "startPath": {
+                "type": "string"
+              }
+            }
           }
         },
         "required": [
@@ -120,7 +150,7 @@
       },
       "outputSchema": {
         "type": "object",
-        "description": "Saved id, version, name, startPath, steps, updatedAt"
+        "description": "Saved id, version, name, description, startPath, steps, updatedAt"
       }
     },
     {

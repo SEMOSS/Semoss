@@ -1,14 +1,28 @@
 {
   "status": "COMPLETED",
   "tests": [
-    {"id": "t1", "name": "Open home page", "page": "home", "status": "PASSED"},
     {
-      "id": "t3", "name": "Filter orders by date", "page": "orders", "status": "FAILED",
+      "id": "t1",
+      "name": "Open home page",
+      "page": "home",
+      "status": "PASSED",
+      "description": "Development fixture for Open home page; no browser is tested."
+    },
+    {
+      "id": "t3",
+      "name": "Filter orders by date",
+      "page": "orders",
+      "status": "FAILED",
       "classification": "TEST_NEEDS_UPDATE",
-      "failedStep": {"id": 4, "type": "CLICK", "selector": "#date-filter"},
+      "failedStep": {
+        "id": 4,
+        "type": "CLICK",
+        "selector": "#date-filter"
+      },
       "reason": "The date filter was replaced by a date range picker",
       "expected": "Click on #date-filter",
-      "actual": "#date-filter no longer exists; the page loaded normally"
+      "actual": "#date-filter no longer exists; the page loaded normally",
+      "description": "Development fixture for Filter orders by date; no browser is tested."
     }
   ]
 }

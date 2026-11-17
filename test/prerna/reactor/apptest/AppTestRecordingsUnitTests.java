@@ -30,6 +30,8 @@ package prerna.reactor.apptest;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.nio.file.Path;
+import java.nio.file.Files;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -45,10 +47,13 @@ class AppTestRecordingsUnitTests {
 		Path otherApp = temporary.resolve("other/app-tests");
 		Map<String, Object> saved = AppTestRecordings.save(firstApp, recording("Original"));
 		assertEquals(1, AppTestRecordings.list(firstApp).size());
+		assertEquals("Verify the Original workflow.", AppTestRecordings.list(firstApp).getFirst().get("description"));
 		assertTrue(AppTestRecordings.list(otherApp).isEmpty());
 		saved.put("name", "Renamed");
+		saved.put("description", "Verify the renamed workflow.");
 		AppTestRecordings.save(firstApp, saved);
 		assertEquals("Renamed", AppTestRecordings.list(firstApp).getFirst().get("name"));
+		assertEquals("Verify the renamed workflow.", AppTestRecordings.list(firstApp).getFirst().get("description"));
 		assertTrue(AppTestRecordings.delete(firstApp, (String) saved.get("id")));
 		assertTrue(AppTestRecordings.list(firstApp).isEmpty());
 	}
@@ -62,14 +67,41 @@ class AppTestRecordingsUnitTests {
 		assertEquals("orders?q=hello%20world#some%20where", AppTestRecordings.relativePath("orders?q=hello%20world#some%20where"));
 		assertEquals("hello%20world", AppTestRecordings.relativePath("hello%20world"));
 		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.id("../../report"));
-		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(Map.of("name", "x", "steps", List.of(Map.of("type", "EVAL", "value", "arbitrary script")))));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(Map.of("name", "x", "description", "Reject arbitrary scripts.", "steps", List.of(Map.of("type", "EVAL", "value", "arbitrary script")))));
 	}
 
 	@Test
 	void retainsActionOnlyWorkflowsButRejectsEmptyAndOversizedRecordings() {
 		assertNotNull(AppTestRecordings.validate(recording("Workflow")).get("id"));
-		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(Map.of("name", "Empty", "steps", List.of())));
-		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(Map.of("name", "Too many", "steps", java.util.Collections.nCopies(301, Map.of("type", "CLICK", "selector", "button")))));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(Map.of("name", "Empty", "description", "Reject an empty workflow.", "steps", List.of())));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(Map.of("name", "Too many", "description", "Reject too many steps.", "steps", java.util.Collections.nCopies(301, Map.of("type", "CLICK", "selector", "button")))));
+	}
+
+	@Test
+	void requiresMeaningfulBoundedDescriptionsForNewSaves() {
+		Map<String, Object> draft = new LinkedHashMap<>(recording("Workflow"));
+		draft.remove("description");
+		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.save(temporary, draft));
+		for (Object value : List.of(" ", 1, "x".repeat(2001))) {
+			draft.put("description", value);
+			assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(draft));
+		}
+		draft.put("description", "  Click Save and check the confirmation.  ");
+		assertEquals("Click Save and check the confirmation.", AppTestRecordings.validate(draft).get("description"));
+	}
+
+	@Test
+	void migratesLegacyRecordingsAndRetainsTheirTimestamp() throws Exception {
+		String id = "11111111-1111-4111-8111-111111111111";
+		Path dir = temporary.resolve("recordings");
+		Files.createDirectories(dir);
+		Path file = dir.resolve(id + ".json");
+		Files.writeString(file, "{\"id\":\"" + id + "\",\"name\":\"Old workflow\",\"version\":1,\"updatedAt\":\"2026-11-13T12:00:00Z\",\"steps\":[{\"type\":\"CLICK\",\"selector\":\"button\"}]}");
+		Map<String, Object> migrated = AppTestRecordings.list(temporary).getFirst();
+		assertEquals("Replays the recorded workflow: Old workflow.", migrated.get("description"));
+		assertEquals("2026-11-13T12:00:00Z", migrated.get("updatedAt"));
+		assertTrue(Files.readString(file).contains("\"description\""));
+		assertEquals(migrated, AppTestRecordings.list(temporary).getFirst());
 	}
 
 	@Test
@@ -80,6 +112,6 @@ class AppTestRecordingsUnitTests {
 	}
 
 	private Map<String, Object> recording(String name) {
-		return Map.of("name", name, "startPath", "", "steps", List.of(Map.of("type", "CLICK", "selector", "button")));
+		return Map.of("name", name, "description", "Verify the " + name + " workflow.", "startPath", "", "steps", List.of(Map.of("type", "CLICK", "selector", "button")));
 	}
 }

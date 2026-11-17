@@ -58,7 +58,7 @@ public class SaveAppTestRecordingReactor extends AbstractAppTestReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("Save a declarative app regression recording outside published app assets. Requires app edit access.")
 				.key("project", "Required target app project id, never the toolbox id")
-				.key("recording", k -> k.type(Map.class).description("Recording with optional id, name, startPath and steps"))
-				.output(Map.class, "Saved recording with UUID, version, name, relative start path, steps and update time");
+				.key("recording", k -> k.type(Map.class).description("Recording with required name, description and steps; optional id and app-relative startPath. Description explains the workflow and expected outcome (at most 2000 characters)."))
+				.output(Map.class, "Saved recording with UUID, version, name, description, relative start path, steps and update time");
 	}
 }

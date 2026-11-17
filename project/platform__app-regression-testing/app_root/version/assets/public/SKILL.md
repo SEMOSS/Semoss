@@ -41,7 +41,7 @@ Each replay runs in a fresh browser with a fixed viewport, `en-US` locale, UTC t
 
 ## Recording format
 
-`ListAppTestRecordings(project)` returns the app's recordings. `SaveAppTestRecording(project, recording)` accepts a map with optional UUID `id`, `name`, app-relative `startPath` (empty for portal root), and `steps`. Steps use CSS `selector`, optional nested iframe CSS selectors in `framePath`, and one of:
+`ListAppTestRecordings(project)` returns the app's recordings, including descriptions. `SaveAppTestRecording(project, recording)` requires `name`, a nonblank `description` explaining the workflow and expected outcome (at most 2000 characters), and `steps`. Optional fields are UUID `id` and app-relative `startPath` (empty for portal root). Give every test a meaningful description; for example, "Create an order on the checkout page, navigate to Orders, and verify the new order appears." Steps use CSS `selector`, optional nested iframe CSS selectors in `framePath`, and one of:
 
 - `CLICK`, `ASSERT_VISIBLE`
 - `FILL` / `SELECT` with string `value`
