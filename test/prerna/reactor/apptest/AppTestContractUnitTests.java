@@ -46,7 +46,7 @@ class AppTestContractUnitTests {
 
 	@Test
 	void allAppScopedToolsRequireAnExplicitTargetAndDeclareMapOutputs() {
-		for (AbstractReactor reactor : List.of(new RunAppTestsReactor(), new SaveAppTestRecordingReactor(), new ListAppTestRecordingsReactor(), new DeleteAppTestRecordingReactor())) {
+		for (AbstractReactor reactor : List.of(new RunAppTestsReactor(), new SaveAppTestRecordingReactor(), new ListAppTestRecordingsReactor(), new DeleteAppTestRecordingReactor(), new CreateAppTestDatabaseReactor(), new GetEngineTestConfigurationReactor(), new SaveEngineTestConfigurationReactor(), new DeleteEngineTestConfigurationReactor(), new BeginAppTestSessionReactor(), new EndAppTestSessionReactor())) {
 			assertTrue(reactor.getReactorDefinition().getKey("project").getRequired());
 			assertEquals(Map.class, reactor.getReactorDefinition().getOutput().getType());
 		}

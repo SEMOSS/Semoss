@@ -2,7 +2,7 @@
   "tools": [
     {
       "name": "RunAppTests",
-      "description": "Replay saved app recordings, or explicit reserved suite __platform_smoke__ for page visibility and immediate JavaScript errors only, without workflow coverage. Explicit project required. Poll GetAppTestRun; NO_TESTS and skipped workflows never count as passes.",
+      "description": "Replay saved app recordings, or explicit reserved suite __platform_smoke__ for page visibility and immediate JavaScript errors only, without workflow coverage. Explicit project required. Poll GetAppTestRun; NO_TESTS and skipped workflows never count as passes. An existing EngineTestConfiguration is applied automatically. A recording requiring a missing or different configuration fails instead of using production. Reports identify databaseMode and effective mappings.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -132,6 +132,10 @@
               },
               "startPath": {
                 "type": "string"
+              },
+              "engineTestConfigurationId": {
+                "type": "string",
+                "description": "Configuration UUID required for replay. Set for agent-authored database tests as well as recorded tests; never a session token."
               }
             }
           }
@@ -181,6 +185,214 @@
       "outputSchema": {
         "type": "object",
         "description": "deleted boolean"
+      }
+    },
+    {
+      "name": "GetEngineTestConfiguration",
+      "description": "Read the app-owned optional EngineTestConfiguration. Null means no configured database substitution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Explicit target app project id"
+          }
+        },
+        "required": [
+          "project"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "GetEngineTestConfiguration",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "SaveEngineTestConfiguration",
+      "description": "Save real-to-test database mappings without changing app code. Test targets must be dedicated local file-backed H2/SQLite engines. Requires real database view and test database edit access. SEMOSS database calls, including Python callbacks, are routed during recording/replay; direct JDBC/DB-API connections are outside routing. Unmapped app databases fail closed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Explicit target app project id"
+          },
+          "configuration": {
+            "type": "object",
+            "required": [
+              "name",
+              "mappings"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Preserve the existing configuration UUID when updating."
+              },
+              "name": {
+                "type": "string"
+              },
+              "mappings": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 16,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "realEngineId",
+                    "testEngineId"
+                  ],
+                  "properties": {
+                    "realEngineId": {
+                      "type": "string"
+                    },
+                    "testEngineId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "project",
+          "configuration"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "SaveEngineTestConfiguration",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "CreateAppTestDatabase",
+      "description": "Create a private empty local test database through normal provisioning permissions. Does not clone production connections, copy data or create app tables. Seed the schema and fixture data before using it.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Explicit target app project id"
+          },
+          "name": {
+            "type": "string"
+          },
+          "rdbmsType": {
+            "type": "string",
+            "enum": [
+              "H2_DB",
+              "SQLITE"
+            ]
+          }
+        },
+        "required": [
+          "project",
+          "name"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "CreateAppTestDatabase",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "DeleteEngineTestConfiguration",
+      "description": "Remove the app test profile only when explicitly requested. Leaves test databases intact. Recordings requiring the removed profile stop rather than use production.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Explicit target app project id"
+          }
+        },
+        "required": [
+          "project"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "DeleteEngineTestConfiguration",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "BeginAppTestSession",
+      "description": "Begin a caller/session/app-bound 30-minute routing context. Used by the platform recording bridge before reloading the iframe. Does not redirect an already loaded app. Never save its token in recordings.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Explicit target app project id"
+          }
+        },
+        "required": [
+          "project"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "BeginAppTestSession",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "EndAppTestSession",
+      "description": "Revoke a recording context; late test requests fail closed. The platform Exit test database mode action also restores normal preview browsing.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Explicit target app project id"
+          },
+          "sessionToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "sessionToken"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "EndAppTestSession",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object"
       }
     }
   ]

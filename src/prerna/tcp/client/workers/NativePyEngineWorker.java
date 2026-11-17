@@ -84,7 +84,13 @@ public class NativePyEngineWorker implements Runnable {
 	@Override
 	public void run() {
 		String engineId = ps.objId;
+		Insight effectiveInsight = null;
 		try {
+			effectiveInsight = prerna.testing.EngineTestContexts.callbackInsight(ps.insightId, ps.executionInsightId);
+			if (effectiveInsight == null) effectiveInsight = this.insight;
+			try (var testScope = effectiveInsight == null ? null
+					: prerna.testing.EngineTestContexts.enterInsight(effectiveInsight, user)) {
+			engineId = prerna.testing.EngineTestContexts.resolveDatabase(engineId);
 			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 				throw new IllegalArgumentException(
 						"Engine " + engineId + " does not exist or user does not have access to it");
@@ -94,13 +100,14 @@ public class NativePyEngineWorker implements Runnable {
 			}
 			IDatabaseEngine engine = Utility.getDatabase(engineId);
 			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, ps.payload[0] + "")) {
-				if (this.insight == null || (ps.payload.length > 1 && "json".equals(ps.payload[1]))) {
+				if (effectiveInsight == null || (ps.payload.length > 1 && "json".equals(ps.payload[1]))) {
 					ps.payload = new Object[] { Utility.writeResultToJsonObject(wrapper, null, ESCAPE_QUOTES) };
 				} else {
-					String fileLocation = insight.getInsightFolder() + "/a_" + Utility.getRandomString(5) + ".json";
+					String fileLocation = effectiveInsight.getInsightFolder() + "/a_" + Utility.getRandomString(5) + ".json";
 					Utility.writeResultToJson(fileLocation, wrapper, null, ESCAPE_QUOTES);
 					ps.payload = new Object[] { fileLocation.replace("\\", "/") };
 				}
+			}
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to run the Python process's query on engine {}", engineId, e);

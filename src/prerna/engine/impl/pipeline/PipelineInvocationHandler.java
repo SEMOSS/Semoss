@@ -195,6 +195,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		// A database proxy may have been cached before this test execution started.
+		if (this.catalogType == IEngine.CATALOG_TYPE.DATABASE && prerna.testing.EngineTestContexts.isActive()) {
+			String effective = prerna.testing.EngineTestContexts.resolveDatabase(this.engineId);
+			if (!this.engineId.equals(effective)) {
+				try { return method.invoke(prerna.util.Utility.getDatabase(effective), args); }
+				catch (InvocationTargetException e) { throw e.getTargetException(); }
+			}
+		}
 		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
 			try {
 				return this.engineInvoker.invoke(method, args);

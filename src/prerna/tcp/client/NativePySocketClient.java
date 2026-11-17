@@ -325,6 +325,11 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 											if (!(pixelOp = pixelOp.trim()).endsWith(";")) {
 												pixelOp += ";";
 											}
+											Insight callbackInsight = prerna.testing.EngineTestContexts.callbackInsight(insightId, executionInsightId);
+											if (callbackInsight != null && callbackInsight.getEngineTestSessionToken() != null) {
+												insight = callbackInsight;
+												ThreadStore.setInsightId(insight.getInsightId());
+											}
 											PixelRunner pixelRunner = insight.runPixel(pixelOp);
 											StreamingOutput streamedOutput = PixelStreamUtility
 													.collectPixelData(pixelRunner, null);

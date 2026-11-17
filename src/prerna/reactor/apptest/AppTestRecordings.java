@@ -114,6 +114,8 @@ final class AppTestRecordings {
 		if (name.equals(AppTestRuns.PLATFORM_SMOKE_SUITE)) throw new IllegalArgumentException("This suite name is reserved for the platform smoke check");
 		out.put("name", name);
 		out.put("description", text(input.get("description"), "description", 2000).trim());
+		if (input.containsKey("engineTestConfigurationId"))
+			out.put("engineTestConfigurationId", id(String.valueOf(input.get("engineTestConfigurationId"))));
 		out.put("startPath", relativePath(input.get("startPath")));
 		Object rawSteps = input.get("steps");
 		if (!(rawSteps instanceof List<?> steps) || steps.isEmpty() || steps.size() > MAX_STEPS) {

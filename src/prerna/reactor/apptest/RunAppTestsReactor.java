@@ -79,7 +79,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 			}
 		}
 
-		String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName, repeat);
+		String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName, repeat, requireUser());
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("runId", runId);
@@ -87,6 +87,9 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 		result.put("status", AppTestRuns.get(owner, runId).get("status"));
 		result.put("scope", AppTestRuns.PLATFORM_SMOKE_SUITE.equals(suite) ? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSIONS");
 		result.put("maxFixAttempts", AppTestRuns.maxFixAttempts());
+		Map<String, Object> snapshot = AppTestRuns.get(owner, runId);
+		result.put("databaseMode", snapshot.getOrDefault("databaseMode", "APP_DEFAULT"));
+		if (snapshot.containsKey("engineTestConfiguration")) result.put("engineTestConfiguration", snapshot.get("engineTestConfiguration"));
 		if (repeat > 1) result.put("repeat", repeat);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}

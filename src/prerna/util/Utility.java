@@ -2184,6 +2184,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static IDatabaseEngine getDatabase(String engineId, boolean pullIfNeeded) {
+		engineId = prerna.testing.EngineTestContexts.resolveDatabase(engineId);
 		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedDatabaseEngine((IDatabaseEngine) engine);

@@ -60,6 +60,8 @@ import com.microsoft.playwright.options.WaitUntilState;
 
 import prerna.util.Utility;
 
+import prerna.testing.EngineTestContexts;
+
 /** One run owns all Playwright objects, on one worker thread, until they close. */
 final class AppTestRunner {
 	static final long RUN_TIMEOUT_MS = 120_000;
@@ -121,6 +123,12 @@ final class AppTestRunner {
 	/** Replays each recording {@code repeat} times in fresh browser contexts; it passes only if every replay does. */
 	static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
 			List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat) {
+		return run(runId, target, root, sessionId, cookieName, recordings, reportFolder, deadline, repeat, null);
+	}
+
+	static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
+			List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat, EngineTestContexts.Context testContext) {
+		try {
 		List<Map<String, Object>> tests = new ArrayList<>();
 		// Browser provisioning belongs to deployment; never download binaries in a user job.
 		try {
@@ -129,7 +137,7 @@ final class AppTestRunner {
 					Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setTimeout(30_000))) {
 				for (Map<String, Object> recording : recordings) {
 					if (System.nanoTime() >= deadline) throw new IllegalStateException("Run exceeded its time limit");
-					tests.add(replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat));
+					tests.add(replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat, testContext));
 				}
 			}
 		} catch (RuntimeException | AssertionError e) {
@@ -145,17 +153,20 @@ final class AppTestRunner {
 			tests.add(error);
 		}
 		Map<String, Object> report = report(runId, target, tests);
+		report.put("databaseMode", testContext == null ? "APP_DEFAULT" : "TEST");
+		if (testContext != null) report.put("engineTestConfiguration", testContext.summary());
 		try {
 			AppTestRecordings.write(reportFolder.resolve(runId + ".json"), report);
 		} catch (java.io.IOException e) {
 			report.put("reportWarning", "Run completed, but its report could not be persisted");
 		}
 		return report;
+		} finally { EngineTestContexts.end(testContext); }
 	}
 
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> replay(Browser browser, URI root, String sessionId, String cookieName,
-			Map<String, Object> recording, long deadline) {
+			Map<String, Object> recording, long deadline, EngineTestContexts.Context testContext) {
 		Map<String, Object> test = new LinkedHashMap<>();
 		test.put("id", recording.get("id"));
 		test.put("name", recording.get("name"));
@@ -188,9 +199,14 @@ final class AppTestRunner {
 				catch (RuntimeException e) { route.abort(); return; }
 				boolean cookieOriginMismatch = root.getHost().equalsIgnoreCase(String.valueOf(destination.getHost()))
 						&& !sameOrigin(root, destination);
-				if (cookieOriginMismatch || route.request().isNavigationRequest() && !insideApp(root, destination.toString())) {
+				if (cookieOriginMismatch || testContext != null && (!sameOrigin(root, destination) || destination.getPath() == null || !destination.getPath().startsWith(modulePath + "/"))
+						|| route.request().isNavigationRequest() && !insideApp(root, destination.toString())) {
 					unsafeNavigation.set(true);
 					route.abort();
+				} else if (testContext != null) {
+					Map<String, String> headers = new LinkedHashMap<>(route.request().headers());
+					headers.put(EngineTestContexts.HEADER, testContext.token());
+					route.resume(new com.microsoft.playwright.Route.ResumeOptions().setHeaders(headers));
 				} else route.resume();
 			});
 			context.onResponse(response -> {
@@ -199,6 +215,14 @@ final class AppTestRunner {
 				}
 			});
 			Page page = context.newPage();
+			if (testContext != null) {
+				String moduleRoot = root.toString().substring(0, root.toString().indexOf("/public_home/"));
+				var proof = context.request().get(moduleRoot + "/app-test-context", com.microsoft.playwright.options.RequestOptions.create()
+						.setHeader(EngineTestContexts.HEADER, testContext.token()).setTimeout(10_000));
+				if (proof.status() != 200 || !testContext.token().equals(proof.headers().get("x-semoss-app-test-active")))
+					throw new IllegalStateException("Backend test database routing is unavailable; app was not opened");
+				proof.dispose();
+			}
 			if (smoke) page.onPageError(error -> runtimeErrors.incrementAndGet());
 			page.setDefaultTimeout(STEP_TIMEOUT_MS);
 			page.setDefaultNavigationTimeout(15_000);
@@ -296,10 +320,10 @@ final class AppTestRunner {
 	}
 
 	private static Map<String, Object> replayRepeated(Browser browser, URI root, String sessionId, String cookieName,
-			Map<String, Object> recording, long deadline, int repeat) {
+			Map<String, Object> recording, long deadline, int repeat, EngineTestContexts.Context testContext) {
 		List<Map<String, Object>> outcomes = new ArrayList<>();
 		for (int i = 0; i < Math.max(1, repeat); i++) {
-			outcomes.add(replay(browser, root, sessionId, cookieName, recording, deadline));
+			outcomes.add(replay(browser, root, sessionId, cookieName, recording, deadline, testContext));
 			if (System.nanoTime() >= deadline) break;
 		}
 		return aggregateRepeats(outcomes, Math.max(1, repeat));

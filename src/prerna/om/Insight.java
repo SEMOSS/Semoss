@@ -182,6 +182,19 @@ public class Insight implements Serializable {
 
 	// active project context used to resolve project-scoped reactors and assets
 	private String contextProjectId = null;
+	private final String engineTestCreationToken = prerna.testing.EngineTestContexts.creationToken();
+	private volatile String engineTestSessionToken;
+
+	/** Context under which this Insight was constructed; never authorizes borrowing a normal Insight. */
+	public String getEngineTestCreationToken() { return engineTestCreationToken; }
+	/** A bound test Insight remains marked after expiry so callbacks cannot fall back to production. */
+	public String getEngineTestSessionToken() { return engineTestSessionToken; }
+	public synchronized void bindEngineTestSession(String token) {
+		if (token == null || !token.equals(engineTestCreationToken)
+				|| engineTestSessionToken != null && !engineTestSessionToken.equals(token))
+			throw new IllegalArgumentException("Only a fresh test Insight can be bound to its creating context");
+		engineTestSessionToken = token;
+	}
 	private String contextProjectName = null;
 
 	// set to true after setContext() successfully changes the context
@@ -341,6 +354,7 @@ public class Insight implements Serializable {
 	 * @return the same PixelRunner with all results appended
 	 */
 	public PixelRunner runPixel(PixelRunner runner, List<String> pixelList) {
+		try (var engineTestScope = prerna.testing.EngineTestContexts.enterInsight(this, getUser())) {
 		int size = pixelList.size();
 		if (size == 0) {
 			// set the insight in the runner as it is used
@@ -366,6 +380,7 @@ public class Insight implements Serializable {
 			}
 		}
 		return runner;
+		}
 	}
 
 	/**

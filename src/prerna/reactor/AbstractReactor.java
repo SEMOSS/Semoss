@@ -929,6 +929,13 @@ public abstract class AbstractReactor implements IReactor {
 			}
 		}
 
+		// Test substitutions must precede engine-specific authorization and execution.
+		if (prerna.testing.EngineTestContexts.isActive()) {
+			for (String key : new String[] { "database", "engine" }) {
+				if (keyValue.containsKey(key)) keyValue.put(key,
+						prerna.testing.EngineTestContexts.resolveEngineArgument(key, keyValue.get(key)));
+			}
+		}
 		// Finally, check for required keys
 		checkOptional();
 	}

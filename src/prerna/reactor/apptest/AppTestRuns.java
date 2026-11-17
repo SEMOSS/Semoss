@@ -52,6 +52,8 @@ import com.google.gson.Gson;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.testing.EngineTestConfiguration;
+import prerna.testing.EngineTestContexts;
 import prerna.util.Utility;
 
 /** Bounded asynchronous runs; credentials remain only in a worker's ephemeral closure. */
@@ -101,6 +103,11 @@ final class AppTestRuns {
     /** {@code repeat} replays each recording that many times (1 to 5) and passes it only if every replay passes. */
     static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
             String applicationUrl, String sessionId, String cookieName, int repeat) {
+        return start(owner, projectId, scenario, suite, pages, applicationUrl, sessionId, cookieName, repeat, null);
+    }
+
+    static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
+            String applicationUrl, String sessionId, String cookieName, int repeat, User user) {
         int replays = Math.max(1, Math.min(MAX_REPEAT, repeat));
         String runId = UUID.randomUUID().toString();
         Map<String, Object> pending = new LinkedHashMap<>();
@@ -138,13 +145,24 @@ final class AppTestRuns {
             throw new IllegalArgumentException("A signed-in browser session is required to replay app tests. Run from the app editor after signing in.");
         }
         URI root = AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId);
+        Map<String, Object> profile = user == null ? null : EngineTestConfiguration.load(projectId);
+        for (Map<String, Object> recording : recordings) {
+            Object requiredProfile = recording.get("engineTestConfigurationId");
+            if (requiredProfile != null && (profile == null || !requiredProfile.equals(profile.get("id"))))
+                throw new IllegalArgumentException("This recording requires its EngineTestConfiguration; production fallback is disabled");
+        }
+        EngineTestContexts.Context context = profile == null ? null : EngineTestContexts.begin(user, projectId, sessionId, profile);
+        pending.put("databaseMode", context == null ? "APP_DEFAULT" : "TEST");
+        if (context != null) pending.put("engineTestConfiguration", context.summary());
         List<Map<String, Object>> selected = recordings;
-        register(runId, run);
+        try { register(runId, run); }
+        catch (RuntimeException failure) { EngineTestContexts.end(context); throw failure; }
         long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * replays * 1_000_000;
         try {
             Path reportFolder = folder.resolve("reports").resolve(ownerDirectory(owner));
-            WORKERS.execute(() -> run.result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected, reportFolder, deadline, replays));
+            WORKERS.execute(() -> run.result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected, reportFolder, deadline, replays, context));
         } catch (RejectedExecutionException e) {
+            EngineTestContexts.end(context);
             synchronized (RUNS) { RUNS.remove(runId); }
             throw new IllegalArgumentException("App test runner is busy. Try again after an active run finishes.");
         }

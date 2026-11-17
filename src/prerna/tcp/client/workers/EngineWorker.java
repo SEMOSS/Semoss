@@ -79,7 +79,9 @@ public class EngineWorker implements Runnable {
 		try
 		{
 			// TODO Auto-generated method stub
-			String engineId = ps.objId;
+			prerna.om.Insight testInsight = prerna.testing.EngineTestContexts.callbackInsight(ps.insightId, ps.executionInsightId);
+			try (var testScope = testInsight == null ? null : prerna.testing.EngineTestContexts.enterInsight(testInsight, sc.getUser())) {
+			String engineId = prerna.testing.EngineTestContexts.resolveDatabase(ps.objId);
 			
 			// TODO: *****************need to do a security check *************
 			User user = sc.getUser();
@@ -112,6 +114,7 @@ public class EngineWorker implements Runnable {
 			}
 			// got the response
 			ps.response = true;
+			}
 			
 		}catch(Exception ex)
 		{

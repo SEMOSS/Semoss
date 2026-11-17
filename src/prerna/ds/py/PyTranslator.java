@@ -507,6 +507,10 @@ public class PyTranslator {
 	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
 			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars,
 			boolean disableCancelTrace) {
+		if (prerna.testing.EngineTestContexts.isActive()) {
+			executionInsight = prerna.testing.EngineTestContexts.executionInsight();
+			if (executionInsight == null) throw new IllegalArgumentException("Test Python execution requires its own Insight");
+		}
 		PayloadStruct ps = new PayloadStruct();
 		ps.disableCancelTrace = disableCancelTrace;
 		ps.operation = PayloadStruct.OPERATION.PYTHON;

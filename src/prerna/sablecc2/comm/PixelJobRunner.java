@@ -71,6 +71,10 @@ public class PixelJobRunner implements Runnable {
 		this.insight = insight;
 		this.sessionId = sessionId;
 		this.routeId = routeId;
+		// Bind fresh test Insights on the request thread before dispatching asynchronous Pixel work.
+		if (prerna.testing.EngineTestContexts.isActive()) {
+			try (var testScope = prerna.testing.EngineTestContexts.enterInsight(insight, insight.getUser())) { }
+		}
 
 		// capture parent thread context before spawning new thread
 		this.localPort = ThreadStore.getLocalPort();
