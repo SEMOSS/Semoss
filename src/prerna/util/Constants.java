@@ -1083,6 +1083,13 @@ public class Constants {
 	public static final String COLLAB_WORK_ITEMS_PARALLEL = "COLLAB_WORK_ITEMS_PARALLEL";
 	// threads one work items run reads at once (default 5)
 	public static final String COLLAB_WORK_EXTRACT_PARALLEL = "COLLAB_WORK_EXTRACT_PARALLEL";
+	// reasoning effort sent with Work's model calls (low, medium, high); unset sends none
+	public static final String COLLAB_WORK_REASONING_EFFORT = "COLLAB_WORK_REASONING_EFFORT";
+	// "false" keeps a done claim to steps of its own thread; otherwise it may finish a step on another thread of the
+	// topic when it names the same thing
+	public static final String COLLAB_WORK_CLOSE_ACROSS = "COLLAB_WORK_CLOSE_ACROSS";
+	// hours between looks for new topics in incoming mail (default 24; 0 turns the look off)
+	public static final String COLLAB_TOPIC_WATCH_HOURS = "COLLAB_TOPIC_WATCH_HOURS";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
 	// characters of memories a thread's assistant gets in its prompt (default 4000)
