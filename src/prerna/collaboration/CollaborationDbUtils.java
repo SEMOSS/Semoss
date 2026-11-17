@@ -546,6 +546,20 @@ public class CollaborationDbUtils {
 					}
 				}
 			}
+			// Link ids are deterministic, and the database constraint closes the race between server instances.
+			BrainTopicLinks.deduplicate(conn);
+			String topicLinkIndex = "BRAIN_TOPIC_LINK_LINK_UNIQUE";
+			if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, topicLinkIndex,
+					"BRAIN_TOPIC_LINK", collaborationDb.getDatabase(), collaborationDb.getSchema())) {
+				String sql = queryUtil.allowIfExistsIndexSyntax()
+						? queryUtil.createIndexIfNotExists(topicLinkIndex, "BRAIN_TOPIC_LINK",
+								List.of("OWNER_ID", "OWNER_TYPE", "LINK_ID"))
+						: queryUtil.createIndex(topicLinkIndex, "BRAIN_TOPIC_LINK",
+								List.of("OWNER_ID", "OWNER_TYPE", "LINK_ID"));
+				try (Statement statement = conn.createStatement()) {
+					statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+				}
+			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
 			// a topic's short name defaults to its name (VARCHAR 255)

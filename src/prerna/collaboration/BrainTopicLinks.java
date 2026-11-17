@@ -29,18 +29,27 @@ package prerna.collaboration;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
+import prerna.io.connector.ms.teams.MicrosoftTeamsHelper;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 
 /** Owner-scoped pointers to OneDrive, Teams, or SharePoint folders linked to topics. */
 public final class BrainTopicLinks {
+
+	private static final Logger classLogger = LogManager.getLogger(BrainTopicLinks.class);
 
 	public static final String DRIVE_FOLDER = "drive_folder";
 	public static final String CHANNEL_FILES = "channel_files";
@@ -51,6 +60,9 @@ public final class BrainTopicLinks {
 	private static final String LOCK = "topic-link";
 	private static final String ON_TOPIC = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?";
 	private static final int MAX_DISPLAY_NAME = 255;
+	private static final String INSERT_LINK = "INSERT INTO BRAIN_TOPIC_LINK (OWNER_ID, OWNER_TYPE, LINK_ID, TOPIC_ID, "
+			+ "KIND, DRIVE_ID, ITEM_ID, TEAM_ID, CHANNEL_ID, SITE_ID, DISPLAY_NAME, WEB_URL, STATE, CHECKED_AT) "
+			+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	private BrainTopicLinks() {
 	}
@@ -74,11 +86,43 @@ public final class BrainTopicLinks {
 	private record StoredLink(String linkId, FolderPointer folder) {
 	}
 
+	private record LinkKey(String ownerId, String ownerType, String linkId) {
+	}
+
+	private record LinkRow(String topicId, FolderPointer folder, String state, Timestamp checkedAt) {
+	}
+
 	/** Lists a topic's linked folders, scoped to the signed-in owner. */
-	public static List<Map<String, Object>> list(User user, String topicId) {
+	public static Map<String, Object> list(User user, String topicId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		BrainTopicUtils.requireTopic(owner.getValue0(), owner.getValue1(), topicId);
-		return ofTopic(owner.getValue0(), owner.getValue1(), topicId);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
+		List<Map<String, Object>> links = ofTopic(ownerId, ownerType, topicId);
+		if (links.stream().anyMatch(BrainTopicLinks::isLiveMicrosoftFolder)) {
+			String accessToken = accessToken(user);
+			for (Map<String, Object> link : links) {
+				if (!isLiveMicrosoftFolder(link)) {
+					continue;
+				}
+				String linkId = String.valueOf(link.get("linkId"));
+				try {
+					String state = isAccessible(accessToken, link) ? OK : NO_ACCESS;
+					updateState(user, topicId, linkId, state);
+				} catch (Exception e) {
+					if (isUnavailable(e)) {
+						classLogger.warn("Microsoft folder link {} is no longer available: {}", linkId,
+								e.getMessage());
+						updateState(user, topicId, linkId, NO_ACCESS);
+					} else {
+						throw new SemossPixelException("Could not check access to linked Microsoft folder "
+								+ link.get("displayName") + ": " + e.getMessage());
+					}
+				}
+			}
+			links = ofTopic(ownerId, ownerType, topicId);
+		}
+		return result(topicId, links);
 	}
 
 	/** Saves a folder pointer after its metadata and access have been verified with Microsoft Graph. */
@@ -91,14 +135,22 @@ public final class BrainTopicLinks {
 
 		String linkId = linkId(ownerId, ownerType, topicId, folder);
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			if (!CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_TOPIC_LINK WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+			if (CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_TOPIC_LINK WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 					+ "AND LINK_ID = ?", ownerId, ownerType, linkId)) {
-				CollaborationDbUtils.update("INSERT INTO BRAIN_TOPIC_LINK (OWNER_ID, OWNER_TYPE, LINK_ID, TOPIC_ID, "
-						+ "KIND, DRIVE_ID, ITEM_ID, TEAM_ID, CHANNEL_ID, SITE_ID, DISPLAY_NAME, WEB_URL, STATE, "
-						+ "CHECKED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-						ownerId, ownerType, linkId, topicId, folder.kind(), folder.driveId(), folder.itemId(),
-						folder.teamId(), folder.channelId(), folder.siteId(), clip(folder.displayName(), MAX_DISPLAY_NAME),
-						folder.webUrl(), OK, CollaborationDbUtils.now());
+				if (refreshLink(ownerId, ownerType, topicId, linkId, folder) == 0) {
+					insertLink(ownerId, ownerType, topicId, linkId, folder);
+				}
+			} else {
+				try {
+					insertLink(ownerId, ownerType, topicId, linkId, folder);
+				} catch (IllegalStateException e) {
+					if (!isUniqueConstraintViolation(e)
+							|| !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_TOPIC_LINK WHERE OWNER_ID = ? "
+									+ "AND OWNER_TYPE = ? AND LINK_ID = ?", ownerId, ownerType, linkId)
+							|| refreshLink(ownerId, ownerType, topicId, linkId, folder) == 0) {
+						throw e;
+					}
+				}
 			}
 		}
 		return result(topicId, ofTopic(ownerId, ownerType, topicId));
@@ -127,11 +179,150 @@ public final class BrainTopicLinks {
 		if (!OK.equals(state) && !NO_ACCESS.equals(state)) {
 			throw new IllegalArgumentException("Folder state must be ok or no_access");
 		}
-		int updated = CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_LINK SET STATE = ?, CHECKED_AT = ?"
-				+ ON_TOPIC + " AND LINK_ID = ?", state, CollaborationDbUtils.now(), ownerId, ownerType, topicId,
-				linkId);
+		int updated = updateState(ownerId, ownerType, topicId, linkId, state);
 		if (updated == 0) {
 			throw new IllegalArgumentException("Linked folder not found");
+		}
+	}
+
+	private static int updateState(String ownerId, String ownerType, String topicId, String linkId, String state) {
+		return CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_LINK SET STATE = ?, CHECKED_AT = ?" + ON_TOPIC
+				+ " AND LINK_ID = ?", state, CollaborationDbUtils.now(), ownerId, ownerType, topicId, linkId);
+	}
+
+	private static boolean isLiveMicrosoftFolder(Map<String, Object> link) {
+		Object kind = link.get("kind");
+		return DRIVE_FOLDER.equals(kind) || CHANNEL_FILES.equals(kind);
+	}
+
+	private static String accessToken(User user) {
+		try {
+			return MicrosoftLoginUtils.getValidAccessToken(user);
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new SemossPixelException("Could not retrieve a Microsoft access token: " + e.getMessage());
+		}
+	}
+
+	private static boolean isAccessible(String accessToken, Map<String, Object> link) throws Exception {
+		String kind = String.valueOf(link.get("kind"));
+		if (DRIVE_FOLDER.equals(kind)) {
+			Map<String, Object> item = MicrosoftOneDriveHelper.getItem(accessToken,
+					String.valueOf(link.get("driveId")), String.valueOf(link.get("itemId")), null);
+			return Boolean.TRUE.equals(item.get("isFolder"));
+		}
+		if (CHANNEL_FILES.equals(kind)) {
+			MicrosoftTeamsHelper.getChannelFilesFolder(accessToken, String.valueOf(link.get("teamId")),
+					String.valueOf(link.get("channelId")));
+			return true;
+		}
+		return false;
+	}
+
+	private static boolean isUnavailable(Throwable error) {
+		for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+			String message = cause.getMessage();
+			if (message != null
+					&& (message.contains(" returned HTTP 403") || message.contains(" returned HTTP 404"))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static void insertLink(String ownerId, String ownerType, String topicId, String linkId,
+			FolderPointer folder) {
+		insertLink(ownerId, ownerType, linkId, topicId, folder, OK, CollaborationDbUtils.now());
+	}
+
+	private static void insertLink(String ownerId, String ownerType, String linkId, String topicId,
+			FolderPointer folder, String state, Timestamp checkedAt) {
+		CollaborationDbUtils.update(INSERT_LINK,
+				ownerId, ownerType, linkId, topicId, folder.kind(), folder.driveId(), folder.itemId(), folder.teamId(),
+				folder.channelId(), folder.siteId(), clip(folder.displayName(), MAX_DISPLAY_NAME), folder.webUrl(),
+				state, checkedAt);
+	}
+
+	private static void insertLink(Connection conn, String ownerId, String ownerType, String linkId, String topicId,
+			FolderPointer folder, String state, Timestamp checkedAt) throws SQLException {
+		CollaborationDbUtils.update(conn, INSERT_LINK, ownerId, ownerType, linkId, topicId, folder.kind(),
+				folder.driveId(), folder.itemId(), folder.teamId(), folder.channelId(), folder.siteId(),
+				clip(folder.displayName(), MAX_DISPLAY_NAME), folder.webUrl(), state, checkedAt);
+	}
+
+	private static int refreshLink(String ownerId, String ownerType, String topicId, String linkId,
+			FolderPointer folder) {
+		return CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_LINK SET TOPIC_ID = ?, KIND = ?, DRIVE_ID = ?, "
+				+ "ITEM_ID = ?, TEAM_ID = ?, CHANNEL_ID = ?, SITE_ID = ?, DISPLAY_NAME = ?, WEB_URL = ?, STATE = ?, "
+				+ "CHECKED_AT = ?" + ON_TOPIC + " AND LINK_ID = ?", topicId, folder.kind(), folder.driveId(),
+				folder.itemId(), folder.teamId(), folder.channelId(), folder.siteId(),
+				clip(folder.displayName(), MAX_DISPLAY_NAME), folder.webUrl(), OK, CollaborationDbUtils.now(),
+				ownerId, ownerType, topicId, linkId);
+	}
+
+	private static boolean isUniqueConstraintViolation(Throwable error) {
+		for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+			if (cause instanceof SQLException sqlException && sqlException.getSQLState() != null
+					&& sqlException.getSQLState().startsWith("23")) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Consolidates duplicate link ids created before the unique database index is installed. */
+	static void deduplicate(Connection conn) throws SQLException {
+		List<LinkKey> duplicates = CollaborationDbUtils.query(conn, "SELECT OWNER_ID, OWNER_TYPE, LINK_ID "
+				+ "FROM BRAIN_TOPIC_LINK GROUP BY OWNER_ID, OWNER_TYPE, LINK_ID HAVING COUNT(*) > 1",
+				rs -> new LinkKey(rs.getString("OWNER_ID"), rs.getString("OWNER_TYPE"), rs.getString("LINK_ID")));
+		if (duplicates.isEmpty()) {
+			return;
+		}
+
+		boolean autoCommit = conn.getAutoCommit();
+		if (autoCommit) {
+			conn.setAutoCommit(false);
+		}
+		try {
+			for (LinkKey key : duplicates) {
+				List<LinkRow> rows = CollaborationDbUtils.query(conn, "SELECT TOPIC_ID, KIND, DRIVE_ID, ITEM_ID, "
+						+ "TEAM_ID, CHANNEL_ID, SITE_ID, DISPLAY_NAME, WEB_URL, STATE, CHECKED_AT "
+						+ "FROM BRAIN_TOPIC_LINK WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_ID = ?",
+						rs -> new LinkRow(rs.getString("TOPIC_ID"),
+								new FolderPointer(rs.getString("KIND"), rs.getString("DRIVE_ID"),
+										rs.getString("ITEM_ID"), rs.getString("TEAM_ID"), rs.getString("CHANNEL_ID"),
+										rs.getString("SITE_ID"), rs.getString("DISPLAY_NAME"),
+										CollaborationDbUtils.getString(rs, "WEB_URL")),
+								rs.getString("STATE"), rs.getTimestamp("CHECKED_AT")),
+						key.ownerId(), key.ownerType(), key.linkId());
+				if (rows.size() < 2) {
+					continue;
+				}
+				LinkRow latest = rows.get(0);
+				for (LinkRow row : rows) {
+					if (row.checkedAt() != null
+							&& (latest.checkedAt() == null || row.checkedAt().after(latest.checkedAt()))) {
+						latest = row;
+					}
+				}
+				CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC_LINK WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND LINK_ID = ?", key.ownerId(), key.ownerType(), key.linkId());
+				insertLink(conn, key.ownerId(), key.ownerType(), key.linkId(), latest.topicId(), latest.folder(),
+						latest.state(), latest.checkedAt());
+			}
+			if (autoCommit) {
+				conn.commit();
+			}
+		} catch (SQLException | RuntimeException e) {
+			if (autoCommit) {
+				conn.rollback();
+			}
+			throw e;
+		} finally {
+			if (autoCommit) {
+				conn.setAutoCommit(true);
+			}
 		}
 	}
 
