@@ -31,7 +31,7 @@ import prerna.util.openshell.OpenShellSecrets;
 import prerna.util.openshell.TransportedRoots;
 
 /**
- * {@link SandboxTransporter} for {@link SymlinkHelper.SandboxMode#OPENSHELL}: copies a host path into
+ * {@link SandboxTransporter} for {@link prerna.util.sandbox.SandboxSettings.Mode#OPENSHELL}: copies a host path into
  * the sandbox with {@code openshell sandbox upload}.
  *
  * <p>

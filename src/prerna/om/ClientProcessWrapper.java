@@ -78,6 +78,7 @@ import prerna.util.SandboxInjector;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
+import prerna.util.sandbox.SandboxSettings;
 import prerna.util.openshell.OpenShellUserSandboxes;
 import prerna.util.openshell.TransportedRoots;
 
@@ -1841,9 +1842,7 @@ public class ClientProcessWrapper {
 
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
-				String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
-				boolean namespaceSandbox = !SystemUtils.IS_OS_WINDOWS
-						&& ("NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode));
+				boolean namespaceSandbox = SandboxSettings.nodeNamespaceJail();
 				if (namespaceSandbox) {
 					Object[] ret = ClientProcessWrapper.startTCPServerNodeSandbox(this.serverDirectory, this.port + "",
 							this.timeout, this.loggerLevel, null);

@@ -44,7 +44,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.om.ClientProcessWrapper;
 import prerna.util.OpenShellTransport;
-import prerna.util.Utility;
 
 /**
  * Runs shell commands <b>inside</b> the user's OpenShell sandbox.
@@ -75,7 +74,6 @@ public final class OpenShellShellRunner {
 	private static final int DEFAULT_TIMEOUT_SECONDS = 60;
 	/** Most output returned to the terminal for one command. */
 	private static final int MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
-	private static final String CLI = "openshell";
 
 	private OpenShellShellRunner() {
 		// static utility
@@ -209,16 +207,17 @@ public final class OpenShellShellRunner {
 	 * 64 KB and blocks the command until the timeout, losing everything it printed.
 	 */
 	private static Outcome runInSandbox(String sandboxName, String workingDir, String command) throws IOException {
-		List<String> argv = new ArrayList<>(Arrays.asList(cliPath(), "sandbox", "exec", "-n", sandboxName, "--",
-				"bash", "-lc", "cd " + shellQuote(workingDir) + " 2>/dev/null; " + command));
+		List<String> argv = new ArrayList<>(Arrays.asList(OpenShellTransport.cliPath(), "sandbox", "exec", "-n", sandboxName,
+				"--", "bash", "-lc", "cd " + shellQuote(workingDir) + " 2>/dev/null; " + command));
 		Path capture = Files.createTempFile("openshell-shell-", ".out");
 		try {
 			ProcessBuilder builder = new ProcessBuilder(argv);
 			builder.redirectErrorStream(true);
 			builder.redirectOutput(capture.toFile());
 			builder.redirectInput(ProcessBuilder.Redirect.from(new File("/dev/null")));
-			// The CLI needs the same environment the transport uses (gateway config,
-			// TLS bundle); inherit it rather than reconstructing it here.
+			// The CLI needs the same environment the transport uses (gateway config and TLS
+			// bundle live under HOME), so it gets the transport's, with HOME pinned.
+			OpenShellTransport.applyCliEnvironment(builder);
 			Process process = builder.start();
 			try {
 				if (!process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
@@ -257,13 +256,7 @@ public final class OpenShellShellRunner {
 
 	/** Exposed for tests: the exact argv shape used for one command. */
 	public static List<String> describeCommand(String sandboxName, String workingDir, String command) {
-		return Arrays.asList(CLI, "sandbox", "exec", "-n", sandboxName, "--", "bash", "-lc",
+		return Arrays.asList(OpenShellTransport.cliPath(), "sandbox", "exec", "-n", sandboxName, "--", "bash", "-lc",
 				"cd " + shellQuote(workingDir) + " 2>/dev/null; " + command);
-	}
-
-	/** Kept for symmetry with the transport's property handling. */
-	static String cliPath() {
-		String configured = Utility.getDIHelperProperty(OpenShellTransport.CLI_PROP);
-		return configured == null || configured.trim().isEmpty() ? CLI : configured.trim();
 	}
 }

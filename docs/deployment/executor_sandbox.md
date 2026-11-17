@@ -339,6 +339,9 @@ upload error.
 
 ## Configuration
 
+All sandbox settings, including the other modes, are listed in
+[sandbox_configuration.md](sandbox_configuration.md).
+
 | Key | Meaning |
 | --- | --- |
 | `SANDBOX_MODE` | `OPENSHELL` enables this path (requires `CHROOT_ENABLE=true`, like every jail) |

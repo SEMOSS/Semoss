@@ -57,29 +57,11 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.project.api.IProject;
+import prerna.util.sandbox.SandboxSettings;
 
 public class SymlinkHelper {
 
-	/**
-	 * Sandbox modes this user-level jail can be in.
-	 *
-	 * <p>
-	 * The distinction is <b>who supplies the {@link SymlinkHelper}</b>, not a flag checked at the call
-	 * site: {@code User.startPythonSocketServerAndClient} passes one for user-authored python, while
-	 * engine-owned workers (model engines, vector databases, guardrails, local function engines) and
-	 * {@code Project} pass {@code null}. That is existing semantics and the reason a user-authored
-	 * worker is the only one that ever reaches this class.
-	 */
-	public enum SandboxMode {
-		/** No kernel jail: fake chroot with symlinks. */
-		FAKECHROOT,
-		/** Namespace jail (nsjail/landlock style) with a control-socket injector. */
-		NAMESPACE,
-		/** External sandbox (OpenShell) created ahead of the worker; no in-process jail. */
-		OPENSHELL
-	}
-
-	private final SandboxMode sandboxMode;
+	private final SandboxSettings.Mode sandboxMode;
 
 	private static final Logger classLogger = LogManager.getLogger(SymlinkHelper.class);
 
@@ -159,8 +141,9 @@ public class SymlinkHelper {
 		// The mode is resolved once, here, because this object exists only for a
 		// user-authored worker. Callers that must NOT be jailed (engine-owned
 		// workers, Project python) pass a null helper and never reach this.
-		this.sandboxMode = resolveSandboxMode();
-		this.injectMode = this.sandboxMode == SandboxMode.NAMESPACE;
+		this.sandboxMode = SandboxSettings.mode();
+		this.injectMode = this.sandboxMode == SandboxSettings.Mode.NAMESPACE;
+		SandboxSettings.logEffectiveOnce();
 
 		File targetDir = new File(Utility.normalizePath(userChrootFolder));
 		if (!targetDir.exists()) {
@@ -209,7 +192,7 @@ public class SymlinkHelper {
 	 * {@code ClientProcessWrapper} when the worker starts, and both are replayed with everything
 	 * requested so far, because asset paths are registered before the worker exists.
 	 *
-	 * @param transporter the transporter for {@link SandboxMode#OPENSHELL}
+	 * @param transporter the transporter for {@link SandboxSettings.Mode#OPENSHELL}
 	 */
 	public synchronized void setTransport(SandboxTransporter transporter) {
 		this.transporter = transporter;
@@ -247,7 +230,7 @@ public class SymlinkHelper {
 	}
 
 	/** The user-level jail this helper's worker runs under. */
-	public SandboxMode getSandboxMode() {
+	public SandboxSettings.Mode getSandboxMode() {
 		return this.sandboxMode;
 	}
 
@@ -256,24 +239,7 @@ public class SymlinkHelper {
 	 * (OpenShell), so no in-process jail is applied.
 	 */
 	public boolean isExternalSandbox() {
-		return this.sandboxMode == SandboxMode.OPENSHELL;
-	}
-
-	private static SandboxMode resolveSandboxMode() {
-		String mode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
-		if (mode == null || (mode = mode.trim()).isEmpty()) {
-			// Historically an unset mode means the plain fakechroot jail.
-			return SandboxMode.FAKECHROOT;
-		}
-		if (Constants.SANDBOX_MODE_OPENSHELL.equalsIgnoreCase(mode)) {
-			return SandboxMode.OPENSHELL;
-		}
-		if ("NAMESPACE".equalsIgnoreCase(mode) || "NSJAIL".equalsIgnoreCase(mode)) {
-			return SandboxMode.NAMESPACE;
-		}
-		// FAKECHROOT, SECCOMP_ONLY and anything unrecognised keep the pre-existing
-		// fakechroot behaviour rather than silently gaining a jail.
-		return SandboxMode.FAKECHROOT;
+		return this.sandboxMode == SandboxSettings.Mode.OPENSHELL;
 	}
 
 	/**
@@ -542,7 +508,7 @@ public class SymlinkHelper {
 			}
 			return;
 		}
-		if (sandboxMode == SandboxMode.OPENSHELL) {
+		if (sandboxMode == SandboxSettings.Mode.OPENSHELL) {
 			// The sandbox has its own filesystem root; a chroot symlink under the host user folder
 			// would point at a path the sandbox cannot see, so it is meaningless here.
 			transport(sourceDirName, false);
@@ -682,7 +648,7 @@ public class SymlinkHelper {
 	}
 
 	private synchronized void placeProject(User user, String projectId, String appRoot) {
-		if (sandboxMode == SandboxMode.OPENSHELL) {
+		if (sandboxMode == SandboxSettings.Mode.OPENSHELL) {
 			// The sandbox has its own filesystem; the host chroot (symlink or viewer copy) is
 			// invisible to it. A user who can only view the project gets the same copy as in
 			// the other modes, without the folders it leaves out. Write-back is gated by the

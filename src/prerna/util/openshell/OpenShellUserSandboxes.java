@@ -63,6 +63,7 @@ import prerna.util.OpenShellTransport;
 import prerna.util.OpenShellTransport.SandboxInfo;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
+import prerna.util.sandbox.SandboxSettings;
 import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.SetParams;
 
@@ -136,9 +137,7 @@ public final class OpenShellUserSandboxes {
 
 	/** User-scoped sandboxes apply exactly when the OpenShell jail does. */
 	public static boolean enabled() {
-		return Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))
-				&& Constants.SANDBOX_MODE_OPENSHELL.equalsIgnoreCase(
-						String.valueOf(Utility.getDIHelperProperty(Constants.SANDBOX_MODE)).trim());
+		return SandboxSettings.openShellEnabled();
 	}
 
 	/**
@@ -636,7 +635,7 @@ public final class OpenShellUserSandboxes {
 			record.put("name", sandboxName);
 			record.put("node", NODE);
 			record.put("createdAt", String.valueOf(System.currentTimeMillis()));
-			record.put("workerPort", String.valueOf(Utility.getDIHelperProperty(OpenShellTransport.WORKER_PORT_PROP)));
+			record.put("workerPort", SandboxSettings.OPENSHELL_WORKER_PORT.value());
 			withJedis(jedis -> {
 				jedis.hset(sandboxKey(owner), record);
 				return jedis.sadd(OWNERS_KEY, owner);

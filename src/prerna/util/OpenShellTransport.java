@@ -72,6 +72,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import prerna.util.openshell.TransportedRoots;
+import prerna.util.sandbox.SandboxSettings;
 
 /**
  * Transport to a SEMOSS python worker running inside an OpenShell sandbox.
@@ -138,7 +139,7 @@ public final class OpenShellTransport {
 	 * CI publishes from {@code docker/Dockerfile.sandbox} for {@code dev}.
 	 */
 	public static final String IMAGE_PROP = "OPENSHELL_IMAGE";
-	private static final String DEFAULT_IMAGE = "quay.io/semoss/semoss-sandbox:dev-3.14-cpu";
+	private static final String DEFAULT_IMAGE = SandboxSettings.OPENSHELL_IMAGE.defaultValue();
 	/**
 	 * Property naming a sandbox-policy YAML applied at creation. Optional: unset, the policy
 	 * bundled with SEMOSS ({@value #POLICY_RESOURCE}) is used. Either way
@@ -152,7 +153,7 @@ public final class OpenShellTransport {
 	 * fixed directory so the path does not change with the patch version or the CPU.
 	 */
 	public static final String PYTHON_BINARY_PROP = "OPENSHELL_PYTHON_BINARY";
-	private static final String DEFAULT_PYTHON_BINARY = "/usr/lib/python/cpython/bin/python3.14";
+	private static final String DEFAULT_PYTHON_BINARY = SandboxSettings.OPENSHELL_PYTHON_BINARY.defaultValue();
 	/**
 	 * Property listing the hosts sandboxed code may reach, as {@code host[:port]} separated by
 	 * commas or spaces (port 443 when omitted). Unset means pypi, so {@code pip install} works;
@@ -160,7 +161,7 @@ public final class OpenShellTransport {
 	 * applied through the {@code ${NETWORK_POLICIES}} placeholder of the policy template.
 	 */
 	public static final String EGRESS_PROP = "OPENSHELL_EGRESS";
-	private static final String DEFAULT_EGRESS = "pypi.org:443, files.pythonhosted.org:443";
+	private static final String DEFAULT_EGRESS = SandboxSettings.OPENSHELL_EGRESS.defaultValue();
 	/** A hostname, nothing a YAML scalar could be broken out of with. */
 	private static final Pattern EGRESS_HOST = Pattern
 			.compile("[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*");
@@ -169,14 +170,14 @@ public final class OpenShellTransport {
 	 * {@code 500m}); {@code none} for no cap. A cap, not a reservation: idle sandboxes cost nothing.
 	 */
 	public static final String CPU_PROP = "OPENSHELL_CPU";
-	private static final String DEFAULT_CPU = "2";
+	private static final String DEFAULT_CPU = SandboxSettings.OPENSHELL_CPU.defaultValue();
 	/**
 	 * Property capping each sandbox's memory ({@code 4Gi}, {@code 512Mi}); {@code none} for no
 	 * cap. Past it the kernel kills the largest process in the sandbox, which for a {@code Py()}
 	 * block is the worker: the user gets a fresh python on the next block.
 	 */
 	public static final String MEMORY_PROP = "OPENSHELL_MEMORY";
-	private static final String DEFAULT_MEMORY = "4Gi";
+	private static final String DEFAULT_MEMORY = SandboxSettings.OPENSHELL_MEMORY.defaultValue();
 	private static final Pattern CPU_QUANTITY = Pattern
 			.compile("\\d+(\\.\\d+)?m?");
 	private static final Pattern MEMORY_QUANTITY = Pattern
@@ -192,10 +193,11 @@ public final class OpenShellTransport {
 	/** How long to wait for the sandbox to reach Ready. */
 	public static final String READY_TIMEOUT_PROP = "OPENSHELL_READY_TIMEOUT_SECONDS";
 
-	private static final String DEFAULT_CLI = "openshell";
-	private static final String DEFAULT_WORKER_PORT = "7100";
-	private static final String DEFAULT_LABEL = "app=semoss-executor";
-	private static final int DEFAULT_READY_TIMEOUT_S = 180;
+	private static final String DEFAULT_CLI = SandboxSettings.OPENSHELL_CLI.defaultValue();
+	private static final String DEFAULT_WORKER_PORT = SandboxSettings.OPENSHELL_WORKER_PORT.defaultValue();
+	private static final String DEFAULT_LABEL = SandboxSettings.OPENSHELL_LABEL.defaultValue();
+	private static final int DEFAULT_READY_TIMEOUT_S = Integer
+			.parseInt(SandboxSettings.OPENSHELL_READY_TIMEOUT_SECONDS.defaultValue());
 
 	/** Where the worker writes its own log inside the sandbox. */
 	public static final String WORKER_LOG_PATH = "/opt/semosshome/insight/worker.log";
@@ -217,8 +219,10 @@ public final class OpenShellTransport {
 	public static final String IDLE_EXIT_PROP = "OPENSHELL_IDLE_EXIT_MINUTES";
 	/** How many clients (sessions, server instances) one user's worker serves at once. */
 	public static final String MAX_CLIENTS_PROP = "OPENSHELL_WORKER_MAX_CLIENTS";
-	private static final int DEFAULT_IDLE_EXIT_MINUTES = 180;
-	private static final int DEFAULT_MAX_CLIENTS = 16;
+	private static final int DEFAULT_IDLE_EXIT_MINUTES = Integer
+			.parseInt(SandboxSettings.OPENSHELL_IDLE_EXIT_MINUTES.defaultValue());
+	private static final int DEFAULT_MAX_CLIENTS = Integer
+			.parseInt(SandboxSettings.OPENSHELL_WORKER_MAX_CLIENTS.defaultValue());
 
 	/** Label naming the user a sandbox belongs to (a digest, never the user id itself). */
 	public static final String OWNER_LABEL = "semoss-owner";
@@ -1950,6 +1954,16 @@ public final class OpenShellTransport {
 			env.put("HOME", home.trim());
 		}
 		return env;
+	}
+
+	/** The OpenShell CLI to run: {@code OPENSHELL_CLI}, or {@code openshell}. */
+	public static String cliPath() {
+		return propOr(CLI_PROP, DEFAULT_CLI);
+	}
+
+	/** Gives a CLI child the same environment as the transport's own, with {@code HOME} pinned. */
+	public static void applyCliEnvironment(ProcessBuilder builder) {
+		builder.environment().putAll(cliEnv());
 	}
 
 	private static String propOr(String key, String fallback) {
