@@ -48,6 +48,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -294,11 +295,10 @@ public class UploadProjectReactor extends AbstractReactor {
 					// GsonUtility.readJsonFileToObject(dependenciesFile, new
 					// TypeToken<List<String>>() {}.getType());
 					if (projectDependencies != null && !projectDependencies.isEmpty()) {
-						List<String> dependentEngineIds = new ArrayList<>();
-						for (Map<String, Object> dep : projectDependencies) {
-							dependentEngineIds.add((String) dep.get("engine_id"));
-						}
-						SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, dependentEngineIds);
+						// reads exports from this release and older ones, with each type
+						SecurityCatalogDependencyUtils.setDependencies(user, projectId,
+								SecurityCatalogDependencyUtils.resolveCatalogType(projectId, null),
+								SecurityCatalogDependencyUtils.fromExported(projectDependencies));
 					}
 					// delete this file since values can update and file is dynamically generated on
 					// export

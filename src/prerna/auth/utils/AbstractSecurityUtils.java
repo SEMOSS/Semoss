@@ -1598,38 +1598,60 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// PROJECTDEPENDENCIES
-			colNames = new String[] { "PROJECTID", "ENGINEID", "ENGINETYPE", "USERID", "TYPE", "DATEADDED" };
-			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
+			// CATALOGDEPENDENCIES
+			// an engine or a project (the catalog item) and the engines and projects it
+			// depends on, each kept with its own engine type or project type
+			colNames = new String[] { "CATALOGID", "CATALOGTYPE", "DEPENDENCYID", "DEPENDENCYTYPE", "USERID", "TYPE",
+					"DATEADDED" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
 					TIMESTAMP_DATATYPE_NAME };
 			defaultValues = null;
 			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("PROJECTDEPENDENCIES", colNames, types);
+				String sql = queryUtil.createTableIfNotExists(CatalogDependenciesMigration.NEW_TABLE, colNames, types);
 				classLogger.info("Running sql {}", sql);
 				securityDb.insertData(sql);
 			} else {
 				// see if table exists
-				if (!queryUtil.tableExists(conn, "PROJECTDEPENDENCIES", database, schema)) {
+				if (!queryUtil.tableExists(conn, CatalogDependenciesMigration.NEW_TABLE, database, schema)) {
 					// make the table
-					String sql = queryUtil.createTable("PROJECTDEPENDENCIES", colNames, types);
+					String sql = queryUtil.createTable(CatalogDependenciesMigration.NEW_TABLE, colNames, types);
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
 			}
 			// handle column changes
 			{
-				List<String> projectCols = queryUtil.getTableColumns(conn, "PROJECTDEPENDENCIES", database, schema);
+				List<String> dependencyCols = queryUtil.getTableColumns(conn, CatalogDependenciesMigration.NEW_TABLE,
+						database, schema);
 				for (int i = 0; i < colNames.length; i++) {
 					String col = colNames[i];
-					if (!projectCols.contains(col) && !projectCols.contains(col.toLowerCase())) {
-						classLogger.info("Column '{}' is not present in current list of columns: {}", col, projectCols);
-						String addColumnSql = queryUtil.alterTableAddColumn("PROJECTDEPENDENCIES", col, types[i]);
+					if (!dependencyCols.contains(col) && !dependencyCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col,
+								dependencyCols);
+						String addColumnSql = queryUtil.alterTableAddColumn(CatalogDependenciesMigration.NEW_TABLE, col,
+								types[i]);
 						classLogger.info("Running sql {}", addColumnSql);
 						securityDb.insertData(addColumnSql);
 					}
 				}
 			}
-			performDependencyUpdate(securityDb);
+			for (String indexColumn : new String[] { "CATALOGID", "DEPENDENCYID" }) {
+				String indexName = CatalogDependenciesMigration.NEW_TABLE + "_" + indexColumn + "_INDEX";
+				if (allowIfExistsIndexs) {
+					String sql = queryUtil.createIndexIfNotExists(indexName, CatalogDependenciesMigration.NEW_TABLE,
+							indexColumn);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				} else if (!queryUtil.indexExists(securityDb, indexName, CatalogDependenciesMigration.NEW_TABLE,
+						database, schema)) {
+					String sql = queryUtil.createIndex(indexName, CatalogDependenciesMigration.NEW_TABLE, indexColumn);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			// move the rows of PROJECTDEPENDENCIES, from before an engine could own
+			// dependencies, and drop it
+			CatalogDependenciesMigration.migrate(securityDb);
 
 			/**
 			 * 
@@ -3177,7 +3199,7 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("PASSWORD_RESET", new String[] { "TYPE" });
 		allValues.put("PROJECT", new String[] { "CREATEDBYTYPE", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILEDTYPE" });
 		allValues.put("PROJECTACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });
-		allValues.put("PROJECTDEPENDENCIES", new String[] { "TYPE" });
+		allValues.put("CATALOGDEPENDENCIES", new String[] { "TYPE" });
 		allValues.put("SESSION_SHARE", new String[] { "TYPE" });
 		allValues.put("SMSS_GROUP", new String[] { "TYPE", "USERIDTYPE" });
 		allValues.put("SMSS_USER", new String[] { "TYPE" });
@@ -3285,53 +3307,6 @@ public abstract class AbstractSecurityUtils {
 		});
 		// now delete the user table
 		securityDb.insertData(queryUtil.alterTableName("USER", "OLD_USER_TABLE"));
-	}
-
-	/**
-	 * Fills the engine type of the project dependencies that have none: the
-	 * engine's type for an engine, and PROJECT for a project. Engines and projects
-	 * are filled in a transaction each; one that fails is logged and saves nothing,
-	 * and the other is still filled.
-	 *
-	 * @param securityDb the security database
-	 */
-	@Deprecated
-	private static void performDependencyUpdate(IRDBMSEngine securityDb) {
-		String[] queryArray = new String[] { """
-				SELECT PROJECTDEPENDENCIES.ENGINEID, ENGINE.ENGINETYPE FROM ENGINE \
-				INNER JOIN PROJECTDEPENDENCIES on PROJECTDEPENDENCIES.ENGINEID=ENGINE.ENGINEID \
-				WHERE PROJECTDEPENDENCIES.ENGINETYPE IS NULL
-				""", """
-				SELECT PROJECTDEPENDENCIES.ENGINEID, 'PROJECT' AS PROJECTTYPE FROM PROJECT \
-				INNER JOIN PROJECTDEPENDENCIES on PROJECTDEPENDENCIES.ENGINEID=PROJECT.PROJECTID \
-				WHERE PROJECTDEPENDENCIES.ENGINETYPE IS NULL
-				""" };
-		String updateQuery = "UPDATE PROJECTDEPENDENCIES SET ENGINETYPE=? WHERE ENGINEID=?";
-
-		for (String query : queryArray) {
-			try {
-				QueryExecutionUtility.write(securityDb, connection -> {
-					Map<String, String> existing = new HashMap<>();
-					for (String[] row : QueryExecutionUtility.queryList(connection, query,
-							QueryExecutionUtility.NO_PARAMETERS,
-							rs -> new String[] { rs.getString(1), rs.getString(2) })) {
-						existing.put(row[0], row[1]);
-					}
-					if (!existing.isEmpty()) {
-						QueryExecutionUtility.executeBatch(connection, updateQuery, existing.entrySet(),
-								(ps, entry) -> {
-									ps.setString(1, entry.getValue());
-									ps.setString(2, entry.getKey());
-								});
-					}
-					return null;
-				});
-			} catch (RuntimeException e) {
-				throw e;
-			} catch (Exception e) {
-				classLogger.error("Error filling PROJECTDEPENDENCIES engine types using query: {}", query, e);
-			}
-		}
 	}
 
 	/**

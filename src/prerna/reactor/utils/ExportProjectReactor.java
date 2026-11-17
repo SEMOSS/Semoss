@@ -40,6 +40,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -176,8 +177,8 @@ public class ExportProjectReactor extends AbstractReactor {
 					// zip up the project dependencies
 					{
 						logger.info("Grabbing project dependencies to write to temporary file to zip...");
-						List<Map<String, Object>> projectDependencies = SecurityProjectUtils
-								.getProjectDependencyDetails(projectId, false);
+						List<Map<String, Object>> projectDependencies = SecurityCatalogDependencyUtils
+								.getDependencyDetails(projectId, false);
 						ZipUtils.zipObjectToFile(zos, projectNameAndId,
 								outputDir + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX, projectDependencies);
 						logger.info("Done zipping project dependencies...");

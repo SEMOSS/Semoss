@@ -45,6 +45,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
@@ -138,7 +139,8 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		Map<String, String> engineDependenciesMap = project.getEngineDependencies();
 		Set<String> engineDependencyIds = new HashSet<>(engineDependenciesMap.values());
 		engineDependencyIds.remove(INotebookHelper.UNDEFINED_VALUE);
-		SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, engineDependencyIds);
+		SecurityCatalogDependencyUtils.setDependencyIds(user, projectId, IProject.PROJECT_TYPE.BLOCKS.name(),
+				engineDependencyIds);
 		SecurityProjectUtils.updateProjectLastEditedDate(projectId);
 		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_BLOCKS_UPDATE, projectId,
 				project.getProjectName(), Map.of("changedFields", List.of("blocks", "dependencies")));

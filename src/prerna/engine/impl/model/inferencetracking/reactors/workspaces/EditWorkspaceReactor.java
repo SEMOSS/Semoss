@@ -39,6 +39,10 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.CatalogTypes;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
+import prerna.auth.utils.SecurityCatalogDependencyUtils.Dependency;
+import prerna.project.api.IProject;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -142,14 +146,14 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			}
 		}
 
-		Set<String> curDepList = SecurityProjectUtils.getProjectDependencies(workspaceId, false).stream()
-				.map(map -> (String) map.get("engine_id")).collect(Collectors.toSet());
+		Set<String> curDepList = SecurityCatalogDependencyUtils.getDependencies(workspaceId).stream()
+				.map(map -> (String) map.get("catalog_id")).collect(Collectors.toSet());
 		Set<String> curSkillList = ModelInferenceLogsUtils.getWorkspaceResources(workspaceId, SKILL_RESOURCE_TYPE, null)
 				.stream().map(map -> map.get("resource_id")).collect(Collectors.toSet());
 
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
-		List<Map<String, Object>> dependencyList = new ArrayList<>();
+		List<Dependency> dependencyList = new ArrayList<>();
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
 		Set<String> skillIds = new LinkedHashSet<>();
 		Map<String, Integer> budgetUpdates = new HashMap<>();
@@ -178,7 +182,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			return getError(e.getMessage());
 		}
 
-		SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
+		SecurityCatalogDependencyUtils.setDependencies(user, workspaceId, IProject.PROJECT_TYPE.WORKSPACE.name(),
+				dependencyList);
 
 		// Default/fallback model engine for the agent. Presence-detected so omitting
 		// the key leaves any existing CONFIG_JSON.model_id untouched; passing it blank

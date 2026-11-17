@@ -206,10 +206,11 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("METAVALUE", CLOB_DATATYPE_NAME),
 				Pair.with("METAORDER", INTEGER_DATATYPE_NAME)));
 
-		addTable("PROJECTDEPENDENCIES", Arrays.asList(
-				Pair.with("PROJECTID", VARCHAR_255),
-				Pair.with("ENGINEID", VARCHAR_255),
-				Pair.with("ENGINETYPE", VARCHAR_255),
+		addTable("CATALOGDEPENDENCIES", Arrays.asList(
+				Pair.with("CATALOGID", VARCHAR_255),
+				Pair.with("CATALOGTYPE", VARCHAR_255),
+				Pair.with("DEPENDENCYID", VARCHAR_255),
+				Pair.with("DEPENDENCYTYPE", VARCHAR_255),
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME)));

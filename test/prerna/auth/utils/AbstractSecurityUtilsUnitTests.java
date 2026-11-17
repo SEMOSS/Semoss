@@ -462,16 +462,35 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	}
 
 	@Test
-	void testInitialize_fillsTheEngineTypesOfProjectDependencies() throws Exception {
+	void testInitialize_movesProjectDependenciesToCatalogDependenciesWithTheirTypes() throws Exception {
+		execute("CREATE TABLE PROJECTDEPENDENCIES (PROJECTID VARCHAR(255), ENGINEID VARCHAR(255), "
+				+ "ENGINETYPE VARCHAR(255), USERID VARCHAR(255), TYPE VARCHAR(255), DATEADDED TIMESTAMP)");
 		execute("INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE) VALUES (?,?,?)", "engine1", "name1", "MODEL");
-		execute("INSERT INTO PROJECT (PROJECTID, PROJECTNAME) VALUES (?,?)", "project1", "name1");
+		execute("INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE) VALUES (?,?,?)", "app", "app", "CODE");
+		execute("INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE) VALUES (?,?,?)", "skill1", "skill1", "SKILL");
+		execute("INSERT INTO PROJECT (PROJECTID, PROJECTNAME) VALUES (?,?)", "legacy", "legacy");
+		// a missing type, the generic PROJECT type, a repeat, and a dependency that is gone
 		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID) VALUES (?,?)", "app", "engine1");
-		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID) VALUES (?,?)", "app", "project1");
+		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID, ENGINETYPE) VALUES (?,?,?)", "app", "skill1",
+				"PROJECT");
+		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID, ENGINETYPE) VALUES (?,?,?)", "app", "legacy",
+				"PROJECT");
+		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID, ENGINETYPE) VALUES (?,?,?)", "app", "engine1",
+				"MODEL");
+		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID, ENGINETYPE) VALUES (?,?,?)", "app", "gone",
+				"MODEL");
 
 		AbstractSecurityUtils.initialize();
 
-		assertEquals("MODEL", queryValue("SELECT ENGINETYPE FROM PROJECTDEPENDENCIES WHERE ENGINEID=?", "engine1"));
-		assertEquals("PROJECT", queryValue("SELECT ENGINETYPE FROM PROJECTDEPENDENCIES WHERE ENGINEID=?", "project1"));
+		assertEquals(List.of("app|CODE|engine1|MODEL", "app|CODE|legacy|INSIGHTS", "app|CODE|skill1|SKILL"),
+				strings("SELECT CATALOGID || '|' || CATALOGTYPE || '|' || DEPENDENCYID || '|' || DEPENDENCYTYPE "
+						+ "FROM CATALOGDEPENDENCIES ORDER BY DEPENDENCYID"));
+		assertFalse(securityDb.getQueryUtil().tableExists(securityDb, "PROJECTDEPENDENCIES", securityDb.getDatabase(),
+				securityDb.getSchema()));
+
+		// a second start, or another server starting at the same time, moves nothing
+		AbstractSecurityUtils.initialize();
+		assertEquals(3, count("SELECT COUNT(*) FROM CATALOGDEPENDENCIES"));
 	}
 
 	@Test

@@ -38,6 +38,9 @@ import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.auth.utils.CatalogTypes;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
+import prerna.auth.utils.SecurityCatalogDependencyUtils.Dependency;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -604,7 +607,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 *
 	 * <p>
 	 * {@code existingDependencies} and {@code existingSkills} are the workspace's
-	 * pre-existing attachments - ids already in {@code PROJECTDEPENDENCIES} and
+	 * pre-existing attachments - ids already in {@code CATALOGDEPENDENCIES} and
 	 * skill ids already in {@code WORKSPACE_RESOURCE} respectively. They carry the
 	 * "existing attachment" escape hatch Edit uses: an id already attached passes
 	 * the permission check even if the caller has lost view rights since. Add
@@ -613,7 +616,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 */
 	protected void validateWorkspaceInputs(User user, String workspaceId, Set<String> existingDependencies,
 			Set<String> existingSkills, Set<String> engines, Set<String> projectDependencies,
-			List<Map<String, Object>> dependencyList, List<Map<String, String>> workspaceResources,
+			List<Dependency> dependencyList, List<Map<String, String>> workspaceResources,
 			Set<String> skillIds) {
 		boolean hasExistingDeps = existingDependencies != null;
 		boolean hasExistingSkills = existingSkills != null;
@@ -624,18 +627,23 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			}
 			String type = (String) mcpMap.get("type");
 			String id = (String) mcpMap.get("id");
-			CATALOG_TYPE catalogType = CATALOG_TYPE.valueOf(type);
-			switch (catalogType) {
-			case PROJECT:
+			// the tool is kept as a dependency with its own engine type or project type,
+			// read from the security database; the type given only says which it is
+			String storedType = CatalogTypes.resolve(id);
+			if (storedType == null) {
+				throw new IllegalArgumentException("Tool not found: " + id);
+			}
+			boolean givenAsProject = CATALOG_TYPE.PROJECT.name().equalsIgnoreCase(type)
+					|| (type != null && CatalogTypes.projectTypes().contains(type.toUpperCase()));
+			if (givenAsProject != CatalogTypes.isProjectType(storedType)) {
+				throw new IllegalArgumentException("Tool " + id + " is a " + storedType + ", not a " + type);
+			}
+			if (CatalogTypes.isProjectType(storedType)) {
 				projectDependencies.add(id);
-				break;
-			default:
+			} else {
 				engines.add(id);
 			}
-			Map<String, Object> dependencyEntry = new HashMap<>();
-			dependencyEntry.put("ENGINEID", id);
-			dependencyEntry.put("ENGINETYPE", type);
-			dependencyList.add(dependencyEntry);
+			dependencyList.add(new Dependency(id, storedType));
 		}
 
 		for (String engine : engines) {
@@ -677,10 +685,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 				throw new IllegalArgumentException("User lacks permission to one of the given skills: " + skillId);
 			}
 			workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
-			Map<String, Object> skillDep = new HashMap<>();
-			skillDep.put("ENGINEID", skillId);
-			skillDep.put("ENGINETYPE", CATALOG_TYPE.PROJECT.name());
-			dependencyList.add(skillDep);
+			dependencyList.add(new Dependency(skillId, IProject.PROJECT_TYPE.SKILL.name()));
 		}
 	}
 

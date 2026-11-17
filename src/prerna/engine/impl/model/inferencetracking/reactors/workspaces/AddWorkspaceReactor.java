@@ -39,6 +39,9 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.CatalogTypes;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
+import prerna.auth.utils.SecurityCatalogDependencyUtils.Dependency;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -91,7 +94,7 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
-		List<Map<String, Object>> dependencyList = new ArrayList<>();
+		List<Dependency> dependencyList = new ArrayList<>();
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
 		Set<String> skillIds = new LinkedHashSet<>();
 		try {
@@ -105,7 +108,8 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 		try {
 			workspaceProject = ProjectHelper.createWorkspaceProject(workspaceId, workspaceName,
 					IProject.PROJECT_TYPE.WORKSPACE, false, null, null, user, logger);
-			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
+			SecurityCatalogDependencyUtils.setDependencies(user, workspaceId, IProject.PROJECT_TYPE.WORKSPACE.name(),
+					dependencyList);
 			ModelInferenceLogsUtils.createNewWorkspaceEntry(workspaceId, user.getPrimaryLoginToken().getId(),
 					workspaceName, workspaceDescription, workspaceSystemPrompt, workspaceResources);
 			try {

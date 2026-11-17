@@ -1141,6 +1141,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
 		deletes.add("DELETE FROM PROJECTENGINEPERMISSION WHERE ENGINEID=?");
+		// the dependencies the engine owns; others that depend on it keep theirs
+		deletes.add("DELETE FROM CATALOGDEPENDENCIES WHERE CATALOGID=?");
 		deletes.add("DELETE FROM USERENGINEPREFERENCE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
 		deletes.add("DELETE FROM MODELMETADATA WHERE ENGINEID=?");
