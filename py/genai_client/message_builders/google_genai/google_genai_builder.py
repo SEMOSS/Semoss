@@ -230,7 +230,7 @@ class GoogleGenAIMessageBuilder:
             "stream": stream,
         }
 
-    # Canonical effort -> Gemini 3 ThinkingLevel. The SDK enum only has
+    # Canonical effort -> Gemini ThinkingLevel. The SDK enum only has
     # MINIMAL/LOW/MEDIUM/HIGH, so xhigh/max collapse to HIGH and none->MINIMAL.
     _GEMINI_THINKING_LEVEL = {
         "none": types.ThinkingLevel.MINIMAL,
@@ -247,20 +247,26 @@ class GoogleGenAIMessageBuilder:
     ) -> types.ThinkingConfig:
         """
         Honor the thinking/effort keys passed in the param map first, then fall
-        back to SMSS. Gemini 3.x uses `thinking_level`; Gemini 2.5/2.0 uses
-        `thinking_budget` (setting both on a Gemini 3 model returns a 400).
+        back to SMSS. Gemini 3.x/4.x uses `thinking_level`; Gemini 2.5/2.0 uses
+        `thinking_budget`. Level-based models must not receive a budget.
         """
         resolved = normalize_reasoning(param_map, self.model_settings)
         if resolved is None:
             return types.ThinkingConfig(include_thoughts=False)
 
         model_name = (self.model_settings.model_name or "").lower()
-        if "gemini-3" in model_name and "gemini-3-pro-image" not in model_name:
+        if "gemini-4" in model_name or (
+            "gemini-3" in model_name and "gemini-3-pro-image" not in model_name
+        ):
+            level = self._GEMINI_THINKING_LEVEL.get(
+                resolved.effort, types.ThinkingLevel.HIGH
+            )
+            # Gemini 4 does not support MINIMAL; LOW is its smallest level.
+            if "gemini-4" in model_name and level == types.ThinkingLevel.MINIMAL:
+                level = types.ThinkingLevel.LOW
             return types.ThinkingConfig(
                 include_thoughts=True,
-                thinking_level=self._GEMINI_THINKING_LEVEL.get(
-                    resolved.effort, types.ThinkingLevel.HIGH
-                ),
+                thinking_level=level,
             )
         return types.ThinkingConfig(
             include_thoughts=True, thinking_budget=resolved.budget
