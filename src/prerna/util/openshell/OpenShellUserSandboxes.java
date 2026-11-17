@@ -227,7 +227,7 @@ public final class OpenShellUserSandboxes {
 			if (local == null) {
 				String chroot = Utility.getDIHelperProperty(Constants.CHROOT_DIR) + "/" + User.getSingleLogginName(user)
 						+ "-" + UUID.randomUUID();
-				SymlinkHelper helper = new SymlinkHelper(chroot);
+				SymlinkHelper helper = new SymlinkHelper(chroot, user);
 				local = new Local(helper);
 				// Published before linking the asset folder: opening the asset project can
 				// ask the user for this helper again, and must get this one.

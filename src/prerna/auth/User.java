@@ -559,6 +559,8 @@ public class User implements Serializable {
 			if (OpenShellUserSandboxes.appliesTo(this)) {
 				// shared by the user's sessions on this instance; see getOpenShellPythonSocketClient
 				symlinkHelper = OpenShellUserSandboxes.local(this).getHelper();
+				// permission checks run as the session that asked most recently
+				symlinkHelper.setUser(this);
 				chrootPath = symlinkHelper.getUserChrootFolder();
 				return symlinkHelper;
 			}

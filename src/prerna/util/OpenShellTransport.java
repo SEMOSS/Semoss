@@ -283,6 +283,11 @@ public final class OpenShellTransport {
 	 * quarantined before a sandbox copy replaces it.
 	 */
 	private final Map<String, String> hostStamps = new ConcurrentHashMap<>();
+	/**
+	 * Project app roots the user may only view. Their upload, stamps and refreshes leave out the
+	 * folders a read-only user's copy leaves out.
+	 */
+	private final Set<String> viewOnlyRoots = ConcurrentHashMap.newKeySet();
 
 	private static final String NAME_PREFIX = "pyw-";
 
@@ -901,6 +906,10 @@ public final class OpenShellTransport {
 	 * @return true when the CLI reported success
 	 */
 	public boolean upload(String absPath) {
+		String normalized = Utility.normalizePath(absPath);
+		if (viewOnlyRoots.contains(normalized)) {
+			return uploadViewOnly(absPath, normalized);
+		}
 		String cli = propOr(CLI_PROP, DEFAULT_CLI);
 		// `sandbox upload <src> <dst>` copies src INTO dst, i.e. it appends basename(src).
 		// Passing dst == src therefore nests: uploading /a/b/app_root to /a/b/app_root
@@ -915,7 +924,6 @@ public final class OpenShellTransport {
 			// `sandbox upload` prints a tick with its result; treat a non-zero exit as failure,
 			// which run() already raises as IOException.
 			classLogger.info("Sandbox upload result for {}: {}", absPath, out.trim());
-			String normalized = Utility.normalizePath(absPath);
 			if (TransportedRoots.isUserSpace(normalized)) {
 				recordUploadedStamps(Paths.get(normalized));
 			}
@@ -924,6 +932,63 @@ public final class OpenShellTransport {
 			classLogger.error("Sandbox upload failed for " + absPath + ": " + e.getClass().getSimpleName() + ": "
 					+ e.getMessage(), e);
 			return false;
+		}
+	}
+
+	/**
+	 * Marks a project app root as view-only, or as editable again. Call before {@link #upload(String)}.
+	 *
+	 * @param absRoot  the normalised app root
+	 * @param viewOnly true when the user may only view the project
+	 */
+	public void setViewOnly(String absRoot, boolean viewOnly) {
+		if (viewOnly) {
+			viewOnlyRoots.add(absRoot);
+		} else {
+			viewOnlyRoots.remove(absRoot);
+		}
+	}
+
+	/** Whether a folder of a view-only root is left out, given its path relative to the root. */
+	private boolean isLeftOutOfViewOnly(Path root, Path folder) {
+		return viewOnlyRoots.contains(root.toString()) && SymlinkHelper.isLeftOutOfCopy(root.relativize(folder));
+	}
+
+	/**
+	 * Sends a view-only root as the read-only user's copy, staged in a temp folder and landed at
+	 * the root's own absolute path. The stamps are recorded from the host root with the same
+	 * folders left out, so a refresh does not send them later.
+	 */
+	private boolean uploadViewOnly(String absPath, String normalized) {
+		String cli = propOr(CLI_PROP, DEFAULT_CLI);
+		Path root = Paths.get(normalized);
+		Path stage = null;
+		try {
+			stage = Files.createTempDirectory("openshell-viewer-");
+			// `sandbox upload` appends the basename of the source, so the staged folder keeps the
+			// root's own name and the destination is the parent, as in upload.
+			Path staged = stage.resolve(root.getFileName().toString());
+			SymlinkHelper.copyProjectForReadOnlyUser(root, staged);
+			String destination = root.getParent() == null ? "/" : root.getParent().toString();
+			classLogger.info("Sandbox view-only upload {} -> {}:{}", absPath, sandboxName, destination);
+			String out = run(Arrays.asList(cli, "sandbox", "upload", sandboxName, staged.toString(), destination),
+					300);
+			classLogger.info("Sandbox upload result for {}: {}", absPath, out.trim());
+			if (TransportedRoots.isUserSpace(normalized)) {
+				recordUploadedStamps(root);
+			}
+			return true;
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			return false;
+		} catch (Exception e) {
+			classLogger.error("Sandbox view-only upload failed for " + absPath + ": " + e.getClass().getSimpleName()
+					+ ": " + e.getMessage(), e);
+			return false;
+		} finally {
+			if (stage != null) {
+				deleteQuietly(stage);
+			}
 		}
 	}
 
@@ -1084,7 +1149,8 @@ public final class OpenShellTransport {
 			public FileVisitResult preVisitDirectory(Path dir,
 					BasicFileAttributes attrs) {
 				String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
-				return !dir.equals(root) && (attrs.isSymbolicLink() || isExcludedFromCapture(Paths.get(name)))
+				return !dir.equals(root) && (attrs.isSymbolicLink() || isExcludedFromCapture(Paths.get(name))
+						|| isLeftOutOfViewOnly(root, dir))
 						? FileVisitResult.SKIP_SUBTREE
 						: FileVisitResult.CONTINUE;
 			}
@@ -1624,7 +1690,7 @@ public final class OpenShellTransport {
 				public FileVisitResult preVisitDirectory(Path dir,
 						BasicFileAttributes attrs) {
 					String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
-					return isExcludedFromCapture(Paths.get(name))
+					return isExcludedFromCapture(Paths.get(name)) || isLeftOutOfViewOnly(root, dir)
 							? FileVisitResult.SKIP_SUBTREE
 							: FileVisitResult.CONTINUE;
 				}

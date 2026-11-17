@@ -53,6 +53,11 @@ public class OpenShellTransporter implements SandboxTransporter {
 
 	@Override
 	public boolean transport(String absPath) {
+		return transport(absPath, false);
+	}
+
+	@Override
+	public boolean transport(String absPath, boolean viewOnly) {
 		if (this.transport == null) {
 			classLogger.warn("No OpenShell transport; cannot send {}", absPath);
 			return false;
@@ -60,6 +65,7 @@ public class OpenShellTransporter implements SandboxTransporter {
 		if (absPath == null || absPath.trim().isEmpty()) {
 			return false;
 		}
+		this.transport.setViewOnly(Utility.normalizePath(absPath), viewOnly);
 		boolean uploaded = this.transport.upload(absPath);
 		if (uploaded) {
 			// A project root arriving in the sandbox is when its declared secrets are attached:

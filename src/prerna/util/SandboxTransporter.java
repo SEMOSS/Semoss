@@ -69,6 +69,19 @@ public interface SandboxTransporter {
 	boolean transport(String absPath);
 
 	/**
+	 * Same as {@link #transport(String)}, for a project's app root that the user may only view:
+	 * the sandbox gets the read-only user's copy, which leaves out the custom reactor source, the
+	 * compiled classes, the portals and the git folder, the same as in the other sandbox modes.
+	 * Sending the root again in full, with {@code viewOnly} false, is how an upgrade to edit access
+	 * is followed.
+	 *
+	 * @param absPath  host path, already normalised
+	 * @param viewOnly true to send the read-only user's copy
+	 * @return true if the path is present in the sandbox after the call
+	 */
+	boolean transport(String absPath, boolean viewOnly);
+
+	/**
 	 * Best-effort teardown.
 	 *
 	 * @return true if the collaborator released cleanly

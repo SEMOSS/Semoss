@@ -108,16 +108,18 @@ public class SymlinkHelper {
 
 	private String userChrootFolder = null;
 
-	private final User user;
+	// refreshed per call for a helper shared by one user's sessions (OpenShell)
+	private volatile User user;
 	private final boolean injectMode;
 	private SandboxInjector injector;
 	private final Map<String, Mount> activeInjects = new LinkedHashMap<>();
 	private final Map<String, ProjectCopy> projectCopies = new HashMap<>();
 	/**
-	 * Paths already handed to the external sandbox. A project open, an insight and an MCP call all
-	 * re-symlink the same folders; without this the tree would be re-transferred on every request.
+	 * Paths already handed to the external sandbox, and whether each went as a view-only copy. A
+	 * project open, an insight and an MCP call all re-symlink the same folders; without this the
+	 * tree would be re-transferred on every request.
 	 */
-	private final Set<String> activeTransports = ConcurrentHashMap.newKeySet();
+	private final Map<String, Boolean> activeTransports = new ConcurrentHashMap<>();
 	private SandboxTransporter transporter;
 
 	/**
@@ -126,7 +128,7 @@ public class SymlinkHelper {
 	 * the sandbox so it can reconcile them when the process finishes a block.
 	 */
 	public List<String> getTransportedPaths() {
-		return new ArrayList<>(activeTransports);
+		return new ArrayList<>(activeTransports.keySet());
 	}
 
 	/**
@@ -212,14 +214,36 @@ public class SymlinkHelper {
 	public synchronized void setTransport(SandboxTransporter transporter) {
 		this.transporter = transporter;
 		if (transporter != null && !activeTransports.isEmpty()) {
-			for (String absPath : activeTransports) {
+			for (Map.Entry<String, Boolean> entry : activeTransports.entrySet()) {
+				String absPath = entry.getKey();
 				try {
-					transporter.transport(absPath);
+					transporter.transport(absPath, entry.getValue());
 				} catch (RuntimeException e) {
 					classLogger.warn("Skipping sandbox transport for {}", absPath, e);
 				}
 			}
 		}
+	}
+
+	/**
+	 * Rebinds the user whose permissions decide how a project is placed. A helper that all of
+	 * one user's sessions share is rebound to the session that asked most recently.
+	 *
+	 * @param user the user, or null
+	 */
+	public void setUser(User user) {
+		this.user = user;
+	}
+
+	/**
+	 * Whether a folder of a project, relative to its app root, is left out of a read-only user's
+	 * copy. The OpenShell transport leaves the same folders out of what it sends a view-only user.
+	 *
+	 * @param relativeFolder the folder relative to the project's app root
+	 * @return true when the folder and everything under it is left out
+	 */
+	static boolean isLeftOutOfCopy(Path relativeFolder) {
+		return FOLDERS_LEFT_OUT_OF_A_COPY.contains(relativeFolder);
 	}
 
 	/** The user-level jail this helper's worker runs under. */
@@ -257,7 +281,7 @@ public class SymlinkHelper {
 	 * the worker exists is remembered and replayed by {@link #setTransport(SandboxTransporter)},
 	 * exactly as the namespace injector replays {@code activeInjects}.
 	 */
-	private synchronized void transport(String absPath) {
+	private synchronized void transport(String absPath, boolean viewOnly) {
 		// Same scope rule as the namespace injector. Without it the transporter is handed
 		// system paths -- /usr/bin, /etc/ssl, /usr/lib/git-core -- because
 		// MCPUtility.runPythonTool also symlinks git's own directories. Uploading those is
@@ -267,13 +291,16 @@ public class SymlinkHelper {
 			classLogger.debug("Skipping sandbox transport for path outside SEMOSS home: {}", absPath);
 			return;
 		}
-		if (!activeTransports.add(absPath)) {
-			// Already sent once; transport() is idempotent but there is no reason to call it.
+		Boolean sent = activeTransports.get(absPath);
+		if (sent != null && (!sent || viewOnly)) {
+			// Already sent once, in full or as the same view-only copy. Only a view-only
+			// root that the user can now edit goes again, in full.
 			return;
 		}
+		activeTransports.put(absPath, viewOnly);
 		if (transporter != null) {
 			try {
-				if (!transporter.transport(absPath)) {
+				if (!transporter.transport(absPath, viewOnly)) {
 					classLogger.warn("Sandbox transport reported failure for {}", absPath);
 				}
 			} catch (RuntimeException e) {
@@ -518,7 +545,7 @@ public class SymlinkHelper {
 		if (sandboxMode == SandboxMode.OPENSHELL) {
 			// The sandbox has its own filesystem root; a chroot symlink under the host user folder
 			// would point at a path the sandbox cannot see, so it is meaningless here.
-			transport(sourceDirName);
+			transport(sourceDirName, false);
 			return;
 		}
 		if (injectMode) {
@@ -657,8 +684,10 @@ public class SymlinkHelper {
 	private synchronized void placeProject(User user, String projectId, String appRoot) {
 		if (sandboxMode == SandboxMode.OPENSHELL) {
 			// The sandbox has its own filesystem; the host chroot (symlink or viewer copy) is
-			// invisible to it. Write-back is gated by the user's edit permission separately.
-			transport(appRoot);
+			// invisible to it. A user who can only view the project gets the same copy as in
+			// the other modes, without the folders it leaves out. Write-back is gated by the
+			// user's edit permission separately.
+			transport(appRoot, !SecurityProjectUtils.userCanEditProject(user, projectId));
 			return;
 		}
 		Path inChroot = Paths.get(userChrootFolder).resolve(appRoot.substring(1));
