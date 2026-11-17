@@ -295,6 +295,13 @@ public class SymlinkHelper {
 			classLogger.debug("Skipping sandbox transport for path outside SEMOSS home: {}", absPath);
 			return;
 		}
+		// Every user's session folders are under the insight cache, so the cache itself, or a
+		// folder that holds it, is never sent: each insight folder is sent when it is granted.
+		String insightCache = Utility.getInsightCacheDir();
+		if (insightCache != null && Paths.get(Utility.normalizePath(insightCache)).startsWith(Paths.get(absPath))) {
+			classLogger.debug("Skipping sandbox transport for the shared insight cache: {}", absPath);
+			return;
+		}
 		Boolean sent = activeTransports.get(absPath);
 		if (sent != null && sent == viewOnly) {
 			// Already sent in this form. A root whose access changed, in either direction, goes

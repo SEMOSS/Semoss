@@ -1052,8 +1052,10 @@ public final class OpenShellTransport {
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
 		while (System.nanoTime() < deadline) {
 			try {
-				List<String> cmd = Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "cat",
-						WORKER_LOG_PATH);
+				// Only the start of the log: the marker is printed at start-up, and the sandbox can
+				// write to this file, so reading all of it would let user code fill this JVM's memory.
+				List<String> cmd = Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "head", "-c",
+						"65536", WORKER_LOG_PATH);
 				String out = run(cmd, Math.min(30, timeoutSeconds));
 				if (out.contains(WORKER_READY_MARKER)) {
 					return true;
