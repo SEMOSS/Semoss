@@ -39,13 +39,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.io.connector.ConnectorScopeAccess;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarCreateEventReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarDeleteEventReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarGetEventReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarGetMeetingTranscriptReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarGetScheduleReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarHelper;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarListCalendarsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarListEventsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarRespondToEventReactor;
@@ -131,6 +135,9 @@ public final class CollaborationAgentTools {
 		REACTORS.put("ListCalendars", MicrosoftCalendarListCalendarsReactor.class);
 		REACTORS.put("ListEvents", MicrosoftCalendarListEventsReactor.class);
 		REACTORS.put("GetEvent", MicrosoftCalendarGetEventReactor.class);
+		// what was said in an event's Teams meeting; offered only where the sign in asks
+		// for its scope (see TRANSCRIPT_TOOL)
+		REACTORS.put("GetMeetingTranscript", MicrosoftCalendarGetMeetingTranscriptReactor.class);
 		REACTORS.put("GetSchedule", MicrosoftCalendarGetScheduleReactor.class);
 		REACTORS.put("CreateEvent", MicrosoftCalendarCreateEventReactor.class);
 		REACTORS.put("UpdateEvent", MicrosoftCalendarUpdateEventReactor.class);
@@ -242,6 +249,11 @@ public final class CollaborationAgentTools {
 			"SetRoutinePreferences", "ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant",
 			"DeleteMySkill");
 
+	// reading a transcript takes a Microsoft scope an administrator consents to, and
+	// until the sign in asks for it every call is refused, so it is offered only
+	// where the sign in does
+	private static final String TRANSCRIPT_TOOL = "GetMeetingTranscript";
+
 	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365
 	// mail after Brain's own search,
 	// calendar changes, Teams channels and their files, one Teams chat or message
@@ -317,14 +329,30 @@ public final class CollaborationAgentTools {
 	}
 
 	private static List<Map<String, Object>> definitions(boolean memory, boolean chat, boolean owner) {
+		boolean transcripts = transcriptsRequested();
 		List<Map<String, Object>> tools = new ArrayList<>();
 		for (Map.Entry<String, JSONObject> tool : tools().entrySet()) {
 			if ((memory || !MEMORY_TOOLS.contains(tool.getKey())) && (chat || !CHAT_TOOLS.contains(tool.getKey()))
-					&& (owner || !OWNER_TOOLS.contains(tool.getKey()))) {
+					&& (owner || !OWNER_TOOLS.contains(tool.getKey()))
+					&& (transcripts || !TRANSCRIPT_TOOL.equals(tool.getKey()))) {
 				tools.add(tool.getValue().toMap());
 			}
 		}
 		return tools;
+	}
+
+	/**
+	 * Whether the deployment's Microsoft sign in asks for the scope a meeting
+	 * transcript is read with.
+	 */
+	private static boolean transcriptsRequested() {
+		try {
+			return ConnectorScopeAccess.requestsAnyScope(AuthProvider.MICROSOFT,
+					List.of(MicrosoftCalendarHelper.TRANSCRIPT_SCOPE));
+		} catch (RuntimeException e) {
+			// no sign in settings to read, so nothing was asked for
+			return false;
+		}
 	}
 
 	@SuppressWarnings("unchecked")
