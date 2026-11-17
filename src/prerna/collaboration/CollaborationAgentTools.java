@@ -82,6 +82,8 @@ import prerna.reactor.collaboration.BrainGetRelatedItemsReactor;
 import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
 import prerna.reactor.collaboration.BrainGetWritingStyleReactor;
 import prerna.reactor.collaboration.BrainListTopicsReactor;
+import prerna.reactor.collaboration.BrainListTopicM365FoldersReactor;
+import prerna.reactor.collaboration.BrainLinkTopicM365FolderReactor;
 import prerna.reactor.collaboration.BrainRememberReactor;
 import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
 import prerna.reactor.collaboration.BrainSearchThreadsReactor;
@@ -154,6 +156,9 @@ public final class CollaborationAgentTools {
 		// tags the chat it runs in with a topic; no approval, the owner can undo or
 		// dismiss it
 		REACTORS.put("TagTopic", BrainTagTopicReactor.class);
+		// link and list M365 folders to topics
+		REACTORS.put("ListTopicM365Folders", BrainListTopicM365FoldersReactor.class);
+		REACTORS.put("LinkTopicM365Folder", BrainLinkTopicM365FolderReactor.class);
 		// then Outlook directly, for what Brain does not hold; Brain's rules do not
 		// apply to it
 		REACTORS.put("ListM365Mail", MicrosoftOutlookListMailReactor.class);
