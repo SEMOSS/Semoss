@@ -31,7 +31,7 @@ The reserved `__platform_smoke__` suite is platform-owned and generated in memor
 
 ## Verify a recording you save
 
-After `SaveAppTestRecording`, run `RunAppTests(project, suite=<id>, repeat=3)`. Keep the recording only if it reports `PASSED` for all three replays. A `FLAKY`, `TARGET_NOT_FOUND` or `FAILED` result means the recording is wrong or unstable: fix or remove it, and do not report it as coverage. A recording needs at least one check (`ASSERT_TEXT` or `ASSERT_VISIBLE`); without one it is `SKIPPED`.
+After `SaveAppTestRecording`, run `RunAppTests(project, suite=<id>)` once. Keep the recording only if it reports `PASSED`. A `TARGET_NOT_FOUND` or `FAILED` result means the recording is wrong: fix or remove it, and do not report it as coverage. A recording needs at least one check (`ASSERT_TEXT` or `ASSERT_VISIBLE`); without one it is `SKIPPED`.
 
 ## Stable targets
 
