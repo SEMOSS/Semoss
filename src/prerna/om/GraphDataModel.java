@@ -27,11 +27,8 @@
  *******************************************************************************/
 package prerna.om;
 
-import java.math.BigInteger;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -70,14 +67,11 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.GraphOWLHelper;
 import prerna.ui.components.PropertySpecData;
 import prerna.ui.components.RDFEngineHelper;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.ui.components.playsheets.datamakers.IDataMaker;
-import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 import prerna.util.Constants;
 import prerna.util.JenaSesameUtils;
 import prerna.util.Utility;
 
-public class GraphDataModel implements IDataMaker {
+public class GraphDataModel {
 	/*
 	 * This contains all data that is fundamental to a SEMOSS Graph This data mainly
 	 * consists of the edgeStore and vertStore as well as models/repository
@@ -91,14 +85,14 @@ public class GraphDataModel implements IDataMaker {
 
 	CREATION_METHOD method;
 
-	Hashtable<String, String> loadedOWLS = new Hashtable<String, String>();
+	Map<String, String> loadedOWLS = new HashMap<>();
 
 	String RELATION_URI = null;
 	String PROP_URI = null;
 	public RepositoryConnection rc = null;
 	public RepositoryConnection curRC = null;
 	public RDFFileSesameEngine baseRelEngine = null;
-	public Hashtable baseFilterHash = new Hashtable();
+	public Map<String, String> baseFilterHash = new HashMap<>();
 	Model jenaModel = null;
 	public Model curModel = null;
 	public int modelCounter = 0;
@@ -112,38 +106,30 @@ public class GraphDataModel implements IDataMaker {
 	private boolean isPhysicalMetamodel = false;
 	private static final String PHYSICAL_NAME = "PhysicalName";
 
-	boolean search, prop, sudowl;
+	boolean search = true;
+	boolean prop = true;
+	boolean sudowl = false;
 
-	boolean subclassCreate = false; // this is used for our metamodel graphs. Need to be modify the base graph base
-									// and base concepts queries to use subclass of concept rather than type
+	// this is used for our metamodel graphs. Need to modify the base graph and the
+	// base concepts queries to use subclass of concept rather than type
+	boolean subclassCreate = false;
 
-	Hashtable<String, SEMOSSVertex> vertStore = null;
-	Hashtable<String, SEMOSSEdge> edgeStore = null;
+	Map<String, SEMOSSVertex> vertStore = null;
+	Map<String, SEMOSSEdge> edgeStore = null;
 
 	// these are used for keeping track of only what was added or subtracted and
 	// will only be populated when overlay is true
-	Hashtable<String, SEMOSSVertex> incrementalVertStore = null;
-	Hashtable<String, SEMOSSVertex> incrementalVertPropStore = null;
-	Hashtable<String, SEMOSSEdge> incrementalEdgeStore = null;
+	Map<String, SEMOSSVertex> incrementalVertStore = null;
+	Map<String, SEMOSSVertex> incrementalVertPropStore = null;
+	Map<String, SEMOSSEdge> incrementalEdgeStore = null;
 
 	IDatabaseEngine coreEngine;
 	String coreQuery;
 
-	// the user id of the user who executed to create this frame
-	// not really important for gdm... not important for h2 frame
-	protected String userId;
-	// used to determine if the data id has been altered
-	// this is only being updated when logic goes through pkql
-	protected BigInteger dataId = new BigInteger("0");
-
 	public GraphDataModel() {
-		vertStore = new Hashtable<String, SEMOSSVertex>();
-		edgeStore = new Hashtable<String, SEMOSSEdge>();
+		vertStore = new HashMap<>();
+		edgeStore = new HashMap<>();
 		createBaseURIs();
-
-		sudowl = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.GPSSudowl));
-		prop = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.GPSProp));
-		search = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.GPSSearch));
 	}
 
 	public boolean getSudowl() {
@@ -165,9 +151,9 @@ public class GraphDataModel implements IDataMaker {
 
 		curModel = null;
 		curRC = null;
-		incrementalVertStore = new Hashtable<String, SEMOSSVertex>();
-		incrementalVertPropStore = new Hashtable<String, SEMOSSVertex>();
-		incrementalEdgeStore = new Hashtable<String, SEMOSSEdge>();
+		incrementalVertStore = new HashMap<>();
+		incrementalVertPropStore = new HashMap<>();
+		incrementalEdgeStore = new HashMap<>();
 
 		classLogger.info("Creating the new model");
 		try {
@@ -178,7 +164,7 @@ public class GraphDataModel implements IDataMaker {
 			curModel = ModelFactory.createDefaultModel();
 
 		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the repository for the overlay on engine {}", engine.getEngineId(), e);
 		}
 
 		processData(query, engine);
@@ -188,13 +174,13 @@ public class GraphDataModel implements IDataMaker {
 	public void overlayData(Iterator<IConstructStatement> it, IDatabaseEngine engine) {
 
 		subjects = new StringBuffer(""); // remove from the old one
-		objects = new StringBuffer(""); // remove fromt he old one
+		objects = new StringBuffer(""); // remove from the old one
 
 		curModel = null;
 		curRC = null;
-		incrementalVertStore = new Hashtable<String, SEMOSSVertex>();
-		incrementalVertPropStore = new Hashtable<String, SEMOSSVertex>();
-		incrementalEdgeStore = new Hashtable<String, SEMOSSEdge>();
+		incrementalVertStore = new HashMap<>();
+		incrementalVertPropStore = new HashMap<>();
+		incrementalEdgeStore = new HashMap<>();
 
 		classLogger.info("Creating the new model");
 		try {
@@ -205,7 +191,7 @@ public class GraphDataModel implements IDataMaker {
 			curModel = ModelFactory.createDefaultModel();
 
 		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create the repository for the overlay on engine {}", engine.getEngineId(), e);
 		}
 
 		processData(it, engine);
@@ -251,8 +237,9 @@ public class GraphDataModel implements IDataMaker {
 						// "{?Subject ?Predicate ?Object.}" +
 						"BIND(\"\" AS ?Predicate)" + // these are only used so that I can use select cheater...
 						"BIND(\"\" AS ?Object)" + "}";
-				if (subclassCreate) { // this is used for our metamodel graphs. Need to be subclass of concept rather
-										// than type
+				// this is used for our metamodel graphs. Need to be subclass of concept rather
+				// than type
+				if (subclassCreate) {
 					baseConceptSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" + "{?Subject "
 							+ "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  "
 							+ " <http://semoss.org/ontologies/Concept>;}" +
@@ -268,8 +255,7 @@ public class GraphDataModel implements IDataMaker {
 			try {
 				genBaseConcepts(baseConceptSelectQuery);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to generate the base concepts on engine {}", engine.getEngineId(), e);
 			}
 			classLogger.info("Loaded Orphans");
 
@@ -288,8 +274,9 @@ public class GraphDataModel implements IDataMaker {
 						// "{?Object " + "<http://www.w3.org/1999/02/22-rdf-syntax-ns#type> " + "
 						// <http://semoss.org/ontologies/Concept>;}" +
 						"{?Subject ?Predicate ?Object}" + "}";
-				if (subclassCreate) { // this is used for our metamodel graphs. Need to be subclass of concept rather
-										// than type
+				// this is used for our metamodel graphs. Need to be subclass of concept rather
+				// than type
+				if (subclassCreate) {
 					predicateSelectQuery = "SELECT DISTINCT ?Subject ?Predicate ?Object WHERE {" + "{?Predicate "
 							+ "<http://www.w3.org/2000/01/rdf-schema#subPropertyOf> <http://semoss.org/ontologies/Relation>;}"
 							+ "{?Subject " + "<http://www.w3.org/2000/01/rdf-schema#subClassOf>  "
@@ -304,8 +291,7 @@ public class GraphDataModel implements IDataMaker {
 			try {
 				genBaseGraph(predicateSelectQuery);// subjects2, predicates2, subjects2);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to generate the base graph on engine {}", engine.getEngineId(), e);
 			}
 			classLogger.info("Loaded Graph");
 		}
@@ -417,8 +403,7 @@ public class GraphDataModel implements IDataMaker {
 			try {
 				classLogger.info("done with processing main query" + rc.size());
 			} catch (RepositoryException e1) {
-				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e1);
+				classLogger.error("Failed to read the repository size after the main query", e1);
 			}
 			classLogger.debug("Subjects >>> " + subjects);
 			classLogger.debug("Predicatss >>>> " + predicates);
@@ -445,11 +430,11 @@ public class GraphDataModel implements IDataMaker {
 						try {
 							classLogger.info("done with processing hierarchy" + rc.size());
 						} catch (RepositoryException e) {
-							// TODO Auto-generated catch block
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to read the repository size after loading the hierarchy", e);
 						}
 					} catch (RuntimeException ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
+						classLogger.error("Failed to load the concept and relation hierarchy from engine {}",
+								engine.getEngineId(), ex);
 					}
 				}
 
@@ -466,13 +451,13 @@ public class GraphDataModel implements IDataMaker {
 						GraphOWLHelper.loadRelationHierarchy(rc, predicates.toString(), this);
 						GraphOWLHelper.loadPropertyHierarchy(rc, predicates.toString(), containsRelation, this);
 					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to load the SUDOWL hierarchy", e);
 					}
 					classLogger.info("Finished loading SUDOWL");
 				}
-				if (prop && isRDF) { // hmm this is something i need wor worry about but I will work it with an RDF
-										// plug right now
+				// hmm this is something i need wor worry about but I will work it with an RDF
+				// plug right now
+				if (prop && isRDF) {
 					classLogger.info("Starting to load properties");
 					// load local property hierarchy
 					try {
@@ -486,24 +471,24 @@ public class GraphDataModel implements IDataMaker {
 						try {
 							classLogger.info("DONE:: Loaded Properties" + rc.size());
 						} catch (RepositoryException e) {
-							// TODO Auto-generated catch block
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to read the repository size after loading the properties", e);
 						}
 					} catch (RuntimeException ex) {
-						classLogger.error(Constants.STACKTRACE, ex);
+						classLogger.error("Failed to load the properties from engine {}", engine.getEngineId(), ex);
 					}
 					// genProperties(propertyQuery + predicates + " } ");
 				}
 			}
 		} catch (RuntimeException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to process the query results from engine {}", engine.getEngineId(), e);
 		}
 		modelCounter++;
 	}
 
 	public void processData(String query, IDatabaseEngine engine) {
-		this.coreEngine = engine; // right now we need this for logical names... really shouldn't be needed in
-									// this class at all
+		// right now we need this for logical names... really shouldn't be needed in
+		// this class at all
+		this.coreEngine = engine;
 		this.coreQuery = query;
 
 		// open up the engine
@@ -615,7 +600,7 @@ public class GraphDataModel implements IDataMaker {
 				rc.add(subject, predicate, newObj);
 			}
 		} catch (RepositoryException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add the statement for {} to the repository", st.getSubject(), e);
 		}
 		/* jenaModel.add(jenaSt); */
 		// just so that we can remove it later
@@ -680,8 +665,9 @@ public class GraphDataModel implements IDataMaker {
 		}
 		// only set property and store vertex if the property does not already exist on
 		// the node
-		String propName = this.getDisplayName(predicate); // Utility.getInstanceName(this.getDisplayName(subjectInstance
-															// +"%"+ predicate));
+		// Utility.getInstanceName(this.getDisplayName(subjectInstance +"%"+
+		// predicate));
+		String propName = this.getDisplayName(predicate);
 		if (vert1.getProperty(propName) == null) {
 			if (this.subclassCreate && object instanceof LiteralImpl && ((LiteralImpl) object).getLabel().isEmpty()) {
 				object = Utility.getInstanceName(this.getDisplayName(predicate));
@@ -689,7 +675,7 @@ public class GraphDataModel implements IDataMaker {
 			vert1.setProperty(propName, object);
 			storeVert(vert1);
 		}
-//			genControlData(vert1);
+		// genControlData(vert1);
 		// controlData.addProperty(vert1.getProperty(Constants.VERTEX_TYPE)+"",
 		// Utility.getClassName(predicate));
 	}
@@ -818,8 +804,7 @@ public class GraphDataModel implements IDataMaker {
 			classLogger.info("rcStore size              " + rcStore.size());
 			classLogger.info("modelCounter              " + modelCounter);
 		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read the repository sizes for the undo", e);
 		}
 		IDatabaseEngine sesameEngine = new InMemorySesameEngine();
 		((InMemorySesameEngine) sesameEngine).setRepositoryConnection(lastRC);
@@ -900,9 +885,9 @@ public class GraphDataModel implements IDataMaker {
 				String physName = sct.getSubject();
 				String subject = this.getDisplayName(physName);
 
-				if (!baseFilterHash.containsKey(subject))// && !baseFilterHash.containsKey(sct.getPredicate()) &&
-															// !baseFilterHash.containsKey(sct.getObject()+""))
-				{
+				// && !baseFilterHash.containsKey(sct.getPredicate()) &&
+				// !baseFilterHash.containsKey(sct.getObject()+""))
+				if (!baseFilterHash.containsKey(subject)) {
 					SEMOSSVertex vert1 = vertStore.get(subject);
 					if (vert1 == null) {
 						vert1 = new SEMOSSVertex(subject);
@@ -916,7 +901,7 @@ public class GraphDataModel implements IDataMaker {
 				}
 			}
 		} catch (RuntimeException ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to generate the base concepts", ex);
 		}
 	}
 
@@ -995,13 +980,6 @@ public class GraphDataModel implements IDataMaker {
 						edge = edgeStore.get(predicateName);
 					}
 					if (edge == null) {
-						// need to create the predicate at runtime I think
-						/*
-						 * edge = new DBCMEdge(vert1, vert2, sct.getPredicate());
-						 * System.err.println("Predicate plugged is " + predicateName);
-						 * edgeStore.put(sct.getPredicate()+"", edge);
-						 */
-
 						// the logic works only when the predicates dont have the vertices on it..
 						edge = new SEMOSSEdge(vert1, vert2, predicateName);
 						storeEdge(edge);
@@ -1011,31 +989,32 @@ public class GraphDataModel implements IDataMaker {
 
 					// add the edge now if the edge does not exist
 					// need to handle the duplicate issue again
-//					try
-//					{	
-//						// try to see if the predicate here is a property
-//						// if so then add it as a property
-//						this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
-//							vertStore.get(sct.getObject()+""));
-//					}catch (Exception ex)
-//					{
-//						classLogger.error(Constants.STACKTRACE, ex);
-//						classLogger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() + "<<>>" + vert2.getURI());
-//						// ok.. I am going to ignore for now that this is a duplicate edge
-//					}
+					// try
+					// {
+					// // try to see if the predicate here is a property
+					// // if so then add it as a property
+					// this.forest.addEdge(edge, vertStore.get(sct.getSubject()+""),
+					// vertStore.get(sct.getObject()+""));
+					// }catch (Exception ex)
+					// {
+					// classLogger.error(Constants.STACKTRACE, ex);
+					// classLogger.warn("Missing Edge " + edge.getURI() + "<<>>" + vert1.getURI() +
+					// "<<>>" + vert2.getURI());
+					// // ok.. I am going to ignore for now that this is a duplicate edge
+					// }
 				}
 			}
 		} catch (RuntimeException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to generate the base graph", e);
 		}
 	}
 
 	public String getDisplayName(String subKey) {
-//		if(isPhysicalMetamodel){
+		// if(isPhysicalMetamodel){
 		return subKey;
-//		} else {
-//			return Utility.getTransformedNodeName(coreEngine, subKey, true);
-//		}
+		// } else {
+		// return Utility.getTransformedNodeName(coreEngine, subKey, true);
+		// }
 	}
 
 	// update all internal models associated with this playsheet with the query
@@ -1143,31 +1122,31 @@ public class GraphDataModel implements IDataMaker {
 		classLogger.debug("Extend : Total Models added = " + modelStore.size());
 	}
 
-	public Hashtable<String, SEMOSSVertex> getVertStore() {
+	public Map<String, SEMOSSVertex> getVertStore() {
 		return this.vertStore;
 	}
 
-	public Hashtable<String, SEMOSSEdge> getEdgeStore() {
+	public Map<String, SEMOSSEdge> getEdgeStore() {
 		return this.edgeStore;
 	}
 
-	public void setVertStore(Hashtable<String, SEMOSSVertex> vs) {
+	public void setVertStore(Map<String, SEMOSSVertex> vs) {
 		this.vertStore = vs;
 	}
 
-	public void setEdgeStore(Hashtable<String, SEMOSSEdge> es) {
+	public void setEdgeStore(Map<String, SEMOSSEdge> es) {
 		this.edgeStore = es;
 	}
 
-	public Hashtable<String, SEMOSSVertex> getIncrementalVertStore() {
+	public Map<String, SEMOSSVertex> getIncrementalVertStore() {
 		return this.incrementalVertStore;
 	}
 
-	public Hashtable<String, SEMOSSVertex> getIncrementalVertPropStore() {
+	public Map<String, SEMOSSVertex> getIncrementalVertPropStore() {
 		return this.incrementalVertPropStore;
 	}
 
-	public Hashtable<String, SEMOSSEdge> getIncrementalEdgeStore() {
+	public Map<String, SEMOSSEdge> getIncrementalEdgeStore() {
 		return this.incrementalEdgeStore;
 	}
 
@@ -1216,20 +1195,16 @@ public class GraphDataModel implements IDataMaker {
 				up = rc.prepareUpdate(QueryLanguage.SPARQL, delQuery);
 				rc.setAutoCommit(false);
 				up.execute();
-			} catch (RepositoryException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} catch (MalformedQueryException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} catch (UpdateExecutionException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+			} catch (RepositoryException | MalformedQueryException | UpdateExecutionException e) {
+				classLogger.error("Failed to remove the view from the repository", e);
 			}
 			delQuery = delQuery + ".";
 			// count++;
 			classLogger.debug(delQuery);
 		}
 		// need to reset this
-		vertStore = new Hashtable<String, SEMOSSVertex>();
-		edgeStore = new Hashtable<String, SEMOSSEdge>();
+		vertStore = new HashMap<>();
+		edgeStore = new HashMap<>();
 
 	}
 
@@ -1254,14 +1229,17 @@ public class GraphDataModel implements IDataMaker {
 		classLogger.info("BaseQuery");
 	}
 
-	@Override
-	public void processDataMakerComponent(DataMakerComponent component) {
-
-		processPreTransformations(component, component.getPreTrans());
-
-		// setPropSudowlSearch();
-		this.coreQuery = component.fillQuery();
-		this.coreEngine = component.getEngine();
+	/**
+	 * Runs the query on the engine and loads the results into the graph. When the
+	 * graph already has vertices the results are overlaid as a traversal, and a
+	 * traversal that adds nothing is undone.
+	 *
+	 * @param query  the construct query to run, with its parameters filled in
+	 * @param engine the engine to run the query on
+	 */
+	public void processQuery(String query, IDatabaseEngine engine) {
+		this.coreQuery = query;
+		this.coreEngine = engine;
 
 		if (!vertStore.isEmpty()) { // if this is not empty, it means it is a traversal
 			setOverlay(true);
@@ -1311,113 +1289,4 @@ public class GraphDataModel implements IDataMaker {
 		return this.coreQuery;
 	}
 
-	@Override
-	public void processPostTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms,
-			IDataMaker... dataFrame) {
-		for (ISEMOSSTransformation transform : transforms) {
-			transform.setDataMakers(this);
-			transform.setDataMakerComponent(dmc);
-			transform.runMethod();
-		}
-	}
-
-	@Override
-	public void processPreTransformations(DataMakerComponent dmc, List<ISEMOSSTransformation> transforms) {
-		for (ISEMOSSTransformation transform : transforms) {
-			transform.setDataMakers(this);
-			transform.setDataMakerComponent(dmc);
-			transform.runMethod();
-		}
-	}
-
-	@Override
-	public Map getDataMakerOutput(String... selectors) {
-		Hashtable retHash = new Hashtable();
-//		if(this.getOverlay()){ // removing this for now to keep aligned with tinker frame
-//			Map<String, SEMOSSVertex> props = this.getIncrementalVertPropStore();
-//			Map<String, SEMOSSVertex> nodes = this.getIncrementalVertStore();
-//			props.keySet().removeAll(nodes.keySet());
-//			retHash .put("nodes", nodes);
-//			retHash.put("nodeProperties", props);
-//			retHash.put("edges", this.getIncrementalEdgeStore().values());
-//		} else {
-		retHash.put("nodes", this.getVertStore());
-		retHash.put("edges", this.getEdgeStore().values());
-//		}
-		return retHash;
-	}
-
-	@Override
-	public Map<String, String> getScriptReactors() {
-		Map<String, String> reactorNames = new HashMap<String, String>();
-//		reactorNames.put(PKQLEnum.EXPR_TERM, "prerna.sablecc.ExprReactor");
-//		reactorNames.put(PKQLEnum.EXPR_SCRIPT, "prerna.sablecc.ExprReactor");
-//		reactorNames.put(PKQLReactor.MATH_FUN.toString(), "prerna.sablecc.MathReactor");
-//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.TinkerColAddReactor");
-//		reactorNames.put(PKQLEnum.COL_CSV, "prerna.sablecc.ColCsvReactor"); // it almost feels like I need a way to tell when to do this and when not but let me see
-//		reactorNames.put(PKQLEnum.ROW_CSV, "prerna.sablecc.RowCsvReactor");
-//		reactorNames.put(PKQLEnum.API, "prerna.sablecc.QueryApiReactor");
-//		reactorNames.put(PKQLEnum.PASTED_DATA, "prerna.sablecc.PastedDataReactor");
-//		reactorNames.put(PKQLEnum.WHERE, "prerna.sablecc.ColWhereReactor");
-//		reactorNames.put(PKQLEnum.REL_DEF, "prerna.sablecc.RelReactor");
-//		reactorNames.put(PKQLEnum.COL_ADD, "prerna.sablecc.ColAddReactor");
-//		reactorNames.put(PKQLEnum.IMPORT_DATA, "prerna.sablecc.GDMImportDataReactor");
-//		reactorNames.put(PKQLEnum.REMOVE_DATA, "prerna.sablecc.RemoveDataReactor");
-//		reactorNames.put(PKQLEnum.FILTER_DATA, "prerna.sablecc.ColFilterReactor");
-//		reactorNames.put(PKQLEnum.VIZ, "prerna.sablecc.VizReactor");
-//		reactorNames.put(PKQLEnum.UNFILTER_DATA, "prerna.sablecc.ColUnfilterReactor");
-//		reactorNames.put(PKQLEnum.DATA_FRAME, "prerna.sablecc.DataFrameReactor");
-//		reactorNames.put(PKQLReactor.VAR.toString(), "prerna.sablecc.VarReactor");
-//		reactorNames.put(PKQLReactor.INPUT.toString(), "prerna.sablecc.InputReactor");
-//		
-//		reactorNames.put(PKQLEnum.QUERY_API, "prerna.sablecc.QueryApiReactor");
-//		switch(reactorType) {
-//			case IMPORT_DATA : return new GDMImportDataReactor();
-//			case COL_ADD : return new ColAddReactor();
-//		}
-
-		return reactorNames;
-	}
-
-	@Override
-	/**
-	 * Set the user id for the user who created this frame instance
-	 */
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
-
-	@Override
-	/**
-	 * Return the user id for the user who created this frame instance
-	 */
-	public String getUserId() {
-		return this.userId;
-	}
-
-	@Override
-	/**
-	 * Used to update the data id when data has changed within the frame
-	 */
-	public void updateDataId() {
-		this.dataId = this.dataId.add(BigInteger.valueOf(1));
-	}
-
-	@Override
-	/**
-	 * Returns the current data id
-	 */
-	public int getDataId() {
-		return this.dataId.intValue();
-	}
-
-	@Override
-	public void resetDataId() {
-		this.dataId = BigInteger.valueOf(0);
-	}
-
-	@Override
-	public String getDataMakerName() {
-		return "GraphDataModel";
-	}
 }

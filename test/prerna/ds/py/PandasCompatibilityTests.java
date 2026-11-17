@@ -348,7 +348,7 @@ class PandasCompatibilityTests {
 	private static AbstractReactor prepareReactor(AbstractReactor reactor, PandasFrame frame,
 			Map<String, List<String>> keys) {
 		Insight insight = mock(Insight.class);
-		when(insight.getDataMaker()).thenReturn(frame);
+		when(insight.getCurrentFrame()).thenReturn(frame);
 		when(insight.getPyTranslator()).thenReturn(translator);
 		reactor.In();
 		reactor.setInsight(insight);

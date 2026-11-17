@@ -80,7 +80,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 	 */
 
 	public CreateAppFromTemplateReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TEMPLATE.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.PROJECT_TEMPLATE.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
 
@@ -89,8 +90,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		organizeKeys();
-		int index = 0;
-		String newProjectName = this.keyValue.get(this.keysToGet[index++]);
+		int index = 1;
+		String newProjectName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 		String projectTemplateId = this.keyValue.get(this.keysToGet[index++]);
 		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]) + "");
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
@@ -109,6 +110,10 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		IProject.PROJECT_TYPE projectEnumType = templateProject.getProjectType();
 		if (!SecurityProjectUtils.userCanCloneProject(this.insight.getUser(), projectTemplateId)) {
 			throw new IllegalArgumentException("This project is not a template, so only its owners can clone it.");
+		}
+		if (SecurityProjectUtils.isDigitalTwin(projectTemplateId)) {
+			// the clone would be an ordinary project holding every file of the twin
+			throw new IllegalArgumentException("A Digital Twin cannot be cloned.");
 		}
 
 		// Create new project
@@ -248,7 +253,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		return super.getReactorDefinition().description(
 				"Creates a new project with the given name as a copy of a template project the user can clone, copying its asset files and image and, for a workspace, its configuration, resources and tags. Returns the new project's details.")
 				.key(ReactorKeysEnum.GLOBAL, key -> key.type(Boolean.class))
-				.key(ReactorKeysEnum.PROJECT,
+				.key(ReactorKeysEnum.CATALOG_NAME,
 						"The name for this project. Note: the project ID is randomly generated and is not passed into this method")
 				.key("projectTemplate", "The id of the existing project that is serving as the template for the copy")
 				.key(ReactorKeysEnum.PROVIDER,

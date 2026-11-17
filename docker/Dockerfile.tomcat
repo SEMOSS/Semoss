@@ -137,6 +137,13 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& chmod 777 /opt/apache-maven-3.10.0/bin/*.cmd \
 	&& apt-get clean all
 
+# OpenShell CLI (and its gateway package), used by SANDBOX_MODE=OPENSHELL. The runtime images copy
+# /usr/bin/openshell from here; the gateway itself is not run in them.
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends curl ca-certificates \
+	&& curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | sh \
+	&& rm -rf /var/lib/apt/lists/*
+
 # ---------------------------------------------------------------------------
 # FIPS 140-3 wiring. Entirely skipped when FIPS_ENABLED != true.
 #

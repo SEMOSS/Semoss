@@ -137,7 +137,7 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("Updates configuration for one generated automation node.")
-				.key(ReactorKeysEnum.PROJECT, "The Automation project ID or alias to update.")
+				.key(ReactorKeysEnum.PROJECT, "The Automation project ID to update.")
 				.key(NODE_ID_KEY, "The generated node ID to reconfigure.")
 				.key(CONFIG_KEY, "The complete node configuration as a JSON object or Base64-encoded JSON object.")
 				.key(LABEL_KEY, "An optional replacement user-facing node label.");

@@ -62,8 +62,10 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateStorageEngineReactor.class);
 
+	private static final String CATALOG_NAME_KEYS = ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.STORAGE.getKey();
+
 	public CreateStorageEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.STORAGE.getKey(), ReactorKeysEnum.STORAGE_DETAILS.getKey(),
+		this.keysToGet = new String[] { CATALOG_NAME_KEYS, ReactorKeysEnum.STORAGE_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
@@ -179,15 +181,12 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getStorageName() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.STORAGE.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if (strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
+		List<String> strValues = getListStringForAliasedKey(CATALOG_NAME_KEYS);
+		if (!strValues.isEmpty()) {
+			return strValues.get(0).trim();
 		}
 
-		List<String> strValues = this.curRow.getAllStrValues();
+		strValues = this.curRow.getAllStrValues();
 		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}

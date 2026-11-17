@@ -30,7 +30,6 @@ package prerna.engine.impl.tinker;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -44,15 +43,13 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import prerna.SemossUnitTest;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.tinker.TinkerEngine.TINKER_DRIVER;
 import prerna.query.interpreters.GremlinNoEdgeBindInterpreter;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.MockedDIHelper;
 
 public class TinkerEngineUnitTests extends SemossUnitTest {
 
@@ -98,10 +95,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 
 			// testing open
 			TinkerEngine te = new TinkerEngine();
@@ -155,10 +150,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 
 
 			// testing open
@@ -214,10 +207,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 
 			// testing open
 			TinkerEngine te = new TinkerEngine();
@@ -271,10 +262,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -342,10 +331,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -432,10 +419,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -489,10 +474,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -557,10 +540,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 
 			// testing open
 			TinkerEngine te = new TinkerEngine();
@@ -622,10 +603,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 			
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);
@@ -704,10 +683,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 
 			
 			TinkerEngine te = new TinkerEngine();
@@ -787,10 +764,8 @@ public class TinkerEngineUnitTests extends SemossUnitTest {
 			e.printStackTrace();
 		}
 
-		try (MockedStatic<DIHelper> mockedSingleton = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper instance = Mockito.mock(DIHelper.class);
-			when(DIHelper.getInstance()).thenReturn(instance);
-			when(instance.getProperty(Constants.BASE_FOLDER)).thenReturn(baseFolder.getAbsolutePath());
+		try (MockedDIHelper mockedSingleton = MockedDIHelper.start()) {
+			mockedSingleton.withProperty(Constants.BASE_FOLDER, baseFolder.getAbsolutePath());
 			
 			TinkerEngine te = new TinkerEngine();
 			te.open(smssProp);

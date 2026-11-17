@@ -79,7 +79,6 @@ public class GetProjectReactorSignatureReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide a reactor name.");
 		}
 
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project.");
 		}
@@ -137,7 +136,7 @@ public class GetProjectReactorSignatureReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description("Returns parameter metadata for a project-specific custom reactor.")
-				.key(ReactorKeysEnum.PROJECT, "The project ID or alias containing the custom reactor.")
+				.key(ReactorKeysEnum.PROJECT, "The project ID containing the custom reactor.")
 				.key(REACTOR_KEY, "Exact name of the project-specific reactor to inspect without executing it.");
 	}
 }

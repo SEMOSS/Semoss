@@ -813,7 +813,7 @@ public class InsightUtility {
 			}
 			// default to base frame
 			if (frame == null) {
-				frame = (ITableDataFrame) insight.getDataMaker();
+				frame = insight.getCurrentFrame();
 			}
 			qs.setFrame(frame);
 		}

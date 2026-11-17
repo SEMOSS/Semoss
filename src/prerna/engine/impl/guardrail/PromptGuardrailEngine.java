@@ -119,12 +119,17 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 			return new GuardrailNounMetadata(this.judgeErrorVerdict.passes(), textToJudge, details);
 		}
 
-		boolean pass = !classification.toUpperCase().contains("UNSAFE");
+		String verdict = classification.toUpperCase();
+		boolean namesVerdict = verdict.contains("SAFE");
+		boolean pass = namesVerdict ? !verdict.contains("UNSAFE") : this.judgeErrorVerdict.passes();
 		classLogger.info("{}: classification='{}', pass={}", getClass().getSimpleName(), classification, pass);
 
 		Map<String, Object> details = new HashMap<>();
 		details.put("classification", classification);
 		details.put("modelEngineId", this.modelEngineId);
+		if (!namesVerdict) {
+			details.put("judgeErrorVerdict", this.judgeErrorVerdict.name());
+		}
 
 		String returnPrompt = pass || this.blockedMessage == null ? textToJudge : this.blockedMessage;
 		return new GuardrailNounMetadata(pass, returnPrompt, details);
@@ -141,8 +146,8 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 	}
 
 	/**
-	 * The verdict when the judge call fails and the SMSS sets no
-	 * {@code JUDGE_ERROR_VERDICT}.
+	 * The verdict when the judge call fails, or its answer names neither SAFE nor
+	 * UNSAFE, and the SMSS sets no {@code JUDGE_ERROR_VERDICT}.
 	 *
 	 * @return BLOCK, unless a guardrail lets calls through by default
 	 */

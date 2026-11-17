@@ -92,7 +92,7 @@ public class VizRecommendationsReactor extends AbstractRFrameReactor {
 		this.rJavaTranslator.checkPackages(packages);
 
 		// convert qs to physical names
-		ITableDataFrame frame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame frame = this.insight.getCurrentFrame();
 		if (frame == null) {
 			return new NounMetadata(new HashMap(), PixelDataType.CUSTOM_DATA_STRUCTURE,
 					PixelOperationType.VIZ_RECOMMENDATION);

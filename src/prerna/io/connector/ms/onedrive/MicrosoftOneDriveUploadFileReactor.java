@@ -73,6 +73,16 @@ import prerna.util.ValueUtils;
  * into a folder that is not there with a 404 rather than creating it, so create
  * it with {@code MicrosoftOneDriveCreateFolder} first.
  * </p>
+ *
+ * <p>
+ * A file that {@code MicrosoftOneDriveDownloadFile} wrote can be saved back
+ * over the file it was downloaded from: pass it with a conflict behavior of
+ * {@code replace} and no destination. The download recorded where it came from
+ * and which version it held, so the upload reaches the original wherever it
+ * lives. When somebody changed the original in the meantime the upload is
+ * refused rather than discarding their change unseen; once that has been said,
+ * the same upload asked for again replaces it.
+ * </p>
  */
 public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriveReactor {
 
@@ -168,7 +178,7 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Upload a file from the insight folder into OneDrive, into the signed in user's own drive or into a folder shared with them.")
+				"Upload a file from the insight folder into OneDrive, into the signed in user's own drive or into a folder shared with them. To save a file that was downloaded from OneDrive back over its original, pass only the file path and a conflict behavior of replace: it goes to the file it was downloaded from, wherever that is. When the original was changed in OneDrive after the download nothing is uploaded and the result says so; uploading again the same way then replaces it.")
 				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION)
 				.key(ReactorKeysEnum.FILE_PATH, "Path of the file to upload, relative to the insight folder.")
 				.key(ReactorKeysEnum.NAME,

@@ -194,7 +194,7 @@ The running application uses a SEMOSS home directory for configuration, engine d
 | Container startup and semoss-artifacts property configuration | [SEMOSS-deployment](https://github.com/SEMOSS/SEMOSS-deployment) |
 | Shared storage and cluster operation | [Cloud and cluster documentation](docs/cloud_and_cluster/README.md) and [deployment examples](https://github.com/SEMOSS/SEMOSS-deployment) |
 
-In the examples, `CUSTOM_*` variables configure the system databases; `SETSOCIAL`, `ENABLE_NATIVE`, and `REDIRECT` configure local login behavior; `NETTY_PYTHON` and `NATIVE_PY_SERVER` enable Python integration. MinIO variants add shared storage configuration, and the two-node variants add a coordination backend. Preserve the database names and connection settings consistently with the initialization SQL.
+In the examples, `CUSTOM_*` variables configure the system databases; `SETSOCIAL`, `ENABLE_NATIVE`, and `REDIRECT` configure local login behavior; `SMSS_PYTHONHOME` points the Python integration, which is on by default, at the image's virtual environment. MinIO variants add shared storage configuration, and the two-node variants add a coordination backend. Preserve the database names and connection settings consistently with the initialization SQL.
 
 ## Repository layout
 

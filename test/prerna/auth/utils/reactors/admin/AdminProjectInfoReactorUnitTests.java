@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -51,6 +52,8 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityExternalConnectorsUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -58,8 +61,13 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class AdminProjectInfoReactorUnitTests {
+
+	private static final String APPLICATION_URL = "https://semoss.test/Monolith";
+	private static final String PUBLIC_HOME = "public_home";
 
 	private AdminProjectInfoReactor reactor;
 	private Insight insight;
@@ -70,8 +78,19 @@ public class AdminProjectInfoReactorUnitTests {
 
 	private Map<String, String> keyValues;
 
+	/** The metadata, GitHub link, portal url and loaded project a project's info reads */
+	private MockedStatic<SecurityProjectUtils> projects;
+	private MockedStatic<SecurityExternalConnectorsUtils> connectors;
+	private MockedStatic<Utility> utility;
+
 	@BeforeEach
 	void setup() {
+		projects = Mockito.mockStatic(SecurityProjectUtils.class);
+		connectors = Mockito.mockStatic(SecurityExternalConnectorsUtils.class);
+		utility = Mockito.mockStatic(Utility.class);
+		utility.when(Utility::getApplicationUrl).thenReturn(APPLICATION_URL);
+		utility.when(Utility::getPublicHomeFolder).thenReturn(PUBLIC_HOME);
+
 		reactor = new AdminProjectInfoReactor();
 		keyValues = reactor.keyValue;
 
@@ -85,6 +104,13 @@ public class AdminProjectInfoReactorUnitTests {
 		grs = mock(GenRowStruct.class);
 
 		reactor.setNounStore(ns);
+	}
+
+	@AfterEach
+	void closeMocks() {
+		utility.close();
+		connectors.close();
+		projects.close();
 	}
 
 	@Test
@@ -236,7 +262,9 @@ public class AdminProjectInfoReactorUnitTests {
 			assertNotNull(result.getValue());
 
 			assertTrue(result.getValue().equals(temp));
-
+			assertEquals(APPLICATION_URL + "/" + PUBLIC_HOME + "/test/" + Constants.PORTALS_FOLDER + "/",
+					temp.get("project_portal_url"));
+			projects.verify(() -> SecurityProjectUtils.getAggregateProjectMetadata("test", null, true));
 		}
 	}
 }

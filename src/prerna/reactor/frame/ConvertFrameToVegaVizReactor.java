@@ -166,7 +166,7 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 		// else, grab the default frame from the insight
 		// put this into the noun store
 		// so that we can pull it for other pipeline
-		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame defaultFrame = this.insight.getCurrentFrame();
 		if (defaultFrame != null) {
 			this.store.makeNoun(ReactorKeysEnum.FRAME.getKey())
 					.add(new NounMetadata(defaultFrame, PixelDataType.FRAME));

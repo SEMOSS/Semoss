@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -112,8 +113,7 @@ class AppCreationAuditTest {
 		try (var security = mockStatic(SecurityProjectUtils.class);
 				var inputs = mockStatic(UploadInputUtility.class);
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
-			inputs.when(() -> UploadInputUtility.getProjectNameOrId(store)).thenReturn("alias");
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "alias")).thenReturn("project");
+			inputs.when(() -> UploadInputUtility.getProjectNameOrId(store)).thenReturn("project");
 			security.when(() -> SecurityProjectUtils.userCanEditProject(user, "project")).thenReturn(true);
 			security.when(SecurityProjectUtils::getAllMetakeys).thenReturn(List.of("description"));
 			if (fail) {
@@ -167,7 +167,6 @@ class AppCreationAuditTest {
 				var cluster = mockStatic(ClusterUtil.class);
 				var portals = mockStatic(ProjectPortalsHelper.class);
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "project")).thenReturn("project");
 			security.when(() -> SecurityProjectUtils.userCanEditProject(user, "project")).thenReturn(true);
 			utility.when(() -> Utility.getProject("project")).thenReturn(project);
 			assets.when(() -> AssetUtility.getProjectPortalsFolder("project")).thenReturn(directory.toString());
@@ -199,7 +198,7 @@ class AppCreationAuditTest {
 		var reactor = new CreateAppFromBlocksReactor() {
 			@Override
 			protected void organizeKeys() {
-				keyValue.put("project", "Test app");
+				keyValue.put("catalogName", "Test app");
 				keyValue.put("global", "false");
 			}
 		};
@@ -241,6 +240,37 @@ class AppCreationAuditTest {
 	}
 
 	@Test
+	void aDigitalTwinIsNotCloned() {
+		User user = mock(User.class);
+		Insight insight = mock(Insight.class);
+		when(insight.getUser()).thenReturn(user);
+		IProject twin = mock(IProject.class);
+		when(twin.getProjectType()).thenReturn(IProject.PROJECT_TYPE.WORKSPACE);
+		var reactor = new CreateAppFromTemplateReactor() {
+			@Override
+			protected void organizeKeys() {
+				keyValue.put("catalogName", "Copy of my twin");
+				keyValue.put("projectTemplate", "twin");
+			}
+		};
+		reactor.setInsight(insight);
+		try (var helper = mockStatic(ProjectHelper.class);
+				var utility = mockStatic(Utility.class);
+				var security = mockStatic(SecurityProjectUtils.class)) {
+			// even its owner, who may clone any project of theirs
+			security.when(() -> SecurityProjectUtils.userCanViewProject(user, "twin")).thenReturn(true);
+			security.when(() -> SecurityProjectUtils.userCanCloneProject(user, "twin")).thenReturn(true);
+			security.when(() -> SecurityProjectUtils.isDigitalTwin("twin")).thenReturn(true);
+			utility.when(() -> Utility.getProject("twin")).thenReturn(twin);
+
+			IllegalArgumentException refused = assertThrows(IllegalArgumentException.class, reactor::execute);
+
+			assertEquals("A Digital Twin cannot be cloned.", refused.getMessage());
+			helper.verifyNoInteractions();
+		}
+	}
+
+	@Test
 	void templateCloneAuditsTheNewProjectNotTheSource() {
 		User user = mock(User.class);
 		Insight insight = mock(Insight.class);
@@ -252,7 +282,7 @@ class AppCreationAuditTest {
 		var reactor = new CreateAppFromTemplateReactor() {
 			@Override
 			protected void organizeKeys() {
-				keyValue.put("project", "Cloned app");
+				keyValue.put("catalogName", "Cloned app");
 				keyValue.put("projectTemplate", "template");
 			}
 		};

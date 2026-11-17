@@ -118,8 +118,8 @@ public final class SystemEngineRegistry {
 
 	/**
 	 * The canonical set of system engine IDs, keyed by their Constants values. Used
-	 * to guard Utility.loadEngine() from accidentally loading these engines through
-	 * the normal path.
+	 * to guard InternalUtility.loadEngine() from accidentally loading these engines
+	 * through the normal path.
 	 */
 	static final Set<String> SYSTEM_ENGINE_IDS = Set.of(Constants.SECURITY_DB, Constants.LOCAL_MASTER_DB,
 			Constants.SCHEDULER_DB, Constants.THEMING_DB, Constants.USER_TRACKING_DB, Constants.PROMPT_DB,
@@ -296,8 +296,8 @@ public final class SystemEngineRegistry {
 
 	/**
 	 * Returns true if the given engine ID belongs to one of the known system
-	 * engines. Used by Utility.loadEngine() to block the normal load path for these
-	 * engines.
+	 * engines. Used by InternalUtility.loadEngine() to block the normal load path
+	 * for these engines.
 	 * 
 	 * @param engineId
 	 * @return

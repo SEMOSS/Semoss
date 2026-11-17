@@ -51,6 +51,7 @@ public class OpenAIChatCompletionsStream extends AbstractOpenAISseStream {
 	private final String messageId;
 
 	private boolean started = false;
+	private boolean toolCallSent = false;
 
 	// Token usage forwarded by Python via stream_type="usage".
 	// Surfaced as a usage-only chunk before the terminal [DONE].
@@ -84,7 +85,7 @@ public class OpenAIChatCompletionsStream extends AbstractOpenAISseStream {
 			return false;
 		}
 
-		if (streamType.equalsIgnoreCase("content")) {
+		if ("content".equalsIgnoreCase(streamType)) {
 			if (dataMap.containsKey("finish_reason")) {
 				String finishReason = (String) dataMap.get("finish_reason");
 				// this is a map only on finish reason
@@ -97,14 +98,15 @@ public class OpenAIChatCompletionsStream extends AbstractOpenAISseStream {
 						newContent, this.started, writer);
 				this.started = true;
 			}
-			// TODO: handle "thinking" stream type from models like Gemini/Claude
-			// that emit reasoning chunks separately. These would need to be
-			// forwarded as content chunks since OpenAI chat completions format
-			// has no dedicated thinking field.
 			return false;
 		}
 
-		// assuming only other type is tool at the moment
+		// Chat Completions has no field for thinking or media, so only content and
+		// tool chunks are sent, and a result that was not streamed still is once the
+		// job completes
+		if (!"tool".equalsIgnoreCase(streamType)) {
+			return false;
+		}
 		if (dataMap.containsKey("finish_reason")) {
 			// send the finish chunk
 			String finishReason = (String) dataMap.get("finish_reason");
@@ -114,6 +116,7 @@ public class OpenAIChatCompletionsStream extends AbstractOpenAISseStream {
 		OpenAIChatCompletionsHelper.writeToolChunk(this.engineId, this.messageId, this.creationTimestamp, dataMap,
 				this.started, writer);
 		this.started = true;
+		this.toolCallSent = true;
 		return false;
 	}
 
@@ -186,8 +189,29 @@ public class OpenAIChatCompletionsStream extends AbstractOpenAISseStream {
 
 	private void writeFinishReason(String finishReason, Writer writer) throws IOException {
 		OpenAIChatCompletionsHelper.writeFinishReason(this.engineId, this.messageId, this.creationTimestamp,
-				finishReason, this.capturedPromptTokens, this.capturedCompletionTokens, this.capturedCachedTokens,
-				this.capturedReasoningTokens, writer);
+				chatFinishReason(finishReason, this.toolCallSent), this.capturedPromptTokens,
+				this.capturedCompletionTokens, this.capturedCachedTokens, this.capturedReasoningTokens, writer);
+	}
+
+	/**
+	 * Returns the Chat Completions finish reason for the one a model client
+	 * reported, which can be in the Chat Completions or the Messages vocabulary. A
+	 * stream that sent a tool call finishes with tool_calls, since some providers
+	 * report a plain stop after one.
+	 *
+	 * @param finishReason the reported finish reason, or null
+	 * @param toolCallSent whether the stream sent a tool call
+	 * @return the finish reason to send
+	 */
+	static String chatFinishReason(String finishReason, boolean toolCallSent) {
+		String reason = finishReason == null ? "stop" : switch (finishReason) {
+		case "tool_use", "tool_calls" -> "tool_calls";
+		case "end_turn", "stop_sequence", "pause_turn", "stop" -> "stop";
+		case "max_tokens", "length" -> "length";
+		case "refusal" -> "content_filter";
+		default -> finishReason;
+		};
+		return toolCallSent && "stop".equals(reason) ? "tool_calls" : reason;
 	}
 
 	private void captureUsage(Map<String, Object> dataMap) {

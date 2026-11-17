@@ -31,7 +31,6 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,15 +47,12 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
 public class RiGraph extends AbstractTableDataFrame {
 
 	private static final Logger classLogger = LogManager.getLogger(RiGraph.class);
-
-	public static final String DATA_MAKER_NAME = "RiGraph";
 
 	private String graphName = "";
 	private transient AbstractRJavaTranslator rJavaTranslator;
@@ -297,48 +293,6 @@ public class RiGraph extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public String getDataMakerName() {
-		return DATA_MAKER_NAME;
-	}
-
-	/*
-	 * public static void main(String[] args) throws Exception {
-	 * TestUtilityMethods.loadDIHelper(); String engineProp =
-	 * "C:\\workspace2\\Semoss_Dev\\db\\LocalMasterDatabase.smss"; IEngine
-	 * coreEngine = new RDBMSNativeEngine();
-	 * coreEngine.setEngineId(Constants.LOCAL_MASTER_DB_NAME);
-	 * coreEngine.open(engineProp);
-	 * DIHelper.getInstance().setLocalProperty(Constants.LOCAL_MASTER_DB_NAME,
-	 * coreEngine);
-	 * 
-	 * engineProp = "C:\\workspace2\\Semoss_Dev\\db\\Movie_RDBMS.smss"; coreEngine =
-	 * new RDBMSNativeEngine(); coreEngine.setEngineId("Movie_RDBMS");
-	 * coreEngine.open(engineProp);
-	 * DIHelper.getInstance().setLocalProperty("Movie_RDBMS", coreEngine);
-	 * 
-	 * Iterator<IHeadersDataRow> it =
-	 * WrapperManager.getInstance().getRawWrapper(coreEngine,
-	 * "Select Title, Movie_Budget from Title");
-	 * 
-	 * 
-	 * Insight in = new Insight(); AbstractRJavaTranslator translator =
-	 * RJavaTranslatorFactory.getRJavaTranslator(in,
-	 * LogManager.getLogger(RiGraph.class.getName())); RiGraph g = new RiGraph("g",
-	 * translator);
-	 * 
-	 * Map<Integer, Set<Integer>> cardinality = new Hashtable<Integer,
-	 * Set<Integer>>(); Set<Integer> s = new HashSet<Integer>(); s.add(1);
-	 * cardinality.put(0, s);
-	 * 
-	 * long start = System.currentTimeMillis(); g.addRelationship(it, cardinality);
-	 * long end = System.currentTimeMillis(); System.out.println("Time to insert = "
-	 * + (end-start) + "ms");
-	 * 
-	 * Object o = translator.executeR("V(g)"); System.out.println(o); o =
-	 * translator.executeR("E(g)"); System.out.println(o); }
-	 */
-
-	@Override
 	public Double getMax(String columnHeader) {
 		// TODO Auto-generated method stub
 		return null;
@@ -384,26 +338,6 @@ public class RiGraph extends AbstractTableDataFrame {
 	public void close() {
 		// TODO Auto-generated method stub
 
-	}
-
-	@Override
-	public Iterator<List<Object[]>> scaledUniqueIterator(String uniqueHeaderName,
-			List<String> attributeUniqueHeaderName) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * Deprecated DataMakerComponent stuff
-	 */
-
-	@Override
-	@Deprecated
-	public void processDataMakerComponent(DataMakerComponent component) {
-		// TODO Auto-generated method stub
 	}
 
 	@Override

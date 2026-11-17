@@ -39,23 +39,29 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.io.connector.ConnectorScopeAccess;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarCreateEventReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarDeleteEventReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarGetEventReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarGetMeetingTranscriptReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarGetScheduleReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarHelper;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarListCalendarsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarListEventsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarRespondToEventReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarUpdateEventReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveCreateFolderReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveDownloadFileReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveGetFileReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListDrivesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListSharedFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveSearchFilesReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveUploadFileReactor;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookListMailReactor;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookSaveDraftReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadFileReactor;
@@ -76,6 +82,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.collaboration.BrainEditThreadReactor;
 import prerna.reactor.collaboration.BrainEditTopicReactor;
 import prerna.reactor.collaboration.BrainForgetReactor;
+import prerna.reactor.collaboration.BrainGetRelatedItemsReactor;
 import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
 import prerna.reactor.collaboration.BrainGetWritingStyleReactor;
 import prerna.reactor.collaboration.BrainListTopicsReactor;
@@ -95,6 +102,7 @@ import prerna.reactor.collaboration.WorkManageCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkOpenSkillReactor;
 import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
+import prerna.reactor.collaboration.WorkSaveRoutinePreferencesReactor;
 import prerna.reactor.collaboration.WorkSaveWorkReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 import prerna.reactor.collaboration.WorkShowItemReactor;
@@ -127,6 +135,9 @@ public final class CollaborationAgentTools {
 		REACTORS.put("ListCalendars", MicrosoftCalendarListCalendarsReactor.class);
 		REACTORS.put("ListEvents", MicrosoftCalendarListEventsReactor.class);
 		REACTORS.put("GetEvent", MicrosoftCalendarGetEventReactor.class);
+		// what was said in an event's Teams meeting; offered only where the sign in asks
+		// for its scope (see TRANSCRIPT_TOOL)
+		REACTORS.put("GetMeetingTranscript", MicrosoftCalendarGetMeetingTranscriptReactor.class);
 		REACTORS.put("GetSchedule", MicrosoftCalendarGetScheduleReactor.class);
 		REACTORS.put("CreateEvent", MicrosoftCalendarCreateEventReactor.class);
 		REACTORS.put("UpdateEvent", MicrosoftCalendarUpdateEventReactor.class);
@@ -143,6 +154,7 @@ public final class CollaborationAgentTools {
 		REACTORS.put("ListTopics", BrainListTopicsReactor.class);
 		REACTORS.put("SearchMail", BrainSearchThreadsReactor.class);
 		REACTORS.put("ReadThread", BrainGetThreadMessagesReactor.class);
+		REACTORS.put("RelatedThreads", BrainGetRelatedItemsReactor.class);
 		// change the owner's Brain; both wait for the owner to approve
 		REACTORS.put("EditTopic", BrainEditTopicReactor.class);
 		REACTORS.put("EditThread", BrainEditThreadReactor.class);
@@ -184,6 +196,10 @@ public final class CollaborationAgentTools {
 		REACTORS.put("SearchFiles", MicrosoftOneDriveSearchFilesReactor.class);
 		REACTORS.put("GetFile", MicrosoftOneDriveGetFileReactor.class);
 		REACTORS.put("DownloadDriveFile", MicrosoftOneDriveDownloadFileReactor.class);
+		// write to the owner's OneDrive; both wait for the owner to approve, so a
+		// routine never gets them
+		REACTORS.put("CreateDriveFolder", MicrosoftOneDriveCreateFolderReactor.class);
+		REACTORS.put("UploadDriveFile", MicrosoftOneDriveUploadFileReactor.class);
 		// the owner's memory: the owner's chat or routine, with memory on (see
 		// definitions(Room, User, boolean))
 		REACTORS.put("Remember", BrainRememberReactor.class);
@@ -194,6 +210,9 @@ public final class CollaborationAgentTools {
 		REACTORS.put("CreateRoutine", WorkSaveCustomRoutineReactor.class);
 		REACTORS.put("ListRoutines", WorkListCustomRoutinesReactor.class);
 		REACTORS.put("ManageRoutine", WorkManageCustomRoutineReactor.class);
+		// the Preferences text of the inbox brief, agendas and event planning, which
+		// read it and no memories
+		REACTORS.put("SetRoutinePreferences", WorkSaveRoutinePreferencesReactor.class);
 		REACTORS.put("ListMySkills", WorkListMySkillsReactor.class);
 		REACTORS.put("OpenSkill", WorkOpenSkillReactor.class);
 		REACTORS.put("PublishSkill", WorkPublishSkillReactor.class);
@@ -227,7 +246,13 @@ public final class CollaborationAgentTools {
 	// the owner's routines and skills: at the root of the owner's chat or routine;
 	// a routine keeps only the auto ones
 	private static final Set<String> OWNER_TOOLS = Set.of("CreateRoutine", "ListRoutines", "ManageRoutine",
-			"ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant", "DeleteMySkill");
+			"SetRoutinePreferences", "ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant",
+			"DeleteMySkill");
+
+	// reading a transcript takes a Microsoft scope an administrator consents to, and
+	// until the sign in asks for it every call is refused, so it is offered only
+	// where the sign in does
+	private static final String TRANSCRIPT_TOOL = "GetMeetingTranscript";
 
 	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365
 	// mail after Brain's own search,
@@ -249,7 +274,8 @@ public final class CollaborationAgentTools {
 			"[Brain: tags this chat with a topic]", "SaveDraft",
 			"[Outlook: saves a draft in the owner's drafts folder for them to review; it never sends]", "SearchMail",
 			"[Brain: the owner's classified mail, start here; one topic or all]", "ReadThread",
-			"[Brain: reads a thread found in Brain]", "ListM365Mail",
+			"[Brain: reads a thread found in Brain]", "RelatedThreads",
+			"[Brain: other mail, meetings, and chats that belong with a thread you already have]", "ListM365Mail",
 			"[Microsoft 365, direct: Outlook as it is now, outside Brain. Brain's never-ingest rules "
 					+ "and exclusions do NOT apply here, and mail Brain has not classified can show up. Use it after "
 					+ "SearchMail finds nothing, or when the owner asks about Outlook itself.]");
@@ -303,14 +329,30 @@ public final class CollaborationAgentTools {
 	}
 
 	private static List<Map<String, Object>> definitions(boolean memory, boolean chat, boolean owner) {
+		boolean transcripts = transcriptsRequested();
 		List<Map<String, Object>> tools = new ArrayList<>();
 		for (Map.Entry<String, JSONObject> tool : tools().entrySet()) {
 			if ((memory || !MEMORY_TOOLS.contains(tool.getKey())) && (chat || !CHAT_TOOLS.contains(tool.getKey()))
-					&& (owner || !OWNER_TOOLS.contains(tool.getKey()))) {
+					&& (owner || !OWNER_TOOLS.contains(tool.getKey()))
+					&& (transcripts || !TRANSCRIPT_TOOL.equals(tool.getKey()))) {
 				tools.add(tool.getValue().toMap());
 			}
 		}
 		return tools;
+	}
+
+	/**
+	 * Whether the deployment's Microsoft sign in asks for the scope a meeting
+	 * transcript is read with.
+	 */
+	private static boolean transcriptsRequested() {
+		try {
+			return ConnectorScopeAccess.requestsAnyScope(AuthProvider.MICROSOFT,
+					List.of(MicrosoftCalendarHelper.TRANSCRIPT_SCOPE));
+		} catch (RuntimeException e) {
+			// no sign in settings to read, so nothing was asked for
+			return false;
+		}
 	}
 
 	@SuppressWarnings("unchecked")

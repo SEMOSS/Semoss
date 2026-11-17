@@ -31,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.IConnectorIOp;
@@ -54,15 +53,15 @@ public class GoogleListFiles implements IConnectorIOp {
 			params = new HashMap<>();
 		}
 
-		// TODO Auto-generated method stub
-		AccessToken googToken = user.getAccessToken(AuthProvider.GOOGLE);
-		String accessToken = googToken.getAccess_token();
+		String accessToken = IConnectorIOp.requireAccessToken(user, AuthProvider.GOOGLE).getAccess_token();
 
 		// you fill what you want to send on the API call
 		params.put("access_token", accessToken);
 
 		String url = "https://www.googleapis.com/drive/v3/files";
-		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
+		String output = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(),
+				HttpHelperUtility.withQueryParameters(url, params),
+				Map.of("Accept", "application/json"));
 
 		// fill the bean with the return
 		List<RemoteItem> fileList = (List) BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());

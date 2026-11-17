@@ -131,6 +131,7 @@ ENV LC_ALL=en_US.UTF-8
 
 COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
+COPY --from=tomcat_builder /usr/bin/openshell /usr/local/bin/openshell
 COPY --from=fakechroot_builder /usr/local/bin/fakechroot /usr/local/bin/fakechroot
 COPY --from=fakechroot_builder /usr/local/lib/fakechroot /usr/local/lib/fakechroot
 

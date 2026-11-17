@@ -57,7 +57,8 @@ public class BrainGetRelatedItemsReactor extends AbstractCollaborationReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
 				"Lists the owner's other emails, meetings, and chats that belong with a thread, each with the reason "
-						+ "(same topic, same people, same account); never-ingest and muted content is left out")
+						+ "(same topic, same people, same account); never-ingest and muted content is left out. Pass a thread "
+						+ "id from SearchMail; read a result with ReadThread")
 				.key(THREAD_ID, "Thread id").key(LIMIT, "Most related N items, default 10, at most 25");
 	}
 }

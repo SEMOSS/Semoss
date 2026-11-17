@@ -153,20 +153,18 @@ public class CompileAppReactorsReactor extends AbstractReactor {
 		}
 
 		// if we are doing reactors on socket side
-		boolean executeOnSocket = false;
-		if (Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
-			executeOnSocket = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) + "");
-		}
+		boolean executeOnSocket = "SOCKET"
+				.equalsIgnoreCase(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION));
 
 		if (executeOnSocket && this.insight.getUser() != null
-				&& this.insight.getUser().getPythonSocketClient(false) != null) {
+				&& this.insight.getUser().getJavaSocketClient(false) != null) {
 			PayloadStruct ps = new PayloadStruct();
 			ps.operation = PayloadStruct.OPERATION.PROJECT;
 			ps.projectId = insight.getContextProjectId();
 			ps.methodName = "clearClassCache";
 			ps.hasReturn = false;
 
-			this.insight.getUser().getPythonSocketClient(false).executeCommand(ps);
+			this.insight.getUser().getJavaSocketClient(false).executeCommand(ps);
 		}
 	}
 

@@ -93,7 +93,7 @@ public class ListAutomationVersionsReactor extends AbstractReactor {
 				.description("Returns the git commit history (author, time, revision hash, message) for each time "
 						+ "SaveAutomation was called on the given automation project.")
 				.key(ReactorKeysEnum.PROJECT,
-						"ID or alias of the automation project whose version history should be listed.")
+						"ID of the automation project whose version history should be listed.")
 				.key(ReactorKeysEnum.LIMIT, "Maximum number of versions to return. Defaults to " + DEFAULT_LIMIT
 						+ ", capped at " + MAXIMUM_LIMIT + ".");
 	}

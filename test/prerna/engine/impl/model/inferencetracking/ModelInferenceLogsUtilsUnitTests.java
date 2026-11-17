@@ -440,9 +440,12 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void doRecordMessage() throws Exception {
-		when(conn.prepareStatement(
-				"INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
-				.thenReturn(ps);
+		String insertMessage = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD,"
+				+ " MESSAGE_TOKENS, INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS,"
+				+ " RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID,"
+				+ " USER_TYPE, BILLED_SOURCE_TYPE, BILLED_SUBJECT_ID, BILLED_SUBJECT_TYPE, COST_MICROS) "
+				+ "\tVALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		when(conn.prepareStatement(insertMessage)).thenReturn(ps);
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 		when(ps.getConnection()).thenReturn(conn);
 
@@ -457,10 +460,11 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(engine, atLeastOnce()).getQueryUtil();
 		verify(absQueryUtil).handleInsertionOfBlob(conn, ps, "messageData", 4);
 		verify(ps, times(18)).setString(anyInt(), anyString());
-		verify(ps, times(16)).setNull(anyInt(), anyInt());
+		verify(ps, times(26)).setNull(anyInt(), anyInt());
 		verify(ps, times(2)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(2)).setDouble(anyInt(), any(Double.class));
 		verify(ps, times(1)).setInt(anyInt(), anyInt());
+		verify(conn, times(2)).prepareStatement(insertMessage);
 		verify(ps, times(2)).executeUpdate();
 		verify(ps, never()).getConnection();
 		verify(conn, atLeastOnce()).getAutoCommit();

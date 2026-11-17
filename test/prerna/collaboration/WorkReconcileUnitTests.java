@@ -38,18 +38,33 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import org.javatuples.Pair;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
+import prerna.util.SystemEngineRegistry;
+import prerna.util.sql.AbstractSqlQueryUtil;
+import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
-/** Reconcile's merging in code and its reading of the model's reply, with the model and the work list stubbed. */
+/**
+ * Reconcile's merging in code and its reading of the model's reply, with the model and the work list stubbed and an
+ * empty in-memory H2 Collaboration schema behind them.
+ */
 class WorkReconcileUnitTests {
 
 	@Test
@@ -89,11 +104,40 @@ class WorkReconcileUnitTests {
 		IModelEngine model = mock(IModelEngine.class);
 		when(model.ask(anyString(), anyString(), any(), anyMap()))
 				.thenReturn(new AskStringModelEngineResponse(reply, 0, 0));
-		try (MockedStatic<WorkTaskUtils> work = mockStatic(WorkTaskUtils.class)) {
+		try (Connection connection = DriverManager.getConnection("jdbc:h2:mem:collab_reconcile_" + UUID.randomUUID());
+				MockedStatic<SystemEngineRegistry> registry = mockStatic(SystemEngineRegistry.class);
+				MockedStatic<WorkTaskUtils> work = mockStatic(WorkTaskUtils.class)) {
+			IRDBMSEngine engine = emptyCollaborationDb(connection);
+			registry.when(SystemEngineRegistry::getCollaborationDb).thenReturn(engine);
 			work.when(() -> WorkTaskUtils.listMyWork(any(), anyMap())).thenReturn(Map.of("workItems", List.of()));
 			Map<String, Object> plan = WorkReconcile.plan(new User(), "owner", "NATIVE", model, List.of(candidates));
 			return ((List<Map<String, Object>>) plan.get("topics")).get(0);
+		} catch (SQLException e) {
+			throw new IllegalStateException("Could not open the in-memory Collaboration database", e);
 		}
+	}
+
+	/**
+	 * Creates the Collaboration tables on the connection, with no rows, and returns an engine that serves it.
+	 */
+	private static IRDBMSEngine emptyCollaborationDb(Connection connection) throws SQLException {
+		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
+		IRDBMSEngine engine = mock(IRDBMSEngine.class);
+		when(engine.getConnection()).thenReturn(connection);
+		when(engine.getQueryUtil()).thenReturn(queryUtil);
+		try (Statement statement = connection.createStatement()) {
+			for (Pair<String, List<Pair<String, String>>> table : new CollaborationOwlCreator(queryUtil)
+					.getDBSchema()) {
+				List<String> columns = new ArrayList<>();
+				for (Pair<String, String> column : table.getValue1()) {
+					String name = column.getValue0();
+					columns.add((queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name) + " "
+							+ column.getValue1());
+				}
+				statement.execute("CREATE TABLE " + table.getValue0() + " (" + String.join(", ", columns) + ")");
+			}
+		}
+		return engine;
 	}
 
 	private static Map<String, Object> task(String id, String text) {

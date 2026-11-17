@@ -178,11 +178,6 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 		return true;
 	}
 
-	/** Whether {@code &state=...} is appended to the authorize redirect. */
-	protected boolean includeState() {
-		return true;
-	}
-
 	/** Whether {@code scope} is sent as part of the token exchange request. */
 	protected boolean includeScopeInTokenRequest() {
 		return false;
@@ -233,9 +228,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 		if (!ValueUtils.isBlank(scope)) {
 			sb.append("&scope=").append(encode(scope));
 		}
-		if (includeState()) {
-			sb.append("&state=").append(state);
-		}
+		sb.append("&state=").append(state);
 		for (Map.Entry<String, String> extra : getExtraAuthorizeParams(prefix).entrySet()) {
 			sb.append("&").append(extra.getKey()).append("=").append(extra.getValue());
 		}
@@ -303,7 +296,8 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 			}
 			output = userInfoUsesPost()
 					? HttpHelperUtility.makePostCall(userInfoUrl, accessToken.getAccess_token(), null, true)
-					: HttpHelperUtility.makeGetCall(userInfoUrl, accessToken.getAccess_token(), null, true);
+					: HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(), userInfoUrl,
+							HttpHelperUtility.bearerJsonHeaders(accessToken.getAccess_token()));
 		}
 
 		if (sanitize) {
@@ -339,7 +333,9 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 
 	private void fetchAndFill(AccessToken accessToken, String userInfoUrl, String jsonPattern, String[] beanProps,
 			Map<String, Object> params, boolean sanitize) {
-		String output = HttpHelperUtility.makeGetCall(userInfoUrl, accessToken.getAccess_token(), params, true);
+		String output = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(),
+				HttpHelperUtility.withQueryParameters(userInfoUrl, params),
+				HttpHelperUtility.bearerJsonHeaders(accessToken.getAccess_token()));
 		if (sanitize) {
 			output = output.replace("\\", "\\\\");
 		}
@@ -363,7 +359,8 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 			return;
 		}
 		String group_url = socialData.getProperty(prefix + "group_url");
-		String groupsJson = HttpHelperUtility.makeGetCall(group_url, accessToken.getAccess_token());
+		String groupsJson = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(), group_url,
+				HttpHelperUtility.bearerJsonHeaders(accessToken.getAccess_token()));
 		boolean sanitizeGroupResponse = Boolean.parseBoolean(socialData.getProperty(prefix + "sanitizeGroupResponse"));
 		if (sanitizeGroupResponse) {
 			groupsJson = groupsJson.replace("\\", "\\\\");

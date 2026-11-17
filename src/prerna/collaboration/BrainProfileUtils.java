@@ -57,6 +57,8 @@ public final class BrainProfileUtils {
 	// are the choices Connections offers
 	static final int DEFAULT_SYNC_EVERY_MINUTES = 15;
 	static final List<Integer> SYNC_EVERY_MINUTES = List.of(0, 15, 30, 60, 240);
+	// how often new topics may be proposed from incoming mail: never, daily, every three days, weekly
+	static final List<Integer> NEW_TOPICS_EVERY_HOURS = List.of(0, 24, 72, 168);
 
 	// ROLE_STATE and STYLE_STATE values
 	public static final String LEARNED = "learned";
@@ -376,6 +378,8 @@ public final class BrainProfileUtils {
 		// read-only: the platform agent behind each thread's assistant, when this user
 		// can use it
 		settings.put("assistantAgent", CollaborationUtils.threadAgent(user));
+		// read-only: whether an admin turned Digital Twin avatars on and set their image model
+		settings.put("avatarGeneration", WorkTwinAvatar.available());
 		return settings;
 	}
 
@@ -385,7 +389,7 @@ public final class BrainProfileUtils {
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
 				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN, DRAFT_FOLDER_ID, DRAFT_FOLDER_NAME, "
 						+ "DRAFT_FONT, DRAFT_FONT_SIZE, DRAFT_SIGNATURE_HTML, DRAFT_SIGNATURE_ON, "
-						+ "ASSISTANT_SKILLS_JSON, SYNC_EVERY_MINUTES "
+						+ "ASSISTANT_SKILLS_JSON, SYNC_EVERY_MINUTES, TOPIC_WATCH_HOURS, WORK_CLOSE_ACROSS "
 						+ "FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
@@ -414,6 +418,11 @@ public final class BrainProfileUtils {
 					row.put("assistantSkills", skillIds(CollaborationDbUtils.getString(rs, "ASSISTANT_SKILLS_JSON")));
 					Integer syncEvery = CollaborationDbUtils.getInteger(rs, "SYNC_EVERY_MINUTES");
 					row.put("syncEveryMinutes", syncEvery == null ? DEFAULT_SYNC_EVERY_MINUTES : syncEvery);
+					// what applies now: the owner's choice, or the instance's until they make one
+					Integer watch = CollaborationDbUtils.getInteger(rs, "TOPIC_WATCH_HOURS");
+					row.put("newTopicsEveryHours", watch == null ? (int) BrainTopicSuggest.instanceEveryHours() : watch.intValue());
+					Boolean across = CollaborationDbUtils.getBoolean(rs, "WORK_CLOSE_ACROSS");
+					row.put("closeAcrossThreads", across == null ? WorkReconcile.instanceClosesAcross() : across);
 					return row;
 				}, ownerId, ownerType);
 		settings.put("sourcesJson", CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType));
@@ -509,6 +518,19 @@ public final class BrainProfileUtils {
 				throw new IllegalArgumentException("syncEveryMinutes must be one of " + SYNC_EVERY_MINUTES);
 			}
 			CollaborationDbUtils.addSet(sets, params, "SYNC_EVERY_MINUTES", minutes);
+		}
+		if (changes.containsKey("newTopicsEveryHours")) {
+			int hours = CollaborationDbUtils.toInt(changes.get("newTopicsEveryHours"), "newTopicsEveryHours");
+			if (!NEW_TOPICS_EVERY_HOURS.contains(hours)) {
+				throw new IllegalArgumentException("newTopicsEveryHours must be one of " + NEW_TOPICS_EVERY_HOURS);
+			}
+			CollaborationDbUtils.addSet(sets, params, "TOPIC_WATCH_HOURS", hours);
+		}
+		if (changes.containsKey("closeAcrossThreads")) {
+			if (!(changes.get("closeAcrossThreads") instanceof Boolean across)) {
+				throw new IllegalArgumentException("closeAcrossThreads must be true or false");
+			}
+			CollaborationDbUtils.addSet(sets, params, "WORK_CLOSE_ACROSS", across);
 		}
 		if (changes.containsKey("assistantSkills")) {
 			if (!(changes.get("assistantSkills") instanceof List<?> skills)) {
@@ -610,7 +632,7 @@ public final class BrainProfileUtils {
 		return !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_USE"));
 	}
 
-	/** Finished chats are reviewed for memories to suggest; also needs memory itself to be on. */
+	/** Chats are reviewed in the background for memories to save; also needs memory itself to be on. */
 	static boolean learnsMemory(String ownerId, String ownerType) {
 		return usesMemory(ownerId, ownerType)
 				&& !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_LEARN"));
