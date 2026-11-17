@@ -60,24 +60,17 @@ import prerna.util.Utility;
 
 public final class RReactor extends AbstractRFrameReactor {
 
-//	private static transient SecurityManager defaultManager = System.getSecurityManager();
 	private static final String CLASS_NAME = RReactor.class.getName();
 
 	@Override
 	public NounMetadata execute() {
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
+			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 		}
 
 		// check if r is disabled
-		String disable_r_terminal = Utility.getDIHelperProperty(Constants.DISABLE_R_TERMINAL);
-		if (disable_r_terminal != null && !disable_r_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_r_terminal)) {
-				throw new IllegalArgumentException("R terminal has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_R_TERMINAL))) {
+			throw new IllegalArgumentException("R terminal has been disabled.");
 		}
 
 		// if it first time..
@@ -85,21 +78,18 @@ public final class RReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		this.rJavaTranslator = this.insight.getRJavaTranslator(logger);
 		rJavaTranslator.startR();
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null)
-				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		NounMetadata smartSyncVar = insight.getVarStore().get("SMART_SYNC");
+		boolean smartSync = Boolean.parseBoolean(smartSyncVar != null ? smartSyncVar.getValue().toString()
+				: Utility.getDIHelperProperty("SMART_SYNC"));
 		// forcing smartSync to be true all the time
 		smartSync = true;
 		if (smartSync) {
 			// see if the var has been set for first time
-			if (insight.getProperty("FIRST_SYNC") == null) {
+			if (insight.getVarStore().get("FIRST_SYNC") == null) {
 				smartSync(rJavaTranslator);
 				insight.getVarStore().put("FIRST_SYNC", new NounMetadata("True", PixelDataType.CONST_STRING));
 			}
 		}
-
-//		ReactorSecurityManager tempManager = new ReactorSecurityManager();
-//		tempManager.addClass(CLASS_NAME);
-//		System.setSecurityManager(tempManager);
 
 		// set the code variable for the ICodeExecution interface
 		String code = this.curRow.get(0).toString();
@@ -111,21 +101,13 @@ public final class RReactor extends AbstractRFrameReactor {
 			return handleGGPlot(code);
 		}
 
-		// capture.output(tryCatch({
-		// + print("monkeshwaran")}, error = function(e){"error"; e$message}),
-		// + file="c:/users/pkapaleeswaran/workspacej3/r.out")
-
 		String output = rJavaTranslator.runRAndReturnOutput(code);
 		List<NounMetadata> outputs = new ArrayList<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
 
-		// set back the original security manager
-//		tempManager.removeClass(CLASS_NAME);
-//		System.setSecurityManager(defaultManager);	
-
 		if (smartSync) {
 			if (smartSync(rJavaTranslator)) {
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
+				outputs.add(new NounMetadata(this.insight.getCurrentFrame(), PixelDataType.FRAME,
 						PixelOperationType.FRAME_HEADERS_CHANGE));
 			}
 		}
@@ -138,13 +120,13 @@ public final class RReactor extends AbstractRFrameReactor {
 		String panelId = "new_ggplot_panel";
 		String fileName = Utility.getRandomString(6);
 		String dir = insight.getUserFolder() + "/Temp";
-		dir = dir.replace("\\\\", "/");
+		dir = dir.replace("\\", "/");
 		File tempDir = new File(dir);
 		if (!tempDir.exists()) {
 			tempDir.mkdir();
 		}
 
-		ITableDataFrame frame = insight.getCurFrame();
+		ITableDataFrame frame = insight.getCurrentFrame();
 		NounMetadata newFrameVar = null;
 		if (frame == null) {
 			// user is coming in for the first time
@@ -162,7 +144,7 @@ public final class RReactor extends AbstractRFrameReactor {
 			gfrv.In();
 			newFrameVar = gfrv.execute();
 
-			frame = insight.getCurFrame();
+			frame = insight.getCurrentFrame();
 		}
 		String[] headers = frame.getColumnHeaders();
 
@@ -216,8 +198,8 @@ public final class RReactor extends AbstractRFrameReactor {
 		// get file name
 		String retFile = rJavaTranslator.runRAndReturnOutput(ggsaveFile);
 
-		String ggremove = "rm(" + ggsaveFile + ", txt);detach(\"package:ggplot2\", unload=FALSE);"; // detach(\"package:RCurl\",
-																									// unload=FALSE)";
+		// detach(\"package:RCurl\", unload=FALSE)";
+		String ggremove = "rm(" + ggsaveFile + ", txt);detach(\"package:ggplot2\", unload=FALSE);";
 		if (animate) {
 			ggremove = ggremove + "detach(\"package:gganimate\", unload=FALSE);";
 		}
@@ -338,11 +320,7 @@ public final class RReactor extends AbstractRFrameReactor {
 				}
 				return new NounMetadata(retList, PixelDataType.VECTOR, PixelOperationType.VECTOR);
 			}
-			// return //new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET,
-			// PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 		}
-		// return new NounMetadata(cdt, PixelDataType.FORMATTED_DATA_SET,
-		// PixelOperationType.TASK_DATA, PixelOperationType.FILE);
 		return null;
 	}
 

@@ -39,8 +39,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,7 +64,6 @@ import prerna.auth.access.ModelUsageLimitRule;
 import prerna.auth.access.ModelUsageLimitRule.Counts;
 import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.auth.access.ModelUsageLimitRule.Window;
-import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.project.api.IProject;
@@ -74,7 +71,8 @@ import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -146,6 +144,11 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		assertFalse(AbstractSecurityUtils.adminOnlyGuardrailDelete());
 		assertFalse(AbstractSecurityUtils.adminOnlyGuardrailSetPublic());
 		assertFalse(AbstractSecurityUtils.adminOnlyGuardrailSetDiscoverable());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvAdd());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvDelete());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvAddAccess());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvSetPublic());
+		assertFalse(AbstractSecurityUtils.adminOnlyVenvSetDiscoverable());
 		assertFalse(AbstractSecurityUtils.adminOnlyInsightSetPublic());
 		assertFalse(AbstractSecurityUtils.adminOnlyInsightAddAccess());
 		assertFalse(AbstractSecurityUtils.adminOnlyInsightShare());
@@ -214,7 +217,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineAdd(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineAdd(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -234,7 +237,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineDelete(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineDelete(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -254,7 +257,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineAddAccess(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineAddAccess(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -274,7 +277,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineSetPublic(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineSetPublic(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -294,7 +297,7 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@ParameterizedTest
 	@EnumSource(IEngine.CATALOG_TYPE.class)
 	void testAdminOnlyEngineDiscoverable(IEngine.CATALOG_TYPE type) {
-		if (type == IEngine.CATALOG_TYPE.VENV || type == IEngine.CATALOG_TYPE.PROJECT) {
+		if (type == IEngine.CATALOG_TYPE.PROJECT) {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 					() -> AbstractSecurityUtils.adminOnlyEngineSetDiscoverable(type));
 			assertEquals("Admin only configuration must be defined for catalog type = " + type, e.getMessage());
@@ -393,8 +396,8 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	@Test
 	void testInitialize_indexesModelUsageLimitsByEngineLimitTypeAndSubjectId() throws Exception {
 		List<String> columns = QueryExecutionUtility.queryList(securityDb,
-				"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME = 'MODELUSAGELIMIT_SUBJECT_INDEX' "
-						+ "ORDER BY ORDINAL_POSITION",
+				"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS "
+						+ "WHERE INDEX_NAME = 'MODELUSAGELIMIT_SUBJECT_INDEX' ORDER BY ORDINAL_POSITION",
 				QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getString(1));
 
 		// SUBJECTTYPE is left out, so the key fits the index size MySQL allows with
@@ -678,12 +681,12 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		properties.setProperty(Constants.IS_ASSET_APP, "true");
 		UnitTestSecurityAuthUtils.createSmssFileFromProps(properties, databaseFolder, "test.smss");
 		String smssFile = databaseFolder + File.separator + "test.smss";
-		DIHelper.getInstance().setEngineProperty("test_" + Constants.STORE, smssFile);
+		InternalUtility.setEngineSmssPath("test", smssFile);
 
 		assertTrue(AbstractSecurityUtils.ignoreDatabase("test"));
 
 		// teardown this test
-		DIHelper.getInstance().removeEngineProperty("test_" + Constants.STORE);
+		DIHelperTestUtils.removeEngineSmssPath("test");
 	}
 
 	@Test
@@ -942,23 +945,6 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		Timestamp ts = AbstractSecurityUtils.calculateEndDate(nowString);
 		// probably figure out a better way to test the timestamp is in utc.
 		assertNotNull(ts);
-	}
-
-	@Test
-	void testEndDateIsExpired_null() throws Exception {
-		assertFalse(AbstractSecurityUtils.endDateIsExpired(null));
-	}
-
-	@Test
-	void testEndDateIsExpired_true() throws Exception {
-		SemossDate semossDate = new SemossDate(LocalDateTime.now().minusDays(2), ZoneId.of("UTC"));
-		assertTrue(AbstractSecurityUtils.endDateIsExpired(semossDate));
-	}
-
-	@Test
-	void testEndDateIsExpired_false() throws Exception {
-		SemossDate semossDate = new SemossDate(LocalDateTime.now().plusDays(2), ZoneId.of("UTC"));
-		assertFalse(AbstractSecurityUtils.endDateIsExpired(semossDate));
 	}
 
 	@Test

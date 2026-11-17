@@ -278,7 +278,9 @@ final class WorkRoutine {
 				: !mailboxAvailable ? mailboxUnavailable(mailboxId)
 				: !pythonAvailable ? kind.pythonDisabled()
 				: !assistantAvailable ? "Ask your administrator to configure a Collaboration text model and grant your primary account access." : null);
-		result.put("nextRunAt", enabled && schedulerAvailable && kind.scheduled() ? nextRun(slot) : null);
+		// a routine the daily brief runs has no run of its own to come
+		result.put("nextRunAt", enabled && schedulerAvailable && kind.scheduled()
+				&& !WorkCustomRoutine.BRIEF.equals(result.get("delivery")) ? nextRun(slot) : null);
 		result.put("lastRun", row == null || row.get("status") == null ? null : lastRun(row));
 		result.put("flow", flow(serverDefinition(kind)));
 		return result;
@@ -708,7 +710,8 @@ final class WorkRoutine {
 	}
 
 	static String cron(Map<String, Object> config) {
-		if (!config.containsKey("time")) {
+		// no schedule of its own: an unscheduled kind, or a routine the daily brief runs as one of its sections
+		if (!config.containsKey("time") || WorkCustomRoutine.BRIEF.equals(config.get("delivery"))) {
 			return NEVER;
 		}
 		LocalTime time = LocalTime.parse((String) config.get("time"));
@@ -986,7 +989,7 @@ final class WorkRoutine {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> settings(Kind kind, Map<String, Object> row) {
+	static Map<String, Object> settings(Kind kind, Map<String, Object> row) {
 		// Older rows inherit new defaults and no longer expose retired settings.
 		Map<String, Object> config = new LinkedHashMap<>(kind.defaults());
 		config.putAll((Map<String, Object>) row.get("settings"));
@@ -1099,7 +1102,8 @@ final class WorkRoutine {
 	/** A short note the way the routine's answer would have come: email, Teams to the owner, or none. */
 	private static void tellTimedOut(Kind kind, User user, String recipient, Map<String, Object> config) {
 		Object delivery = config.getOrDefault("delivery", "email");
-		if ("none".equals(delivery)) {
+		// kept in Routines, or a section of the daily brief, which says itself that the section is missing
+		if ("none".equals(delivery) || WorkCustomRoutine.BRIEF.equals(delivery)) {
 			return;
 		}
 		String what = config.get("name") instanceof String name && !name.isBlank() ? "routine \"" + name + "\""

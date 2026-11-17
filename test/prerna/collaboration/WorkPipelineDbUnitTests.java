@@ -29,6 +29,7 @@ package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -57,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -70,12 +72,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
+import java.util.function.IntFunction;
 
 import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+
+import com.google.common.util.concurrent.MoreExecutors;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
@@ -84,6 +89,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -110,16 +116,22 @@ class WorkPipelineDbUnitTests {
 	// runs once, during the next model call
 	private Runnable onAsk;
 	private final Map<String, String> bodies = new HashMap<>();
+	// graph id -> the addresses the message was written to; graph ids of calendar messages
+	private final Map<String, List<String>> sentTo = new HashMap<>();
+	private final Set<String> invites = new HashSet<>();
 	private final Set<String> failing = new HashSet<>();
 	private Executor pool;
+	private IntFunction<ExecutorService> readPool;
 
 	@BeforeEach
 	void setUp() throws Exception {
 		// the tries below come seconds apart; one test checks the real floor
 		WorkPipeline.giveUpAfter = Duration.ZERO;
-		// lane jobs run on the test thread, where the static mocks are
+		// lane jobs and their thread reads run on the test thread, where the static mocks are
 		pool = WorkPipeline.pool;
 		WorkPipeline.pool = Runnable::run;
+		readPool = WorkPipeline.readPool;
+		WorkPipeline.readPool = size -> MoreExecutors.newDirectExecutorService();
 		connection = DriverManager.getConnection("jdbc:h2:mem:collab_work_" + UUID.randomUUID());
 		AbstractSqlQueryUtil queryUtil = SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB);
 		IRDBMSEngine engine = mock(IRDBMSEngine.class);
@@ -169,8 +181,17 @@ class WorkPipelineDbUnitTests {
 			if (failing.contains(graphId)) {
 				throw new IllegalStateException("Graph returned 503");
 			}
-			return Map.of("subject", "Deck", "body", Map.of("content", bodies.get(graphId), "contentType", "text"),
-					"from", Map.of("emailAddress", Map.of("name", "Kira", "address", "kira@test.com")));
+			Map<String, Object> message = new HashMap<>(Map.of("subject", "Deck", "body",
+					Map.of("content", bodies.get(graphId), "contentType", "text"), "from",
+					Map.of("emailAddress", Map.of("name", "Kira", "address", "kira@test.com"))));
+			if (sentTo.containsKey(graphId)) {
+				message.put("toRecipients", sentTo.get(graphId).stream()
+						.map(address -> Map.of("emailAddress", Map.of("name", address, "address", address))).toList());
+			}
+			if (invites.contains(graphId)) {
+				message.put("@odata.type", "#microsoft.graph.eventMessageRequest");
+			}
+			return message;
 		};
 		source = mockStatic(BrainMessageSource.class);
 		source.when(BrainMessageSource::current).thenReturn(mail);
@@ -180,6 +201,7 @@ class WorkPipelineDbUnitTests {
 	void tearDown() throws Exception {
 		WorkPipeline.giveUpAfter = Duration.ofHours(6);
 		WorkPipeline.pool = pool;
+		WorkPipeline.readPool = readPool;
 		source.close();
 		registry.close();
 		connection.close();
@@ -251,13 +273,43 @@ class WorkPipelineDbUnitTests {
 	void anExtractThatKeepsFailingMovesPastItsMailOnTheThirdTryInARow() throws Exception {
 		thread("th-1", at("2026-11-05T10:00:00"), null);
 		email("th-1", "g1", at("2026-11-05T10:00:00"), "Can you send the deck?");
-		reply = null;
+		// a reply that cannot be read is about this thread's mail, not about the model being down
+		reply = "this is not json";
 		for (int i = 0; i < 2; i++) {
 			assertThrows(IllegalStateException.class, () -> extract("th-1"));
 			assertNull(workRef("th-1"));
 		}
 		assertThrows(IllegalStateException.class, () -> extract("th-1"));
 		assertEquals("2026-11-05T10:00:00Z", workRef("th-1"));
+	}
+
+	@Test
+	void aLongModelOutageNeverMovesTheCursorWhateverTheTimeOrTheNumberOfTries() throws Exception {
+		thread("th-1", at("2026-11-05T10:00:00"), null);
+		email("th-1", "g1", at("2026-11-05T10:00:00"), "Can you send the deck?");
+		// the model is down (429) for far more tries than the give-up count, with no minimum span
+		reply = null;
+		for (int i = 0; i < 8; i++) {
+			assertThrows(IllegalStateException.class, () -> extract("th-1"));
+			assertNull(workRef("th-1"));
+		}
+		// back up: the ask is read
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the deck\", \"assignee\": \"me\", "
+				+ "\"askedBy\": \"me\", \"directedAtOwner\": true, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}]}";
+		extract("th-1");
+		assertEquals(1, value("SELECT COUNT(*) FROM WORK_CANDIDATE WHERE ASSIGNEE = 'me'") instanceof Number n ? n.intValue() : -1);
+	}
+
+	@Test
+	void anAssigneeTheModelCannotPlaceStaysUnclearOnTheCandidate() throws Exception {
+		thread("th-1", at("2026-11-05T10:00:00"), null);
+		email("th-1", "g1", at("2026-11-05T10:00:00"), "Someone should send the deck.");
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the deck\", \"assignee\": \"Bob\", "
+				+ "\"askedBy\": \"p1\", \"directedAtOwner\": false, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}]}";
+		extract("th-1");
+		assertEquals("unclear", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Send the deck'"));
 	}
 
 	@Test
@@ -282,28 +334,452 @@ class WorkPipelineDbUnitTests {
 	}
 
 	@Test
-	void aDoneClaimClosesALooseStepOnItsThreadAndOneUnderItsTopic() throws Exception {
+	void aDoneClaimClosesAStepOfItsOwnThreadAndNotOneOfAnotherThreadItDoesNotName() throws Exception {
 		LocalDateTime at = at("2026-11-05T10:00:00");
 		// Kira's ask on an unfiled thread became a loose step; the owner's reply is a done claim
 		thread("unfiled", at, null);
 		step("kira-step", "unfiled", null, "Send Kira the deck");
 		candidate("reply", "unfiled", null, "Sent Kira the deck", at.plusMinutes(1));
-		// a loose step under a topic, finished on another of the topic's threads
+		// a loose step under a topic, and a done claim on another of the topic's threads that does not name it: on
+		// real mail such a claim matched the wrong step far more often than the right one, so the step stays open
 		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS) VALUES (?, ?, 'budget', 'Budget', "
 				+ "'active')", ownerId, ownerType);
 		thread("ask", at, null);
 		thread("answer", at, null);
+		for (String threadId : List.of("ask", "answer")) {
+			sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE, IS_PRIMARY) VALUES "
+					+ "(?, ?, ?, 'budget', 'you', TRUE)", ownerId, ownerType, threadId);
+		}
 		step("budget-step", "ask", "budget", "Review the budget");
-		candidate("reviewed", "answer", "budget", "Reviewed the budget", at.plusMinutes(2));
+		candidate("reviewed", "answer", "budget", "The numbers are in", at.plusMinutes(2));
 		// in each topic's batch the loose step is s1
 		reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"closes\", \"ref\": \"s1\", \"reason\": \"\"}, "
 				+ "{\"candidate\": \"c2\", \"action\": \"closes\", \"ref\": \"s1\", \"reason\": \"\"}], "
 				+ "\"newItems\": [], \"loose\": []}";
 		WorkPipeline.reconcile(user, ownerId, ownerType, model);
 		assertEquals("done", value("SELECT STATUS FROM WORK_THREAD_STEP WHERE STEP_ID = 'kira-step'"));
-		assertEquals("done", value("SELECT STATUS FROM WORK_THREAD_STEP WHERE STEP_ID = 'budget-step'"));
-		assertEquals(2, ((Number) value("SELECT COUNT(*) FROM WORK_CANDIDATE WHERE RESULT = 'closes' AND "
-				+ "DROP_REASON IS NULL")).intValue());
+		assertEquals("open", value("SELECT STATUS FROM WORK_THREAD_STEP WHERE STEP_ID = 'budget-step'"));
+		assertEquals("closes", value("SELECT RESULT FROM WORK_CANDIDATE WHERE CANDIDATE_ID = 'reply'"));
+		// the claim is kept as news on the topic
+		assertEquals("topic_update", value("SELECT RESULT FROM WORK_CANDIDATE WHERE CANDIDATE_ID = 'reviewed'"));
+	}
+
+	@Test
+	void anAskTheOwnerWroteIsForThePersonItWentToNotForTheOwner() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("inspection", at, null);
+		person("self", "Owner", "owner@test.com", "self");
+		person("peter", "Peter", "peter@test.com", null);
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, "
+				+ "'inspection', 'peter')", ownerId, ownerType);
+		email("inspection", "g1", at, "Good work. Schedule the city inspection.");
+		sql("UPDATE BRAIN_MESSAGE SET SENDER_PERSON_ID = 'self' WHERE GRAPH_ID = 'g1'");
+		sentTo.put("g1", List.of("peter@test.com"));
+		// the model hands the owner their own request, and a promise of theirs in the same message
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Schedule the city inspection\", \"assignee\": "
+				+ "\"me\", \"askedBy\": \"me\", \"directedAtOwner\": false, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}, {\"kind\": \"commitment\", \"text\": \"Tell Ingrid\", \"assignee\": \"me\", "
+				+ "\"askedBy\": \"me\", \"directedAtOwner\": false, \"message\": \"m1\", \"due\": \"\", \"quote\": \"\"}]}";
+		WorkPipeline.extract(user, ownerId, ownerType, "inspection", model, new String[] { "self", "Owner" });
+		assertEquals("peter", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Schedule the city inspection'"));
+		assertNull(value("SELECT RESULT FROM WORK_CANDIDATE WHERE TEXT = 'Schedule the city inspection'"));
+		assertEquals("me", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Tell Ingrid'"));
+	}
+
+	@Test
+	void aLongThreadIsReadBackToItsCursorSoAnAskInItsOldestMailIsFound() throws Exception {
+		LocalDateTime start = at("2026-11-05T08:00:00");
+		thread("long", start.plusMinutes(69), null);
+		person("self", "Owner", "owner@test.com", "self");
+		person("peter", "Peter", "peter@test.com", null);
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, "
+				+ "'long', 'peter')", ownerId, ownerType);
+		for (int i = 0; i < 70; i++) {
+			email("long", "L" + i, start.plusMinutes(i), i == 0 ? "Please send the oldest report." : "Update " + i);
+		}
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the oldest report\", \"assignee\": "
+				+ "\"me\", \"askedBy\": \"peter\", \"directedAtOwner\": true, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}]}";
+		WorkPipeline.extract(user, ownerId, ownerType, "long", model, new String[] { "self", "Owner" });
+		// the oldest message was given to the model, not only the newest sixty
+		assertTrue(prompts.stream().anyMatch(p -> p.contains("Please send the oldest report.")));
+		assertEquals("me", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Send the oldest report'"));
+	}
+
+	@Test
+	void aRelativeDueDateCountsFromTheDayOfItsMailAndIsStoredAsADayNotAMidnight() throws Exception {
+		// Thursday 2026-11-05 05:00 UTC is still Wednesday evening in Honolulu
+		sql("INSERT INTO BRAIN_PROFILE (OWNER_ID, OWNER_TYPE, TIMEZONE) VALUES (?, ?, ?)", ownerId, ownerType,
+				"Pacific/Honolulu");
+		LocalDateTime at = at("2026-11-05T05:00:00");
+		thread("due", at, null);
+		person("self", "Owner", "owner@test.com", "self");
+		email("due", "D1", at, "Please send the deck by Friday.");
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the deck\", \"assignee\": "
+				+ "\"me\", \"askedBy\": \"\", \"directedAtOwner\": true, \"message\": \"m1\", "
+				+ "\"due\": \"2026-11-06\", \"quote\": \"\"}]}";
+		WorkPipeline.extract(user, ownerId, ownerType, "due", model, new String[] { "self", "Owner" });
+		// the model is told the day of the mail (owner's zone: Wednesday 2026-11-04), not only today
+		assertTrue(prompts.stream().anyMatch(p -> p.contains("\"day\":\"2026-11-04 (Wednesday)\"")), prompts.toString());
+		// stored at noon UTC, so the day holds for owners west of Greenwich
+		assertEquals(Timestamp.valueOf("2026-11-06 12:00:00"),
+				value("SELECT DUE_AT FROM WORK_CANDIDATE WHERE TEXT = 'Send the deck'"));
+	}
+
+	@Test
+	void anAskSentToTheOwnerAloneIsTheOwnersEvenWhenTheModelReadsItAsGroupTalk() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("ask", at, null);
+		person("self", "Owner", "owner@test.com", "self");
+		person("kyle", "Kyle", "kyle@test.com", null);
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, "
+				+ "'ask', 'kyle')", ownerId, ownerType);
+		email("ask", "g2", at, "Can you send the budget by Friday?");
+		sql("UPDATE BRAIN_MESSAGE SET SENDER_PERSON_ID = 'kyle' WHERE GRAPH_ID = 'g2'");
+		sentTo.put("g2", List.of("owner@test.com"));
+		reply = "{\"candidates\": [{\"kind\": \"task\", \"text\": \"Send the budget\", \"assignee\": "
+				+ "\"me\", \"askedBy\": \"kyle\", \"directedAtOwner\": false, \"message\": \"m1\", \"due\": \"\", "
+				+ "\"quote\": \"\"}]}";
+		WorkPipeline.extract(user, ownerId, ownerType, "ask", model, new String[] { "self", "Owner" });
+		assertEquals("me", value("SELECT ASSIGNEE FROM WORK_CANDIDATE WHERE TEXT = 'Send the budget'"));
+		assertNull(value("SELECT DROP_REASON FROM WORK_CANDIDATE WHERE TEXT = 'Send the budget'"));
+	}
+
+	@Test
+	void anAskTheOwnerWroteToSeveralPeopleIsNoOnesInParticular() {
+		assertEquals("group", WorkPipeline.askedOf(Set.of("peter", "marco"), Map.of("p1", "peter", "p2", "marco")));
+		assertEquals("peter", WorkPipeline.askedOf(Set.of("peter"), Map.of("p1", "peter", "p2", "marco")));
+		// a 1:1 chat has no To: the other person on it
+		assertEquals("kira", WorkPipeline.askedOf(Set.of(), Map.of("p1", "kira")));
+		assertEquals("group", WorkPipeline.askedOf(null, Map.of("p1", "peter", "p2", "marco")));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aDoneClaimOnAnotherThreadOfTheTopicFinishesTheStepItNames() {
+		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c3\", \"action\": \"closes\", \"ref\": \"c1\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c4\", \"action\": \"closes\", \"ref\": \"c2\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\", \"c2\"]}";
+		Map<String, Object>[] all = new Map[] {
+				on(task("c1", "Approve the Tarnwick invoice 4471"), "invoice", "2026-11-05T10:00:00Z"),
+				on(task("c2", "Approve overtime request OT-2214"), "overtime", "2026-11-05T10:00:00Z"),
+				// said done on the weekly thread, in the step's own words
+				on(claim("c3", "Tarnwick invoice 4471 is approved"), "weekly", "2026-11-06T10:00:00Z"),
+				// overtime again, but not that request
+				on(claim("c4", "Delgado will work four hours of overtime"), "sanitation", "2026-11-12T10:00:00Z") };
+		for (Map<String, Object> c : all) {
+			c.put("topicId", "finance");
+		}
+		Map<String, Object> topic = plan(reply, all);
+		List<Map<String, Object>> loose = (List<Map<String, Object>>) topic.get("looseSteps");
+		assertEquals(List.of("done", "open"), loose.stream().map(s -> s.get("status")).toList());
+		assertEquals(1, ((List<?>) topic.get("topicUpdates")).size());
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aWorkItemNeedsTheOwnerOnlyWhenAStepComesFromAConversationTheInboxDidNotSetAside() throws Exception {
+		String card = "INSERT INTO WORK_ITEM (OWNER_ID, OWNER_TYPE, ITEM_ID, THREAD_ID, SOURCE, TITLE, ASK_TYPE, STATUS, "
+				+ "ORIGIN) VALUES (?, ?, ?, ?, 'email', 't', ?, ?, 'brain')";
+		for (String thread : List.of("th-fyi", "th-wait", "th-me")) {
+			sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT) VALUES (?, ?, ?, 'email', ?)",
+					ownerId, ownerType, thread, thread);
+		}
+		sql(card, ownerId, ownerType, "card-fyi", "th-fyi", "fyi", "open");
+		sql(card, ownerId, ownerType, "card-wait", "th-wait", "waiting_on", "waiting");
+		sql(card, ownerId, ownerType, "card-me", "th-me", "reply", "open");
+		String aside = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Read along"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Note the new date", "taskId", aside, "threadId", "th-fyi"), "owner");
+		WorkTaskUtils.addStep(user, Map.of("text", "Chase the quote", "taskId", aside, "threadId", "th-wait"), "owner");
+		String asked = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Answer Kira"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Send the deck", "taskId", asked, "threadId", "th-me"), "owner");
+		String hand = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Book the room"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Call the venue", "taskId", hand), "owner");
+
+		// a survey from an organisation the owner has never written with, and an ask from one they have
+		String person = "INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, EMAIL_NORM, RELATIONSHIP) VALUES (?, "
+				+ "?, ?, ?, ?)";
+		String message = "INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, SENDER_PERSON_ID) "
+				+ "VALUES (?, ?, ?, ?, ?)";
+		sql(person, ownerId, ownerType, "p-me", "me@northpine.com", "self");
+		sql(person, ownerId, ownerType, "p-panel", "invites@fieldline.com", "external");
+		sql(person, ownerId, ownerType, "p-kira", "kira@adatum.com", "external");
+		sql(person, ownerId, ownerType, "p-omar", "omar@adatum.com", "external");
+		for (String[] row : new String[][] { { "th-survey", "reply" }, { "th-omar", "reply" }, { "th-kira", "reply" } }) {
+			sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT) VALUES (?, ?, ?, 'email', ?)",
+					ownerId, ownerType, row[0], row[0]);
+			sql(card, ownerId, ownerType, "card-" + row[0], row[0], row[1], "open");
+		}
+		sql(message, ownerId, ownerType, "m1", "th-survey", "p-panel");
+		sql(message, ownerId, ownerType, "m2", "th-omar", "p-omar");
+		// the owner has written with Kira, so Omar's organisation is one they work with
+		sql(message, ownerId, ownerType, "m3", "th-kira", "p-kira");
+		sql(message, ownerId, ownerType, "m4", "th-kira", "p-me");
+		String survey = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Survey"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Take the survey", "taskId", survey, "threadId", "th-survey"), "owner");
+		String omar = (String) WorkTaskUtils.saveWork(user, Map.of("title", "Omar"), "owner").get("id");
+		WorkTaskUtils.addStep(user, Map.of("text", "Send Omar the quote", "taskId", omar, "threadId", "th-omar"), "owner");
+
+		Map<String, Map<String, Object>> byId = new java.util.HashMap<>();
+		for (Map<String, Object> item : (List<Map<String, Object>>) WorkTaskUtils.listMyWork(user, Map.of())
+				.get("workItems")) {
+			byId.put((String) item.get("id"), item);
+		}
+		assertEquals(false, byId.get(aside).get("needsYou"));
+		assertEquals(true, byId.get(aside).get("mine"));
+		assertEquals(true, byId.get(asked).get("needsYou"));
+		// made by hand, no conversation behind it
+		assertEquals(true, byId.get(hand).get("needsYou"));
+		assertEquals(false, byId.get(survey).get("needsYou"));
+		assertEquals(true, byId.get(omar).get("needsYou"));
+		List<Map<String, Object>> steps = (List<Map<String, Object>>) byId.get(aside).get("openSteps");
+		assertEquals(Set.of("fyi", "waiting"),
+				steps.stream().map(step -> step.get("inbox")).collect(java.util.stream.Collectors.toSet()));
+
+		// the owner says a set-aside step does need them: their word outranks the card
+		String surveyStep = (String) ((List<Map<String, Object>>) byId.get(survey).get("openSteps")).get(0).get("id");
+		WorkTaskUtils.updateStep(user, surveyStep, Map.of("status", "open"), "owner");
+		for (Map<String, Object> item : (List<Map<String, Object>>) WorkTaskUtils.listMyWork(user, Map.of())
+				.get("workItems")) {
+			if (survey.equals(item.get("id"))) {
+				assertEquals(true, item.get("needsYou"));
+				assertEquals(null, ((List<Map<String, Object>>) item.get("openSteps")).get(0).get("inbox"));
+			}
+		}
+
+		// a card that warns about its sender does not make its step need the owner, until the owner says so
+		String warning = WorkTaskUtils.SENDER_WARNING + "adatum-billing.com is not adatum.com";
+		sql("UPDATE WORK_ITEM SET REASONS_JSON = ? WHERE ITEM_ID = ?", "[\"" + warning + "\",\"Asks you to pay\"]",
+				"card-th-omar");
+		Map<String, Object> warned = item(omar);
+		Map<String, Object> warnedStep = ((List<Map<String, Object>>) warned.get("openSteps")).get(0);
+		assertEquals(false, warned.get("needsYou"));
+		assertEquals("outside", warnedStep.get("inbox"));
+		assertEquals(warning, warnedStep.get("senderWarning"));
+		WorkTaskUtils.updateStep(user, (String) warnedStep.get("id"), Map.of("status", "open"), "owner");
+		warned = item(omar);
+		assertEquals(true, warned.get("needsYou"));
+		assertEquals(warning, ((List<Map<String, Object>>) warned.get("openSteps")).get(0).get("senderWarning"));
+	}
+
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> item(String id) {
+		return ((List<Map<String, Object>>) WorkTaskUtils.listMyWork(user, Map.of()).get("workItems")).stream()
+				.filter(item -> id.equals(item.get("id"))).findFirst().orElseThrow();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void whatTheOwnerSettledIsNotMadeAgainOrClosedAgainByOlderMail() throws Exception {
+		// the owner removed one step and reopened another that a message had closed; then the mail is read again
+		step("s-gone", "deck", null, "Send Kira the deck");
+		step("s-back", "quote", null, "Approve the Tarnwick quote 4471");
+		// removed, not "not mine": newer mail may raise a removed step again, a "not mine" one stays away
+		WorkTaskUtils.updateStep(user, "s-gone", Map.of("status", "dropped"), "owner");
+		WorkTaskUtils.updateStep(user, "s-back", Map.of("status", "open"), "owner");
+		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"closes\", \"ref\": \"s1\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c3\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\", \"c3\"]}";
+		Map<String, Object> topic = plan(reply,
+				// the same ask, from before the owner removed it
+				on(task("c1", "Send Kira the deck"), "deck", "2026-11-05T10:00:00Z"),
+				// the old done message on the reopened step's conversation
+				on(claim("c2", "Approved the Tarnwick quote"), "quote", "2026-11-05T10:00:00Z"),
+				// another ask on the same conversation is still work
+				on(task("c3", "Book the venue for the offsite"), "deck", "2026-11-05T10:00:00Z"));
+		List<Map<String, Object>> loose = (List<Map<String, Object>>) topic.get("looseSteps");
+		assertEquals(List.of("Book the venue for the offsite"), loose.stream().map(st -> st.get("text")).toList());
+		assertEquals(0, ((List<?>) topic.get("closes")).size());
+		assertTrue(((List<Map<String, Object>>) topic.get("dropped")).stream()
+				.anyMatch(d -> "the owner already settled this".equals(d.get("reason"))));
+		// mail written after the owner's change is new: it may ask again and may finish the step
+		String later = java.time.Instant.now().plusSeconds(3600).toString();
+		Map<String, Object> next = plan(reply.replace("c3", "c9"), on(task("c1", "Send Kira the deck"), "deck", later),
+				on(claim("c2", "Approved the Tarnwick quote"), "quote", later));
+		assertEquals(1, ((List<?>) next.get("looseSteps")).size());
+		assertEquals(1, ((List<?>) next.get("closes")).size());
+	}
+
+	@Test
+	void aReminderOfAnAskTheOwnerSaidIsNotTheirsDoesNotComeBackButAFinishedOneCanBeAskedAgain() {
+		Map<String, Object> reminder = on(task("c1", "Send Kira the deck"), "deck", "2026-11-09T10:00:00Z");
+		Map<String, Object> notMine = new HashMap<>(Map.of("threadId", "deck", "text", "Send Kira the deck", "note",
+				"not mine", "ownerSetAt", "2026-11-06 10:00:00"));
+		Map<String, Object> finished = new HashMap<>(Map.of("threadId", "deck", "text", "Send Kira the deck",
+				"ownerSetAt", "2026-11-06 10:00:00"));
+		assertTrue(WorkReconcile.settledBefore(reminder, List.of(notMine)));
+		assertFalse(WorkReconcile.settledBefore(reminder, List.of(finished)));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aDoneClaimFinishesOnlyAnEarlierAskOfItsOwnThreadWhenNoTopicHoldsThem() {
+		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c3\", \"action\": \"closes\", \"ref\": \"c1\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c4\", \"action\": \"closes\", \"ref\": \"c2\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c5\", \"action\": \"closes\", \"ref\": \"c2\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\", \"c2\"]}";
+		Map<String, Object> topic = plan(reply, on(task("c1", "Send Kira the deck"), "deck", "2026-11-05T10:00:00Z"),
+
+				on(task("c2", "Approve overtime request OT-2214"), "overtime", "2026-11-05T10:00:00Z"),
+				// the owner's reply on the deck thread
+				on(claim("c3", "Sent Kira the deck"), "deck", "2026-11-05T11:00:00Z"),
+				// overtime on another thread a week later, and a claim older than the ask
+				on(claim("c4", "Delgado will work four hours of overtime"), "sanitation", "2026-11-12T10:00:00Z"),
+				on(claim("c5", "Overtime is fine"), "overtime", "2026-11-04T10:00:00Z"));
+		List<Map<String, Object>> loose = (List<Map<String, Object>>) topic.get("looseSteps");
+		assertEquals(List.of("done", "open"), loose.stream().map(s -> s.get("status")).toList());
+		assertEquals(1, ((List<?>) topic.get("closes")).size());
+		// the two that finish nothing are kept as news
+		assertEquals(2, ((List<?>) topic.get("topicUpdates")).size());
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aNewAskIsNeverTheEndOfAnOlderOneAndAnAskOfTheOwnerIsNeverDropped() {
+		String reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"closes\", \"ref\": \"c1\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c3\", \"action\": \"drop\", \"ref\": \"\", \"reason\": \"personal\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\"]}";
+		Map<String, Object> topic = plan(reply,
+				on(task("c1", "Review the last paragraph of the draft"), "bureau", "2026-11-05T10:00:00Z"),
+				on(task("c2", "Sign the response on page 3"), "bureau", "2026-11-06T10:00:00Z"),
+				on(task("c3", "Take the cat for Saturday night"), "move", "2026-11-06T10:00:00Z"));
+		List<Map<String, Object>> loose = (List<Map<String, Object>>) topic.get("looseSteps");
+		assertEquals(List.of("open", "open", "open"), loose.stream().map(s -> s.get("status")).toList());
+		assertTrue(((List<?>) topic.get("closes")).isEmpty());
+		assertTrue(((List<?>) topic.get("dropped")).isEmpty());
+	}
+
+	@Test
+	void topicDiscoveryReadsWhatThePoolSaysThroughTheThreadReadAndKeepsNone() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("freezer", at, null);
+		email("freezer", "g1", at, "The compressor teardown is booked for Tuesday");
+		email("freezer", "g2", at.plusMinutes(5), "Crane deposit is paid");
+		thread("away", at, null);
+		email("away", "g3", at, "Cannot be fetched");
+		failing.add("g3");
+		// reads run on the test thread, where the static mocks are
+		int readers = BrainTopicOnboarding.readers;
+		BrainTopicOnboarding.readers = 1;
+		try {
+			Map<String, Object> notes = new HashMap<>();
+			List<BrainTopicStructure.Facts> pool = new ArrayList<>();
+			for (String id : List.of("freezer", "away")) {
+				pool.add(new BrainTopicStructure.Facts(id, "About " + id, at.toString(), List.of(), Set.of(), false, false,
+						false, false, 1, true, null, Set.of()));
+			}
+			Map<String, List<BrainTopicStructure.Text>> read = BrainTopicOnboarding
+					.reader(user, ownerId, ownerType, BrainMessageSource.current(), notes).read(pool);
+			// oldest first, as the thread read cleans them; the thread that cannot be read has no words
+			assertEquals(Set.of("freezer"), read.keySet());
+			assertEquals(List.of("The compressor teardown is booked for Tuesday", "Crane deposit is paid"),
+					read.get("freezer").stream().map(BrainTopicStructure.Text::text).toList());
+			assertEquals(1, notes.get("readThreads"));
+			assertEquals(1, notes.get("unreadThreads"));
+		} finally {
+			BrainTopicOnboarding.readers = readers;
+		}
+	}
+
+	@Test
+	void aCalendarMessageIsNotReadForWork() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("call", at, null);
+		email("call", "g1", at, "Coldspan escalation call Tue 08:00-08:30");
+		invites.add("g1");
+		extract("call");
+		// no model call, and the cursor still moves past the invite
+		assertTrue(prompts.isEmpty());
+		assertNotNull(workRef("call"));
+	}
+
+	@Test
+	void aClaimFromAnotherConversationClosesAStepOnlyWhenItsWriterIsWhoTheStepIsFor() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		person("self", "Owner", "owner@test.com", "self");
+		person("kira", "Kira", "kira@test.com", null);
+		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS) VALUES (?, ?, 'budget', 'Budget', "
+				+ "'active')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_SETTINGS (OWNER_ID, OWNER_TYPE, WORK_CLOSE_ACROSS) VALUES (?, ?, TRUE)", ownerId,
+				ownerType);
+		for (String id : List.of("ask", "kira-says", "owner-says")) {
+			thread(id, at, null);
+			sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, IS_PRIMARY) VALUES (?, ?, ?, "
+					+ "'budget', TRUE)", ownerId, ownerType, id);
+		}
+		step("mine-1", "ask", "budget", "Send Kira the budget");
+		step("mine-2", "ask", "budget", "Send Kira the forecast");
+		// as the product stores them: an open step with no one named is the owner's
+		// loose steps are listed newest first: the forecast step is s1, the budget step s2
+		sql("UPDATE WORK_THREAD_STEP SET CREATED_AT = ? WHERE STEP_ID = 'mine-2'",
+				Timestamp.valueOf("2026-11-04 10:00:00"));
+		// Kira did something else with the same words; the owner did what the other step asks
+		candidate("kira-claim", "kira-says", "budget", "Kira approved the budget", at.plusMinutes(1));
+		sql("UPDATE WORK_CANDIDATE SET ASKED_BY = 'kira' WHERE CANDIDATE_ID = 'kira-claim'");
+		candidate("owner-claim", "owner-says", "budget", "Sent Kira the forecast", at.plusMinutes(2));
+		sql("UPDATE WORK_CANDIDATE SET ASKED_BY = 'me' WHERE CANDIDATE_ID = 'owner-claim'");
+		reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"closes\", \"ref\": \"s2\", \"reason\": \"\"}, "
+				+ "{\"candidate\": \"c2\", \"action\": \"closes\", \"ref\": \"s1\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": []}";
+		WorkPipeline.reconcile(user, ownerId, ownerType, model);
+		String prompt = prompts.get(prompts.size() - 1);
+		// the model is told whose each step is and who wrote each claim
+		assertTrue(prompt.contains("\"for\":\"me\"") || prompt.contains("\"for\": \"me\""), prompt);
+		assertTrue(prompt.contains("\"by\":\"Kira\"") || prompt.contains("\"by\": \"Kira\""), prompt);
+		assertTrue(prompt.contains("\"by\":\"me\"") || prompt.contains("\"by\": \"me\""), prompt);
+		// Kira's message does not finish the owner's step; the owner's own message finishes theirs
+		assertEquals("open", stepStatus("mine-1"));
+		assertEquals("done", stepStatus("mine-2"));
+	}
+
+	@Test
+	void aStepChangesHandsWhenAMessageSaysSoButNotAgainstWhatTheOwnerSetLater() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		person("self", "Owner", "owner@test.com", "self");
+		person("bob", "Bob", "bob@test.com", null);
+		thread("deck", at, null);
+		step("deck-step", "deck", null, "Send Kira the deck");
+		candidate("handover", "deck", null, "Bob will send Kira the deck", at.plusMinutes(1));
+		sql("UPDATE WORK_CANDIDATE SET KIND = 'update', ASSIGNEE = 'bob', MESSAGE_REF = '2026-11-05T10:01:00Z' "
+				+ "WHERE CANDIDATE_ID = 'handover'");
+		reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"reassign\", \"ref\": \"s1\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": []}";
+		WorkPipeline.reconcile(user, ownerId, ownerType, model);
+		// Bob has it now, and the owner waits on him
+		assertEquals("bob", value("SELECT STEP_OWNER_ID FROM WORK_THREAD_STEP WHERE STEP_ID = 'deck-step'"));
+		assertEquals("waiting", stepStatus("deck-step"));
+		assertEquals("reassign", value("SELECT RESULT FROM WORK_CANDIDATE WHERE CANDIDATE_ID = 'handover'"));
+
+		// the owner takes it back; the same old message read again does not hand it over a second time
+		Map<String, Object> back = new HashMap<>();
+		back.put("assigneeId", null);
+		back.put("status", "open");
+		WorkTaskUtils.updateStep(user, "deck-step", back, "owner");
+		candidate("handover-again", "deck", null, "Bob will send Kira the deck", at.plusMinutes(1));
+		sql("UPDATE WORK_CANDIDATE SET KIND = 'update', ASSIGNEE = 'bob', MESSAGE_REF = '2026-11-05T10:01:00Z' "
+				+ "WHERE CANDIDATE_ID = 'handover-again'");
+		WorkPipeline.reconcile(user, ownerId, ownerType, model);
+		assertNull(value("SELECT STEP_OWNER_ID FROM WORK_THREAD_STEP WHERE STEP_ID = 'deck-step'"));
+		assertEquals("open", stepStatus("deck-step"));
+	}
+
+	@Test
+	void aStepWhoseMailDidNotSayWhoItIsForKeepsThatDoubt() throws Exception {
+		LocalDateTime at = at("2026-11-05T10:00:00");
+		thread("venue", at, null);
+		candidate("who", "venue", null, "Book the venue", at.plusMinutes(1));
+		sql("UPDATE WORK_CANDIDATE SET KIND = 'task', ASSIGNEE = 'unclear' WHERE CANDIDATE_ID = 'who'");
+		reply = "{\"decisions\": [{\"candidate\": \"c1\", \"action\": \"leftover\", \"ref\": \"\", \"reason\": \"\"}], "
+				+ "\"newItems\": [], \"loose\": [\"c1\"]}";
+		WorkPipeline.reconcile(user, ownerId, ownerType, model);
+		assertEquals(WorkTaskUtils.UNCLEAR_WHO, CollaborationDbUtils.queryOne("SELECT NOTE FROM WORK_THREAD_STEP "
+				+ "WHERE OWNER_ID = ?", rs -> CollaborationDbUtils.getString(rs, "NOTE"), ownerId));
 	}
 
 	@Test
@@ -555,6 +1031,8 @@ class WorkPipelineDbUnitTests {
 		engine.when(() -> BrainTopicModel.engine(any())).thenReturn("work-model");
 		MockedStatic<Utility> utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
 		utility.when(() -> Utility.getModel("work-model")).thenReturn(first, then);
+		// one reader, so threads are read on the test thread, where the static mocks are
+		utility.when(() -> Utility.getDIHelperProperty(Constants.COLLAB_WORK_EXTRACT_PARALLEL)).thenReturn("1");
 		return () -> {
 			utility.close();
 			engine.close();
@@ -608,11 +1086,91 @@ class WorkPipelineDbUnitTests {
 		bodies.put(graphId, body);
 	}
 
+	private static Map<String, Object> on(Map<String, Object> c, String threadId, String at) {
+		c.put("threadId", threadId);
+		c.put("at", at);
+		return c;
+	}
+
+	private static Map<String, Object> claim(String id, String text) {
+		Map<String, Object> c = new LinkedHashMap<>();
+		c.put("id", id);
+		c.put("kind", "done_claim");
+		c.put("assignee", "");
+		c.put("text", text);
+		return c;
+	}
+
+	private static Map<String, Object> task(String id, String text) {
+		Map<String, Object> c = new LinkedHashMap<>();
+		c.put("id", id);
+		c.put("kind", "task");
+		c.put("assignee", "me");
+		c.put("text", text);
+		return c;
+	}
+
+	// one batch with no topic, planned against the owner's (empty) work list
+	@SafeVarargs
+	@SuppressWarnings("unchecked")
+	private final Map<String, Object> plan(String modelReply, Map<String, Object>... candidates) {
+		reply = modelReply;
+		Map<String, Object> plan = WorkReconcile.plan(user, ownerId, ownerType, model, List.of(candidates));
+		return ((List<Map<String, Object>>) plan.get("topics")).get(0);
+	}
+
+	private void person(String personId, String name, String email, String relationship) throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM, RELATIONSHIP) VALUES "
+				+ "(?, ?, ?, ?, ?, ?)", ownerId, ownerType, personId, name, email, relationship);
+	}
+
 	private void step(String stepId, String threadId, String topicId, String text) throws Exception {
 		sql("INSERT INTO WORK_THREAD_STEP (OWNER_ID, OWNER_TYPE, STEP_ID, THREAD_ID, TEXT, KIND, STATUS, LINK_TOPIC_ID, "
 				+ "ORIGIN, CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, 'task', 'open', ?, 'brain', ?, ?)", ownerId,
 				ownerType, stepId, threadId, text, topicId, Timestamp.valueOf("2026-11-04 09:00:00"),
 				Timestamp.valueOf("2026-11-04 09:00:00"));
+	}
+
+	// an item closes when its last open step is done, and reopens when a step on it is open again; one the owner
+	// closed stays closed, and one with no steps is left alone
+	@Test
+	void anItemFollowsItsStepsUnlessTheOwnerClosedIt() throws Exception {
+		sql("INSERT INTO WORK_TASK (OWNER_ID, OWNER_TYPE, TASK_ID, KIND, TITLE, STATUS, ORIGIN, STATE) VALUES (?, ?, "
+				+ "'bill', 'work', 'Answer Bill', 'active', 'brain', 'proposed')", ownerId, ownerType);
+		itemStep("a", "open", "owner", "Reply to Bill");
+		itemStep("b", "waiting", "brain", "Send Bill the file");
+		WorkTaskUtils.updateStep(user, "a", Map.of("status", "done"), "owner");
+		assertEquals("active", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+		WorkTaskUtils.updateStep(user, "b", Map.of("status", "done"), "brain");
+		assertEquals("done", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+		WorkTaskUtils.updateStep(user, "b", Map.of("status", "open"), "owner");
+		assertEquals("active", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+
+		// the owner closed the item itself: a step reopened on it does not reopen the item
+		WorkTaskUtils.saveWork(user, Map.of("id", "bill", "title", "Answer Bill", "status", "done"), "owner");
+		WorkTaskUtils.updateStep(user, "a", Map.of("status", "open"), "owner");
+		assertEquals("done", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+
+		// the owner reopens an item whose steps are all finished: the next build leaves it open
+		WorkTaskUtils.updateStep(user, "a", Map.of("status", "done"), "owner");
+		WorkTaskUtils.updateStep(user, "b", Map.of("status", "done"), "owner");
+		assertEquals("done", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+		assertEquals(0L, ((Number) value("SELECT COUNT(*) FROM WORK_THREAD_STEP WHERE TASK_ID = 'bill' AND STATUS IN "
+				+ "('open', 'waiting')")).longValue());
+		Thread.sleep(20);
+		WorkTaskUtils.saveWork(user, Map.of("id", "bill", "title", "Answer Bill", "status", "active"), "owner");
+		WorkTaskUtils.settleAll(ownerId, ownerType);
+		assertEquals("active", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'bill'"));
+
+		// an ongoing item is never closed by its steps
+		sql("INSERT INTO WORK_TASK (OWNER_ID, OWNER_TYPE, TASK_ID, KIND, TITLE, STATUS, ONGOING, ORIGIN, STATE) VALUES "
+				+ "(?, ?, 'ongoing', 'work', 'Watch the line', 'active', ?, 'brain', 'proposed')", ownerId, ownerType,
+				true);
+		sql("INSERT INTO WORK_THREAD_STEP (OWNER_ID, OWNER_TYPE, STEP_ID, TASK_ID, TEXT, KIND, STATUS, ORIGIN, CREATED_AT, "
+				+ "UPDATED_AT) VALUES (?, ?, 'watch', 'ongoing', 'Check the line', 'task', 'open', 'owner', ?, ?)",
+				ownerId, ownerType, Timestamp.valueOf("2026-11-04 09:00:00"), Timestamp.valueOf("2026-11-04 09:00:00"));
+		WorkTaskUtils.updateStep(user, "watch", Map.of("status", "done"), "owner");
+		assertEquals("active", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'ongoing'"));
 	}
 
 	// a step of the work item 'bill'

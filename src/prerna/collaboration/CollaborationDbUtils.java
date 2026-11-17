@@ -100,7 +100,8 @@ public class CollaborationDbUtils {
 		return SystemEngineRegistry.getCollaborationDb();
 	}
 
-	// quote a column name the backing db treats as a keyword (VALUE on H2 2.x, not on postgres)
+	// quote a column name the backing db treats as a keyword (VALUE on H2 2.x, not
+	// on postgres)
 	static String column(String name) {
 		AbstractSqlQueryUtil queryUtil = db().getQueryUtil();
 		return queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name;
@@ -142,7 +143,8 @@ public class CollaborationDbUtils {
 		ResultSet rs = null;
 		List<T> rows = new ArrayList<>();
 		try {
-			// the connection itself, not getPreparedStatement, which warns on every call under pooling
+			// the connection itself, not getPreparedStatement, which warns on every call
+			// under pooling
 			conn = engine.getConnection();
 			ps = conn.prepareStatement(sql);
 			bind(ps, params);
@@ -500,13 +502,22 @@ public class CollaborationDbUtils {
 		}
 		initialize(owlCreator.getDBSchema());
 		initialized = true;
-		// topic notes and thread facts live in BRAIN_MEMORY now; rows left behind move on the next boot
+		// topic notes and thread facts live in BRAIN_MEMORY now; rows left behind move
+		// on the next boot
 		try {
 			BrainMemoryMigration.run();
 		} catch (RuntimeException e) {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
-		// Work Brain raised from routine results before imports kept them out; nothing matches once it is done
+		// a work item's one chat lived in WORK_TASK.ROOM_ID; any left there move on the
+		// next boot
+		try {
+			WorkTaskRoomMigration.run();
+		} catch (RuntimeException e) {
+			classLogger.error("Moving work item chats into WORK_TASK_ROOM failed; retrying next boot", e);
+		}
+		// Work Brain raised from routine results before imports kept them out; nothing
+		// matches once it is done
 		try {
 			BrainMailImport.dismissRoutineResultWork();
 		} catch (RuntimeException e) {
@@ -531,7 +542,8 @@ public class CollaborationDbUtils {
 		try {
 			// create the tables and columns from the OWL creator schema
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
-			// A single routine of each kind per owner is required for atomic schedule saves and run claims.
+			// A single routine of each kind per owner is required for atomic schedule saves
+			// and run claims.
 			var queryUtil = collaborationDb.getQueryUtil();
 			for (String routineTable : List.of("WORK_INBOX_ROUTINE", "WORK_AGENDA_ROUTINE", "WORK_EXPENSE_ROUTINE",
 					"WORK_EVENT_PLANNING_ROUTINE")) {
@@ -539,7 +551,8 @@ public class CollaborationDbUtils {
 				if (queryUtil.allowIfExistsIndexSyntax() || !queryUtil.indexExists(collaborationDb, routineIndex,
 						routineTable, collaborationDb.getDatabase(), collaborationDb.getSchema())) {
 					String sql = queryUtil.allowIfExistsIndexSyntax()
-							? queryUtil.createIndexIfNotExists(routineIndex, routineTable, List.of("OWNER_ID", "OWNER_TYPE"))
+							? queryUtil.createIndexIfNotExists(routineIndex, routineTable,
+									List.of("OWNER_ID", "OWNER_TYPE"))
 							: queryUtil.createIndex(routineIndex, routineTable, List.of("OWNER_ID", "OWNER_TYPE"));
 					try (Statement statement = conn.createStatement()) {
 						statement.execute(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
@@ -548,6 +561,8 @@ public class CollaborationDbUtils {
 			}
 			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
 			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
+			// a topic's short name defaults to its name (VARCHAR 255)
+			widenColumn(collaborationDb, conn, "BRAIN_TOPIC", "SHORT_NAME", 255);
 
 			AbstractOwlCreator.syncIndexes(collaborationDb, conn, List.of(
 					// owner and sources
@@ -597,6 +612,8 @@ public class CollaborationDbUtils {
 							"TOPIC_ID"),
 					OwlIndex.of("BRAIN_TOPIC_FOLDER_FOLDER_ID_INDEX", "BRAIN_TOPIC_FOLDER", "OWNER_ID", "OWNER_TYPE",
 							"FOLDER_ID"),
+					OwlIndex.of("BRAIN_TOPIC_FILE_TOPIC_ID_INDEX", "BRAIN_TOPIC_FILE", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
 					OwlIndex.of("BRAIN_MAIL_FOLDER_OWNER_INDEX", "BRAIN_MAIL_FOLDER", "OWNER_ID", "OWNER_TYPE"),
 
 					// brain: threads
@@ -605,7 +622,8 @@ public class CollaborationDbUtils {
 					OwlIndex.of("BRAIN_THREAD_THREAD_KEY_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_KEY"),
 					OwlIndex.of("BRAIN_THREAD_TOPIC_OWNER_INDEX", "BRAIN_THREAD_TOPIC", "OWNER_ID", "OWNER_TYPE"),
-					OwlIndex.of("BRAIN_THREAD_TOPIC_REJECTION_INDEX", "BRAIN_THREAD_TOPIC_REJECTION", "OWNER_ID", "OWNER_TYPE", "THREAD_ID", "TOPIC_ID"),
+					OwlIndex.of("BRAIN_THREAD_TOPIC_REJECTION_INDEX", "BRAIN_THREAD_TOPIC_REJECTION", "OWNER_ID",
+							"OWNER_TYPE", "THREAD_ID", "TOPIC_ID"),
 					OwlIndex.of("BRAIN_THREAD_TOPIC_THREAD_ID_INDEX", "BRAIN_THREAD_TOPIC", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_ID"),
 					OwlIndex.of("BRAIN_THREAD_TOPIC_TOPIC_ID_INDEX", "BRAIN_THREAD_TOPIC", "OWNER_ID", "OWNER_TYPE",
@@ -662,17 +680,23 @@ public class CollaborationDbUtils {
 							"THREAD_ID"),
 					OwlIndex.of("WORK_OPEN_ROOM_THREAD_ID_INDEX", "WORK_OPEN_ROOM", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_ID"),
-					OwlIndex.of("WORK_THREAD_STEP_TASK_ID_INDEX", "WORK_THREAD_STEP", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+					OwlIndex.of("WORK_THREAD_STEP_TASK_ID_INDEX", "WORK_THREAD_STEP", "OWNER_ID", "OWNER_TYPE",
+							"TASK_ID"),
 
 					// work items
 					OwlIndex.of("WORK_TASK_TASK_ID_INDEX", "WORK_TASK", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
-					OwlIndex.of("WORK_TASK_TOPIC_TASK_ID_INDEX", "WORK_TASK_TOPIC", "OWNER_ID", "OWNER_TYPE", "TASK_ID"),
+					OwlIndex.of("WORK_TASK_TOPIC_TASK_ID_INDEX", "WORK_TASK_TOPIC", "OWNER_ID", "OWNER_TYPE",
+							"TASK_ID"),
 					OwlIndex.of("WORK_TASK_TOPIC_TOPIC_ID_INDEX", "WORK_TASK_TOPIC", "OWNER_ID", "OWNER_TYPE",
 							"TOPIC_ID"),
 					OwlIndex.of("WORK_TASK_THREAD_TASK_ID_INDEX", "WORK_TASK_THREAD", "OWNER_ID", "OWNER_TYPE",
 							"TASK_ID"),
 					OwlIndex.of("WORK_TASK_THREAD_THREAD_ID_INDEX", "WORK_TASK_THREAD", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_ID"),
+					OwlIndex.of("WORK_TASK_ROOM_TASK_ID_INDEX", "WORK_TASK_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"TASK_ID"),
+					OwlIndex.of("WORK_TASK_ROOM_ROOM_ID_INDEX", "WORK_TASK_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
 					OwlIndex.of("WORK_TASK_UPDATE_TASK_ID_INDEX", "WORK_TASK_UPDATE", "OWNER_ID", "OWNER_TYPE",
 							"TASK_ID"),
 					OwlIndex.of("WORK_CANDIDATE_THREAD_ID_INDEX", "WORK_CANDIDATE", "OWNER_ID", "OWNER_TYPE",
@@ -690,7 +714,8 @@ public class CollaborationDbUtils {
 		}
 	}
 
-	// grows a VARCHAR column created narrower by an earlier schema; never shrinks one
+	// grows a VARCHAR column created narrower by an earlier schema; never shrinks
+	// one
 	private static void widenColumn(IRDBMSEngine db, Connection conn, String table, String column, int size)
 			throws SQLException {
 		Integer current = null;

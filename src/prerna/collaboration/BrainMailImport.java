@@ -385,6 +385,9 @@ public final class BrainMailImport {
 				Instant window = importWindow(ownerId, ownerType);
 				cutoff = window != null && window.isBefore(since) ? window : since;
 			}
+			if (changed) {
+				dismissMoved(ownerId, ownerType, tree, read);
+			}
 			return new Mail(BrainMailFolders.keep(tree, read), tree, cutoff);
 		}
 		List<Map<String, Object>> headers = new ArrayList<>();
@@ -399,6 +402,30 @@ public final class BrainMailImport {
 			job.count(BrainMailHeaderSource.SENT.equals(folder) ? "sentMessages" : "inboxMessages", read.size());
 		}
 		return new Mail(headers, tree, null);
+	}
+
+	// mail Brain holds that the owner has since deleted or junked (it now sits in a folder Brain skips): the cards it
+	// raised are dismissed. A card's SOURCE_REF is the message's Graph id as stored, which a move changes, so the
+	// stored one is looked up by message key; the id Graph gives it now is dismissed too
+	private static void dismissMoved(String ownerId, String ownerType, BrainMailFolders.Tree tree,
+			List<Map<String, Object>> read) {
+		for (Map<String, Object> header : read) {
+			String folder = header.get("parentFolderId") instanceof String f ? f : null;
+			String messageId = messageId(header);
+			if (messageId == null || Boolean.TRUE.equals(header.get("isDraft")) || !tree.skipped(folder)) {
+				continue;
+			}
+			String stored = CollaborationDbUtils.queryOne("SELECT GRAPH_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND "
+					+ "OWNER_TYPE = ? AND MESSAGE_KEY = ?", rs -> rs.getString(1), ownerId, ownerType,
+					CollaborationDbUtils.deterministicId(ownerId, ownerType, SOURCE, messageId));
+			if (stored == null) {
+				continue;
+			}
+			WorkItemUtils.dismissForMessage(ownerId, ownerType, stored);
+			if (header.get("id") instanceof String now && !now.equals(stored)) {
+				WorkItemUtils.dismissForMessage(ownerId, ownerType, now);
+			}
+		}
 	}
 
 	// what readMail read, through the gate in batches; the caller holds the ingest lock
@@ -836,10 +863,9 @@ public final class BrainMailImport {
 				}
 				upsertParticipant(threadId, personId, entry.getValue(), at);
 			}
-			// Focused Inbox "Other", sent on behalf of another mailbox, or a big mailing
-			String sender = address(header.get("sender"));
+			// Focused Inbox "Other", sent for another mailbox by a mailing service, or a big mailing
 			boolean bulk = "other".equals(header.get("inferenceClassification"))
-					|| (sender != null && !sender.equals(from)) || broadcast || toList(header);
+					|| sentByService(address(header.get("sender")), from) || broadcast || toList(header);
 			// marked in the same batch as the message, so a run cut off after it leaves its steps to the next sync
 			CollaborationDbUtils.update(
 					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ?, MEETING = ?, "
@@ -1063,8 +1089,13 @@ public final class BrainMailImport {
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IS NOT NULL GROUP BY THREAD_ID",
 					rs -> agg.put(rs.getString(1), new Object[] { rs.getInt("N"), rs.getTimestamp("LAST") }), ownerId,
 					ownerType);
+			// a run cut off before this point left its threads uncounted, and the next one skips their mail as imported
+			Set<String> counted = new LinkedHashSet<>(threads);
+			counted.addAll(CollaborationDbUtils.query("SELECT THREAD_ID FROM BRAIN_THREAD WHERE OWNER_ID = ? AND "
+					+ "OWNER_TYPE = ? AND (MESSAGE_COUNT IS NULL OR MESSAGE_COUNT = 0)", rs -> rs.getString(1), ownerId,
+					ownerType));
 			CollaborationDbUtils.batch(conn -> {
-				for (String threadId : threads) {
+				for (String threadId : counted) {
 					Object[] a = agg.get(threadId);
 					if (a != null) {
 						CollaborationDbUtils.update(conn,
@@ -1130,6 +1161,16 @@ public final class BrainMailImport {
 			}
 		}
 		return false;
+	}
+
+	// sent for the From mailbox by another one outside its organisation: a mailing service. A delegate or an
+	// assistant writing for someone in their own organisation is a person, and their mail is not bulk
+	static boolean sentByService(String sender, String from) {
+		if (sender == null || from == null || sender.equals(from)) {
+			return false;
+		}
+		String senderOrg = BrainOrgDomains.org(domain(sender));
+		return senderOrg == null || !senderOrg.equals(BrainOrgDomains.org(domain(from)));
 	}
 
 	// posted to a mailing list (List-Id, Precedence list): a hint only, people write to lists too

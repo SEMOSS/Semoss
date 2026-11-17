@@ -37,13 +37,13 @@ import prerna.engine.api.IRawSelectWrapper;
 public class RawCachedWrapper implements IRawSelectWrapper {
 
 	CachedIterator iterator = null;
-	
+
 	public boolean first() {
 		return iterator.getFirst();
 	}
-	
+
 	public CachedIterator getIterator() {
-		if(this.iterator == null) {
+		if (this.iterator == null) {
 			iterator = new CachedIterator();
 		}
 		return iterator;
@@ -53,16 +53,16 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 	public boolean flushable() {
 		return false;
 	}
-	
+
 	@Override
 	public String flush() {
 		return null;
 	}
-	
+
 	@Override
 	public void execute() {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -80,7 +80,7 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 	@Override
 	public void close() throws IOException {
 		// TODO Auto-generated method stub
-		
+
 	}
 
 	@Override
@@ -122,7 +122,7 @@ public class RawCachedWrapper implements IRawSelectWrapper {
 	public long getNumRecords() {
 		return iterator.getInitSize() * getHeaders().length;
 	}
-	
+
 	@Override
 	public void reset() {
 		// TODO Auto-generated method stub

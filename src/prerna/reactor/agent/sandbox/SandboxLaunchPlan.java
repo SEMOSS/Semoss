@@ -79,7 +79,7 @@ public final class SandboxLaunchPlan {
         return cliArgs;
     }
 
-    /** Env vars to set on the spawned process (e.g. {@code SEMOSS_SANDBOX_POLICY_JSON}). */
+    /** Env vars to set on the spawned process (e.g. {@code SEMOSS_SANDBOX_POLICY_FILE}). */
     public Map<String, String> getEnvironmentAdditions() {
         return environmentAdditions;
     }

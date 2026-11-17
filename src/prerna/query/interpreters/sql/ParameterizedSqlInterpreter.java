@@ -787,8 +787,9 @@ public final class ParameterizedSqlInterpreter {
 				if (operator.equals("/")) {
 					right = Fragment.text("NULLIF(").then(right).then(", 0)");
 				}
-				return Fragment.text("(CAST(").then(left).then(" AS DECIMAL) " + operator + " CAST(").then(right)
-						.then(" AS DECIMAL))");
+				String castType = queryUtil.getArithmeticDataTypeName();
+				return Fragment.text("(CAST(").then(left).then(" AS " + castType + ") " + operator + " CAST(")
+						.then(right).then(" AS " + castType + "))");
 			}
 			if (selector instanceof QueryIfSelector conditional) {
 				Fragment result = Fragment.text("CASE WHEN ").then(filter(conditional.getCondition())).then(" THEN ")

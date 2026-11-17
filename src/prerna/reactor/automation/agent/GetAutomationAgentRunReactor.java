@@ -84,6 +84,6 @@ public class GetAutomationAgentRunReactor extends AbstractReactor {
 								"Whether to include the agent run's messages in the result. Defaults to false."))
 				.key(NODE_ID_KEY, "The id of the Automation node that started the agent run.")
 				.key(ReactorKeysEnum.PROJECT,
-						"The id or alias of the Automation project the run belongs to; the caller needs view access. Without it, the run must be in the caller's own inline run scope.");
+						"The id of the Automation project the run belongs to; the caller needs view access. Without it, the run must be in the caller's own inline run scope.");
 	}
 }

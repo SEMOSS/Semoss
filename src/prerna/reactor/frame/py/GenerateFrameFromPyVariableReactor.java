@@ -79,7 +79,7 @@ public class GenerateFrameFromPyVariableReactor extends AbstractPyFrameReactor {
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 		if (getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true)) {
-			this.insight.setDataMaker(frame);
+			this.insight.setCurrentFrame(frame);
 		}
 		// add the alias as a noun by default
 		if (varName != null && !varName.isEmpty()) {

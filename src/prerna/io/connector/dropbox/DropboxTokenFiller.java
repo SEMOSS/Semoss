@@ -87,11 +87,6 @@ public class DropboxTokenFiller extends AbstractOAuthTokenFiller {
 	}
 
 	@Override
-	protected boolean includeState() {
-		return false;
-	}
-
-	@Override
 	protected Map<String, String> getExtraAuthorizeParams(String prefix) {
 		Map<String, String> extra = new LinkedHashMap<>();
 		String role = socialData.getProperty(prefix + "role");

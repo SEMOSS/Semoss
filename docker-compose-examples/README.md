@@ -106,7 +106,7 @@ ZooKeeper, `echo ruok | nc localhost 2181` should return `imok`.
 - Native auth is enabled for easy local registration. This is for local/dev use
   only - change the credentials and integrate an external SSO before exposing any
   of this.
-- Python is enabled (`NETTY_PYTHON` / `NATIVE_PY_SERVER`); R is off (`R_ON: 'false'`).
+- Python is on by default (`USE_PYTHON` in the RDF_Map template); R is off (`R_ON: 'false'`).
 - The node agent execution environment is on (`AGENT_DEFAULT_TOOLS_ENABLE_NODE: 'true'`),
   which registers the `ExecuteNodeCode` agent tool. The image already sets
   `NODE_HOME=/opt/node`; the compose files set it as well so the path is visible.

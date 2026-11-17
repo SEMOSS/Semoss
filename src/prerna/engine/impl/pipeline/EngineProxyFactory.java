@@ -64,6 +64,23 @@ public class EngineProxyFactory {
 	 * @return
 	 */
 	public static IModelEngine createGuardedModelEngine(IModelEngine engine) {
+		return createGuardedModelEngine(engine, false);
+	}
+
+	/**
+	 * Wraps a model for the platform's own use: a feature that uses a model a
+	 * platform setting names, for every user of the feature. The model's pipeline
+	 * runs as on any proxy, and the access check lets the platform's own calls
+	 * through whoever the user is.
+	 *
+	 * @param engine the model, or null
+	 * @return the proxy, or null for no model
+	 */
+	public static IModelEngine createPlatformModelEngine(IModelEngine engine) {
+		return createGuardedModelEngine(engine, true);
+	}
+
+	private static IModelEngine createGuardedModelEngine(IModelEngine engine, boolean forPlatformUse) {
 		if (engine == null) {
 			return null;
 		}
@@ -76,7 +93,7 @@ public class EngineProxyFactory {
 			}
 		}
 
-		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);
+		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile, forPlatformUse);
 		List<Class<?>> classes = new ArrayList<>();
 		classes.add(IEngine.class);
 		classes.add(IModelEngine.class);

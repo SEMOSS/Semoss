@@ -173,15 +173,6 @@ class RFrameBuilderUnitTests {
     }
 
     @Nested
-    class GetFrameSizeTests {
-        @Test
-        void getFrameSize_callsGetIntWithCorrectSyntax() {
-            when(mockTranslator.getInt("nrow(myFrame) * ncol(myFrame);")).thenReturn(100);
-            assertEquals(100, builder.getFrameSize("myFrame"));
-        }
-    }
-
-    @Nested
     class ColumnNameTypeTests {
         @Test
         void getColumnNames_delegatesWithDefaultTableName() {

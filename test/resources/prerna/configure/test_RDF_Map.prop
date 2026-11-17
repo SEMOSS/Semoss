@@ -1,7 +1,6 @@
 BaseFolder	C:\\workspace\\Semoss
 
 SMSSWebWatcher_DIR	C:\\workspace\\Semoss\\db
-SMSSWatcher_DIR	C:\\workspace\\Semoss\\db
 SMSSStorageWatcher_DIR	C:\\workspace\\Semoss\\storage
 SMSSModelWatcher_DIR	C:\\workspace\\Semoss\\model
 SMSSVectorWatcher_DIR	C:\\workspace\\Semoss\\vector
@@ -13,14 +12,10 @@ ProjectWatcher_DIR		C:\\workspace\\Semoss\\project
 
 INSIGHT_CACHE_DIR C:\\workspace\\Semoss\\InsightCache
 
-SOLR_BASE_URL	https://localhost:443/solr
-
 ADDITIONAL_REACTORS C:\\workspace\\Semoss\\reactors.json
 
 SOCIAL	C:\\workspace\\Semoss\\social.properties
 
 #JobSchedulerWatcher_DIR C:\\workspace\\Semoss\\rpa\\json
-
-#rpa.config.directory C:\\workspace\\Semoss\\rpa
 
 EMAIL_TEMPLATES	C:\\workspace\\Semoss\\emailTemplates\\

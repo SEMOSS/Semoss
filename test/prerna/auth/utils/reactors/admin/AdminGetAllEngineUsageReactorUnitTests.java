@@ -43,7 +43,6 @@ import java.util.ArrayList;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.PixelDataType;
@@ -96,11 +95,9 @@ public class AdminGetAllEngineUsageReactorUnitTests {
 		keyValues.put(ReactorKeysEnum.OFFSET.getKey(), "offset");
 
         try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-            MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class);
             MockedStatic<ModelInferenceLogsUtils> modelInference = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
                 sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-                squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine")).thenReturn("engine");
                 modelInference.when(() -> 
                         ModelInferenceLogsUtils.getOverAllEngineUsageFromModelInferenceLogs("engine", "limit", "offset", ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey())
                     ).thenReturn(new ArrayList<Map<String, Object>>());

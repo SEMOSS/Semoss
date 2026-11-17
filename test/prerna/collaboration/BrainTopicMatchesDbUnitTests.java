@@ -355,7 +355,7 @@ class BrainTopicMatchesDbUnitTests {
 	void aLinkLeftToADeletedTopicIsNotOneOfTheChatsTopics() throws Exception {
 		for (String topic : List.of(T, "deleted")) {
 			sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
-					+ "VALUES (?, ?, 'chat', ?, 'linked', 'brain')", ownerId, ownerType, topic);
+					+ "VALUES (?, ?, 'chat', ?, 'linked', 'you')", ownerId, ownerType, topic);
 		}
 		Room room = mock(Room.class);
 		when(room.getId()).thenReturn("chat");
@@ -363,6 +363,18 @@ class BrainTopicMatchesDbUnitTests {
 		when(room.getOptionsMap()).thenReturn(Map.of());
 		// sending from the chat links the email to each of these
 		assertEquals(List.of(T), BrainTopicRoomUtils.topicsOf(user, room));
+	}
+
+	@Test
+	void aTopicTheOwnerTookOffAChatIsThatChatsAlone() throws Exception {
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'chat', ?, 'dismissed', 'you')", ownerId, ownerType, A);
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'chat', ?, 'linked', 'you')", ownerId, ownerType, B);
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'other-chat', ?, 'dismissed', 'you')", ownerId, ownerType, T);
+		// the background tagger leaves these out of what it offers for the chat
+		assertEquals(Set.of(A), BrainTopicRoomUtils.dismissed(ownerId, ownerType, "chat"));
 	}
 
 	// ---- helpers ----
@@ -396,6 +408,89 @@ class BrainTopicMatchesDbUnitTests {
 		} finally {
 			holder.join();
 		}
+	}
+
+	// ---- filing by hand teaches the topic ----
+
+	private void writers() throws Exception {
+		for (String[] person : new String[][] { { "ann", null }, { "bob", null }, { "me", "self" },
+				{ "bot", "automated" }, { "gone", null }, { "known", null }, { "muted", null } }) {
+			sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, RELATIONSHIP) "
+					+ "VALUES (?, ?, ?, ?, ?)", ownerId, ownerType, person[0], person[0], person[1]);
+			sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID, INCLUDED) "
+					+ "VALUES (?, ?, 'x', ?, ?)", ownerId, ownerType, person[0], !"muted".equals(person[0]));
+		}
+		sql("INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, PERSON_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, ?, 'gone', 'removed', 'you')", ownerId, ownerType, T);
+		sql("INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, PERSON_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, ?, 'known', 'member', 'you')", ownerId, ownerType, T);
+	}
+
+	private void assertLearned() throws Exception {
+		assertEquals(List.of("ann", "bob"), strings("SELECT PERSON_ID FROM BRAIN_TOPIC_PERSON WHERE TOPIC_ID = '" + T
+				+ "' AND ORIGIN = 'correction' AND STATE = 'suggested' ORDER BY PERSON_ID"));
+		assertEquals("removed", value("SELECT STATE FROM BRAIN_TOPIC_PERSON WHERE PERSON_ID = 'gone'"));
+		assertEquals("member", value("SELECT STATE FROM BRAIN_TOPIC_PERSON WHERE PERSON_ID = 'known'"));
+		assertEquals(4L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_PERSON"));
+	}
+
+	@Test
+	void aMoveAddsThePeopleOnTheConversationToTheTopic() throws Exception {
+		thread("x", "2026-10-20 10:00:00", false, false);
+		link("x", A, "confirmed", true, "jev-v1", "brain");
+		writers();
+
+		assertEquals(1, apply(change("x", BrainTopicMatches.MOVE)).get("applied"));
+
+		assertLearned();
+	}
+
+	@Test
+	void filingByHandAddsThemAndMovesThePrimaryOffBrainsGuess() throws Exception {
+		thread("x", "2026-10-20 10:00:00", false, false);
+		link("x", A, "confirmed", true, "jev-v1", "brain");
+		link("x", B, "you", false, null, "you");
+		writers();
+
+		BrainThreadUtils.linkThreadTopic(user, "x", T, true, false);
+
+		// the guess is gone and remembered as wrong, the owner's own link stays as a secondary
+		assertEquals(List.of(List.of(T, "you", true), List.of(B, "you", false)), links("x"));
+		assertEquals(Set.of(A), rejections("x"));
+		assertLearned();
+	}
+
+	@Test
+	void anAlsoLinkAddsThePeopleButChangesNoPrimary() throws Exception {
+		thread("x", "2026-10-20 10:00:00", false, false);
+		link("x", A, "confirmed", true, "jev-v1", "brain");
+		writers();
+
+		BrainThreadUtils.linkThreadTopic(user, "x", T, false, false);
+
+		assertEquals(List.of(List.of(A, "confirmed", true), List.of(T, "you", false)), links("x"));
+		assertLearned();
+	}
+
+	@Test
+	void unlinkingTeachesNothing() throws Exception {
+		thread("x", "2026-10-20 10:00:00", false, false);
+		link("x", T, "suggested", true, "jev-v1", "brain");
+		writers();
+
+		BrainThreadUtils.linkThreadTopic(user, "x", T, false, true);
+
+		assertEquals(2L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_PERSON"));
+	}
+
+	private List<String> strings(String sql) throws Exception {
+		List<String> out = new ArrayList<>();
+		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery(sql)) {
+			while (rs.next()) {
+				out.add(rs.getString(1));
+			}
+		}
+		return out;
 	}
 
 	@SafeVarargs

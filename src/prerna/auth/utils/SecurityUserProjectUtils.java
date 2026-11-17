@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,7 +40,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
-import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -235,17 +233,6 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsOwner(User user, String projectId) {
-		// Check to see if permission has expired
-		try {
-			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user has owner-level access.", e);
-		}
-
 		return userIsOwner(getUserFiltersQs(user), projectId);
 	}
 
@@ -284,17 +271,6 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanViewProject(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// Check to see if permission has expired
-		try {
-			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user can view project.", e);
-		}
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -327,17 +303,6 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanEditProject(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// Check to see if permission has expired
-		try {
-			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user can edit project.", e);
-		}
-
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
@@ -410,16 +375,6 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean checkUserHasAccessToProject(String projectId, String userId) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// Check to see if permission has expired
-		try {
-			boolean isExpired = projectPermissionIsExpired(userId, projectId);
-			// If permission is expired remove permission
-			if (isExpired) {
-				SecurityProjectUtils.removeExpiredProjectUser(userId, projectId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user has access to the project.", e);
-		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
@@ -487,34 +442,4 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
-	/**
-	 * Check if permission to project has expired
-	 * 
-	 * @param engineId
-	 * @param userId
-	 */
-	public static boolean projectPermissionIsExpired(String userId, String projectId) throws Exception {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		LocalDateTime currentTime = LocalDateTime.now();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__ENDDATE"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				SemossDate endDate = (SemossDate) wrapper.next().getValues()[0];
-				if (endDate == null) {
-					return false;
-				}
-				LocalDateTime formattedEndDate = endDate.getLocalDateTime();
-				return formattedEndDate.isBefore(currentTime);
-			} else {
-				return false;
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to determine whether the project permission has expired.", e);
-			throw e;
-		}
-	}
 }

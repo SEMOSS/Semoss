@@ -152,6 +152,7 @@ public final class AgentRunService {
 	}
 
 	private AgentRunHandle submitNewRun(String runId, AgentRunRequest request, boolean ownsUser) {
+		request = request.withNormalizedUserContent();
 		String userId = resolveUserId(request.getInsight());
 		// A guardrail, the room's user or an admin closed it; no agent runs in it
 		// again.
@@ -731,7 +732,7 @@ public final class AgentRunService {
 		if (run.containsKey("progress")) {
 			snapshot.put("progress", run.get("progress"));
 		}
-		for (String key : List.of("artifacts", "reviewOutcome", "warnings")) {
+		for (String key : List.of("artifacts", "reviewOutcome", "warnings", "taskOutcome")) {
 			if (run.containsKey(key)) {
 				snapshot.put(key, run.get(key));
 			}

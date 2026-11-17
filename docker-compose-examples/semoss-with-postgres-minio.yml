@@ -17,8 +17,6 @@ services:
       ENABLE_NATIVE_ACCESS_KEY_ALLOWED: 'true'
       OPTIONAL_COOKIES: 'false'
       FE_ROUTE: /Monolith
-      NETTY_PYTHON: 'true'
-      NATIVE_PY_SERVER: 'true'
       SMSS_PYTHONHOME: /usr/lib/python/semossvenv
       R_ON: 'false'
       MODEL_INFERENCE_LOGS_ENABLED: 'true'
