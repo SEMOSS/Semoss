@@ -39,12 +39,14 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -57,6 +59,27 @@ import prerna.auth.utils.UserAssetUtils;
 import prerna.project.api.IProject;
 
 public class SymlinkHelper {
+
+	/**
+	 * Sandbox modes this user-level jail can be in.
+	 *
+	 * <p>
+	 * The distinction is <b>who supplies the {@link SymlinkHelper}</b>, not a flag checked at the call
+	 * site: {@code User.startPythonSocketServerAndClient} passes one for user-authored python, while
+	 * engine-owned workers (model engines, vector databases, guardrails, local function engines) and
+	 * {@code Project} pass {@code null}. That is existing semantics and the reason a user-authored
+	 * worker is the only one that ever reaches this class.
+	 */
+	public enum SandboxMode {
+		/** No kernel jail: fake chroot with symlinks. */
+		FAKECHROOT,
+		/** Namespace jail (nsjail/landlock style) with a control-socket injector. */
+		NAMESPACE,
+		/** External sandbox (OpenShell) created ahead of the worker; no in-process jail. */
+		OPENSHELL
+	}
+
+	private final SandboxMode sandboxMode;
 
 	private static final Logger classLogger = LogManager.getLogger(SymlinkHelper.class);
 
@@ -85,11 +108,28 @@ public class SymlinkHelper {
 
 	private String userChrootFolder = null;
 
-	private final User user;
+	// refreshed per call for a helper shared by one user's sessions (OpenShell)
+	private volatile User user;
 	private final boolean injectMode;
 	private SandboxInjector injector;
 	private final Map<String, Mount> activeInjects = new LinkedHashMap<>();
 	private final Map<String, ProjectCopy> projectCopies = new HashMap<>();
+	/**
+	 * Paths already handed to the external sandbox, and whether each went as a view-only copy. A
+	 * project open, an insight and an MCP call all re-symlink the same folders; without this the
+	 * tree would be re-transferred on every request.
+	 */
+	private final Map<String, Boolean> activeTransports = new ConcurrentHashMap<>();
+	private SandboxTransporter transporter;
+
+	/**
+	 * Paths this helper has handed to the sandbox, in the order they were first
+	 * requested. Read-only view: the fetch-back needs to know which roots exist in
+	 * the sandbox so it can reconcile them when the process finishes a block.
+	 */
+	public List<String> getTransportedPaths() {
+		return new ArrayList<>(activeTransports.keySet());
+	}
 
 	/**
 	 * Construct a SymlinkHelper bound to a user-specific chroot folder and run the
@@ -116,8 +156,11 @@ public class SymlinkHelper {
 	public SymlinkHelper(String targetDirName, User user) {
 		this.user = user;
 		this.userChrootFolder = targetDirName;
-		String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
-		this.injectMode = "NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode);
+		// The mode is resolved once, here, because this object exists only for a
+		// user-authored worker. Callers that must NOT be jailed (engine-owned
+		// workers, Project python) pass a null helper and never reach this.
+		this.sandboxMode = resolveSandboxMode();
+		this.injectMode = this.sandboxMode == SandboxMode.NAMESPACE;
 
 		File targetDir = new File(Utility.normalizePath(userChrootFolder));
 		if (!targetDir.exists()) {
@@ -156,6 +199,114 @@ public class SymlinkHelper {
 
 	public boolean isInjectMode() {
 		return injectMode;
+	}
+
+	/**
+	 * Wire the per-mode collaborator that moves paths into an external sandbox.
+	 *
+	 * <p>
+	 * The exact counterpart of {@link #setInjector(SandboxInjector)}: both are set once by
+	 * {@code ClientProcessWrapper} when the worker starts, and both are replayed with everything
+	 * requested so far, because asset paths are registered before the worker exists.
+	 *
+	 * @param transporter the transporter for {@link SandboxMode#OPENSHELL}
+	 */
+	public synchronized void setTransport(SandboxTransporter transporter) {
+		this.transporter = transporter;
+		if (transporter != null && !activeTransports.isEmpty()) {
+			for (Map.Entry<String, Boolean> entry : activeTransports.entrySet()) {
+				String absPath = entry.getKey();
+				try {
+					transporter.transport(absPath, entry.getValue());
+				} catch (RuntimeException e) {
+					classLogger.warn("Skipping sandbox transport for {}", absPath, e);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Rebinds the user whose permissions decide how a project is placed. A helper that all of
+	 * one user's sessions share is rebound to the session that asked most recently.
+	 *
+	 * @param user the user, or null
+	 */
+	public void setUser(User user) {
+		this.user = user;
+	}
+
+	/**
+	 * Whether a folder of a project, relative to its app root, is left out of a read-only user's
+	 * copy. The OpenShell transport leaves the same folders out of what it sends a view-only user.
+	 *
+	 * @param relativeFolder the folder relative to the project's app root
+	 * @return true when the folder and everything under it is left out
+	 */
+	static boolean isLeftOutOfCopy(Path relativeFolder) {
+		return FOLDERS_LEFT_OUT_OF_A_COPY.contains(relativeFolder);
+	}
+
+	/** The user-level jail this helper's worker runs under. */
+	public SandboxMode getSandboxMode() {
+		return this.sandboxMode;
+	}
+
+	/**
+	 * True when the worker runs inside an external sandbox created ahead of it
+	 * (OpenShell), so no in-process jail is applied.
+	 */
+	public boolean isExternalSandbox() {
+		return this.sandboxMode == SandboxMode.OPENSHELL;
+	}
+
+	private static SandboxMode resolveSandboxMode() {
+		String mode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
+		if (mode == null || (mode = mode.trim()).isEmpty()) {
+			// Historically an unset mode means the plain fakechroot jail.
+			return SandboxMode.FAKECHROOT;
+		}
+		if (Constants.SANDBOX_MODE_OPENSHELL.equalsIgnoreCase(mode)) {
+			return SandboxMode.OPENSHELL;
+		}
+		if ("NAMESPACE".equalsIgnoreCase(mode) || "NSJAIL".equalsIgnoreCase(mode)) {
+			return SandboxMode.NAMESPACE;
+		}
+		// FAKECHROOT, SECCOMP_ONLY and anything unrecognised keep the pre-existing
+		// fakechroot behaviour rather than silently gaining a jail.
+		return SandboxMode.FAKECHROOT;
+	}
+
+	/**
+	 * The single place a path is handed to the external (OpenShell) sandbox. A path requested before
+	 * the worker exists is remembered and replayed by {@link #setTransport(SandboxTransporter)},
+	 * exactly as the namespace injector replays {@code activeInjects}.
+	 */
+	private synchronized void transport(String absPath, boolean viewOnly) {
+		// Same scope rule as the namespace injector. Without it the transporter is handed
+		// system paths -- /usr/bin, /etc/ssl, /usr/lib/git-core -- because
+		// MCPUtility.runPythonTool also symlinks git's own directories. Uploading those is
+		// wrong and enormous: observed as several 30s CLI timeouts, a 77s pixel, and the
+		// project never arriving. The sandbox image already provides them.
+		if (!isNamespaceInjectablePath(absPath)) {
+			classLogger.debug("Skipping sandbox transport for path outside SEMOSS home: {}", absPath);
+			return;
+		}
+		Boolean sent = activeTransports.get(absPath);
+		if (sent != null && (!sent || viewOnly)) {
+			// Already sent once, in full or as the same view-only copy. Only a view-only
+			// root that the user can now edit goes again, in full.
+			return;
+		}
+		activeTransports.put(absPath, viewOnly);
+		if (transporter != null) {
+			try {
+				if (!transporter.transport(absPath, viewOnly)) {
+					classLogger.warn("Sandbox transport reported failure for {}", absPath);
+				}
+			} catch (RuntimeException e) {
+				classLogger.warn("Sandbox transport failed for {}", absPath, e);
+			}
+		}
 	}
 
 	/**
@@ -391,6 +542,12 @@ public class SymlinkHelper {
 			}
 			return;
 		}
+		if (sandboxMode == SandboxMode.OPENSHELL) {
+			// The sandbox has its own filesystem root; a chroot symlink under the host user folder
+			// would point at a path the sandbox cannot see, so it is meaningless here.
+			transport(sourceDirName, false);
+			return;
+		}
 		if (injectMode) {
 			enqueueOrInject(sourceDirName, sourceDirName, true);
 		}
@@ -525,6 +682,14 @@ public class SymlinkHelper {
 	}
 
 	private synchronized void placeProject(User user, String projectId, String appRoot) {
+		if (sandboxMode == SandboxMode.OPENSHELL) {
+			// The sandbox has its own filesystem; the host chroot (symlink or viewer copy) is
+			// invisible to it. A user who can only view the project gets the same copy as in
+			// the other modes, without the folders it leaves out. Write-back is gated by the
+			// user's edit permission separately.
+			transport(appRoot, !SecurityProjectUtils.userCanEditProject(user, projectId));
+			return;
+		}
 		Path inChroot = Paths.get(userChrootFolder).resolve(appRoot.substring(1));
 		try {
 			if (SecurityProjectUtils.userCanEditProject(user, projectId)) {

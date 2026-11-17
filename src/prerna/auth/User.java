@@ -68,6 +68,7 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
+import prerna.util.openshell.OpenShellUserSandboxes;
 import prerna.util.Utility;
 
 public class User implements Serializable {
@@ -500,6 +501,9 @@ public class User implements Serializable {
 			}
 			return this.pythonCPW.getSocketClient();
 		}
+		if (OpenShellUserSandboxes.appliesTo(this)) {
+			return getOpenShellPythonSocketClient(venvEngineId);
+		}
 		if (this.pythonCPW == null) {
 			this.pythonCPW = new ClientProcessWrapper();
 		}
@@ -510,11 +514,56 @@ public class User implements Serializable {
 	}
 
 	/**
-	 * 
+	 * OPENSHELL: the user's python is one persistent worker in their own sandbox, shared
+	 * by every session of theirs. On this instance all of those sessions use one wrapper
+	 * (one connection, one record of what was transported); the wrapper attaches to the
+	 * sandbox if it is running anywhere and creates it otherwise.
+	 */
+	private SocketClient getOpenShellPythonSocketClient(String venvEngineId) {
+		while (true) {
+			OpenShellUserSandboxes.Local local = OpenShellUserSandboxes.local(this);
+			synchronized (local) {
+				if (local.isReleased()) {
+					// the user's last other session here ended between the lookup and the lock
+					continue;
+				}
+				this.pythonCPW = local.getWrapper();
+				// write-back permission checks run as the session that asked most recently
+				this.pythonCPW.setUser(this);
+				SocketClient client = this.pythonCPW.getSocketClient();
+				if (client == null) {
+					startPythonSocketServerAndClient(-1, venvEngineId);
+				} else if (!client.isConnected()) {
+					this.pythonCPW.shutdown(false);
+					try {
+						this.pythonCPW.reconnect();
+					} catch (Exception e) {
+						classLogger.error("Failed to reconnect to user python process", e);
+						throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
+					}
+				}
+				this.pythonCPW.getSocketClient().setUser(this);
+				break;
+			}
+		}
+		this.insightSerializedMap.clear();
+		return this.pythonCPW.getSocketClient();
+	}
+
+	/**
+	 *
 	 * @return
 	 */
 	public SymlinkHelper getUserSymlinkHelper() {
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+			if (OpenShellUserSandboxes.appliesTo(this)) {
+				// shared by the user's sessions on this instance; see getOpenShellPythonSocketClient
+				symlinkHelper = OpenShellUserSandboxes.local(this).getHelper();
+				// permission checks run as the session that asked most recently
+				symlinkHelper.setUser(this);
+				chrootPath = symlinkHelper.getUserChrootFolder();
+				return symlinkHelper;
+			}
 			if (symlinkHelper != null) {
 				return symlinkHelper;
 			}
@@ -589,6 +638,7 @@ public class User implements Serializable {
 				// we do not define the Server Directory here - because it will dynamically
 				// generate in the chroot location
 				try {
+					this.pythonCPW.setUser(this);
 					this.pythonCPW.createProcessAndClient(true, this.symlinkHelper, port, null, null, debug, "-1",
 							loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {
@@ -609,6 +659,7 @@ public class User implements Serializable {
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable()
 							: this.pythonCPW.getVenvPath();
+					this.pythonCPW.setUser(this);
 					this.pythonCPW.createProcessAndClient(true, null, port, venvPath, serverDirectoryPath.toString(),
 							debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {

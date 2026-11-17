@@ -45,6 +45,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.util.openshell.OpenShellShellRunner;
 
 public class CmdExecUtil {
 
@@ -57,14 +58,21 @@ public class CmdExecUtil {
 	private String workingDir = null;
 	private String contextDir = null;
 	private String commandAppender = "cmd";
+	/** Non-null only when this helper is driving an OpenShell sandbox. */
+	private User user = null;
+	private boolean openshellSandbox = false;
 
 	/**
 	 * Constructor
 	 */
 	public CmdExecUtil(User user, String insightId, String contextDir) {
+		this.user = user;
 		if (user != null && Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			SymlinkHelper chrootHelper = user.getUserSymlinkHelper();
 			this.chrootFolderPath = chrootHelper.getUserChrootFolder();
+			// The sandbox is the boundary in this mode, so commands must run inside it
+			// rather than in a chroot on Tomcat's filesystem.
+			this.openshellSandbox = chrootHelper.isExternalSandbox();
 		}
 		getCommandAppender();
 		this.insightId = insightId;
@@ -138,6 +146,13 @@ public class CmdExecUtil {
 	 * Execute command with proper path handling
 	 */
 	public String executeCommand(String command) {
+		if (this.openshellSandbox) {
+			// Delegate the whole line, including cd/pwd/reset, to the sandbox. Doing it
+			// here rather than in runCommand keeps the host-path logic below untouched.
+			OpenShellShellRunner.Result result = OpenShellShellRunner.execute(this.user, this.workingDir, command);
+			this.workingDir = result.getWorkingDir();
+			return result.getOutput();
+		}
 		String output = null;
 		try {
 			if (command.equalsIgnoreCase("reset")) {
