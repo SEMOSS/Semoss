@@ -295,13 +295,13 @@ public final class CollaborationAgentTools {
 		notes.put("SearchMail",
 				"[Brain: the owner's classified mail and Teams chats, start here; one topic or all]");
 		notes.put("ReadThread",
-				"[Brain: reads a thread—email or Teams chat—from Brain; use refresh=true for messages after the last sync]");
+				"[Brain: reads a thread—email or Teams chat—from Brain. For email threads, use refresh=true for messages after the last sync. For stale Teams chats, use ListChatMessages as a fallback.]");
 		notes.put("RelatedThreads",
 				"[Brain: other mail, meetings, and chats that belong with a thread you already have]");
 		notes.put("ListChats",
 				"[Live: Teams chats as they are now. SearchMail + ReadThread read them from Brain first. Use ListChats to list all current chats or check unread status directly.]");
 		notes.put("ListChatMessages",
-				"[Live: messages from a Teams chat by chatId, newest first. SearchMail + ReadThread cover this from Brain. Use ListChatMessages only for unread filtering or as a fallback if refresh=true didn't return the latest.]");
+				"[Live: messages from a Teams chat by chatId, newest first. SearchMail + ReadThread cover this from Brain. Use ListChatMessages as a fallback for stale Teams chats (refresh=true only applies to email threads).]");
 		notes.put("SearchTeamsMessages",
 				"[Live: searches Teams messages live, outside Brain; never-ingest rules do NOT apply. Use after SearchMail finds nothing.]");
 		notes.put("ListM365Mail",
