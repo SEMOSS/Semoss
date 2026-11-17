@@ -21,7 +21,7 @@
           },
           "repeat": {
             "type": "integer",
-            "description": "Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY. Use 3 to verify a newly saved recording."
+            "description": "Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY."
           }
         },
         "required": [

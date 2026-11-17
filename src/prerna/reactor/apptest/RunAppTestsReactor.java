@@ -111,7 +111,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 				.key(PAGES, k -> k.description("Optional list of page names; only the tests of those pages run.")
 						.list(String.class))
 				.key(SCENARIO, "Development fixture only, requires APP_TEST_ALLOW_MOCKS=true; never verifies an app.")
-				.key(REPEAT, k -> k.type(Integer.class).description("Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY. Use 3 to verify a newly saved recording."))
+				.key(REPEAT, k -> k.type(Integer.class).description("Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY."))
 				.output(Map.class, "Run id, explicit target, initial status and maximum repair attempts");
 	}
 }
