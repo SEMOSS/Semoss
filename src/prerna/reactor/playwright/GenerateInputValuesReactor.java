@@ -44,6 +44,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -410,27 +411,16 @@ public class GenerateInputValuesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Generate input values for Playwright TYPE steps using room conversation history.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id of the Model Engine";
-		} else if (key.equals("sessionId")) {
-			return "The id of the current session of the playwright";
-		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "Optional room id to use as conversation context for generation.";
-		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return "Optional starting index for conversation history pagination (default 0).";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional max number of conversation messages to use (default -1 for all).";
-		} else if (key.equals("sortOrder")) {
-			return "Optional sort order for conversation history messages: 'ASC' or 'DESC' (default ASC).";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Generate input values for Playwright TYPE steps using room conversation history.")
+				.key(ReactorKeysEnum.ENGINE, "The id of the Model Engine")
+				.key("sessionId", "The id of the current session of the playwright")
+				.key(ReactorKeysEnum.ROOM_ID, "Optional room id to use as conversation context for generation.")
+				.key(ReactorKeysEnum.OFFSET, "Optional starting index for conversation history pagination (default 0).")
+				.key(ReactorKeysEnum.LIMIT, "Optional max number of conversation messages to use (default -1 for all).")
+				.key("sortOrder",
+						"Optional sort order for conversation history messages: 'ASC' or 'DESC' (default ASC).");
 	}
 
 }

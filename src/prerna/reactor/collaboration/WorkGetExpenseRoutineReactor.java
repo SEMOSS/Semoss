@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkExpenseRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkGetExpenseRoutineReactor extends AbstractCollaborationReactor {
@@ -42,8 +43,10 @@ public class WorkGetExpenseRoutineReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the signed-in user's expense review routine: its settings, guideline documents folder id, "
-				+ "the mail subjects that start a review, and the latest review";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the signed-in user's expense review routine: its settings, guideline documents folder id, "
+						+ "the mail subjects that start a review, and the latest review")
+				.noKeys();
 	}
 }

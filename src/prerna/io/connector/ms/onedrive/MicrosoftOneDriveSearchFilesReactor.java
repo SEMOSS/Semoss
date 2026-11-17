@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -163,25 +164,17 @@ public class MicrosoftOneDriveSearchFilesReactor extends AbstractMicrosoftOneDri
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Search the signed in user's OneDrive files, the files shared with them, or both.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SEARCH.getKey())) {
-			return "Text to look for in the file name and contents.";
-		} else if (key.equals(SCOPE)) {
-			return "Optional place to search, one of " + SCOPES
-					+ ". 'all' covers the signed in user's own drive and everything shared with them, 'drive' searches one drive, and 'shared' keeps only what somebody else owns. Defaults to 'drive' when a drive, item or path is named and to 'all' otherwise.";
-		} else if (key.equals(ITEM_ID)) {
-			return "Optional id of the folder to search under, which only applies to the 'drive' scope. The whole drive is searched when omitted.";
-		} else if (key.equals(PATH)) {
-			return "Optional path of the folder to search under, which only applies to the 'drive' scope.";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of files to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
-					+ MAX_LIMIT + ".";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Search the signed in user's OneDrive files, the files shared with them, or both.")
+				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION)
+				.key(ReactorKeysEnum.SEARCH, "Text to look for in the file name and contents.")
+				.key(SCOPE, "Optional place to search, one of " + SCOPES
+						+ ". 'all' covers the signed in user's own drive and everything shared with them, 'drive' searches one drive, and 'shared' keeps only what somebody else owns. Defaults to 'drive' when a drive, item or path is named and to 'all' otherwise.")
+				.key(ITEM_ID,
+						"Optional id of the folder to search under, which only applies to the 'drive' scope. The whole drive is searched when omitted.")
+				.key(PATH, "Optional path of the folder to search under, which only applies to the 'drive' scope.")
+				.key(ReactorKeysEnum.LIMIT, "Optional maximum number of files to return. Defaults to " + DEFAULT_LIMIT
+						+ " and is capped at " + MAX_LIMIT + ".");
 	}
 }

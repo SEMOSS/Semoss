@@ -28,15 +28,16 @@
 package prerna.om;
 
 import java.awt.Color;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.openrdf.model.Literal;
 
+import prerna.query.parsers.RdfLiteralParser;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -44,46 +45,28 @@ import prerna.util.Utility;
 public class SEMOSSVertex {
 
 	public String uri = null;
-	public Hashtable<String, Object> propHash = new Hashtable<String, Object>();
-	transient public Hashtable<String, SEMOSSVertex> edgeHash = new Hashtable<String, SEMOSSVertex>();
-
-	// hash of URIs
-	transient Hashtable<String, String> uriHash = new Hashtable<String, String>();
-
-	// Tree structure in memory as a hashtable
-	// the hashtable is typically of the following format
-	// all - has all the nodes currently recorded - Fuzzy on this one
-	// <Edgetype - VertexHash>
-	// where the vertex Hash has
-	// <Vertex Name - Vertex>
-	// also has All - which is all the vertices within it
-	transient Hashtable<String, Hashtable> navHash = null;
+	public Map<String, Object> propHash = new HashMap<>();
+	transient public Map<String, SEMOSSVertex> edgeHash = new HashMap<>();
 
 	transient Vector<SEMOSSEdge> inEdge = new Vector<SEMOSSEdge>();
 	transient Vector<SEMOSSEdge> outEdge = new Vector<SEMOSSEdge>();
 
 	transient static final Logger classLogger = LogManager.getLogger(SEMOSSVertex.class.getName());
 
-	// TODO need to find a way to identify the source i.e. put that as a property
-
 	/**
-	 * Constructor for DBCMVertex.
+	 * Creates a vertex for the URI, with its type, name and color read from the
+	 * URI.
 	 * 
-	 * @param uri String
+	 * @param uri the vertex URI
 	 */
 	public SEMOSSVertex(String uri) {
 		this.uri = uri;
 		putProperty(Constants.URI, uri);
 
-		// parse out all the oth er properties
-		classLogger.debug("URI " + uri);
-		StringTokenizer tokens = new StringTokenizer(uri + "", "/");
-		int totalTok = tokens.countTokens();
 		String className = Utility.getClassName(uri);
 		String instanceName = Utility.getInstanceName(uri);
 
 		classLogger.debug("Class Name " + className + " Instance Name " + instanceName);
-
 		if (instanceName == null) {
 			instanceName = uri;
 		}
@@ -103,32 +86,21 @@ public class SEMOSSVertex {
 	}
 
 	/**
-	 * Constructor for DBCMVertex.
+	 * Creates a vertex for a value of the given type, such as a literal.
 	 * 
-	 * @param type String
-	 * @param vert Object
+	 * @param type the vertex type
+	 * @param vert the value the vertex holds
 	 */
 	public SEMOSSVertex(String type, Object vert) {
 		this.uri = type + "/" + vert;
 		putProperty(Constants.URI, this.uri);
 
 		String value = vert + "";
-		if (vert instanceof Literal) {
-			// classLogger.info("This is a literal impl >>>>>> " +
-			// ((Literal)propValue).doubleValue());
-			try {
-				propHash.put(type, ((Literal) vert).doubleValue());
-			} catch (Exception ex) {
-				classLogger.debug(ex);
-			}
-			try {
-				propHash.put(type, vert + "");
-			} catch (Exception ex) {
-				classLogger.debug(ex);
-			}
+		if (vert instanceof org.openrdf.model.Literal) {
+			propHash.put(type, value);
 		}
 
-		// parse out all the oth er properties
+		// parse out all the other properties
 		classLogger.debug("URI " + uri);
 		String className = Utility.getInstanceName(uri);
 
@@ -144,11 +116,11 @@ public class SEMOSSVertex {
 	}
 
 	/**
-	 * Method getProperty.
+	 * Returns the properties of the vertex.
 	 * 
-	 * @return Hashtable
+	 * @return the properties by name
 	 */
-	public Hashtable getProperty() {
+	public Map<String, Object> getProperty() {
 		return this.propHash;
 	}
 
@@ -183,7 +155,7 @@ public class SEMOSSVertex {
 	// this is the out vertex
 	public void addInEdge(SEMOSSEdge edge) {
 		inEdge.add(edge);
-		Integer edgeCount = new Integer(0);
+		Integer edgeCount = Integer.valueOf(0);
 		if (propHash.containsKey(Constants.INEDGE_COUNT)) {
 			edgeCount = (Integer) propHash.get(Constants.INEDGE_COUNT);
 		}
@@ -194,36 +166,31 @@ public class SEMOSSVertex {
 		edgeHash.put(edge.inVertex.getProperty(Constants.VERTEX_NAME) + "", edge.inVertex);
 
 		addVertexCounter(edge.outVertex);
-		// loadEdge(edge);
 	}
 
 	/**
 	 * Method addVertexCounter.
 	 * 
-	 * @param outVert DBCMVertex
+	 * @param outVert the vertex on the other side of the edge
 	 */
 	public void addVertexCounter(SEMOSSVertex outVert) {
 		// also create specific
 		// find the type
 		// get the node on other side
 		String vertType = (String) outVert.getProperty(Constants.VERTEX_TYPE);
-		// classLogger.info("Vertex Type is >>>>>>>>>>>>>>>>>" + vertType);
-		Integer vertTypeCount = new Integer(0);
-		try {
-			if (propHash.containsKey(vertType)) {
-				vertTypeCount = (Integer) propHash.get(vertType);
-			}
-			vertTypeCount++;
-			propHash.put(vertType, vertTypeCount);
-		} catch (Exception ignored) {
-			classLogger.debug(ignored);
+		Object vertTypeCount = propHash.getOrDefault(vertType, 0);
+		if (vertTypeCount instanceof Integer count) {
+			propHash.put(vertType, count + 1);
+		} else {
+			classLogger.debug("Property {} on vertex {} is not a count, so the {} neighbor count is skipped", vertType,
+					uri, vertType);
 		}
 	}
 
 	// this is the invertex
 	public void addOutEdge(SEMOSSEdge edge) {
 		outEdge.add(edge);
-		Integer edgeCount = new Integer(0);
+		Integer edgeCount = Integer.valueOf(0);
 		if (propHash.containsKey(Constants.OUTEDGE_COUNT)) {
 			edgeCount = (Integer) propHash.get(Constants.OUTEDGE_COUNT);
 		}
@@ -237,18 +204,18 @@ public class SEMOSSVertex {
 	}
 
 	/**
-	 * Method getInEdges.
+	 * Returns the edges that point into this vertex.
 	 * 
-	 * @return Vector<DBCMEdge>
+	 * @return the in edges
 	 */
 	public Vector<SEMOSSEdge> getInEdges() {
 		return this.inEdge;
 	}
 
 	/**
-	 * Method getOutEdges.
+	 * Returns the edges that point out of this vertex.
 	 * 
-	 * @return Vector<DBCMEdge>
+	 * @return the out edges
 	 */
 	public Vector<SEMOSSEdge> getOutEdges() {
 		return this.outEdge;
@@ -271,7 +238,6 @@ public class SEMOSSVertex {
 	 * @return Object
 	 */
 	public Object getProperty(String arg0) {
-		// TODO Auto-generated method stub
 		return propHash.get(arg0);
 	}
 
@@ -292,7 +258,6 @@ public class SEMOSSVertex {
 	 * @return Object
 	 */
 	public Object removeProperty(String arg0) {
-		// TODO Auto-generated method stub
 		return propHash.remove(arg0);
 	}
 
@@ -313,152 +278,33 @@ public class SEMOSSVertex {
 	 * @param propValue   Object
 	 */
 	public void setProperty(String propNameURI, Object propValue) {
-		// TODO Auto-generated method stub
-		// one is a p
-		StringTokenizer tokens = new StringTokenizer(propNameURI + "", "/");
-		int totalTok = tokens.countTokens();
-		String className = null;
-		String instanceName = null;
-
-		for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
-			if (tokIndex + 2 == totalTok) {
-				className = tokens.nextToken();
-			} else if (tokIndex + 1 == totalTok) {
-				instanceName = tokens.nextToken();
-			} else {
-				tokens.nextToken();
-			}
-		}
-//		uriHash.put(instanceName, propNameURI);
-		Hashtable<String, String> propUriHash = new Hashtable();
-		if (propHash.get("propUriHash") != null) {
-			propUriHash = (Hashtable<String, String>) propHash.get("propUriHash");
-		}
-
-//		try {
-////			propUriHash.put(instanceName, propNameURI);
-//		} catch(Exception e){
-//			classclassLogger.error(Constants.STACKTRACE, e);
-//		}
-		propHash.put("propUriHash", propUriHash);
-
-		// I need to convert these decimals and other BS into a proper value
-		// awesome !!
-		// will come to this in a bit
+		String instanceName = Utility.getInstanceName(propNameURI);
 		classLogger.debug(instanceName + "<>" + propValue);
 
-		// need to write the routine for conversion here
-
 		boolean converted = false;
-		try {
-			if (propValue instanceof Literal) {
-				// classLogger.info("This is a literal impl >>>>>> " +
-				// ((Literal)propValue).doubleValue());
-				propHash.put(instanceName, ((Literal) propValue).doubleValue());
+		if (propValue instanceof org.openrdf.model.Literal literal
+				&& RdfLiteralParser.readsAsDouble(literal.getLabel())) {
+			try {
+				propHash.put(instanceName, literal.doubleValue());
+				converted = true;
+			} catch (RuntimeException e) {
+				classLogger.error("Could not read property {} on vertex {} as a double", instanceName, uri, e);
+			}
+		}
+		if (propValue instanceof org.apache.jena.rdf.model.Literal literal) {
+			try {
+				propHash.put(instanceName, RdfLiteralParser.getJenaValue(literal));
+				converted = true;
+			} catch (RuntimeException e) {
+				classLogger.error("Could not read the value of property {} on vertex {}", instanceName, uri, e);
+				propHash.put(instanceName, literal.getString());
 				converted = true;
 			}
-		} catch (Exception ex) {
-			classLogger.debug(ex);
-		}
-		try {
-			if (propValue instanceof org.apache.jena.rdf.model.Literal) {
-				classLogger.info("Class is " + propValue.getClass());
-				// try double
-				try {
-					Double value = ((org.apache.jena.rdf.model.Literal) propValue).getDouble();
-					converted = true;
-					propHash.put(instanceName, value);
-				} catch (RuntimeException ignored) {
-					classLogger.debug(ignored);
-					converted = false;
-				}
-
-				// try integer
-				if (!converted) {
-					try {
-						Integer value = ((org.apache.jena.rdf.model.Literal) propValue).getInt();
-						converted = true;
-						propHash.put(instanceName, value);
-					} catch (RuntimeException ignored) {
-						classLogger.debug(ignored);
-						converted = false;
-					}
-				}
-
-				// try boolean
-				if (!converted) {
-					try {
-						Boolean value = ((org.apache.jena.rdf.model.Literal) propValue).getBoolean();
-						converted = true;
-						propHash.put(instanceName, value);
-					} catch (RuntimeException ignored) {
-						classLogger.debug(ignored);
-					}
-				}
-				// try string
-				if (!converted) {
-					try {
-						String value = ((org.apache.jena.rdf.model.Literal) propValue).getString();
-						converted = true;
-						propHash.put(instanceName, value);
-
-					} catch (RuntimeException ignored) {
-						classLogger.debug(ignored);
-					}
-				}
-
-				// propHash.put(instanceName,
-				// ((org.apache.jena.rdf.model.Literal)propValue).getDouble());
-				// converted = true;
-			}
-		} catch (RuntimeException ignored) {
-			classLogger.debug(ignored);
 		}
 		if (!converted) {
 			propHash.put(instanceName, propValue);
 		}
 		classLogger.debug(uri + "<>" + instanceName + "<>" + propValue);
-	}
-
-	// the call that will create the tree
-	public void createTree() {
-		// get all the inedges
-		// create the structure
-		if (navHash == null) {
-			navHash = new Hashtable<String, Hashtable>();
-		}
-
-		for (int edgeIndex = 0; edgeIndex < inEdge.size(); edgeIndex++) {
-			loadEdge(inEdge.elementAt(edgeIndex));
-		}
-	}
-
-	public void loadEdge(SEMOSSEdge edge) {
-
-		// need to expose the edge properties as well
-		if (navHash == null) {
-			navHash = new Hashtable<String, Hashtable>();
-		}
-
-		String edgeType = (String) edge.getProperty(Constants.EDGE_TYPE);
-		SEMOSSVertex otherVertex = edge.inVertex;
-
-		// get the vertex type hash
-		Hashtable<String, Object> vertHash = new Hashtable<String, Object>();
-		if (navHash.containsKey(edgeType)) {
-			vertHash = navHash.get(edgeType);
-		}
-
-		// now put the other hashtable within it
-		String vertexName = (String) otherVertex.getProperty(Constants.VERTEX_NAME);
-
-		// put the vertex and props
-		vertHash.put(vertexName, otherVertex);
-		// put the properties
-		vertHash.put(vertexName + Constants.PROPS, edge.propHash);
-		// System.err.println("From " + getProperty(Constants.VERTEX_NAME) + " Adding
-		// Vertex " + vertexName + "To Hash " + edgeType);
-		navHash.put(edgeType, vertHash);
 	}
 
 	@Override

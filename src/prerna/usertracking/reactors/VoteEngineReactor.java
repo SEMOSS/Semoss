@@ -34,6 +34,7 @@ import org.javatuples.Pair;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -79,8 +80,9 @@ public class VoteEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Records the current user's up or down vote on an engine, used for catalog usability scoring.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Records the current user's up or down vote on an engine, used for catalog usability scoring.");
 	}
 
 }

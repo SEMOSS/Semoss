@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicRoomUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainTagTopic(topic=["..."], confident=[true]);
@@ -55,29 +56,14 @@ public class BrainTagTopicReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (CONFIDENT.equals(key)) {
-			return MCP_KEY_TYPE.BOOLEAN;
-		}
-		return super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Puts this chat under one of the owner's topics when the owner asks for it, so that topic's notes, "
-				+ "goals and context follow the chat. Brain already tags chats on its own as the owner talks, so use "
-				+ "this only on the owner's request. With confident true it applies right away and the owner can undo "
-				+ "it; otherwise it is a suggestion the owner accepts or dismisses. A topic the owner removed from "
-				+ "this chat is never tagged again. Take topic ids from ListTopics";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TOPIC.equals(key)) {
-			return "The topic's id or name";
-		} else if (CONFIDENT.equals(key)) {
-			return "true when the chat is plainly about this topic; false or left out makes it a suggestion";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Puts this chat under one of the owner's topics when the owner asks for it, so that topic's notes, "
+						+ "work items and context follow the chat. Brain already tags chats on its own as the owner talks, so use "
+						+ "this only on the owner's request. With confident true it applies right away and the owner can undo "
+						+ "it; otherwise it is a suggestion the owner accepts or dismisses. A topic the owner removed from "
+						+ "this chat is never tagged again. Take topic ids from ListTopics")
+				.key(TOPIC, "The topic's id or name").key(CONFIDENT, key -> key.type(Boolean.class).description(
+						"true when the chat is plainly about this topic; false or left out makes it a suggestion"));
 	}
 }

@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.om.PixelList;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -107,11 +108,11 @@ public class PositionInsightRecipeReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(POSITION)) {
-			return "The list of position maps containing {'top'=[value1], 'left'=[value2]} where value1,value2 are integers";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Sets the position maps of the insight's recipe steps in order, the first map to the first step and so on, and returns whether any positions were given.")
+				.key(POSITION,
+						"The list of position maps containing {'top'=[value1], 'left'=[value2]} where value1,value2 are integers");
 	}
 
 }

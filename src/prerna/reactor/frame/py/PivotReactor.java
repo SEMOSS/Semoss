@@ -32,6 +32,7 @@ import java.util.Vector;
 
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -316,16 +317,15 @@ public class PivotReactor extends AbstractPyFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(PIVOT_COLUMN_KEY)) {
-			return "The column to pivot on";
-		} else if (key.equals(VALUE_COLUMN_KEY)) {
-			return "The column to turn into values for the selected pivot column";
-		} else if (key.equals(AGGREGATE_FUNCTION_KEY)) {
-			return "The function used to aggregate columns";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Pivots the current Python frame so each distinct value of the pivot column becomes a new column filled from the value column, aggregated with the given function and grouped by the columns to keep. When the value column is not numeric, the new columns hold counts instead.")
+				.key(ReactorKeysEnum.MAINTAIN_COLUMNS, key -> key.list(String.class))
+				.key(NA_REPLACE_KEY,
+						"The value to fill empty cells of the new pivoted columns with; a number is used as a number and anything else as text.")
+				.key(PIVOT_COLUMN_KEY, "The column to pivot on")
+				.key(VALUE_COLUMN_KEY, "The column to turn into values for the selected pivot column")
+				.key(AGGREGATE_FUNCTION_KEY, "The function used to aggregate columns");
 	}
 
 	////////////////////// HELPER METHODS //////////////////////////////////

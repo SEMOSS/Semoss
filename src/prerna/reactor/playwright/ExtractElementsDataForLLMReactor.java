@@ -33,6 +33,7 @@ import java.util.Map;
 import com.microsoft.playwright.Page;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -454,17 +455,10 @@ public class ExtractElementsDataForLLMReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Extracts interactive HTML elements data from a specified area of the webpage for LLM processing.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the session of the current playwright";
-		} else if (key.equals("tabId")) {
-			return "The id of the current tab in the session";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Extracts interactive HTML elements data from a specified area of the webpage for LLM processing.")
+				.key("sessionId", "The id of the session of the current playwright")
+				.key("tabId", "The id of the current tab in the session");
 	}
 }

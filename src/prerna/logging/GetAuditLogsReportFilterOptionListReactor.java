@@ -32,7 +32,6 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.date.SemossDate;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.reactor.AbstractReactor;
@@ -60,11 +59,6 @@ public class GetAuditLogsReportFilterOptionListReactor extends AbstractReactor {
 		organizeKeys();
 
 		Map<String, Object> map = getMap();
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		// which dropdown to populate (methodName, engineType, user) and an optional
 		// type-ahead term to narrow it

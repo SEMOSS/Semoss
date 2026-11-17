@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -53,15 +52,16 @@ import org.javatuples.Pair;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.r.IRUserConnection;
 import prerna.engine.impl.r.RRemoteRserve;
+import prerna.engine.impl.r.RUserConnectionDedicated;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.LocalUserStore;
 import prerna.project.api.IProject;
+import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.reactor.mgmt.MgmtUtil;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
@@ -95,14 +95,11 @@ public class User implements Serializable {
 
 	// python related stuff
 	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
-	private transient Process pyProcess = null;
 
 	// node.js agent execution environment - lazily spawned, agent-tool only
 	private transient ClientProcessWrapper nodeCPW = new ClientProcessWrapper();
 
-	// r
-	private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
-	private transient Process rProcess = null;
+	private transient ClientProcessWrapper javaCPW = new ClientProcessWrapper();
 
 	private String chrootPath = null;
 	private transient volatile SymlinkHelper symlinkHelper = null;
@@ -119,18 +116,12 @@ public class User implements Serializable {
 	// setup)
 	private transient ReentrantLock userLock = new ReentrantLock();
 
-	private int rPort = -1;
-	private int pyPort = -1;
-
 	// need to move everything here
 	// since on reconnect we need to redo serialization.
-	private Map<String, Boolean> insightSerializedMap = new HashMap<>();
+	private Map<String, Boolean> insightSerializedMap = new ConcurrentHashMap<>();
 
 	// this is a unique identifier for this user instance
 	private String userEpoch = null;
-
-	private boolean anonymous;
-	private String anonymousId;
 
 	private transient volatile String[] cachedTemporalAccessSecretKey = null;
 
@@ -156,7 +147,6 @@ public class User implements Serializable {
 			loggedInProfiles.add(name);
 		}
 		accessTokens.put(name, value);
-		setAnonymous(false);
 	}
 
 	/**
@@ -233,20 +223,28 @@ public class User implements Serializable {
 		return !this.loggedInProfiles.isEmpty();
 	}
 
-	public void setAnonymous(boolean anonymous) {
-		this.anonymous = anonymous;
-	}
-
-	public boolean isAnonymous() {
-		return this.anonymous;
-	}
-
-	public void setAnonymousId(String anonymousId) {
-		this.anonymousId = anonymousId;
-	}
-
-	public String getAnonymousId() {
-		return this.anonymousId;
+	/**
+	 * Returns whether another user is the same person as this one: the same object,
+	 * or a user who shares a login with the same id and login type.
+	 *
+	 * @param other the user to compare with, or null
+	 * @return true when both are the same person
+	 */
+	public boolean isSamePerson(User other) {
+		if (other == this) {
+			return true;
+		}
+		if (other == null) {
+			return false;
+		}
+		for (AuthProvider login : getLogins()) {
+			AccessToken mine = getAccessToken(login);
+			AccessToken theirs = other.getAccessToken(login);
+			if (mine != null && theirs != null && mine.getId() != null && mine.getId().equals(theirs.getId())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	////////////////////////////////////////////////////////////////////////
@@ -369,17 +367,10 @@ public class User implements Serializable {
 	 */
 	public void addOpenInsight(String engineId, String rdbmsId, String insightId) {
 		if (this.openInsights == null) {
-			this.openInsights = new HashMap<>();
+			this.openInsights = new ConcurrentHashMap<>();
 		}
 		String id = getUid(engineId, rdbmsId);
-		List<String> openInstances = null;
-		if (this.openInsights.containsKey(id)) {
-			openInstances = this.openInsights.get(id);
-		} else {
-			openInstances = new Vector<>();
-			this.openInsights.put(id, openInstances);
-		}
-		openInstances.add(insightId);
+		this.openInsights.computeIfAbsent(id, k -> Collections.synchronizedList(new ArrayList<>())).add(insightId);
 	}
 
 	/**
@@ -394,11 +385,12 @@ public class User implements Serializable {
 			return;
 		}
 		String id = getUid(engineId, rdbmsId);
-		List<String> openInstances = null;
-		if (this.openInsights.containsKey(id)) {
-			openInstances = this.openInsights.get(id);
+		this.openInsights.computeIfPresent(id, (k, openInstances) -> {
 			openInstances.remove(insightId);
-		}
+			// Returning null automatically removes the key from the map if the list is now
+			// empty
+			return openInstances.isEmpty() ? null : openInstances;
+		});
 	}
 
 	/**
@@ -512,23 +504,13 @@ public class User implements Serializable {
 		if (OpenShellUserSandboxes.appliesTo(this)) {
 			return getOpenShellPythonSocketClient(venvEngineId);
 		}
-		if (this.pythonCPW == null || this.pythonCPW.getSocketClient() == null) {
-			startPythonSocketServerAndClient(-1, venvEngineId);
-			this.pythonCPW.getSocketClient().setUser(this);
-		} else if (!this.pythonCPW.getSocketClient().isConnected()) {
-			this.pythonCPW.shutdown(false);
-			try {
-				this.pythonCPW.reconnect();
-			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to user python process", e);
-				throw new IllegalArgumentException("Failed to connect to your isolated analytics engine");
-			}
+		if (this.pythonCPW == null) {
+			this.pythonCPW = new ClientProcessWrapper();
 		}
-
-		// invalidate the serialization map
-		this.insightSerializedMap.clear();
-
-		return this.pythonCPW.getSocketClient();
+		SocketClient client = this.pythonCPW
+				.getOrStartSocketClient(() -> startPythonSocketServerAndClient(-1, venvEngineId));
+		client.setUser(this);
+		return client;
 	}
 
 	/**
@@ -591,7 +573,7 @@ public class User implements Serializable {
 					String uniqueUserName = getSingleLogginName(this) + "-" + UUID.randomUUID().toString();
 					String chrootDir = Utility.getDIHelperProperty(Constants.CHROOT_DIR);
 					chrootPath = chrootDir + DIR_SEPARATOR + uniqueUserName;
-					symlinkHelper = new SymlinkHelper(chrootPath);
+					symlinkHelper = new SymlinkHelper(chrootPath, this);
 
 					// symlink the user asset folder into the chroot on boot
 					try {
@@ -610,22 +592,19 @@ public class User implements Serializable {
 	}
 
 	/**
-	 * 
-	 * @param port
-	 * @param venvEngineId
+	 * Starts this user's native Python server process and connects its socket
+	 * client. The process runs inside the user's chroot when chroot is enabled.
+	 *
+	 * @param port         the port to connect on; negative to auto-allocate, or to
+	 *                     use FORCE_PORT when it is set
+	 * @param venvEngineId the virtual environment engine whose Python executable to
+	 *                     use, or null for the base Python
 	 */
 	public void startPythonSocketServerAndClient(int port, String venvEngineId) {
 		if (this.pythonCPW == null) {
 			this.pythonCPW = new ClientProcessWrapper();
 		}
 		if (this.pythonCPW.getSocketClient() == null || !this.pythonCPW.getSocketClient().isConnected()) {
-			boolean nativePyServer = false;
-			// defined in rdf map
-			String nativePyServerStr = Utility.getDIHelperProperty(Settings.NATIVE_PY_SERVER);
-			if (nativePyServerStr != null && !(nativePyServerStr = nativePyServerStr.trim()).isEmpty()) {
-				nativePyServer = Boolean.parseBoolean(nativePyServerStr);
-			}
-
 			boolean debug = false;
 			if (port < 0) {
 				String forcePort = Utility.getDIHelperProperty(Settings.FORCE_PORT);
@@ -646,11 +625,6 @@ public class User implements Serializable {
 				loggerLevel = "WARNING";
 			}
 
-			String customClassPath = Utility.getDIHelperProperty("TCP_WORKER_CP");
-			if (customClassPath == null) {
-				classLogger.info("No custom class path set");
-			}
-
 			String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 			Path serverDirectoryPath = null;
 
@@ -663,8 +637,8 @@ public class User implements Serializable {
 				// generate in the chroot location
 				try {
 					this.pythonCPW.setUser(this);
-					this.pythonCPW.createProcessAndClient(nativePyServer, this.symlinkHelper, port, null, null,
-							customClassPath, debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
+					this.pythonCPW.createProcessAndClient(true, this.symlinkHelper, port, null, null, debug, "-1",
+							loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {
 					classLogger.error("Failed to start chrooted python process for user {}",
 							User.getSingleLogginName(this), e);
@@ -672,7 +646,7 @@ public class User implements Serializable {
 				}
 			} else {
 				try {
-					serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "a");
+					serverDirectoryPath = getWorkerDirectory(this.pythonCPW, serverDirectory, "a");
 				} catch (IOException e) {
 					classLogger.error("Failed to create temp directory for non-chroot python process under {}",
 							serverDirectory, e);
@@ -682,11 +656,10 @@ public class User implements Serializable {
 				classLogger.info("Starting Non-chroot TCP Server for User = {}", User.getSingleLogginName(this));
 				try {
 					String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable()
-							: null;
+							: this.pythonCPW.getVenvPath();
 					this.pythonCPW.setUser(this);
-					this.pythonCPW.createProcessAndClient(nativePyServer, null, port, venvPath,
-							serverDirectoryPath.toString(), customClassPath, debug, "-1", loggerLevel,
-							ThreadContext.getImmutableContext());
+					this.pythonCPW.createProcessAndClient(true, null, port, venvPath, serverDirectoryPath.toString(),
+							debug, "-1", loggerLevel, ThreadContext.getImmutableContext());
 				} catch (Exception e) {
 					classLogger.error("Failed to start non-chroot python process for user {}",
 							User.getSingleLogginName(this), e);
@@ -706,9 +679,9 @@ public class User implements Serializable {
 
 	/**
 	 * Get the socket client for this user's node.js agent worker, optionally
-	 * starting the worker if it is not running. Unlike the python process, the
-	 * node worker is only ever reached through agent harness tools - there is
-	 * no user-facing reactor or endpoint for it.
+	 * starting the worker if it is not running. Unlike the python process, the node
+	 * worker is only ever reached through agent harness tools - there is no
+	 * user-facing reactor or endpoint for it.
 	 *
 	 * @param create true to lazily start/revive the worker
 	 * @return the socket client, or null when create is false and none exists
@@ -720,25 +693,18 @@ public class User implements Serializable {
 			}
 			return this.nodeCPW.getSocketClient();
 		}
-		if (this.nodeCPW == null || this.nodeCPW.getSocketClient() == null) {
-			startNodeSocketServerAndClient(-1);
-			this.nodeCPW.getSocketClient().setUser(this);
-		} else if (!this.nodeCPW.getSocketClient().isConnected()) {
-			this.nodeCPW.shutdown(false);
-			try {
-				this.nodeCPW.reconnect();
-			} catch (Exception e) {
-				classLogger.error("Failed to reconnect to user node process", e);
-				throw new IllegalArgumentException("Failed to connect to your isolated node execution engine");
-			}
+		if (this.nodeCPW == null) {
+			this.nodeCPW = new ClientProcessWrapper();
 		}
-		return this.nodeCPW.getSocketClient();
+		SocketClient client = this.nodeCPW.getOrStartSocketClient(() -> startNodeSocketServerAndClient(-1));
+		client.setUser(this);
+		return client;
 	}
 
 	/**
 	 * Start the per-user node.js agent worker and its socket client. The worker
-	 * self-exits after an idle period (NODE_IDLE_TIMEOUT minutes, default 30)
-	 * since no user session depends on it directly.
+	 * self-exits after an idle period (NODE_IDLE_TIMEOUT minutes, default 30) since
+	 * no user session depends on it directly.
 	 *
 	 * @param port the port to connect on; negative to auto-allocate
 	 */
@@ -760,7 +726,7 @@ public class User implements Serializable {
 			String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 			Path serverDirectoryPath = null;
 			try {
-				serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "n");
+				serverDirectoryPath = getWorkerDirectory(this.nodeCPW, serverDirectory, "n");
 			} catch (IOException e) {
 				classLogger.error("Failed to create temp directory for the node process under {}", serverDirectory, e);
 				throw new IllegalArgumentException("Could not create directory to launch the node process");
@@ -777,36 +743,161 @@ public class User implements Serializable {
 		}
 	}
 
+	/**
+	 * Returns the wrapper for this user's Java worker process, which runs R over
+	 * TCP and the custom reactors set to execute on the socket.
+	 *
+	 * @return the Java worker process wrapper
+	 */
+	public ClientProcessWrapper getJavaClientProcessWrapper() {
+		return this.javaCPW;
+	}
+
+	/**
+	 * Returns the socket client for this user's Java worker process, which runs R
+	 * over TCP and the custom reactors set to execute on the socket.
+	 *
+	 * @param create true to start the worker, or reconnect to it, when it is not
+	 *               connected
+	 * @return the socket client, or null when create is false and no worker exists
+	 */
+	public SocketClient getJavaSocketClient(boolean create) {
+		if (!create) {
+			if (this.javaCPW == null) {
+				return null;
+			}
+			return this.javaCPW.getSocketClient();
+		}
+		if (this.javaCPW == null) {
+			this.javaCPW = new ClientProcessWrapper();
+		}
+		SocketClient client = this.javaCPW.getOrStartSocketClient(() -> startJavaSocketServerAndClient(-1));
+		client.setUser(this);
+
+		this.insightSerializedMap.clear();
+
+		return client;
+	}
+
+	/**
+	 * Starts this user's Java worker process and connects its socket client. The
+	 * worker runs inside the user's chroot when chroot is enabled.
+	 *
+	 * @param port the port to connect on; negative to auto-allocate, or to attach
+	 *             to JAVA_FORCE_PORT when it is set
+	 */
+	public void startJavaSocketServerAndClient(int port) {
+		if (this.javaCPW == null) {
+			this.javaCPW = new ClientProcessWrapper();
+		}
+		if (this.javaCPW.getSocketClient() == null || !this.javaCPW.getSocketClient().isConnected()) {
+			boolean debug = false;
+			if (port < 0) {
+				String forcePort = Utility.getDIHelperProperty(Settings.JAVA_FORCE_PORT);
+				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch (NumberFormatException e) {
+						classLogger.warn("User {} has an invalid JAVA_FORCE_PORT value",
+								User.getSingleLogginName(this));
+					}
+				}
+			}
+
+			String loggerLevel = Utility.getDIHelperProperty(Settings.LOGGER_LEVEL);
+			if (loggerLevel == null || (loggerLevel = loggerLevel.trim()).isEmpty()) {
+				loggerLevel = "WARNING";
+			}
+
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				this.symlinkHelper = getUserSymlinkHelper();
+				try {
+					this.javaCPW.createProcessAndClient(false, this.symlinkHelper, port, null, null, debug, "-1",
+							loggerLevel, ThreadContext.getImmutableContext());
+				} catch (Exception e) {
+					classLogger.error("Failed to start chrooted Java worker for user {}",
+							User.getSingleLogginName(this), e);
+					throw new IllegalArgumentException("Unable to connect to the Java worker");
+				}
+			} else {
+				String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
+				Path serverDirectoryPath = null;
+				try {
+					serverDirectoryPath = getWorkerDirectory(this.javaCPW, serverDirectory, "j");
+				} catch (IOException e) {
+					classLogger.error("Failed to create temp directory for the Java worker under {}", serverDirectory,
+							e);
+					throw new IllegalArgumentException("Could not create directory to launch the Java worker");
+				}
+
+				classLogger.info("Starting Java worker for User = {}", User.getSingleLogginName(this));
+				try {
+					this.javaCPW.createProcessAndClient(false, null, port, null, serverDirectoryPath.toString(), debug,
+							"-1", loggerLevel, ThreadContext.getImmutableContext());
+				} catch (Exception e) {
+					classLogger.error("Failed to start Java worker for user {}", User.getSingleLogginName(this), e);
+					throw new IllegalArgumentException("Unable to connect to the Java worker");
+				}
+			}
+		}
+	}
+
+	/**
+	 * Returns the folder a worker runs in: the folder its wrapper already uses when
+	 * that still exists, so a restarted worker keeps its folder, or a new folder
+	 * under the insight cache.
+	 *
+	 * @param cpw          the worker's process wrapper
+	 * @param cacheDir     the insight cache folder
+	 * @param folderPrefix the prefix for a new folder's name
+	 * @return the folder
+	 * @throws IOException if a new folder cannot be created
+	 */
+	private static Path getWorkerDirectory(ClientProcessWrapper cpw, String cacheDir, String folderPrefix)
+			throws IOException {
+		String existing = cpw.getServerDirectory();
+		if (existing != null && Files.isDirectory(Paths.get(existing))) {
+			return Paths.get(existing);
+		}
+		return Files.createTempDirectory(Paths.get(cacheDir), folderPrefix);
+	}
+
+	/**
+	 * Returns the process that runs this user's R: the Java worker when R runs over
+	 * TCP, or the user's dedicated Rserve.
+	 *
+	 * @return the process, or null when R does not run in a process of its own for
+	 *         this user
+	 */
 	public Process getrProcess() {
-		return rProcess;
+		if (RJavaTranslatorFactory.runsInJavaWorker()) {
+			return this.javaCPW == null ? null : this.javaCPW.getProcess();
+		}
+		return this.rcon instanceof RUserConnectionDedicated dedicated ? dedicated.getProcess() : null;
 	}
 
-	public void setrProcess(Process rProcess) {
-		this.rProcess = rProcess;
-	}
-
-	public Process getPyProcess() {
-		return pyProcess;
-	}
-
-	public void setPyProcess(Process pyProcess) {
-		this.pyProcess = pyProcess;
-	}
-
+	/**
+	 * Returns the port of the process that runs this user's R: the Java worker when
+	 * R runs over TCP, or the user's dedicated Rserve.
+	 *
+	 * @return the port, or -1 when R does not run in a process of its own for this
+	 *         user
+	 */
 	public int getrPort() {
-		return rPort;
+		if (RJavaTranslatorFactory.runsInJavaWorker()) {
+			return this.javaCPW == null || this.javaCPW.getSocketClient() == null ? -1 : this.javaCPW.getPort();
+		}
+		return this.rcon instanceof RUserConnectionDedicated dedicated ? dedicated.getPort() : -1;
 	}
 
-	public void setrPort(int rPport) {
-		this.rPort = rPport;
-	}
-
+	/**
+	 * Returns the port of this user's python process.
+	 *
+	 * @return the port, or -1 when the python process has not started
+	 */
 	public int getPyPort() {
-		return pyPort;
-	}
-
-	public void setPyPort(int pyPport) {
-		this.pyPort = pyPport;
+		return this.pythonCPW == null || this.pythonCPW.getSocketClient() == null ? -1 : this.pythonCPW.getPort();
 	}
 
 	private void addUserMemory() {
@@ -899,12 +990,31 @@ public class User implements Serializable {
 		return this.cachedTemporalAccessSecretKey;
 	}
 
+	/**
+	 * Records whether the insight has been sent to this user's Java worker.
+	 *
+	 * @param insightId the insight id
+	 * @param serialize true when the worker has the insight
+	 */
 	public void setInsightSerialization(String insightId, Boolean serialize) {
-		insightSerializedMap.put(insightId, serialize);
+		if (insightId == null) {
+			return;
+		}
+		if (serialize == null) {
+			insightSerializedMap.remove(insightId);
+		} else {
+			insightSerializedMap.put(insightId, serialize);
+		}
 	}
 
+	/**
+	 * Returns whether the insight has been sent to this user's Java worker.
+	 *
+	 * @param insightId the insight id
+	 * @return true when the worker has the insight
+	 */
 	public Boolean getInsightSerialization(String insightId) {
-		return insightSerializedMap.containsKey(insightId) && insightSerializedMap.get(insightId);
+		return insightId != null && Boolean.TRUE.equals(insightSerializedMap.get(insightId));
 	}
 
 	private String[] getUserEmail(AccessToken token) {
@@ -1023,18 +1133,13 @@ public class User implements Serializable {
 		if (semossUser == null) {
 			return retMap;
 		}
-		if (semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled()
-				&& semossUser.isAnonymous()) {
-			retMap.put("ANONYMOUS", "Sign In");
-		} else {
-			for (AuthProvider p : semossUser.loggedInProfiles) {
-				String name = semossUser.getAccessToken(p).getName();
-				if (name == null) {
-					// need to send something
-					name = "";
-				}
-				retMap.put(p.toString().toUpperCase(), name);
+		for (AuthProvider p : semossUser.loggedInProfiles) {
+			String name = semossUser.getAccessToken(p).getName();
+			if (name == null) {
+				// need to send something
+				name = "";
 			}
+			retMap.put(p.toString().toUpperCase(), name);
 		}
 
 		return retMap;
@@ -1045,59 +1150,49 @@ public class User implements Serializable {
 		if (semossUser == null) {
 			return retMap;
 		}
-		if (semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled()
-				&& semossUser.isAnonymous()) {
-			Map<String, Object> innerMap = new HashMap<>();
-			innerMap.put("id", semossUser.getAnonymousId());
-			innerMap.put("name", "Sign In");
-			retMap.put("ANONYMOUS", innerMap);
-		} else {
-			for (AuthProvider p : semossUser.loggedInProfiles) {
-				AccessToken token = semossUser.getAccessToken(p);
-				String id = token.getId();
-				String name = token.getName();
-				if (name == null) {
-					// need to send something
-					name = "";
-				}
-
-				Map<String, Object> innerMap = new HashMap<>();
-				innerMap.put("id", id);
-				innerMap.put("name", name);
-				Map<String, String> sans = token.getSAN();
-				if (sans != null && sans.size() > 0) {
-					innerMap.put("san", sans);
-				}
-				retMap.put(p.toString(), innerMap);
+		for (AuthProvider p : semossUser.loggedInProfiles) {
+			AccessToken token = semossUser.getAccessToken(p);
+			String id = token.getId();
+			String name = token.getName();
+			if (name == null) {
+				// need to send something
+				name = "";
 			}
+
+			Map<String, Object> innerMap = new HashMap<>();
+			innerMap.put("id", id);
+			innerMap.put("name", name);
+			Map<String, String> sans = token.getSAN();
+			if (sans != null && sans.size() > 0) {
+				innerMap.put("san", sans);
+			}
+			retMap.put(p.toString(), innerMap);
 		}
 
 		return retMap;
 	}
 
+	/**
+	 * Returns the id of the user's primary login, or an empty string when there is
+	 * no user or no login left, as for a user who has just logged out of their last
+	 * login.
+	 *
+	 * @param semossUser the user, or null
+	 * @return the primary login's id, or an empty string
+	 */
 	public static String getSingleLogginName(User semossUser) {
 		if (semossUser == null) {
 			return "";
 		}
 
-		if (semossUser.loggedInProfiles.isEmpty() && AbstractSecurityUtils.anonymousUsersEnabled()
-				&& semossUser.isAnonymous()) {
-			return "ANONYMOUS " + semossUser.anonymousId;
-		}
-
-		AccessToken token = semossUser.accessTokens.get(semossUser.getPrimaryLogin());
-		// null after logging out of the primary provider: the token is dropped before the
-		// session is destroyed, and the session cleanup logs this name
+		AuthProvider primaryLogin = semossUser.getPrimaryLogin();
+		AccessToken token = primaryLogin == null ? null : semossUser.accessTokens.get(primaryLogin);
 		return token == null ? "" : token.getId();
 	}
 
 	public static List<Pair<String, String>> getUserIdAndType(User user) {
 		if (user == null) {
 			throw new IllegalArgumentException("User cannot be null.");
-		}
-
-		if (user.isAnonymous()) {
-			throw new IllegalArgumentException("User cannot be anonymous.");
 		}
 
 		List<Pair<String, String>> creds = new ArrayList<>();
@@ -1119,10 +1214,6 @@ public class User implements Serializable {
 	public static Pair<String, String> getPrimaryUserIdAndTypePair(User user) {
 		if (user == null) {
 			throw new IllegalArgumentException("User cannot be null.");
-		}
-
-		if (user.isAnonymous()) {
-			throw new IllegalArgumentException("User cannot be anonymous.");
 		}
 
 		AuthProvider login = user.getPrimaryLogin();

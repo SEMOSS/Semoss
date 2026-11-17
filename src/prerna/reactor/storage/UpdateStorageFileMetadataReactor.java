@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -96,21 +97,14 @@ public class UpdateStorageFileMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Sets the metadata on a file already in storage. This replaces the metadata on the file "
-				+ "rather than merging into it, so pass every key the file should end up with.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
-			return "The storage engine instance or id";
-		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
-			return "The path of the file in storage to set the metadata on";
-		} else if (key.equals(ReactorKeysEnum.METADATA.getKey())) {
-			return "The metadata to set on the file, as a map. Values are stored as strings, and engines "
-					+ "with nowhere to keep user metadata ignore it";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Sets the metadata on a file already in storage. This replaces the metadata on the file "
+						+ "rather than merging into it, so pass every key the file should end up with.")
+				.key(ReactorKeysEnum.STORAGE, "The storage engine instance or id")
+				.key(ReactorKeysEnum.STORAGE_PATH, "The path of the file in storage to set the metadata on")
+				.key(ReactorKeysEnum.METADATA,
+						"The metadata to set on the file, as a map. Values are stored as strings, and engines "
+								+ "with nowhere to keep user metadata ignore it");
 	}
 }

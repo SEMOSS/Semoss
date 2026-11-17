@@ -381,3 +381,22 @@ def validate_with(model_cls):
         return wrapper
 
     return decorator
+
+
+def azure_openai_client(api_key: str, endpoint: Optional[str], **kwargs):
+    """
+    Build the client for an Azure OpenAI endpoint, in either form a portal shows.
+
+    A resource url (https://x.openai.azure.com) goes to AzureOpenAI, which adds
+    /openai and the api-version itself. Foundry's v1 url (.../openai/v1, or a
+    route under it) is cut to .../openai/v1 and used on the plain client with no
+    api-version, since AzureOpenAI would add /openai to it again and 404.
+    """
+    from openai import AzureOpenAI, OpenAI
+
+    if endpoint and "/openai/v1" in endpoint:
+        kwargs.pop("api_version", None)
+        base_url = endpoint.split("/openai/v1")[0] + "/openai/v1"
+        return OpenAI(api_key=api_key, base_url=base_url, **kwargs)
+    kwargs["azure_endpoint"] = endpoint
+    return AzureOpenAI(api_key=api_key, **kwargs)

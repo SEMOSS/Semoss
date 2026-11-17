@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doAnswer;
@@ -51,8 +52,10 @@ import org.mockito.MockedConstruction;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.util.JdbcTestDatabase;
+import prerna.util.SystemEngineRegistry;
 
 class MicrosoftGraphCredentialStoreUnitTests {
 
@@ -132,6 +135,32 @@ class MicrosoftGraphCredentialStoreUnitTests {
 				verify(users.constructed().get(0)).removeUserMemory();
 			}
 		}
+	}
+
+	@Test
+	void turningBackgroundAccessOffWhileItRenewsKeepsItOff() throws Exception {
+		try (var db = database(); var users = users()) {
+			MicrosoftGraphCredentialStore.save(token("old-access", "old-refresh", -1000L));
+			try (var fillers = mockConstruction(MicrosoftTokenFiller.class,
+					(filler, context) -> when(filler.refreshAccessToken(any(), anyMap())).thenAnswer(call -> {
+						// the owner turns background access off while Microsoft renews the sign-in
+						SecurityExternalConnectorsUtils.deleteMicrosoftGraphCredential("account-one");
+						return token("new-access", "new-refresh", 3_600_000L);
+					}))) {
+				MicrosoftGraphCredentialStore.accessToken("account-one");
+				assertNull(MicrosoftGraphCredentialStore.get("account-one"));
+				assertEquals(0, db.count("MS_GRAPH_CREDENTIAL"));
+			}
+		}
+	}
+
+	@Test
+	void renewalSavesThroughAPackageAllowedToUseTheSecurityDatabase() {
+		// JdbcTestDatabase mocks the registry, which skips its caller check, so this runs the real one. No security
+		// database is loaded here, so a save that passes the check fails only for want of one.
+		assumeFalse(SystemEngineRegistry.isSecurityDbLoaded());
+		assertThrows(IllegalStateException.class,
+				() -> MicrosoftGraphCredentialStore.update(token("new-access", "new-refresh", 3_600_000L)));
 	}
 
 	@Test

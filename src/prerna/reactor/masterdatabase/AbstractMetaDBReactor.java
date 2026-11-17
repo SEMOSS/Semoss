@@ -39,7 +39,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *
  */
 public abstract class AbstractMetaDBReactor extends AbstractReactor {
-	
+
 	protected static final String DESCRIPTION = "description";
 	protected static final String VALUE_DELIMITER = ":::";
 	protected static final String VALUES = "values";
@@ -57,7 +57,8 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 				return noun.getValue() + "";
 			}
 		}
-		throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DATABASE.getKey() + " to be updated");
+		throw new IllegalArgumentException(
+				"Need to define the " + ReactorKeysEnum.DATABASE.getKey() + " to be updated");
 	}
 
 	/**
@@ -112,19 +113,4 @@ public abstract class AbstractMetaDBReactor extends AbstractReactor {
 		}
 		throw new IllegalArgumentException("Need to define the " + VALUES + " to be updated");
 	}
-	
-	///////////////////////// KEYS /////////////////////////////////////
-	
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(DESCRIPTION)) {
-			return "The description for the concept";
-		} else if (key.equals(VALUES)) {
-			return "The value to be updated for the concept";
-		}
-		else {
-			return super.getDescriptionForKey(key);
-		}
-	}
-	
 }

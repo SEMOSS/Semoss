@@ -49,12 +49,12 @@ import prerna.poi.main.helper.excel.ExcelSheetPreProcessor;
 import prerna.poi.main.helper.excel.ExcelWorkbookFileHelper;
 import prerna.poi.main.helper.excel.ExcelWorkbookFilePreProcessor;
 import prerna.query.querystruct.ExcelQueryStruct;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.database.metaeditor.AbstractMetaEditorReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
@@ -102,73 +102,62 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 		try (WriteOWLEngine owlEngine = database.getOWLEngineFactory().getWriteOWL()) {
 			ClusterUtil.pullOwl(databaseId, owlEngine);
 
-			ExcelSheetFileIterator it = null;
+			ExcelSheetFileIterator it;
 			try {
 				it = getExcelIterator(filePath);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
-			} finally {
-				if (it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				}
+				classLogger.error("Could not open the Excel file {}", filePath, e);
+				throw new IllegalArgumentException("Could not read the Excel file: " + e.getMessage());
 			}
 
-			String[] excelHeaders = it.getHeaders();
-			List<String> excelHeadersList = Arrays.asList(excelHeaders);
+			try (it) {
+				String[] excelHeaders = it.getHeaders();
+				List<String> excelHeadersList = Arrays.asList(excelHeaders);
 
-			int idxStartT = excelHeadersList.indexOf(START_TABLE);
-			int idxStartC = excelHeadersList.indexOf(START_COLUMN);
-			int idxTargetT = excelHeadersList.indexOf(TARGET_TABLE);
-			int idxTargetC = excelHeadersList.indexOf(TARGET_COLUMN);
+				int idxStartT = excelHeadersList.indexOf(START_TABLE);
+				int idxStartC = excelHeadersList.indexOf(START_COLUMN);
+				int idxTargetT = excelHeadersList.indexOf(TARGET_TABLE);
+				int idxTargetC = excelHeadersList.indexOf(TARGET_COLUMN);
 
-			if (idxStartT < 0 || idxStartC < 0 || idxTargetT < 0 || idxTargetC < 0) {
-				throw new IllegalArgumentException("One or more headers are missing from the excel");
-			}
-
-			int counter = 0;
-			logger.info("Retrieving values to insert");
-			try {
-				while (it.hasNext()) {
-					if (counter % 100 == 0) {
-						logger.info("Adding relationship : #" + (counter + 1));
-					}
-					IHeadersDataRow row = it.next();
-					Object[] values = row.getValues();
-
-					String startT = values[idxStartT].toString();
-					String startC = values[idxStartC].toString();
-					String endT = values[idxTargetT].toString();
-					String endC = values[idxTargetC].toString();
-
-					// generate the relationship
-					String rel = startT + "." + startC + "." + endT + "." + endC;
-
-					// add the relationship
-					owlEngine.addRelation(startT, endT, rel);
-					counter++;
+				if (idxStartT < 0 || idxStartC < 0 || idxTargetT < 0 || idxTargetC < 0) {
+					throw new IllegalArgumentException("One or more headers are missing from the excel");
 				}
-			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			} finally {
-				if (it != null) {
-					try {
-						it.close();
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+
+				int counter = 0;
+				logger.info("Retrieving values to insert");
+				try {
+					while (it.hasNext()) {
+						if (counter % 100 == 0) {
+							logger.info("Adding relationship : #" + (counter + 1));
+						}
+						IHeadersDataRow row = it.next();
+						Object[] values = row.getValues();
+
+						String startT = values[idxStartT].toString();
+						String startC = values[idxStartC].toString();
+						String endT = values[idxTargetT].toString();
+						String endC = values[idxTargetC].toString();
+
+						// generate the relationship
+						String rel = startT + "." + startC + "." + endT + "." + endC;
+
+						// add the relationship
+						owlEngine.addRelation(startT, endT, rel);
+						counter++;
 					}
+				} catch (Exception e) {
+					classLogger.error("Could not add the relationships from the Excel file {} to database {}", filePath,
+							databaseId, e);
 				}
+			} catch (IOException e) {
+				classLogger.error("Could not close the Excel file {}", filePath, e);
 			}
 
 			try {
 				owlEngine.commit();
 				owlEngine.export();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Could not save the OWL of database {}", databaseId, e);
 				NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 				noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to add the relationships",
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -178,7 +167,7 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 			ClusterUtil.pushOwl(databaseId, owlEngine);
 
 		} catch (IOException | InterruptedException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Could not modify the OWL of database {}", databaseId, e1);
 			NounMetadata noun = new NounMetadata(false, PixelDataType.BOOLEAN);
 			noun.addAdditionalReturn(new NounMetadata("An error occurred attempting to modify the OWL",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -206,10 +195,6 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 				PixelDataType.CONST_STRING, PixelOperationType.SUCCESS));
 		return noun;
 	}
-
-	////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////
 
 	private ExcelSheetFileIterator getExcelIterator(String fileLocation) {
 		// get range
@@ -245,11 +230,11 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SYNC_WITH_LOCALMASTER)) {
-			return "Synchronize the OWL changes with the local master database";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Adds relationships to the metadata (OWL) of a database the user can edit, one per row of the first sheet of an Excel file with START_TABLE, START_COLUMN, TARGET_TABLE and TARGET_COLUMN columns. With sync true it also refreshes the database's entry in the local master database.")
+				.key(SYNC_WITH_LOCALMASTER, key -> key.type(Boolean.class)
+						.description("Synchronize the OWL changes with the local master database"));
 	}
 
 }

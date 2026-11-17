@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -103,17 +104,13 @@ public class MicrosoftOneDriveGetFileReactor extends AbstractMicrosoftOneDriveRe
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Read the details of one OneDrive file or folder, by drive and item, by path, or by the sharing link somebody sent.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ITEM_ID)) {
-			return "Id of the item to read, as returned by the OneDrive listings. Not needed when a path or a sharing link is given.";
-		} else if (key.equals(PATH)) {
-			return "Path of the item to read, relative to the drive root. Not needed when an item id or a sharing link is given.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Read the details of one OneDrive file or folder, by drive and item, by path, or by the sharing link somebody sent.")
+				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION).key(SHARE_URL, SHARE_URL_DESCRIPTION)
+				.key(ITEM_ID,
+						"Id of the item to read, as returned by the OneDrive listings. Not needed when a path or a sharing link is given.")
+				.key(PATH,
+						"Path of the item to read, relative to the drive root. Not needed when an item id or a sharing link is given.");
 	}
 }

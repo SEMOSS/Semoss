@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.sql.Timestamp;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -40,6 +41,12 @@ import prerna.io.connector.ms.MicrosoftGraphCredentialStore;
 
 /** The owner's Microsoft connection as Settings shows it: sign-in, linked mailbox, background access. */
 public final class BrainConnection {
+
+	// SETUP_DONE_AT shipped on 2026-11-06 and reached servers over the next days; a setup that ended before then
+	// was never recorded. UTC, as COLLAB_JOB.STARTED_AT is.
+	// shortcut: a server still on an older build sends the owners it imports after this date to setup once when
+	// it upgrades; move the date if one shows up
+	private static final Timestamp SETUP_RECORDED_SINCE = Timestamp.valueOf("2026-11-11 00:00:00");
 
 	private BrainConnection() {
 	}
@@ -74,9 +81,28 @@ public final class BrainConnection {
 		result.put("mailbox", mailbox.get("upn"));
 		result.put("background", background);
 		result.put("sources", CollaborationSourceUtils.getSourceStatuses(owner.getValue0(), owner.getValue1()));
+		// a finished import, so turning mail off reads as paused rather than never set up
+		result.put("imported", BrainSync.lastRun(owner.getValue0(), owner.getValue1()) != null);
+		// until the owner opens Work at the end of setup or skips it, Today sends them back to setup
+		result.put("setupDone", CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_SETTINGS WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND SETUP_DONE_AT IS NOT NULL", owner.getValue0(), owner.getValue1())
+				// a setup from before its end was recorded: the finished import was the whole of it
+				|| CollaborationDbUtils.exists("SELECT 1 FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND KIND = ? AND STATUS = ? AND STARTED_AT < ?", owner.getValue0(), owner.getValue1(),
+						BrainMailImport.KIND, CollaborationJobUtils.DONE, SETUP_RECORDED_SINCE));
 		// which Outlook folders mail is read from, and how many topics stand for one
 		result.put("folders", BrainMailFolders.summary(owner.getValue0(), owner.getValue1()));
 		return result;
+	}
+
+	/** Records that the owner opened Work at the end of setup or skipped the rest of it; Reset clears it. */
+	public static Map<String, Object> finishSetup(User user) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		// creates the settings row a new owner does not have yet
+		BrainProfileUtils.getSettings(owner.getValue0(), owner.getValue1());
+		CollaborationDbUtils.update("UPDATE BRAIN_SETTINGS SET SETUP_DONE_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				CollaborationDbUtils.now(), owner.getValue0(), owner.getValue1());
+		return status(user);
 	}
 
 	/** Keeps this session's renewable Microsoft sign-in so routines and refresh work without the page open. */
@@ -97,7 +123,10 @@ public final class BrainConnection {
 	/** Removes the saved background access; scheduled routines stop until it is saved again. */
 	public static Map<String, Object> forgetBackground(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		SecurityExternalConnectorsUtils.deleteMicrosoftGraphCredential(mailbox(owner).get("id"));
+		String mailboxId = mailbox(owner).get("id");
+		SecurityExternalConnectorsUtils.deleteMicrosoftGraphCredential(mailboxId);
+		// the new-mail subscription keeps a sign-in of its own, and a routine would restore background access from it
+		BrainMailWebhook.unsubscribe(mailboxId);
 		return status(user);
 	}
 

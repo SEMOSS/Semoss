@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicRoomUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainLinkRoomTopic(roomId=["..."], topicId=["..."], remove=[false]);
@@ -52,22 +53,12 @@ public class BrainLinkRoomTopicReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "The owner sets a chat's topic, accepts a suggested one, or removes one; a removed topic is not "
-				+ "suggested again in that chat";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROOM_ID.equals(key)) {
-			return "The chat's room id";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (TOPIC_NAME.equals(key)) {
-			return "Topic name, when there is no topic id";
-		} else if (REMOVE.equals(key)) {
-			return "true removes the topic from the chat";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"The owner sets a chat's topic, accepts a suggested one, or removes one; a removed topic is not "
+						+ "suggested again in that chat")
+				.key(ROOM_ID, "The chat's room id").key(TOPIC_ID, "Topic id")
+				.key(TOPIC_NAME, "Topic name, when there is no topic id")
+				.key(REMOVE, "true removes the topic from the chat");
 	}
 }

@@ -35,6 +35,7 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainMemoryUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -72,11 +73,13 @@ public class BrainSearchMemoriesReactor extends AbstractCollaborationReactor {
 	public JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
 		JSONObject ref = new JSONObject().put("type", "object")
-				.put("properties", new JSONObject()
-						.put("type", new JSONObject().put("type", "string").put("enum",
-								new JSONArray(List.of(BrainMemoryUtils.PERSON, BrainMemoryUtils.TOPIC,
-										BrainMemoryUtils.ACCOUNT, BrainMemoryUtils.THREAD))))
-						.put("id", new JSONObject().put("type", "string")))
+				.put("properties",
+						new JSONObject()
+								.put("type",
+										new JSONObject().put("type", "string").put("enum",
+												new JSONArray(List.of(BrainMemoryUtils.PERSON, BrainMemoryUtils.TOPIC,
+														BrainMemoryUtils.ACCOUNT, BrainMemoryUtils.THREAD))))
+								.put("id", new JSONObject().put("type", "string")))
 				.put("required", new JSONArray(List.of("type", "id")));
 		properties.getJSONObject(ABOUT).put("type", "array").put("items", ref);
 		properties.getJSONObject(LIMIT).put("type", "integer");
@@ -84,21 +87,13 @@ public class BrainSearchMemoriesReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Search the owner's memories for something not under What you remember, for example what they told you "
-				+ "about a person in another thread. Also use before saving or updating a memory when an existing match "
-				+ "or its id is uncertain, without waiting for the owner to ask. Returns the best matches with their ids.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (QUERY.equals(key)) {
-			return "Words to look for, such as a name or a subject; omit to list the newest";
-		} else if (ABOUT.equals(key)) {
-			return "Only memories about one of these, as {type, id}";
-		} else if (LIMIT.equals(key)) {
-			return "Most results to return, default 10";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Search the owner's memories for something not under What you remember, for example what they told you "
+						+ "about a person in another thread. Also use before saving or updating a memory when an existing match "
+						+ "or its id is uncertain, without waiting for the owner to ask. Returns the best matches with their ids.")
+				.key(QUERY, "Words to look for, such as a name or a subject; omit to list the newest")
+				.key(ABOUT, "Only memories about one of these, as {type, id}")
+				.key(LIMIT, "Most results to return, default 10");
 	}
 }

@@ -32,6 +32,7 @@ import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
 /**
@@ -107,18 +108,10 @@ public abstract class AbstractGitStageReactor extends AbstractGitWorktreeReactor
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor stages or unstages files in " + this.target.getLabelWithArticle()
-				+ "'s git repository and returns the refreshed status";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(PATHS_KEY)) {
-			return "The repo-relative file paths to stage or unstage";
-		} else if (key.equals(ACTION_KEY)) {
-			return "STAGE or UNSTAGE";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This reactor stages or unstages files in " + this.target.getLabelWithArticle()
+						+ "'s git repository and returns the refreshed status")
+				.key(PATHS_KEY, "The repo-relative file paths to stage or unstage").key(ACTION_KEY, "STAGE or UNSTAGE");
 	}
 }

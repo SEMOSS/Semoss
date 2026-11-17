@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.CollaborationSkills;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -59,16 +60,10 @@ public class WorkDeleteMySkillReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Deletes one of the owner's skills for good. Routines and the assistant stop using it on their next "
-				+ "run.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SKILL_ID.equals(key)) {
-			return "Id of the owner's skill, from ListMySkills.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Deletes one of the owner's skills for good. Routines and the assistant stop using it on their next "
+						+ "run.")
+				.key(SKILL_ID, "Id of the owner's skill, from ListMySkills.");
 	}
 }

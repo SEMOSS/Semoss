@@ -37,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.SmssUtilities;
@@ -53,8 +52,8 @@ public class AssetUtility {
 
 	private static final String DIR_SEPARATOR = "/";
 
-	public static String USER_SPACE_KEY = "USER";
-	public static String INSIGHT_SPACE_KEY = "INSIGHT";
+	public static final String USER_SPACE_KEY = "USER";
+	public static final String INSIGHT_SPACE_KEY = "INSIGHT";
 
 	/**
 	 * Grab the root folder to work with asset files
@@ -73,9 +72,6 @@ public class AssetUtility {
 		if (space != null && !space.isEmpty()) {
 			if (USER_SPACE_KEY.equalsIgnoreCase(space)) {
 				User user = in.getUser();
-				if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-					throw new IllegalArgumentException("Must be logged in to access user specific assets");
-				}
 				AuthProvider provider = user.getPrimaryLogin();
 				String projectId = user.getAssetProjectId(provider);
 				String projectName = "Asset";

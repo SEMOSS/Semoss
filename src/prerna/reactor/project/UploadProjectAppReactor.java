@@ -56,6 +56,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -65,8 +66,8 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -108,20 +109,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		// check security
 		// Need to check this, will the same methods work/enhanced to check the
 		// permissions on project?
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create or upload a project",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new apps
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
@@ -202,7 +190,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		String projectFolderPath = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT);
 
 		boolean replace = deleteIfExisting();
-		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
 		File finalProjectSmssF = null;
@@ -259,10 +246,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			} else {
 				// first time upload
 				// need to ignore file watcher
-				if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
-						|| projects.endsWith(";" + projectId))) {
-					String newProjects = projects + ";" + projectId;
-					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
+				if (InternalUtility.addProjectId(projectId)) {
 					projectAddedToDIHelper = true;
 				}
 			}
@@ -320,7 +304,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
+			InternalUtility.setProjectSmssPath(projectId,
 					finalProjectSmssF.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
 			if (!replacingExistingProject) {
@@ -333,7 +317,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			String displayName = smssProps.getProperty(Constants.PROJECT_DISPLAY_NAME);
 			if (displayName == null || displayName.trim().isEmpty()) {
 				try {
-					Utility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
+					InternalUtility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
 							Constants.PROJECT_DISPLAY_NAME, projectName);
 				} catch (IOException e) {
 					classLogger.error("Failed to write {} into the smss file for project {}",
@@ -450,27 +434,19 @@ public class UploadProjectAppReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Import an app from an exported zip smss-app file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is a required value containing the relative file path of the single zip file to be imported";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		} else if (key.equals(ReactorKeysEnum.GLOBAL.getKey())) {
-			return "This is a required value to determine if the app is public or private";
-		} else if (key.equals(MODE_KEY)) {
-			return """
-					Optional paramter that is either 'create' or 'replace'.
-					'create' is the default and will break if the app id already exists.
-					'replace' will replace if the app id exist but user must be an owner of the app.
-					Default is 'create' if no value is passed in.
-					""";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Import an app from an exported zip smss-app file").key(
+				ReactorKeysEnum.FILE_PATH,
+				"This is a required value containing the relative file path of the single zip file to be imported")
+				.key(ReactorKeysEnum.SPACE,
+						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
+				.key(ReactorKeysEnum.GLOBAL, "This is a required value to determine if the app is public or private")
+				.key(MODE_KEY, """
+						Optional paramter that is either 'create' or 'replace'.
+						'create' is the default and will break if the app id already exists.
+						'replace' will replace if the app id exist but user must be an owner of the app.
+						Default is 'create' if no value is passed in.
+						""");
 	}
 
 }

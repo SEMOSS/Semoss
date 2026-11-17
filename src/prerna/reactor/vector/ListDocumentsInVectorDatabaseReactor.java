@@ -34,6 +34,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -88,21 +89,13 @@ public class ListDocumentsInVectorDatabaseReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Get the unique list of `Source` values that have been uploaded into this vector database. \
 				Typically `Source` represents uploaded files, but with custom chunking it may represent \
 				values that were never uploaded as standalone files.\
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The vector database engine ID to list document sources from.";
-		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
-			return "Optional engine-specific parameters (for example index/collection selectors when supported).";
-		}
-		return super.getDescriptionForKey(key);
+				""").key(ReactorKeysEnum.ENGINE, "The vector database engine ID to list document sources from.").key(
+				ReactorKeysEnum.PARAM_VALUES_MAP,
+				"Optional engine-specific parameters (for example index/collection selectors when supported).");
 	}
 }

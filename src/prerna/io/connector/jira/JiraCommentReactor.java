@@ -30,12 +30,13 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -61,7 +62,8 @@ public class JiraCommentReactor extends AbstractReactor {
 			this.organizeKeys();
 			String action = this.keyValue.get(ACTION);
 			if (action == null || action.trim().isEmpty()) {
-				throw new SemossPixelException("The action parameter is required. Valid values are: get, add, edit, delete.");
+				throw new SemossPixelException(
+						"The action parameter is required. Valid values are: get, add, edit, delete.");
 			}
 			action = action.trim().toLowerCase();
 
@@ -99,34 +101,27 @@ public class JiraCommentReactor extends AbstractReactor {
 				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 			default:
-				throw new SemossPixelException("Invalid action '" + action + "'. Valid values are: get, add, edit, delete.");
+				throw new SemossPixelException(
+						"Invalid action '" + action + "'. Valid values are: get, add, edit, delete.");
 			}
 		} catch (SemossPixelException e) {
 			classLogger.error("Error in JiraCommentReactor", e);
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to execute JiraCommentReactor", e);
-			throw new SemossPixelException(
-					"An error occurred in JiraCommentReactor. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred in JiraCommentReactor. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Manages comments on a Jira issue. Supports get, add, edit, and delete operations.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ACTION)) {
-			return "Required operation to perform. Valid values: get - lists all comments (jiraid required). add - adds a new comment (jiraid, comment required). edit - updates an existing comment (jiraid, commentId, comment required). delete - removes a comment (jiraid, commentId required).";
-		} else if (key.equals(JIRAID)) {
-			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
-		} else if (key.equals(COMMENT_ID)) {
-			return "Numeric comment id from a previous get response. Required for edit and delete actions.";
-		} else if (key.equals(COMMENT)) {
-			return "Plain-text issue comment body. Required for add and edit actions.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Manages comments on a Jira issue. Supports get, add, edit, and delete operations.")
+				.key(ACTION,
+						"Required operation to perform. Valid values: get - lists all comments (jiraid required). add - adds a new comment (jiraid, comment required). edit - updates an existing comment (jiraid, commentId, comment required). delete - removes a comment (jiraid, commentId required).")
+				.key(JIRAID, "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).")
+				.key(COMMENT_ID,
+						"Numeric comment id from a previous get response. Required for edit and delete actions.")
+				.key(COMMENT, "Plain-text issue comment body. Required for add and edit actions.");
 	}
 }

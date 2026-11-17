@@ -36,8 +36,8 @@ import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.sync.IClusterSynchronizer;
 import prerna.engine.impl.SmssUtilities;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 
 /**
  * Selects and supplies the active {@link IClusterSynchronizer} implementation
@@ -97,7 +97,7 @@ public class ClusterSynchronizerFactory {
 	 *         {@code false}
 	 */
 	static boolean projectLoaded(String projectId) {
-		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
+		String projects = InternalUtility.getProjectIds() + "";
 
 		if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
 				|| projects.endsWith(";" + projectId)) {
@@ -116,7 +116,7 @@ public class ClusterSynchronizerFactory {
 	 *         {@code false}
 	 */
 	static boolean engineLoaded(String engineId) {
-		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
+		String engines = InternalUtility.getEngineIds() + "";
 
 		if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
 				|| engines.endsWith(";" + engineId)) {
@@ -139,7 +139,7 @@ public class ClusterSynchronizerFactory {
 		// Check if the SMSS file exists locally it is only written here by
 		// pullUserAsset, meaning this pod has previously fetched this
 		// user's data and may have a stale copy.
-		String userFolder = EngineUtility.USER_FOLDER;
+		String userFolder = EngineUtility.getUserFolder();
 		String assetSmss = userFolder + "/" + SmssUtilities.getUniqueName(UserAssetUtils.ASSET_APP_NAME, projectId)
 				+ ".smss";
 		if (new File(assetSmss).exists()) {

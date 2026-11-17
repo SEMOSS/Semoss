@@ -101,7 +101,7 @@ public class AddVisionContextReactorTest {
 
 	@Test
 	public void testGetReactorDescription() {
-		String description = reactor.getReactorDescription();
+		String description = reactor.getReactorDefinition().getDescription();
 		assertNotNull(description);
 		assertFalse(description.isEmpty());
 		assertTrue(description.contains("vision") || description.contains("context"));
@@ -109,7 +109,7 @@ public class AddVisionContextReactorTest {
 
 	@Test
 	public void testGetDescriptionForKey() {
-		String keyDescription = reactor.getDescriptionForKey("visionContext");
+		String keyDescription = reactor.getReactorDefinition().getKey("visionContext").getDescription();
 		assertNotNull(keyDescription);
 		assertFalse(keyDescription.isEmpty());
 	}
@@ -303,15 +303,12 @@ public class AddVisionContextReactorTest {
 		assertEquals(csvContent, result.getValue());
 	}
 
-
 	@Test
 	public void testReactorNounType() {
 		reactor.keyValue.put("visionContext", "test");
 		NounMetadata result = reactor.execute();
 		assertEquals(PixelDataType.CONST_STRING, result.getNounType());
 	}
-
-
 
 	@Test
 	public void testVisionContextWithSingleCharacter() {
@@ -357,4 +354,3 @@ public class AddVisionContextReactorTest {
 		assertEquals(jsonContext, result.getValue());
 	}
 }
-

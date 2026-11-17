@@ -37,6 +37,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,6 +48,7 @@ import org.javatuples.Pair;
 import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Utility;
+import prerna.io.connector.mail.AttachmentText;
 
 // One email attachment for the owner: read live, only while today's rules still show its email,
 // and written into the caller's folder. That is an insight folder, which is the room folder once
@@ -60,6 +63,11 @@ public final class BrainAttachments {
 	private static final long MB = 1024L * 1024L;
 	// leaves room for the text copy's ".txt" within common file name limits
 	private static final int MAX_NAME_CHARS = 150;
+	// what this chat's folder already holds; downloads never land on a dot path, so it cannot be overwritten
+	private static final String STAGED_FILE = ".claude/attachments.json";
+	private static final Object STAGED_LOCK = new Object();
+	private static final int DOWNLOADS_AT_ONCE = 2;
+	private static final Map<String, Semaphore> DOWNLOAD_SLOTS = new ConcurrentHashMap<>();
 
 	private BrainAttachments() {
 
@@ -68,8 +76,21 @@ public final class BrainAttachments {
 	public static Map<String, Object> stage(User user, String folder, String threadId, String messageId,
 			String attachmentId, String attachmentName, String fileName, boolean includeText) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		return stage(user, owner.getValue0(), owner.getValue1(), folder, threadId, messageId, attachmentId,
-				attachmentName, fileName, includeText, BrainMessageSource.current(), maxBytes());
+		// the assistant asks for many files at once; Graph throttles a mailbox past about 4 requests
+		Semaphore slots = DOWNLOAD_SLOTS.computeIfAbsent(owner.getValue0() + "|" + owner.getValue1(),
+				key -> new Semaphore(DOWNLOADS_AT_ONCE));
+		try {
+			slots.acquire();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("The download was stopped.", e);
+		}
+		try {
+			return stage(user, owner.getValue0(), owner.getValue1(), folder, threadId, messageId, attachmentId,
+					attachmentName, fileName, includeText, BrainMessageSource.current(), maxBytes());
+		} finally {
+			slots.release();
+		}
 	}
 
 	/**
@@ -89,8 +110,14 @@ public final class BrainAttachments {
 	static Map<String, Object> stage(User user, String ownerId, String ownerType, String folder, String threadId,
 			String messageId, String attachmentId, String attachmentName, String fileName, boolean includeText,
 			BrainMessageSource messages, long maxBytes) {
+		// the email first: a copy staged from an older email on the thread is not a revised file of the same name
 		if ((attachmentId == null || attachmentId.isBlank()) && attachmentName != null && !attachmentName.isBlank()) {
 			messageId = emailWithFile(user, ownerId, ownerType, threadId, messageId, attachmentName, messages);
+		}
+		Map<String, Object> reused = reuse(user, ownerId, ownerType, folder, threadId, messageId, attachmentId,
+				attachmentName, includeText, messages);
+		if (reused != null) {
+			return reused;
 		}
 		BrainThreadMessages.Readable email = BrainThreadMessages.readable(user, ownerId, ownerType, threadId,
 				messageId, messages);
@@ -170,9 +197,10 @@ public final class BrainAttachments {
 			}
 			result.put("size", size);
 			result.put("filePath", target);
-			if (includeText && BrainAttachmentText.supports(name)) {
+			if (includeText && AttachmentText.supports(name)) {
 				addText(result, path, name, email);
 			}
+			record(dir, result);
 			return result;
 		} catch (IOException e) {
 			classLogger.error("Could not save an attachment on thread {}", threadId, e);
@@ -184,6 +212,113 @@ public final class BrainAttachments {
 				} catch (IOException e) {
 					classLogger.warn("Could not remove a partial attachment download", e);
 				}
+			}
+		}
+	}
+
+	// the attachment this chat already downloaded, so asking again reuses the file instead of Graph;
+	// the email must still pass today's rules, as for a fresh download
+	private static Map<String, Object> reuse(User user, String ownerId, String ownerType, String folder,
+			String threadId, String messageId, String attachmentId, String attachmentName, boolean includeText,
+			BrainMessageSource messages) {
+		Path dir = Path.of(folder).toAbsolutePath().normalize();
+		Map<String, Object> entry = staged(dir, threadId, messageId, attachmentId, attachmentName);
+		if (entry == null) {
+			return null;
+		}
+		Path path = dir.resolve(String.valueOf(entry.get("filePath"))).normalize();
+		if (!dir.equals(path.getParent()) || !Files.isRegularFile(path)) {
+			return null;
+		}
+		BrainThreadMessages.Readable email = BrainThreadMessages.readable(user, ownerId, ownerType, threadId,
+				String.valueOf(entry.get("messageId")), messages);
+		if (email == null) {
+			throw new IllegalArgumentException("This email is not available in the thread.");
+		}
+		Map<String, Object> result = new LinkedHashMap<>(entry);
+		result.remove("textPath");
+		try {
+			result.put("size", Files.size(path));
+		} catch (IOException e) {
+			return null;
+		}
+		result.put("alreadyInChat", true);
+		String name = String.valueOf(entry.get("name"));
+		if (includeText && AttachmentText.supports(name)) {
+			Path text = path.resolveSibling(path.getFileName() + ".txt");
+			if (Files.isRegularFile(text)) {
+				result.put("textPath", text.getFileName().toString());
+			} else {
+				addText(result, path, name, email);
+			}
+		}
+		return result;
+	}
+
+	// by attachment id when one is passed, else by the file name the assistant sees on the thread, from the same email
+	// when it is known
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> staged(Path dir, String threadId, String messageId, String attachmentId,
+			String attachmentName) {
+		boolean byId = attachmentId != null && !attachmentId.isBlank();
+		if (!byId && (attachmentName == null || attachmentName.isBlank())) {
+			return null;
+		}
+		for (Object item : readStaged(dir)) {
+			if (item instanceof Map<?, ?> map) {
+				Map<String, Object> entry = (Map<String, Object>) map;
+				if (!threadId.equals(entry.get("threadId"))) {
+					continue;
+				}
+				if (byId ? attachmentId.equals(entry.get("attachmentId"))
+						: looseName(attachmentName).equals(looseName(String.valueOf(entry.get("name"))))
+								&& (messageId == null || messageId.equalsIgnoreCase(String.valueOf(entry.get("messageId"))))) {
+					return entry;
+				}
+			}
+		}
+		return null;
+	}
+
+	// a file saved under the same name replaces the older entry
+	private static void record(Path dir, Map<String, Object> result) {
+		synchronized (STAGED_LOCK) {
+			List<Object> entries = new ArrayList<>();
+			for (Object item : readStaged(dir)) {
+				if (item instanceof Map<?, ?> map && !result.get("filePath").equals(map.get("filePath"))) {
+					entries.add(item);
+				}
+			}
+			Map<String, Object> entry = new LinkedHashMap<>();
+			for (String key : List.of("threadId", "messageId", "attachmentId", "name", "contentType", "filePath")) {
+				if (result.get(key) != null) {
+					entry.put(key, result.get(key));
+				}
+			}
+			entries.add(entry);
+			Path file = dir.resolve(STAGED_FILE);
+			try {
+				Files.createDirectories(file.getParent());
+				Files.writeString(file, CollaborationDbUtils.toJson(entries), StandardCharsets.UTF_8);
+			} catch (IOException e) {
+				// the download itself still worked; the next ask just downloads again
+				classLogger.warn("Could not record a downloaded attachment", e);
+			}
+		}
+	}
+
+	private static List<Object> readStaged(Path dir) {
+		Path file = dir.resolve(STAGED_FILE);
+		if (!Files.isRegularFile(file)) {
+			return List.of();
+		}
+		synchronized (STAGED_LOCK) {
+			try {
+				List<Object> entries = CollaborationDbUtils.parseList(Files.readString(file, StandardCharsets.UTF_8));
+				return entries == null ? List.of() : entries;
+			} catch (Exception e) {
+				classLogger.warn("Could not read the downloaded attachments list", e);
+				return List.of();
 			}
 		}
 	}
@@ -247,13 +382,24 @@ public final class BrainAttachments {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Could not list the attachments of thread {}", threadId, e);
+			if (messageId == null || messageId.isBlank()) {
+				throw new IllegalStateException("Microsoft could not list this thread's attachments. Try again.", e);
+			}
 			return messageId;
 		}
 		String wanted = looseName(attachmentName);
-		return ids.stream()
+		String found = ids.stream()
 				.filter(id -> listed.getOrDefault(id, List.of()).stream().anyMatch(
 						item -> "file".equals(item.get("kind")) && wanted.equals(looseName(String.valueOf(item.get("name"))))))
-				.findFirst().orElse(messageId);
+				.findFirst().orElse(null);
+		if (found != null || (messageId != null && !messageId.isBlank())) {
+			return found != null ? found : messageId;
+		}
+		// Graph leaves out an email it could not list (still throttled after retries)
+		if (!listed.keySet().containsAll(ids)) {
+			throw new IllegalStateException("Microsoft is busy and could not list this thread's attachments. Try again.");
+		}
+		throw new IllegalArgumentException("No email on this thread has an attached file named " + attachmentName + ".");
 	}
 
 	private static String looseName(String name) {
@@ -264,8 +410,8 @@ public final class BrainAttachments {
 	private static void addText(Map<String, Object> result, Path file, String name,
 			BrainThreadMessages.Readable email) {
 		try {
-			BrainAttachmentText.Extracted text = BrainAttachmentText.extract(file, name, header(name, email),
-					BrainAttachmentText.MAX_CHARS);
+			AttachmentText.Extracted text = AttachmentText.extract(file, name, header(name, email),
+					AttachmentText.MAX_CHARS);
 			if (text == null) {
 				return;
 			}

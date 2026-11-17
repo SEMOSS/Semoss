@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
@@ -57,6 +58,7 @@ public interface IModelEngine extends IEngine {
 	 * @return the type of the database
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	ModelTypeEnum getModelType();
 
 	/**
@@ -77,6 +79,7 @@ public interface IModelEngine extends IEngine {
 	 */
 
 	@Deprecated
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters);
 
 	/**
@@ -93,6 +96,7 @@ public interface IModelEngine extends IEngine {
 	 *         identifier of a message (the user's input and the model response) -
 	 *         roomId: The insightId that the runPixel endpoint is being called from
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	AskModelEngineResponse askRoom(InputMessage inputMessage, Room room, Map<String, Object> parameters);
 
 	/**
@@ -107,6 +111,7 @@ public interface IModelEngine extends IEngine {
 	 *
 	 * @param outboundMessages the messages about to be sent to the provider
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default void validateInputModalities(List<AbstractMessage> outboundMessages) {
 	}
 
@@ -122,6 +127,7 @@ public interface IModelEngine extends IEngine {
 	 *                       max_new_tokens etc
 	 * @return A list of embeddings
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	EmbeddingsModelEngineResponse embeddings(List<String> stringsToEmbed, Insight insight,
 			Map<String, Object> parameters);
 
@@ -144,6 +150,7 @@ public interface IModelEngine extends IEngine {
 	 * @param parameters Additional parameters passed through to the model client.
 	 * @return The embeddings response broken out by modality.
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default MultiModalEmbeddingsModelEngineResponse multiModalEmbeddings(List<String> text, List<String> image,
 			List<String> video, Insight insight, Map<String, Object> parameters) {
 		return MultiModalEmbeddingsModelEngineResponse
@@ -155,6 +162,7 @@ public interface IModelEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean keepsConversationHistory();
 
 	/**
@@ -162,12 +170,14 @@ public interface IModelEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	int getContextWindow();
 
 	/**
 	 * @return configured max output tokens, or 0 when unknown
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default long getMaxTokens() {
 		return 0;
 	}
@@ -177,6 +187,7 @@ public interface IModelEngine extends IEngine {
 	 *         restricted
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default Set<ModelModalityEnum> getInputModalities() {
 		return null;
 	}
@@ -195,6 +206,7 @@ public interface IModelEngine extends IEngine {
 	 * Whether this engine supports submitting native provider batch jobs.
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default boolean supportsBatch() {
 		return false;
 	}
@@ -208,6 +220,7 @@ public interface IModelEngine extends IEngine {
 	 *                   endpoint)
 	 * @return the provider batch id and initial status
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default BatchSubmissionResponse submitBatch(List<Map<String, Object>> requests, Map<String, Object> parameters) {
 		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
 	}
@@ -215,6 +228,7 @@ public interface IModelEngine extends IEngine {
 	/**
 	 * Fetch the live status of a previously submitted batch.
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default BatchStatusResponse getBatchStatus(String providerBatchId, Map<String, Object> parameters) {
 		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
 	}
@@ -222,6 +236,7 @@ public interface IModelEngine extends IEngine {
 	/**
 	 * Fetch the per-request results of a batch (mapped back by custom_id).
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default BatchResultsResponse getBatchResults(String providerBatchId, Map<String, Object> parameters) {
 		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
 	}
@@ -229,6 +244,7 @@ public interface IModelEngine extends IEngine {
 	/**
 	 * List the batches visible to this engine's provider credentials.
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default BatchListResponse listBatches(Map<String, Object> parameters) {
 		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
 	}
@@ -236,6 +252,7 @@ public interface IModelEngine extends IEngine {
 	/**
 	 * Best-effort cancel of a submitted batch.
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default BatchStatusResponse cancelBatch(String providerBatchId, Map<String, Object> parameters) {
 		throw new UnsupportedOperationException("Batch model calls are not supported for this model");
 	}

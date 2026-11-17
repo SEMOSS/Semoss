@@ -63,7 +63,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -323,7 +323,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 		in.setRdbmsId(rdbmsId);
 		in.setProjectId(projectId);
 		in.setProjectName(projectName);
-		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
+		InternalUtility.setProjectSmssPath(projectId,
 				projSmss.getAbsolutePath());
 
 
@@ -412,7 +412,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 		in.setRdbmsId(rdbmsId);
 		in.setProjectId(projectId);
 		in.setProjectName(projectName);
-		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
+		InternalUtility.setProjectSmssPath(projectId,
 				projSmss.getAbsolutePath());
 
 		// set up base folder

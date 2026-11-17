@@ -34,52 +34,50 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class AdminGetLlmFeedbackReactor extends AbstractReactor {
 
-    public AdminGetLlmFeedbackReactor() {
-        this.keysToGet = new String[] {
-                ReactorKeysEnum.LIMIT.getKey(),
-                ReactorKeysEnum.OFFSET.getKey(),
-                ReactorKeysEnum.START_DATE.getKey(),
-                ReactorKeysEnum.END_DATE.getKey(),
-                ReactorKeysEnum.PROJECT.getKey(),
-                "userId",
-                ReactorKeysEnum.ENGINE.getKey()
-        };
-    }
+	public AdminGetLlmFeedbackReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
+				ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey(),
+				ReactorKeysEnum.PROJECT.getKey(), "userId", ReactorKeysEnum.ENGINE.getKey() };
+	}
 
-    @Override
-    public NounMetadata execute() {
-        User user = this.insight.getUser();
-        SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
-        if (adminUtils == null) {
-            throw new IllegalArgumentException("User must be an admin to perform this function");
-        }
-        organizeKeys();
+	@Override
+	public NounMetadata execute() {
+		User user = this.insight.getUser();
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(user);
+		if (adminUtils == null) {
+			throw new IllegalArgumentException("User must be an admin to perform this function");
+		}
+		organizeKeys();
 
-        String limit = this.keyValue.get(this.keysToGet[0]);
-        String offset = this.keyValue.get(this.keysToGet[1]);
-        String startDate = this.keyValue.get(this.keysToGet[2]);
-        String endDate = this.keyValue.get(this.keysToGet[3]);
-        String projectId = this.keyValue.get(this.keysToGet[4]);
-        String userId = this.keyValue.get(this.keysToGet[5]);
-        String engineId = this.keyValue.get(this.keysToGet[6]);
+		String limit = this.keyValue.get(this.keysToGet[0]);
+		String offset = this.keyValue.get(this.keysToGet[1]);
+		String startDate = this.keyValue.get(this.keysToGet[2]);
+		String endDate = this.keyValue.get(this.keysToGet[3]);
+		String projectId = this.keyValue.get(this.keysToGet[4]);
+		String userId = this.keyValue.get(this.keysToGet[5]);
+		String engineId = this.keyValue.get(this.keysToGet[6]);
 
-        List<Map<String, Object>> feedbackList = ModelInferenceLogsUtils.getFeedbackForAdmin(
-                limit, offset, startDate, endDate, projectId, userId, engineId);
+		List<Map<String, Object>> feedbackList = ModelInferenceLogsUtils.getFeedbackForAdmin(limit, offset, startDate,
+				endDate, projectId, userId, engineId);
 
-        return new NounMetadata(feedbackList, PixelDataType.FORMATTED_DATA_SET);
-    }
+		return new NounMetadata(feedbackList, PixelDataType.FORMATTED_DATA_SET);
+	}
 
-    @Override
-    protected String getDescriptionForKey(String key) {
-        if (key.equals("userId")) {
-            return "The user id to filter feedback by";
-        }
-        return super.getDescriptionForKey(key);
-    }
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Returns feedback on model responses, newest first, with each response, the prompt it answered, its user, model engine and project. Filters by date range, project, user and model engine, and pages with limit and offset.")
+				.key(ReactorKeysEnum.ENGINE, "The id of the model engine whose feedback to return.")
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.OFFSET, key -> key.type(Integer.class))
+				.key(ReactorKeysEnum.PROJECT, "The id of the project whose rooms' feedback to return.")
+				.key("userId", "The user id to filter feedback by");
+	}
 }

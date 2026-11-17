@@ -33,6 +33,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -57,8 +58,8 @@ public class BrainCreateDraftFolderReactor extends AbstractCollaborationReactor 
 		}
 		boolean inInbox = Boolean.TRUE.equals(getBoolean(IN_INBOX));
 		try {
-			Map<String, Object> folder = new MicrosoftOutlookMailHelper().createFolder(
-					MicrosoftLoginUtils.getValidAccessToken(user), null, inInbox ? "inbox" : null, name);
+			Map<String, Object> folder = new MicrosoftOutlookMailHelper()
+					.createFolder(MicrosoftLoginUtils.getValidAccessToken(user), null, inInbox ? "inbox" : null, name);
 			if (folder == null || !(folder.get("id") instanceof String id) || id.isBlank()) {
 				throw new IllegalStateException("The folder could not be confirmed. Check Outlook before retrying.");
 			}
@@ -75,17 +76,10 @@ public class BrainCreateDraftFolderReactor extends AbstractCollaborationReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Creates an Outlook folder for Collaboration drafts, or returns the one that already has that name";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (NAME.equals(key)) {
-			return "The folder name";
-		} else if (IN_INBOX.equals(key)) {
-			return "True to make it inside Inbox; otherwise it is made at the top level of the mailbox";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Creates an Outlook folder for Collaboration drafts, or returns the one that already has that name")
+				.key(NAME, "The folder name")
+				.key(IN_INBOX, "True to make it inside Inbox; otherwise it is made at the top level of the mailbox");
 	}
 }

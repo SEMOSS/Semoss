@@ -42,8 +42,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,6 +112,7 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 		directory = mockStatic(MicrosoftGraphUserLookup.class);
 		prices = mockStatic(ModelUsageCost.class);
 		prices.when(() -> ModelUsageCost.hasKnownPrices(anyString())).thenReturn(false);
+		prices.when(() -> ModelUsageCost.priceEntry(anyString())).thenReturn(null);
 		pathView = mockStatic(ModelUsagePathView.class);
 		pathView.when(() -> ModelUsagePathView.toMap(any(ModelUsageLimitPath.class), eq(true))).thenAnswer(call -> Map
 				.of("billedLimitType", String.valueOf(call.<ModelUsageLimitPath>getArgument(0).getBilledLimitType())));
@@ -233,12 +236,18 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 	}
 
 	@Test
-	void removeExpiredEngineUser_removesTheLimitAndMarksTheLimitsChanged() throws Exception {
+	void removingAnEndedGrant_removesTheLimitAndMarksTheLimitsChanged() throws Exception {
 		SecurityAccessPermissionBatchUtils.saveBatches(owner,
 				List.of(modelBatch(changeWith("readerid", "READ_ONLY", tokensADay(5000)))));
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"UPDATE ENGINEPERMISSION SET ENDDATE = ? WHERE USERID = ? AND ENGINEID = ?", ps -> {
+					ps.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now(ZoneOffset.UTC).minusDays(1)));
+					ps.setString(2, "readerid");
+					ps.setString(3, MODEL_ID);
+				});
 		long before = SecurityModelUsageLimitUtils.version();
 
-		SecurityEngineUtils.removeExpiredEngineUser("readerid", MODEL_ID);
+		ExpiredAccessRemoval.removeAllEndedAccess();
 
 		assertNull(direct("readerid"));
 		assertTrue(SecurityModelUsageLimitUtils.version() > before);
@@ -504,7 +513,7 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 		List<Map<String, Object>> changes = changes(validate(owner, batch));
 
 		assertBlocked(changes.get(0), "This model has no known prices, so its limits cannot count cost");
-		assertBlocked(changes.get(1), "Only a team, public use and a model's total can have shared rules");
+		assertBlocked(changes.get(1), "Only a team, an app, public use and a model's total can have shared rules");
 		assertBlocked(changes.get(2), "Only minute and hour windows can be more than one minute or hour long");
 	}
 
@@ -915,19 +924,18 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 		assertTrue(PermissionBatchUtils.sameLimit(expected, actual), "the limits differ");
 	}
 
-	@SuppressWarnings("unchecked")
 	private static Map<String, Object> map(Object value) {
-		return (Map<String, Object>) value;
+		Map<String, Object> copy = new LinkedHashMap<>();
+		((Map<?, ?>) value).forEach((key, entry) -> copy.put((String) key, entry));
+		return copy;
 	}
 
-	@SuppressWarnings("unchecked")
 	private static List<Map<String, Object>> list(Object value) {
-		return (List<Map<String, Object>>) value;
+		return ((List<?>) value).stream().map(PermissionBatchUtilsUsageLimitUnitTests::map).toList();
 	}
 
-	@SuppressWarnings("unchecked")
 	private static List<String> strings(Object value) {
-		return (List<String>) value;
+		return ((List<?>) value).stream().map(String.class::cast).toList();
 	}
 
 	private static List<Map<String, Object>> changes(Map<String, Object> result) {

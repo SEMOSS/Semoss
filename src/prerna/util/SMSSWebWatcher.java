@@ -40,12 +40,12 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.collaboration.CollaborationDbUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
-import prerna.collaboration.CollaborationDbUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.automation.run.AutomationRunStore;
@@ -99,7 +99,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				classLogger.debug("DB {}<>{} is already loaded...", folderToWatch, newFile);
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
-				Utility.catalogEngineByType(filePath, prop, engineId);
+				InternalUtility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to load engine from SMSS file {} in {}", newFile, folderToWatch, e);
@@ -130,7 +130,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				classLogger.debug("DB {}<>{} is already loaded...", folderToWatch, newFile);
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
-				Utility.catalogEngineByType(filePath, prop, engineId);
+				InternalUtility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to catalog engine from SMSS file {} in {}", newFile, folderToWatch, e);

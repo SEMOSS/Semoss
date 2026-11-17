@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -39,43 +40,68 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.pptx.SemossPptxInspector;
 
-/** Pixel entry point for the same inspection service exposed by the agent's InspectPptx tool. */
+/**
+ * Pixel entry point for the same inspection service exposed by the agent's
+ * InspectPptx tool.
+ */
 public class InspectPptxReactor extends AbstractReactor {
-    public InspectPptxReactor() {
-        this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), "instructions", "slides", "context",
-                ReactorKeysEnum.ENGINE.getKey(), "checkConsistency", ReactorKeysEnum.SPACE.getKey() };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
-    }
+	public InspectPptxReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), "instructions", "slides", "context",
+				ReactorKeysEnum.ENGINE.getKey(), "checkConsistency", ReactorKeysEnum.SPACE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
+	}
 
-    @Override public NounMetadata execute() {
-        organizeKeys();
-        Map<String, Object> params = new HashMap<>();
-        for (String key : keysToGet) {
-            if (key.equals("space") || key.equals("slides")) continue;
-            String value = keyValue.get(key);
-            if (value != null) {
-                if (key.equals("checkConsistency")) {
-                    if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false"))
-                        throw new IllegalArgumentException("checkConsistency must be a boolean");
-                    params.put(key, Boolean.parseBoolean(value));
-                } else params.put(key, value);
-            }
-        }
-        GenRowStruct slideValues = store.getNoun("slides");
-        if (slideValues != null) {
-            java.util.List<Object> slides = new java.util.ArrayList<>();
-            for (int i = 0; i < slideValues.size(); i++) slides.add(slideValues.get(i));
-            params.put("slides", slides);
-        }
-        // Inspection writes its PDF/images/report into this space, so require edit access.
-        String root = AssetUtility.getRootFolderPath(insight, keyValue.get(ReactorKeysEnum.SPACE.getKey()), true);
-        try {
-            return new NounMetadata(SemossPptxInspector.inspect(Path.of(root), params, insight, insight.getRoomId(), null).toMap(), PixelDataType.MAP);
-        } catch (RuntimeException e) { throw e;
-        } catch (Exception e) { throw new IllegalArgumentException("PPTX inspection failed: " + e.getMessage(), e); }
-    }
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+		Map<String, Object> params = new HashMap<>();
+		for (String key : keysToGet) {
+			if (key.equals("space") || key.equals("slides"))
+				continue;
+			String value = keyValue.get(key);
+			if (value != null) {
+				if (key.equals("checkConsistency")) {
+					if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false"))
+						throw new IllegalArgumentException("checkConsistency must be a boolean");
+					params.put(key, Boolean.parseBoolean(value));
+				} else
+					params.put(key, value);
+			}
+		}
+		GenRowStruct slideValues = store.getNoun("slides");
+		if (slideValues != null) {
+			java.util.List<Object> slides = new java.util.ArrayList<>();
+			for (int i = 0; i < slideValues.size(); i++)
+				slides.add(slideValues.get(i));
+			params.put("slides", slides);
+		}
+		// Inspection writes its PDF/images/report into this space, so require edit
+		// access.
+		String root = AssetUtility.getRootFolderPath(insight, keyValue.get(ReactorKeysEnum.SPACE.getKey()), true);
+		try {
+			return new NounMetadata(
+					SemossPptxInspector.inspect(Path.of(root), params, insight, insight.getRoomId(), null).toMap(),
+					PixelDataType.MAP);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IllegalArgumentException("PPTX inspection failed: " + e.getMessage(), e);
+		}
+	}
 
-    @Override public String getReactorDescription() {
-        return "Render all or selected PowerPoint slides with UnoServer and inspect their images with a vision model against instructions.";
-    }
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Render all or selected PowerPoint slides with UnoServer and inspect their images with a vision model against instructions.")
+				.key("checkConsistency", key -> key.type(Boolean.class).description(
+						"Whether to also compare the reviewed slides with each other, true or false (default true); it applies only when more than one slide is reviewed."))
+				.key("context",
+						"Optional background for the review, such as the audience, branding, template requirements or relevant content.")
+				.key(ReactorKeysEnum.ENGINE,
+						"The id of the vision model to use; defaults to the model set in PPTX_VISION_MODEL_ID. The user needs access to it.")
+				.key("instructions",
+						"The review brief: what to inspect, the design you want, and the constraints to keep.")
+				.key("slides", key -> key.list(Integer.class).description(
+						"The 1-based slide numbers to review, at most 100; leave out to review the whole deck, including hidden slides."));
+	}
 }

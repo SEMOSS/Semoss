@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -48,17 +49,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 
 import org.javatuples.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.MockedStatic;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -66,7 +71,8 @@ import prerna.util.sql.SqlQueryUtilFactory;
 
 /**
  * Re-sorting after a topic changes, against an in-memory H2 Collaboration schema: which conversations a preview
- * scores, which scores become rows, and what move, also_link and reject leave behind.
+ * scores, which scores become rows, and what move, also_link and reject leave behind. Also which topics a chat can
+ * still be linked to once a topic is gone.
  */
 class BrainTopicMatchesDbUnitTests {
 
@@ -96,7 +102,9 @@ class BrainTopicMatchesDbUnitTests {
 					.getDBSchema()) {
 				List<String> columns = new ArrayList<>();
 				for (Pair<String, String> column : table.getValue1()) {
-					columns.add(column.getValue0() + " " + column.getValue1());
+					// quoted as the server quotes them: H2 2.x reserves words such as VALUE
+					String name = column.getValue0();
+					columns.add((queryUtil.isSelectorKeyword(name) ? queryUtil.getEscapeKeyword(name) : name) + " " + column.getValue1());
 				}
 				statement.execute("CREATE TABLE " + table.getValue0() + " (" + String.join(", ", columns) + ")");
 			}
@@ -316,7 +324,174 @@ class BrainTopicMatchesDbUnitTests {
 		assertThrows(IllegalArgumentException.class, () -> apply(change("x", BrainTopicMatches.ALSO_LINK)));
 	}
 
+	// ---- a chat's topics ----
+
+	@Test
+	void aChatIsNotTaggedWithATopicGoneWhileItWasScored() throws Exception {
+		BrainTopicRoomUtils.Chat chat = new BrainTopicRoomUtils.Chat("chat", null, Map.of());
+		sql("DELETE FROM BRAIN_TOPIC WHERE TOPIC_ID = ?", A);
+		sql("UPDATE BRAIN_TOPIC SET STATUS = 'archived' WHERE TOPIC_ID = ?", B);
+		assertEquals("none", BrainTopicRoomUtils.brainTag(ownerId, ownerType, chat, A, true));
+		assertEquals("none", BrainTopicRoomUtils.brainTag(ownerId, ownerType, chat, B, true));
+		assertEquals(BrainTopicRoomUtils.LINKED, BrainTopicRoomUtils.brainTag(ownerId, ownerType, chat, T, true));
+		assertEquals(1L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_ROOM"));
+	}
+
+	@Test
+	void aTopicDeletedWhileTheOwnersLinkWaitsIsNotLinked() throws Exception {
+		assertThrows(IllegalArgumentException.class,
+				() -> deletedWhileWaiting(A, () -> BrainTopicRoomUtils.linkRoomTopic(user, "chat", A, null, false)));
+		assertEquals(0L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_ROOM"));
+	}
+
+	@Test
+	void aTopicDeletedWhileTheAssistantsTagWaitsIsNotTagged() throws Exception {
+		assertThrows(IllegalArgumentException.class,
+				() -> deletedWhileWaiting(B, () -> BrainTopicRoomUtils.tagRoomTopic(user, "chat", B, true)));
+		assertEquals(0L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_ROOM"));
+	}
+
+	@Test
+	void aLinkLeftToADeletedTopicIsNotOneOfTheChatsTopics() throws Exception {
+		for (String topic : List.of(T, "deleted")) {
+			sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+					+ "VALUES (?, ?, 'chat', ?, 'linked', 'you')", ownerId, ownerType, topic);
+		}
+		Room room = mock(Room.class);
+		when(room.getId()).thenReturn("chat");
+		when(room.getProjectId()).thenReturn(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		when(room.getOptionsMap()).thenReturn(Map.of());
+		// sending from the chat links the email to each of these
+		assertEquals(List.of(T), BrainTopicRoomUtils.topicsOf(user, room));
+	}
+
+	@Test
+	void aTopicTheOwnerTookOffAChatIsThatChatsAlone() throws Exception {
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'chat', ?, 'dismissed', 'you')", ownerId, ownerType, A);
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'chat', ?, 'linked', 'you')", ownerId, ownerType, B);
+		sql("INSERT INTO BRAIN_TOPIC_ROOM (OWNER_ID, OWNER_TYPE, ROOM_ID, TOPIC_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, 'other-chat', ?, 'dismissed', 'you')", ownerId, ownerType, T);
+		// the background tagger leaves these out of what it offers for the chat
+		assertEquals(Set.of(A), BrainTopicRoomUtils.dismissed(ownerId, ownerType, "chat"));
+	}
+
 	// ---- helpers ----
+
+	// runs call on the owner's chat while another thread holds the chat-topic lock; that thread deletes the topic
+	// once call is waiting for the lock, as a delete during the classifier's model call would
+	private void deletedWhileWaiting(String topicId, Executable call) throws Throwable {
+		Object lock = CollaborationDbUtils.ownerLock("topic-room", ownerId, ownerType);
+		Thread caller = Thread.currentThread();
+		CountDownLatch held = new CountDownLatch(1);
+		Thread holder = new Thread(() -> {
+			synchronized (lock) {
+				held.countDown();
+				long until = System.nanoTime() + 5_000_000_000L;
+				while (caller.getState() != Thread.State.BLOCKED && System.nanoTime() < until) {
+					Thread.onSpinWait();
+				}
+				try {
+					sql("DELETE FROM BRAIN_TOPIC WHERE TOPIC_ID = ?", topicId);
+				} catch (Exception e) {
+					throw new IllegalStateException(e);
+				}
+			}
+		});
+		try (MockedStatic<ModelInferenceLogsUtils> logs = mockStatic(ModelInferenceLogsUtils.class)) {
+			logs.when(() -> ModelInferenceLogsUtils.getActiveRoomSummaries(anyString(), anyList())).thenReturn(
+					List.of(Map.of("ROOM_ID", "chat", "PROJECT_ID", CollaborationUtils.COLLABORATION_PROJECT_ID)));
+			holder.start();
+			held.await();
+			call.execute();
+		} finally {
+			holder.join();
+		}
+	}
+
+	// ---- filing by hand teaches the topic ----
+
+	private void writers() throws Exception {
+		for (String[] person : new String[][] { { "ann", null }, { "bob", null }, { "me", "self" },
+				{ "bot", "automated" }, { "gone", null }, { "known", null }, { "muted", null } }) {
+			sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, RELATIONSHIP) "
+					+ "VALUES (?, ?, ?, ?, ?)", ownerId, ownerType, person[0], person[0], person[1]);
+			sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID, INCLUDED) "
+					+ "VALUES (?, ?, 'x', ?, ?)", ownerId, ownerType, person[0], !"muted".equals(person[0]));
+		}
+		sql("INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, PERSON_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, ?, 'gone', 'removed', 'you')", ownerId, ownerType, T);
+		sql("INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, PERSON_ID, STATE, ORIGIN) "
+				+ "VALUES (?, ?, ?, 'known', 'member', 'you')", ownerId, ownerType, T);
+	}
+
+	private void assertLearned() throws Exception {
+		assertEquals(List.of("ann", "bob"), strings("SELECT PERSON_ID FROM BRAIN_TOPIC_PERSON WHERE TOPIC_ID = '" + T
+				+ "' AND ORIGIN = 'correction' AND STATE = 'suggested' ORDER BY PERSON_ID"));
+		assertEquals("removed", value("SELECT STATE FROM BRAIN_TOPIC_PERSON WHERE PERSON_ID = 'gone'"));
+		assertEquals("member", value("SELECT STATE FROM BRAIN_TOPIC_PERSON WHERE PERSON_ID = 'known'"));
+		assertEquals(4L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_PERSON"));
+	}
+
+	@Test
+	void aMoveAddsThePeopleOnTheConversationToTheTopic() throws Exception {
+		thread("x", "2026-10-20 10:00:00", false, false);
+		link("x", A, "confirmed", true, "jev-v1", "brain");
+		writers();
+
+		assertEquals(1, apply(change("x", BrainTopicMatches.MOVE)).get("applied"));
+
+		assertLearned();
+	}
+
+	@Test
+	void filingByHandAddsThemAndMovesThePrimaryOffBrainsGuess() throws Exception {
+		thread("x", "2026-10-20 10:00:00", false, false);
+		link("x", A, "confirmed", true, "jev-v1", "brain");
+		link("x", B, "you", false, null, "you");
+		writers();
+
+		BrainThreadUtils.linkThreadTopic(user, "x", T, true, false);
+
+		// the guess is gone and remembered as wrong, the owner's own link stays as a secondary
+		assertEquals(List.of(List.of(T, "you", true), List.of(B, "you", false)), links("x"));
+		assertEquals(Set.of(A), rejections("x"));
+		assertLearned();
+	}
+
+	@Test
+	void anAlsoLinkAddsThePeopleButChangesNoPrimary() throws Exception {
+		thread("x", "2026-10-20 10:00:00", false, false);
+		link("x", A, "confirmed", true, "jev-v1", "brain");
+		writers();
+
+		BrainThreadUtils.linkThreadTopic(user, "x", T, false, false);
+
+		assertEquals(List.of(List.of(A, "confirmed", true), List.of(T, "you", false)), links("x"));
+		assertLearned();
+	}
+
+	@Test
+	void unlinkingTeachesNothing() throws Exception {
+		thread("x", "2026-10-20 10:00:00", false, false);
+		link("x", T, "suggested", true, "jev-v1", "brain");
+		writers();
+
+		BrainThreadUtils.linkThreadTopic(user, "x", T, false, true);
+
+		assertEquals(2L, value("SELECT COUNT(*) FROM BRAIN_TOPIC_PERSON"));
+	}
+
+	private List<String> strings(String sql) throws Exception {
+		List<String> out = new ArrayList<>();
+		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery(sql)) {
+			while (rs.next()) {
+				out.add(rs.getString(1));
+			}
+		}
+		return out;
+	}
 
 	@SafeVarargs
 	private Map<String, Object> apply(Map<String, Object>... changes) {

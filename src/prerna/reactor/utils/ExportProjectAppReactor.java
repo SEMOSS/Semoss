@@ -38,13 +38,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.InsightFile;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -54,7 +54,6 @@ import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -76,18 +75,14 @@ public class ExportProjectAppReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 
 		User user = this.insight.getUser();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin) {
-			boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-			if (!isOwner) {
-				throw new IllegalArgumentException(
-						"Project " + projectId + "does not exist or user does not have access to export.");
-			}
+		boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
+		if (!isOwner) {
+			throw new IllegalArgumentException(
+					"Project " + projectId + "does not exist or user does not have access to export.");
 		}
 
 		logger.info("Exporting project now...");
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
+		String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER).replace("\\", "/");
 		if (!baseFolder.endsWith("/")) {
 			baseFolder += "/";
 		}
@@ -220,16 +215,10 @@ public class ExportProjectAppReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Export an app as a single zip file";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "This is a required value containing the id of the app that is being exported";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Export an app as a single zip file").key(
+				ReactorKeysEnum.PROJECT,
+				"This is a required value containing the id of the app that is being exported");
 	}
 
 }

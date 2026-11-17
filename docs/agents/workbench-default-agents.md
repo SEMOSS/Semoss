@@ -53,4 +53,15 @@ Room options store the effective `workspace` and `workbenchAgentMode` (`default`
 
 ## Other platform agents
 
+**Office Agent** (`office-agent`) is a system WORKSPACE agent with exactly the `docx`,
+`pptx`, and `xlsx` skills attached. It uses the normal agent tools and the user's
+selected model, with no additional MCPs or presentation-only workflow configuration.
+Its prompt requires loading the relevant skills, preserving the latest saved files,
+creating genuine Office packages, verifying saved content and calculations, and
+returning links to the checked outputs. It can complete requests involving several
+Office formats in one conversation. Its canonical prompt is `OFFICE_SYSTEM_PROMPT`
+in `SystemAgentSeeder`; it is seeded and reconciled through the same boot path as
+the other system agents. In Playground, select Agent mode as well as Office Agent;
+normal Chat mode does not stage skills or provide the managed code executors.
+
 The platform catalog also includes presentation authoring/review agents. They are specialized workspace configurations rather than an additional harness. See the [presentation workflow](pptx-visual-inspection.md) and [SystemAgentSeeder](../../src/prerna/util/SystemAgentSeeder.java) for their tools, skills, limits, and delegation configuration. [SystemDefaultEngines](../../src/prerna/util/SystemDefaultEngines.java) is the authoritative list of system agents and skills.

@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSetThreadNotAutomated(threadId=["..."], notAutomated=[true]);
@@ -56,18 +57,11 @@ public class BrainSetThreadNotAutomatedReactor extends AbstractCollaborationReac
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Corrects a thread wrongly marked automated: it stays not automated on every later run, "
-				+ "what was dismissed as automated comes back, and the thread is classified again";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (NOT_AUTOMATED.equals(key)) {
-			return "true (default) marks the thread not automated; false removes the correction";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Corrects a thread wrongly marked automated: it stays not automated on every later run, "
+						+ "what was dismissed as automated comes back, and the thread is classified again")
+				.key(THREAD_ID, "Thread id")
+				.key(NOT_AUTOMATED, "true (default) marks the thread not automated; false removes the correction");
 	}
 }

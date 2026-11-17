@@ -51,7 +51,7 @@ import prerna.sablecc2.PixelStreamUtility;
  * @author ngalt
  */
 public class PixelJsonGenerator extends PixelUnit {
-	private static final String CLASS_NAME = PixelStreamUtility.class.getName();
+	private static final String CLASS_NAME = PixelJsonGenerator.class.getName();
 	private static final Logger LOGGER = LogManager.getLogger(CLASS_NAME);
 	
 	protected static final String TESTS_CSV = Paths.get(TEST_RESOURCES_DIRECTORY, "tests.csv").toAbsolutePath().toString();

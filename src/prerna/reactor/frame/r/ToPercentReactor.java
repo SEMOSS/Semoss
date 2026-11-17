@@ -34,6 +34,7 @@ import java.util.Vector;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -150,13 +151,13 @@ public class ToPercentReactor extends AbstractRFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SIG_DIGITS)) {
-			return "Indicates the number of significant digits you'd like to keep";
-		} else if (key.equals(BY100)) {
-			return "Indicates if you want to multiply by 100 to get in percent form.";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Formats a numeric column of the R frame as percent strings rounded to the given number of decimal places, optionally multiplying by 100 first, in a new column or in place of the source column.")
+				.key(SIG_DIGITS,
+						key -> key.type(Integer.class)
+								.description("Indicates the number of significant digits you'd like to keep"))
+				.key(BY100, key -> key.type(Boolean.class)
+						.description("Indicates if you want to multiply by 100 to get in percent form."));
 	}
 }

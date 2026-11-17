@@ -31,6 +31,7 @@ import java.util.List;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListTopics(status=["active"], accountId=["..."], limit=[30], offset=[0]);
@@ -51,7 +52,7 @@ public class BrainListTopicsReactor extends AbstractCollaborationReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		// one topic in full: description, goals, notes, and its people with names
+		// one topic in full: description, notes, and its people with names
 		String topicId = getString(TOPIC_ID);
 		String topicName = getString(TOPIC);
 		if ((topicId != null && !topicId.isBlank()) || (topicName != null && !topicName.isBlank())) {
@@ -65,28 +66,15 @@ public class BrainListTopicsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain topics as { items, total }. Pass topicId or topic to get one topic "
-				+ "in full instead: its description, goals, open action items, notes, and people with their names, "
-				+ "roles, and state. "
-				+ "Its notes are the owner's memories about the topic, listed while the owner has memory on";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (STATUS.equals(key)) {
-			return "Topic statuses to include: suggested, active, dormant, archived; all when omitted";
-		} else if (ACCOUNT_ID.equals(key)) {
-			return "Only topics in this account";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Return this one topic in full";
-		} else if (TOPIC.equals(key)) {
-			return "Topic name, when the id is not known; must match one topic";
-		} else if (LIMIT.equals(key)) {
-			return "Page size, default 30";
-		} else if (OFFSET.equals(key)) {
-			return "Rows to skip, default 0";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the signed-in user's Brain topics as { items, total }. Pass topicId or topic to get one topic "
+						+ "in full instead: its description, open action items, notes, and people with their names, "
+						+ "roles, and state. "
+						+ "Its notes are the owner's memories about the topic, listed while the owner has memory on")
+				.key(STATUS, "Topic statuses to include: suggested, active, dormant, archived; all when omitted")
+				.key(ACCOUNT_ID, "Only topics in this account").key(LIMIT, "Page size, default 30")
+				.key(OFFSET, "Rows to skip, default 0").key(TOPIC_ID, "Return this one topic in full")
+				.key(TOPIC, "Topic name, when the id is not known; must match one topic");
 	}
 }

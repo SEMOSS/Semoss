@@ -49,6 +49,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -222,18 +223,12 @@ public class ReplaceInaccessibleEnginesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Replaces UUID engine ids with new UUID values";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is an optional relative file path within the project assets folder to search";
-		} else if (key.equals(ReactorKeysEnum.MAP.getKey())) {
-			return "This is a required field which contains the key-value map of inaccessible engine ids to their accessible replacements.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Replaces UUID engine ids with new UUID values")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"This is an optional relative file path within the project assets folder to search")
+				.key(ReactorKeysEnum.MAP,
+						"This is a required field which contains the key-value map of inaccessible engine ids to their accessible replacements.");
 	}
 
 }

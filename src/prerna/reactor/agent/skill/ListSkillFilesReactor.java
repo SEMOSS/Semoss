@@ -43,6 +43,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.PixelDataType;
@@ -179,20 +180,15 @@ public class ListSkillFilesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the files that make up a skill's content, one row per file with filePath (relative to the "
-				+ "skill folder), name, and description as declared in the YAML frontmatter at the top of the file "
-				+ "(files without frontmatter report their file name and an empty description). Pass a returned "
-				+ "filePath to ReadSkillFile to get that file's full contents. Defaults to the current project "
-				+ "when 'project' is not supplied.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "Optional. Id of the skill project to list. Defaults to the current project context. "
-					+ "Requires view access to the project.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the files that make up a skill's content, one row per file with filePath (relative to the "
+						+ "skill folder), name, and description as declared in the YAML frontmatter at the top of the file "
+						+ "(files without frontmatter report their file name and an empty description). Pass a returned "
+						+ "filePath to ReadSkillFile to get that file's full contents. Defaults to the current project "
+						+ "when 'project' is not supplied.")
+				.key(ReactorKeysEnum.PROJECT,
+						"Optional. Id of the skill project to list. Defaults to the current project context. "
+								+ "Requires view access to the project.");
 	}
 }

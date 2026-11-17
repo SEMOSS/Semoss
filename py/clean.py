@@ -86,44 +86,39 @@ class PyFrame:
         actual_col_values = frame[actual_col].unique()
         predicted_col_values = frame[predicted_col].unique()
         for x in actual_col_values:
-            if x is np.nan:
+            if not isinstance(x, str):
                 continue
             for y in predicted_col_values:
-                if y is np.nan:
+                if not isinstance(y, str):
                     continue
-                # ratio = fuzz.WRatio(x, y)
-                ratio = distance.get_jaro_distance(x, y, winkler=True, scaling=0.1)
-                # ratio is 1 when values are the same
-                # so we want to do the inverse
-                ratio = 1 - ratio
+                try:
+                    ratio = distance.get_jaro_winkler_distance(x, y, scaling=0.1)
+                except distance.JaroDistanceError:
+                    continue
                 if ratio != 0:
-                    data = [x, y, ratio]
-                    result.append(data)
+                    result.append([x, y, ratio])
         result = pd.DataFrame(result, columns=["col1", "col2", "distance"])
-        return result
+        return result.astype({"distance": "float64"})
 
     def self_match(this, actual_col):
         result = []
         frame = this.cache["data"]
-        # print ("Finished math")
         actual_col_values = frame[actual_col].value_counts().index.values
         for index_loop_one, x in enumerate(actual_col_values):
-            if x is np.nan or x is None:
+            if not isinstance(x, str):
                 continue
             for y in actual_col_values[(index_loop_one + 1) :]:
-                if y is np.nan or y is None:
+                if not isinstance(y, str):
                     continue
-                # print(x + "<<>>" + y)
                 try:
                     ratio = distance.get_jaro_winkler_distance(
-                        x, y, scaling=0.1, ignore_case=True
+                        x, y, scaling=0.1, norm_case=True
                     )
-                    data = [x, y, ratio]
-                    result.append(data)
-                except:
-                    pass
+                except distance.JaroDistanceError:
+                    continue
+                result.append([x, y, ratio])
         result = pd.DataFrame(result, columns=["col1", "col2", "distance"])
-        return result
+        return result.astype({"distance": "float64"})
 
     def merge_match_results(this, col_name, link_frame):
         # link_frame contains col1, col2 where col1 contains instances

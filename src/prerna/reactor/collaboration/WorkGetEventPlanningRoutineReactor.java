@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkEventPlanningRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkGetEventPlanningRoutineReactor extends AbstractCollaborationReactor {
@@ -42,7 +43,8 @@ public class WorkGetEventPlanningRoutineReactor extends AbstractCollaborationRea
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the signed-in user's event planning routine settings and latest digest";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns the signed-in user's event planning routine settings and latest digest").noKeys();
 	}
 }

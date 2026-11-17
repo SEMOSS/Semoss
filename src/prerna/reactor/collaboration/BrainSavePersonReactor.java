@@ -31,6 +31,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainPeopleUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSavePerson(person=[{"id": "...", "vip": true, "follow": "following", "neverIngest": false,
@@ -55,15 +56,10 @@ public class BrainSavePersonReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Edits a Brain person; never ingest and channel scope save as rules the gate enforces";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (KEY.equals(key)) {
-			return "Partial person with id: relationship, vip, accountId, neverIngest, channelScope {email, teams}";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Edits a Brain person; never ingest and channel scope save as rules the gate enforces")
+				.key(KEY,
+						"Partial person with id: relationship, vip, accountId, neverIngest, channelScope {email, teams}");
 	}
 }

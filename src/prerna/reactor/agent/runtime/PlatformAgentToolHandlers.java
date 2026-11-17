@@ -51,6 +51,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -63,7 +65,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.node.NodeTranslator;
 import prerna.ds.node.NodeUtils;
@@ -76,10 +77,12 @@ import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.agent.skill.Skill;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.tcp.client.SocketClient;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.pptx.SemossPptxInspector;
 
@@ -89,6 +92,8 @@ final class PlatformAgentToolHandlers {
 
 	private static final String TOOL_KIND = "semoss_platform_default";
 	private static final int DEFAULT_READ_MAX_LINES = 2000;
+	// MB of file ReadFile extracts as a document when RDF_Map sets no DOCUMENT_READ_MAX_FILE_MB
+	private static final int DEFAULT_DOCUMENT_READ_MAX_FILE_MB = 100;
 	private static final List<String> DOCLING_READ_EXTENSIONS = List.of("pdf", "docx", "pptx", "xlsx");
 	private static final int MAX_GLOB_RESULTS = 500;
 	private static final int DEFAULT_GREP_HEAD_LIMIT = 200;
@@ -111,6 +116,8 @@ final class PlatformAgentToolHandlers {
 	private static final int MAX_NODE_TIMEOUT_SECONDS = 600;
 	private static final String PARAM_PATH = "path";
 	private static final String PARAM_NEW_PATH = "new_path";
+	/** Starts the path of one of the agent's own files, such as agent:/guide.pdf. */
+	static final String AGENT_FILES_PREFIX = "agent:";
 
 	private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList("pwd", "ls", "dir", "find", "cat",
 			"head", "tail", "wc", "stat", "grep", "rg", "sed", "awk", "cut", "sort", "uniq", "tr", "diff", "python",
@@ -158,7 +165,9 @@ final class PlatformAgentToolHandlers {
 		add(tools, handler("WriteFile",
 				"Writes text to a file under the working directory, creating parent directories as needed.",
 				objectSchema(props(prop(PARAM_PATH, stringProp("Path to write, relative to the working directory.")),
-						prop("content", stringProp("Complete file content."))), List.of(PARAM_PATH, "content")),
+						prop("content", stringProp("Complete file content.")),
+						prop(ReactorKeysEnum.OVERRIDE.getKey(), booleanProp(FileSystemUtil.OVERRIDE_SAVE_DESCRIPTION))),
+						List.of(PARAM_PATH, "content")),
 				PlatformAgentToolHandlers::writeFile));
 		add(tools, handler("EditFile",
 				"Performs one exact string replacement in a file. Fails if the old string is not unique unless replace_all=true.",
@@ -219,6 +228,20 @@ final class PlatformAgentToolHandlers {
 				handler("ListDirectory", "Lists directory contents under the working directory.", objectSchema(
 						props(prop("path", stringProp("Optional directory path. Defaults to working directory."))),
 						Collections.emptyList()), PlatformAgentToolHandlers::listDirectory));
+		add(tools, handler("CopyAgentFile", """
+				Copies one of the agent's own files (an agent:/ path) into the working directory, where it can be \
+				changed and used by every other tool. The agent's own file stays as it is.\
+				""",
+				objectSchema(
+						props(prop(PARAM_PATH, stringProp("The agent file to copy, such as agent:/templates/report.docx.")),
+								prop(PARAM_NEW_PATH, stringProp("""
+										Where to put the copy, relative to the working directory. Defaults to the \
+										file's own name at the top of the working directory.\
+										""")),
+								prop(ReactorKeysEnum.OVERRIDE.getKey(),
+										booleanProp(FileSystemUtil.OVERRIDE_KEEP_DESCRIPTION))),
+						List.of(PARAM_PATH)),
+				PlatformAgentToolHandlers::copyAgentFile));
 		if (isBashEnabled()) {
 			add(tools, handler("BashCommand", """
 					Executes one command in the working directory. Allowed commands: %s. \
@@ -343,7 +366,9 @@ final class PlatformAgentToolHandlers {
 		if (workingDir == null || workingDir.trim().isEmpty()) {
 			throw new IllegalArgumentException("Agent working directory is not set");
 		}
-		return new ToolContext(ctx, normalizePath(workingDir));
+		String agentFilesDir = ctx.getAgentConfig() != null ? ctx.getAgentConfig().getAgentFilesDir() : null;
+		return new ToolContext(ctx, normalizePath(workingDir),
+				agentFilesDir == null ? null : normalizePath(agentFilesDir));
 	}
 
 	private static String readFile(Map<String, Object> params, ToolContext tc) throws Exception {
@@ -359,7 +384,7 @@ final class PlatformAgentToolHandlers {
 		if (limit < 1) {
 			limit = DEFAULT_READ_MAX_LINES;
 		}
-		File file = tc.resolve(filePath);
+		File file = tc.resolveReadable(filePath);
 		if (!file.exists()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -425,11 +450,24 @@ final class PlatformAgentToolHandlers {
 		if (tc.ctx.getInsight() == null || tc.ctx.getInsight().getUser() == null) {
 			throw new IllegalStateException("no user is associated with this agent run");
 		}
+		if (tc.isAgentFile(file)) {
+			// python can be confined to a chroot that holds the room but not the agent's
+			// project, so it reads a short-lived copy in the working directory
+			Path copy = Path.of(tc.root, ".agent-file-" + UUID.randomUUID() + "."
+					+ FilenameUtils.getExtension(file.getName()).toLowerCase(Locale.ROOT));
+			try {
+				Files.copy(file.toPath(), copy);
+				return extractDocumentMarkdown(copy.toFile(), tc);
+			} finally {
+				Files.deleteIfExists(copy);
+			}
+		}
 		// pass the path as base64 so no quoting/escaping can break the script
 		String encodedPath = Base64.getEncoder()
 				.encodeToString(file.getAbsolutePath().getBytes(StandardCharsets.UTF_8));
 		String script = "from smssutil import get_document_markdown as _smss_doc_md\n" + "import base64 as _smss_b64\n"
-				+ "print(_smss_doc_md(_smss_b64.b64decode('" + encodedPath + "').decode('utf-8')), end='')";
+				+ "print(_smss_doc_md(_smss_b64.b64decode('" + encodedPath + "').decode('utf-8'), max_file_bytes="
+				+ documentReadMaxFileBytes() + "), end='')";
 		Insight executionInsight = tc.ctx.getInsight();
 		User user = executionInsight.getUser();
 		Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
@@ -446,6 +484,21 @@ final class PlatformAgentToolHandlers {
 		return output == null ? "" : output.toString();
 	}
 
+	/** Bytes of file ReadFile extracts as a document: RDF_Map's DOCUMENT_READ_MAX_FILE_MB, or 100 MB. */
+	static long documentReadMaxFileBytes() {
+		String value = getTrimmedProperty(Constants.DOCUMENT_READ_MAX_FILE_MB);
+		long mb = DEFAULT_DOCUMENT_READ_MAX_FILE_MB;
+		if (value != null) {
+			try {
+				mb = Math.max(1, Long.parseLong(value));
+			} catch (NumberFormatException e) {
+				logger.warn("{} is not a whole number of MB; using {}", Constants.DOCUMENT_READ_MAX_FILE_MB,
+						DEFAULT_DOCUMENT_READ_MAX_FILE_MB);
+			}
+		}
+		return mb * 1024L * 1024L;
+	}
+
 	private static String lastLine(String message) {
 		if (message == null || message.isBlank()) {
 			return "extraction failed";
@@ -460,10 +513,15 @@ final class PlatformAgentToolHandlers {
 		if (filePath == null || filePath.trim().isEmpty()) {
 			return "Error: path is required";
 		}
+		Object overrideParam = params.get(ReactorKeysEnum.OVERRIDE.getKey());
+		boolean override = overrideParam == null || parseBoolean(overrideParam);
 		File file = tc.resolve(filePath);
 		tc.requireWritable(file);
-		saveTextFile(file, content, tc);
-		return "Wrote file: " + tc.toRelative(file.getAbsolutePath());
+		SavedAsset saved = saveTextFile(file, content, override, tc);
+		if (saved.renamed()) {
+			return "Wrote file: " + saved.savedPath() + " (" + saved.requestedPath() + " already exists)";
+		}
+		return "Wrote file: " + saved.savedPath();
 	}
 
 	private static String editFile(Map<String, Object> params, ToolContext tc) throws Exception {
@@ -496,7 +554,7 @@ final class PlatformAgentToolHandlers {
 		}
 		String updated = replaceAll ? content.replace(oldString, newString)
 				: content.replaceFirst(Pattern.quote(oldString), Matcher.quoteReplacement(newString));
-		saveTextFile(file, updated, tc);
+		saveTextFile(file, updated, true, tc);
 		return "Replaced " + occurrences + " occurrence(s) in: " + tc.toRelative(file.getAbsolutePath());
 	}
 
@@ -560,7 +618,7 @@ final class PlatformAgentToolHandlers {
 					: working.replaceFirst(Pattern.quote(oldString), Matcher.quoteReplacement(newString));
 			totalReplacements += occurrences;
 		}
-		saveTextFile(file, working, tc);
+		saveTextFile(file, working, true, tc);
 		return "Applied " + edits.length() + " edit(s) (" + totalReplacements + " replacement(s)) to: "
 				+ tc.toRelative(file.getAbsolutePath());
 	}
@@ -608,14 +666,15 @@ final class PlatformAgentToolHandlers {
 	private static String globFiles(Map<String, Object> params, ToolContext tc) throws Exception {
 		String pattern = stringParam(params, "pattern");
 		String basePath = stringParam(params, "path");
-		File baseDir = tc.resolve(basePath);
+		File baseDir = tc.resolveReadable(basePath);
 		if (!baseDir.exists() || !baseDir.isDirectory()) {
 			return "Error: directory not found: " + (basePath != null ? basePath : ".");
 		}
-		PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+		PathMatcher matcher = globMatcher(pattern);
 		List<Path> matches = new ArrayList<>();
 		try (Stream<Path> paths = Files.walk(baseDir.toPath())) {
-			paths.filter(p -> !Files.isDirectory(p)).filter(p -> {
+			// a link can point outside the folder being searched
+			paths.filter(p -> !Files.isDirectory(p) && !Files.isSymbolicLink(p)).filter(p -> {
 				Path rel = baseDir.toPath().relativize(p);
 				return matcher.matches(rel) || matcher.matches(p.getFileName());
 			}).limit(MAX_GLOB_RESULTS).forEach(matches::add);
@@ -635,6 +694,21 @@ final class PlatformAgentToolHandlers {
 			results.add(tc.toRelative(p.toAbsolutePath().toString()));
 		}
 		return String.join("\n", results);
+	}
+
+	/**
+	 * A matcher for a glob in which a double-star directory also stands for no
+	 * directory at all, as most glob dialects have it. Java's own needs at least
+	 * one, so a pattern that starts with one would skip every file at the top of
+	 * the folder searched.
+	 */
+	private static PathMatcher globMatcher(String pattern) {
+		PathMatcher exact = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
+		if (!pattern.contains("**/")) {
+			return exact;
+		}
+		PathMatcher flat = FileSystems.getDefault().getPathMatcher("glob:" + pattern.replace("**/", ""));
+		return path -> exact.matches(path) || flat.matches(path);
 	}
 
 	private static String grepFiles(Map<String, Object> params, ToolContext tc) throws Exception {
@@ -663,19 +737,18 @@ final class PlatformAgentToolHandlers {
 		} catch (PatternSyntaxException e) {
 			return "Error: invalid regex pattern: " + e.getMessage();
 		}
-		File baseDir = tc.resolve(basePath);
+		File baseDir = tc.resolveReadable(basePath);
 		if (!baseDir.exists()) {
 			return "Error: path not found: " + (basePath != null ? basePath : ".");
 		}
-		PathMatcher fileMatcher = (glob != null && !glob.trim().isEmpty())
-				? FileSystems.getDefault().getPathMatcher("glob:" + glob.trim())
-				: null;
+		PathMatcher fileMatcher = (glob != null && !glob.trim().isEmpty()) ? globMatcher(glob.trim()) : null;
 		boolean isFilesMode = "files_with_matches".equals(outputMode);
 		boolean isCountMode = "count".equals(outputMode);
 		List<String> results = new ArrayList<>();
 		List<Path> paths = new ArrayList<>();
 		try (Stream<Path> walk = Files.walk(baseDir.toPath())) {
-			walk.filter(p -> !Files.isDirectory(p)).filter(p -> fileMatcher == null
+			// a link can point outside the folder being searched, and its target would be read
+			walk.filter(p -> !Files.isDirectory(p) && !Files.isSymbolicLink(p)).filter(p -> fileMatcher == null
 					|| fileMatcher.matches(p.getFileName()) || fileMatcher.matches(baseDir.toPath().relativize(p)))
 					.sorted().forEach(paths::add);
 		}
@@ -716,7 +789,7 @@ final class PlatformAgentToolHandlers {
 
 	private static String listDirectory(Map<String, Object> params, ToolContext tc) {
 		String path = stringParam(params, "path");
-		File dir = tc.resolve(path);
+		File dir = tc.resolveReadable(path);
 		if (!dir.exists()) {
 			return "Error: directory not found: " + (path != null ? path : ".");
 		}
@@ -742,6 +815,30 @@ final class PlatformAgentToolHandlers {
 					f.getName()));
 		}
 		return sb.toString().trim();
+	}
+
+	private static String copyAgentFile(Map<String, Object> params, ToolContext tc) {
+		String filePath = stringParam(params, PARAM_PATH);
+		if (filePath == null || filePath.trim().isEmpty()) {
+			return "Error: path is required";
+		}
+		if (tc.agentRoot == null) {
+			return "Error: this agent has no files of its own";
+		}
+		File source = ToolContext.asStored(filePath, tc::resolveAgentFile);
+		String newPath = stringParam(params, PARAM_NEW_PATH);
+		File target = tc.resolve(newPath == null || newPath.trim().isEmpty() ? source.getName() : newPath);
+		tc.requireWritable(target);
+		String requested = tc.toRelative(target.getAbsolutePath());
+		// the copy is a new file in the working directory, so the rules for writing one apply
+		FileSystemUtil.validateAssetFiles(Collections.singletonList(requested),
+				Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE)));
+		File written = FileSystemUtil.copyResolvedFile(source.getAbsolutePath(), target.getAbsolutePath(),
+				parseBoolean(params.get(ReactorKeysEnum.OVERRIDE.getKey())));
+		pushRoom(tc);
+		String saved = tc.toRelative(written.getAbsolutePath());
+		String copied = "Copied " + tc.toRelative(source.getAbsolutePath()) + " to " + saved;
+		return saved.equals(requested) ? copied : copied + " (" + requested + " already exists)";
 	}
 
 	private static String bashCommand(Map<String, Object> params, ToolContext tc) {
@@ -992,7 +1089,7 @@ final class PlatformAgentToolHandlers {
 		JSONObject doc = new JSONObject();
 		doc.put("updated_at", Instant.now().toString());
 		doc.put("items", validated);
-		saveTextFile(tc.resolve(TODOS_FILE), doc.toString(2), tc);
+		saveTextFile(tc.resolve(TODOS_FILE), doc.toString(2), true, tc);
 		return String.format("Wrote %d todo(s): %d pending, %d in_progress, %d completed", validated.length(), pending,
 				inProgress, completed);
 	}
@@ -1147,14 +1244,21 @@ final class PlatformAgentToolHandlers {
 		return out.toString();
 	}
 
-	private static void saveTextFile(File file, String content, ToolContext tc) {
+	/**
+	 * Writes a text file under the working directory and pushes the room. When a
+	 * file already exists at the path, {@code override} decides what happens: true
+	 * replaces it, false keeps it and writes beside it under the next copy number.
+	 *
+	 * @param file     the file to write
+	 * @param content  the text to write, null for an empty file
+	 * @param override whether an existing file at the path is replaced
+	 * @param tc       the tool context
+	 * @return where the file was written
+	 */
+	private static SavedAsset saveTextFile(File file, String content, boolean override, ToolContext tc) {
 		tc.requireWritable(file);
 		if (content == null) {
 			content = "";
-		}
-		User user = tc.ctx.getInsight().getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user != null && user.isAnonymous()) {
-			throw new IllegalArgumentException("Anonymous users are not allowed to save files");
 		}
 		String relativePath = tc.toRelative(file.getAbsolutePath());
 		if (".".equals(relativePath) || relativePath.startsWith("/")) {
@@ -1164,8 +1268,10 @@ final class PlatformAgentToolHandlers {
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 		FileSystemUtil.validateAssetFiles(filePaths, strictScriptSource);
 		String encodedContent = Base64.getEncoder().encodeToString(content.getBytes(StandardCharsets.UTF_8));
-		FileSystemUtil.saveAssetFilesBase64(tc.root, filePaths, Collections.singletonList(encodedContent), true);
+		List<SavedAsset> saved = FileSystemUtil.saveAssetFilesBase64(tc.root, filePaths,
+				Collections.singletonList(encodedContent), true, override);
 		pushRoom(tc);
+		return saved.get(0);
 	}
 
 	private static void pushRoom(ToolContext tc) {
@@ -1573,10 +1679,72 @@ final class PlatformAgentToolHandlers {
 	private static final class ToolContext {
 		private final AgentRunContext ctx;
 		private final String root;
+		/** The folder of the agent's own files, read in place and never written; null when it has none. */
+		private final String agentRoot;
 
-		private ToolContext(AgentRunContext ctx, String root) {
+		private ToolContext(AgentRunContext ctx, String root, String agentRoot) {
 			this.ctx = ctx;
 			this.root = root;
+			this.agentRoot = agentRoot;
+		}
+
+		/**
+		 * A path a tool only reads: one of the agent's own files when it starts with
+		 * {@link #AGENT_FILES_PREFIX}, otherwise a path under the working directory.
+		 */
+		private File resolveReadable(String path) {
+			if (agentRoot != null && path != null && path.trim().startsWith(AGENT_FILES_PREFIX)) {
+				return asStored(path, this::resolveAgentFile);
+			}
+			return asStored(path, this::resolve);
+		}
+
+		/**
+		 * Resolves a path and, when nothing is there, the same path under the name
+		 * an upload stores a file by. An upload sanitizes the name, so "R&D.pptx" is
+		 * on disk as "R&amp;D.pptx", while a model asks for the name as it is written.
+		 */
+		private static File asStored(String path, Function<String, File> resolver) {
+			File file = resolver.apply(path);
+			if (path == null || file.exists()) {
+				return file;
+			}
+			String clean = path.trim();
+			int nameStart = clean.lastIndexOf('/') + 1;
+			try {
+				File stored = resolver
+						.apply(clean.substring(0, nameStart) + Utility.inputSanitizer(clean.substring(nameStart)));
+				return stored.exists() ? stored : file;
+			} catch (RuntimeException e) {
+				// the sanitizer is not set up here, or the stored name is not a path this run may read
+				return file;
+			}
+		}
+
+		/** One of the agent's own files or folders, named with or without {@link #AGENT_FILES_PREFIX}. */
+		private File resolveAgentFile(String path) {
+			String clean = path.trim();
+			if (clean.startsWith(AGENT_FILES_PREFIX)) {
+				clean = clean.substring(AGENT_FILES_PREFIX.length());
+			}
+			clean = clean.replaceFirst("^/+", "");
+			try {
+				// canonical, so neither .. nor a link inside the folder leads out of it
+				File resolved = new File(agentRoot, clean).getCanonicalFile();
+				String normalized = resolved.getPath().replace("\\", "/");
+				if (!normalized.equals(agentRoot) && !normalized.startsWith(agentRoot + "/")) {
+					throw new IllegalArgumentException("Path is not one of the agent's files: " + path.trim());
+				}
+				return resolved;
+			} catch (java.io.IOException e) {
+				throw new IllegalArgumentException("Unable to resolve the agent file path: " + path.trim(), e);
+			}
+		}
+
+		/** Whether a file is one of the agent's own that the working directory does not also hold. */
+		private boolean isAgentFile(File file) {
+			String path = normalizePath(file.getAbsolutePath());
+			return agentRoot != null && path.startsWith(agentRoot + "/") && !path.startsWith(root + "/");
 		}
 
 		private File resolve(String relativePath) {
@@ -1584,6 +1752,10 @@ final class PlatformAgentToolHandlers {
 				return new File(root);
 			}
 			String clean = relativePath.trim();
+			if (agentRoot != null && clean.startsWith(AGENT_FILES_PREFIX)) {
+				throw new IllegalArgumentException("The agent's own files are read-only: " + clean
+						+ ". Copy the file into the working directory with CopyAgentFile and work on the copy.");
+			}
 			if (new File(clean).isAbsolute()) {
 				throw new IllegalArgumentException("Absolute paths are not allowed: " + clean
 						+ ". Use a path relative to the working directory, such as " + relativeHint(clean) + ".");
@@ -1618,6 +1790,12 @@ final class PlatformAgentToolHandlers {
 			}
 			if (normalized.equals(root)) {
 				return ".";
+			}
+			if (agentRoot != null && normalized.equals(agentRoot)) {
+				return AGENT_FILES_PREFIX + "/";
+			}
+			if (agentRoot != null && normalized.startsWith(agentRoot + "/")) {
+				return AGENT_FILES_PREFIX + normalized.substring(agentRoot.length());
 			}
 			return normalized;
 		}

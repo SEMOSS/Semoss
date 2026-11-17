@@ -44,6 +44,7 @@ import com.google.gson.stream.JsonReader;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -114,8 +115,8 @@ public class LoadEngineMetadataReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Define metadata on an engine through a JSON file";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Define metadata on an engine through a JSON file");
 	}
 
 }

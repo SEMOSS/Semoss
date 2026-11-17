@@ -64,7 +64,7 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -93,20 +93,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		// check security
 		// Need to check this, will the same methods work/enhanced to check the
 		// permissions on project?
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create or upload a project",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new apps
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
@@ -115,7 +102,7 @@ public class UploadProjectReactor extends AbstractReactor {
 
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
-		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+		String projectFolderPath = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
 				+ Constants.PROJECT_FOLDER;
 		String randomTempUnzipFolderPath = projectFolderPath + DIR_SEPARATOR + randomIdAsDir;
 		File randomTempUnzipF = new File(randomTempUnzipFolderPath);
@@ -189,7 +176,6 @@ public class UploadProjectReactor extends AbstractReactor {
 			}
 		}
 
-		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
 
@@ -225,10 +211,7 @@ public class UploadProjectReactor extends AbstractReactor {
 					+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
-			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
-					|| projects.endsWith(";" + projectId))) {
-				String newProjects = projects + ";" + projectId;
-				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
+			if (InternalUtility.addProjectId(projectId)) {
 				projectAddedToDIHelper = true;
 			} else {
 				SemossPixelException exception = new SemossPixelException(
@@ -267,7 +250,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
+			InternalUtility.setProjectSmssPath(projectId,
 					finalProjectSmssF.getAbsolutePath());
 
 			// ensure PROJECT_DISPLAY_NAME is present in the smss file
@@ -276,7 +259,7 @@ public class UploadProjectReactor extends AbstractReactor {
 			String displayName = smssProps.getProperty(Constants.PROJECT_DISPLAY_NAME);
 			if (displayName == null || displayName.trim().isEmpty()) {
 				try {
-					Utility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
+					InternalUtility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
 							Constants.PROJECT_DISPLAY_NAME, projectName);
 				} catch (IOException e) {
 					classLogger.error("Failed to write {} into the smss file for project {}",

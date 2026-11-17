@@ -603,29 +603,35 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 	 * The projects a custom group has access to, so its managers know what the
 	 * people they add can use.
 	 *
-	 * @param limit page size, at most {@link #MAX_PAGE_SIZE}; 0 or less reads that
-	 *              many
+	 * @param limit        page size, at most {@link #MAX_PAGE_SIZE}; 0 or less
+	 *                     reads that many
+	 * @param projectTypes keep only the projects of these types; null or empty for
+	 *                     every type
 	 * @see AdminSecurityGroupUtils#getProjectsForGroup(String, String, String,
-	 *      long, long, boolean)
+	 *      long, long, List)
 	 * @throws IllegalAccessException when the user cannot manage the group
 	 */
 	public static List<Map<String, Object>> getProjectsForGroup(User user, String groupId, String searchTerm,
-			long limit, long offset, boolean onlyApps) throws IllegalAccessException {
+			long limit, long offset, List<String> projectTypes) throws IllegalAccessException {
 		checkCanManageGroup(user, groupId);
 		return AdminSecurityGroupUtils.getUncheckedInstance().getProjectsForGroup(groupId, CUSTOM_GROUP_TYPE,
-				searchTerm, clampPageSize(limit), offset, onlyApps);
+				searchTerm, clampPageSize(limit), offset, projectTypes);
 	}
 
 	/**
+	 * Counts the projects a custom group has access to, for paging that list.
+	 *
+	 * @param projectTypes keep only the projects of these types; null or empty for
+	 *                     every type
 	 * @see AdminSecurityGroupUtils#getNumProjectsForGroup(String, String, String,
-	 *      boolean)
+	 *      List)
 	 * @throws IllegalAccessException when the user cannot manage the group
 	 */
-	public static Long getNumProjectsForGroup(User user, String groupId, String searchTerm, boolean onlyApps)
+	public static Long getNumProjectsForGroup(User user, String groupId, String searchTerm, List<String> projectTypes)
 			throws IllegalAccessException {
 		checkCanManageGroup(user, groupId);
 		return AdminSecurityGroupUtils.getUncheckedInstance().getNumProjectsForGroup(groupId, CUSTOM_GROUP_TYPE,
-				searchTerm, onlyApps);
+				searchTerm, projectTypes);
 	}
 
 	/**

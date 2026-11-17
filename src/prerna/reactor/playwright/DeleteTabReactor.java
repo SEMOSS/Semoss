@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import com.microsoft.playwright.Page;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -108,18 +109,10 @@ public class DeleteTabReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Deletes a specific tab within a Playwright session, including its history and associated page.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the session to delete the playwright opened tab";
-		} else if (key.equals("tabId")) {
-			return "The id of the tab in the session that you want to delete";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Deletes a specific tab within a Playwright session, including its history and associated page.")
+				.key("sessionId", "The id of the session to delete the playwright opened tab")
+				.key("tabId", "The id of the tab in the session that you want to delete");
 	}
 }

@@ -33,6 +33,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -63,15 +64,9 @@ public class GetSubagentRunsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns all direct subagent runs owned by the current user whose parent run ID matches runId, ordered newest first.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RUN_ID_KEY.equals(key)) {
-			return "The parent run ID whose direct subagent runs should be returned.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns all direct subagent runs owned by the current user whose parent run ID matches runId, ordered newest first.")
+				.key(RUN_ID_KEY, "The parent run ID whose direct subagent runs should be returned.");
 	}
 }

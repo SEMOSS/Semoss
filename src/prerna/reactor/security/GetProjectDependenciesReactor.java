@@ -37,6 +37,7 @@ import java.util.Set;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -210,8 +211,9 @@ public class GetProjectDependenciesReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Get project dependencies as a graph with unique engines and their direct dependencies";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Get project dependencies as a graph with unique engines and their direct dependencies");
 	}
 
 }

@@ -41,12 +41,12 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -164,7 +164,7 @@ public class SnowflakePutReactor extends AbstractReactor {
 			List<Map<String, Object>> results = QueryExecutionUtility.flushWrapperToMap(iterator);
 			return new NounMetadata(results, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not run the Snowflake PUT of {}", fileUri, e);
 			throw new IllegalArgumentException("A SQL exception was thrown. Detailed error = " + e.getMessage());
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(snowflakeRdbms, stmt, rs);
@@ -172,37 +172,27 @@ public class SnowflakePutReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Utility method to PUT a file into the appropirate stage. Snowflake docs found here: https://docs.snowflake.com/en/sql-reference/sql/put";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id for the snowflake db";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "This is a required value containing the relative file path of a single file to be uploaded to snowflake";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		} else if (key.equals("userStage")) {
-			return "The path prefix for the user stage. Do not include the '@~' qualifier";
-		} else if (key.equals("tableStage")) {
-			return "The table name and path prefix. Do not enter the '@%' qualifier";
-		} else if (key.equals("namedStage")) {
-			return "The named stage and path prefix. This will not create a stage if it does not exist. Do not enter the '@' qualifier ";
-		} else if (key.equals("autoCompress")) {
-			return "Boolean to determine if snowflake should compress data during upload. Default is true";
-		} else if (key.equals("sourceCompression")) {
-			return "Specifies the method of compression used on already-compressed files that are being stagged. Supported values include: AUTO_DETECT | GZIP | BZ2 | BROTLI | ZSTD | DEFLATE | RAW_DEFLATE | NONE. "
-					+ "Default value is AUTO_DETECT";
-		} else if (key.equals("parallel")) {
-			return "Specifies the number of threads to use for uploading files. Default is 4";
-		} else if (key.equals("overwrite")) {
-			return "Specifies whether Snowflake overwrites an existing file with the same name during upload. Default is false. "
-					+ "Note that the snowflake API does not throw an error with ths is set to false and a file already exists with the name in the stage";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Utility method to PUT a file into the appropirate stage. Snowflake docs found here: https://docs.snowflake.com/en/sql-reference/sql/put")
+				.key(ReactorKeysEnum.DATABASE, "The database id for the snowflake db")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"This is a required value containing the relative file path of a single file to be uploaded to snowflake")
+				.key(ReactorKeysEnum.SPACE,
+						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
+				.key("userStage", "The path prefix for the user stage. Do not include the '@~' qualifier")
+				.key("tableStage", "The table name and path prefix. Do not enter the '@%' qualifier")
+				.key("namedStage",
+						"The named stage and path prefix. This will not create a stage if it does not exist. Do not enter the '@' qualifier ")
+				.key("autoCompress",
+						"Boolean to determine if snowflake should compress data during upload. Default is true")
+				.key("sourceCompression",
+						"Specifies the method of compression used on already-compressed files that are being stagged. Supported values include: AUTO_DETECT | GZIP | BZ2 | BROTLI | ZSTD | DEFLATE | RAW_DEFLATE | NONE. "
+								+ "Default value is AUTO_DETECT")
+				.key("parallel", "Specifies the number of threads to use for uploading files. Default is 4")
+				.key("overwrite",
+						"Specifies whether Snowflake overwrites an existing file with the same name during upload. Default is false. "
+								+ "Note that the snowflake API does not throw an error with ths is set to false and a file already exists with the name in the stage");
 	}
 
 }

@@ -307,10 +307,10 @@ public class RInterpreter extends AbstractQueryInterpreter {
 					String substr = (rFormat.substring(i, i + 2).equals("%O")) ? rFormat.substring(i, i + 3)
 							: rFormat.substring(i, i + 2);
 					if (matchedRRegex.contains(substr)) {
-						firstParam = firstParam.replaceAll(substr, "0?(.+)");
+						firstParam = firstParam.replace(substr, "0?(.+)");
 						firstParamCurIndex += 6;
 					} else {
-						firstParam = firstParam.replaceAll(substr, "(.*)");
+						firstParam = firstParam.replace(substr, "(.*)");
 						firstParamCurIndex += 4;
 					}
 					secondParam += "\\\\" + secondParamValue;

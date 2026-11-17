@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainMemoryUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainResolveMemory(memoryId=["..."], action=["accept"]);
@@ -53,19 +54,12 @@ public class BrainResolveMemoryReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Accepts, confirms, dismisses, restores, reopens, or unconfirms a Brain memory; returns { memory, restored }";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (MEMORY_ID.equals(key)) {
-			return "Memory id";
-		} else if (ACTION.equals(key)) {
-			return "accept (a suggestion), confirm (a learned memory), dismiss (a suggestion or learned memory; puts "
-					+ "back what it replaced), restore (a dismissed memory, as active), reopen (a dismissed or accepted "
-					+ "suggestion), unconfirm (a confirmed memory the assistant saved)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Accepts, confirms, dismisses, restores, reopens, or unconfirms a Brain memory; returns { memory, restored }")
+				.key(MEMORY_ID, "Memory id").key(ACTION,
+						"accept (a suggestion), confirm (a learned memory), dismiss (a suggestion or learned memory; puts "
+								+ "back what it replaced), restore (a dismissed memory, as active), reopen (a dismissed or accepted "
+								+ "suggestion), unconfirm (a confirmed memory the assistant saved)");
 	}
 }

@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -71,16 +72,9 @@ public class GoogleDriveDeleteReactor extends AbstractGoogleReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Delete a file from the user's Google Drive.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ID.getKey())) {
-			return "Google Drive file ID for the file to delete.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Delete a file from the user's Google Drive.")
+				.key(ReactorKeysEnum.ID, "Google Drive file ID for the file to delete.");
 	}
 
 }

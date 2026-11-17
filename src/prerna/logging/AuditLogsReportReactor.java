@@ -39,7 +39,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.date.SemossDate;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.reactor.AbstractReactor;
@@ -79,11 +78,6 @@ public class AuditLogsReportReactor extends AbstractReactor {
 		// excluded from room validation and from bounding the query
 		boolean nullRoomFilter = AuditLogsDbUtils.NULL_ROOM_ID.equalsIgnoreCase(roomId);
 		String realRoomId = nullRoomFilter ? "" : roomId;
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		// validate access to the project/engine/room and resolve which user's logs
 		// the caller is allowed to see (non-owners are restricted to their own)

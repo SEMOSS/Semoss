@@ -37,13 +37,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -87,7 +86,6 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 		}
 
 		User user = this.insight.getUser();
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("Model engine does not exist or user does not have access to edit it");
 		}
@@ -99,8 +97,8 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 		boolean dryRun = Boolean.parseBoolean(this.keyValue.get(DRY_RUN_KEY) + "");
 
 		// prices decide how far the model's usage limits go, so only the model's owners
-		// and admins can change them, here as anywhere
-		if (!dryRun && !SecurityEngineUtils.userIsOwner(user, engineId) && SecurityAdminUtils.getInstance(user) == null
+		// can change them, here as anywhere
+		if (!dryRun && !SecurityEngineUtils.userIsOwner(user, engineId)
 				&& changesPrices(SecurityModelMetadataUtils.applyCatalogMetadata(engineId, catalogKey, true))) {
 			throw new IllegalArgumentException("Only the model's owners can change its prices, and applying the "
 					+ "model catalog would change them");
@@ -174,21 +172,14 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Overwrites a model engine's stored metadata with its meta/model.json catalog entry, "
-				+ "optionally associating the engine with a different entry first";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(CATALOG_KEY)) {
-			return "Optional catalog entry to associate with the engine and apply. "
-					+ "Defaults to the entry already associated, falling back to the engine's model id";
-		}
-		if (key.equals(DRY_RUN_KEY)) {
-			return "Report the fields that would change without writing anything. Default false";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Overwrites a model engine's stored metadata with its meta/model.json catalog entry, "
+						+ "optionally associating the engine with a different entry first")
+				.key(CATALOG_KEY,
+						"Optional catalog entry to associate with the engine and apply. "
+								+ "Defaults to the entry already associated, falling back to the engine's model id")
+				.key(DRY_RUN_KEY, "Report the fields that would change without writing anything. Default false");
 	}
 
 	private static boolean changesPrices(Map<String, Object> dryRunResult) {

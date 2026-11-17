@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.task.BasicIteratorTask;
@@ -40,51 +41,52 @@ import prerna.util.Constants;
 import prerna.util.insight.InsightUtility;
 
 public class FormatReactor extends TaskBuilderReactor {
-	
+
 	public FormatReactor() {
-		this.keysToGet = new String[]{"type", ReactorKeysEnum.OPTIONS.getKey()};
+		this.keysToGet = new String[] { "type", ReactorKeysEnum.OPTIONS.getKey() };
 	}
-	
+
 	@Override
 	protected void buildTask() {
 		GenRowStruct type = this.store.getGenRowStruct("type");
 		String formatType = null;
-		if(type != null && !type.isEmpty()) {
+		if (type != null && !type.isEmpty()) {
 			formatType = type.get(0).toString();
 			task.setFormat(formatType);
 		}
 		Map<String, Object> optionValues = null;
 
 		GenRowStruct options = this.store.getGenRowStruct(keysToGet[1]);
-		if(options != null && !options.isEmpty()) {
+		if (options != null && !options.isEmpty()) {
 			optionValues = (Map<String, Object>) options.get(0);
 		}
 		optionValues = applyDefaultOptions(optionValues);
-		
+
 		// set the option values into the task
-		if(optionValues != null && !optionValues.isEmpty()) {
+		if (optionValues != null && !optionValues.isEmpty()) {
 			task.setFormatOptions(optionValues);
 		}
-		
-		if(this.task.getTaskOptions() != null) {
+
+		if (this.task.getTaskOptions() != null) {
 			Set<String> panelIds = this.task.getTaskOptions().getPanelIds();
-			for(String panelId : panelIds) {
+			for (String panelId : panelIds) {
 				// we will store this as the last run for this panel
 				// and start to merge in the panel filters that were applied
-				if(task instanceof BasicIteratorTask) {
+				if (task instanceof BasicIteratorTask) {
 					SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
 					this.insight.setFinalViewOptions(panelId, qs, task.getTaskOptions(), task.getFormatter());
 					qs.addPanel(this.insight.getInsightPanel(panelId));
 				}
-				
+
 				// and set panel for visualization
 				InsightUtility.setPanelForVisualization(this.insight, panelId);
 			}
 		}
 	}
-	
+
 	/**
 	 * Merge insight formats into the specific formats applied into the task
+	 * 
 	 * @param optionValues
 	 * @return
 	 */
@@ -93,28 +95,28 @@ public class FormatReactor extends TaskBuilderReactor {
 		// do we have custom colors on the insight that we should add?
 		// check if the user has defined their own color scheme in the insight
 		if (this.insight.getVarStore().get(Constants.GRAPH_COLORS) != null) {
-			Map<String, Color> colorsMap = (Map<String, Color>) this.insight.getVarStore().get("GRAPH_COLORS").getValue();
+			Map<String, Color> colorsMap = (Map<String, Color>) this.insight.getVarStore().get("GRAPH_COLORS")
+					.getValue();
 			defaultOptions.put("colors", colorsMap);
 		}
-		
-		if(optionValues == null || optionValues.isEmpty()) {
+
+		if (optionValues == null || optionValues.isEmpty()) {
 			return defaultOptions;
 		}
-		
-		for(String key : defaultOptions.keySet()) {
+
+		for (String key : defaultOptions.keySet()) {
 			optionValues.putIfAbsent(key, defaultOptions.get(key));
 		}
 		return optionValues;
 	}
-	
+
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("type")) {
-			return "The format type (e.g., a visualization can be the \"table\" or \"graph\" type)";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Sets the format type, such as table or graph, and the format options of a task, and returns the task. Each panel named in the task options is also updated for the visualization.")
+				.key(ReactorKeysEnum.OPTIONS, key -> key.type(Map.class))
+				.key("type", "The format type (e.g., a visualization can be the \"table\" or \"graph\" type)");
 	}
 }

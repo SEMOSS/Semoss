@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -107,28 +108,12 @@ public class ImageContextReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Analyzes a cropped image (screenshot) of a webpage using a vision-enabled LLM to extract relevant context based on a user's prompt.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id of the current session of the playwright";
-		} else if (key.equals("engineId")) {
-			return "The id of the Model Engine";
-		} else if (key.equals("userPrompt")) {
-			return "The custom prompt from the user for the LLM";
-		} else if (key.equals("startX")) {
-			return "The start x coordinates for the clipped image";
-		} else if (key.equals("startY")) {
-			return "The start y coordinates for the clipped image";
-		} else if (key.equals("endX")) {
-			return "The end x coordinates for the clipped image";
-		} else if (key.equals("endY")) {
-			return "The end y coordinates for the clipped image";
-		}
-
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Analyzes a cropped image (screenshot) of a webpage using a vision-enabled LLM to extract relevant context based on a user's prompt.")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP, key -> key.type(Map.class).description(
+						"Map with userPrompt, the question the image should help answer, and optionally startX, startY, endX and endY, the area of the screenshot to crop and analyze."))
+				.key("tabId", "The id of the browser tab to take the screenshot from.")
+				.key("sessionId", "The id of the current session of the playwright");
 	}
 }

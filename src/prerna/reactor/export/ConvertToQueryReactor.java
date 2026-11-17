@@ -37,6 +37,7 @@ import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -144,11 +145,11 @@ public class ConvertToQueryReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(IGNORE_STATE_KEY)) {
-			return "Boolean flag to ignore/not add the frame and panel level options to the query struct";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the query text that the incoming query struct or task would run on its database or frame. By default it first adds the insight's state, such as the frame's filters and panel options, to the query.")
+				.key(IGNORE_STATE_KEY, key -> key.type(Boolean.class).description(
+						"Boolean flag to ignore/not add the frame and panel level options to the query struct"));
 	}
 
 }

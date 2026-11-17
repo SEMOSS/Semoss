@@ -60,7 +60,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 
 public class ImportReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(NativeImporter.class);
+	private static final Logger classLogger = LogManager.getLogger(ImportReactor.class);
 	private static final String CLASS_NAME = ImportReactor.class.getName();
 
 	public ImportReactor() {
@@ -260,7 +260,7 @@ public class ImportReactor extends AbstractReactor {
 
 		// put this into the noun store
 		// so that we can pull it for other pipeline
-		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+		ITableDataFrame defaultFrame = this.insight.getCurrentFrame();
 		this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey())
 				.add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 		return defaultFrame;

@@ -187,6 +187,7 @@ public final class CollaborationSkillFiles {
 			throw new IllegalStateException("Could not publish the skill: " + e.getMessage(), e);
 		}
 		commit(skillId, info.displayName, created ? "created" : "updated");
+		SkillProjects.pushContent(skillId);
 		UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_UPDATE, AuditTargetType.SKILL, skillId,
 				info.displayName, skillId, null, null, Map.of("published", true));
 		result.put("note", "Published. Tell the owner in a sentence or two what the skill does; no need to read it "

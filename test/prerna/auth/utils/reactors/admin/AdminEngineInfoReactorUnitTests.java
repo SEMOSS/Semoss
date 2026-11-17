@@ -51,7 +51,6 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -122,11 +121,9 @@ public class AdminEngineInfoReactorUnitTests {
 	void testBaseInfoNull() {
 		Map<String, String> keyvalues = reactor.keyValue;
 		keyvalues.put("engine", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
 			when(s.getAllEngineSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null)))
@@ -139,9 +136,8 @@ public class AdminEngineInfoReactorUnitTests {
 			verify(s, times(1)).getAllEngineSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null),
 					eq(null));
 			assertEquals(1, listCaptor.getValue().size());
-			assertTrue(listCaptor.getValue().contains("testid"));
+			assertTrue(listCaptor.getValue().contains("test"));
 
-			squ.verify(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test"), times(1));
 		}
 	}
 
@@ -149,11 +145,9 @@ public class AdminEngineInfoReactorUnitTests {
 	void testBaseInfoEmpty() {
 		Map<String, String> keyvalues = reactor.keyValue;
 		keyvalues.put("engine", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
 			when(s.getAllEngineSettings(any(List.class), eq(null), eq(null), eq(null), eq(null), eq(null)))
@@ -166,9 +160,8 @@ public class AdminEngineInfoReactorUnitTests {
 			verify(s, times(1)).getAllEngineSettings(listCaptor.capture(), eq(null), eq(null), eq(null), eq(null),
 					eq(null));
 			assertEquals(1, listCaptor.getValue().size());
-			assertTrue(listCaptor.getValue().contains("testid"));
+			assertTrue(listCaptor.getValue().contains("test"));
 
-			squ.verify(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test"), times(1));
 		}
 	}
 
@@ -176,11 +169,9 @@ public class AdminEngineInfoReactorUnitTests {
 	void testMetaKeysNull() {
 		Map<String, String> keyvalues = reactor.keyValue;
 		keyvalues.put("engine", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
 			Map<String, Object> temp = new HashMap<>();
@@ -206,11 +197,9 @@ public class AdminEngineInfoReactorUnitTests {
 	void testMetaKeysEmpty() {
 		Map<String, String> keyvalues = reactor.keyValue;
 		keyvalues.put("engine", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
 			Map<String, Object> temp = new HashMap<>();
@@ -232,11 +221,9 @@ public class AdminEngineInfoReactorUnitTests {
 	void testEngineInfo() {
 		Map<String, String> keyvalues = reactor.keyValue;
 		keyvalues.put("engine", "test");
-		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
-				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class)) {
+		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
-			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "test")).thenReturn("testid");
 
 			List<Map<String, Object>> baseInfo = new ArrayList<>();
 			Map<String, Object> temp = new HashMap<>();

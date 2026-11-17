@@ -30,12 +30,13 @@ package prerna.io.connector.jira;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -63,7 +64,8 @@ public class JiraWorklogReactor extends AbstractReactor {
 			this.organizeKeys();
 			String action = this.keyValue.get(ACTION);
 			if (action == null || action.trim().isEmpty()) {
-				throw new SemossPixelException("The action parameter is required. Valid values are: get, add, update, delete.");
+				throw new SemossPixelException(
+						"The action parameter is required. Valid values are: get, add, update, delete.");
 			}
 			action = action.trim().toLowerCase();
 
@@ -85,7 +87,8 @@ public class JiraWorklogReactor extends AbstractReactor {
 				}
 				String comment = this.keyValue.get(COMMENT);
 				String started = this.keyValue.get(STARTED);
-				Map<String, Object> result = JiraHelper.logWork(accessToken, baseUrl, issueKey, timeSpent, comment, started);
+				Map<String, Object> result = JiraHelper.logWork(accessToken, baseUrl, issueKey, timeSpent, comment,
+						started);
 				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 			case "update": {
@@ -106,38 +109,33 @@ public class JiraWorklogReactor extends AbstractReactor {
 				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 			}
 			default:
-				throw new SemossPixelException("Invalid action '" + action + "'. Valid values are: get, add, update, delete.");
+				throw new SemossPixelException(
+						"Invalid action '" + action + "'. Valid values are: get, add, update, delete.");
 			}
 		} catch (SemossPixelException e) {
 			classLogger.error("Error in JiraWorklogReactor", e);
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to execute JiraWorklogReactor", e);
-			throw new SemossPixelException(
-					"An error occurred in JiraWorklogReactor. Error message: " + e.getMessage());
+			throw new SemossPixelException("An error occurred in JiraWorklogReactor. Error message: " + e.getMessage());
 		}
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Manages worklog entries on a Jira issue. Supports get, add, update, and delete operations.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ACTION)) {
-			return "Required operation to perform. Valid values: get - lists all worklogs (jiraid required). add - logs new work (jiraid, timeSpent required; comment, started optional). update - updates a worklog entry (jiraid, worklogId, timeSpent required; comment, started optional). delete - removes a worklog entry (jiraid, worklogId required).";
-		} else if (key.equals(JIRAID)) {
-			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
-		} else if (key.equals(WORKLOG_ID)) {
-			return "Numeric worklog id from a previous get response. Required for update and delete actions.";
-		} else if (key.equals(TIME_SPENT)) {
-			return "Time in Jira notation (for example, 2h 30m, 1d, 45m). Supports weeks (w), days (d), hours (h), and minutes (m). Required for add and update actions.";
-		} else if (key.equals(COMMENT)) {
-			return "Optional plain-text worklog note describing the work performed. This is not an issue comment.";
-		} else if (key.equals(STARTED)) {
-			return "Optional start datetime in ISO 8601 format (for example, 2026-04-07T09:00:00.000+0000). Defaults to now for add action.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Manages worklog entries on a Jira issue. Supports get, add, update, and delete operations.")
+				.key(ACTION,
+						"Required operation to perform. Valid values: get - lists all worklogs (jiraid required). add - logs new work (jiraid, timeSpent required; comment, started optional). update - updates a worklog entry (jiraid, worklogId, timeSpent required; comment, started optional). delete - removes a worklog entry (jiraid, worklogId required).")
+				.key(JIRAID, "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).")
+				.key(WORKLOG_ID,
+						"Numeric worklog id from a previous get response. Required for update and delete actions.")
+				.key(TIME_SPENT,
+						"Time in Jira notation (for example, 2h 30m, 1d, 45m). Supports weeks (w), days (d), hours (h), and minutes (m). Required for add and update actions.")
+				.key(COMMENT,
+						"Optional plain-text worklog note describing the work performed. This is not an issue comment.")
+				.key(STARTED,
+						"Optional start datetime in ISO 8601 format (for example, 2026-04-07T09:00:00.000+0000). Defaults to now for add action.");
 	}
 }

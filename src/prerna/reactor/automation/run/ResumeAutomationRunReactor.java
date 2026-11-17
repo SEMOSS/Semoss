@@ -30,6 +30,7 @@ package prerna.reactor.automation.run;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.agent.AutomationAgentRunAccess;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -91,15 +92,9 @@ public class ResumeAutomationRunReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Continues a waiting Automation run after its child agent input flow completes.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RUN_ID_KEY.equals(key)) {
-			return "Waiting Automation run identifier.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Continues a waiting Automation run after its child agent input flow completes.")
+				.key(RUN_ID_KEY, "Waiting Automation run identifier.");
 	}
 }

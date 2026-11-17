@@ -42,6 +42,7 @@ import org.json.JSONObject;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.ClaudeCodeTranscriptLocator;
 import prerna.reactor.agent.ClaudeCodeTranscriptParser;
 import prerna.sablecc2.om.PixelDataType;
@@ -108,15 +109,10 @@ public class AdminGetClaudeCodeTranscriptHistoryReactor extends AbstractReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admins only. Reads any user's room's Claude Code JSONL transcript from disk and returns the parsed events in the same shape the live websocket emits.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "Room identifier whose Claude Code transcript should be read and parsed.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Reads any user's room's Claude Code JSONL transcript from disk and returns the parsed events in the same shape the live websocket emits.")
+				.key(ReactorKeysEnum.ROOM_ID,
+						"Room identifier whose Claude Code transcript should be read and parsed.");
 	}
 }

@@ -219,12 +219,25 @@ public class MyEngineProjectReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
-			return "The sort is a string value containing either 'name' or 'date' for how to sort";
-		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "This is an optional engine filter";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns up to 20 of the projects and engines the user can see, across the requested types (by default projects, databases, storage, functions, models and vector databases), with the limit split evenly across the types.")
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class).description(
+						"The most results to return in all, at most 20 and 20 by default, split evenly across the requested types."))
+				.key(ReactorKeysEnum.META_FILTERS, key -> key.type(Map.class))
+				.key(ReactorKeysEnum.NO_META, key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.OFFSET,
+						key -> key.type(Integer.class)
+								.description("How many results to skip within each requested type."))
+				.key(ReactorKeysEnum.ONLY_FAVORITES,
+						key -> key.type(Boolean.class).description(
+								"When true, the project results keep only the projects the user marked as favorites."))
+				.key(ReactorKeysEnum.PERMISSION_FILTERS, key -> key.list(Integer.class))
+				.key(ReactorKeysEnum.PROJECT_TYPE,
+						key -> key.list(String.class).description("Keeps only the projects of these types."))
+				.key(ReactorKeysEnum.TYPE, key -> key.list(String.class).description(
+						"The kinds of results to include: PROJECT, DATABASE, STORAGE, FUNCTION, MODEL or VECTOR. All of them when not given."))
+				.key(ReactorKeysEnum.ENGINE,
+						key -> key.list(String.class).description("This is an optional engine filter"));
 	}
 }

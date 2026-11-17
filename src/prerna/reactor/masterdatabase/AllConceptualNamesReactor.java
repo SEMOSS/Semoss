@@ -33,6 +33,7 @@ import java.util.List;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -47,8 +48,10 @@ public class AllConceptualNamesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns all conceptual names across all databases accessible to the current user";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns all conceptual names across all databases accessible to the current user")
+				.noKeys();
 	}
 
 }

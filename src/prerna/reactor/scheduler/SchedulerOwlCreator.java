@@ -147,7 +147,7 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		this.allSchemas = new ArrayList<>();
 
-		final String INTEGER_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String INTEGER_DATATYPE = queryUtil.getIntegerDataTypeName();
 		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
 		final String BLOB_DATATYPE = queryUtil.getBlobDataTypeName();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();

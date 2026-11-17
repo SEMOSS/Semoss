@@ -31,17 +31,29 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.ConstantDynamic;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -57,7 +69,437 @@ public class SemossClassLoader extends ClassLoader {
 
 	private static final Logger classLogger = LogManager.getLogger(SemossClassLoader.class);
 
+	/**
+	 * Platform classes project reactor code can never use: DIHelper holds every
+	 * loaded engine and the RDF_Map, SystemEngineRegistry holds the system
+	 * databases, SecretRedactor holds the secret values engines loaded,
+	 * InternalUtility holds the helpers that act with the platform's authority,
+	 * EngineProxyFactory and PipelineInvocationHandler build the proxy that checks
+	 * every call to an engine, PlatformOperation marks the platform's own work,
+	 * which that check lets through, and InsightStore holds every open insight of
+	 * every user, with the user it belongs to.
+	 */
+	private static final Set<String> BLOCKED_PLATFORM_CLASSES = Set.of("prerna.util.DIHelper",
+			"prerna.util.SystemEngineRegistry", "prerna.security.SecretRedactor", "prerna.util.InternalUtility",
+			"prerna.engine.impl.pipeline.EngineProxyFactory", "prerna.engine.impl.pipeline.PipelineInvocationHandler",
+			"prerna.engine.impl.pipeline.PlatformOperation", "prerna.om.InsightStore");
+
+	/**
+	 * Platform packages project reactor code can never use, as name prefixes: the
+	 * secret store connectors hand out the stored secrets of any engine or insight.
+	 */
+	private static final List<String> BLOCKED_PLATFORM_PACKAGES = List.of("prerna.io.connector.secrets.");
+
+	/**
+	 * The package every platform class is in.
+	 */
+	private static final String PLATFORM_PACKAGE = "prerna.";
+
+	/**
+	 * How the name of a platform class that requires an admin starts. Project
+	 * reactor code can never use one.
+	 */
+	private static final String ADMIN_CLASS_PREFIX = "Admin";
+
+	/**
+	 * The platform class behind every admin action, blocked with the classes whose
+	 * name starts with {@link #ADMIN_CLASS_PREFIX}.
+	 */
+	private static final String ADMIN_UTILS_CLASS = "prerna.auth.utils.SecurityAdminUtils";
+
+	/**
+	 * JDK packages project reactor code can never use, as name prefixes. Each acts
+	 * for whoever calls it, without the caller naming a class the rest of the block
+	 * list covers: it calls methods or builds objects by name (java.beans), reaches
+	 * into the JVM and other processes (javax.management, jdk.jfr,
+	 * java.lang.instrument, com.sun.tools), compiles or runs source (javax.tools,
+	 * jdk.jshell), calls native code (java.lang.foreign), looks up remote objects
+	 * (javax.naming, java.rmi, javax.sql.rowset), signs in to a directory or
+	 * Kerberos server (javax.security.auth.login, com.sun.security.auth,
+	 * javax.security.sasl, org.ietf.jgss), or opens network connections
+	 * (java.net.http, javax.net, com.sun.net.httpserver, javax.print), or fetches
+	 * the XML documents a catalog names (javax.xml.catalog).
+	 */
+	private static final List<String> BLOCKED_JDK_PACKAGES = List.of("java.beans.", "javax.management.", "jdk.jfr.",
+			"java.lang.instrument.", "com.sun.tools.", "javax.tools.", "jdk.jshell.", "java.lang.foreign.",
+			"javax.naming.", "java.rmi.", "javax.sql.rowset.", "javax.security.auth.login.", "com.sun.security.auth.",
+			"javax.security.sasl.", "org.ietf.jgss.", "java.net.http.", "javax.net.", "com.sun.net.httpserver.",
+			"javax.print.", "javax.xml.catalog.");
+
+	/**
+	 * JDK classes project reactor code can never use, by full name; their nested
+	 * classes are blocked with them. ProcessHandle lists every process on the host
+	 * with its command line. The channel, handler and connection classes open
+	 * network connections. FileHandler writes log files wherever its pattern
+	 * points. The DOM load classes and the SAX1 ParserFactory read an XML document
+	 * with a parser the sandbox does not set up. ProxySelector, Authenticator,
+	 * CookieHandler, CookieManager and ResponseCache install a hook the whole JVM's
+	 * HTTP traffic then goes through.
+	 */
+	private static final Set<String> BLOCKED_JDK_CLASSES = Set.of("java.lang.ProcessHandle",
+			"java.nio.channels.AsynchronousSocketChannel", "java.nio.channels.AsynchronousServerSocketChannel",
+			"java.util.logging.SocketHandler", "java.util.logging.FileHandler", "org.w3c.dom.ls.LSParser",
+			"org.w3c.dom.ls.LSInput", "org.w3c.dom.ls.LSResourceResolver", "org.xml.sax.helpers.ParserFactory",
+			"java.net.URLConnection", "java.net.HttpURLConnection", "java.net.JarURLConnection",
+			"java.net.ProxySelector", "java.net.Authenticator", "java.net.CookieHandler", "java.net.CookieManager",
+			"java.net.ResponseCache");
+
+	/**
+	 * The access token setters that change who a signed in user is: the id, the
+	 * login type, the groups and the lock.
+	 */
+	private static final Set<String> IDENTITY_SETTERS = Set.of("setId", "setProvider", "setUserGroups",
+			"setUserGroupType", "setLocked");
+
+	/**
+	 * The ThreadStore methods that change what the thread says about the request it
+	 * serves: the signed in user, the insight, session, route and job, the context
+	 * project, the local host details and scheduler mode, the whole map at once,
+	 * and removing it. Project reactor code reads the thread's values and never
+	 * changes them, since the engine access check reads the user from there.
+	 */
+	private static final Set<String> THREAD_STORE_CHANGES = Set.of("setUser", "setThreadMapObject",
+			"getTheadMapObject", "setInsightId", "setSessionId", "setRouteId", "setJobId", "setSchedulerMode",
+			"setLocalHostname", "setLocalProtocol", "setLocalPort", "setContextProjectIdOverride",
+			"setContextProjectNameOverride", "clearContextProjectOverride", "remove");
+
+	/**
+	 * Calls project reactor code cannot make, by owner then method name. Each is
+	 * replaced with a call that throws, and a project class cannot extend an owner.
+	 * They load native code (load, loadLibrary), open a network connection
+	 * (URL.getContent), change something for every user of the JVM (its standard
+	 * streams, URL handlers, security providers, registered JDBC drivers, time zone
+	 * and locale), change who the signed in user is or which request the thread
+	 * serves, or hand out the SAX1 parser under a SAX parser. The calls each shared
+	 * library cannot make are listed in its sandbox class and added here.
+	 */
+	private static final Map<String, Set<String>> BLOCKED_CALLS = withLibraryRules(Map.ofEntries(
+			Map.entry("java/lang/System", Set.of("load", "loadLibrary", "setIn", "setOut", "setErr")),
+			Map.entry("java/lang/Runtime", Set.of("load", "loadLibrary")),
+			Map.entry("java/net/URL", Set.of("getContent", "setURLStreamHandlerFactory")),
+			Map.entry("java/security/Security",
+					Set.of("addProvider", "insertProviderAt", "removeProvider", "setProperty")),
+			Map.entry("java/sql/DriverManager",
+					Set.of("registerDriver", "deregisterDriver", "setLogWriter", "setLogStream")),
+			Map.entry("java/util/TimeZone", Set.of("setDefault")),
+			Map.entry("java/util/SimpleTimeZone", Set.of("setDefault")),
+			Map.entry("java/util/Locale", Set.of("setDefault")), Map.entry("prerna/om/Insight", Set.of("setUser")),
+			Map.entry("prerna/om/ThreadStore", THREAD_STORE_CHANGES),
+			Map.entry("prerna/auth/User",
+					Set.of("setAccessToken", "setGlobalAccessToken", "dropAccessToken", "setPrimaryLogin")),
+			Map.entry("prerna/auth/AccessToken", IDENTITY_SETTERS),
+			Map.entry("prerna/auth/ReadOnlyAccessToken", IDENTITY_SETTERS),
+			Map.entry("javax/xml/parsers/SAXParser", Set.of("getParser"))),
+			List.of(SandboxedLog4j.BLOCKED_CALLS, SandboxedHikari.BLOCKED_CALLS, SandboxedJackson.BLOCKED_CALLS,
+					SandboxedPdfBox.BLOCKED_CALLS));
+
+	/**
+	 * The package of the query utilities an RDBMS engine hands out
+	 * ({@code getQueryUtil()}), as an internal name prefix.
+	 */
+	private static final String QUERY_UTIL_PACKAGE = "prerna/util/sql/";
+
+	/**
+	 * The methods of the query utilities project reactor code cannot call, on any
+	 * class of {@link #QUERY_UTIL_PACKAGE}: the ones that read the engine's user
+	 * name, password, connection properties and connection URL, and the ones that
+	 * change where the engine connects.
+	 */
+	private static final Set<String> QUERY_UTIL_CONNECTION_MEMBERS = Set.of("getUsername", "getPassword",
+			"getAdditionalProps", "getConnectionUrl", "setHostname", "setPort", "setDatabase", "setSchema",
+			"setUsername", "setPassword", "setAdditionalProps", "setConnectionUrl");
+
+	/**
+	 * Library classes project reactor code can never use, by full name; their
+	 * nested classes are blocked with them. Each shared library lists its own in
+	 * its sandbox class.
+	 */
+	private static final Set<String> BLOCKED_LIBRARY_CLASSES = union(List.of(SandboxedMail.BLOCKED_CLASSES));
+
+	/**
+	 * The library packages project reactor code shares with the platform, as name
+	 * prefixes: org.json and tuples, which need no other rule, and the packages of
+	 * Jackson, POI, PDFBox and the mail APIs, listed in their sandbox classes. Any
+	 * other library on the platform classpath that a project class names is loaded
+	 * as the project's own sandboxed copy.
+	 */
+	private static final List<String> SHARED_LIBRARY_PACKAGES = concat(List.of(List.of("org.json.", "org.javatuples."),
+			SandboxedJackson.SHARED_PACKAGES, SandboxedPoi.SHARED_PACKAGES, SandboxedPdfBox.SHARED_PACKAGES,
+			SandboxedMail.SHARED_PACKAGES));
+
+	/**
+	 * Library packages shared without their sub-packages, whose other packages hold
+	 * the library's internals: Gson, which needs no other rule, and the log4j API
+	 * and HikariCP, listed in their sandbox classes.
+	 */
+	private static final Set<String> SHARED_LIBRARY_EXACT_PACKAGES = union(List.of(Set.of("com.google.gson",
+			"com.google.gson.annotations", "com.google.gson.reflect", "com.google.gson.stream"),
+			SandboxedLog4j.SHARED_EXACT_PACKAGES, SandboxedHikari.SHARED_EXACT_PACKAGES));
+
+	/**
+	 * Single classes shared out of a package that is not, listed in the sandbox
+	 * class of their library.
+	 */
+	private static final Set<String> SHARED_LIBRARY_CLASSES = union(List.of(SandboxedLog4j.SHARED_CLASSES));
+
+	/**
+	 * Single classes kept out of a shared package, so a project gets its own
+	 * sandboxed copy, listed in the sandbox class of their library.
+	 */
+	private static final Set<String> UNSHARED_LIBRARY_CLASSES = union(
+			List.of(SandboxedLog4j.UNSHARED_CLASSES, SandboxedJackson.UNSHARED_CLASSES));
+
+	/**
+	 * Internal name of the sandbox utility class whose static methods replace calls
+	 * in the transformed bytecode.
+	 */
+	private static final String SANDBOX = "prerna/util/SandboxedJavaExecution";
+
+	/**
+	 * The oldest class file version the sandbox writes: Java 5, the first in which
+	 * {@code ldc} loads a class constant, which the rewritten calls use to pass the
+	 * calling class. A class compiled for an older Java, such as a library built
+	 * for Java 1.1, is written at this version and checked by the same verifier.
+	 */
+	private static final int OLDEST_WRITTEN_VERSION = Opcodes.V1_5;
+
+	/**
+	 * Internal name of the sandbox class whose static methods harden the JDK's XML
+	 * parsers and check the documents they are pointed at.
+	 */
+	private static final String SANDBOX_XML = "prerna/util/SandboxedXml";
+
+	private static final String CLASS_LOADER = "java/lang/ClassLoader";
+	private static final String SECURE_CLASS_LOADER = "java/security/SecureClassLoader";
+	private static final String URL_CLASS_LOADER = "java/net/URLClassLoader";
+	private static final String SANDBOXED_CLASS_LOADER = "prerna/util/SandboxedClassLoader";
+	private static final String PROJECT_JAR_CLASS_LOADER = "prerna/util/SemossProjectJarClassLoader";
+	private static final String CLASS_LOADER_DESCRIPTOR = "Ljava/lang/ClassLoader;";
+	private static final String CLASS_DESCRIPTOR = "Ljava/lang/Class;";
+
+	/**
+	 * The JDK loader classes a project class can extend, each with the sandbox
+	 * class it extends instead once rewritten.
+	 */
+	private static final Map<String, String> LOADER_BASES = Map.of(CLASS_LOADER, SANDBOXED_CLASS_LOADER,
+			SECURE_CLASS_LOADER, SANDBOXED_CLASS_LOADER, URL_CLASS_LOADER, PROJECT_JAR_CLASS_LOADER);
+
+	/**
+	 * The classes that make up the sandbox. Project reactor code cannot name them:
+	 * only the calls the sandbox itself writes into a class reach them.
+	 */
+	private static final Set<String> SANDBOX_CLASSES = Set.of(SANDBOX, SANDBOX_XML, "prerna/util/SemossClassLoader",
+			PROJECT_JAR_CLASS_LOADER, "prerna/util/SemossJarClassLoader", SANDBOXED_CLASS_LOADER,
+			SandboxedPdfBox.INTERNAL_NAME, SandboxedHikari.INTERNAL_NAME, "prerna/util/SandboxedJackson",
+			"prerna/util/SandboxedLog4j", "prerna/util/SandboxedPoi", "prerna/util/SandboxedMail");
+
+	private static final String FILE = "java/io/File";
+	private static final String FILE_DESCRIPTOR = "Ljava/io/File;";
+	private static final String PATH_DESCRIPTOR = "Ljava/nio/file/Path;";
+	private static final String STRING_DESCRIPTOR = "Ljava/lang/String;";
+	private static final String URL_DESCRIPTOR = "Ljava/net/URL;";
+	private static final String INPUT_SOURCE_DESCRIPTOR = "Lorg/xml/sax/InputSource;";
+	private static final String SOURCE_DESCRIPTOR = "Ljavax/xml/transform/Source;";
+
+	/**
+	 * A sandbox method that takes a value and gives back the value to use in its
+	 * place.
+	 *
+	 * @param helper the internal name of the sandbox class
+	 * @param method the method
+	 * @param type   the descriptor of the value
+	 */
+	private record ValueRule(String helper, String method, String type) {
+	}
+
+	private static final ValueRule PATH_TEXT_RULE = new ValueRule(SANDBOX, "sandboxedPath", STRING_DESCRIPTOR);
+	private static final ValueRule FILE_RULE = new ValueRule(SANDBOX, "sandboxedFileValue", FILE_DESCRIPTOR);
+	private static final ValueRule SYSTEM_ID_RULE = new ValueRule(SANDBOX_XML, "systemId", STRING_DESCRIPTOR);
+	private static final ValueRule SYSTEM_URL_RULE = new ValueRule(SANDBOX_XML, "systemUrl", URL_DESCRIPTOR);
+	private static final ValueRule INPUT_SOURCE_RULE = new ValueRule(SANDBOX_XML, "inputSource",
+			INPUT_SOURCE_DESCRIPTOR);
+	private static final ValueRule SOURCE_RULE = new ValueRule(SANDBOX_XML, "source", SOURCE_DESCRIPTOR);
+
+	/**
+	 * The rule for each kind of argument that project code hands to the JDK, the
+	 * platform or a shared library, by the argument's descriptor: files and paths
+	 * follow the path rule, and XML sources and results have their system id
+	 * checked.
+	 */
+	private static final Map<String, ValueRule> ARGUMENT_RULES = Map.of(FILE_DESCRIPTOR, FILE_RULE, PATH_DESCRIPTOR,
+			new ValueRule(SANDBOX, "sandboxedPathValue", PATH_DESCRIPTOR), INPUT_SOURCE_DESCRIPTOR, INPUT_SOURCE_RULE,
+			SOURCE_DESCRIPTOR, SOURCE_RULE, "[" + SOURCE_DESCRIPTOR,
+			new ValueRule(SANDBOX_XML, "sources", "[" + SOURCE_DESCRIPTOR), "Ljavax/xml/transform/Result;",
+			new ValueRule(SANDBOX_XML, "result", "Ljavax/xml/transform/Result;"));
+
+	/**
+	 * The XML factory lookups, each with the sandbox method that hands out the
+	 * JDK's own factory, hardened. A lookup that could pick another parser off the
+	 * classpath is answered the same way.
+	 */
+	private static final Map<String, String> XML_FACTORY_LOOKUPS = Map.of("javax/xml/parsers/DocumentBuilderFactory",
+			"documentBuilderFactory", "javax/xml/parsers/SAXParserFactory", "saxParserFactory",
+			"javax/xml/transform/TransformerFactory", "transformerFactory", "javax/xml/validation/SchemaFactory",
+			"schemaFactory", "javax/xml/stream/XMLInputFactory", "xmlInputFactory", "javax/xml/xpath/XPathFactory",
+			"xpathFactory", "org/xml/sax/helpers/XMLReaderFactory", "xmlReader");
+
+	private static final Set<String> XML_FACTORY_LOOKUP_METHODS = Set.of("newInstance", "newDefaultInstance",
+			"newNSInstance", "newDefaultNSInstance", "newFactory", "newDefaultFactory", "createXMLReader");
+
+	private static final Set<String> TRANSFORMER_FACTORY_USES = Set.of("newTransformer", "newTemplates",
+			"getAssociatedStylesheet", "newTransformerHandler", "newTemplatesHandler", "newXMLFilter");
+
+	/**
+	 * The calls that put an XML factory, parser, reader or validator to use, by
+	 * owner. The sandbox applies its XML settings to the object right before each
+	 * one, so a setting the project changed has no effect.
+	 */
+	private static final Map<String, Set<String>> XML_USES = Map.ofEntries(
+			Map.entry("javax/xml/parsers/DocumentBuilderFactory", Set.of("newDocumentBuilder")),
+			Map.entry("javax/xml/parsers/SAXParserFactory", Set.of("newSAXParser")),
+			Map.entry("javax/xml/parsers/SAXParser", Set.of("parse")),
+			Map.entry("org/xml/sax/XMLReader", Set.of("parse")), Map.entry("org/xml/sax/XMLFilter", Set.of("parse")),
+			Map.entry("org/xml/sax/helpers/XMLFilterImpl", Set.of("parse")),
+			Map.entry("javax/xml/transform/TransformerFactory", TRANSFORMER_FACTORY_USES),
+			Map.entry("javax/xml/transform/sax/SAXTransformerFactory", TRANSFORMER_FACTORY_USES),
+			Map.entry("javax/xml/validation/SchemaFactory", Set.of("newSchema")),
+			Map.entry("javax/xml/validation/Validator", Set.of("validate")),
+			Map.entry("javax/xml/stream/XMLInputFactory", Set.of("createXMLStreamReader", "createXMLEventReader")),
+			Map.entry("javax/xml/xpath/XPathFactory", Set.of("newXPath")));
+
+	/**
+	 * The type the sandbox method for an {@link #XML_USES} owner takes, where it is
+	 * not the owner itself.
+	 */
+	private static final Map<String, String> XML_USE_TYPES = Map.of("javax/xml/transform/sax/SAXTransformerFactory",
+			"javax/xml/transform/TransformerFactory", "org/xml/sax/XMLFilter", "org/xml/sax/XMLReader",
+			"org/xml/sax/helpers/XMLFilterImpl", "org/xml/sax/XMLReader");
+
+	private static final Set<String> XPATH_CLASSES = Set.of("javax/xml/xpath/XPath", "javax/xml/xpath/XPathExpression");
+
+	/**
+	 * Calls that take the address of an XML document as text or as a URL, by owner,
+	 * then method name and descriptor, then the position of the argument. The
+	 * address has to be a local file, and follows the path rule.
+	 */
+	private static final Map<String, Map<String, Integer>> SYSTEM_ID_ARGUMENTS = Map.ofEntries(
+			Map.entry("javax/xml/parsers/DocumentBuilder",
+					Map.of("parse(Ljava/lang/String;)Lorg/w3c/dom/Document;", 0,
+							"parse(Ljava/io/InputStream;Ljava/lang/String;)Lorg/w3c/dom/Document;", 1)),
+			Map.entry("javax/xml/parsers/SAXParser",
+					Map.of("parse(Ljava/lang/String;Lorg/xml/sax/HandlerBase;)V", 0,
+							"parse(Ljava/lang/String;Lorg/xml/sax/helpers/DefaultHandler;)V", 0,
+							"parse(Ljava/io/InputStream;Lorg/xml/sax/HandlerBase;Ljava/lang/String;)V", 2,
+							"parse(Ljava/io/InputStream;Lorg/xml/sax/helpers/DefaultHandler;Ljava/lang/String;)V", 2)),
+			Map.entry("org/xml/sax/XMLReader", Map.of("parse(Ljava/lang/String;)V", 0)),
+			Map.entry("org/xml/sax/XMLFilter", Map.of("parse(Ljava/lang/String;)V", 0)),
+			Map.entry("org/xml/sax/helpers/XMLFilterImpl", Map.of("parse(Ljava/lang/String;)V", 0)),
+			Map.entry("org/xml/sax/Parser", Map.of("parse(Ljava/lang/String;)V", 0)),
+			Map.entry("javax/xml/stream/XMLInputFactory", Map.of(
+					"createXMLStreamReader(Ljava/lang/String;Ljava/io/InputStream;)Ljavax/xml/stream/XMLStreamReader;",
+					0, "createXMLStreamReader(Ljava/lang/String;Ljava/io/Reader;)Ljavax/xml/stream/XMLStreamReader;", 0,
+					"createXMLEventReader(Ljava/lang/String;Ljava/io/InputStream;)Ljavax/xml/stream/XMLEventReader;", 0,
+					"createXMLEventReader(Ljava/lang/String;Ljava/io/Reader;)Ljavax/xml/stream/XMLEventReader;", 0)),
+			Map.entry("javax/xml/validation/SchemaFactory",
+					Map.of("newSchema(Ljava/net/URL;)Ljavax/xml/validation/Schema;", 0)),
+			Map.entry("org/w3c/dom/ls/LSSerializer", Map.of("writeToURI(Lorg/w3c/dom/Node;Ljava/lang/String;)Z", 1)),
+			Map.entry("org/w3c/dom/ls/LSOutput", Map.of("setSystemId(Ljava/lang/String;)V", 0)));
+
+	/**
+	 * Name prefixes of the JDK classes outside {@code java.*}.
+	 */
+	private static final List<String> JDK_PREFIXES = List.of("javax/", "jdk/", "com/sun/", "sun/", "org/w3c/",
+			"org/xml/");
+
+	/**
+	 * Classes whose File and Path arguments are used to work out a path, such as
+	 * {@code Path.resolve(Path)}, and are not opened. Those arguments are left as
+	 * they are, and the path that results is checked where it is used.
+	 */
+	private static final Set<String> PATH_ARITHMETIC_CLASSES = Set.of("java/nio/file/Path", "java/nio/file/Paths",
+			FILE);
+
+	/**
+	 * The File methods that read or change the file system. The file they are
+	 * called on is put under the path rule first.
+	 */
+	private static final Set<String> FILE_IO_METHODS = Set.of("exists", "canRead", "canWrite", "canExecute",
+			"isDirectory", "isFile", "isHidden", "lastModified", "length", "createNewFile", "delete", "deleteOnExit",
+			"list", "listFiles", "mkdir", "mkdirs", "renameTo", "setLastModified", "setReadOnly", "setWritable",
+			"setReadable", "setExecutable", "getTotalSpace", "getFreeSpace", "getUsableSpace", "getCanonicalFile");
+
+	/**
+	 * Calls that take a path as text, by owner, then method name, then the position
+	 * of the path argument. The text is put under the path rule before the call.
+	 * They are the JDK classes that open a file by name and the platform helpers
+	 * that read or write a file for their caller, and the shared library methods
+	 * that open a file by name, listed in their sandbox classes.
+	 */
+	private static final Map<String, Map<String, Integer>> PATH_TEXT_ARGUMENTS = withLibraryRules(Map.ofEntries(
+			Map.entry("java/io/FileInputStream", Map.of("<init>", 0)),
+			Map.entry("java/io/FileOutputStream", Map.of("<init>", 0)),
+			Map.entry("java/io/FileReader", Map.of("<init>", 0)), Map.entry("java/io/FileWriter", Map.of("<init>", 0)),
+			Map.entry("java/io/RandomAccessFile", Map.of("<init>", 0)),
+			Map.entry("java/io/PrintWriter", Map.of("<init>", 0)),
+			Map.entry("java/io/PrintStream", Map.of("<init>", 0)),
+			Map.entry("java/util/Formatter", Map.of("<init>", 0)),
+			Map.entry("java/util/zip/ZipFile", Map.of("<init>", 0)),
+			Map.entry("java/util/jar/JarFile", Map.of("<init>", 0)),
+			Map.entry("prerna/util/Utility", Map.of("writeResultToFile", 0, "writeResultToJson", 0, "writeWorkbook", 1,
+					"folderHasAnyFiles", 0, "folderIsNotEmpty", 0, "getUniqueFilePath", 0))),
+			List.of(SandboxedPoi.PATH_TEXT_ARGUMENTS, SandboxedPdfBox.PATH_TEXT_ARGUMENTS,
+					SandboxedMail.PATH_TEXT_ARGUMENTS));
+
+	/**
+	 * The two forms of {@code loadClass}, as name and descriptor. A custom loader
+	 * supplies its classes through {@code findClass} and cannot override these.
+	 */
+	private static final Set<String> LOAD_CLASS_METHODS = Set.of("loadClass(Ljava/lang/String;)Ljava/lang/Class;",
+			"loadClass(Ljava/lang/String;Z)Ljava/lang/Class;");
+
+	/**
+	 * The descriptors of the {@code defineClass} methods of the JDK loader classes.
+	 */
+	private static final Set<String> DEFINE_CLASS_DESCRIPTORS = Set.of("(Ljava/lang/String;[BII)Ljava/lang/Class;",
+			"([BII)Ljava/lang/Class;", "(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;",
+			"(Ljava/lang/String;Ljava/nio/ByteBuffer;Ljava/security/ProtectionDomain;)Ljava/lang/Class;",
+			"(Ljava/lang/String;[BIILjava/security/CodeSource;)Ljava/lang/Class;",
+			"(Ljava/lang/String;Ljava/nio/ByteBuffer;Ljava/security/CodeSource;)Ljava/lang/Class;");
+
+	/**
+	 * The methods the sandbox rewrites or blocks, by owner, along with the ones in
+	 * {@link #BLOCKED_CALLS}. A method reference or method handle constant that
+	 * points at one of them would run it without the rewrite, so a class holding
+	 * one is refused.
+	 */
+	private static final Map<String, Set<String>> SANDBOXED_MEMBERS = Map.ofEntries(
+			Map.entry("java/lang/System",
+					Set.of("exit", "getenv", "getProperty", "getProperties", "setProperty", "clearProperty",
+							"setProperties")),
+			Map.entry("java/lang/Runtime", Set.of("halt", "exec")),
+			Map.entry("java/lang/Class", Set.of("forName", "getClassLoader")),
+			Map.entry("java/lang/ClassLoader",
+					Set.of("getSystemClassLoader", "getPlatformClassLoader", "getParent", "loadClass", "defineClass",
+							"findSystemClass")),
+			Map.entry("java/security/SecureClassLoader", Set.of("getParent", "loadClass", "defineClass")),
+			Map.entry("java/net/URLClassLoader",
+					Set.of("<init>", "newInstance", "getParent", "loadClass", "defineClass")),
+			Map.entry("java/lang/Thread", Set.of("getAllStackTraces")),
+			Map.entry("java/nio/file/Files", Set.of("createSymbolicLink")),
+			Map.entry("java/nio/channels/FileChannel", Set.of("open")),
+			Map.entry("java/net/URL", Set.of("openStream", "openConnection")),
+			Map.entry("java/nio/file/Paths", Set.of("get")), Map.entry("java/nio/file/Path", Set.of("of")),
+			Map.entry("java/io/File",
+					Set.of("<init>", "getParentFile", "getParent", "getAbsolutePath", "getCanonicalPath", "toPath")),
+			Map.entry("java/io/FileInputStream", Set.of("<init>")),
+			Map.entry("java/io/FileOutputStream", Set.of("<init>")), Map.entry("prerna/util/Utility",
+					Set.of("getDIHelperProperty", "loadProperties")));
+
 	private String folder = null;
+
+	private final String projectId;
+
+	private final List<String> approvedPackages = approvedLibraryPackages();
 
 	/**
 	 * Constructs a new SemossClassLoader with a specified parent class loader.
@@ -65,7 +507,19 @@ public class SemossClassLoader extends ClassLoader {
 	 * @param parent The parent class loader.
 	 */
 	public SemossClassLoader(ClassLoader parent) {
+		this(parent, (String) null);
+	}
+
+	/**
+	 * Constructs the loader for the custom classes of one project.
+	 *
+	 * @param parent    the parent class loader
+	 * @param projectId the id of the project whose classes this loader loads, or
+	 *                  null when the classes belong to no project
+	 */
+	public SemossClassLoader(ClassLoader parent, String projectId) {
 		super(parent);
+		this.projectId = projectId;
 	}
 
 	/**
@@ -87,7 +541,17 @@ public class SemossClassLoader extends ClassLoader {
 	 */
 	public SemossClassLoader(ClassLoader parent, Map<String, String> additionalProperties) {
 		super(parent);
+		this.projectId = null;
 		SandboxedJavaExecution.addPlatformProperties(additionalProperties);
+	}
+
+	/**
+	 * The project whose custom classes this loader loads.
+	 *
+	 * @return the project id, or null when the classes belong to no project
+	 */
+	String getProjectId() {
+		return this.projectId;
 	}
 
 	/**
@@ -152,12 +616,45 @@ public class SemossClassLoader extends ClassLoader {
 	 * java.lang.invoke.MethodHandles privateLookupIn() gives equivalent access -
 	 * java.lang.invoke.MethodHandles$Lookup the lookup object itself -
 	 * sun.misc.Unsafe objectFieldOffset+getObject reads any field -
-	 * jdk.internal.misc.Unsafe same capability, internal variant
+	 * jdk.internal.misc.Unsafe same capability, internal variant - the platform
+	 * classes in {@link #BLOCKED_PLATFORM_CLASSES} and their nested classes - the
+	 * platform packages in {@link #BLOCKED_PLATFORM_PACKAGES} - every platform
+	 * class that requires an admin - the JDK packages in
+	 * {@link #BLOCKED_JDK_PACKAGES} - the JDK classes in
+	 * {@link #BLOCKED_JDK_CLASSES} and their nested classes
 	 *
 	 * @param name fully-qualified class name
 	 * @return true if this class must not be loaded by project reactor code
 	 */
 	static boolean isReflectionApiBlocked(String name) {
+		for (String blocked : BLOCKED_PLATFORM_CLASSES) {
+			if (name.equals(blocked) || name.startsWith(blocked + "$")) {
+				return true;
+			}
+		}
+		for (String blocked : BLOCKED_PLATFORM_PACKAGES) {
+			if (name.startsWith(blocked)) {
+				return true;
+			}
+		}
+		if (requiresAdmin(name)) {
+			return true;
+		}
+		for (String blocked : BLOCKED_JDK_PACKAGES) {
+			if (name.startsWith(blocked)) {
+				return true;
+			}
+		}
+		for (String blocked : BLOCKED_JDK_CLASSES) {
+			if (name.equals(blocked) || name.startsWith(blocked + "$")) {
+				return true;
+			}
+		}
+		for (String blocked : BLOCKED_LIBRARY_CLASSES) {
+			if (name.equals(blocked) || name.startsWith(blocked + "$")) {
+				return true;
+			}
+		}
 		// Reflection / field access
 		if (name.startsWith("java.lang.reflect.")) {
 			return true;
@@ -242,6 +739,248 @@ public class SemossClassLoader extends ClassLoader {
 	}
 
 	/**
+	 * True for a loader that applies the sandbox to the classes it loads.
+	 *
+	 * @param loader a class loader, or null
+	 * @return true if the loader is one of the sandbox loaders
+	 */
+	static boolean isSandboxLoader(ClassLoader loader) {
+		return loader instanceof SemossClassLoader || loader instanceof SemossProjectJarClassLoader
+				|| loader instanceof SemossJarClassLoader || loader instanceof SandboxedClassLoader;
+	}
+
+	/**
+	 * The class file a project's own loader asked to define, rewritten by the
+	 * sandbox.
+	 *
+	 * @param classBytes the array holding the class file
+	 * @param offset     where the class file starts
+	 * @param length     how long the class file is
+	 * @return the sandboxed class file
+	 * @throws SecurityException if the class is in a {@code prerna.*} package or
+	 *                           the sandbox refuses it
+	 */
+	static byte[] sandboxedDefinition(byte[] classBytes, int offset, int length) {
+		byte[] original = Arrays.copyOfRange(classBytes, offset, offset + length);
+		String internalName = new ClassReader(original).getClassName();
+		if (internalName.startsWith("prerna/")) {
+			throw new SecurityException("Classes in 'prerna.*' packages cannot be defined in project reactors: "
+					+ internalName.replace('/', '.'));
+		}
+		return applyBytecodeTransformations(original);
+	}
+
+	/**
+	 * The class file a project's own loader asked to define, rewritten by the
+	 * sandbox.
+	 *
+	 * @param classBytes the buffer holding the class file
+	 * @return the sandboxed class file
+	 * @throws SecurityException if the class is in a {@code prerna.*} package or
+	 *                           the sandbox refuses it
+	 */
+	static byte[] sandboxedDefinition(ByteBuffer classBytes) {
+		byte[] original = new byte[classBytes.remaining()];
+		classBytes.get(original);
+		return sandboxedDefinition(original, 0, original.length);
+	}
+
+	/**
+	 * True for a platform class that requires an admin: by convention its name
+	 * starts with {@code Admin}, such as the admin reactors and the admin
+	 * endpoints, plus SecurityAdminUtils. Project reactor code can never use one,
+	 * and an admin has more than their own permissions on an engine only while
+	 * one is acting.
+	 *
+	 * @param name fully-qualified class name
+	 * @return true if only an admin may use the class
+	 */
+	public static boolean requiresAdmin(String name) {
+		if (!name.startsWith(PLATFORM_PACKAGE)) {
+			return false;
+		}
+		if (name.equals(ADMIN_UTILS_CLASS) || name.startsWith(ADMIN_UTILS_CLASS + "$")) {
+			return true;
+		}
+		return name.startsWith(ADMIN_CLASS_PREFIX, name.lastIndexOf('.') + 1);
+	}
+
+	/**
+	 * The library packages an admin approved for sharing with project reactor code,
+	 * on top of the built-in list: the comma separated package names in the RDF_Map
+	 * setting {@link Constants#PROJECT_REACTOR_SHARED_PACKAGES}.
+	 *
+	 * @return the approved packages as name prefixes
+	 */
+	static List<String> approvedLibraryPackages() {
+		String setting = Utility.getDIHelperProperty(Constants.PROJECT_REACTOR_SHARED_PACKAGES);
+		if (setting == null || setting.isBlank()) {
+			return List.of();
+		}
+		List<String> packages = new ArrayList<>();
+		for (String entry : setting.split(",")) {
+			String packageName = entry.trim();
+			if (!packageName.isEmpty()) {
+				packages.add(packageName.endsWith(".") ? packageName : packageName + ".");
+			}
+		}
+		return List.copyOf(packages);
+	}
+
+	/**
+	 * One rule table out of the loader's own entries and the entries each shared
+	 * library's sandbox class lists. A class with entries in two places stops the
+	 * loader from starting, so each class's rules live in one place.
+	 *
+	 * @param <V>       the type of an entry
+	 * @param own       the loader's own entries
+	 * @param libraries the entries of each library's sandbox class
+	 * @return the combined table
+	 */
+	private static <V> Map<String, V> withLibraryRules(Map<String, V> own, List<Map<String, V>> libraries) {
+		Map<String, V> all = new HashMap<>(own);
+		for (Map<String, V> library : libraries) {
+			for (Map.Entry<String, V> entry : library.entrySet()) {
+				if (all.putIfAbsent(entry.getKey(), entry.getValue()) != null) {
+					throw new IllegalStateException(entry.getKey() + " has sandbox rules in two places");
+				}
+			}
+		}
+		return Collections.unmodifiableMap(all);
+	}
+
+	/**
+	 * Every name in a set of name sets.
+	 *
+	 * @param sets the sets
+	 * @return their union
+	 */
+	private static Set<String> union(List<Set<String>> sets) {
+		Set<String> all = new HashSet<>();
+		for (Set<String> set : sets) {
+			all.addAll(set);
+		}
+		return Collections.unmodifiableSet(all);
+	}
+
+	/**
+	 * Every name in a list of name lists, in order.
+	 *
+	 * @param lists the lists
+	 * @return the names
+	 */
+	private static List<String> concat(List<List<String>> lists) {
+		List<String> all = new ArrayList<>();
+		for (List<String> list : lists) {
+			all.addAll(list);
+		}
+		return Collections.unmodifiableList(all);
+	}
+
+	/**
+	 * True when project reactor code uses the platform's own copy of a class: a
+	 * {@code java.*} or {@code prerna.*} class, or a class of a shared library.
+	 *
+	 * @param name             fully-qualified class name
+	 * @param approvedPackages the packages an admin approved, as name prefixes
+	 * @return true if the class is shared with the platform
+	 */
+	static boolean isSharedWithPlatform(String name, List<String> approvedPackages) {
+		if (name.startsWith("java.") || name.startsWith(PLATFORM_PACKAGE)) {
+			return true;
+		}
+		int nested = name.indexOf('$');
+		String outer = nested < 0 ? name : name.substring(0, nested);
+		if (UNSHARED_LIBRARY_CLASSES.contains(outer)) {
+			return false;
+		}
+		if (SHARED_LIBRARY_CLASSES.contains(outer)) {
+			return true;
+		}
+		for (String shared : SHARED_LIBRARY_PACKAGES) {
+			if (name.startsWith(shared)) {
+				return true;
+			}
+		}
+		for (String approved : approvedPackages) {
+			if (name.startsWith(approved)) {
+				return true;
+			}
+		}
+		int packageEnd = outer.lastIndexOf('.');
+		return packageEnd > 0 && SHARED_LIBRARY_EXACT_PACKAGES.contains(outer.substring(0, packageEnd));
+	}
+
+	/**
+	 * The rewritten class file of a library class that a project gets its own copy
+	 * of. A library on the platform classpath that is not shared is loaded this
+	 * way, so the sandbox rules apply to it like they do to the project's own code.
+	 *
+	 * @param name             fully-qualified class name
+	 * @param platform         the loader of the platform classpath, or null
+	 * @param approvedPackages the packages an admin approved, as name prefixes
+	 * @return the sandboxed class file, or null when the class is shared with the
+	 *         platform, is a JDK class, or is not on the platform classpath
+	 * @throws ClassNotFoundException if the class file cannot be read, or the
+	 *                                sandbox refuses it
+	 */
+	static byte[] sandboxedLibraryCopy(String name, ClassLoader platform, List<String> approvedPackages)
+			throws ClassNotFoundException {
+		if (platform == null || isSharedWithPlatform(name, approvedPackages)) {
+			return null;
+		}
+		String classFile = name.replace('.', '/') + ".class";
+		if (ClassLoader.getPlatformClassLoader().getResource(classFile) != null) {
+			return null;
+		}
+		URL resource = platform.getResource(classFile);
+		if (resource == null || "jrt".equals(resource.getProtocol())) {
+			return null;
+		}
+		byte[] original;
+		try (InputStream in = resource.openStream()) {
+			original = in.readAllBytes();
+		} catch (IOException e) {
+			throw new ClassNotFoundException("Could not read library class '" + name + "'", e);
+		}
+		try {
+			return applyBytecodeTransformations(original);
+		} catch (SecurityException e) {
+			throw new ClassNotFoundException("Class '" + name + "' blocked by sandbox: " + e.getMessage(), e);
+		} catch (IllegalArgumentException e) {
+			throw new ClassNotFoundException("Class '" + name + "' cannot be sandbox-transformed: " + e.getMessage(),
+					e);
+		}
+	}
+
+	/**
+	 * Applies the block list to the two-argument form as well, which is the one a
+	 * child loader, such as the loader of a project's jars, calls on its parent. A
+	 * library that is not shared with the platform is loaded as the project's own
+	 * sandboxed copy.
+	 */
+	@Override
+	protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+		if (isReflectionApiBlocked(name)) {
+			throw new ClassNotFoundException("Access to '" + name + "' is not permitted in project reactors");
+		}
+		synchronized (getClassLoadingLock(name)) {
+			Class<?> loaded = findLoadedClass(name);
+			if (loaded == null) {
+				byte[] copy = sandboxedLibraryCopy(name, getParent(), this.approvedPackages);
+				if (copy == null) {
+					return super.loadClass(name, resolve);
+				}
+				loaded = defineClass(name, copy, 0, copy.length);
+			}
+			if (resolve) {
+				resolveClass(loaded);
+			}
+			return loaded;
+		}
+	}
+
+	/**
 	 * Overrides the default class loading strategy. Blocks access to reflection
 	 * APIs that could be used to bypass SystemEngineRegistry access controls, then
 	 * attempts the parent class loader (standard delegation), and falls back to
@@ -262,9 +1001,10 @@ public class SemossClassLoader extends ClassLoader {
 		// see if it is already loaded or in the classpath
 		try {
 			retClass = super.loadClass(name);
-		} catch (Exception e) {
-			// ignore
-			// classLogger.error(Constants.STACKTRACE, e);
+		} catch (ClassNotFoundException e) {
+			if (e.getCause() != null) {
+				throw e;
+			}
 		}
 
 		if (retClass == null) {
@@ -340,15 +1080,10 @@ public class SemossClassLoader extends ClassLoader {
 	// =========================================================================
 
 	/**
-	 * Internal name of the sandbox utility class whose static factory methods
-	 * replace direct file-API calls in the transformed bytecode.
-	 */
-	private static final String SANDBOX = "prerna/util/SandboxedJavaExecution";
-
-	/**
 	 * Maps each intercepted internal class name to its constructor descriptor(s),
-	 * and for each descriptor the replacement factory method name and descriptor in
-	 * {@link SandboxedPaths}.
+	 * and for each descriptor the replacement factory method name and descriptor.
+	 * The factories are in {@link SandboxedJavaExecution}, or in the shared
+	 * library's sandbox class that {@link #REDIRECT_FACTORY_OWNERS} names.
 	 *
 	 * <p>
 	 * Layout:
@@ -361,6 +1096,13 @@ public class SemossClassLoader extends ClassLoader {
 	 * passthrough factories.
 	 */
 	private static final Map<String, Map<String, String[]>> CONSTRUCTOR_REDIRECTS;
+
+	/**
+	 * The class that holds the factory methods for a redirected class, by internal
+	 * name, for the redirects a shared library's sandbox class lists. Every other
+	 * redirect goes to {@link SandboxedJavaExecution}.
+	 */
+	private static final Map<String, String> REDIRECT_FACTORY_OWNERS;
 
 	static {
 		Map<String, Map<String, String[]>> m = new HashMap<>();
@@ -397,33 +1139,79 @@ public class SemossClassLoader extends ClassLoader {
 				new String[] { "fileOutputStream", "(Ljava/io/FileDescriptor;)Ljava/io/FileOutputStream;" });
 		m.put("java/io/FileOutputStream", fos);
 
+		Map<String, String[]> loader = new HashMap<>();
+		for (String arguments : List.of("[Ljava/net/URL;", "[Ljava/net/URL;Ljava/lang/ClassLoader;",
+				"[Ljava/net/URL;Ljava/lang/ClassLoader;Ljava/net/URLStreamHandlerFactory;",
+				"Ljava/lang/String;[Ljava/net/URL;Ljava/lang/ClassLoader;",
+				"Ljava/lang/String;[Ljava/net/URL;Ljava/lang/ClassLoader;Ljava/net/URLStreamHandlerFactory;")) {
+			loader.put("(" + arguments + ")V", new String[] { "urlClassLoader",
+					"(" + arguments + CLASS_DESCRIPTOR + ")Ljava/net/URLClassLoader;" });
+		}
+		m.put(URL_CLASS_LOADER, loader);
+
+		Map<String, String> owners = new HashMap<>();
+		for (Map.Entry<String, Map<String, Map<String, String[]>>> library : Map
+				.of(SandboxedHikari.INTERNAL_NAME, SandboxedHikari.CONSTRUCTOR_REDIRECTS, SandboxedPdfBox.INTERNAL_NAME,
+						SandboxedPdfBox.CONSTRUCTOR_REDIRECTS)
+				.entrySet()) {
+			for (Map.Entry<String, Map<String, String[]>> redirect : library.getValue().entrySet()) {
+				if (m.putIfAbsent(redirect.getKey(), redirect.getValue()) != null) {
+					throw new IllegalStateException(redirect.getKey() + " has constructor redirects in two places");
+				}
+				owners.put(redirect.getKey(), library.getKey());
+			}
+		}
+
 		CONSTRUCTOR_REDIRECTS = Collections.unmodifiableMap(m);
+		REDIRECT_FACTORY_OWNERS = Collections.unmodifiableMap(owners);
 	}
 
 	/**
 	 * Applies all bytecode transformations to a raw class byte array:
 	 * <ul>
 	 * <li>Redirects {@code new File(...)}, {@code new FileInputStream(String)}, and
-	 * {@code new FileOutputStream(String[,boolean])} through {@link SandboxedPaths}
-	 * factory methods that enforce the sandbox root.</li>
+	 * {@code new FileOutputStream(String[,boolean])} through
+	 * {@link SandboxedJavaExecution} factory methods that enforce the sandbox
+	 * root.</li>
 	 * <li>Redirects {@code Paths.get(...)} and {@code Path.of(...)} through
 	 * sandboxed equivalents.</li>
 	 * <li>Replaces {@code System.getenv()} / {@code System.getenv(String)} with
 	 * {@code null}, hiding host environment variables.</li>
 	 * <li>Replaces all {@code Runtime.exec(...)} overloads with a call that throws
 	 * {@link SecurityException}.</li>
+	 * <li>Writes a class compiled for Java 1.4 or older at
+	 * {@link #OLDEST_WRITTEN_VERSION}, so the class constants the rewritten calls
+	 * pass are valid in it.</li>
 	 * </ul>
+	 * <p>
+	 * Stack-map frames are rebuilt from scratch for a class file of Java 6 or
+	 * newer, since the replacements change the frame layout; a type that is not on
+	 * the classpath counts as {@code Object} when two types meet. An older class
+	 * file has no frames, so only its stack and local sizes are recomputed, which
+	 * also keeps the {@code jsr} and {@code ret} instructions older compilers write
+	 * for {@code finally} blocks.
 	 *
 	 * @param original raw bytecode of the class to transform
 	 * @return transformed bytecode
 	 */
 	static byte[] applyBytecodeTransformations(byte[] original) {
 		ClassReader cr = new ClassReader(original);
-		// COMPUTE_FRAMES rebuilds stack-map frames from scratch, which is required
-		// because our instruction replacements can change the frame layout.
-		// getCommonSuperClass falls back to Object for any class not on the
-		// current classpath so that transformation never fails hard.
-		ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES) {
+		Map<String, Integer> methodLocals = new HashMap<>();
+		cr.accept(new ClassVisitor(Opcodes.ASM9) {
+			@Override
+			public MethodVisitor visitMethod(int access, String name, String descriptor, String signature,
+					String[] exceptions) {
+				methodLocals.put(name + descriptor, 0);
+				return new MethodVisitor(Opcodes.ASM9) {
+					@Override
+					public void visitMaxs(int maxStack, int maxLocals) {
+						methodLocals.put(name + descriptor, maxLocals);
+					}
+				};
+			}
+		}, ClassReader.SKIP_DEBUG | ClassReader.SKIP_FRAMES);
+		int frames = cr.readUnsignedShort(6) < Opcodes.V1_6 ? ClassWriter.COMPUTE_MAXS : ClassWriter.COMPUTE_FRAMES;
+		ClassWriter cw = new ClassWriter(cr, frames) {
 			@Override
 			protected String getCommonSuperClass(String type1, String type2) {
 				try {
@@ -433,9 +1221,7 @@ public class SemossClassLoader extends ClassLoader {
 				}
 			}
 		};
-		// SKIP_FRAMES: let COMPUTE_FRAMES recompute everything instead of trying
-		// to patch the original (potentially stale) frame data.
-		cr.accept(new SandboxClassVisitor(cw), ClassReader.SKIP_FRAMES);
+		cr.accept(new SandboxClassVisitor(cw, methodLocals, approvedLibraryPackages()), ClassReader.SKIP_FRAMES);
 		return cw.toByteArray();
 	}
 
@@ -445,16 +1231,240 @@ public class SemossClassLoader extends ClassLoader {
 
 	private static final class SandboxClassVisitor extends ClassVisitor {
 
-		SandboxClassVisitor(ClassVisitor cv) {
+		private final Map<String, Integer> methodLocals;
+		private final Set<String> declaredMethods;
+		private final List<String> approvedPackages;
+		private final List<Handle> references = new ArrayList<>();
+		private String className;
+		private String originalSuper;
+		private String sandboxSuper;
+		private boolean isInterface;
+
+		SandboxClassVisitor(ClassVisitor cv, Map<String, Integer> methodLocals, List<String> approvedPackages) {
 			super(Opcodes.ASM9, cv);
+			this.methodLocals = methodLocals;
+			this.declaredMethods = methodLocals.keySet();
+			this.approvedPackages = approvedPackages;
+		}
+
+		/**
+		 * Moves a class that extends a JDK class loader onto the sandbox class that
+		 * stands in for it, and refuses a class that extends a sandbox class or
+		 * overrides {@code loadClass}. A class compiled for Java 1.4 or older is
+		 * written at {@link #OLDEST_WRITTEN_VERSION}.
+		 */
+		@Override
+		public void visit(int version, int access, String name, String signature, String superName,
+				String[] interfaces) {
+			refuseSandboxClass(superName);
+			if (superName != null && (BLOCKED_CALLS.containsKey(superName) || FILE.equals(superName))) {
+				throw new SecurityException(
+						"Extending " + superName.replace('/', '.') + " is not permitted in project reactors");
+			}
+			if (interfaces != null) {
+				for (String implemented : interfaces) {
+					refuseSandboxClass(implemented);
+				}
+			}
+			this.className = name;
+			this.isInterface = (access & Opcodes.ACC_INTERFACE) != 0;
+			this.originalSuper = superName;
+			this.sandboxSuper = superName == null ? null : LOADER_BASES.get(superName);
+			int writtenVersion = (version & 0xFFFF) < OLDEST_WRITTEN_VERSION ? OLDEST_WRITTEN_VERSION : version;
+			if (this.sandboxSuper == null) {
+				super.visit(writtenVersion, access, name, signature, superName, interfaces);
+				return;
+			}
+			for (String loadClass : LOAD_CLASS_METHODS) {
+				if (this.declaredMethods.contains(loadClass)) {
+					throw new SecurityException("A class loader in a project reactor supplies its classes through "
+							+ "findClass; overriding loadClass is not permitted");
+				}
+			}
+			super.visit(writtenVersion, access, name, null, this.sandboxSuper, interfaces);
+		}
+
+		@Override
+		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+			return typingByDataRefused(descriptor, super.visitAnnotation(descriptor, visible));
+		}
+
+		@Override
+		public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+			return new FieldVisitor(Opcodes.ASM9, super.visitField(access, name, descriptor, signature, value)) {
+				@Override
+				public AnnotationVisitor visitAnnotation(String annotation, boolean visible) {
+					return typingByDataRefused(annotation, super.visitAnnotation(annotation, visible));
+				}
+			};
 		}
 
 		@Override
 		public MethodVisitor visitMethod(int access, String name, String descriptor, String signature,
 				String[] exceptions) {
 			MethodVisitor mv = super.visitMethod(access, name, descriptor, signature, exceptions);
-			return new SandboxMethodVisitor(mv);
+			int argumentSlots = (Type.getArgumentsAndReturnSizes(descriptor) >> 2)
+					- ((access & Opcodes.ACC_STATIC) != 0 ? 1 : 0);
+			int spareLocals = Math.max(argumentSlots, this.methodLocals.getOrDefault(name + descriptor, 0));
+			String returned = Type.getReturnType(descriptor).getDescriptor();
+			ValueRule returnRule = INPUT_SOURCE_DESCRIPTOR.equals(returned) ? INPUT_SOURCE_RULE
+					: SOURCE_DESCRIPTOR.equals(returned) ? SOURCE_RULE : null;
+			return new SandboxMethodVisitor(mv, this, this.className, this.originalSuper, this.sandboxSuper,
+					this.declaredMethods, spareLocals, returnRule);
 		}
+
+		/**
+		 * True when a class is on the platform's side of the sandbox: a JDK class, a
+		 * platform class or a shared library class. A file a project hands to one of
+		 * them is opened outside the rewrite, so it is put under the path rule first.
+		 *
+		 * @param owner the internal name of the class a call names
+		 * @return true if the class is not project code
+		 */
+		boolean isPlatformSide(String owner) {
+			if (owner.startsWith("[")) {
+				return false;
+			}
+			for (String prefix : JDK_PREFIXES) {
+				if (owner.startsWith(prefix)) {
+					return true;
+				}
+			}
+			return isSharedWithPlatform(owner.replace('/', '.'), this.approvedPackages);
+		}
+
+		/**
+		 * True when a method reference points at a call the sandbox would change if
+		 * project code made it directly: a rewritten or refused call, a constructor the
+		 * sandbox replaces, a call that takes a path as text, or a call into the JDK,
+		 * the platform or a shared library that takes a file or a path or returns a
+		 * class loader.
+		 *
+		 * @param handle the method reference's target
+		 * @return true if the reference has to run through the rewrite
+		 */
+		boolean isRewritten(Handle handle) {
+			int tag = handle.getTag();
+			if (tag != Opcodes.H_INVOKESTATIC && tag != Opcodes.H_INVOKEVIRTUAL && tag != Opcodes.H_INVOKEINTERFACE
+					&& tag != Opcodes.H_NEWINVOKESPECIAL) {
+				return false;
+			}
+			String owner = handle.getOwner();
+			if (owner.equals(this.className)) {
+				return false;
+			}
+			if (isSandboxedMember(handle)) {
+				return true;
+			}
+			if (!isPlatformSide(owner)) {
+				return false;
+			}
+			String descriptor = handle.getDesc();
+			if (CONSTRUCTOR_REDIRECTS.containsKey(owner) || PATH_TEXT_ARGUMENTS.containsKey(owner)
+					|| LOADER_BASES.containsKey(owner) || FILE.equals(owner) || XML_FACTORY_LOOKUPS.containsKey(owner)
+					|| XML_USES.containsKey(owner) || SYSTEM_ID_ARGUMENTS.containsKey(owner)
+					|| XPATH_CLASSES.contains(owner) || descriptor.endsWith(")" + CLASS_LOADER_DESCRIPTOR)
+					|| descriptor.endsWith(")" + SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR)) {
+				return true;
+			}
+			for (String argument : ARGUMENT_RULES.keySet()) {
+				if (descriptor.contains(argument)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/**
+		 * Stands in for a method reference the sandbox has to rewrite: a static method
+		 * of this class that makes the same call. The method is written through the
+		 * rewrite like any other, so the reference behaves exactly as the call would.
+		 *
+		 * @param handle the method reference's target
+		 * @return a handle to the method of this class that makes the call
+		 */
+		Handle throughRewrite(Handle handle) {
+			String ownerDescriptor = "L" + handle.getOwner() + ";";
+			String descriptor = handle.getDesc();
+			if (handle.getTag() == Opcodes.H_NEWINVOKESPECIAL) {
+				descriptor = descriptor.substring(0, descriptor.lastIndexOf(')') + 1) + ownerDescriptor;
+			} else if (handle.getTag() != Opcodes.H_INVOKESTATIC) {
+				descriptor = "(" + ownerDescriptor + descriptor.substring(1);
+			}
+			String method = "sandbox$reference$" + this.references.size();
+			this.references.add(handle);
+			return new Handle(Opcodes.H_INVOKESTATIC, this.className, method, descriptor, this.isInterface);
+		}
+
+		/**
+		 * Adds the methods {@link #throughRewrite(Handle)} handed out.
+		 */
+		@Override
+		public void visitEnd() {
+			int visibility = this.isInterface ? Opcodes.ACC_PUBLIC : Opcodes.ACC_PRIVATE;
+			for (int i = 0; i < this.references.size(); i++) {
+				Handle handle = this.references.get(i);
+				boolean constructs = handle.getTag() == Opcodes.H_NEWINVOKESPECIAL;
+				boolean isStatic = handle.getTag() == Opcodes.H_INVOKESTATIC;
+				String ownerDescriptor = "L" + handle.getOwner() + ";";
+				String descriptor = handle.getDesc();
+				if (constructs) {
+					descriptor = descriptor.substring(0, descriptor.lastIndexOf(')') + 1) + ownerDescriptor;
+				} else if (!isStatic) {
+					descriptor = "(" + ownerDescriptor + descriptor.substring(1);
+				}
+				MethodVisitor mv = visitMethod(visibility | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+						"sandbox$reference$" + i, descriptor, null, null);
+				mv.visitCode();
+				if (constructs) {
+					mv.visitTypeInsn(Opcodes.NEW, handle.getOwner());
+					mv.visitInsn(Opcodes.DUP);
+				}
+				int local = 0;
+				for (Type argument : Type.getArgumentTypes(descriptor)) {
+					mv.visitVarInsn(argument.getOpcode(Opcodes.ILOAD), local);
+					local += argument.getSize();
+				}
+				if (constructs) {
+					mv.visitMethodInsn(Opcodes.INVOKESPECIAL, handle.getOwner(), "<init>", handle.getDesc(), false);
+				} else {
+					int opcode = isStatic ? Opcodes.INVOKESTATIC
+							: handle.getTag() == Opcodes.H_INVOKEINTERFACE ? Opcodes.INVOKEINTERFACE
+									: Opcodes.INVOKEVIRTUAL;
+					mv.visitMethodInsn(opcode, handle.getOwner(), handle.getName(), handle.getDesc(),
+							handle.isInterface());
+				}
+				mv.visitInsn(Type.getReturnType(descriptor).getOpcode(Opcodes.IRETURN));
+				mv.visitMaxs(0, 0);
+				mv.visitEnd();
+			}
+			super.visitEnd();
+		}
+	}
+
+	/**
+	 * Refuses a Jackson {@code @JsonTypeInfo} that names classes in the JSON, which
+	 * would have a mapper create objects of whatever class the data asks for.
+	 *
+	 * @param descriptor the annotation's descriptor
+	 * @param next       the visitor the annotation goes on to
+	 * @return a visitor that throws on such a setting, or {@code next} for any
+	 *         other annotation
+	 */
+	private static AnnotationVisitor typingByDataRefused(String descriptor, AnnotationVisitor next) {
+		if (!SandboxedJackson.JSON_TYPE_INFO.equals(descriptor)) {
+			return next;
+		}
+		return new AnnotationVisitor(Opcodes.ASM9, next) {
+			@Override
+			public void visitEnum(String name, String enumDescriptor, String value) {
+				if ("use".equals(name) && SandboxedJackson.JSON_TYPE_BY_CLASS_NAME.contains(value)) {
+					throw new SecurityException(
+							"@JsonTypeInfo that names classes in the JSON is not permitted in project reactors");
+				}
+				super.visitEnum(name, enumDescriptor, value);
+			}
+		};
 	}
 
 	// -------------------------------------------------------------------------
@@ -469,7 +1479,7 @@ public class SemossClassLoader extends ClassLoader {
 	 * Java compilers always emit
 	 * {@code NEW T; DUP; [push args]; INVOKESPECIAL T.<init>}. We suppress the
 	 * {@code NEW} and its companion {@code DUP}, then at {@code INVOKESPECIAL} time
-	 * we emit {@code INVOKESTATIC SandboxedPaths.factory(args)} instead. The
+	 * we emit {@code INVOKESTATIC SandboxedJavaExecution.factory(args)} instead. The
 	 * factory returns an already-initialized instance, leaving the stack in exactly
 	 * the same state as the original sequence would have.
 	 *
@@ -495,12 +1505,49 @@ public class SemossClassLoader extends ClassLoader {
 		 */
 		private boolean suppressNextDup = false;
 
-		SandboxMethodVisitor(MethodVisitor mv) {
+		private final SandboxClassVisitor owner;
+		private final String className;
+		private final String originalSuper;
+		private final String sandboxSuper;
+		private final Set<String> declaredMethods;
+
+		/**
+		 * The first local variable slot the method does not use, free for holding
+		 * arguments while one under them is put under the path rule.
+		 */
+		private final int spareLocals;
+
+		/**
+		 * The rule for what the method returns, when it returns an XML source that a
+		 * parser may have asked for, such as a resolver does.
+		 */
+		private final ValueRule returnRule;
+
+		SandboxMethodVisitor(MethodVisitor mv, SandboxClassVisitor owner, String className, String originalSuper,
+				String sandboxSuper, Set<String> declaredMethods, int spareLocals, ValueRule returnRule) {
 			super(Opcodes.ASM9, mv);
+			this.owner = owner;
+			this.spareLocals = spareLocals;
+			this.returnRule = returnRule;
+			this.className = className;
+			this.originalSuper = originalSuper;
+			this.sandboxSuper = sandboxSuper;
+			this.declaredMethods = declaredMethods;
+		}
+
+		@Override
+		public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
+			return typingByDataRefused(descriptor, super.visitAnnotation(descriptor, visible));
+		}
+
+		@Override
+		public AnnotationVisitor visitParameterAnnotation(int parameter, String descriptor, boolean visible) {
+			return typingByDataRefused(descriptor, super.visitParameterAnnotation(parameter, descriptor, visible));
 		}
 
 		@Override
 		public void visitTypeInsn(int opcode, String type) {
+			refuseSandboxClass(type);
 			if (opcode == Opcodes.NEW && CONSTRUCTOR_REDIRECTS.containsKey(type)) {
 				pendingNews.push(type);
 				suppressNextDup = true;
@@ -508,7 +1555,91 @@ public class SemossClassLoader extends ClassLoader {
 			} else {
 				suppressNextDup = false;
 				super.visitTypeInsn(opcode, type);
+				if (opcode == Opcodes.CHECKCAST) {
+					if (CLASS_LOADER.equals(type)) {
+						keepLoaderInSandbox();
+					} else if (LOADER_BASES.containsKey(type)) {
+						super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "requireSandboxLoader",
+								"(" + CLASS_LOADER_DESCRIPTOR + ")" + CLASS_LOADER_DESCRIPTOR, false);
+						super.visitTypeInsn(Opcodes.CHECKCAST, type);
+					}
+				}
 			}
+		}
+
+		/**
+		 * Keeps a class loader read from a field in the sandbox, hands out a copy of a
+		 * page size PDFBox shares, refuses a field of a sandbox class, and replaces an
+		 * assignment to a static field of a JDK, platform or shared library class,
+		 * which every user of the JVM would see, with a call that throws.
+		 */
+		@Override
+		public void visitFieldInsn(int opcode, String owner, String name, String descriptor) {
+			suppressNextDup = false;
+			refuseSandboxClass(owner);
+			if (opcode == Opcodes.PUTSTATIC && this.owner.isPlatformSide(owner)) {
+				super.visitInsn(Type.getType(descriptor).getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
+				super.visitLdcInsn(owner.substring(owner.lastIndexOf('/') + 1) + "." + name);
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "blockCall", "(Ljava/lang/String;)V", false);
+				return;
+			}
+			super.visitFieldInsn(opcode, owner, name, descriptor);
+			if ((opcode == Opcodes.GETFIELD || opcode == Opcodes.GETSTATIC)
+					&& CLASS_LOADER_DESCRIPTOR.equals(descriptor)) {
+				keepLoaderInSandbox();
+			} else if (opcode == Opcodes.GETSTATIC && SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR.equals(descriptor)) {
+				unsharePageSize();
+			}
+		}
+
+		/**
+		 * With a class loader on top of the stack, swaps it for the sandbox loader of
+		 * this class unless it is a sandbox loader already.
+		 */
+		private void keepLoaderInSandbox() {
+			super.visitLdcInsn(Type.getObjectType(this.className));
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "sandboxLoader",
+					"(" + CLASS_LOADER_DESCRIPTOR + CLASS_DESCRIPTOR + ")" + CLASS_LOADER_DESCRIPTOR, false);
+		}
+
+		/**
+		 * With a PDFBox rectangle on top of the stack, swaps it for a copy when it is a
+		 * page size every document shares.
+		 */
+		private void unsharePageSize() {
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, SandboxedPdfBox.INTERNAL_NAME, "unsharedPageSize",
+					"(" + SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR + ")" + SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR,
+					false);
+		}
+
+		/**
+		 * Writes a call as it is, then keeps the class loader it returns, if it returns
+		 * one, in the sandbox, and swaps a page size PDFBox shares that it returns for
+		 * a copy.
+		 */
+		private void callKeepingResultInSandbox(int opcode, String owner, String name, String descriptor, boolean itf) {
+			super.visitMethodInsn(opcode, owner, name, descriptor, itf);
+			if (descriptor.endsWith(")" + CLASS_LOADER_DESCRIPTOR)) {
+				keepLoaderInSandbox();
+			} else if (descriptor.endsWith(")" + SandboxedPdfBox.PD_RECTANGLE_DESCRIPTOR)) {
+				unsharePageSize();
+			}
+		}
+
+		/**
+		 * The sandbox class a loader call moves to when it names a JDK loader class, or
+		 * the same owner when it names a project class.
+		 */
+		private String loaderOwner(String owner) {
+			return LOADER_BASES.getOrDefault(owner, owner);
+		}
+
+		/**
+		 * True when this class declares a method itself, which makes a call to it a
+		 * call to the project's own code.
+		 */
+		private boolean declaresItself(String owner, String name, String descriptor) {
+			return owner.equals(this.className) && this.declaredMethods.contains(name + descriptor);
 		}
 
 		@Override
@@ -519,12 +1650,16 @@ public class SemossClassLoader extends ClassLoader {
 				return;
 			}
 			suppressNextDup = false;
+			if (opcode == Opcodes.ARETURN && this.returnRule != null) {
+				apply(this.returnRule);
+			}
 			super.visitInsn(opcode);
 		}
 
 		@Override
 		public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean itf) {
 			suppressNextDup = false;
+			refuseSandboxClass(owner);
 
 			// ------------------------------------------------------------------
 			// Constructor redirect: replace NEW+DUP+INVOKESPECIAL with a static
@@ -536,8 +1671,12 @@ public class SemossClassLoader extends ClassLoader {
 				Map<String, String[]> ctorMap = CONSTRUCTOR_REDIRECTS.get(owner);
 				String[] factory = ctorMap != null ? ctorMap.get(descriptor) : null;
 				if (factory != null) {
+					if (URL_CLASS_LOADER.equals(owner)) {
+						super.visitLdcInsn(Type.getObjectType(this.className));
+					}
 					// factory[0] = method name, factory[1] = method descriptor
-					super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, factory[0], factory[1], false);
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, REDIRECT_FACTORY_OWNERS.getOrDefault(owner, SANDBOX),
+							factory[0], factory[1], false);
 				} else {
 					// Unknown overload for a sandboxed type - pop args and block.
 					for (Type argType : Type.getArgumentTypes(descriptor)) {
@@ -546,6 +1685,76 @@ public class SemossClassLoader extends ClassLoader {
 					super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "blockUnknownConstructor", "()V", false);
 					super.visitInsn(Opcodes.ACONST_NULL); // unreachable; satisfies verifier
 				}
+				return;
+			}
+
+			String xmlFactory = opcode == Opcodes.INVOKESTATIC ? XML_FACTORY_LOOKUPS.get(owner) : null;
+			if (xmlFactory != null && XML_FACTORY_LOOKUP_METHODS.contains(name)) {
+				Type[] arguments = Type.getArgumentTypes(descriptor);
+				boolean keepsLanguage = "schemaFactory".equals(xmlFactory) && arguments.length > 0;
+				for (int i = arguments.length - 1; i >= (keepsLanguage ? 1 : 0); i--) {
+					super.visitInsn(arguments[i].getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
+				}
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX_XML, xmlFactory + (name.contains("NS") ? "NS" : ""),
+						(keepsLanguage ? "(" + STRING_DESCRIPTOR + ")" : "()")
+								+ Type.getReturnType(descriptor).getDescriptor(),
+						false);
+				return;
+			}
+			if (opcode == Opcodes.INVOKEINTERFACE && XPATH_CLASSES.contains(owner)
+					&& descriptor.contains(INPUT_SOURCE_DESCRIPTOR)) {
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX_XML, name,
+						"(L" + owner + ";" + descriptor.substring(1), false);
+				return;
+			}
+			if (opcode == Opcodes.INVOKEVIRTUAL && "javax/xml/parsers/SAXParser".equals(owner)
+					&& "getXMLReader".equals(name)) {
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX_XML, "xmlReader",
+						"(Ljavax/xml/parsers/SAXParser;)Lorg/xml/sax/XMLReader;", false);
+				return;
+			}
+
+			keepPathsInSandbox(opcode, owner, name, descriptor);
+
+			if (opcode == Opcodes.INVOKESPECIAL && "<init>".equals(name) && this.sandboxSuper != null
+					&& owner.equals(this.originalSuper)) {
+				super.visitLdcInsn(Type.getObjectType(this.className));
+				super.visitMethodInsn(Opcodes.INVOKESPECIAL, this.sandboxSuper, name,
+						descriptor.replace(")V", CLASS_DESCRIPTOR + ")V"), false);
+				return;
+			}
+			if ("defineClass".equals(name) && DEFINE_CLASS_DESCRIPTORS.contains(descriptor)
+					&& opcode != Opcodes.INVOKESTATIC && !declaresItself(owner, name, descriptor)) {
+				super.visitMethodInsn(opcode, loaderOwner(owner), "defineSandboxedClass", descriptor, false);
+				return;
+			}
+			if ("findSystemClass".equals(name) && "(Ljava/lang/String;)Ljava/lang/Class;".equals(descriptor)
+					&& opcode != Opcodes.INVOKESTATIC && !declaresItself(owner, name, descriptor)) {
+				super.visitMethodInsn(opcode, loaderOwner(owner), "findSandboxedSystemClass", descriptor, false);
+				return;
+			}
+			if (opcode == Opcodes.INVOKESPECIAL && this.sandboxSuper != null && owner.equals(this.originalSuper)) {
+				callKeepingResultInSandbox(opcode, this.sandboxSuper, name, descriptor, itf);
+				return;
+			}
+			if (opcode == Opcodes.INVOKESTATIC && URL_CLASS_LOADER.equals(owner) && "newInstance".equals(name)) {
+				super.visitLdcInsn(Type.getObjectType(this.className));
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "urlClassLoader",
+						descriptor.replace(")", CLASS_DESCRIPTOR + ")"), false);
+				return;
+			}
+			if (opcode == Opcodes.INVOKEVIRTUAL && LOADER_BASES.containsKey(owner) && "loadClass".equals(name)
+					&& "(Ljava/lang/String;)Ljava/lang/Class;".equals(descriptor)) {
+				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "sandboxedLoadClass",
+						"(" + CLASS_LOADER_DESCRIPTOR + "Ljava/lang/String;)Ljava/lang/Class;", false);
+				return;
+			}
+
+			Set<String> blockedCalls = BLOCKED_CALLS.get(owner);
+			if ((blockedCalls != null && blockedCalls.contains(name)) || isQueryUtilConnectionMember(owner, name)
+					|| (SandboxedJackson.BLOCKED_CALLS_ON_ANY_CLASS.contains(name)
+							&& !declaresItself(owner, name, descriptor))) {
+				blockCall(opcode, owner, name, descriptor);
 				return;
 			}
 
@@ -583,8 +1792,9 @@ public class SemossClassLoader extends ClassLoader {
 					// className is now on top - fall through to sandboxedForName
 				}
 				// Stack: [..., className(String)]
+				super.visitLdcInsn(Type.getObjectType(this.className));
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "sandboxedForName",
-						"(Ljava/lang/String;)Ljava/lang/Class;", false);
+						"(Ljava/lang/String;" + CLASS_DESCRIPTOR + ")Ljava/lang/Class;", false);
 				return;
 			}
 
@@ -601,7 +1811,7 @@ public class SemossClassLoader extends ClassLoader {
 			}
 
 			// ------------------------------------------------------------------
-			// Sandbox System.getProperty - route through SandboxedPaths which
+			// Sandbox System.getProperty - route through SandboxedJavaExecution which
 			// allows the default safe set + any platform-registered properties,
 			// and blocks everything else.
 			// ------------------------------------------------------------------
@@ -755,7 +1965,263 @@ public class SemossClassLoader extends ClassLoader {
 				return;
 			}
 
-			super.visitMethodInsn(opcode, owner, name, descriptor, itf);
+			if (opcode == Opcodes.INVOKESTATIC && "prerna/util/Utility".equals(owner)) {
+				if ("getDIHelperProperty".equals(name) && "(Ljava/lang/String;)Ljava/lang/String;".equals(descriptor)) {
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "sandboxedPlatformProperty",
+							"(Ljava/lang/String;)Ljava/lang/String;", false);
+					return;
+				}
+				if ("loadProperties".equals(name) && ("(Ljava/lang/String;)Ljava/util/Properties;".equals(descriptor)
+						|| "(Ljava/io/File;)Ljava/util/Properties;".equals(descriptor))) {
+					super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "sandboxedLoadProperties", descriptor, false);
+					return;
+				}
+			}
+
+			callKeepingResultInSandbox(opcode, owner, name, descriptor, itf);
+		}
+
+		/**
+		 * With a call's arguments on the stack, puts the files and paths among them
+		 * under the path rule before the call is written:
+		 * <ul>
+		 * <li>a {@code File} or {@code Path} argument of a call into the JDK, the
+		 * platform or a shared library, which opens it outside the rewrite;</li>
+		 * <li>the text argument of a call listed in
+		 * {@link SemossClassLoader#PATH_TEXT_ARGUMENTS};</li>
+		 * <li>the file itself, for a {@code File} method that reads or changes the file
+		 * system.</li>
+		 * </ul>
+		 * The arguments above the first one that needs it are moved into spare local
+		 * variables and put back in order.
+		 *
+		 * @param opcode     how the call is made
+		 * @param owner      the internal name of the class the call names
+		 * @param name       the method
+		 * @param descriptor the method's descriptor
+		 */
+		private void keepPathsInSandbox(int opcode, String owner, String name, String descriptor) {
+			Type[] arguments = Type.getArgumentTypes(descriptor);
+			boolean onFile = FILE.equals(owner) && FILE_IO_METHODS.contains(name);
+			boolean opensArguments = this.owner.isPlatformSide(owner)
+					&& (onFile || !PATH_ARITHMETIC_CLASSES.contains(owner));
+			Map<String, Integer> pathText = PATH_TEXT_ARGUMENTS.get(owner);
+			int textArgument = pathText == null ? -1 : pathText.getOrDefault(name, -1);
+			Map<String, Integer> systemIds = SYSTEM_ID_ARGUMENTS.get(owner);
+			int systemIdArgument = systemIds == null ? -1 : systemIds.getOrDefault(name + descriptor, -1);
+
+			ValueRule[] rules = new ValueRule[arguments.length];
+			int first = arguments.length;
+			for (int i = arguments.length - 1; i >= 0; i--) {
+				String type = arguments[i].getDescriptor();
+				if (i == textArgument && STRING_DESCRIPTOR.equals(type)) {
+					rules[i] = PATH_TEXT_RULE;
+				} else if (i == systemIdArgument && STRING_DESCRIPTOR.equals(type)) {
+					rules[i] = SYSTEM_ID_RULE;
+				} else if (i == systemIdArgument && URL_DESCRIPTOR.equals(type)) {
+					rules[i] = SYSTEM_URL_RULE;
+				} else if (opensArguments) {
+					rules[i] = ARGUMENT_RULES.get(type);
+				}
+				if (rules[i] != null) {
+					first = i;
+				}
+			}
+			boolean onObject = opcode == Opcodes.INVOKEVIRTUAL || opcode == Opcodes.INVOKEINTERFACE;
+			boolean xmlUse = onObject && XML_USES.getOrDefault(owner, Set.of()).contains(name);
+			boolean onReceiver = xmlUse || (onFile && opcode == Opcodes.INVOKEVIRTUAL);
+			if (first == arguments.length && !onReceiver) {
+				return;
+			}
+
+			int moved = onReceiver ? 0 : first + 1;
+			int[] slots = new int[arguments.length];
+			int slot = this.spareLocals;
+			for (int i = moved; i < arguments.length; i++) {
+				slots[i] = slot;
+				slot += arguments[i].getSize();
+			}
+			for (int i = arguments.length - 1; i >= moved; i--) {
+				super.visitVarInsn(arguments[i].getOpcode(Opcodes.ISTORE), slots[i]);
+			}
+			if (xmlUse) {
+				String type = XML_USE_TYPES.getOrDefault(owner, owner);
+				apply(new ValueRule(SANDBOX_XML, "hardened", "L" + type + ";"));
+				if (!type.equals(owner)) {
+					super.visitTypeInsn(Opcodes.CHECKCAST, owner);
+				}
+			} else {
+				apply(onReceiver ? FILE_RULE : rules[first]);
+			}
+			for (int i = moved; i < arguments.length; i++) {
+				super.visitVarInsn(arguments[i].getOpcode(Opcodes.ILOAD), slots[i]);
+				if (rules[i] != null) {
+					apply(rules[i]);
+				}
+			}
+		}
+
+		/**
+		 * Swaps the value on top of the stack for the one a sandbox rule gives back.
+		 *
+		 * @param rule the rule for the value
+		 */
+		private void apply(ValueRule rule) {
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, rule.helper(), rule.method(),
+					"(" + rule.type() + ")" + rule.type(), false);
+		}
+
+		/**
+		 * Replaces a call with one that throws, taking the call's arguments off the
+		 * stack and leaving what the call would have returned.
+		 *
+		 * @param opcode     how the call was made
+		 * @param owner      the internal name of the class the call names
+		 * @param name       the method
+		 * @param descriptor the method's descriptor
+		 */
+		private void blockCall(int opcode, String owner, String name, String descriptor) {
+			for (Type argType : Type.getArgumentTypes(descriptor)) {
+				super.visitInsn(argType.getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
+			}
+			if (opcode != Opcodes.INVOKESTATIC) {
+				super.visitInsn(Opcodes.POP);
+			}
+			super.visitLdcInsn(owner.substring(owner.lastIndexOf('/') + 1) + "." + name);
+			super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "blockCall", "(Ljava/lang/String;)V", false);
+			pushDefault(Type.getReturnType(descriptor));
+		}
+
+		/**
+		 * Makes a method reference behave like the call it stands for. A reference to a
+		 * call the sandbox would change, such as {@code File::delete},
+		 * {@code Files::readString} or {@code System::loadLibrary}, is pointed at a
+		 * method of this class that makes the call, and that method is rewritten like
+		 * any other. Lambdas whose body is in the class itself pass, since the body is
+		 * rewritten already.
+		 */
+		@Override
+		public void visitInvokeDynamicInsn(String name, String descriptor, Handle bootstrapMethodHandle,
+				Object... bootstrapMethodArguments) {
+			refuseSandboxedConstant(bootstrapMethodHandle);
+			Object[] arguments = bootstrapMethodArguments.clone();
+			for (int i = 0; i < arguments.length; i++) {
+				if (arguments[i] instanceof Handle handle) {
+					refuseSandboxClass(handle.getOwner());
+					if (this.owner.isRewritten(handle)) {
+						arguments[i] = this.owner.throughRewrite(handle);
+					}
+					continue;
+				}
+				refuseSandboxedConstant(arguments[i]);
+			}
+			super.visitInvokeDynamicInsn(name, descriptor, bootstrapMethodHandle, arguments);
+		}
+
+		/**
+		 * Refuses a method handle constant that points at a sandboxed method.
+		 */
+		@Override
+		public void visitLdcInsn(Object value) {
+			refuseSandboxedConstant(value);
+			super.visitLdcInsn(value);
+		}
+
+		/**
+		 * Pushes the zero value of a return type, after a call that always throws, so
+		 * the stack still matches what the original call left.
+		 *
+		 * @param returnType the replaced method's return type
+		 */
+		private void pushDefault(Type returnType) {
+			switch (returnType.getSort()) {
+			case Type.VOID:
+				break;
+			case Type.LONG:
+				super.visitInsn(Opcodes.LCONST_0);
+				break;
+			case Type.FLOAT:
+				super.visitInsn(Opcodes.FCONST_0);
+				break;
+			case Type.DOUBLE:
+				super.visitInsn(Opcodes.DCONST_0);
+				break;
+			case Type.OBJECT:
+			case Type.ARRAY:
+				super.visitInsn(Opcodes.ACONST_NULL);
+				break;
+			default:
+				super.visitInsn(Opcodes.ICONST_0);
+				break;
+			}
+		}
+	}
+
+	/**
+	 * True when a method handle points at a method the sandbox rewrites or refuses.
+	 *
+	 * @param handle a method handle constant
+	 * @return true if a direct call to the method would be rewritten or refused
+	 */
+	private static boolean isSandboxedMember(Handle handle) {
+		Set<String> members = SANDBOXED_MEMBERS.get(handle.getOwner());
+		Set<String> blockedCalls = BLOCKED_CALLS.get(handle.getOwner());
+		return (members != null && members.contains(handle.getName()))
+				|| (blockedCalls != null && blockedCalls.contains(handle.getName()))
+				|| isQueryUtilConnectionMember(handle.getOwner(), handle.getName())
+				|| SandboxedJackson.BLOCKED_CALLS_ON_ANY_CLASS.contains(handle.getName());
+	}
+
+	/**
+	 * True for a call that reads an RDBMS engine's credentials from its query
+	 * utility, or changes where the engine connects.
+	 *
+	 * @param owner the internal name of the class the call names
+	 * @param name  the method
+	 * @return true if the call is one project code cannot make
+	 */
+	private static boolean isQueryUtilConnectionMember(String owner, String name) {
+		return owner.startsWith(QUERY_UTIL_PACKAGE) && QUERY_UTIL_CONNECTION_MEMBERS.contains(name);
+	}
+
+	/**
+	 * Throws when a constant is a method handle to a sandboxed method, or a dynamic
+	 * constant built from one.
+	 *
+	 * @param constant a bootstrap argument or loaded constant
+	 * @throws SecurityException when the constant points at a sandboxed method
+	 */
+	private static void refuseSandboxedConstant(Object constant) {
+		if (constant instanceof Handle handle) {
+			refuseSandboxClass(handle.getOwner());
+			if (isSandboxedMember(handle)) {
+				throw new SecurityException("A method reference to " + handle.getOwner().replace('/', '.') + "."
+						+ handle.getName() + " is not permitted in project reactors; call it directly instead");
+			}
+		} else if (constant instanceof ConstantDynamic dynamic) {
+			refuseSandboxedConstant(dynamic.getBootstrapMethod());
+			for (int i = 0; i < dynamic.getBootstrapMethodArgumentCount(); i++) {
+				refuseSandboxedConstant(dynamic.getBootstrapMethodArgument(i));
+			}
+		}
+	}
+
+	/**
+	 * Throws when a project class names one of the classes that make up the
+	 * sandbox.
+	 *
+	 * @param internalName the internal name of a class a project class uses, or
+	 *                     null
+	 * @throws SecurityException when the class is a sandbox class
+	 */
+	private static void refuseSandboxClass(String internalName) {
+		if (internalName == null) {
+			return;
+		}
+		int nested = internalName.indexOf('$');
+		String outer = nested < 0 ? internalName : internalName.substring(0, nested);
+		if (SANDBOX_CLASSES.contains(outer)) {
+			throw new SecurityException(outer.replace('/', '.') + " is not permitted in project reactors");
 		}
 	}
 

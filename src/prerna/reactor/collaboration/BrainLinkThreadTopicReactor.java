@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -60,21 +61,11 @@ public class BrainLinkThreadTopicReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Links or unlinks a topic on a Brain thread; keeps exactly one primary link";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (PRIMARY.equals(key)) {
-			return "true makes this the thread's one primary topic";
-		} else if (REMOVE.equals(key)) {
-			return "true unlinks the topic instead";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Links or unlinks a topic on a Brain thread; keeps exactly one primary link")
+				.key(THREAD_ID, "Thread id").key(TOPIC_ID, "Topic id")
+				.key(PRIMARY, "true makes this the thread's one primary topic")
+				.key(REMOVE, "true unlinks the topic instead");
 	}
 }

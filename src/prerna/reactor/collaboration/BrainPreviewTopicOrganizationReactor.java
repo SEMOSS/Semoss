@@ -28,9 +28,15 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicReviewUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Exact impact preview shared by direct combination controls and assistant proposals. */
+import java.util.Map;
+
+/**
+ * Exact impact preview shared by direct combination controls and assistant
+ * proposals.
+ */
 public class BrainPreviewTopicOrganizationReactor extends AbstractCollaborationReactor {
 	public BrainPreviewTopicOrganizationReactor() {
 		this.keysToGet = new String[] { "reviewId", "revision", "proposal" };
@@ -41,12 +47,20 @@ public class BrainPreviewTopicOrganizationReactor extends AbstractCollaborationR
 	public NounMetadata execute() {
 		Integer revision = getIntFromKeyOrCurRow("revision");
 		var proposal = getMapFromKeyOrCurRow("proposal");
-		if (revision == null || proposal == null) throw new IllegalArgumentException("Pass the saved review revision and a proposal with groups");
-		return mapResult(BrainTopicReviewUtils.previewOrganization(getUser(), getString("reviewId"), revision, proposal.get("groups")));
+		if (revision == null || proposal == null)
+			throw new IllegalArgumentException("Pass the saved review revision and a proposal with groups");
+		return mapResult(BrainTopicReviewUtils.previewOrganization(getUser(), getString("reviewId"), revision,
+				proposal.get("groups")));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Previews a topic grouping's retained profiles, contributing topics, conversation examples and counts of saved links/people/notes/rules/Work references. Accept its scopeVersion through BrainChangeTopicReview organize; final apply transfers only reviewed scopes";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Previews a topic grouping's retained profiles, contributing topics, conversation examples and counts of saved links/people/notes/rules/Work references. Accept its scopeVersion through BrainChangeTopicReview organize; final apply transfers only reviewed scopes")
+				.key("proposal", key -> key.type(Map.class).description(
+						"A map whose groups list holds each proposed topic group: its contributing topicKeys, the targetKey of the topic to keep, a name, and an optional description and terms."))
+				.key("reviewId", "The id of the signed-in user's topic review.")
+				.key("revision", key -> key.type(Integer.class).description(
+						"The review revision the caller last read. The call fails when the saved review has changed since."));
 	}
 }

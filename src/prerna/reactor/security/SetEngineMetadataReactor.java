@@ -34,6 +34,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IEngine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -82,18 +83,13 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Defines metadata on an engine, including model capabilities when supplied";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(META)) {
-			return "Map containing engine metadata values. Model engines may also include editable capability, modality, token, and built-in tool values in a capabilities map.";
-		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
-			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Defines metadata on an engine, including model capabilities when supplied")
+				.key(META,
+						"Map containing engine metadata values. Model engines may also include editable capability, modality, token, and built-in tool values in a capabilities map.")
+				.key(ReactorKeysEnum.JSON_CLEANUP,
+						"Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.");
 	}
 
 	private Map<String, Object> getCapabilityUpdates(String engineId, Map<String, Object> metadata) {

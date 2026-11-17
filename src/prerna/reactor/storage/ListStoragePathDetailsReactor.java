@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -92,26 +93,17 @@ public class ListStoragePathDetailsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Get detailed information about files and folders in a storage path.
 				Returns one map per file/folder with common keys:
 				`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
-			return "The storage engine instance or id";
-		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
-			return """
-					The storage path to get details from.
-					The response is a vector of maps with keys:
-					`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.
-					""";
-		}
-		return super.getDescriptionForKey(key);
+				""").key(ReactorKeysEnum.STORAGE, "The storage engine instance or id").key(ReactorKeysEnum.STORAGE_PATH,
+				"""
+						The storage path to get details from.
+						The response is a vector of maps with keys:
+						`Path`, `Name`, `Size`, `MimeType`, `ModTime`, `IsDir`, `Metadata`.
+						""");
 	}
 
 }

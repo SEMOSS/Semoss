@@ -31,6 +31,7 @@ import java.util.List;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadClassifier;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -71,22 +72,14 @@ public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Files threads under topics and creates work items with the platform classifier model "
-				+ "(COLLAB_CLASSIFIER_ENGINE_ID, a Jev/TypeSafe or chat model)";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_IDS.equals(key)) {
-			return "Threads to classify; omit for every unmuted thread with no work item yet";
-		} else if (DRY_RUN.equals(key)) {
-			return "true to return scores for every unmuted thread without writing anything";
-		} else if (TOPICS.equals(key)) {
-			return "true to only file real mail that has no topic yet against the kept topics, after onboarding picks them";
-		} else if (ASYNC.equals(key)) {
-			return "true to run as a background job and return it; poll with BrainGetJob(kind=classify)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Files threads under topics and creates work items with the platform classifier model "
+						+ "(COLLAB_CLASSIFIER_ENGINE_ID, a Jev/TypeSafe or chat model)")
+				.key(THREAD_IDS, "Threads to classify; omit for every unmuted thread with no work item yet")
+				.key(DRY_RUN, "true to return scores for every unmuted thread without writing anything")
+				.key(ASYNC, "true to run as a background job and return it; poll with BrainGetJob(kind=classify)")
+				.key(TOPICS,
+						"true to only file real mail that has no topic yet against the kept topics, after onboarding picks them");
 	}
 }

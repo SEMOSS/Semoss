@@ -28,7 +28,6 @@
 package prerna.reactor.federation;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +47,7 @@ import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -283,22 +283,12 @@ public class FederationBlend extends AbstractRFrameReactor {
 
 		// write iterator data to csv, then read csv into R table as trg
 		File newFile = null;
-		IRawSelectWrapper it = null;
-		try {
-			it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs);
+		try (IRawSelectWrapper it = WrapperManager.getInstance().getRawWrapper(newColEngine, qs)) {
 			String newFileLoc = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "/"
 					+ Utility.getRandomString(6) + ".tsv";
 			newFile = Utility.writeResultToFile(newFileLoc, it, typesMap, "\t");
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Could not write the values of {} from {} to a file for the blend", newCol, newDb, e);
 		}
 
 		if (newFile != null) {
@@ -400,24 +390,24 @@ public class FederationBlend extends AbstractRFrameReactor {
 
 	///////////////////////// KEYS /////////////////////////////////////
 
-	@Deprecated
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(JOIN_TYPE)) {
-			return "The join type for federating (inner, outer, left, etc.)";
-		} else if (key.equals(FRAME_COLUMN)) {
-			return "The column from the existing frame to use for joining.";
-		} else if (key.equals(MATCHES)) {
-			return "The matches of columns that were selected by the user.";
-		} else if (key.equals(ADDITIONAL_COLS)) {
-			return "Additional columns to pull join with the existing frame.";
-		} else if (key.equals(NONMATCHES)) {
-			return "The non-matches that were selected by the user.";
-		} else if (key.equals(PROP_MAX)) {
-			return "Optional: The range for automatically matching instances (100 exact match, 1 is not similar)";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Joins a database column, and any additional columns, onto the current R frame by linking the values of a frame column to similar values of the database column. The links come from the FederationBestMatches results named by fedFrame: pairs within the propagation similarity, plus the chosen matches, minus the chosen non-matches.")
+				.key(FED_FRAME,
+						"The name of the R frame of value matches that FederationBestMatches created (its outputFrame), used to link the two columns.")
+				.key(JOIN_TYPE, "The join type for federating (inner, outer, left, etc.)")
+				.key(FRAME_COLUMN, "The column from the existing frame to use for joining.")
+				.key(ADDITIONAL_COLS,
+						key -> key.list(String.class)
+								.description("Additional columns to pull join with the existing frame."))
+				.key(MATCHES,
+						key -> key.list(String.class)
+								.description("The matches of columns that were selected by the user."))
+				.key(NONMATCHES,
+						key -> key.list(String.class).description("The non-matches that were selected by the user."))
+				.key(PROP_MAX, key -> key.type(Double.class).description(
+						"Optional: The range for automatically matching instances (100 exact match, 1 is not similar)"));
 	}
 
 	@Deprecated

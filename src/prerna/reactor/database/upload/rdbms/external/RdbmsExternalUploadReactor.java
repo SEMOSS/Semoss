@@ -107,20 +107,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		this.logger = getLogger(this.getClass().getName());
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-			if (this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new databases
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
@@ -154,7 +141,6 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 
 		if (existingDatabase) {
 			// check if input is alias since we are adding to existing
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
 			if (!SecurityEngineUtils.userCanEditEngine(user, databaseId)) {
 				NounMetadata noun = new NounMetadata(
 						"User does not have sufficient priviledges to create or update a database",

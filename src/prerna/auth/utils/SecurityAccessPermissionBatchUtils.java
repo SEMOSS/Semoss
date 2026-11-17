@@ -339,7 +339,7 @@ public final class SecurityAccessPermissionBatchUtils {
 	 * @throws IllegalAccessException   when the user cannot use the model, the same
 	 *                                  whether or not it exists
 	 * @throws IllegalArgumentException when the engine is not a model, or the user
-	 *                                  is anonymous
+	 *                                  has no login
 	 */
 	public static Map<String, Object> getMyUsageLimitPath(User user, String engineId) throws IllegalAccessException {
 		String id = ValueUtils.requireNonBlank(engineId, "Must define the model").trim();
@@ -363,7 +363,7 @@ public final class SecurityAccessPermissionBatchUtils {
 	 *         {@code subtype} and {@code path}, as {@link ModelUsagePathView#toMap}
 	 *         writes it with usage
 	 * @throws IllegalAccessException   when there is no user
-	 * @throws IllegalArgumentException when the user is anonymous
+	 * @throws IllegalArgumentException when the user has no login
 	 */
 	public static Map<String, Object> getMyUsageLimitPaths(User user) throws IllegalAccessException {
 		if (user == null) {

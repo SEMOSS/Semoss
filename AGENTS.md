@@ -28,3 +28,40 @@ So a user is always the pair, stored and passed together, never the id alone:
 
 New code always keeps the pair. When a change works with a table, method or API that has only
 the user id, it adds the type beside it.
+
+## A reactor describes itself in its definition
+
+A reactor tells its MCP tool, its help text and the SDKs what it does by overriding
+`getReactorDefinition()` (`prerna.reactor.ReactorDefinition`). It calls
+`super.getReactorDefinition()`, which starts from `keysToGet` and `keyRequired`, and adds
+its description, its keys' descriptions and types, and its output:
+
+```java
+@Override
+public ReactorDefinition getReactorDefinition() {
+	return super.getReactorDefinition()
+			.description("Stop the current execution of a pixel job")
+			.key(ReactorKeysEnum.ID, "The id for the job")
+			.key(PATHS_KEY, key -> key.list(String.class).description("The file paths"))
+			.output(String.class, "Whether the job was stopped");
+}
+```
+
+- **Metadata only.** `keysToGet` and `keyRequired` still decide how a call's inputs are read.
+  The definition can say more, such as `key.required(true)`, without changing that.
+- **No keys on purpose.** A reactor that takes no input says `.noKeys()`.
+- **Admin reactors say so first.** A reactor only admins can run starts its description with
+  `Admin Only: `, such as `"Admin Only: Returns every engine on the server, ..."`. A reactor that
+  admins can run with extra access, but other users can run too, does not.
+- **Parents describe only shared keys.** A parent's definition describes only the keys every
+  reactor below it takes. Text several reactors share lives in the parent as a constant, such as
+  `TEAM_ID_DESCRIPTION`, and each reactor describes the keys it takes with it. A reactor that does
+  not take its parent's keys starts from `startDefinition()` instead of
+  `super.getReactorDefinition()`. Describing a key a reactor does not take, or listing a key twice
+  in `keysToGet`, is reported, with the class to fix, and fails the OpenAPI export.
+- **Reading it.** Code that needs a reactor's description or a key's type calls
+  `getReactorDefinition()`, not `getReactorDescription`, `getDescriptionForKey` or
+  `getKeyTypeForMCP`.
+- **Migrating.** Those three methods are deprecated. New code does not override them, and a
+  change that touches a reactor still overriding them moves the values into
+  `getReactorDefinition()`, as each method's javadoc shows, and deletes the old methods.

@@ -60,6 +60,7 @@ import prerna.engine.impl.model.inferencetracking.ModelUsageLogFilter;
 import prerna.engine.impl.model.inferencetracking.ModelUsageLogTotals;
 import prerna.engine.impl.model.usage.ModelUsageEvaluation.RuleCheck;
 import prerna.engine.impl.model.usage.ModelUsageTicket.ChargeTarget;
+import prerna.engine.impl.pipeline.EngineCallAppPermission;
 import prerna.redis.RedisConnectionConfig;
 import prerna.util.Utility;
 import prerna.util.ValueUtils;
@@ -119,12 +120,11 @@ import prerna.util.ValueUtils;
  * with 429 and its {@code resetsAt}. Counters are kept by
  * {@link LocalModelUsageCounterStore} on a single node and by
  * {@link RedisModelUsageCounterStore} when SEMOSS runs in a cluster with Redis
- * turned on. When the
- * counters cannot be reached, calls that a limit applies to are refused with
- * {@link ModelUsageLimitException#unavailable()}, which the endpoints answer
- * with 503; calls with no limit still run. Day and longer counters, and sliding
- * windows of an hour or longer, are filled from the inference logs the first
- * time they are read.
+ * turned on. When the counters cannot be reached, calls that a limit applies to
+ * are refused with {@link ModelUsageLimitException#unavailable()}, which the
+ * endpoints answer with 503; calls with no limit still run. Day and longer
+ * counters, and sliding windows of an hour or longer, are filled from the
+ * inference logs the first time they are read.
  * </p>
  */
 public final class ModelUsageGuard {
@@ -181,13 +181,14 @@ public final class ModelUsageGuard {
 	 * @return the ticket to bill when the call ends, or to release when it fails
 	 * @throws ModelUsageLimitException when a limit refuses the call, or the limits
 	 *                                  cannot be checked
-	 * @throws IllegalArgumentException for an anonymous user, who cannot use models
+	 * @throws IllegalArgumentException for a user with no login, who cannot use
+	 *                                  models
 	 */
 	public static ModelUsageTicket admit(User user, IModelEngine engine, ModelUsageRequest request) {
 		if (user == null || engine == null || ValueUtils.isBlank(engine.getEngineId())) {
 			return ModelUsageTicket.none();
 		}
-		ModelUsageLimitPath path = pathOf(user, engine.getEngineId());
+		ModelUsageLimitPath path = pathOf(user, engine.getEngineId(), EngineCallAppPermission.appMakingTheCall());
 		// a caller that names nothing is admitted as an ask with no prompt estimate
 		// and the default output maximum
 		ModelUsageRequest call = request == null ? ModelUsageRequest.ask(0, null) : request;
@@ -207,7 +208,7 @@ public final class ModelUsageGuard {
 		if (user == null || engine == null || ValueUtils.isBlank(engine.getEngineId())) {
 			return;
 		}
-		ModelUsageLimitPath path = pathOf(user, engine.getEngineId());
+		ModelUsageLimitPath path = pathOf(user, engine.getEngineId(), EngineCallAppPermission.appMakingTheCall());
 		Map<String, Object> priceEntry = prices.apply(engine.getEngineId());
 		ModelUsageEvaluation evaluation = ModelUsageEvaluation.of(path, false, priceEntry != null, clock.instant());
 		try {
@@ -238,16 +239,35 @@ public final class ModelUsageGuard {
 	 * @param engineId the model
 	 * @return how limits apply to the person on the model; kept briefly and shared,
 	 *         so it must not be changed
-	 * @throws IllegalArgumentException for an anonymous user
+	 * @throws IllegalArgumentException for a missing user or one with no login
 	 */
 	public static ModelUsageLimitPath pathOf(User user, String engineId) {
-		if (user == null || user.isAnonymous()) {
+		return pathOf(user, engineId, null);
+	}
+
+	/**
+	 * How limits apply to a person on a model for a call an app's custom reactors
+	 * make, when the model gives the app a permission. The path has the App Limit,
+	 * which applies to a person whose only way to the model is the app. It is
+	 * cached like {@link #pathOf(User, String)}, by the app as well.
+	 *
+	 * @param user         the person the app's reactor runs for
+	 * @param engineId     the model
+	 * @param appProjectId the app making the call, which the model gives a
+	 *                     permission, or null for a call no such app makes
+	 * @return how limits apply to the call; kept briefly and shared, so it must not
+	 *         be changed
+	 * @throws IllegalArgumentException for a missing user or one with no login
+	 */
+	public static ModelUsageLimitPath pathOf(User user, String engineId, String appProjectId) {
+		if (user == null) {
 			// throws, with the reason
 			ModelUsageLimitResolver.personOf(user);
 		}
 		// keyed by the primary login, the login the person's counters are kept under
 		Pair<String, String> primary = User.getPrimaryUserIdAndTypePair(user);
-		String key = primary.getValue0() + KEY_SEPARATOR + primary.getValue1() + KEY_SEPARATOR + engineId;
+		String key = primary.getValue0() + KEY_SEPARATOR + primary.getValue1() + KEY_SEPARATOR + engineId
+				+ (appProjectId == null ? "" : KEY_SEPARATOR + appProjectId);
 		// read before resolving: a change written while the path resolves bumps
 		// the version past this one, so the next call resolves again
 		long version = SecurityModelUsageLimitUtils.version();
@@ -255,7 +275,8 @@ public final class ModelUsageGuard {
 		if (cached != null && cached.version() == version) {
 			return cached.path();
 		}
-		ModelUsageLimitPath path = ModelUsageLimitResolver.resolve(ModelUsageLimitResolver.personOf(user), engineId);
+		ModelUsageLimitPath path = ModelUsageLimitResolver.resolve(ModelUsageLimitResolver.personOf(user), engineId,
+				appProjectId);
 		PATHS.put(key, new CachedPath(path, version));
 		return path;
 	}
@@ -621,8 +642,8 @@ public final class ModelUsageGuard {
 
 	/**
 	 * Describes the source billed as the inference logs record it: its source type
-	 * and, for a Direct Limit, a Team Limit or a User's Total Model Limit, the id
-	 * and type of whom it belongs to.
+	 * and, for a Direct Limit, a Team Limit, an App Limit or a User's Total Model
+	 * Limit, the id and type of whom it belongs to.
 	 *
 	 * @param path   the person's path
 	 * @param billed the source billed, or null
@@ -637,6 +658,7 @@ public final class ModelUsageGuard {
 		case DIRECT:
 			return new ModelUsageBilledTo(sourceType, path.getUserId(), path.getUserType());
 		case TEAM:
+		case APP:
 		case ALL_MODELS:
 			return new ModelUsageBilledTo(sourceType, billed.getKey().subjectId(), billed.getKey().subjectType());
 		default:
@@ -741,7 +763,8 @@ public final class ModelUsageGuard {
 		}
 		// a cluster without Redis turned on cannot share counters; fall back to memory
 		if (RedisConnectionConfig.fromDIHelper() == null) {
-			classLogger.warn("SEMOSS runs in a cluster but Redis is not enabled; model usage limits are counted per server");
+			classLogger.warn(
+					"SEMOSS runs in a cluster but Redis is not enabled; model usage limits are counted per server");
 			return false;
 		}
 		return true;

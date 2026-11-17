@@ -71,9 +71,19 @@ final class GoogleGmailFolders {
 	}
 
 	/**
+	 * Work out which label a folder names.
+	 *
+	 * <p>
+	 * A label is matched by its id or its whole name, such as
+	 * {@code Projects/Alpha}, and then by its own name, such as {@code Alpha},
+	 * which is what a folder listing calls a nested label; when more than one label
+	 * has that name, the one nested least deeply is taken.
+	 * </p>
+	 *
 	 * @param gmail  the helper, for reading the user's own labels when the name is
 	 *               not one Gmail keeps
-	 * @param folder a well known folder name, a label name, or a label id
+	 * @param folder a well known folder name, a label's whole or own name, or a
+	 *               label id
 	 * @return where it points
 	 */
 	static Target resolve(GoogleGmailHelper gmail, String folder) {
@@ -99,14 +109,32 @@ final class GoogleGmailFolders {
 			break;
 		}
 		List<Map<String, Object>> labels = gmail.listLabels();
+		Map<String, Object> byOwnName = null;
 		for (Map<String, Object> label : labels) {
-			if (wanted.equalsIgnoreCase(String.valueOf(label.get("id")))
-					|| wanted.equalsIgnoreCase(String.valueOf(label.get("name")))) {
+			String name = String.valueOf(label.get("name"));
+			if (wanted.equalsIgnoreCase(String.valueOf(label.get("id"))) || wanted.equalsIgnoreCase(name)) {
 				return new Target(String.valueOf(label.get("id")), false);
 			}
+			if (wanted.equalsIgnoreCase(name.substring(name.lastIndexOf('/') + 1))
+					&& (byOwnName == null || depth(name) < depth(String.valueOf(byOwnName.get("name"))))) {
+				byOwnName = label;
+			}
+		}
+		if (byOwnName != null) {
+			return new Target(String.valueOf(byOwnName.get("id")), false);
 		}
 		// nothing of that name leaves the value as it was given, which is what an id
 		// looks like from here
 		return new Target(wanted, false);
+	}
+
+	/**
+	 * How deeply a label is nested, which Gmail writes into its name.
+	 *
+	 * @param name the label's whole name, such as {@code Projects/Alpha}
+	 * @return how many labels it sits under
+	 */
+	private static int depth(String name) {
+		return (int) name.chars().filter(character -> character == '/').count();
 	}
 }

@@ -38,6 +38,7 @@ import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.om.ThreadStore;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -45,8 +46,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Submit a batch of model requests to the provider's native batch API.
- * Returns the provider batch id and initial status.
+ * Submit a batch of model requests to the provider's native batch API. Returns
+ * the provider batch id and initial status.
  */
 public class SubmitModelBatchReactor extends AbstractModelBatchReactor {
 
@@ -114,9 +115,8 @@ public class SubmitModelBatchReactor extends AbstractModelBatchReactor {
 				return;
 			}
 			if (s.startsWith("[")) {
-				List<Map<String, Object>> parsed = GSON.fromJson(s,
-						new TypeToken<List<Map<String, Object>>>() {
-						}.getType());
+				List<Map<String, Object>> parsed = GSON.fromJson(s, new TypeToken<List<Map<String, Object>>>() {
+				}.getType());
 				if (parsed != null) {
 					requests.addAll(parsed);
 				}
@@ -131,15 +131,10 @@ public class SubmitModelBatchReactor extends AbstractModelBatchReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Submit a batch of model requests to the provider's native batch API";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.BATCH_REQUESTS.getKey())) {
-			return "List of requests; each entry is a map with 'custom_id' and 'body' (the provider-native per-request payload). May also be a JSON string.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Submit a batch of model requests to the provider's native batch API")
+				.key(ReactorKeysEnum.BATCH_REQUESTS,
+						"List of requests; each entry is a map with 'custom_id' and 'body' (the provider-native per-request payload). May also be a JSON string.");
 	}
 }

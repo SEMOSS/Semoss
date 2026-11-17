@@ -38,17 +38,14 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 
 /**
- * Runs a validated Pixel expression in the run Insight with active cancellation.
+ * Runs a validated Pixel expression in the run Insight with active
+ * cancellation.
  */
 final class AutomationPixelExecutor {
 
-	private static final Set<PixelOperationType> ERROR_OPERATIONS = Set.of(
-			PixelOperationType.ERROR,
-			PixelOperationType.UNEXECUTED_PIXELS,
-			PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED,
-			PixelOperationType.USER_INPUT_REQUIRED,
-			PixelOperationType.LOGGIN_REQUIRED_ERROR,
-			PixelOperationType.ANONYMOUS_USER_ERROR,
+	private static final Set<PixelOperationType> ERROR_OPERATIONS = Set.of(PixelOperationType.ERROR,
+			PixelOperationType.UNEXECUTED_PIXELS, PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED,
+			PixelOperationType.USER_INPUT_REQUIRED, PixelOperationType.LOGGIN_REQUIRED_ERROR,
 			PixelOperationType.INVALID_SYNTAX);
 
 	private final Insight insight;
@@ -118,7 +115,7 @@ final class AutomationPixelExecutor {
 		if (result.getOpType().stream().anyMatch(ERROR_OPERATIONS::contains)) {
 			return true;
 		}
-		return result.getAdditionalReturn() != null && result.getAdditionalReturn().stream()
-				.anyMatch(AutomationPixelExecutor::hasErrorOperation);
+		return result.getAdditionalReturn() != null
+				&& result.getAdditionalReturn().stream().anyMatch(AutomationPixelExecutor::hasErrorOperation);
 	}
 }

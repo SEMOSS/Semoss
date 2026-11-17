@@ -31,6 +31,7 @@ import java.util.Set;
 
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -62,22 +63,13 @@ public class GetDatabaseConceptsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Returns the top-level concepts available within a database.
 
 				Concept types by database type:
 				  - Relational (RDBMS): TABLE
 				  - Graph / RDF:        NODE
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+				""").key(ReactorKeysEnum.DATABASE, "The database id");
 	}
 }

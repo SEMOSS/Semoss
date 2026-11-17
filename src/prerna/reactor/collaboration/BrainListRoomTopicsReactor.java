@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainTopicRoomUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListRoomTopics(roomId=["..."]);
@@ -48,16 +49,10 @@ public class BrainListRoomTopicsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists a chat's topics: linked ones apply to the chat, suggested ones wait for the owner, dismissed "
-				+ "ones are not suggested again";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROOM_ID.equals(key)) {
-			return "The chat's room id";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists a chat's topics: linked ones apply to the chat, suggested ones wait for the owner, dismissed "
+						+ "ones are not suggested again")
+				.key(ROOM_ID, "The chat's room id");
 	}
 }

@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -66,8 +67,8 @@ public abstract class AbstractPixelReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Run Pixel code in the current insight";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Run Pixel code in the current insight");
 	}
 
 	/**

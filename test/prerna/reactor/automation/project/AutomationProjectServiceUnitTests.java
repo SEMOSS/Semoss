@@ -116,18 +116,17 @@ public class AutomationProjectServiceUnitTests {
 		User owner = user("owner");
 		String otherScope = AutomationProjectService.inlineRunScope(user("other"));
 		try (MockedStatic<SecurityProjectUtils> security = mockStatic(SecurityProjectUtils.class)) {
-			// Even a project registered under that id must not expose the other user's runs.
+			// Even a project registered under that id must not expose the other user's
+			// runs.
 			security.when(() -> SecurityProjectUtils.userCanViewProject(any(), anyString())).thenReturn(true);
 			security.when(() -> SecurityProjectUtils.userCanEditProject(any(), anyString())).thenReturn(true);
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(any(), anyString()))
-					.thenReturn(otherScope);
 
 			IllegalArgumentException direct = assertThrows(IllegalArgumentException.class,
 					() -> AutomationProjectService.getViewableAutomationProject(owner, otherScope));
 			assertEquals("Project does not exist or user does not have access.", direct.getMessage());
-			IllegalArgumentException alias = assertThrows(IllegalArgumentException.class,
-					() -> AutomationProjectService.getEditableAutomationProject(owner, "alias"));
-			assertEquals("Project does not exist or user does not have edit access.", alias.getMessage());
+			IllegalArgumentException edit = assertThrows(IllegalArgumentException.class,
+					() -> AutomationProjectService.getEditableAutomationProject(owner, otherScope));
+			assertEquals("Project does not exist or user does not have edit access.", edit.getMessage());
 			security.verify(() -> SecurityProjectUtils.userCanViewProject(any(), anyString()), never());
 			security.verify(() -> SecurityProjectUtils.userCanEditProject(any(), anyString()), never());
 		}
@@ -137,9 +136,6 @@ public class AutomationProjectServiceUnitTests {
 	void namedProjectStillUsesTheProjectAcl() {
 		User owner = user("owner");
 		try (MockedStatic<SecurityProjectUtils> security = mockStatic(SecurityProjectUtils.class)) {
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(owner, "project-id"))
-					.thenReturn("project-id");
-
 			IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
 					() -> AutomationProjectService.resolveRunScope(owner, "project-id", true));
 			assertEquals("Project does not exist or user does not have edit access.", error.getMessage());
@@ -169,8 +165,8 @@ public class AutomationProjectServiceUnitTests {
 
 		try (Git git = Git.open(versionFolder.toFile())) {
 			assertNotEquals(initialHead, git.getRepository().resolve("HEAD").name());
-			assertEquals("Restore automation definition from abc123", git.log().setMaxCount(1).call().iterator().next()
-					.getFullMessage());
+			assertEquals("Restore automation definition from abc123",
+					git.log().setMaxCount(1).call().iterator().next().getFullMessage());
 		}
 	}
 
@@ -220,32 +216,25 @@ public class AutomationProjectServiceUnitTests {
 				AutomationConstants.NODE_FIELD_CONFIG, Map.of());
 		Map<String, Object> agent = Map.of(AutomationConstants.NODE_FIELD_ID, "agent",
 				AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_AGENT_RUN,
-				AutomationConstants.NODE_FIELD_OUTPUT_VAR, "brief",
-				AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED,
-				AutomationConstants.NODE_FIELD_CONFIG, config);
-		Map<String, Object> edge = Map.of(AutomationConstants.NODE_FIELD_ID, "e1",
-				AutomationConstants.EDGE_FIELD_KIND, AutomationConstants.EDGE_KIND_CONTROL,
-				AutomationConstants.EDGE_FIELD_SOURCE, "start",
+				AutomationConstants.NODE_FIELD_OUTPUT_VAR, "brief", AutomationConstants.NODE_FIELD_CODE_MODE,
+				AutomationConstants.NODE_CODE_MODE_GENERATED, AutomationConstants.NODE_FIELD_CONFIG, config);
+		Map<String, Object> edge = Map.of(AutomationConstants.NODE_FIELD_ID, "e1", AutomationConstants.EDGE_FIELD_KIND,
+				AutomationConstants.EDGE_KIND_CONTROL, AutomationConstants.EDGE_FIELD_SOURCE, "start",
 				AutomationConstants.EDGE_FIELD_SOURCE_PORT, AutomationConstants.CONTROL_PORT_OUT,
-				AutomationConstants.EDGE_FIELD_TARGET, "agent",
-				AutomationConstants.EDGE_FIELD_TARGET_PORT, AutomationConstants.CONTROL_PORT_IN);
-		return AutomationDefinitionValidator.parseAndValidate(AutomationRuntimeUtils.GSON.toJson(Map.of(
-				AutomationConstants.DOC_FORMAT_VERSION, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
-				AutomationConstants.DOC_TRIGGER_BINDINGS, List.of(Map.of("id", "manual", "type", "manual")),
-				AutomationConstants.DOC_GRAPH,
-				Map.of(AutomationConstants.DOC_NODES, List.of(start, agent), AutomationConstants.DOC_EDGES,
-						List.of(edge)))));
+				AutomationConstants.EDGE_FIELD_TARGET, "agent", AutomationConstants.EDGE_FIELD_TARGET_PORT,
+				AutomationConstants.CONTROL_PORT_IN);
+		return AutomationDefinitionValidator.parseAndValidate(AutomationRuntimeUtils.GSON
+				.toJson(Map.of(AutomationConstants.DOC_FORMAT_VERSION, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
+						AutomationConstants.DOC_TRIGGER_BINDINGS, List.of(Map.of("id", "manual", "type", "manual")),
+						AutomationConstants.DOC_GRAPH, Map.of(AutomationConstants.DOC_NODES, List.of(start, agent),
+								AutomationConstants.DOC_EDGES, List.of(edge)))));
 	}
 
 	@Test
-	void rejectsAnonymousAndMissingUsers() {
-		User anonymous = new User();
-		anonymous.setAnonymous(true);
-
-		assertThrows(IllegalArgumentException.class, () -> AutomationProjectService.inlineRunScope(anonymous));
+	void rejectsUsersWithoutLoginAndMissingUsers() {
 		assertThrows(IllegalArgumentException.class, () -> AutomationProjectService.inlineRunScope(new User()));
 		assertThrows(IllegalArgumentException.class, () -> AutomationProjectService.inlineRunScope(null));
 		assertThrows(IllegalArgumentException.class,
-				() -> AutomationProjectService.resolveRunScope(anonymous, null, false));
+				() -> AutomationProjectService.resolveRunScope(new User(), null, false));
 	}
 }

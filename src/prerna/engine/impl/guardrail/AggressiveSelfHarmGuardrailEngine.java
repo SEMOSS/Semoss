@@ -47,7 +47,8 @@ import prerna.engine.api.GuardrailTypeEnum;
  * <li>{@code BLOCKED_MESSAGE} - override the default message returned when
  * UNSAFE</li>
  * <li>{@code JUDGE_ERROR_VERDICT} - {@code BLOCK} or {@code PASS}: the verdict
- * when the judge call fails; defaults to {@code BLOCK}</li>
+ * when the judge call fails or its answer names neither SAFE nor UNSAFE;
+ * defaults to {@code BLOCK}</li>
  * </ul>
  */
 public class AggressiveSelfHarmGuardrailEngine extends PromptGuardrailEngine {

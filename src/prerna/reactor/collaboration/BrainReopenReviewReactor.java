@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainReviewUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainReopenReview(reviewId=["..."]);
@@ -52,15 +53,9 @@ public class BrainReopenReviewReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Undo: puts an answered Brain review question back to open and returns the undone answer";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (REVIEW_ID.equals(key)) {
-			return "Review id";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Undo: puts an answered Brain review question back to open and returns the undone answer")
+				.key(REVIEW_ID, "Review id");
 	}
 }

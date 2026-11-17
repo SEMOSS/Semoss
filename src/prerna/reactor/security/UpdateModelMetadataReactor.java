@@ -45,10 +45,10 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -77,7 +77,6 @@ public class UpdateModelMetadataReactor extends AbstractReactor {
 		}
 
 		User user = this.insight.getUser();
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("Model engine does not exist or user does not have access to edit it");
 		}
@@ -122,11 +121,11 @@ public class UpdateModelMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Updates editable provider, capability, modality, token, reasoning, built-in tool and pricing \
 				metadata for a model engine. Its editors can change everything but the prices, which need an \
 				owner or an admin and cannot be removed
-				""";
+				""");
 	}
 }

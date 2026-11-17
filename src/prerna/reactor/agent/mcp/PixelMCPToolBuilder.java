@@ -166,7 +166,7 @@ public class PixelMCPToolBuilder {
 		// Phase 2: Process explicitly listed reactors
 		for (int i = 0; i < requestedReactors.size(); i++) {
 			String reactorName = requestedReactors.get(i);
-			IReactor thisReactor = ReactorFactory.getReactor(insight, reactorName, null, insight.getCurFrame());
+			IReactor thisReactor = ReactorFactory.getReactor(insight, reactorName, null, insight.getCurrentFrame());
 			JSONObject reactorTool = thisReactor.asMcpTool();
 			String functionName = reactorTool.getString("name");
 

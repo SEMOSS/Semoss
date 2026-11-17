@@ -238,6 +238,19 @@ public final class RoomUtils {
 	}
 
 	/**
+	 * The room as this user already holds it, with no refresh, or null when it is not cached. For a caller that only
+	 * needs the room's id and folder: it never waits on the lock a running agent holds for a whole model call.
+	 */
+	public static Room getCachedRoomWithoutRefresh(String roomId, Insight insight) {
+		Object cached = insight.getUser().getRoomHash().get(roomId);
+		if (!(cached instanceof Room room)) {
+			return null;
+		}
+		symlinkRoomFolderIfNeeded(room, insight);
+		return room;
+	}
+
+	/**
 	 * Loads a Room from user room hash or database if present.
 	 *
 	 * @param roomId  room identifier

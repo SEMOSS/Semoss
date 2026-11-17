@@ -36,9 +36,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.io.Files;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -81,22 +79,7 @@ public class RReplaceDatabaseCsvUploadReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
 		}
 		// check security
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create or update a database",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
-		// check if input is alias since we are adding ot existing
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
+		User user = requireUser();
 
 		// throw error is user is not owner
 		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {

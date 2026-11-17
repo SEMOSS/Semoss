@@ -30,6 +30,7 @@ package prerna.auth.utils.reactors.admin;
 import prerna.auth.utils.EnterpriseUsageUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -54,7 +55,11 @@ public class AdminGetEnterpriseUsageDetailReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Administrator-only retrieval of retained activity content, a model message pair, or an audit event's old and new values, or why its request was denied, by recordId. Pairing and identity boundaries are resolved on the server.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Retrieval of retained activity content, a model message pair, or an audit event's old and new values, or why its request was denied, by recordId. Pairing and identity boundaries are resolved on the server.")
+				.key("recordId",
+						"The id of the record to read: a message id for the model source, a log id for the activity source, or an event id for the audit source.")
+				.key("source", "Where the record is kept: model, activity or audit.");
 	}
 }

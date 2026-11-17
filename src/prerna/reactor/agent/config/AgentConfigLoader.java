@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.config;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,6 +50,7 @@ import com.google.gson.JsonParser;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.collaboration.BrainProfileUtils;
+import prerna.collaboration.CollaborationDriveFiles;
 import prerna.collaboration.CollaborationMemoryRunHook;
 import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationSkills;
@@ -57,6 +59,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
+import prerna.project.api.IProject;
 import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.AppBuilderHarnessConfiguration;
 import prerna.reactor.agent.IAgentHook;
@@ -65,7 +68,10 @@ import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
 import prerna.reactor.agent.skill.SkillProjects;
+import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.SystemDefaultEngines;
+import prerna.util.Utility;
 
 /**
  * Builds the resolved {@link AgentConfig} for one run.
@@ -161,8 +167,10 @@ public final class AgentConfigLoader {
 		b.authoredPrompt(resolveAuthoredPrompt(room, workspaceId, workspaceRow, cfgJson));
 
 		// Workdir AGENTS.md / CLAUDE.md exact-dir lookup only (no walk-up). Loader
-		// tolerates null workingDir.
-		b.workdirAgentsMd(AgentsMdLoader.discover(workingDir));
+		// tolerates null workingDir. A Collaboration room's folder holds files
+		// downloaded from mail, Teams and OneDrive, so an outsider names them: one
+		// called AGENTS.md there is never instructions.
+		b.workdirAgentsMd(CollaborationUtils.isCollaborationRoom(room) ? null : AgentsMdLoader.discover(workingDir));
 
 		// Selected-engines block: read fresh from the project dependency store
 		// every run so workbench selections are always current and prompt-visible.
@@ -193,6 +201,8 @@ public final class AgentConfigLoader {
 
 		// 6. Working directory
 		b.workingDir(StringUtils.trimToNull(workingDir));
+		b.agentFilesDir(resolveAgentFilesDir(workspaceId, workspaceRow,
+				room.getInsight() != null ? room.getInsight().getUser() : null));
 
 		// CONFIG_JSON budgets override per field; remaining values come from caller
 		// args.
@@ -246,6 +256,38 @@ public final class AgentConfigLoader {
 		}
 	}
 
+	/**
+	 * The folder a run reads the agent's own files from: the public assets folder
+	 * of the agent's project. Only that folder, because it is what a user with view
+	 * access to the agent may read; the rest of the project holds its
+	 * configuration. Null when the run has no stored agent or no user, or the agent
+	 * has no such folder.
+	 */
+	private static String resolveAgentFilesDir(String workspaceId, Map<String, Object> workspaceRow, User user) {
+		// load() has already refused a user who cannot view this agent
+		if (workspaceId == null || workspaceRow == null || user == null) {
+			return null;
+		}
+		try {
+			IProject project = Utility.getProject(workspaceId);
+			if (project == null) {
+				return null;
+			}
+			File folder = new File(
+					AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId()),
+					Constants.PUBLIC_ASSETS_FOLDER);
+			if (!folder.isDirectory()) {
+				return null;
+			}
+			logger.info("AgentConfigLoader: agent files for workspaceId={} are read from {}", workspaceId, folder);
+			return folder.getAbsolutePath();
+		} catch (Exception e) {
+			logger.warn("AgentConfigLoader: agent files lookup failed for workspaceId={}: {}", workspaceId,
+					e.getMessage());
+			return null;
+		}
+	}
+
 	static java.util.Set<String> resolveReadOnlyPaths(JSONObject policy) {
 		java.util.Set<String> paths = new java.util.LinkedHashSet<>();
 		JSONArray values = policy == null ? null : policy.optJSONArray("read_only_paths");
@@ -293,6 +335,9 @@ public final class AgentConfigLoader {
 			// Ordinary document reading uses the shared extraction helper. Managed
 			// presentation workflows perform their own review without this tool.
 			names.add("InspectPptx");
+			// the owner's tasks live in Work items; a chat todo list only competes with them
+			names.add("TodoWrite");
+			names.add("TodoRead");
 		}
 		JSONObject toolPolicy = cfgJson != null ? cfgJson.optJSONObject("tool_policy") : null;
 		JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;
@@ -818,14 +863,16 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * An owner's chat also reviews its finished runs for memories to suggest, whatever its agent configures; a
-	 * routine's runs are not reviewed.
+	 * An owner's chat also saves the OneDrive copies a finished run changed back over their originals, and reviews
+	 * its finished runs for memories to suggest, whatever its agent configures; a routine's runs get neither.
 	 */
 	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
 		if (!CollaborationRunMode.isChat(room)) {
 			return configured;
 		}
 		List<IAgentRunHook> hooks = new ArrayList<>(configured);
+		// first, so what it tells the owner is in the chat before the review reads it
+		hooks.add(new CollaborationDriveFiles.AfterRun());
 		hooks.add(new CollaborationMemoryRunHook());
 		return hooks;
 	}
