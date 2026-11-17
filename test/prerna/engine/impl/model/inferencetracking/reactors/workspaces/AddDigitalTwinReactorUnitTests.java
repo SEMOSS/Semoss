@@ -28,6 +28,8 @@
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -56,11 +58,12 @@ import prerna.project.impl.ProjectHelper;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.usertracking.UserAuditTrailUtils;
 
 /**
- * Checks what making a Digital Twin adds to making an agent: a user has one,
- * and the agent that was made is marked, so it can only be shared with named
+ * Checks that a user can make multiple Digital Twins and each agent is marked,
+ * so it can only be shared with named
  * people. The project, workspace and security writes are static mocks.
  */
 class AddDigitalTwinReactorUnitTests {
@@ -107,19 +110,26 @@ class AddDigitalTwinReactorUnitTests {
 	}
 
 	@Test
-	void aSecondTwinIsRefusedBeforeAnythingIsMade() {
+	void aUserCanCreateMultipleIndependentTwins() {
 		// a twin the user made and owns, the same list the web client reads
 		security.when(() -> SecurityProjectUtils.getUserProjectList(eq(user), eq(List.of("WORKSPACE")), isNull(),
 				eq(false), eq(Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, List.of("true"))), isNull(), isNull(),
 				isNull(), isNull(), isNull(), eq(false), eq(List.of(1)), eq(User.getUserIdAndType(user))))
 				.thenReturn(List.of(Map.of("project_id", "first-twin")));
 
-		NounMetadata refused = twinNamed("Another Twin").execute();
+		NounMetadata second = twinNamed("Another Twin").execute();
+		NounMetadata third = twinNamed("Research Twin").execute();
 
-		assertEquals(PixelDataType.ERROR, refused.getNounType());
-		assertEquals("You already have a Digital Twin", refused.getValue());
-		projects.verifyNoInteractions();
-		security.verify(() -> SecurityProjectUtils.markDigitalTwin(any()), never());
+		assertEquals(PixelDataType.CONST_STRING, second.getNounType());
+		assertEquals(PixelDataType.CONST_STRING, third.getNounType());
+		assertNotEquals("first-twin", second.getValue());
+		assertNotEquals(second.getValue(), third.getValue());
+		for (NounMetadata created : List.of(second, third)) {
+			String twinId = (String) created.getValue();
+			projects.verify(() -> ProjectHelper.createWorkspaceProject(eq(twinId), any(),
+					eq(IProject.PROJECT_TYPE.WORKSPACE), eq(false), isNull(), isNull(), eq(user), any()));
+			security.verify(() -> SecurityProjectUtils.markDigitalTwin(twinId));
+		}
 	}
 
 	@Test
@@ -131,6 +141,14 @@ class AddDigitalTwinReactorUnitTests {
 
 		assertEquals(PixelDataType.ERROR, failed.getNounType());
 		security.verify(() -> SecurityProjectUtils.markDigitalTwin(any()), never());
+	}
+
+	@Test
+	void creatingATwinStillRequiresASignedInUser() {
+		user = null;
+		assertThrows(SemossPixelException.class, () -> twinNamed("My Twin").execute());
+		projects.verifyNoInteractions();
+		security.verifyNoInteractions();
 	}
 
 	private AddDigitalTwinReactor twinNamed(String name) {
