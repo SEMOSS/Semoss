@@ -266,6 +266,8 @@ public enum AuditEventType {
 	AUTOMATION_RUN_CANCEL(AUTOMATION, LOW),
 	/** A paused automation run was resumed */
 	AUTOMATION_RUN_RESUME(AUTOMATION, LOW),
+	/** Selected nodes of a finished automation run were run again */
+	AUTOMATION_RUN_RERUN(AUTOMATION, LOW),
 	/** An action an automation's agent asked for was approved or declined */
 	AUTOMATION_ACTION_RESOLVE(AUTOMATION, MEDIUM),
 	/** An automation's agent run was stopped */

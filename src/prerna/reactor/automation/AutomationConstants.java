@@ -84,6 +84,8 @@ public final class AutomationConstants {
 	public static final String CREATED_BY = "CREATED_BY";
 	public static final String CANCEL_REQUESTED = "CANCEL_REQUESTED";
 	public static final String RESULT_SUMMARY_COL = "RESULT_SUMMARY";
+	/** Run this run reprocessed (a re-run of its message or some of its nodes), else null. */
+	public static final String REPROCESSED_FROM_RUN_ID = "REPROCESSED_FROM_RUN_ID";
 
 	// -- AUTOMATION_RUN_NODE_SOURCES columns
 	// ---------------------------------------
@@ -106,6 +108,8 @@ public final class AutomationConstants {
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
 	/** Bounded JSON of every run-scope variable as of this node's completion. */
 	public static final String SCOPE_SNAPSHOT = "SCOPE_SNAPSHOT";
+	/** True while a node row still holds the result copied from the run it was reprocessed from. */
+	public static final String CARRIED_OVER = "CARRIED_OVER";
 	public static final String ROOM_ID = "ROOM_ID";
 	public static final String WORKSPACE_ID = "WORKSPACE_ID";
 	public static final String MODEL_MESSAGE_ID = "MODEL_MESSAGE_ID";

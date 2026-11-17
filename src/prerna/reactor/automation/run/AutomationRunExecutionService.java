@@ -41,6 +41,7 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -167,6 +168,18 @@ final class AutomationRunExecutionService {
 	static Map<String, Object> start(Insight insight, String streamJobId, String runId, String runScope,
 			String automationId, AutomationDefinitionService.DefinitionFiles files, Map<String, Object> inputs,
 			String triggerType) {
+		return start(insight, streamJobId, runId, runScope, automationId, files, inputs, triggerType, null);
+	}
+
+	/**
+	 * Same as the overload without {@code reprocessedFromRunId}, recording the run
+	 * this one is a fresh run of so run history can link the two.
+	 *
+	 * @param reprocessedFromRunId run this run reprocesses, or {@code null}
+	 */
+	static Map<String, Object> start(Insight insight, String streamJobId, String runId, String runScope,
+			String automationId, AutomationDefinitionService.DefinitionFiles files, Map<String, Object> inputs,
+			String triggerType, String reprocessedFromRunId) {
 		AutomationRunExecutionService service = new AutomationRunExecutionService(insight, streamJobId);
 		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
 				.parseAndValidate(files.definition());
@@ -182,7 +195,7 @@ final class AutomationRunExecutionService {
 		String normalizedTriggerType = triggerType(triggerType);
 		AutomationRunStore.initializeRun(runId, runScope, automationId, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
 				definition.hash(), definition.snapshot(), effectiveInputs, normalizedTriggerType,
-				service.currentUserId(), runNodes, traceRoomIds, files.nodeSources());
+				service.currentUserId(), runNodes, traceRoomIds, files.nodeSources(), reprocessedFromRunId);
 		UserAuditTrailUtils.recordAutomationEvent(insight.getUser(), AuditEventType.AUTOMATION_RUN_START, runScope,
 				runId, null, Map.of("triggerType", normalizedTriggerType, "nodeCount", runNodes.size(), "inputKeys",
 						new ArrayList<>(effectiveInputs.keySet())));
@@ -339,31 +352,8 @@ final class AutomationRunExecutionService {
 			}
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			Handler handler = handlerFor(node);
-			Map<String, Object> nodeResult = switch (handler) {
-			case START -> executeStartNode(context, runId, node);
-			case CONDITION -> executeConditionNode(runId, node, context.values());
-			case JEV -> executeJevDecisionNode(context.insight(), runId, node, context.values());
-			case LOOP -> executeLoopNode(projectId, runId, node, nodeSources, context, pythonExecutor, pixelExecutor);
-			case WAIT -> executeWaitNode(projectId, runId, node, context);
-			case APP_PIXEL -> executeAppPixelNode(projectId, runId, node, context, pixelExecutor);
-			case FUNCTION -> executeFunctionNode(projectId, runId, node, context, pixelExecutor);
-			case STORAGE_LIST -> executeStorageListNode(projectId, runId, node, context, pixelExecutor);
-			case DATABASE_WRITE -> executeDatabaseWriteNode(projectId, runId, node, context, pixelExecutor);
-			case VECTOR_WRITE -> executeVectorWriteNode(projectId, runId, node, context, pixelExecutor);
-			case MODEL -> executeModelNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId));
-			case STORAGE -> executeStorageNode(projectId, runId, node, context, pixelExecutor);
-			case AGENT -> executeAgentNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId),
-					controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
-			case DATABASE_QUERY -> executeDatabaseQueryNode(projectId, runId, node, context, pixelExecutor);
-			case VECTOR_SEARCH -> executeVectorSearchNode(projectId, runId, node, context, pixelExecutor);
-			case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, node, context, pixelExecutor);
-			case DATA_EXTRACT -> executeDataExtractNode(projectId, runId, node, context, pixelExecutor);
-			case DATA_TRANSFORM -> executeDataTransformNode(projectId, runId, node, context);
-			case DATA_DECLARE_VARIABLE -> executeDataDeclareVariableNode(projectId, runId, node, context);
-			case PYTHON -> executeNodeSource(projectId, runId, node, node, nodeSources.get(nodeId), context,
-					pythonExecutor, traceRoomIds.get(nodeId),
-					controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
-			};
+			Map<String, Object> nodeResult = executeNode(handler, projectId, runId, node, nodeSources, context,
+					pythonExecutor, pixelExecutor, traceRoomIds, controlTargets);
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
 				if (AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT
 						.equals(nodeResult.get(AutomationConstants.STATUS))) {
@@ -376,13 +366,7 @@ final class AutomationRunExecutionService {
 				result.put(AutomationConstants.RESULT_GLOBALS,
 						nodeResult.getOrDefault(AutomationConstants.RESULT_GLOBALS, Map.of()));
 			}
-			String outputVar = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
-			if (handler != Handler.START && outputVar != null) {
-				context.putValue(outputVar, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
-			}
-			if (handler == Handler.DATA_DECLARE_VARIABLE) {
-				spreadChannelVariables(context, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
-			}
+			publishNodeOutput(handler, node, nodeResult, context);
 			String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
 			if (handler == Handler.CONDITION || handler == Handler.JEV) {
 				@SuppressWarnings("unchecked")
@@ -397,6 +381,56 @@ final class AutomationRunExecutionService {
 		}
 		result.put("scope", context.values());
 		return result;
+	}
+
+	/**
+	 * Runs one node through the typed handler for its kind and persists its transition.
+	 * A loop-body node carries its own execution row ID, so sources, rooms, and control
+	 * ports are looked up by the body node's graph ID ({@code SOURCE_NODE_ID}) instead.
+	 */
+	private Map<String, Object> executeNode(Handler handler, String projectId, String runId,
+			Map<String, Object> node, Map<String, String> nodeSources, AutomationExecutionContext context,
+			AutomationPythonExecutor pythonExecutor, AutomationPixelExecutor pixelExecutor,
+			Map<String, String> traceRoomIds, Map<String, Map<String, String>> controlTargets) {
+		String nodeId = (String) node.getOrDefault(AutomationConstants.SOURCE_NODE_ID,
+				node.get(AutomationConstants.NODE_FIELD_ID));
+		return switch (handler) {
+		case START -> executeStartNode(context, runId, node);
+		case CONDITION -> executeConditionNode(runId, node, context.values());
+		case JEV -> executeJevDecisionNode(context.insight(), runId, node, context.values());
+		case LOOP -> executeLoopNode(projectId, runId, node, nodeSources, context, pythonExecutor, pixelExecutor);
+		case WAIT -> executeWaitNode(projectId, runId, node, context);
+		case APP_PIXEL -> executeAppPixelNode(projectId, runId, node, context, pixelExecutor);
+		case FUNCTION -> executeFunctionNode(projectId, runId, node, context, pixelExecutor);
+		case STORAGE_LIST -> executeStorageListNode(projectId, runId, node, context, pixelExecutor);
+		case DATABASE_WRITE -> executeDatabaseWriteNode(projectId, runId, node, context, pixelExecutor);
+		case VECTOR_WRITE -> executeVectorWriteNode(projectId, runId, node, context, pixelExecutor);
+		case MODEL -> executeModelNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId));
+		case STORAGE -> executeStorageNode(projectId, runId, node, context, pixelExecutor);
+		case AGENT -> executeAgentNode(projectId, runId, node, context, pixelExecutor, traceRoomIds.get(nodeId),
+				controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
+		case DATABASE_QUERY -> executeDatabaseQueryNode(projectId, runId, node, context, pixelExecutor);
+		case VECTOR_SEARCH -> executeVectorSearchNode(projectId, runId, node, context, pixelExecutor);
+		case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, node, context, pixelExecutor);
+		case DATA_EXTRACT -> executeDataExtractNode(projectId, runId, node, context, pixelExecutor);
+		case DATA_TRANSFORM -> executeDataTransformNode(projectId, runId, node, context);
+		case DATA_DECLARE_VARIABLE -> executeDataDeclareVariableNode(projectId, runId, node, context);
+		case PYTHON -> executeNodeSource(projectId, runId, node, node, nodeSources.get(nodeId), context,
+				pythonExecutor, traceRoomIds.get(nodeId),
+				controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
+		};
+	}
+
+	/** Adds a successful node's business output to run scope under the name that node publishes. */
+	private static void publishNodeOutput(Handler handler, Map<String, Object> node, Map<String, Object> nodeResult,
+			AutomationExecutionContext context) {
+		String outputVar = (String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+		if (handler != Handler.START && outputVar != null) {
+			context.putValue(outputVar, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
+		}
+		if (handler == Handler.DATA_DECLARE_VARIABLE) {
+			spreadChannelVariables(context, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
+		}
 	}
 
 	private static Handler handlerFor(Map<String, Object> node) {
@@ -468,6 +502,108 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
+	 * What a loop will do: its mode, how many passes it makes over which items, and
+	 * the variables each pass starts with. It is resolved from the scope in effect
+	 * when the loop begins, so a re-run of one iteration can rebuild exactly what
+	 * that iteration saw.
+	 */
+	record LoopPlan(String loopNodeId, String loopMode, int maximumIterations, int batchSize, long itemCount,
+			List<Object> items, AutomationFrameOutput.RegisteredFrame frameItems, int iterationLimit,
+			String loopOutputVar) {
+
+		/**
+		 * The scope variables iteration {@code iteration} starts with, layered over the
+		 * scope the loop began in.
+		 *
+		 * @param iteration      zero-based pass
+		 * @param carriedOutputs a while loop's outputs from the previous pass; ignored by other modes
+		 */
+		Map<String, Object> iterationOverrides(int iteration, Map<String, Object> carriedOutputs) {
+			Map<String, Object> loopContext = new LinkedHashMap<>();
+			loopContext.put("index", iteration);
+			loopContext.put("number", iteration + 1);
+			loopContext.put("isFirst", iteration == 0);
+			if (AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)) {
+				long from = (long) iteration * batchSize;
+				int currentBatchSize = (int) Math.min(batchSize, itemCount - from);
+				List<Object> batch;
+				if (frameItems != null) {
+					batch = frameItems.page(from, currentBatchSize);
+				} else {
+					int start = Math.toIntExact(from);
+					batch = new ArrayList<>(items.subList(start, start + currentBatchSize));
+				}
+				loopContext.put("batch", batch);
+				loopContext.put("total", iterationLimit);
+				loopContext.put("isLast", iteration == iterationLimit - 1);
+				if (batch.size() == 1) {
+					loopContext.put("item", batch.get(0));
+				}
+			} else if (AutomationConstants.LOOP_MODE_REPEAT.equals(loopMode)) {
+				loopContext.put("total", iterationLimit);
+				loopContext.put("isLast", iteration == iterationLimit - 1);
+			} else {
+				loopContext.put("previous", new LinkedHashMap<>(carriedOutputs));
+				loopContext.put("maximum", maximumIterations);
+			}
+
+			Map<String, Object> overrides = new LinkedHashMap<>();
+			if (AutomationConstants.LOOP_MODE_WHILE.equals(loopMode)) {
+				overrides.putAll(carriedOutputs);
+			}
+			overrides.put(loopOutputVar, loopContext);
+			return overrides;
+		}
+	}
+
+	/**
+	 * Resolves a loop's mode, items, and pass count against {@code scope}, refusing a
+	 * loop whose input is larger than its configured maximums.
+	 */
+	@SuppressWarnings("unchecked")
+	static LoopPlan planLoop(Map<String, Object> loopNode, Map<String, Object> scope) {
+		String loopNodeId = (String) loopNode.get(AutomationConstants.NODE_FIELD_ID);
+		Map<String, Object> config = (Map<String, Object>) loopNode.get(AutomationConstants.NODE_FIELD_CONFIG);
+		String loopMode = String.valueOf(
+				config.getOrDefault(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH));
+		int maximumIterations = ((Number) config.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS)).intValue();
+		int batchSize = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
+				? ((Number) config.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE)).intValue()
+				: 1;
+		long maximumItems = (long) maximumIterations * batchSize;
+		Object configuredItems = config.get(AutomationConstants.CONFIG_LOOP_ITEMS);
+		Object resolvedItems = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
+				? AutomationScopeResolver.resolveExactOrLiteral(configuredItems, scope,
+						"Loop node '" + loopNodeId + "' items")
+				: null;
+		AutomationFrameOutput.RegisteredFrame frameItems = resolvedItems instanceof AutomationFrameOutput.RegisteredFrame frame
+				? frame
+				: null;
+		List<Object> items = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode) && frameItems == null
+				? loopItems(configuredItems, scope, loopNodeId)
+				: List.of();
+		long itemCount = frameItems != null ? frameItems.rowCount() : items.size();
+		if (itemCount > maximumItems) {
+			throw new IllegalArgumentException("Loop node '" + loopNodeId + "' frame input exceeds its configured "
+					+ "maximum of " + maximumItems + " items.");
+		}
+		long requiredIterations = itemCount == 0 ? 0 : (itemCount + batchSize - 1) / batchSize;
+		int iterationLimit = switch (loopMode) {
+		case AutomationConstants.LOOP_MODE_FOR_EACH -> Math.toIntExact(requiredIterations);
+		case AutomationConstants.LOOP_MODE_REPEAT ->
+			((Number) config.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
+		case AutomationConstants.LOOP_MODE_WHILE -> maximumIterations;
+		default -> throw new IllegalArgumentException("Unsupported loop mode: " + loopMode);
+		};
+		if (iterationLimit > maximumIterations) {
+			throw new IllegalArgumentException("Loop node '" + loopNodeId + "' requires " + iterationLimit
+					+ " iterations, exceeding its maxIterations value of " + maximumIterations + ".");
+		}
+		return new LoopPlan(loopNodeId, loopMode, maximumIterations, batchSize, itemCount, items, frameItems,
+				iterationLimit, (String) loopNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR));
+	}
+
+	/**
 	 * Executes a bounded, sequential loop container. The parent graph remains
 	 * acyclic; each pass materializes independent child history rows and runs the
 	 * loop body's own validated acyclic control path against an isolated scope.
@@ -483,41 +619,11 @@ final class AutomationRunExecutionService {
 		streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
 			Map<String, Object> config = (Map<String, Object>) loopNode.get(AutomationConstants.NODE_FIELD_CONFIG);
-			String loopMode = String.valueOf(
-					config.getOrDefault(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH));
-			int maximumIterations = ((Number) config.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS)).intValue();
-			int batchSize = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
-					? ((Number) config.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE)).intValue()
-					: 1;
-			long maximumItems = (long) maximumIterations * batchSize;
-			Object configuredItems = config.get(AutomationConstants.CONFIG_LOOP_ITEMS);
-			Object resolvedItems = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
-					? AutomationScopeResolver.resolveExactOrLiteral(configuredItems, parentContext.values(),
-							"Loop node '" + loopNodeId + "' items")
-					: null;
-			AutomationFrameOutput.RegisteredFrame frameItems = resolvedItems instanceof AutomationFrameOutput.RegisteredFrame frame
-					? frame
-					: null;
-			List<Object> items = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode) && frameItems == null
-					? loopItems(configuredItems, parentContext.values(), loopNodeId)
-					: List.of();
-			long itemCount = frameItems != null ? frameItems.rowCount() : items.size();
-			if (itemCount > maximumItems) {
-				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' frame input exceeds its configured "
-						+ "maximum of " + maximumItems + " items.");
-			}
-			long requiredIterations = itemCount == 0 ? 0 : (itemCount + batchSize - 1) / batchSize;
-			int iterationLimit = switch (loopMode) {
-			case AutomationConstants.LOOP_MODE_FOR_EACH -> Math.toIntExact(requiredIterations);
-			case AutomationConstants.LOOP_MODE_REPEAT ->
-				((Number) config.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
-			case AutomationConstants.LOOP_MODE_WHILE -> maximumIterations;
-			default -> throw new IllegalArgumentException("Unsupported loop mode: " + loopMode);
-			};
-			if (iterationLimit > maximumIterations) {
-				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' requires " + iterationLimit
-						+ " iterations, exceeding its maxIterations value of " + maximumIterations + ".");
-			}
+			LoopPlan plan = planLoop(loopNode, parentContext.values());
+			String loopMode = plan.loopMode();
+			int maximumIterations = plan.maximumIterations();
+			long itemCount = plan.itemCount();
+			int iterationLimit = plan.iterationLimit();
 
 			List<Map<String, Object>> bodyNodes = AutomationRuntime.nodesForGraph(
 					AutomationRuntime.loopBodyNodes(loopNode), AutomationRuntime.loopBodyEdges(loopNode));
@@ -549,39 +655,7 @@ final class AutomationRunExecutionService {
 				if (AutomationRunRegistry.isCancellationRequested(runId)) {
 					throw new IllegalStateException("Run cancelled by user");
 				}
-				Map<String, Object> loopContext = new LinkedHashMap<>();
-				loopContext.put("index", iteration);
-				loopContext.put("number", iteration + 1);
-				loopContext.put("isFirst", iteration == 0);
-				if (AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)) {
-					long from = (long) iteration * batchSize;
-					int currentBatchSize = (int) Math.min(batchSize, itemCount - from);
-					List<Object> batch;
-					if (frameItems != null) {
-						batch = frameItems.page(from, currentBatchSize);
-					} else {
-						int start = Math.toIntExact(from);
-						batch = new ArrayList<>(items.subList(start, start + currentBatchSize));
-					}
-					loopContext.put("batch", batch);
-					loopContext.put("total", iterationLimit);
-					loopContext.put("isLast", iteration == iterationLimit - 1);
-					if (batch.size() == 1) {
-						loopContext.put("item", batch.get(0));
-					}
-				} else if (AutomationConstants.LOOP_MODE_REPEAT.equals(loopMode)) {
-					loopContext.put("total", iterationLimit);
-					loopContext.put("isLast", iteration == iterationLimit - 1);
-				} else {
-					loopContext.put("previous", new LinkedHashMap<>(carriedOutputs));
-					loopContext.put("maximum", maximumIterations);
-				}
-
-				Map<String, Object> iterationOverrides = new LinkedHashMap<>();
-				if (AutomationConstants.LOOP_MODE_WHILE.equals(loopMode)) {
-					iterationOverrides.putAll(carriedOutputs);
-				}
-				iterationOverrides.put(loopOutputVar, loopContext);
+				Map<String, Object> iterationOverrides = plan.iterationOverrides(iteration, carriedOutputs);
 				boolean stopLoop = false;
 				AutomationExecutionContext iterationContext = parentContext.child(iterationOverrides);
 				try {
@@ -611,45 +685,13 @@ final class AutomationRunExecutionService {
 						executionNode.put(AutomationConstants.PARENT_NODE_ID, loopNodeId);
 						executionNode.put(AutomationConstants.ITERATION_INDEX, iteration);
 						Handler handler = handlerFor(executionNode);
-						Map<String, Object> nodeResult = switch (handler) {
-						case CONDITION -> executeConditionNode(runId, executionNode, iterationContext.values());
-						case JEV -> executeJevDecisionNode(parentContext.insight(), runId, executionNode,
-								iterationContext.values());
-						case WAIT -> executeWaitNode(projectId, runId, executionNode, iterationContext);
-						case APP_PIXEL ->
-							executeAppPixelNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case FUNCTION ->
-							executeFunctionNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case STORAGE_LIST ->
-							executeStorageListNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case DATABASE_WRITE ->
-							executeDatabaseWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case VECTOR_WRITE ->
-							executeVectorWriteNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case MODEL -> executeModelNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
-								bodyTraceRoomIds.get(current));
-						case STORAGE ->
-							executeStorageNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case AGENT -> executeAgentNode(projectId, runId, executionNode, iterationContext, pixelExecutor,
-								bodyTraceRoomIds.get(current), null);
-						case DATABASE_QUERY ->
-							executeDatabaseQueryNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case VECTOR_SEARCH ->
-							executeVectorSearchNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case STORAGE_DOWNLOAD -> executeStorageDownloadNode(projectId, runId, executionNode,
-								iterationContext, pixelExecutor);
-						case DATA_EXTRACT ->
-							executeDataExtractNode(projectId, runId, executionNode, iterationContext, pixelExecutor);
-						case DATA_TRANSFORM ->
-							executeDataTransformNode(projectId, runId, executionNode, iterationContext);
-						case DATA_DECLARE_VARIABLE ->
-							executeDataDeclareVariableNode(projectId, runId, executionNode, iterationContext);
-						case PYTHON ->
-							executeNodeSource(projectId, runId, executionNode, executionNode, nodeSources.get(current),
-									iterationContext, pythonExecutor, bodyTraceRoomIds.get(current), null);
-						case START, LOOP -> throw new IllegalStateException(
-								"Loop body selected unsupported handler '" + handler + "' for node '" + current + "'.");
-						};
+						if (handler == Handler.START || handler == Handler.LOOP) {
+							throw new IllegalStateException(
+									"Loop body selected unsupported handler '" + handler + "' for node '" + current + "'.");
+						}
+						Map<String, Object> nodeResult = executeNode(handler, projectId, runId, executionNode,
+								nodeSources, iterationContext, pythonExecutor, pixelExecutor, bodyTraceRoomIds,
+								Map.of());
 						if (!AutomationConstants.NODE_STATUS_SUCCESS
 								.equals(nodeResult.get(AutomationConstants.STATUS))) {
 							throw new IllegalStateException(
@@ -2179,6 +2221,734 @@ final class AutomationRunExecutionService {
 		}
 	}
 
+	/** Finished states: the only runs whose nodes can be re-run. */
+	private static final Set<String> RERUNNABLE_RUN_STATUSES = Set.of(AutomationConstants.STATUS_SUCCESS,
+			AutomationConstants.STATUS_FAILED, AutomationConstants.STATUS_CANCELLED,
+			AutomationConstants.STATUS_INTERRUPTED);
+
+	/** Nodes whose execution is a trigger or a durable human/agent wait, which a re-run does not manage. */
+	private static final Set<String> NON_RERUNNABLE_NODE_TYPES = Set.of(AutomationConstants.NODE_START,
+			AutomationConstants.NODE_CONTROL_WAIT, AutomationConstants.NODE_AGENT_RUN);
+
+	/**
+	 * A validated request to re-run some nodes of a finished run.
+	 *
+	 * @param definition the run's recorded graph with the selected nodes replaced by
+	 *                   their current settings
+	 * @param nodes      selected nodes with runtime defaults applied, in run order
+	 * @param nodeIds    selected node IDs, in run order
+	 * @param updates    what the run's history records for each selected node
+	 */
+	record NodeRerunPlan(AutomationDefinitionValidator.ValidatedDefinition definition,
+			List<Map<String, Object>> nodes, List<String> nodeIds, List<AutomationRunStore.NodeRerun> updates) {
+	}
+
+	/**
+	 * Validates a node re-run without touching any state. Every selected node must
+	 * be part of the run and still exist in the current automation, and none may be
+	 * the trigger or a wait/agent node. The run's recorded graph is patched so each
+	 * selected node carries its current settings; the patched graph is validated as
+	 * a whole, so settings that no longer fit the rest of the run are refused here
+	 * rather than mid-execution.
+	 *
+	 * @param recordedSnapshot graph snapshot the run recorded
+	 * @param requestedNodeIds nodes the caller selected
+	 * @param current          the automation as it is saved now
+	 * @param currentSources   developer source of each current node, keyed by node ID
+	 * @return the validated plan
+	 * @throws IllegalArgumentException when the selection cannot be re-run
+	 */
+	@SuppressWarnings("unchecked")
+	static NodeRerunPlan planNodeRerun(String recordedSnapshot, List<String> requestedNodeIds,
+			AutomationDefinitionValidator.ValidatedDefinition current, Map<String, String> currentSources) {
+		if (requestedNodeIds == null || requestedNodeIds.isEmpty()) {
+			throw new IllegalArgumentException("Select at least one node to re-run.");
+		}
+		Set<String> selected = new LinkedHashSet<>(requestedNodeIds);
+		AutomationDefinitionValidator.ValidatedDefinition recorded = AutomationDefinitionValidator
+				.parseAndValidate(recordedSnapshot);
+		Map<String, Map<String, Object>> recordedById = nodesById(recorded.nodes());
+		Map<String, Map<String, Object>> currentById = nodesById(current.nodes());
+		for (String nodeId : selected) {
+			Map<String, Object> was = recordedById.get(nodeId);
+			if (was == null) {
+				throw new IllegalArgumentException("Node '" + nodeId + "' is not part of this run.");
+			}
+			Map<String, Object> now = currentById.get(nodeId);
+			if (now == null) {
+				throw new IllegalArgumentException(
+						"Node '" + nodeId + "' no longer exists in the current automation, so it cannot be re-run.");
+			}
+			for (Map<String, Object> version : List.of(was, now)) {
+				if (NON_RERUNNABLE_NODE_TYPES.contains(String.valueOf(version.get(AutomationConstants.NODE_FIELD_TYPE)))) {
+					throw new IllegalArgumentException("Trigger, wait, and agent nodes cannot be re-run ('"
+							+ version.getOrDefault(AutomationConstants.NODE_FIELD_LABEL, nodeId) + "').");
+				}
+			}
+		}
+
+		Map<String, Object> document = AutomationRuntimeUtils.GSON.fromJson(recordedSnapshot,
+				AutomationRuntimeUtils.MAP_TYPE);
+		List<Map<String, Object>> graphNodes = (List<Map<String, Object>>) ((Map<String, Object>) document
+				.get(AutomationConstants.DOC_GRAPH)).get(AutomationConstants.DOC_NODES);
+		for (int index = 0; index < graphNodes.size(); index++) {
+			String nodeId = (String) graphNodes.get(index).get(AutomationConstants.NODE_FIELD_ID);
+			if (selected.contains(nodeId)) {
+				graphNodes.set(index, AutomationRuntimeUtils.GSON.fromJson(
+						AutomationRuntimeUtils.GSON.toJson(currentById.get(nodeId)), AutomationRuntimeUtils.MAP_TYPE));
+			}
+		}
+		AutomationDefinitionValidator.ValidatedDefinition patched;
+		try {
+			patched = AutomationDefinitionValidator.parseAndValidate(AutomationRuntimeUtils.GSON.toJson(document));
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException(
+					"The current settings of the selected nodes do not fit this run's graph: " + e.getMessage(), e);
+		}
+
+		List<Map<String, Object>> selectedNodes = new ArrayList<>();
+		for (Map<String, Object> node : AutomationRuntime.nodesForRun(patched)) {
+			if (selected.contains(node.get(AutomationConstants.NODE_FIELD_ID))) {
+				selectedNodes.add(node);
+			}
+		}
+		Map<String, String> roomIds = allocateTraceRoomIds(selectedNodes);
+		List<String> orderedIds = new ArrayList<>();
+		List<AutomationRunStore.NodeRerun> updates = new ArrayList<>();
+		for (Map<String, Object> node : selectedNodes) {
+			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			orderedIds.add(nodeId);
+			Set<String> replacedSourceIds = new LinkedHashSet<>();
+			Map<String, String> sources = new LinkedHashMap<>();
+			replacedSourceIds.add(nodeId);
+			for (Map<String, Object> was : AutomationRuntime.loopBodyNodes(recordedById.get(nodeId))) {
+				replacedSourceIds.add((String) was.get(AutomationConstants.NODE_FIELD_ID));
+			}
+			List<Map<String, Object>> members = new ArrayList<>();
+			members.add(node);
+			members.addAll(AutomationRuntime.loopBodyNodes(node));
+			for (Map<String, Object> member : members) {
+				String memberId = (String) member.get(AutomationConstants.NODE_FIELD_ID);
+				replacedSourceIds.add(memberId);
+				String source = currentSources == null ? null : currentSources.get(memberId);
+				if (source != null) {
+					sources.put(memberId, source);
+				} else if (AutomationConstants.NODE_DEVELOPER_PYTHON
+						.equals(member.get(AutomationConstants.NODE_FIELD_TYPE))) {
+					throw new IllegalArgumentException("Node '"
+							+ member.getOrDefault(AutomationConstants.NODE_FIELD_LABEL, memberId)
+							+ "' has no Python source in the current automation.");
+				}
+			}
+			updates.add(new AutomationRunStore.NodeRerun(nodeId,
+					String.valueOf(node.getOrDefault(AutomationConstants.NODE_FIELD_LABEL, nodeId)),
+					roomIds.get(nodeId), AutomationRuntime.configuredAgentWorkspaceId(node), replacedSourceIds,
+					sources));
+		}
+		return new NodeRerunPlan(patched, selectedNodes, orderedIds, updates);
+	}
+
+	private static Map<String, Map<String, Object>> nodesById(List<Map<String, Object>> nodes) {
+		Map<String, Map<String, Object>> byId = new LinkedHashMap<>();
+		for (Map<String, Object> node : nodes) {
+			byId.put((String) node.get(AutomationConstants.NODE_FIELD_ID), node);
+		}
+		return byId;
+	}
+
+	private static Set<String> declareVariableNodeIds(AutomationDefinitionValidator.ValidatedDefinition definition) {
+		Set<String> ids = new HashSet<>();
+		for (Map<String, Object> node : definition.nodes()) {
+			if (AutomationConstants.NODE_DATA_DECLARE_VARIABLE.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				ids.add((String) node.get(AutomationConstants.NODE_FIELD_ID));
+			}
+		}
+		return ids;
+	}
+
+	/**
+	 * Re-runs the selected nodes of a finished run, in the same run, chained in run
+	 * order. Unselected nodes keep their recorded results, and the selected nodes
+	 * see those results as their upstream scope, so the result is what the
+	 * automation would have produced had those nodes had their current settings.
+	 *
+	 * <p>
+	 * Scope is rebuilt before any state changes, so a run whose upstream results
+	 * can no longer be rebuilt (for example a saved table that has left memory) is
+	 * refused untouched. Once the run is reopened, a failing node leaves the later
+	 * selected nodes pending-then-skipped and the run settles FAILED, exactly as in
+	 * a normal run.
+	 *
+	 * @param runId            finished run
+	 * @param projectId        owning Automation project
+	 * @param requestedNodeIds nodes to run again
+	 * @param currentFiles     the automation as it is saved now
+	 * @return the run's detail after the re-run
+	 */
+	Map<String, Object> rerunNodes(String runId, String projectId, List<String> requestedNodeIds,
+			AutomationDefinitionService.DefinitionFiles currentFiles, String frameSourceRunId) {
+		Map<String, Object> run = requireFinishedRun(runId, projectId);
+		NodeRerunPlan plan = planNodeRerun(String.valueOf(run.get(AutomationConstants.DEFINITION_SNAPSHOT)),
+				requestedNodeIds, AutomationDefinitionValidator.parseAndValidate(currentFiles.definition()),
+				currentFiles.nodeSources());
+		AutomationProjectService.validateDefinitionReferences(
+				new AutomationDefinitionValidator.ValidatedDefinition(plan.definition().definition(), plan.nodes(),
+						List.of(), plan.definition().snapshot(), plan.definition().hash()),
+				requestInsight.getUser());
+
+		ExecutionInsightLease executionInsightLease = null;
+		Insight executionInsight = null;
+		boolean reopened = false;
+		Map<String, Object> result;
+		try {
+			executionInsightLease = openExecutionInsight(projectId, runId);
+			executionInsight = executionInsightLease.insight();
+			carryOverFrames(frameSourceRunId, executionInsight);
+			Set<String> selectedIds = new HashSet<>(plan.nodeIds());
+			ReconstructedScope reconstructed;
+			try {
+				reconstructed = reconstructScope(runId, executionInsight,
+						AutomationRuntime.startNodeId(plan.definition()), declareVariableNodeIds(plan.definition()),
+						selectedIds);
+			} catch (IllegalStateException e) {
+				throw new IllegalStateException("These nodes cannot be re-run because a result they depend on is no "
+						+ "longer available in memory. Also select the earlier node that produced it, or run the "
+						+ "automation again. (" + e.getMessage() + ")", e);
+			}
+			if (!AutomationRunStore.reopenRunForNodeRerun(runId, projectId, plan.definition().hash(),
+					plan.definition().snapshot(), plan.updates())) {
+				return buildCurrentRunResult(runId, projectId);
+			}
+			reopened = true;
+			int completedNodes = (int) AutomationRunStore.getNodeOutputsForRun(runId).stream()
+					.filter(row -> AutomationConstants.NODE_STATUS_SUCCESS.equals(row.get(AutomationConstants.STATUS))
+							|| AutomationConstants.NODE_STATUS_SKIPPED.equals(row.get(AutomationConstants.STATUS)))
+					.count();
+			AutomationRunRegistry.register(runId, executionInsight, streamJobId, completedNodes);
+			AutomationExecutionContext context = new AutomationExecutionContext(executionInsight,
+					reconstructed.scope());
+			result = executeSelectedNodes(projectId, runId, plan, AutomationRunStore.getRunNodeSources(runId),
+					context, new AutomationPythonExecutor(executionInsight, runId),
+					new AutomationPixelExecutor(executionInsight, runId), traceRoomIds(runId));
+			finishRun(runId, projectId);
+		} catch (RuntimeException e) {
+			if (!reopened) {
+				throw e;
+			}
+			classLogger.error("Failed to re-run nodes of Automation run '{}'", runId, e);
+			finishFailedRun(runId, projectId, e);
+			result = Map.of("error", safeMessage(e));
+		} finally {
+			AutomationRunRegistry.unregister(runId);
+			releaseExecutionInsight(executionInsight,
+					executionInsightLease == null || executionInsightLease.cleanupOnCompletion());
+		}
+		return buildResult(runId, projectId, result);
+	}
+
+	/**
+	 * Runs the automation again from its trigger as a new run, with the settings it
+	 * has now and the inputs the finished run was given. The finished run is left
+	 * exactly as it was.
+	 *
+	 * @param sourceRunId finished run being reprocessed
+	 * @param projectId   owning Automation project
+	 * @param currentFiles the automation as it is saved now
+	 * @return the new run's detail
+	 */
+	Map<String, Object> reprocessWholeRun(String sourceRunId, String projectId,
+			AutomationDefinitionService.DefinitionFiles currentFiles) {
+		Map<String, Object> source = requireFinishedRun(sourceRunId, projectId);
+		String automationId = stringValue(source.get(AutomationConstants.AUTOMATION_ID));
+		// Only what the caller supplied is carried over; every other value comes from the
+		// automation's current defaults, so editing a default takes effect.
+		Map<String, Object> recordedDefaults = AutomationRuntime.declaredGlobals(
+				AutomationDefinitionValidator.parseAndValidate(
+						String.valueOf(source.get(AutomationConstants.DEFINITION_SNAPSHOT))));
+		Map<String, Object> inputs = inputOverrides(AutomationRunStore.getRunInputs(sourceRunId), recordedDefaults);
+		return start(requestInsight, streamJobId, UUID.randomUUID().toString(), projectId,
+				automationId == null ? AutomationConstants.DEFAULT_AUTOMATION_ID : automationId, currentFiles, inputs,
+				AutomationConstants.TRIGGER_MANUAL, sourceRunId);
+	}
+
+	/**
+	 * The inputs a run was given beyond its automation's own defaults at the time: a value
+	 * that differs from its declared default, or that had none. A run records every value it
+	 * used, defaults included, so without this a reprocess would pin old defaults.
+	 *
+	 * @param recordedInputs   every value the finished run used
+	 * @param recordedDefaults the defaults its recorded definition declared
+	 */
+	static Map<String, Object> inputOverrides(Map<String, Object> recordedInputs,
+			Map<String, Object> recordedDefaults) {
+		Map<String, Object> overrides = new LinkedHashMap<>();
+		for (Map.Entry<String, Object> entry : recordedInputs.entrySet()) {
+			if (!recordedDefaults.containsKey(entry.getKey())
+					|| !Objects.equals(recordedDefaults.get(entry.getKey()), entry.getValue())) {
+				overrides.put(entry.getKey(), entry.getValue());
+			}
+		}
+		return overrides;
+	}
+
+	/**
+	 * Reprocesses chosen nodes of a finished run as a new run. The finished run is
+	 * copied, with every node marked carried over, and the chosen nodes are re-run on
+	 * the copy exactly as {@link #rerunNodes} (or {@link #rerunLoopIterationNodes}
+	 * when {@code loopNodeId} is given) re-runs them in place. The original is never
+	 * touched. A selection that is refused leaves no copy behind.
+	 *
+	 * @param loopNodeId loop whose body nodes are chosen, or {@code null} for top-level nodes
+	 * @param iteration  zero-based loop pass; used only with {@code loopNodeId}
+	 * @return the new run's detail
+	 */
+	Map<String, Object> reprocessNodes(String sourceRunId, String projectId, List<String> nodeIds, String loopNodeId,
+			int iteration, AutomationDefinitionService.DefinitionFiles currentFiles) {
+		Map<String, Object> source = requireFinishedRun(sourceRunId, projectId);
+		String recordedSnapshot = String.valueOf(source.get(AutomationConstants.DEFINITION_SNAPSHOT));
+		AutomationDefinitionValidator.ValidatedDefinition current = AutomationDefinitionValidator
+				.parseAndValidate(currentFiles.definition());
+		// Cheap structural checks first, so an invalid selection never copies anything.
+		if (loopNodeId == null) {
+			planNodeRerun(recordedSnapshot, nodeIds, current, currentFiles.nodeSources());
+		} else {
+			planLoopIterationRerun(recordedSnapshot, loopNodeId, nodeIds, current, currentFiles.nodeSources());
+		}
+		String newRunId = UUID.randomUUID().toString();
+		if (!AutomationRunStore.cloneRunForReprocess(sourceRunId, newRunId, projectId, currentUserId())) {
+			throw new IllegalStateException(
+					"Run '" + sourceRunId + "' is no longer finished, so it cannot be reprocessed right now.");
+		}
+		try {
+			return loopNodeId == null ? rerunNodes(newRunId, projectId, nodeIds, currentFiles, sourceRunId)
+					: rerunLoopIterationNodes(newRunId, projectId, loopNodeId, iteration, nodeIds, currentFiles,
+							sourceRunId);
+		} catch (RuntimeException e) {
+			discardCopyThatNeverStarted(newRunId, projectId, stringValue(source.get(AutomationConstants.AUTOMATION_ID)));
+			throw e;
+		}
+	}
+
+	/** Removes a reprocess copy that was refused before it started, so history shows no phantom run. */
+	private static void discardCopyThatNeverStarted(String runId, String projectId, String automationId) {
+		Map<String, Object> copy = AutomationRunStore.getRunDetail(runId);
+		if (copy == null || !RERUNNABLE_RUN_STATUSES.contains(stringValue(copy.get(AutomationConstants.STATUS)))) {
+			return;
+		}
+		try {
+			AutomationRunStore.deleteRun(projectId,
+					automationId == null ? AutomationConstants.DEFAULT_AUTOMATION_ID : automationId, runId);
+		} catch (RuntimeException cleanupFailure) {
+			classLogger.warn("Unable to remove the unstarted reprocess copy '{}'", runId, cleanupFailure);
+		}
+	}
+
+	/**
+	 * Makes the tables the finished run still holds in memory available to the run
+	 * that reprocesses it. The copy has an execution Insight of its own, and the
+	 * nodes it re-runs read their upstream tables from there.
+	 */
+	private static void carryOverFrames(String sourceRunId, Insight target) {
+		if (sourceRunId == null) {
+			return;
+		}
+		Insight source = getAvailableExecutionInsight(sourceRunId);
+		if (source == null || source == target) {
+			return;
+		}
+		for (Map<String, Object> row : AutomationRunStore.getNodeOutputsForRun(sourceRunId)) {
+			String outputVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR_NAME));
+			if (outputVar == null || !AutomationConstants.OUTPUT_KIND_TABLE.equals(row.get(AutomationConstants.OUTPUT_KIND))
+					|| target.getVarStore().get(outputVar) != null) {
+				continue;
+			}
+			NounMetadata noun = source.getVarStore().get(outputVar);
+			if (noun != null) {
+				target.getVarStore().put(outputVar, noun);
+			}
+		}
+	}
+
+	private static Map<String, Object> requireFinishedRun(String runId, String projectId) {
+		Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
+		if (run == null || !projectId.equals(run.get(AutomationConstants.PROJECT_ID))) {
+			throw new IllegalArgumentException("Automation run not found: " + runId);
+		}
+		String status = stringValue(run.get(AutomationConstants.STATUS));
+		if (!RERUNNABLE_RUN_STATUSES.contains(status)) {
+			throw new IllegalArgumentException(
+					"Nodes can only be re-run after a run has finished. Current status: " + status);
+		}
+		return run;
+	}
+
+	/**
+	 * A validated request to re-run body nodes of one loop iteration.
+	 *
+	 * @param definition the run's recorded graph with the selected body nodes replaced by
+	 *                   their current settings
+	 * @param loopNode   the loop node, with runtime defaults applied
+	 * @param bodyNodes  every node of the loop body in body order, with runtime defaults applied
+	 * @param nodeIds    selected body-node IDs, in body order
+	 * @param sources    developer source to record for the selected nodes, keyed by node ID
+	 */
+	record LoopIterationRerunPlan(AutomationDefinitionValidator.ValidatedDefinition definition,
+			Map<String, Object> loopNode, List<Map<String, Object>> bodyNodes, List<String> nodeIds,
+			Map<String, String> sources) {
+	}
+
+	/**
+	 * Validates a re-run of body nodes of one loop iteration without touching any
+	 * state. Every selected node must be in the loop's body both as the run recorded it
+	 * and in the current automation, and none may be a wait or agent node. As for a
+	 * top-level re-run, the recorded graph is patched with the nodes' current settings
+	 * and validated as a whole.
+	 *
+	 * @param recordedSnapshot graph snapshot the run recorded
+	 * @param loopNodeId       the loop whose iteration is re-run
+	 * @param requestedNodeIds body nodes the caller selected
+	 * @param current          the automation as it is saved now
+	 * @param currentSources   developer source of each current node, keyed by node ID
+	 * @throws IllegalArgumentException when the selection cannot be re-run
+	 */
+	@SuppressWarnings("unchecked")
+	static LoopIterationRerunPlan planLoopIterationRerun(String recordedSnapshot, String loopNodeId,
+			List<String> requestedNodeIds, AutomationDefinitionValidator.ValidatedDefinition current,
+			Map<String, String> currentSources) {
+		if (requestedNodeIds == null || requestedNodeIds.isEmpty()) {
+			throw new IllegalArgumentException("Select at least one node to re-run.");
+		}
+		Set<String> selected = new LinkedHashSet<>(requestedNodeIds);
+		AutomationDefinitionValidator.ValidatedDefinition recorded = AutomationDefinitionValidator
+				.parseAndValidate(recordedSnapshot);
+		Map<String, Object> recordedLoop = nodesById(recorded.nodes()).get(loopNodeId);
+		if (recordedLoop == null
+				|| !AutomationConstants.NODE_CONTROL_LOOP.equals(recordedLoop.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			throw new IllegalArgumentException("Node '" + loopNodeId + "' is not a loop in this run.");
+		}
+		Map<String, Object> currentLoop = nodesById(current.nodes()).get(loopNodeId);
+		if (currentLoop == null) {
+			throw new IllegalArgumentException(
+					"Loop '" + loopNodeId + "' no longer exists in the current automation, so its nodes cannot be re-run.");
+		}
+		Map<String, Map<String, Object>> recordedBody = nodesById(AutomationRuntime.loopBodyNodes(recordedLoop));
+		Map<String, Map<String, Object>> currentBody = nodesById(AutomationRuntime.loopBodyNodes(currentLoop));
+		for (String nodeId : selected) {
+			Map<String, Object> was = recordedBody.get(nodeId);
+			if (was == null) {
+				throw new IllegalArgumentException("Node '" + nodeId + "' is not part of loop '" + loopNodeId + "'.");
+			}
+			Map<String, Object> now = currentBody.get(nodeId);
+			if (now == null) {
+				throw new IllegalArgumentException(
+						"Node '" + nodeId + "' no longer exists in the current loop, so it cannot be re-run.");
+			}
+			for (Map<String, Object> version : List.of(was, now)) {
+				if (NON_RERUNNABLE_NODE_TYPES.contains(String.valueOf(version.get(AutomationConstants.NODE_FIELD_TYPE)))) {
+					throw new IllegalArgumentException("Trigger, wait, and agent nodes cannot be re-run ('"
+							+ version.getOrDefault(AutomationConstants.NODE_FIELD_LABEL, nodeId) + "').");
+				}
+			}
+		}
+
+		Map<String, Object> document = AutomationRuntimeUtils.GSON.fromJson(recordedSnapshot,
+				AutomationRuntimeUtils.MAP_TYPE);
+		List<Map<String, Object>> graphNodes = (List<Map<String, Object>>) ((Map<String, Object>) document
+				.get(AutomationConstants.DOC_GRAPH)).get(AutomationConstants.DOC_NODES);
+		for (Map<String, Object> graphNode : graphNodes) {
+			if (!loopNodeId.equals(graphNode.get(AutomationConstants.NODE_FIELD_ID))) {
+				continue;
+			}
+			List<Map<String, Object>> bodyNodes = (List<Map<String, Object>>) ((Map<String, Object>) graphNode
+					.get(AutomationConstants.NODE_FIELD_BODY)).get(AutomationConstants.DOC_NODES);
+			for (int index = 0; index < bodyNodes.size(); index++) {
+				String nodeId = (String) bodyNodes.get(index).get(AutomationConstants.NODE_FIELD_ID);
+				if (selected.contains(nodeId)) {
+					bodyNodes.set(index, AutomationRuntimeUtils.GSON.fromJson(
+							AutomationRuntimeUtils.GSON.toJson(currentBody.get(nodeId)),
+							AutomationRuntimeUtils.MAP_TYPE));
+				}
+			}
+		}
+		AutomationDefinitionValidator.ValidatedDefinition patched;
+		try {
+			patched = AutomationDefinitionValidator.parseAndValidate(AutomationRuntimeUtils.GSON.toJson(document));
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException(
+					"The current settings of the selected nodes do not fit this run's graph: " + e.getMessage(), e);
+		}
+
+		Map<String, Object> patchedLoop = AutomationRuntime.nodesForRun(patched).stream()
+				.filter(node -> loopNodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst()
+				.orElseThrow();
+		List<Map<String, Object>> bodyNodes = AutomationRuntime.nodesForGraph(
+				AutomationRuntime.loopBodyNodes(patchedLoop), AutomationRuntime.loopBodyEdges(patchedLoop));
+		List<String> orderedIds = new ArrayList<>();
+		Map<String, String> sources = new LinkedHashMap<>();
+		for (Map<String, Object> node : bodyNodes) {
+			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			if (!selected.contains(nodeId)) {
+				continue;
+			}
+			orderedIds.add(nodeId);
+			String source = currentSources == null ? null : currentSources.get(nodeId);
+			if (source != null) {
+				sources.put(nodeId, source);
+			} else if (AutomationConstants.NODE_DEVELOPER_PYTHON
+					.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				throw new IllegalArgumentException("Node '"
+						+ node.getOrDefault(AutomationConstants.NODE_FIELD_LABEL, nodeId)
+						+ "' has no Python source in the current automation.");
+			}
+		}
+		return new LoopIterationRerunPlan(patched, patchedLoop, bodyNodes, orderedIds, sources);
+	}
+
+	/**
+	 * Re-runs chosen body nodes of one iteration of a loop, in the same run, chained in
+	 * body order. Only that iteration's rows for those nodes change: every other
+	 * iteration, and the iteration's other nodes, keep their results, which the chosen
+	 * nodes read as the scope they start from. The loop node's own collected results
+	 * are not recomputed.
+	 *
+	 * <p>
+	 * The iteration's starting scope is rebuilt exactly as the loop built it: the run's
+	 * results from before the loop, the loop's items, and (for a while loop) the
+	 * previous iteration's outputs. As with a top-level re-run, everything that can
+	 * fail while rebuilding happens before any state changes.
+	 *
+	 * @param iteration zero-based loop pass, as recorded in run history
+	 */
+	Map<String, Object> rerunLoopIterationNodes(String runId, String projectId, String loopNodeId, int iteration,
+			List<String> requestedNodeIds, AutomationDefinitionService.DefinitionFiles currentFiles,
+			String frameSourceRunId) {
+		Map<String, Object> run = requireFinishedRun(runId, projectId);
+		LoopIterationRerunPlan plan = planLoopIterationRerun(
+				String.valueOf(run.get(AutomationConstants.DEFINITION_SNAPSHOT)), loopNodeId, requestedNodeIds,
+				AutomationDefinitionValidator.parseAndValidate(currentFiles.definition()),
+				currentFiles.nodeSources());
+		Set<String> selectedIds = new HashSet<>(plan.nodeIds());
+		List<Map<String, Object>> selectedNodes = plan.bodyNodes().stream()
+				.filter(node -> selectedIds.contains(node.get(AutomationConstants.NODE_FIELD_ID))).toList();
+		AutomationProjectService.validateDefinitionReferences(
+				new AutomationDefinitionValidator.ValidatedDefinition(plan.definition().definition(), selectedNodes,
+						List.of(), plan.definition().snapshot(), plan.definition().hash()),
+				requestInsight.getUser());
+
+		List<Map<String, Object>> allRows = AutomationRunStore.getNodeOutputsForRun(runId);
+		Map<String, Map<String, Object>> rowsBySourceId = loopIterationRows(allRows, loopNodeId, iteration);
+		if (rowsBySourceId.isEmpty()) {
+			throw new IllegalArgumentException("Loop '" + loopNodeId + "' has no iteration " + (iteration + 1)
+					+ " in this run.");
+		}
+		for (String nodeId : plan.nodeIds()) {
+			Map<String, Object> row = rowsBySourceId.get(nodeId);
+			Object rowStatus = row == null ? null : row.get(AutomationConstants.STATUS);
+			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(rowStatus)
+					&& !AutomationConstants.NODE_STATUS_FAILED.equals(rowStatus)) {
+				throw new IllegalArgumentException(
+						"Node '" + nodeId + "' did not run in iteration " + (iteration + 1) + ", so it cannot be re-run.");
+			}
+		}
+
+		ExecutionInsightLease executionInsightLease = null;
+		Insight executionInsight = null;
+		boolean reopened = false;
+		Map<String, Object> result;
+		try {
+			executionInsightLease = openExecutionInsight(projectId, runId);
+			executionInsight = executionInsightLease.insight();
+			carryOverFrames(frameSourceRunId, executionInsight);
+			AutomationExecutionContext iterationContext;
+			try {
+				ReconstructedScope reconstructed = reconstructScope(runId, executionInsight,
+						AutomationRuntime.startNodeId(plan.definition()), declareVariableNodeIds(plan.definition()),
+						Set.of(loopNodeId));
+				AutomationExecutionContext parentContext = new AutomationExecutionContext(executionInsight,
+						reconstructed.scope());
+				LoopPlan loopPlan = planLoop(plan.loopNode(), parentContext.values());
+				Map<String, Object> carriedOutputs = AutomationConstants.LOOP_MODE_WHILE.equals(loopPlan.loopMode())
+						? previousIterationOutputs(runId, executionInsight, plan.bodyNodes(), allRows, loopNodeId,
+								iteration)
+						: Map.of();
+				iterationContext = parentContext.child(loopPlan.iterationOverrides(iteration, carriedOutputs));
+			} catch (IllegalStateException e) {
+				throw new IllegalStateException("These nodes cannot be re-run because a result they depend on is no "
+						+ "longer available in memory. Also select the earlier node that produced it, or run the "
+						+ "automation again. (" + e.getMessage() + ")", e);
+			}
+
+			Map<String, String> roomIds = allocateTraceRoomIds(selectedNodes);
+			List<AutomationRunStore.LoopNodeRerun> updates = new ArrayList<>();
+			for (Map<String, Object> node : selectedNodes) {
+				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+				updates.add(new AutomationRunStore.LoopNodeRerun(
+						stringValue(rowsBySourceId.get(nodeId).get(AutomationConstants.NODE_ID)),
+						nodeId, String.valueOf(node.getOrDefault(AutomationConstants.NODE_FIELD_LABEL, nodeId)),
+						roomIds.get(nodeId), AutomationRuntime.configuredAgentWorkspaceId(node)));
+			}
+			if (!AutomationRunStore.reopenRunForLoopNodeRerun(runId, projectId, plan.definition().hash(),
+					plan.definition().snapshot(), updates, selectedIds, plan.sources())) {
+				return buildCurrentRunResult(runId, projectId);
+			}
+			reopened = true;
+			int completedNodes = (int) AutomationRunStore.getNodeOutputsForRun(runId).stream()
+					.filter(row -> AutomationConstants.NODE_STATUS_SUCCESS.equals(row.get(AutomationConstants.STATUS))
+							|| AutomationConstants.NODE_STATUS_SKIPPED.equals(row.get(AutomationConstants.STATUS)))
+					.count();
+			AutomationRunRegistry.register(runId, executionInsight, streamJobId, completedNodes);
+			result = executeLoopIterationNodes(projectId, runId, loopNodeId, iteration, plan, rowsBySourceId,
+					updates, iterationContext, AutomationRunStore.getRunNodeSources(runId),
+					new AutomationPythonExecutor(executionInsight, runId),
+					new AutomationPixelExecutor(executionInsight, runId), roomIds);
+			finishRun(runId, projectId);
+		} catch (RuntimeException e) {
+			if (!reopened) {
+				throw e;
+			}
+			classLogger.error("Failed to re-run loop nodes of Automation run '{}'", runId, e);
+			finishFailedRun(runId, projectId, e);
+			result = Map.of("error", safeMessage(e));
+		} finally {
+			AutomationRunRegistry.unregister(runId);
+			releaseExecutionInsight(executionInsight,
+					executionInsightLease == null || executionInsightLease.cleanupOnCompletion());
+		}
+		return buildResult(runId, projectId, result);
+	}
+
+	/** One loop iteration's history rows, keyed by the body node's graph ID. */
+	private static Map<String, Map<String, Object>> loopIterationRows(List<Map<String, Object>> rows,
+			String loopNodeId, int iteration) {
+		Map<String, Map<String, Object>> bySourceId = new LinkedHashMap<>();
+		for (Map<String, Object> row : rows) {
+			if (loopNodeId.equals(stringValue(row.get(AutomationConstants.PARENT_NODE_ID)))
+					&& String.valueOf(iteration).equals(String.valueOf(row.get(AutomationConstants.ITERATION_INDEX)))) {
+				bySourceId.put(stringValue(row.get(AutomationConstants.SOURCE_NODE_ID)), row);
+			}
+		}
+		return bySourceId;
+	}
+
+	/**
+	 * A while loop's carried outputs entering {@code iteration}: what each body node of
+	 * the previous pass published, and {@code null} for a node that published nothing.
+	 */
+	private Map<String, Object> previousIterationOutputs(String runId, Insight executionInsight,
+			List<Map<String, Object>> bodyNodes, List<Map<String, Object>> allRows, String loopNodeId,
+			int iteration) {
+		Map<String, Object> carried = new LinkedHashMap<>();
+		for (Map<String, Object> bodyNode : bodyNodes) {
+			if (bodyNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR) instanceof String outputVar) {
+				carried.put(outputVar, null);
+			}
+		}
+		if (iteration == 0) {
+			return carried;
+		}
+		for (Map<String, Object> row : loopIterationRows(allRows, loopNodeId, iteration - 1).values()) {
+			String outputVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR_NAME));
+			if (outputVar != null && AutomationConstants.NODE_STATUS_SUCCESS.equals(row.get(AutomationConstants.STATUS))) {
+				carried.put(outputVar, restoredOutputValue(runId, executionInsight, row, outputVar));
+			}
+		}
+		return carried;
+	}
+
+	/**
+	 * Walks the loop body in order. A chosen node runs; every other node that
+	 * succeeded in this iteration publishes its recorded output, so later chosen nodes
+	 * see exactly what they saw before. Stops at the first chosen node that does not
+	 * succeed, leaving the rest pending for {@link #finishRun} to settle.
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeLoopIterationNodes(String projectId, String runId, String loopNodeId,
+			int iteration, LoopIterationRerunPlan plan, Map<String, Map<String, Object>> rowsBySourceId,
+			List<AutomationRunStore.LoopNodeRerun> updates, AutomationExecutionContext iterationContext,
+			Map<String, String> nodeSources, AutomationPythonExecutor pythonExecutor,
+			AutomationPixelExecutor pixelExecutor, Map<String, String> roomIds) {
+		Set<String> remaining = new HashSet<>(plan.nodeIds());
+		Map<String, String> executionIds = new LinkedHashMap<>();
+		for (AutomationRunStore.LoopNodeRerun update : updates) {
+			executionIds.put(update.nodeId(), update.executionNodeId());
+		}
+		for (Map<String, Object> canonicalNode : plan.bodyNodes()) {
+			if (remaining.isEmpty() || AutomationRunRegistry.isCancellationRequested(runId)) {
+				break;
+			}
+			String nodeId = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_ID);
+			Handler handler = handlerFor(canonicalNode);
+			String outputVar = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+			if (!remaining.remove(nodeId)) {
+				// Not chosen: it keeps its result, which later chosen nodes may read.
+				Map<String, Object> row = rowsBySourceId.get(nodeId);
+				if (row != null && AutomationConstants.NODE_STATUS_SUCCESS.equals(row.get(AutomationConstants.STATUS))) {
+					String recordedVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR_NAME));
+					Object value = restoredOutputValue(runId, iterationContext.insight(), row, recordedVar);
+					if (recordedVar != null) {
+						iterationContext.putValue(recordedVar, value);
+					}
+					if (handler == Handler.DATA_DECLARE_VARIABLE) {
+						spreadChannelVariables(iterationContext, value);
+					}
+				}
+				continue;
+			}
+
+			Map<String, Object> executionNode = new LinkedHashMap<>(canonicalNode);
+			executionNode.put(AutomationConstants.NODE_FIELD_ID, executionIds.get(nodeId));
+			executionNode.put(AutomationConstants.SOURCE_NODE_ID, nodeId);
+			executionNode.put(AutomationConstants.PARENT_NODE_ID, loopNodeId);
+			executionNode.put(AutomationConstants.ITERATION_INDEX, iteration);
+			if (handler == Handler.START || handler == Handler.LOOP) {
+				throw new IllegalStateException(
+						"Loop body selected unsupported handler '" + handler + "' for node '" + nodeId + "'.");
+			}
+			Map<String, Object> nodeResult = executeNode(handler, projectId, runId, executionNode, nodeSources,
+					iterationContext, pythonExecutor, pixelExecutor, roomIds, Map.of());
+			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
+				break;
+			}
+			if (outputVar != null) {
+				iterationContext.putValue(outputVar, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
+			}
+			if (handler == Handler.DATA_DECLARE_VARIABLE) {
+				spreadChannelVariables(iterationContext, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
+			}
+		}
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("scope", iterationContext.values());
+		return result;
+	}
+
+	/**
+	 * Runs the selected nodes one after another, publishing each successful output
+	 * into scope for the next. Stops at the first node that does not succeed or
+	 * when cancellation is observed; later selected nodes stay pending for
+	 * {@link #finishRun} to settle.
+	 */
+	private Map<String, Object> executeSelectedNodes(String projectId, String runId, NodeRerunPlan plan,
+			Map<String, String> nodeSources, AutomationExecutionContext context,
+			AutomationPythonExecutor pythonExecutor, AutomationPixelExecutor pixelExecutor,
+			Map<String, String> traceRoomIds) {
+		Map<String, Map<String, String>> controlTargets = AutomationRuntime.controlTargets(plan.definition());
+		for (Map<String, Object> node : plan.nodes()) {
+			if (AutomationRunRegistry.isCancellationRequested(runId)) {
+				break;
+			}
+			Handler handler = handlerFor(node);
+			Map<String, Object> nodeResult = executeNode(handler, projectId, runId, node, nodeSources, context,
+					pythonExecutor, pixelExecutor, traceRoomIds, controlTargets);
+			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
+				break;
+			}
+			publishNodeOutput(handler, node, nodeResult, context);
+		}
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("scope", context.values());
+		return result;
+	}
+
 	/**
 	 * Allocates one run-local room for each generated conversational node.
 	 *
@@ -2295,7 +3065,8 @@ final class AutomationRunExecutionService {
 		}
 		AutomationNodeFinalizationService.PreparedValue prepared = AutomationNodeFinalizationService.prepare(nodeId,
 				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), persistedValue, scope,
-				agentFailure == null);
+				agentFailure == null,
+				AutomationConstants.NODE_DATA_DECLARE_VARIABLE.equals(node.get(AutomationConstants.NODE_FIELD_TYPE)));
 		String output = prepared.output();
 		long duration = System.currentTimeMillis() - startedMs;
 		String preview = prepared.preview();
@@ -2430,13 +3201,7 @@ final class AutomationRunExecutionService {
 			AutomationRunRegistry.register(runId, executionInsight, streamJobId, completedNodes);
 			AutomationPythonExecutor pythonExecutor = new AutomationPythonExecutor(executionInsight, runId);
 			AutomationPixelExecutor pixelExecutor = new AutomationPixelExecutor(executionInsight, runId);
-			Set<String> declareVariableNodeIds = new HashSet<>();
-			for (Map<String, Object> definitionNode : definition.nodes()) {
-				if (AutomationConstants.NODE_DATA_DECLARE_VARIABLE
-						.equals(definitionNode.get(AutomationConstants.NODE_FIELD_TYPE))) {
-					declareVariableNodeIds.add((String) definitionNode.get(AutomationConstants.NODE_FIELD_ID));
-				}
-			}
+			Set<String> declareVariableNodeIds = declareVariableNodeIds(definition);
 			ReconstructedScope reconstructed = reconstructScope(runId, executionInsight,
 					AutomationRuntime.startNodeId(definition), declareVariableNodeIds);
 			Map<String, Object> scope = reconstructed.scope();
@@ -2511,27 +3276,31 @@ final class AutomationRunExecutionService {
 	 */
 	static ReconstructedScope reconstructScope(String runId, Insight executionInsight, String startNodeId,
 			Set<String> declareVariableNodeIds) {
+		return reconstructScope(runId, executionInsight, startNodeId, declareVariableNodeIds, Set.of());
+	}
+
+	/**
+	 * Same as {@link #reconstructScope(String, Insight, String, Set)}, leaving out
+	 * the recorded results of {@code excludedNodeIds} and of the loop iterations
+	 * they own. A re-run replays those nodes, so their old output must not be
+	 * visible to the nodes that run before them again.
+	 */
+	static ReconstructedScope reconstructScope(String runId, Insight executionInsight, String startNodeId,
+			Set<String> declareVariableNodeIds, Set<String> excludedNodeIds) {
 		Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, executionInsight.getUser());
 		scope.putAll(AutomationRunStore.getRunInputs(runId));
 		for (Map<String, Object> row : AutomationRunStore.getNodeOutputsForRun(runId)) {
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(row.get(AutomationConstants.STATUS))) {
 				continue;
 			}
-			Object raw = row.get(AutomationConstants.OUTPUT_VALUE);
-			Object value = raw == null ? null : AutomationRuntimeUtils.GSON.fromJson(raw.toString(), Object.class);
 			String rowNodeId = stringValue(row.get(AutomationConstants.NODE_ID));
+			String parentNodeId = stringValue(row.get(AutomationConstants.PARENT_NODE_ID));
+			if (excludedNodeIds.contains(rowNodeId) || (parentNodeId != null && excludedNodeIds.contains(parentNodeId))) {
+				continue;
+			}
 			String outputVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR_NAME));
+			Object value = restoredOutputValue(runId, executionInsight, row, outputVar);
 			if (outputVar != null) {
-				if (AutomationConstants.OUTPUT_KIND_TABLE.equals(row.get(AutomationConstants.OUTPUT_KIND))) {
-					NounMetadata noun = executionInsight.getVarStore().get(outputVar);
-					if (noun == null || noun.getNounType() != PixelDataType.FRAME
-							|| !(noun.getValue() instanceof ITableDataFrame frame)) {
-						throw new IllegalStateException(
-								"Automation run '" + runId + "' cannot resume because frame output '" + outputVar
-										+ "' is no longer available in its execution Insight.");
-					}
-					value = AutomationFrameOutput.register(executionInsight, outputVar, frame);
-				}
 				scope.put(outputVar, value);
 			}
 			if (startNodeId.equals(rowNodeId) && value instanceof Map<?, ?> globals) {
@@ -2553,6 +3322,29 @@ final class AutomationRunExecutionService {
 		AutomationRuntimeUtils.toBoundedRuntimeJson(boundedScope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
 				"Reconstructed automation run scope");
 		return new ReconstructedScope(scope);
+	}
+
+	/**
+	 * The value a successful node row published, rebuilt from its durable output. A
+	 * table output is not stored whole, so it is taken from the run's live frame and
+	 * the call fails when that frame has left the execution Insight.
+	 *
+	 * @param outputVar name the node published its output under, or {@code null}
+	 */
+	private static Object restoredOutputValue(String runId, Insight executionInsight, Map<String, Object> row,
+			String outputVar) {
+		Object raw = row.get(AutomationConstants.OUTPUT_VALUE);
+		Object value = raw == null ? null : AutomationRuntimeUtils.GSON.fromJson(raw.toString(), Object.class);
+		if (outputVar != null && AutomationConstants.OUTPUT_KIND_TABLE.equals(row.get(AutomationConstants.OUTPUT_KIND))) {
+			NounMetadata noun = executionInsight.getVarStore().get(outputVar);
+			if (noun == null || noun.getNounType() != PixelDataType.FRAME
+					|| !(noun.getValue() instanceof ITableDataFrame frame)) {
+				throw new IllegalStateException("Automation run '" + runId + "' cannot resume because frame output '"
+						+ outputVar + "' is no longer available in its execution Insight.");
+			}
+			value = AutomationFrameOutput.register(executionInsight, outputVar, frame);
+		}
+		return value;
 	}
 
 	record ReconstructedScope(Map<String, Object> scope) {

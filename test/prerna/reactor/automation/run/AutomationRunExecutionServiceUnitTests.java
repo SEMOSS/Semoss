@@ -488,6 +488,46 @@ public class AutomationRunExecutionServiceUnitTests {
 		}
 	}
 
+	/**
+	 * A re-run replays its selected nodes, so their recorded output - and the output
+	 * of the loop iterations they own - must not reach the nodes that run before
+	 * them again. Everything else is rebuilt as on resume.
+	 */
+	@Test
+	void reconstructScopeLeavesOutTheNodesBeingRerunAndTheirLoopIterations() {
+		String runId = "run-rerun-scope";
+		Insight insight = new Insight();
+		insight.setInsightId("automation-" + runId);
+		List<Map<String, Object>> rows = List.of(
+				successRow("upstream", null, "upstream_out", "\"keep\""),
+				successRow("rerun", null, "rerun_out", "\"stale\""),
+				successRow("iteration-1", "rerun", "iteration_out", "\"stale loop\""),
+				successRow("downstream", null, "downstream_out", "\"also kept\""));
+		try (var store = mockStatic(AutomationRunStore.class, CALLS_REAL_METHODS)) {
+			store.when(() -> AutomationRunStore.getRunInputs(runId)).thenReturn(Map.of());
+			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(rows);
+
+			Map<String, Object> scope = AutomationRunExecutionService
+					.reconstructScope(runId, insight, "trigger", Set.of(), Set.of("rerun")).scope();
+
+			assertEquals("keep", scope.get("upstream_out"));
+			assertEquals("also kept", scope.get("downstream_out"));
+			assertFalse(scope.containsKey("rerun_out"));
+			assertFalse(scope.containsKey("iteration_out"));
+		}
+	}
+
+	private static Map<String, Object> successRow(String nodeId, String parentNodeId, String outputVar,
+			String outputValue) {
+		Map<String, Object> row = new LinkedHashMap<>();
+		row.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		row.put(AutomationConstants.NODE_ID, nodeId);
+		row.put(AutomationConstants.PARENT_NODE_ID, parentNodeId);
+		row.put(AutomationConstants.OUTPUT_VAR_NAME, outputVar);
+		row.put(AutomationConstants.OUTPUT_VALUE, outputValue);
+		return row;
+	}
+
 	@Test
 	void serviceOwnedExecutionInsightCleanupClosesFramesAndClearsTheWorkspace() {
 		String insightId = "automation-run-cleanup";
@@ -554,5 +594,18 @@ public class AutomationRunExecutionServiceUnitTests {
 		List<Map<String, Object>> iterations = (List<Map<String, Object>>) results.get(0).get("iterations");
 		List<Map<String, Object>> nodes = (List<Map<String, Object>>) iterations.get(0).get("nodeResults");
 		assertEquals("body-python", nodes.get(0).get(AutomationConstants.NODE_ID));
+	}
+
+	@Test
+	void reprocessKeepsOnlyInputsThatDifferedFromTheDefaultsTheRunStartedWith() {
+		Map<String, Object> recorded = Map.of("region", "East", "limit", 5.0, "custom", "x", "tag", "new");
+		Map<String, Object> defaultsThen = Map.of("region", "East", "limit", 5.0, "tag", "old");
+
+		// Unchanged defaults are dropped, so the automation's current defaults apply; a value the
+		// caller supplied (a changed one, or one with no declared default) is kept.
+		assertEquals(Map.of("custom", "x", "tag", "new"),
+				AutomationRunExecutionService.inputOverrides(recorded, defaultsThen));
+		assertEquals(Map.of(), AutomationRunExecutionService.inputOverrides(Map.of(), defaultsThen));
+		assertEquals(Map.of("a", 1.0), AutomationRunExecutionService.inputOverrides(Map.of("a", 1.0), Map.of()));
 	}
 }

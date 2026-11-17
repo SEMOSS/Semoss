@@ -307,7 +307,8 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.COMPLETED_NODES, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.CREATED_BY, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN_DATATYPE),
-				Pair.with(AutomationConstants.RESULT_SUMMARY_COL, AutomationConstants.VARCHAR_2000)));
+				Pair.with(AutomationConstants.RESULT_SUMMARY_COL, AutomationConstants.VARCHAR_2000),
+				Pair.with(AutomationConstants.REPROCESSED_FROM_RUN_ID, AutomationConstants.VARCHAR_255)));
 
 		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES, Arrays.asList(
 				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
@@ -336,7 +337,8 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.ITERATION_INDEX, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.SOURCE_NODE_ID, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE),
-				Pair.with(AutomationConstants.SCOPE_SNAPSHOT, CLOB_DATATYPE)));
+				Pair.with(AutomationConstants.SCOPE_SNAPSHOT, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.CARRIED_OVER, BOOLEAN_DATATYPE)));
 
 		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_WAITS, Arrays.asList(
 				Pair.with(AutomationConstants.WAIT_ID, AutomationConstants.VARCHAR_255),

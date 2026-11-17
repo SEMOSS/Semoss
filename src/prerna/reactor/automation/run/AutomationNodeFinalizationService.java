@@ -65,6 +65,16 @@ final class AutomationNodeFinalizationService {
 
 	static PreparedValue prepare(String nodeId, String outputVariable, Object value, Map<String, Object> scope,
 			boolean validateScope) {
+		return prepare(nodeId, outputVariable, value, scope, validateScope, false);
+	}
+
+	/**
+	 * @param publishesVariables whether the node publishes the entries of its object
+	 *                           result into scope by name (a declare-variable node does),
+	 *                           so its snapshot shows them as later nodes will see them
+	 */
+	static PreparedValue prepare(String nodeId, String outputVariable, Object value, Map<String, Object> scope,
+			boolean validateScope, boolean publishesVariables) {
 		String output = AutomationRuntimeUtils.toBoundedRuntimeJson(value,
 				AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation node '" + nodeId + "' output");
 		String scopeSnapshot = null;
@@ -78,6 +88,9 @@ final class AutomationNodeFinalizationService {
 			}
 			if (outputVariable != null) {
 				prospectiveScope.put(outputVariable, value);
+			}
+			if (publishesVariables) {
+				AutomationRunExecutionService.spreadChannelVariables(prospectiveScope, value);
 			}
 			scopeSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope,
 					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");

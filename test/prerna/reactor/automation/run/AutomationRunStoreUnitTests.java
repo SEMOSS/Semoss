@@ -70,14 +70,15 @@ class AutomationRunStoreUnitTests {
 
 	private void schema(JdbcTestDatabase db) throws Exception {
 		db.execute(
-				"CREATE TABLE AUTOMATION_RUNS (RUN_ID VARCHAR PRIMARY KEY, PROJECT_ID VARCHAR, AUTOMATION_ID VARCHAR, DEFINITION_VERSION INT, DEFINITION_HASH VARCHAR, DEFINITION_SNAPSHOT CLOB, INPUT_SNAPSHOT CLOB, STATUS VARCHAR, TRIGGER_TYPE VARCHAR, STARTED_AT TIMESTAMP, LAST_HEARTBEAT TIMESTAMP, TOTAL_NODES INT, COMPLETED_NODES INT, CREATED_BY VARCHAR, CANCEL_REQUESTED BOOLEAN, RESULT_SUMMARY VARCHAR, COMPLETED_AT TIMESTAMP, FAILED_NODE_ID VARCHAR, ERROR_MESSAGE VARCHAR)",
+				"CREATE TABLE AUTOMATION_RUNS (RUN_ID VARCHAR PRIMARY KEY, PROJECT_ID VARCHAR, AUTOMATION_ID VARCHAR, DEFINITION_VERSION INT, DEFINITION_HASH VARCHAR, DEFINITION_SNAPSHOT CLOB, INPUT_SNAPSHOT CLOB, STATUS VARCHAR, TRIGGER_TYPE VARCHAR, STARTED_AT TIMESTAMP, LAST_HEARTBEAT TIMESTAMP, TOTAL_NODES INT, COMPLETED_NODES INT, CREATED_BY VARCHAR, CANCEL_REQUESTED BOOLEAN, RESULT_SUMMARY VARCHAR, COMPLETED_AT TIMESTAMP, FAILED_NODE_ID VARCHAR, ERROR_MESSAGE VARCHAR, REPROCESSED_FROM_RUN_ID VARCHAR)",
 				"CREATE TABLE AUTOMATION_RUN_NODE_SOURCES (RUN_ID VARCHAR, NODE_ID VARCHAR, SOURCE_HASH VARCHAR, SOURCE_CODE CLOB)",
-				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_KIND VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR, SCOPE_SNAPSHOT CLOB)");
+				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_KIND VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, 				ERROR_MESSAGE VARCHAR, SCOPE_SNAPSHOT CLOB, CARRIED_OVER BOOLEAN)");
 	}
 
 	private void savedResultSchema(JdbcTestDatabase db) throws Exception {
 		db.execute(
 				"ALTER TABLE AUTOMATION_NODE_OUTPUTS ADD PARENT_NODE_ID VARCHAR",
+								"ALTER TABLE AUTOMATION_NODE_OUTPUTS ADD SOURCE_NODE_ID VARCHAR",
 				"ALTER TABLE AUTOMATION_NODE_OUTPUTS ADD ITERATION_INDEX INT",
 				"CREATE TABLE AUTOMATION_SAVED_RESULTS (RESULT_ID VARCHAR PRIMARY KEY, PROJECT_ID VARCHAR, RUN_ID VARCHAR, NODE_ID VARCHAR, PARENT_NODE_ID VARCHAR, ITERATION_INDEX INT, RESULT_KIND VARCHAR, FORMAT_VERSION INT, ROW_COUNT BIGINT, BYTE_COUNT BIGINT, CHECKSUM VARCHAR, CREATED_AT TIMESTAMP, RETAIN_UNTIL TIMESTAMP, CAPTURE_STATE VARCHAR, RESULT_ROLE VARCHAR, LOGICAL_NAME VARCHAR, PAYLOAD_VALUE CLOB)",
 				"CREATE TABLE AUTOMATION_RESULT_CHUNKS (RESULT_ID VARCHAR, CHUNK_INDEX INT, FIRST_ROW_INDEX BIGINT, CHUNK_ROW_COUNT INT, BYTE_COUNT BIGINT, CHECKSUM VARCHAR, CHUNK_VALUE CLOB)");
@@ -123,6 +124,192 @@ class AutomationRunStoreUnitTests {
 			verify(db.connection).rollback();
 			initialize("retry", Map.of());
 			assertEquals(1, db.count("AUTOMATION_RUNS"));
+		}
+	}
+
+	private static Map<String, Object> graphNode(String id, String label) {
+		return Map.of(AutomationConstants.NODE_FIELD_ID, id, AutomationConstants.NODE_FIELD_LABEL, label);
+	}
+
+	private static AutomationRunStore.NodeRerun plainRerun() {
+		return new AutomationRunStore.NodeRerun("b", "B", null, null, java.util.Set.of("b"), Map.of());
+	}
+
+	private void failedRunWithThreeNodes(JdbcTestDatabase db) throws Exception {
+		schema(db);
+		savedResultSchema(db);
+		AutomationRunStore.initializeRun("run", "project", "automation", 1, "old-hash", "{\"old\":true}", Map.of(),
+				"manual", "user", List.of(graphNode("a", "A"), graphNode("b", "B"), graphNode("c", "C")), Map.of(),
+				Map.of("b", "old source"));
+		db.execute(
+				"UPDATE AUTOMATION_RUNS SET STATUS = 'FAILED', COMPLETED_AT = CURRENT_TIMESTAMP, FAILED_NODE_ID = 'b', ERROR_MESSAGE = 'boom', RESULT_SUMMARY = 'old summary', CANCEL_REQUESTED = TRUE",
+				"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = 'SUCCESS', OUTPUT_VAR_NAME = 'a_out', OUTPUT_VALUE = '1' WHERE NODE_ID = 'a'",
+				"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = 'FAILED', ERROR_MESSAGE = 'boom', OUTPUT_VALUE = '2', SCOPE_SNAPSHOT = '{}', ROOM_ID = 'old-room' WHERE NODE_ID = 'b'",
+				"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = 'SKIPPED' WHERE NODE_ID = 'c'",
+				"INSERT INTO AUTOMATION_NODE_OUTPUTS (RUN_ID, NODE_ID, EXECUTION_ORDER, STATUS, PARENT_NODE_ID, ITERATION_INDEX) VALUES ('run', 'child', 1000000, 'SUCCESS', 'b', 0)",
+				"INSERT INTO AUTOMATION_SAVED_RESULTS (RESULT_ID, RUN_ID, NODE_ID, PARENT_NODE_ID) VALUES ('saved-b', 'run', 'b', NULL)",
+				"INSERT INTO AUTOMATION_SAVED_RESULTS (RESULT_ID, RUN_ID, NODE_ID, PARENT_NODE_ID) VALUES ('saved-child', 'run', 'child', 'b')",
+				"INSERT INTO AUTOMATION_SAVED_RESULTS (RESULT_ID, RUN_ID, NODE_ID, PARENT_NODE_ID) VALUES ('saved-a', 'run', 'a', NULL)",
+				"INSERT INTO AUTOMATION_RESULT_CHUNKS (RESULT_ID, CHUNK_INDEX) VALUES ('saved-b', 0)",
+				"INSERT INTO AUTOMATION_RESULT_CHUNKS (RESULT_ID, CHUNK_INDEX) VALUES ('saved-child', 0)",
+				"INSERT INTO AUTOMATION_RESULT_CHUNKS (RESULT_ID, CHUNK_INDEX) VALUES ('saved-a', 0)");
+	}
+
+	@Test
+	void reopeningForNodeRerunClearsOnlySelectedNodesAndRecordsTheirNewSettings() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+
+			assertTrue(AutomationRunStore.reopenRunForNodeRerun("run", "project", "new-hash", "{\"new\":true}",
+					List.of(new AutomationRunStore.NodeRerun("b", "B renamed", "new-room", null, java.util.Set.of("b"),
+							Map.of("b", "new source")))));
+
+			assertEquals("RUNNING", db.value("SELECT STATUS FROM AUTOMATION_RUNS"));
+			assertNull(db.value("SELECT COMPLETED_AT FROM AUTOMATION_RUNS"));
+			assertNull(db.value("SELECT FAILED_NODE_ID FROM AUTOMATION_RUNS"));
+			assertNull(db.value("SELECT ERROR_MESSAGE FROM AUTOMATION_RUNS"));
+			assertNull(db.value("SELECT RESULT_SUMMARY FROM AUTOMATION_RUNS"));
+			assertEquals(false, db.value("SELECT CANCEL_REQUESTED FROM AUTOMATION_RUNS"));
+			assertEquals("new-hash", db.value("SELECT DEFINITION_HASH FROM AUTOMATION_RUNS"));
+			assertEquals("{\"new\":true}", db.value("SELECT DEFINITION_SNAPSHOT FROM AUTOMATION_RUNS"));
+
+			assertEquals("PENDING", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+			assertEquals("B renamed", db.value("SELECT NODE_LABEL FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+			assertEquals("new-room", db.value("SELECT ROOM_ID FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+			assertNull(db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+			assertNull(db.value("SELECT ERROR_MESSAGE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+			assertNull(db.value("SELECT SCOPE_SNAPSHOT FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+
+			assertEquals("SUCCESS", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'a'"));
+			assertEquals("1", db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'a'"));
+			assertEquals("SKIPPED", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'c'"));
+			assertEquals(0, db.count("AUTOMATION_NODE_OUTPUTS WHERE PARENT_NODE_ID = 'b'"));
+
+			assertEquals(1, db.count("AUTOMATION_SAVED_RESULTS"));
+			assertEquals("saved-a", db.value("SELECT RESULT_ID FROM AUTOMATION_SAVED_RESULTS"));
+			assertEquals(1, db.count("AUTOMATION_RESULT_CHUNKS"));
+
+			assertEquals("new source", db.value("SELECT SOURCE_CODE FROM AUTOMATION_RUN_NODE_SOURCES"));
+			assertEquals(1, db.count("AUTOMATION_RUN_NODE_SOURCES"));
+			assertEquals(3, db.value("SELECT TOTAL_NODES FROM AUTOMATION_RUNS"));
+			assertEquals(2, db.value("SELECT COMPLETED_NODES FROM AUTOMATION_RUNS"));
+		}
+	}
+
+	@Test
+	void reopeningForNodeRerunDropsTheSourceOfANodeThatNoLongerHasOne() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+
+			assertTrue(AutomationRunStore.reopenRunForNodeRerun("run", "project", "new-hash", "{}",
+					List.of(plainRerun())));
+
+			assertEquals(0, db.count("AUTOMATION_RUN_NODE_SOURCES"));
+		}
+	}
+
+	@Test
+	void reopeningForNodeRerunRefusesARunThatIsNotFinishedAndChangesNothing() throws Exception {
+		for (String status : List.of("RUNNING", "WAITING_FOR_INPUT", "SUBMITTED")) {
+			try (var db = new JdbcTestDatabase()) {
+				failedRunWithThreeNodes(db);
+				db.execute("UPDATE AUTOMATION_RUNS SET STATUS = '" + status + "'");
+
+				assertFalse(AutomationRunStore.reopenRunForNodeRerun("run", "project", "new-hash", "{}",
+						List.of(plainRerun())), status);
+
+				assertEquals("old-hash", db.value("SELECT DEFINITION_HASH FROM AUTOMATION_RUNS"), status);
+				assertEquals("FAILED", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"),
+						status);
+				assertEquals(3, db.count("AUTOMATION_SAVED_RESULTS"), status);
+			}
+		}
+	}
+
+	@Test
+	void reopeningForNodeRerunOnlyClaimsTheRunOnce() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+			var nodes = List.of(plainRerun());
+
+			assertTrue(AutomationRunStore.reopenRunForNodeRerun("run", "project", "new-hash", "{}", nodes));
+			assertFalse(AutomationRunStore.reopenRunForNodeRerun("run", "project", "other-hash", "{}", nodes));
+
+			assertEquals("new-hash", db.value("SELECT DEFINITION_HASH FROM AUTOMATION_RUNS"));
+		}
+	}
+
+	@Test
+	void reopeningForNodeRerunRefusesAnotherProjectsRun() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+
+			assertFalse(AutomationRunStore.reopenRunForNodeRerun("run", "other-project", "new-hash", "{}",
+					List.of(plainRerun())));
+
+			assertEquals("FAILED", db.value("SELECT STATUS FROM AUTOMATION_RUNS"));
+		}
+	}
+
+	@Test
+	void reopeningForALoopNodeRerunClearsOnlyThatIterationsRow() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+			db.execute(
+					"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = 'FAILED', ERROR_MESSAGE = 'bad', OUTPUT_VALUE = '5', ROOM_ID = 'old-room' WHERE NODE_ID = 'child'",
+					"INSERT INTO AUTOMATION_NODE_OUTPUTS (RUN_ID, NODE_ID, EXECUTION_ORDER, STATUS, PARENT_NODE_ID, ITERATION_INDEX, OUTPUT_VALUE) VALUES ('run', 'child-2', 1000001, 'SUCCESS', 'b', 1, '7')",
+					"INSERT INTO AUTOMATION_SAVED_RESULTS (RESULT_ID, RUN_ID, NODE_ID, PARENT_NODE_ID) VALUES ('saved-child-2', 'run', 'child-2', 'b')",
+					"INSERT INTO AUTOMATION_RESULT_CHUNKS (RESULT_ID, CHUNK_INDEX) VALUES ('saved-child-2', 0)");
+
+			assertTrue(AutomationRunStore.reopenRunForLoopNodeRerun("run", "project", "new-hash", "{\"new\":true}",
+					List.of(new AutomationRunStore.LoopNodeRerun("child", "x", "X renamed", "new-room", null)),
+					java.util.Set.of("x"), Map.of("x", "new source")));
+
+			assertEquals("RUNNING", db.value("SELECT STATUS FROM AUTOMATION_RUNS"));
+			assertEquals("new-hash", db.value("SELECT DEFINITION_HASH FROM AUTOMATION_RUNS"));
+			assertNull(db.value("SELECT ERROR_MESSAGE FROM AUTOMATION_RUNS"));
+
+			assertEquals("PENDING", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'child'"));
+			assertEquals("X renamed",
+					db.value("SELECT NODE_LABEL FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'child'"));
+			assertEquals("new-room", db.value("SELECT ROOM_ID FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'child'"));
+			assertNull(db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'child'"));
+			assertNull(db.value("SELECT ERROR_MESSAGE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'child'"));
+
+			// Another iteration, and the loop node and its siblings, keep their results.
+			assertEquals("SUCCESS",
+					db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'child-2'"));
+			assertEquals("7", db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'child-2'"));
+			assertEquals("FAILED", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+			assertEquals("2", db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+			assertEquals("1", db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'a'"));
+
+			assertEquals(3, db.count("AUTOMATION_SAVED_RESULTS"));
+			assertEquals(0, db.count("AUTOMATION_SAVED_RESULTS WHERE RESULT_ID = 'saved-child'"));
+			assertEquals(3, db.count("AUTOMATION_RESULT_CHUNKS"));
+
+			assertEquals("new source",
+					db.value("SELECT SOURCE_CODE FROM AUTOMATION_RUN_NODE_SOURCES WHERE NODE_ID = 'x'"));
+			assertEquals("old source",
+					db.value("SELECT SOURCE_CODE FROM AUTOMATION_RUN_NODE_SOURCES WHERE NODE_ID = 'b'"));
+			assertEquals(5, db.value("SELECT TOTAL_NODES FROM AUTOMATION_RUNS"));
+			assertEquals(3, db.value("SELECT COMPLETED_NODES FROM AUTOMATION_RUNS"));
+		}
+	}
+
+	@Test
+	void reopeningForALoopNodeRerunRefusesARunThatIsNotFinishedAndChangesNothing() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+			db.execute("UPDATE AUTOMATION_RUNS SET STATUS = 'RUNNING'");
+
+			assertFalse(AutomationRunStore.reopenRunForLoopNodeRerun("run", "project", "new-hash", "{}",
+					List.of(new AutomationRunStore.LoopNodeRerun("child", "x", "X", null, null)),
+					java.util.Set.of("x"), Map.of()));
+
+			assertEquals("old-hash", db.value("SELECT DEFINITION_HASH FROM AUTOMATION_RUNS"));
+			assertEquals("SUCCESS", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'child'"));
+			assertEquals(3, db.count("AUTOMATION_SAVED_RESULTS"));
 		}
 	}
 
@@ -273,6 +460,183 @@ class AutomationRunStoreUnitTests {
 
 		assertEquals(1, results.size());
 		assertNull(results.get(0).get(AutomationConstants.RESULT_SCOPE_SNAPSHOT));
+	}
+
+	@Test
+	void buildNodeResultsExposesEachNodesStartAndEndTime() {
+		java.sql.Timestamp started = java.sql.Timestamp.valueOf("2026-11-11 09:00:00");
+		java.sql.Timestamp completed = java.sql.Timestamp.valueOf("2026-11-11 09:00:05");
+		Map<String, Object> timed = new LinkedHashMap<>();
+		timed.put(AutomationConstants.RUN_ID, "run");
+		timed.put(AutomationConstants.NODE_ID, "timed");
+		timed.put(AutomationConstants.NODE_LABEL, "Timed");
+		timed.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		timed.put(AutomationConstants.STARTED_AT, started);
+		timed.put(AutomationConstants.COMPLETED_AT, completed);
+		Map<String, Object> neverRan = new LinkedHashMap<>();
+		neverRan.put(AutomationConstants.RUN_ID, "run");
+		neverRan.put(AutomationConstants.NODE_ID, "pending");
+		neverRan.put(AutomationConstants.NODE_LABEL, "Pending");
+		neverRan.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_PENDING);
+
+		List<Map<String, Object>> results = AutomationRunStore.buildNodeResults(List.of(timed, neverRan));
+
+		assertEquals(started, results.get(0).get(AutomationConstants.STARTED_AT));
+		assertEquals(completed, results.get(0).get(AutomationConstants.COMPLETED_AT));
+		assertNull(results.get(1).get(AutomationConstants.STARTED_AT));
+		assertNull(results.get(1).get(AutomationConstants.COMPLETED_AT));
+	}
+
+	@Test
+	void cloningAFinishedRunCopiesItWholeAndLeavesTheOriginalUntouched() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+
+			assertTrue(AutomationRunStore.cloneRunForReprocess("run", "copy", "project", "someone-else"));
+
+			assertEquals(2, db.count("AUTOMATION_RUNS"));
+			assertEquals("run", db.value("SELECT REPROCESSED_FROM_RUN_ID FROM AUTOMATION_RUNS WHERE RUN_ID = 'copy'"));
+			assertNull(db.value("SELECT REPROCESSED_FROM_RUN_ID FROM AUTOMATION_RUNS WHERE RUN_ID = 'run'"));
+			assertEquals("someone-else", db.value("SELECT CREATED_BY FROM AUTOMATION_RUNS WHERE RUN_ID = 'copy'"));
+			assertEquals("{\"old\":true}",
+					db.value("SELECT DEFINITION_SNAPSHOT FROM AUTOMATION_RUNS WHERE RUN_ID = 'copy'"));
+			assertEquals("FAILED", db.value("SELECT STATUS FROM AUTOMATION_RUNS WHERE RUN_ID = 'copy'"));
+
+			// Every node row, loop rows included, comes across carried over; the original's are not.
+			assertEquals(4, db.count("AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = 'copy' AND CARRIED_OVER = TRUE"));
+			assertEquals(0, db.count("AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = 'run' AND CARRIED_OVER = TRUE"));
+			assertEquals("2", db.value(
+					"SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = 'copy' AND NODE_ID = 'b'"));
+			assertEquals("old source",
+					db.value("SELECT SOURCE_CODE FROM AUTOMATION_RUN_NODE_SOURCES WHERE RUN_ID = 'copy'"));
+
+			// Saved results are copied under their own ids, so neither run's results can disappear with the other's.
+			assertEquals(3, db.count("AUTOMATION_SAVED_RESULTS WHERE RUN_ID = 'copy'"));
+			assertEquals(3, db.count("AUTOMATION_SAVED_RESULTS WHERE RUN_ID = 'run'"));
+			assertEquals(0, db.count("AUTOMATION_SAVED_RESULTS c WHERE c.RUN_ID = 'copy' AND c.RESULT_ID IN "
+					+ "(SELECT RESULT_ID FROM AUTOMATION_SAVED_RESULTS WHERE RUN_ID = 'run')"));
+			assertEquals(6, db.count("AUTOMATION_RESULT_CHUNKS"));
+		}
+	}
+
+	@Test
+	void cloningRefusesARunThatIsNotFinishedAndCopiesNothing() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+			db.execute("UPDATE AUTOMATION_RUNS SET STATUS = 'RUNNING'");
+
+			assertFalse(AutomationRunStore.cloneRunForReprocess("run", "copy", "project", "user"));
+			assertFalse(AutomationRunStore.cloneRunForReprocess("run", "copy", "other-project", "user"));
+
+			assertEquals(1, db.count("AUTOMATION_RUNS"));
+			assertEquals(0, db.count("AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = 'copy'"));
+		}
+	}
+
+	@Test
+	void reprocessingOnACopyLeavesTheOriginalAndTheCopysOtherNodesAlone() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+			assertTrue(AutomationRunStore.cloneRunForReprocess("run", "copy", "project", "user"));
+
+			assertTrue(AutomationRunStore.reopenRunForNodeRerun("copy", "project", "new-hash", "{}",
+					List.of(new AutomationRunStore.NodeRerun("b", "B", null, null, java.util.Set.of("b"), Map.of()))));
+
+			// The chosen node is no longer carried over; the rest still are.
+			assertEquals(0, db.count("AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = 'copy' AND NODE_ID = 'b' AND CARRIED_OVER = TRUE"));
+			assertEquals("PENDING", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = 'copy' AND NODE_ID = 'b'"));
+			assertEquals(2, db.count("AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = 'copy' AND NODE_ID IN ('a', 'c') AND CARRIED_OVER = TRUE"));
+
+			assertEquals("FAILED", db.value("SELECT STATUS FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = 'run' AND NODE_ID = 'b'"));
+			assertEquals("2", db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = 'run' AND NODE_ID = 'b'"));
+			assertEquals("FAILED", db.value("SELECT STATUS FROM AUTOMATION_RUNS WHERE RUN_ID = 'run'"));
+			assertEquals("old-hash", db.value("SELECT DEFINITION_HASH FROM AUTOMATION_RUNS WHERE RUN_ID = 'run'"));
+			assertEquals(3, db.count("AUTOMATION_SAVED_RESULTS WHERE RUN_ID = 'run'"));
+		}
+	}
+
+	@Test
+	void aRunRecordsWhichRunItWasStartedFrom() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			AutomationRunStore.initializeRun("fresh", "project", "automation", 1, "hash", "{}", Map.of(), "manual",
+					"user", List.of(), Map.of(), Map.of(), "original");
+			initialize("plain", Map.of());
+
+			assertEquals("original", db.value("SELECT REPROCESSED_FROM_RUN_ID FROM AUTOMATION_RUNS WHERE RUN_ID = 'fresh'"));
+			assertNull(db.value("SELECT REPROCESSED_FROM_RUN_ID FROM AUTOMATION_RUNS WHERE RUN_ID = 'plain'"));
+		}
+	}
+
+	@Test
+	void buildNodeResultsFlagsCarriedOverNodes() {
+		Map<String, Object> carried = new LinkedHashMap<>();
+		carried.put(AutomationConstants.RUN_ID, "run");
+		carried.put(AutomationConstants.NODE_ID, "carried");
+		carried.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		carried.put(AutomationConstants.CARRIED_OVER, true);
+		Map<String, Object> reran = new LinkedHashMap<>();
+		reran.put(AutomationConstants.RUN_ID, "run");
+		reran.put(AutomationConstants.NODE_ID, "reran");
+		reran.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+
+		List<Map<String, Object>> results = AutomationRunStore.buildNodeResults(List.of(carried, reran));
+
+		assertEquals(true, results.get(0).get(AutomationConstants.CARRIED_OVER));
+		assertEquals(false, results.get(1).get(AutomationConstants.CARRIED_OVER));
+	}
+
+	@Test
+	void reprocessingANodeReplacesItsTimesAndLeavesOtherNodesTimesAlone() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+			db.execute(
+					"UPDATE AUTOMATION_NODE_OUTPUTS SET STARTED_AT = TIMESTAMP '2020-01-01 00:00:00', COMPLETED_AT = TIMESTAMP '2020-01-01 00:00:05' WHERE NODE_ID IN ('a', 'b')");
+
+			assertTrue(AutomationRunStore.reopenRunForNodeRerun("run", "project", "new-hash", "{}",
+					List.of(new AutomationRunStore.NodeRerun("b", "B", null, null, java.util.Set.of("b"), Map.of()))));
+
+			assertNull(db.value("SELECT STARTED_AT FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+			assertNull(db.value("SELECT COMPLETED_AT FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'"));
+			assertEquals(java.sql.Timestamp.valueOf("2020-01-01 00:00:05"),
+					db.value("SELECT COMPLETED_AT FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'a'"));
+
+			AutomationRunStore.markNodeRunning("run", "b");
+			AutomationRunStore.updateNodeSuccess("run", "b", java.sql.Timestamp.from(java.time.Instant.now()), 5L,
+					"b_out", "\"x\"", "x", null, null);
+
+			java.sql.Timestamp oldTime = java.sql.Timestamp.valueOf("2020-01-01 00:00:05");
+			assertTrue(((java.sql.Timestamp) db
+					.value("SELECT STARTED_AT FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'")).after(oldTime));
+			assertTrue(((java.sql.Timestamp) db
+					.value("SELECT COMPLETED_AT FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID = 'b'")).after(oldTime));
+		}
+	}
+
+	@Test
+	void reprocessingStartsTheRunsClockOverAndClearsItsEnd() throws Exception {
+		java.sql.Timestamp old = java.sql.Timestamp.valueOf("2020-01-01 00:00:00");
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+			db.execute("UPDATE AUTOMATION_RUNS SET STARTED_AT = TIMESTAMP '2020-01-01 00:00:00'");
+
+			assertTrue(AutomationRunStore.reopenRunForNodeRerun("run", "project", "h", "{}",
+					List.of(new AutomationRunStore.NodeRerun("b", "B", null, null, java.util.Set.of("b"), Map.of()))));
+
+			assertTrue(((java.sql.Timestamp) db.value("SELECT STARTED_AT FROM AUTOMATION_RUNS")).after(old));
+			assertNull(db.value("SELECT COMPLETED_AT FROM AUTOMATION_RUNS"));
+		}
+		try (var db = new JdbcTestDatabase()) {
+			failedRunWithThreeNodes(db);
+			db.execute("UPDATE AUTOMATION_RUNS SET STARTED_AT = TIMESTAMP '2020-01-01 00:00:00'");
+
+			assertTrue(AutomationRunStore.reopenRunForLoopNodeRerun("run", "project", "h", "{}",
+					List.of(new AutomationRunStore.LoopNodeRerun("child", "x", "X", null, null)),
+					java.util.Set.of("x"), Map.of()));
+
+			assertTrue(((java.sql.Timestamp) db.value("SELECT STARTED_AT FROM AUTOMATION_RUNS")).after(old));
+			assertNull(db.value("SELECT COMPLETED_AT FROM AUTOMATION_RUNS"));
+		}
 	}
 
 	@Test
