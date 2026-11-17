@@ -27,12 +27,14 @@
  *******************************************************************************/
 package prerna.util.sandbox;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -105,12 +107,41 @@ public final class NamespaceSandbox extends AbstractSandbox {
 		WorkerHandle handle = WorkerHandle.jailed(ret, spec.port(), serverDirectory);
 
 		SandboxInjector injector = new SandboxInjector(handle.controlSocketPath());
-		if (!injector.awaitReady(CONTROL_SOCKET_WAIT_MS)) {
+		boolean ready = false;
+		try {
+			ready = injector.awaitReady(CONTROL_SOCKET_WAIT_MS);
+		} finally {
+			if (!ready) {
+				// The caller only receives the handle when this method returns, so a worker that
+				// never became ready would be owned by nobody: stop it and remove what it made.
+				discard(handle);
+			}
+		}
+		if (!ready) {
 			throw new IllegalStateException("Timed out waiting for namespace sandbox control socket");
 		}
 		// folders granted before the worker existed are replayed now
 		helper.setInjector(injector);
 		return handle;
+	}
+
+	/** Stops a worker that never became ready and removes the folders it was given. */
+	static void discard(WorkerHandle handle) {
+		Process process = handle.process();
+		if (process != null) {
+			try {
+				process.descendants().forEach(ProcessHandle::destroyForcibly);
+				process.destroyForcibly();
+			} catch (RuntimeException e) {
+				classLogger.warn("Could not stop the namespace launcher that failed to start", e);
+			}
+		}
+		for (String folder : new String[] { handle.serverDirectory(), handle.ioDir(), handle.jailDir(),
+				handle.controlDir() }) {
+			if (folder != null && !folder.isBlank()) {
+				FileUtils.deleteQuietly(new File(folder));
+			}
+		}
 	}
 
 	@Override
