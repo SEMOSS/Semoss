@@ -4,7 +4,6 @@ ARG BASE_IMAGE=ubuntu
 ARG BASE_TAG=22.04
 
 ARG COPILOT_VERSION=latest
-ARG OPENSHELL_VERSION=latest
 
 #global argument for tomcat
 ARG TOMCAT_VERSION=11.0.27
@@ -42,24 +41,6 @@ RUN apt-get update -y \
 	&& install -m 0755 "$tmp/copilot" /usr/local/bin/copilot \
 	&& rm -rf "$tmp" \
 	&& chown 1001:0 /usr/local/bin/copilot
-
-# OpenShell CLI: SANDBOX_MODE=OPENSHELL shells out to it (OPENSHELL_CLI). Only the statically linked
-# binary is taken from the release .deb; the gateway and its systemd unit are not installed here.
-# OPENSHELL_VERSION is "latest" or a release such as 0.1.8 (pin it to match the deployed gateway).
-ARG OPENSHELL_VERSION
-ARG TARGETARCH
-RUN tmp="$(mktemp -d)" \
-	&& ver="${OPENSHELL_VERSION}" \
-	&& if [ "$ver" = latest ]; then \
-		ver="$(curl -fsSIL -o /dev/null -w '%{url_effective}' https://github.com/NVIDIA/OpenShell/releases/latest)"; \
-		ver="${ver##*/v}"; \
-	   fi \
-	&& base="https://github.com/NVIDIA/OpenShell/releases/download/v${ver}" \
-	&& deb="openshell_${ver}-1_${TARGETARCH:-amd64}.deb" \
-	&& curl -fsSL -o "$tmp/$deb" "$base/$deb" \
-	&& dpkg-deb -x "$tmp/$deb" "$tmp/root" \
-	&& install -m 0755 "$tmp/root/usr/bin/openshell" /usr/local/bin/openshell \
-	&& rm -rf "$tmp"
 
 # FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS base
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS mavenpuller
@@ -123,7 +104,7 @@ ENV LC_ALL=en_US.UTF-8
 
 COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
-COPY --from=tomcat_builder /usr/local/bin/openshell /usr/local/bin/openshell
+COPY --from=tomcat_builder /usr/bin/openshell /usr/local/bin/openshell
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN	apt-get update -qq \
