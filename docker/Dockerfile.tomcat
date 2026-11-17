@@ -133,9 +133,18 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& echo 'exec catalina.sh run' >> $TOMCAT_HOME/bin/start.sh \
 	&& echo '#!/bin/sh' > $TOMCAT_HOME/bin/stop.sh \
 	&& echo 'shutdown.sh -force' >> $TOMCAT_HOME/bin/stop.sh \
-	&& chmod 777 $TOMCAT_HOME/bin/*.sh \
-	&& chmod 777 /opt/apache-maven-3.10.0/bin/*.cmd \
+	&& chmod 750 $TOMCAT_HOME/bin/*.sh \
+	&& chmod 755 /opt/apache-maven-3.10.0/bin/*.cmd \
 	&& apt-get clean all
+
+# --- catalina.policy replacement: FilePermission scope (image-level) ---
+# Tomcat conf and lib must not be world-accessible; they contain credentials,
+# TLS keys, and deployment descriptors. 640/750 matches the minimum access
+# the Tomcat process (uid 1001, gid 0) needs without granting world-read.
+# This runs in the builder stage so the permissions survive the scratch COPY
+# into every downstream image.
+RUN chmod -R u=rwX,g=rX,o= "$TOMCAT_HOME/conf" \
+    && chmod -R u=rwX,g=rX,o= "$TOMCAT_HOME/lib"
 
 # ---------------------------------------------------------------------------
 # FIPS 140-3 wiring. Entirely skipped when FIPS_ENABLED != true.

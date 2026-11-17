@@ -175,6 +175,15 @@ RUN useradd -u 1001 -r -g 0 -d /opt/semosshome -s /bin/bash \
     -c "Default Application User" default && \
     chown -R 1001:0 /opt/semosshome
 
+# --- catalina.policy equivalents: privilege escalation + FilePermission ---
+# Strip SUID/SGID bits from every binary so no exec can raise the effective UID
+# (RuntimePermission/exitVM mitigation). Re-assert conf permissions because
+# chown/cp steps above may have widened them.
+# NoNewPrivileges=true and --cap-drop ALL MUST be set by the container runtime
+# (see docker/STIG.README.md for the full runtime checklist).
+RUN find / -xdev -perm /6000 -type f -exec chmod ug-s {} \+ 2>/dev/null || true \
+    && chmod -R u=rwX,g=rX,o= "$TOMCAT_HOME/conf"
+
 USER 1001
 
 WORKDIR /opt/semoss-artifacts/artifacts/scripts
