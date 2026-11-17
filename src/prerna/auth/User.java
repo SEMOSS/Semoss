@@ -70,6 +70,8 @@ import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
 import prerna.util.openshell.OpenShellUserSandboxes;
 import prerna.util.Utility;
+import prerna.util.sandbox.ISandbox;
+import prerna.util.sandbox.SandboxFactory;
 
 public class User implements Serializable {
 
@@ -548,6 +550,17 @@ public class User implements Serializable {
 		}
 		this.insightSerializedMap.clear();
 		return this.pythonCPW.getSocketClient();
+	}
+
+	/**
+	 * The user's sandbox: where their workers and commands run, and what they may see. The one way to
+	 * grant a folder or project, start a worker or run a command, whichever backend is configured.
+	 *
+	 * @return the sandbox
+	 * @throws IllegalArgumentException when chroot is not enabled on this instance
+	 */
+	public ISandbox getSandbox() {
+		return SandboxFactory.of(getUserSymlinkHelper(), this);
 	}
 
 	/**

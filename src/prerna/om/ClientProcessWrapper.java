@@ -37,8 +37,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -72,14 +70,17 @@ import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
 import prerna.util.InternalUtility;
 import prerna.util.OpenShellTransport;
-import prerna.util.OpenShellTransporter;
 import prerna.util.PortAllocator;
-import prerna.util.SandboxInjector;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
+import prerna.util.sandbox.ISandbox;
+import prerna.util.sandbox.SandboxEnv;
+import prerna.util.sandbox.SandboxFactory;
 import prerna.util.sandbox.SandboxSettings;
-import prerna.util.openshell.OpenShellUserSandboxes;
+import prerna.util.sandbox.WorkerHandle;
+import prerna.util.sandbox.WorkerKind;
+import prerna.util.sandbox.WorkerSpec;
 import prerna.util.openshell.TransportedRoots;
 
 public class ClientProcessWrapper {
@@ -255,144 +256,13 @@ public class ClientProcessWrapper {
 			}
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
-				if (nativePyServer) {
-					// The jail is selected the same way the fakechroot and namespace
-					// jails have always been selected: by the chain below, on the
-					// SymlinkHelper the caller supplied. User-authored python gets one
-					// (User.startPythonSocketServerAndClient); engine-owned workers and
-					// Project python pass null and so are never jailed at all.
-					//
-					// OPENSHELL is simply the third branch of that chain. The sandbox is
-					// created ahead of the worker, so the worker becomes the sandbox's
-					// canonical process instead of a child of Tomcat, and the socket
-					// client connects to the forwarded port. No udsPath is set, which is
-					// what selects the TCP branch below.
-					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isExternalSandbox()) {
-						try {
-							if (OpenShellUserSandboxes.appliesTo(this.user)) {
-								// The user's own sandbox, shared across their sessions and server
-								// instances: attach if it is running, create it otherwise.
-								OpenShellUserSandboxes.Attached attached = OpenShellUserSandboxes.acquire(this.user);
-								this.openshell = attached.transport;
-								this.openshellUserScoped = true;
-								this.port = attached.port;
-								if (attached.reattached) {
-									// Another connection may have drained changes this one never
-									// applied; start this connection's write-back from the whole tree.
-									this.fullCaptureOwed = true;
-								}
-							} else {
-								this.openshell = OpenShellTransport.forSession(this.chrootSymlinkHelper.getUserChrootFolder());
-								this.openshellUserScoped = false;
-								this.port = this.openshell.start();
-							}
-							// Same seam as the namespace injector below: the per-mode collaborator
-							// that receives every path symlinkFolder/symlinkProject would otherwise
-							// have symlinked. Assets registered before the worker existed are
-							// replayed by setTransport, which is why this happens here rather than
-							// before start().
-							this.chrootSymlinkHelper.setTransport(
-									new OpenShellTransporter(this.openshell));
-						} catch (Exception e) {
-							// Fail closed: never fall back to an in-Tomcat worker when the
-							// deployment asked for an external boundary.
-							throw new IllegalStateException(
-									"OpenShell executor sandbox unavailable and no fallback is permitted in "
-											+ "SANDBOX_MODE=OPENSHELL",
-									e);
-						}
-					} else if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
-						String insightCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
-						Path serverDirectoryPath = Files.createTempDirectory(Paths.get(insightCache), "a");
-						this.serverDirectory = serverDirectoryPath.toString();
-						ClientProcessWrapper.writeLogConfigurationFile(this.serverDirectory);
-
-						// Use the user's chroot folder name as the source identity; the
-						// sandbox launcher shortens it to keep AF_UNIX socket paths valid.
-						String ioDirName = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder()).getFileName()
-								.toString();
-
-						Object[] ret = ClientProcessWrapper.startTCPServerNativePySandbox(this.serverDirectory,
-								this.port + "", this.timeout, this.loggerLevel, ioDirName,
-								this.chrootSymlinkHelper.getUserChrootFolder());
-						this.process = (Process) ret[0];
-						this.prefix = (String) ret[1];
-						this.udsPath = (String) ret[2];
-						this.controlSocketPath = (String) ret[3];
-						this.sandboxIoDir = (String) ret[4];
-						this.sandboxJailDir = (String) ret[5];
-						this.sandboxControlDir = (String) ret[6];
-
-						SandboxInjector injector = new SandboxInjector(this.controlSocketPath);
-						if (!injector.awaitReady(SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS)) {
-							throw new IllegalStateException("Timed out waiting for namespace sandbox control socket");
-						}
-						this.chrootSymlinkHelper.setInjector(injector);
-					} else if (this.chrootSymlinkHelper != null) {
-						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder());
-						// we will be creating a fake semoss home in the chrooted directory
-						// so grabbing the current base folder to mock the same pattern
-						String baseFolderPath = Utility.getBaseFolder();
-						// this is the fake semoss home in the chroot
-						Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
-						// create a temp folder where we will start the process for the server
-						Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
-						this.serverDirectory = serverDirectoryPath.toString();
-						// we need to have a relative path to replace the log4j file as it is started
-						// in the chroot world and not the base OS world
-						// .. technically since i'm hard coding above the base folder from rdf_map,
-						// could replace but w/e
-						String relative = chrootPath.relativize(serverDirectoryPath).toString();
-						if (!relative.startsWith("/")) {
-							relative = "/" + relative;
-						}
-						ClientProcessWrapper.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
-
-						Object[] ret = ClientProcessWrapper.startTCPServerNativePyChroot(
-								this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port + "", this.timeout,
-								this.loggerLevel, this.engineOwned);
-						this.process = (Process) ret[0];
-						this.prefix = (String) ret[1];
-					} else {
-						// write the log4j file in the server directory
-						ClientProcessWrapper.writeLogConfigurationFile(this.serverDirectory);
-
-						Object[] ret = ClientProcessWrapper.startTCPServerNativePy(this.serverDirectory, this.port + "",
-								this.venvPath, this.timeout, this.loggerLevel, this.engineOwned);
-						this.process = (Process) ret[0];
-						this.prefix = (String) ret[1];
-					}
-				} else {
-					if (chrootSymlinkHelper != null) {
-						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(chrootSymlinkHelper.getUserChrootFolder());
-						// we will be creating a fake semoss home in the chrooted directory
-						// so grabbing the current base folder to mock the same pattern
-						String baseFolderPath = Utility.getBaseFolder();
-						// this is the fake semoss home in the chroot
-						Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
-						// create a temp folder where we will start the process for the server
-						Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
-						this.serverDirectory = serverDirectoryPath.toString();
-						// we need to have a relative path to replace the log4j file as it is started
-						// in the chroot world and not the base OS world
-						// .. technically since i'm hard coding above the base folder from rdf_map,
-						// could replace but w/e
-						String relative = chrootPath.relativize(serverDirectoryPath).toString();
-						if (!relative.startsWith("/")) {
-							relative = "/" + relative;
-						}
-						ClientProcessWrapper.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
-
-						this.process = ClientProcessWrapper.startTCPServerChroot(
-								this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port + "");
-					} else {
-						// write the log4j file in the server directory
-						ClientProcessWrapper.writeLogConfigurationFile(this.serverDirectory);
-						this.process = ClientProcessWrapper.startTCPServer(this.serverDirectory, this.port + "");
-					}
-				}
+				// How the worker is jailed is decided in one place, whatever the mode. User-authored
+				// python gets a SymlinkHelper from User.startPythonSocketServerAndClient; engine-owned
+				// workers and Project python pass null and so are never jailed.
+				ISandbox sandbox = SandboxFactory.of(this.chrootSymlinkHelper, this.user);
+				applyWorker(sandbox.spawnWorker(new WorkerSpec(nativePyServer ? WorkerKind.PYTHON : WorkerKind.JAVA,
+						this.port, this.serverDirectory, this.venvPath, this.timeout, this.loggerLevel,
+						this.engineOwned, this.user)));
 			}
 
 			try {
@@ -427,6 +297,28 @@ public class ClientProcessWrapper {
 			stopIfShutDownWhileStarting(shutdownsAtStart);
 		} finally {
 			lockCreate.unlock();
+		}
+	}
+
+	/** Takes over what a sandbox started: the process, where to connect, and what must be cleaned up. */
+	private void applyWorker(WorkerHandle worker) {
+		this.process = worker.process();
+		this.prefix = worker.prefix();
+		this.udsPath = worker.udsPath();
+		this.port = worker.port();
+		this.serverDirectory = worker.serverDirectory();
+		this.controlSocketPath = worker.controlSocketPath();
+		this.sandboxIoDir = worker.ioDir();
+		this.sandboxJailDir = worker.jailDir();
+		this.sandboxControlDir = worker.controlDir();
+		if (worker.openshell() != null) {
+			this.openshell = worker.openshell();
+			this.openshellUserScoped = worker.userScoped();
+			if (worker.reattached()) {
+				// Another connection may have drained changes this one never applied; start this
+				// connection's write-back from the whole tree.
+				this.fullCaptureOwed = true;
+			}
 		}
 	}
 
@@ -1746,6 +1638,10 @@ public class ClientProcessWrapper {
 
 			classLogger.info("Starting namespace-sandboxed user process with ::: {}", commands);
 			ProcessBuilder pb = new ProcessBuilder(commands);
+			if (SandboxSettings.NAMESPACE_SCRUB_ENV.asBoolean()) {
+				// user code must not read the server's secrets from its environment
+				SandboxEnv.scrub(pb.environment());
+			}
 			if (!sandboxPath.isEmpty()) {
 				pb.environment().put("PATH", sandboxPath);
 			}
@@ -1842,23 +1738,9 @@ public class ClientProcessWrapper {
 
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
-				boolean namespaceSandbox = SandboxSettings.nodeNamespaceJail();
-				if (namespaceSandbox) {
-					Object[] ret = ClientProcessWrapper.startTCPServerNodeSandbox(this.serverDirectory, this.port + "",
-							this.timeout, this.loggerLevel, null);
-					this.process = (Process) ret[0];
-					this.prefix = (String) ret[1];
-					this.udsPath = (String) ret[2];
-					this.controlSocketPath = (String) ret[3];
-					this.sandboxIoDir = (String) ret[4];
-					this.sandboxJailDir = (String) ret[5];
-					this.sandboxControlDir = (String) ret[6];
-				} else {
-					Object[] ret = ClientProcessWrapper.startTCPServerNode(this.serverDirectory, this.port + "",
-							this.timeout, this.loggerLevel);
-					this.process = (Process) ret[0];
-					this.prefix = (String) ret[1];
-				}
+				// the node worker picks its jail by mode: the namespace jail, or the host
+				applyWorker(SandboxFactory.forNodeWorker().spawnWorker(new WorkerSpec(WorkerKind.NODE, this.port,
+						this.serverDirectory, null, this.timeout, this.loggerLevel, false, null)));
 			}
 
 			try {
@@ -2106,6 +1988,9 @@ public class ClientProcessWrapper {
 
 			classLogger.info("Starting namespace-sandboxed node agent process with ::: {}", commands);
 			ProcessBuilder pb = new ProcessBuilder(commands);
+			if (SandboxSettings.NAMESPACE_SCRUB_ENV.asBoolean()) {
+				SandboxEnv.scrub(pb.environment());
+			}
 			File consoleFile = new File(outputFile);
 			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(consoleFile);
 			pb.redirectError(redirector);

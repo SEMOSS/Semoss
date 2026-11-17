@@ -48,6 +48,7 @@ sandbox, which is separate from the user-code jail).
 | `SANDBOX_PATH` | none | Executable directories visible inside the jail, separated by the OS path separator |
 | `ULIMIT_PROCESS` | none | Virtual memory cap in KB (`ulimit -v`) for workers. Not used by `OPENSHELL`; see `OPENSHELL_MEMORY` |
 | `INSIGHT_CACHE_DIR` | none | Insight scratch folder, linked into every chroot |
+| `SANDBOX_ENV_ALLOWLIST` | none | Names of server environment variables passed to scrubbed jail children, comma-separated. `PATH`, `LANG`, `LANGUAGE`, `LC_ALL` and `TZ` are always passed |
 | `PY_SERVER_USER` | none | OS user the unjailed python worker runs as (`sudo -u`). Ignored by the jails |
 
 ### fakechroot
@@ -61,6 +62,8 @@ sandbox, which is separate from the user-code jail).
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `SANDBOX_IO_DIR` | `${java.io.tmpdir}/semoss-sandbox` | Folder for the jail, io and control sockets. Keep it short: AF_UNIX paths are limited to about 108 bytes |
+| `NAMESPACE_SCRUB_ENV` | `true` | `true` starts the python and node jails with only the kept environment variables; `false` passes the server's whole environment, secrets included |
+| `NAMESPACE_EXEC_FALLBACK` | `fakechroot` | One-shot commands have no namespace jail: `fakechroot` runs them in the user's chroot, `refuse` fails them |
 
 ### OpenShell
 
@@ -104,8 +107,8 @@ This is how it works today. Where the child inherits Tomcat's environment, any s
 | --- | --- |
 | fakechroot python worker | Scrubbed: `env -i` with only `PATH` from `SANDBOX_PATH`, and the worker clears the rest |
 | fakechroot one-shot command | Scrubbed: only `HOME=/home/default` and `PATH` |
-| namespace python worker | **Inherited in full**, with `PATH` overridden |
-| namespace node worker | **Inherited in full** |
+| namespace python worker | Scrubbed to the kept variables (`NAMESPACE_SCRUB_ENV`, default on), `PATH` from `SANDBOX_PATH` |
+| namespace node worker | Scrubbed to the kept variables (`NAMESPACE_SCRUB_ENV`, default on) |
 | OpenShell worker | Only what OpenShell sets, plus `PATH`; project secrets arrive as placeholders |
 | unjailed python, node, java workers, one-shot commands | Inherited in full |
 | agent CLI | The `SEMOSS_SANDBOX_*` variables are added; the `LD_*` and `DYLD_*` removal list is defined but not yet applied |
@@ -115,9 +118,31 @@ This is how it works today. Where the child inherits Tomcat's environment, any s
 `SEMOSS_SYNC_IGNORE` and `SEMOSS_HOME` are read by the OpenShell write-back watcher inside the
 sandbox image.
 
+## For developers: ISandbox
+
+Code that grants a folder, starts a worker or runs a command asks the user's sandbox and does not
+check the mode: `user.getSandbox()` returns an `ISandbox` (`prerna.util.sandbox`). The mode is turned
+into a backend in one place, `SandboxFactory`.
+
+| | host | fakechroot | namespace | OpenShell |
+| --- | --- | --- | --- | --- |
+| Python worker | child of the server | fakechroot jail | namespace jail | OpenShell sandbox |
+| Node worker | child of the server | child of the server | namespace jail | child of the server |
+| Java worker | child of the server | fakechroot jail | fakechroot jail | fakechroot jail |
+| One-shot command | host shell | fakechroot | fakechroot (or refused, see `NAMESPACE_EXEC_FALLBACK`) | `openshell sandbox exec` |
+| Grant a folder or project | nothing to do | chroot symlink | live mount and symlink | upload |
+| Revoke | no | yes | yes | no |
+
+The rows where a backend runs a worker "the way it always has" (Node outside the namespace jail,
+Java in every jail mode) are logged once at first use. A backend that was asked for never falls
+back to a weaker one: an OpenShell sandbox that cannot be had fails the worker instead of starting
+it on the server.
+
 ## Known gaps
 
-- The Java worker, the node worker and one-shot shell commands do not all follow `SANDBOX_MODE`
-  (for example, one-shot commands use fakechroot in `NAMESPACE` mode).
-- The namespace jail does not scrub the environment.
+- Node has no OpenShell or fakechroot jail, and the Java worker has no namespace or OpenShell jail.
+- One-shot commands have no namespace jail.
+- The agent CLI sandbox defines a list of environment variables to drop (`LD_PRELOAD`,
+  `LD_LIBRARY_PATH`, `DYLD_*`) but the Python clients that launch the CLI do not apply it yet.
 - `BashCommand` enabled by `AGENT_DEFAULT_TOOLS_ENABLE_BASH` alone runs on host bash.
+- Shutdown and OpenShell write-back still live in `ClientProcessWrapper`, not in the sandbox.

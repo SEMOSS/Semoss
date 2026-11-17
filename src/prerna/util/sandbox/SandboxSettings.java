@@ -143,6 +143,10 @@ public final class SandboxSettings {
 	public static final Key PY_SERVER_USER = add(Settings.PY_SERVER_USER, "", Scope.COMMON,
 			"OS user the unjailed python worker runs as (sudo -u); ignored by the jails");
 
+	public static final Key SANDBOX_ENV_ALLOWLIST = add("SANDBOX_ENV_ALLOWLIST", "", Scope.COMMON,
+			"Names of server environment variables passed to scrubbed jail children, comma-separated; "
+					+ "PATH, LANG, LANGUAGE, LC_ALL and TZ are always passed");
+
 	// ------------------------------------------------------------------ fakechroot
 
 	public static final Key CHROOT_SYMLINK_PATHS = add("CHROOT_SYMLINK_PATHS", "", Scope.FAKECHROOT,
@@ -152,6 +156,12 @@ public final class SandboxSettings {
 
 	public static final Key SANDBOX_IO_DIR = add(Constants.SANDBOX_IO_DIR, "${java.io.tmpdir}/semoss-sandbox",
 			Scope.NAMESPACE, "Short folder for jail, io and control sockets (AF_UNIX paths are limited to ~108 bytes)");
+	public static final Key NAMESPACE_SCRUB_ENV = add("NAMESPACE_SCRUB_ENV", "true", Scope.NAMESPACE,
+			"true starts the python and node jails with only the kept environment variables (see "
+					+ "SANDBOX_ENV_ALLOWLIST); false passes the server's whole environment, secrets included");
+	public static final Key NAMESPACE_EXEC_FALLBACK = add("NAMESPACE_EXEC_FALLBACK", "fakechroot", Scope.NAMESPACE,
+			"One-shot commands have no namespace jail: fakechroot runs them in the user's chroot, "
+					+ "refuse fails them");
 
 	// ------------------------------------------------------------------ openshell
 

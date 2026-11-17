@@ -180,6 +180,42 @@ public class SymlinkHelper {
 		}
 	}
 
+	/**
+	 * Takes a folder back for new opens: withdraws the namespace mount and removes the chroot link.
+	 * Files a worker already has open stay open. An OpenShell sandbox keeps what it was sent, so this
+	 * does nothing there.
+	 *
+	 * @param absPath absolute host path
+	 * @return true when something was withdrawn
+	 */
+	public synchronized boolean revoke(String absPath) {
+		if (sandboxMode == SandboxSettings.Mode.OPENSHELL || absPath == null) {
+			return false;
+		}
+		String path = Utility.normalizePath(absPath);
+		boolean withdrawn = false;
+		if (activeInjects.remove(path) != null) {
+			withdrawn = true;
+			if (injector != null) {
+				try {
+					injector.remove(path);
+				} catch (RuntimeException e) {
+					classLogger.warn("Could not withdraw the namespace mount for {}", path, e);
+				}
+			}
+		}
+		Path link = Paths.get(userChrootFolder).resolve(path.substring(1));
+		try {
+			if (Files.isSymbolicLink(link)) {
+				Files.delete(link);
+				withdrawn = true;
+			}
+		} catch (IOException e) {
+			classLogger.warn("Could not remove the chroot link {}", link, e);
+		}
+		return withdrawn;
+	}
+
 	public boolean isInjectMode() {
 		return injectMode;
 	}
