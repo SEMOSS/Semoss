@@ -48,6 +48,9 @@ The opt-in profile is [compose.dev.yml](./compose.dev.yml), with instructions in
 [README.md](./README.md#opt-in-hardened-development-deployment). It is a
 development reference, not a universal production manifest. Kubernetes/OpenShift,
 ECS, and VM-based runtimes need equivalent site-specific configuration.
+[DEPLOY-ECS.md](./DEPLOY-ECS.md) gives the ECS (Fargate) steps that were exercised,
+and [DEPLOY-EKS.md](./DEPLOY-EKS.md) the corresponding EKS design, which has not
+yet been run.
 RuntimeDefault seccomp, SELinux/AppArmor, service-account restrictions, and
 platform admission controls should be applied where supported and validated
 against the workload. No such orchestration controls are supplied by this image.

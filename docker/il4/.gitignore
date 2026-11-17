@@ -5,6 +5,8 @@
 !Dockerfile
 !README.md
 !DEPLOYMENT-CHECKLIST.md
+!DEPLOY-ECS.md
+!DEPLOY-EKS.md
 !artifacts.lock.json
 !assemble.py
 !audio_compat.py

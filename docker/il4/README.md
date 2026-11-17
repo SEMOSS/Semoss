@@ -744,6 +744,10 @@ image with these files):
 
 ### Persistence, container rotation, and more than one container
 
+For the step-by-step ECS (Fargate) and EKS deployment, including the rotation
+test, see [DEPLOY-ECS.md](./DEPLOY-ECS.md) (exercised) and [DEPLOY-EKS.md](./DEPLOY-EKS.md)
+(designed, not yet exercised).
+
 An app in SEMOSS is two halves, and it is visible only while both exist:
 
 | Half | What it holds | Where it must live |
