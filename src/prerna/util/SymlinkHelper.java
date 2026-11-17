@@ -296,9 +296,9 @@ public class SymlinkHelper {
 			return;
 		}
 		Boolean sent = activeTransports.get(absPath);
-		if (sent != null && (!sent || viewOnly)) {
-			// Already sent once, in full or as the same view-only copy. Only a view-only
-			// root that the user can now edit goes again, in full.
+		if (sent != null && sent == viewOnly) {
+			// Already sent in this form. A root whose access changed, in either direction, goes
+			// again in the new form, and the transport clears the sandbox's old copy first.
 			return;
 		}
 		activeTransports.put(absPath, viewOnly);
@@ -547,9 +547,10 @@ public class SymlinkHelper {
 			return;
 		}
 		if (sandboxMode == SandboxSettings.Mode.OPENSHELL) {
-			// The sandbox has its own filesystem root; a chroot symlink under the host user folder
-			// would point at a path the sandbox cannot see, so it is meaningless here.
+			// The Python worker lives in the sandbox and gets the folder sent there. The Java worker
+			// has no OpenShell sandbox and runs in the local fakechroot, so the link is made here too.
 			transport(sourceDirName, false);
+			createChrootSymlink(sourceDirName);
 			return;
 		}
 		if (injectMode) {
@@ -690,9 +691,9 @@ public class SymlinkHelper {
 			// The sandbox has its own filesystem; the host chroot (symlink or viewer copy) is
 			// invisible to it. A user who can only view the project gets the same copy as in
 			// the other modes, without the folders it leaves out. Write-back is gated by the
-			// user's edit permission separately.
+			// user's edit permission separately. The local placement below still runs, because
+			// the Java worker has no OpenShell sandbox and runs in the local fakechroot.
 			transport(appRoot, !SecurityProjectUtils.userCanEditProject(user, projectId));
-			return;
 		}
 		Path inChroot = Paths.get(userChrootFolder).resolve(appRoot.substring(1));
 		try {

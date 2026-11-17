@@ -293,6 +293,8 @@ public final class OpenShellTransport {
 	 * folders a read-only user's copy leaves out.
 	 */
 	private final Set<String> viewOnlyRoots = ConcurrentHashMap.newKeySet();
+	/** How each root was last sent: true as the view-only copy, false in full. */
+	private final Map<String, Boolean> sentViewOnly = new ConcurrentHashMap<>();
 
 	private static final String NAME_PREFIX = "pyw-";
 
@@ -912,9 +914,47 @@ public final class OpenShellTransport {
 	 */
 	public boolean upload(String absPath) {
 		String normalized = Utility.normalizePath(absPath);
-		if (viewOnlyRoots.contains(normalized)) {
-			return uploadViewOnly(absPath, normalized);
+		boolean viewOnly = viewOnlyRoots.contains(normalized);
+		Boolean last = sentViewOnly.get(normalized);
+		if (last != null && last != viewOnly && !clearRoot(absPath, normalized)) {
+			return false;
 		}
+		boolean sent = viewOnly ? uploadViewOnly(absPath, normalized) : uploadInFull(absPath, normalized);
+		if (sent) {
+			sentViewOnly.put(normalized, viewOnly);
+		}
+		return sent;
+	}
+
+	/**
+	 * Removes the sandbox's copy of a root whose access changed, so the copy sent next is the only
+	 * thing there. An upload only adds and overwrites: the folders a view-only copy leaves out would
+	 * stay behind for a user who lost edit access, and a file made while the user could only view
+	 * would be written back as a new file once they could edit. The root's stamps go with it, so a
+	 * later capture does not read the missing files as deletions.
+	 *
+	 * @return false when the old copy could not be removed; the new copy is then not sent
+	 */
+	private boolean clearRoot(String absPath, String normalized) {
+		classLogger.info("Access to {} changed; clearing the sandbox copy before sending the new one", absPath);
+		try {
+			run(Arrays.asList(propOr(CLI_PROP, DEFAULT_CLI), "sandbox", "exec", "-n", sandboxName, "--", "rm",
+					"-rf", "--", absPath), 120);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			classLogger.error("Interrupted while clearing {} in the sandbox", absPath);
+			return false;
+		} catch (Exception e) {
+			classLogger.error("Could not clear {} in the sandbox: {}", absPath, e.getMessage());
+			return false;
+		}
+		seenBySandbox.remove(normalized);
+		String prefix = normalized + "/";
+		hostStamps.keySet().removeIf(path -> path.startsWith(prefix));
+		return true;
+	}
+
+	private boolean uploadInFull(String absPath, String normalized) {
 		String cli = propOr(CLI_PROP, DEFAULT_CLI);
 		// `sandbox upload <src> <dst>` copies src INTO dst, i.e. it appends basename(src).
 		// Passing dst == src therefore nests: uploading /a/b/app_root to /a/b/app_root
