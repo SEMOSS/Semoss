@@ -4,7 +4,7 @@ ARG BASE_IMAGE=ubuntu
 ARG BASE_TAG=24.04
 
 ARG COPILOT_VERSION=latest
-ARG OPENSHELL_VERSION=0.1.2
+ARG OPENSHELL_VERSION=latest
 
 #global argument for tomcat
 ARG TOMCAT_VERSION=11.0.27
@@ -45,12 +45,18 @@ RUN apt-get update -y \
 
 # OpenShell CLI: SANDBOX_MODE=OPENSHELL shells out to it (OPENSHELL_CLI). Only the statically linked
 # binary is taken from the release .deb; the gateway and its systemd unit are not installed here.
-# Pinned and checksum-verified; keep in step with the gateway the deployment runs.
+# OPENSHELL_VERSION is "latest" or a release such as 0.1.8 (pin it to match the deployed gateway);
+# the download is always checked against the release's checksum file.
 ARG OPENSHELL_VERSION
 ARG TARGETARCH
 RUN tmp="$(mktemp -d)" \
-	&& base="https://github.com/NVIDIA/OpenShell/releases/download/v${OPENSHELL_VERSION}" \
-	&& deb="openshell_${OPENSHELL_VERSION}-1_${TARGETARCH:-amd64}.deb" \
+	&& ver="${OPENSHELL_VERSION}" \
+	&& if [ "$ver" = latest ]; then \
+		ver="$(curl -fsSIL -o /dev/null -w '%{url_effective}' https://github.com/NVIDIA/OpenShell/releases/latest)"; \
+		ver="${ver##*/v}"; \
+	   fi \
+	&& base="https://github.com/NVIDIA/OpenShell/releases/download/v${ver}" \
+	&& deb="openshell_${ver}-1_${TARGETARCH:-amd64}.deb" \
 	&& curl -fsSL -o "$tmp/$deb" "$base/$deb" \
 	&& curl -fsSL -o "$tmp/checksums.txt" "$base/openshell-checksums-sha256.txt" \
 	&& (cd "$tmp" && grep -F " $deb" checksums.txt | sha256sum -c -) \
