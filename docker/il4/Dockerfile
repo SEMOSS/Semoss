@@ -1,7 +1,7 @@
 # BuildKit is required; use its bundled frontend instead of pulling a floating frontend image.
-ARG MAVEN_IMAGE=registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.9.16@sha256:ccf861d920d03c0134c8cffb090918a00c4b7c4ef3b04558735ca823540dc0fc
-ARG UBI_IMAGE=registry1.dso.mil/ironbank/redhat/ubi/ubi10:10.2@sha256:12c8329ddef89d047c15f28e4eb7848698a560c5da8622ad527c2844186c6aa3
-ARG PYTHON_IMAGE=registry1.dso.mil/ironbank/opensource/python:v3.14@sha256:eb433b924cccd4bb13068ff6284296e7c75a9a5dbc21b6bcd46bb9a38e71732d
+ARG MAVEN_IMAGE=registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.9.16@sha256:7823acc27b893494709b4532925b8019482fae51a75abff12b478723851c9bb9
+ARG UBI_IMAGE=registry1.dso.mil/ironbank/redhat/ubi/ubi10:10.3@sha256:b6d1084fc676e18abfcfe640d8ac04e8fa7624989a9bc0039cc021d9ef928b3e
+ARG PYTHON_IMAGE=registry1.dso.mil/ironbank/opensource/python:v3.14@sha256:be2171be2efe4373369f1187c4a3b4630b529a7c2be4cb69714c45d2016292a6
 
 FROM ${MAVEN_IMAGE} AS assembly
 USER 0

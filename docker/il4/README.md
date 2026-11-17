@@ -1,4 +1,4 @@
-# SEMOSS 5.4.0 / UBI 10.2 / Java 25 / Python 3.14 / BC FIPS template
+# SEMOSS 5.4.0 / UBI 10.3 / Java 25 / Python 3.14 / BC FIPS template
 
 This template assembles the **published SEMOSS 5.4.0 release**, including Monolith,
 SemossWeb, and semosshome. It does not rebuild the Java/web release.
@@ -17,8 +17,8 @@ when comparing it with the assessed application baseline.
 | Component | Selection |
 | --- | --- |
 | Build stage and JDK source | `registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.9.16` |
-| Final OS | `registry1.dso.mil/ironbank/redhat/ubi/ubi10:10.2` |
-| Python runtime donor | `registry1.dso.mil/ironbank/opensource/python:v3.14` (Python 3.14.7, UBI 10.2) |
+| Final OS | `registry1.dso.mil/ironbank/redhat/ubi/ubi10:10.3` |
+| Python runtime donor | `registry1.dso.mil/ironbank/opensource/python:v3.14` (Python 3.14.10, UBI 10.3) |
 | Tomcat | 9.0.119 (SEMOSS 5.4 uses `javax.servlet`, not Tomcat 10/11's Jakarta API) |
 | BC FIPS | bc-fips 2.1.3, bctls-fips 2.1.24, bcpkix-fips 2.1.13, bcutil-fips 2.1.8 |
 
@@ -500,7 +500,7 @@ The workflow:
 - Logs in to Iron Bank and builds the existing digest-pinned `linux/amd64`
   Dockerfile, including its build-time validation.
   [refresh_bases.py](./refresh_bases.py) first resolves the current digests for
-  Maven `3.9.16`, UBI `10.2`, and Python `v3.14`; any failed lookup or invalid
+  Maven `3.9.16`, UBI `10.3`, and Python `v3.14`; any failed lookup or invalid
   digest aborts without falling back to the old pins. The build uses `--pull`
   and `--no-cache`, passing these newly resolved immutable references. This
   refreshes the development bases and RPM installation without automatically
@@ -1463,7 +1463,7 @@ docker run --rm --platform linux/amd64 --network none \
 
 Verified after Python integration on `linux/amd64`:
 
-- Runtime OS reports RHEL/UBI 10.2 with glibc 2.39.
+- Runtime OS reports RHEL/UBI 10.3 with glibc 2.39.
 - Full image build and non-root Java 25/FIPS crypto probe passed.
 - HTTPS UI returned 200; `/Monolith/health/ready` returned
   `{"startupComplete":true,"status":"READY"}`.
@@ -1511,7 +1511,9 @@ UBI 10.2 migration: changed only the final OS base, image title, and deployment
 documentation. Maven/JDK, SEMOSS, Tomcat, FIPS artifact pins, and feature flags
 remain unchanged.
 
-Python integration: added the digest-pinned Iron Bank Python 3.14.7 runtime,
+Base refresh 2026-11-16: UBI 10.2 -> 10.3 (Iron Bank `10.3` digest `b6d1084f...`), Maven 3.9.16 and Python v3.14 (now 3.14.10, itself built on UBI 10.3) re-resolved to newer digests, to clear base-image OS findings. No other changes.
+
+Python integration: added the digest-pinned Iron Bank Python runtime (3.14.7 initially; 3.14.10 after the 2026-11-16 base refresh),
 complete hash-locked CPU dependencies, documented compatibility updates, and
 the separately approved SEMOSS audio event patch. Python is enabled; R,
 notifications, and the excluded Snowflake connector remain unchanged.
