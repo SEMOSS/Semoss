@@ -412,7 +412,7 @@ def ask_interactions(client, messages, inline_citations=True):
     compatibility = messages[-1].param_map.get("google_interactions_replay_available")
     if compatibility is False:
         raise ValueError(
-            "Interactions through the Anthropic endpoint requires KEEP_INPUT_OUTPUT, KEEP_CONVERSATION_HISTORY, and use_history"
+            "Interactions through compatibility endpoints requires KEEP_INPUT_OUTPUT, KEEP_CONVERSATION_HISTORY, and use_history"
         )
     if not client.client_config.api_key and client.client_config.region not in {
         "global",
@@ -429,7 +429,7 @@ def ask_interactions(client, messages, inline_citations=True):
         f["type"] != "text" for f in request["response_format"]
     ):
         raise ValueError(
-            "The Anthropic endpoint supports text and function output; use a SEMOSS room for generated media"
+            "Interactions compatibility endpoints support text and function output; use a SEMOSS room for generated media"
         )
     config = request["generation_config"]
     fit = client.fit_output_to_usage_ceiling(
@@ -510,9 +510,12 @@ def ask_interactions(client, messages, inline_citations=True):
         ):
             tool = part["tool_call"]
             for chunk in (
-                StreamUtil.create_tool_id_chunk(index, tool["id"]),
-                StreamUtil.create_tool_type_chunk(index),
-                StreamUtil.create_function_name_chunk(index, tool["name"]),
+                # Responses needs the tool identity when it opens the output item.
+                {
+                    **StreamUtil.create_tool_id_chunk(index, tool["id"]),
+                    **StreamUtil.create_tool_type_chunk(index),
+                    **StreamUtil.create_function_name_chunk(index, tool["name"]),
+                },
                 StreamUtil.create_function_arguments_chunk(
                     index, json.dumps(tool["arguments"])
                 ),

@@ -1165,6 +1165,9 @@ public class MessageUtils {
 				case "function":
 					// OpenAI style object: {"type":"function", "name":"..."}
 					Object forcedName = obj.get("name");
+					if (forcedName == null && obj.get("function") instanceof Map<?, ?> function) {
+						forcedName = function.get("name");
+					}
 					if (forcedName instanceof String) {
 						return makeToolChoice(ToolChoiceType.FORCED, forcedName.toString());
 					}
