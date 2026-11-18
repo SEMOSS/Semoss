@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import prerna.reactor.AbstractReactor;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 
 class AppTestContractUnitTests {
 	@TempDir Path temporary;
@@ -56,7 +56,7 @@ class AppTestContractUnitTests {
 
 	@Test
 	void fixturesRequireExplicitDevelopmentConfigurationAndNeverClaimBrowserVerification() throws Exception {
-		Properties properties = DIHelper.getInstance().getCoreProp();
+		Properties properties = InternalUtility.getCoreProp();
 		Object priorFlag = properties.get(AppTestRuns.ALLOW_MOCKS_PROP);
 		Object priorDir = properties.get(AppTestRuns.STUB_DIR_PROP);
 		try {

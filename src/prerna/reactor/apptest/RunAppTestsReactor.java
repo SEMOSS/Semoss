@@ -39,7 +39,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 
 // RunAppTests(project=["..."], scenario=["page_fails"], pages=["orders"]);
 // Starts the regression tests of an app and returns a run id to poll with GetAppTestRun
@@ -63,7 +63,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 		String suite = getString(SUITE);
 		List<String> pages = getNounAsStringList(PAGES);
 		String scenario = getString(SCENARIO);
-		Object configuredCookie = DIHelper.getInstance().getLocalProp(Constants.SESSION_ID_KEY);
+		Object configuredCookie = InternalUtility.getLocalProperty(Constants.SESSION_ID_KEY);
 		String cookieName = configuredCookie == null ? "JSESSIONID" : String.valueOf(configuredCookie);
 		String owner = AppTestRuns.ownerOf(requireUser());
 		int repeat = 1;

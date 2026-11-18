@@ -46,7 +46,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.sun.net.httpserver.HttpServer;
 
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 
 /** What makes a replay deterministic: exact checks, a fixed environment, honest failure classes, repeats. */
 class AppTestDeterminismUnitTests {
@@ -105,7 +105,7 @@ class AppTestDeterminismUnitTests {
 
 	@Test
 	void aConfiguredFixedTimeStartsThePageClock() {
-		Properties properties = DIHelper.getInstance().getCoreProp();
+		Properties properties = InternalUtility.getCoreProp();
 		Object prior = properties.get(AppTestRunner.FIXED_TIME_PROP);
 		try {
 			properties.setProperty(AppTestRunner.FIXED_TIME_PROP, "2026-01-02T03:04:05Z");
@@ -167,7 +167,7 @@ class AppTestDeterminismUnitTests {
 
 	@Test
 	void theStablePolicyAppliesWhenSavingNotWhenReadingExistingRecordings() throws Exception {
-		Properties properties = DIHelper.getInstance().getCoreProp();
+		Properties properties = InternalUtility.getCoreProp();
 		Object prior = properties.get(AppTestRecordings.REQUIRE_TESTID_PROP);
 		try {
 			Map<String, Object> weak = recording(Map.of("type", "CLICK", "selector", "#save"));
