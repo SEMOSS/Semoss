@@ -95,7 +95,10 @@ RUN apt-get update -y \
 	&& ls -als artifacts/ \
 	&& chmod 777 artifacts/dockerBuilder_scripts/*
 
-RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnupg software-properties-common \
+# fetch <out> <url>...: try each mirror in order with a short timeout. archive.apache.org drops
+# connections from the CI runners at times, and bare wget then retries for ~45 min before failing.
+RUN fetch() { out="$1"; shift; for url in "$@"; do wget --timeout=30 --tries=2 -O "$out" "$url" && return 0; echo "fetch failed: $url" >&2; done; return 1; } \
+	&& apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnupg software-properties-common \
 	&& cd ~/ \
 	&& apt-get -y install wget procps git \
 	&& echo "Creating directory for ${JAVA_HOME}.." \
@@ -104,7 +107,9 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& chmod +x install_java.sh \
 	&& /bin/bash install_java.sh \
 	&& java -version \
-	&& wget https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
+	&& fetch apache-tomcat-${TOMCAT_VERSION}.tar.gz \
+		https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/${TOMCAT_VERSION}/tomcat-${TOMCAT_VERSION}.tar.gz \
+		https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
 	&& tar -zxvf apache-tomcat-${TOMCAT_VERSION}.tar.gz \
 	&& mkdir $TOMCAT_HOME \
 	&& mv apache-tomcat-${TOMCAT_VERSION}/* $TOMCAT_HOME/ \
@@ -122,7 +127,9 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& echo '# container environment variables. Tomcat keeps its SystemPropertySource too,' >> $TOMCAT_HOME/bin/setenv.sh \
 	&& echo '# so -D overrides still work. Used by the <Manager> in conf/context.xml.' >> $TOMCAT_HOME/bin/setenv.sh \
 	&& echo 'CATALINA_OPTS="$CATALINA_OPTS -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource"' >> $TOMCAT_HOME/bin/setenv.sh \
-	&& wget https://archive.apache.org/dist/maven/maven-3/3.10.0/binaries/apache-maven-3.10.0-bin.tar.gz\
+	&& fetch apache-maven-3.10.0-bin.tar.gz \
+		https://repo1.maven.org/maven2/org/apache/maven/apache-maven/3.10.0/apache-maven-3.10.0-bin.tar.gz \
+		https://archive.apache.org/dist/maven/maven-3/3.10.0/binaries/apache-maven-3.10.0-bin.tar.gz \
 	&& tar -zxvf apache-maven-*.tar.gz \
 	&& mkdir /opt/apache-maven-3.10.0 \
 	&& mv apache-maven-3.10.0/* /opt/apache-maven-3.10.0/ \
