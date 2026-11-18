@@ -46,7 +46,7 @@ public class ListAppTestRecordingsReactor extends AbstractAppTestReactor {
 		organizeKeys();
 		String target = targetProject();
 		try {
-			return new NounMetadata(Map.of("target", target, "recordings", AppTestRecordings.list(AppTestRecordings.folder(target))),
+			return new NounMetadata(Map.of("target", target, "recordings", AppTestRecordings.summaries(AppTestRecordings.folder(target))),
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to read app test recordings", e);
@@ -55,8 +55,8 @@ public class ListAppTestRecordingsReactor extends AbstractAppTestReactor {
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("List saved regression recordings for an explicit app. Requires app edit access.")
+		return super.getReactorDefinition().description("List only saved regression recording ids, names and descriptions for an explicit app; use GetAppTestRecording to read one definition. Requires app edit access.")
 				.key("project", "Required target app project id")
-				.output(Map.class, "Explicit target app and its saved recordings");
+				.output(Map.class, "Explicit target app and recordings containing only id, name and description; no steps or values");
 	}
 }

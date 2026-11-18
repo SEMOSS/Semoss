@@ -41,7 +41,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.InternalUtility;
 
-// RunAppTests(project=["..."], scenario=["page_fails"], pages=["orders"]);
+// RunAppTests(project=["..."], recordingIds=["<recording UUID>"]);
 // Starts the regression tests of an app and returns a run id to poll with GetAppTestRun
 public class RunAppTestsReactor extends AbstractAppTestReactor {
 
@@ -49,10 +49,12 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 	static final String SUITE = "suite";
 	static final String PAGES = "pages";
 	static final String REPEAT = "repeat";
+	static final String RECORDING_IDS = "recordingIds";
+	static final String ALL = "all";
 
 	public RunAppTestsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO, REPEAT };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO, REPEAT, RECORDING_IDS, ALL };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -79,7 +81,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 			}
 		}
 
-		String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName, repeat);
+		String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName, repeat, getNounAsStringList(RECORDING_IDS), getBoolean(ALL, false));
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("runId", runId);
@@ -101,12 +103,14 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Replay saved app recordings or an explicit limited __platform_smoke__ page visibility check with isolated Playwright. Explicit target project is required. Poll GetAppTestRun until status is COMPLETED, ERROR or NO_TESTS. Action-only recordings are SKIPPED/NO_ASSERTIONS. "
+				"Replay saved app recordings or an explicit limited __platform_smoke__ page visibility check with isolated Playwright. Explicit target project and one selection (recordingIds, suite or all=true) are required. Never default to all tests. Poll GetAppTestRun until status is COMPLETED, ERROR or NO_TESTS. Action-only recordings are SKIPPED/NO_ASSERTIONS. "
 						+ "maxFixAttempts is how many times you may fix a failure and run again before you only report it.")
 				.key(ReactorKeysEnum.PROJECT, "Required target app project id. Never use the toolbox id or infer it from tool context.")
-				.key(SUITE, "Optional saved recording id/name, or reserved __platform_smoke__ for a limited page visibility/runtime-error check without workflow coverage. Omitted means saved recordings only.")
-				.key(PAGES, k -> k.description("Optional list of page names; only the tests of those pages run.")
+				.key(SUITE, "Single recording UUID (legacy alias for recordingIds), or reserved __platform_smoke__ for a limited page visibility/runtime-error check. Names are not accepted. Mutually exclusive with recordingIds and all=true.")
+				.key(PAGES, k -> k.description("Optional additional filter of exact recording names/start paths within the explicit selection; this does not select tests by itself.")
 						.list(String.class))
+				.key(RECORDING_IDS, k -> k.list(String.class).description("Explicit recording UUIDs returned by ListAppTestRecordings for this app. Read only selected files. Mutually exclusive with suite and all=true."))
+				.key(ALL, k -> k.type(Boolean.class).description("Set true only for an intentional full regression run of this app. Mutually exclusive with recordingIds and suite; omission never selects all tests."))
 				.key(SCENARIO, "Development fixture only, requires APP_TEST_ALLOW_MOCKS=true; never verifies an app.")
 				.key(REPEAT, k -> k.type(Integer.class).description("Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY."))
 				.output(Map.class, "Run id, explicit target, initial status and maximum repair attempts");

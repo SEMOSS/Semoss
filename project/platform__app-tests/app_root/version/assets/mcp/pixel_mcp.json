@@ -2,26 +2,42 @@
   "tools": [
     {
       "name": "RunAppTests",
-      "description": "Replay saved app recordings, or explicit reserved suite __platform_smoke__ for page visibility and immediate JavaScript errors only, without workflow coverage. Explicit project required. Poll GetAppTestRun; NO_TESTS and skipped workflows never count as passes.",
+      "description": "Replay explicitly selected recording UUIDs for the app being edited. Set all=true only for an intentional full regression run; omitted selection is an error. Reserved suite __platform_smoke__ provides limited visibility/runtime-error coverage only. Poll GetAppTestRun.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "project": {
-            "type": "string"
+            "type": "string",
+            "description": "Explicit current app project id. Never use the toolbox id or a different app."
           },
           "suite": {
             "type": "string",
-            "description": "Saved recording UUID/name, or __platform_smoke__ for a limited platform-owned page visibility check; omitted only runs saved recordings"
+            "description": "Single recording UUID, or __platform_smoke__ for a limited visibility check. Names are not accepted. Mutually exclusive with recordingIds and all=true."
           },
           "pages": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Optional additional exact recording-name/startPath filter within the explicit selection. Does not select tests by itself."
           },
           "repeat": {
             "type": "integer",
             "description": "Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY."
+          },
+          "recordingIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "maxItems": 25,
+            "uniqueItems": true,
+            "description": "Relevant recording UUIDs from ListAppTestRecordings for this app; mutually exclusive with suite and all=true."
+          },
+          "all": {
+            "type": "boolean",
+            "description": "Set true only for an intentional full regression run of this app; mutually exclusive with recordingIds and suite. No selection never means all."
           }
         },
         "required": [
@@ -68,7 +84,7 @@
     },
     {
       "name": "ListAppTestRecordings",
-      "description": "List saved app test files, including their descriptions, complete steps and page boundaries, for an explicit app.",
+      "description": "Discover tests for the app being edited. Returns only id, name and description per recording; no steps, selectors or values. Use GetAppTestRecording to read one relevant definition only when needed.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -89,7 +105,82 @@
       },
       "outputSchema": {
         "type": "object",
-        "description": "target and recordings array"
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "recordings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "description"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "target",
+          "recordings"
+        ]
+      }
+    },
+    {
+      "name": "GetAppTestRecording",
+      "description": "Read one complete test definition by UUID for the app being edited. Call only when its steps/expectations are needed; running selected IDs does not require reading their definitions first.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Explicit current app project id, never toolbox id."
+          },
+          "recordingId": {
+            "type": "string",
+            "description": "One recording UUID from ListAppTestRecordings."
+          }
+        },
+        "required": [
+          "project",
+          "recordingId"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "GetAppTestRecording",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Explicit target and one complete recording definition",
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "recording": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "target",
+          "recording"
+        ]
       }
     },
     {

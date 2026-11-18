@@ -168,4 +168,46 @@ class AppTestRecordingsUnitTests {
 		assertThrows(java.io.IOException.class, () -> AppTestRecordings.list(temporary));
 	}
 
+	@Test
+	void discoveryReturnsOnlyIdNameAndDescription() throws Exception {
+		Map<String, Object> saved = AppTestRecordings.save(temporary, recording("Workflow"));
+		Map<String, Object> summary = AppTestRecordings.summaries(temporary).getFirst();
+		assertEquals(java.util.Set.of("id", "name", "description"), summary.keySet());
+		assertEquals(saved.get("id"), summary.get("id"));
+		assertEquals(saved, AppTestRecordings.get(temporary, (String) summary.get("id")));
+	}
+
+	@Test
+	void selectedReadsIgnoreOtherFilesAndNeverCrossAppFolders() throws Exception {
+		Path first = temporary.resolve("first");
+		Map<String, Object> saved = AppTestRecordings.save(first, recording("Selected"));
+		String selected = (String) saved.get("id");
+		Files.writeString(first.resolve("recordings/22222222-2222-4222-8222-222222222222.json"), "not JSON");
+		assertEquals(saved, AppTestRecordings.get(first, selected));
+		assertEquals(List.of(saved), AppTestRuns.loadSelected(first, null, List.of(selected), false, List.of()));
+		assertEquals(List.of(saved), AppTestRuns.loadSelected(first, selected, null, false, List.of()));
+		assertThrows(java.io.IOException.class, () -> AppTestRuns.loadSelected(first, null, null, true, List.of()));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.get(temporary.resolve("other"), selected));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.get(first, "../other"));
+	}
+
+	@Test
+	void explicitSelectionLoadsOnlyChosenIdsAndAllMustBeIntentional() throws Exception {
+		Map<String, Object> first = AppTestRecordings.save(temporary, recording("First"));
+		Map<String, Object> second = AppTestRecordings.save(temporary, recording("Second"));
+		String one = (String) first.get("id"), two = (String) second.get("id");
+		assertEquals(List.of(second, first), AppTestRuns.loadSelected(temporary, null, List.of(two, one), false, List.of()));
+		assertEquals(2, AppTestRuns.loadSelected(temporary, null, null, true, List.of()).size());
+		assertEquals(List.of(first), AppTestRuns.loadSelected(temporary, null, List.of(one, two), false, List.of("First")));
+		assertTrue(AppTestRuns.loadSelected(temporary, null, List.of(two), false, List.of("First")).isEmpty());
+		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.selectedIds(null, List.of(), false));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.selectedIds(one, List.of(two), false));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.selectedIds(null, List.of(one), true));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.selectedIds(one, null, true));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.selectedIds(null, List.of(one, one), false));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.selectedIds("First", null, false));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.loadSelected(temporary, null,
+				List.of(one, "33333333-3333-4333-8333-333333333333"), false, List.of()));
+	}
+
 }

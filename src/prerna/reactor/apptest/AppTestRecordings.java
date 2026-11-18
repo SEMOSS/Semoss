@@ -244,32 +244,51 @@ final class AppTestRecordings {
 		return recording;
 	}
 
+	/** Discovery exposes metadata only; test bodies never enter list responses. */
+	static synchronized List<Map<String, Object>> summaries(Path base) throws IOException {
+		return list(base).stream().map(recording -> Map.of(
+				"id", recording.get("id"), "name", recording.get("name"),
+				"description", recording.get("description"))).toList();
+	}
+
+	/** Read a single UUID file without parsing any other test in the app. */
+	static synchronized Map<String, Object> get(Path base, String recordingId) throws IOException {
+		Path file = base.resolve("recordings").resolve(id(recordingId) + ".json");
+		if (!Files.isRegularFile(file)) throw new IllegalArgumentException("Recording does not exist in this app: " + recordingId);
+		return read(file);
+	}
+
 	static synchronized List<Map<String, Object>> list(Path base) throws IOException {
 		Path dir = base.resolve("recordings");
 		if (!Files.isDirectory(dir)) return List.of();
 		List<Map<String, Object>> recordings = new ArrayList<>();
 		try (var files = Files.list(dir)) {
 			for (Path file : files.filter(p -> p.getFileName().toString().endsWith(".json")).sorted().toList()) {
-				if (Files.size(file) > MAX_BYTES) throw new IOException("Recording exceeds size limit");
-				try {
-					Map<String, Object> recording = GSON.fromJson(Files.readString(file), new TypeToken<Map<String, Object>>() { }.getType());
-					// Older version-1 recordings predate descriptions; migrate only after validation.
-					boolean needsDescription = !recording.containsKey("description");
-					if (needsDescription) recording.put("description", "Replays the recorded workflow: " + recording.get("name") + ".");
-					Map<String, Object> validated = validate(recording);
-					if (!file.getFileName().toString().equals(validated.get("id") + ".json")) {
-						throw new IllegalArgumentException("Recording id must match its filename");
-					}
-					if (recording.get("updatedAt") instanceof String updatedAt) validated.put("updatedAt", updatedAt);
-					if (needsDescription) write(file, validated);
-					recordings.add(validated);
-				} catch (RuntimeException e) {
-					throw new IOException("A saved recording is invalid; review it before running app tests", e);
-				}
+				recordings.add(read(file));
 				if (recordings.size() > MAX_RECORDINGS) throw new IOException("Recording count exceeds limit");
 			}
 		}
 		return recordings;
+	}
+
+	private static Map<String, Object> read(Path file) throws IOException {
+		if (Files.size(file) > MAX_BYTES) throw new IOException("Recording exceeds size limit");
+		try {
+			Map<String, Object> recording = GSON.fromJson(Files.readString(file), new TypeToken<Map<String, Object>>() { }.getType());
+			// Older version-1 recordings predate descriptions; migrate only after validation.
+			if (recording == null) throw new IllegalArgumentException("Missing recording");
+			boolean needsDescription = !recording.containsKey("description");
+			if (needsDescription) recording.put("description", "Replays the recorded workflow: " + recording.get("name") + ".");
+			Map<String, Object> validated = validate(recording);
+			if (!file.getFileName().toString().equals(validated.get("id") + ".json")) {
+				throw new IllegalArgumentException("Recording id must match its filename");
+			}
+			if (recording.get("updatedAt") instanceof String updatedAt) validated.put("updatedAt", updatedAt);
+			if (needsDescription) write(file, validated);
+			return validated;
+		} catch (RuntimeException e) {
+			throw new IOException("Saved recording " + file.getFileName() + " is invalid; review it before running app tests", e);
+		}
 	}
 
 	static synchronized boolean delete(Path base, String recordingId) throws IOException {

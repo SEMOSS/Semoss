@@ -80,9 +80,44 @@ page route. The iframe must be accessible to the SEMOSS UI for manual recording.
 
 ## Platform integration
 
-The five app-test reactors require explicit app targets, authorize editing where applicable,
+The six app-test reactors require explicit app targets, authorize editing where applicable,
 store declarative JSON in non-public app assets (outside `assets/public`), and run bounded headless Playwright
 replays. The initiating authenticated session is passed to a fresh browser context; no login
 credentials are saved in test definitions. Each replay starts with fresh browser state, which
 does not reset server-side data. The App Builder gets the shipped testing skill/toolbox via
 normal system-project registration.
+
+
+## Test discovery and selection
+
+Deploy the updated backend, system toolbox/skill and UI together. The list contract is
+now a summary, so older clients expecting steps in list responses must be updated.
+`ListAppTestRecordings(project)` returns `{target, recordings: [{id, name, description}]}`.
+`GetAppTestRecording(project, recordingId)` returns `{target, recording}` for exactly one UUID.
+The Testing tab lists summaries, then loads the individual definition for View/Edit;
+Delete needs no definition read. Errors leave the dialog recoverable, and it never shows
+an empty editable file while a read is loading or has failed.
+
+Run relevant recordings directly, without reading their bodies into chat first:
+
+```text
+RunAppTests(project=["<current app id>"], recordingIds=["<test UUID>"]);
+RunAppTests(project=["<current app id>"], recordingIds=["<first UUID>", "<second UUID>"]);
+RunAppTests(project=["<current app id>"], all=[true]);
+RunAppTests(project=["<current app id>"], suite=["__platform_smoke__"]);
+```
+
+Choose exactly one of `recordingIds`, `suite`, or `all=true`. Missing/ambiguous selection
+is rejected; `pages` alone is not a selection. The existing `suite` parameter remains a
+single-UUID alias or the reserved smoke check; names are no longer accepted. Optional
+`pages` filters exact recording names/start paths inside the explicit selection. Selected
+UUIDs are loaded directly, so an invalid unrelated file does not block a targeted run.
+An explicitly selected missing/invalid UUID fails without falling back to other tests.
+Only `all=true` reads the complete saved suite for execution.
+
+The system skill tells chat to discover summaries, select relevant tests, and read bodies
+individually only when necessary. It discourages bulk reads through generic file tools.
+Full runs are reserved for full-regression requests or justified broad shared changes;
+unrelated successes do not establish coverage for a requested behavior. Project edit
+access is still enforced. The project argument is explicit; this change does not add a
+trusted server binding between a chat and its currently open app.
