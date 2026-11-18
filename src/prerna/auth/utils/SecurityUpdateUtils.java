@@ -424,8 +424,33 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * The statement {@link #updateOAuthUser} runs, setting only the columns that
+	 * have a value. The space before WHERE matters: the driver numbers the
+	 * parameters, and PostgreSQL rejects a parameter that runs straight into a
+	 * keyword ({@code $1WHERE}).
+	 *
+	 * @return the statement, or null when no column has a value
+	 */
+	static String buildUpdateOAuthUserQuery(boolean updateName, boolean updateUsername, boolean updateEmail) {
+		List<String> set = new ArrayList<>();
+		if (updateName) {
+			set.add("NAME=?");
+		}
+		if (updateUsername) {
+			set.add("USERNAME=?");
+		}
+		if (updateEmail) {
+			set.add("EMAIL=?");
+		}
+		if (set.isEmpty()) {
+			return null;
+		}
+		return "UPDATE SMSS_USER SET " + String.join(", ", set) + " WHERE ID=? AND TYPE=?";
+	}
+
+	/**
 	 * Update OAuth user credentials
-	 * 
+	 *
 	 * @param existingUser
 	 * @return
 	 * @throws IllegalArgumentException
@@ -439,30 +464,16 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		boolean updateUsername = username != null && !(username = username.trim()).isEmpty();
 		boolean updateEmail = email != null && !(email = email.trim().toLowerCase()).isEmpty();
 
-		StringBuilder updateQuery = new StringBuilder("UPDATE SMSS_USER SET ");
-		List<String> set = new ArrayList<>(Arrays.asList("NAME=?", "USERNAME=?", "EMAIL=?"));
 		List<Boolean> hasVal = new ArrayList<>(Arrays.asList(updateName, updateUsername, updateEmail));
 		List<String> values = new ArrayList<>(Arrays.asList(name, username, email));
 
-		boolean first = true;
-		for (int i = 0; i < set.size(); i++) {
-			if (!hasVal.get(i)) {
-				continue;
-			}
-			if (!first) {
-				updateQuery.append(",");
-			}
-
-			updateQuery.append(set.get(i));
-			first = false;
-		}
+		String updateQuery = buildUpdateOAuthUserQuery(updateName, updateUsername, updateEmail);
 		// nothing here to update...
-		if (first) {
+		if (updateQuery == null) {
 			return false;
 		}
-		updateQuery.append("WHERE ID=? AND TYPE=?");
 		try {
-			QueryExecutionUtility.executeUpdate(securityDb, updateQuery.toString(), ps -> {
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
 				int parameterIndex = 1;
 				// loop through the set for the values
 				for (int i = 0; i < hasVal.size(); i++) {

@@ -184,6 +184,19 @@ public class SecurityUpdateUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertEquals("newemail@test.com", SecurityNativeUserUtils.getUserEmail("adminid"));
 	}
 
+	@Test
+	void buildUpdateOAuthUserQuery_setsOnlyTheColumnsWithAValueAndSeparatesWhere() {
+		assertEquals("UPDATE SMSS_USER SET USERNAME=? WHERE ID=? AND TYPE=?",
+				SecurityUpdateUtils.buildUpdateOAuthUserQuery(false, true, false));
+		assertEquals("UPDATE SMSS_USER SET NAME=?, USERNAME=?, EMAIL=? WHERE ID=? AND TYPE=?",
+				SecurityUpdateUtils.buildUpdateOAuthUserQuery(true, true, true));
+		assertEquals("UPDATE SMSS_USER SET NAME=?, EMAIL=? WHERE ID=? AND TYPE=?",
+				SecurityUpdateUtils.buildUpdateOAuthUserQuery(true, false, true));
+		// PostgreSQL rejects a numbered parameter that runs into WHERE ($1WHERE)
+		assertFalse(SecurityUpdateUtils.buildUpdateOAuthUserQuery(true, true, true).contains("?WHERE"));
+		assertNull(SecurityUpdateUtils.buildUpdateOAuthUserQuery(false, false, false));
+	}
+
 	///
 	/// LockUserAccount
 	///
