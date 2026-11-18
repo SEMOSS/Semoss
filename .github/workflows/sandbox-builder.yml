@@ -127,7 +127,8 @@ jobs:
         shell: bash
         run: |
           BASE="${BRANCH//\//-}-${PYTHON_BUILDER_TAG}"
-          TAGS=( "-t" "${IMAGE}:${BASE}" "-t" "${IMAGE}:${BASE}-${SOURCE_SHA:0:7}" )
+          DATE=$(date -u +%F)
+          TAGS=( "-t" "${IMAGE}:${BASE}" "-t" "${IMAGE}:${BASE}-${DATE}" )
           if [[ "${{ vars.RELEASE }}" == "TRUE" ]]; then
             TAGS+=( "-t" "${IMAGE}:${PYTHON_BUILDER_TAG}-${{ vars.VERSION }}" )
           fi
