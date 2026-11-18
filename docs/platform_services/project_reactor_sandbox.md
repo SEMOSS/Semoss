@@ -45,7 +45,7 @@ Guarded by [SandboxBlockedClassesUnitTests](../../test/prerna/util/SandboxBlocke
 | Sockets and servers | `java.net.Socket`, `ServerSocket`, `DatagramSocket`, `MulticastSocket`, the socket and datagram channels in `java.nio.channels`, `javax.net.*`, `java.util.logging.SocketHandler`, `com.sun.net.httpserver.*`, `javax.print.*` | `socketsAreBlocked` |
 | HTTP clients other than the platform helper | `java.net.http.*`, `java.net.URLConnection`, `HttpURLConnection`, `JarURLConnection`, `javax.net.ssl.HttpsURLConnection` | `httpClientsOtherThanThePlatformHelperAreBlocked` |
 | Hooks into every HTTP call of the JVM | `java.net.ProxySelector`, `Authenticator`, `CookieHandler`, `CookieManager`, `ResponseCache`, `javax.net.ssl.SSLContext`, `HostnameVerifier` | `hooksIntoEveryHttpCallOfTheJvmAreBlocked` |
-| Threads and thread pools | `java.lang.Thread`, `java.util.concurrent.ThreadPoolExecutor`, `ScheduledThreadPoolExecutor`, `ForkJoinPool` | `threadsAndThreadPoolsAreBlocked` |
+| Threads and thread pools. To run work on other threads as the signed in user, use `UserContextExecutor` (see below) | `java.lang.Thread`, `java.util.concurrent.ThreadPoolExecutor`, `ScheduledThreadPoolExecutor`, `ForkJoinPool` | `threadsAndThreadPoolsAreBlocked`, `theExecutorIsNotOnTheListOfClassesACustomReactorCannotUse` |
 | Mail transports | `jakarta.mail.Transport`, `Store`, `Service`, `Folder`; mail is sent through `EmailUtility` | `mailIsSentThroughThePlatformHelper` |
 | Java deserialization | `java.io.ObjectInputStream` | `javaDeserializationIsBlocked` |
 
@@ -207,10 +207,43 @@ Requests from a project's code follow these rules as well, guarded by [SandboxHt
 | An HTTP call | [HttpHelperUtility](../../src/prerna/security/HttpHelperUtility.java); see [calling web services](../how-to-guides/writing_custom_reactors.md#calling-web-services) |
 | XML from a web address | Fetch the text with `HttpHelperUtility`, then parse it from a `StringReader` |
 | An email | [EmailUtility](../../src/prerna/util/EmailUtility.java) |
+| A thread other than the reactor's | `UserContextExecutor.create(insight, threads)`; see [running work on other threads](#running-work-on-other-threads) |
 | A wait between attempts | `TimeUnit.MILLISECONDS.sleep(...)` |
 | A library the platform has | Name it as usual; the project gets the shared class or its own sandboxed copy |
 | A properties file | `Utility.loadProperties(path)` |
 | An admin action | The admin reactors, run by an admin through Pixel |
+
+## Running work on other threads
+
+A custom reactor cannot create threads, write the signed in user, session or insight onto a thread, or reach `InsightStore`, so on its own a worker thread has no user and every engine call it makes is refused. `prerna.util.UserContextExecutor` does that on the platform's side. The reactor passes its own `Insight`, never a user.
+
+```java
+try (UserContextExecutor executor = UserContextExecutor.create(this.insight, 4)) {
+	List<Future<String>> futures = new ArrayList<>();
+	for (String item : items) {
+		futures.add(executor.submit(taskInsight -> draft(taskInsight, item)));
+	}
+	for (Future<String> future : futures) {
+		results.add(future.get());
+	}
+}
+```
+
+| Rule | Test |
+| --- | --- |
+| A task runs as the user signed in on the thread that created the executor, so an engine call it makes is checked against that user's permission | `aTaskRunsAsTheUserSignedInOnTheCallingThread`, `aCustomReactorsTaskSeesTheSignedInUserOnAnExecutorThread` |
+| A thread made by hand has no user, which is why the executor exists | `theSameTaskOnAThreadMadeByHandSeesNoUser` |
+| A task carries the caller's session, route, job, project context and request details | `aTaskCarriesTheSessionAndTheProjectContextOfTheCaller` |
+| A task gets an insight of its own, a child of the reactor's with the same user, kept in `InsightStore` only while the task runs | `aTaskGetsAnInsightOfItsOwnThatIsInTheStoreOnlyWhileItRuns`, `everyTaskGetsADifferentInsight` |
+| A task that throws leaves nothing behind | `aTaskThatThrowsStillLeavesNothingBehind` |
+| The calling thread is never changed | `theCallingThreadIsNeverChanged` |
+| The folder rule of the calling thread goes with the task, so file work stays inside the user's folder with `CHROOT_ENABLE` on | `theFolderRuleOfTheCallingThreadGoesWithTheTask`, `aCallingThreadWithNoFolderRuleGivesTheTaskNone` |
+| Tasks run at the same time, up to the number of threads, and an idle thread ends by itself after a minute if nobody closed the executor | `tasksRunAtTheSameTime`, `anExecutorNobodyClosedLetsItsIdleThreadsEnd` |
+| It needs a signed in user, an insight, a task and at least one thread | `aCreatorWithNoSignedInUserIsRefused`, `noInsightIsRefused`, `aTaskIsRequired`, `fewerThanOneThreadIsRefused` |
+| An insight of another user is refused: the insight's user must be the signed in user, the same object or the same login ids and types | `anInsightOfAnotherUserIsRefused`, `theSameUserIsTheSameObjectOrTheSameLogins` |
+| One executor has at most `PROJECT_USER_THREADS_MAX` threads (RDF_Map, 8 when it is not set or not a number above zero) | `theThreadCapComesFromTheSettingAndFallsBackToTheDefault`, `anExecutorNeverHasMoreThreadsThanTheCap` |
+
+Close the executor when the work is done: closing drops tasks that have not started and interrupts the running ones, so read the results first. The cap is per executor, not per user.
 
 ## Adding a rule
 
