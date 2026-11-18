@@ -120,7 +120,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static String createToken(User user, String sessionId, String routeId, boolean sessionToken,
+	static String createToken(User user, String sessionId, String routeId, boolean sessionToken,
 			boolean authToken) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (user == null) {
@@ -230,7 +230,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static String logSessionUsed(String shareToken, ZonedDateTime zdt, boolean success) throws SQLException {
+	static String logSessionUsed(String shareToken, ZonedDateTime zdt, boolean success) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE " + SESSION_SHARE_TABLE_NAME + " SET " + DATE_USED

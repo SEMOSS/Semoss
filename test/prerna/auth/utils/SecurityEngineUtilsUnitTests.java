@@ -68,6 +68,7 @@ import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.notifications.NotificationDbUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
@@ -127,7 +128,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertTrue(SecurityEngineUtils.engineExists("testdb"));
 
 		// make sure user is owner to that way we can query for it
-		SecurityEngineUtils.addEngineOwner("testdb", "adminid");
+		SecurityEngineUtils.addEngineOwner(user, "testdb");
 
 		// assert engine exists now
 		List<Map<String, Object>> engineList = SecurityEngineUtils.getUserEngineList(user, null, null);
@@ -269,9 +270,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		SecurityEngineUtils.addEngine("engineId", "engineName", IEngine.CATALOG_TYPE.DATABASE, "subtype", "cost", true,
 				user);
-		String userId = user.getPrimaryLoginToken().getId();
-
-		SecurityEngineUtils.addEngineOwner("engineId", userId);
+		SecurityEngineUtils.addEngineOwner(user, "engineId");
 
 		List<String> owners = SecurityEngineUtils.getEngineOwners("engineId");
 		assertEquals(1, owners.size());
@@ -368,16 +367,16 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createEngine("id1", "name1", IEngine.CATALOG_TYPE.GUARDRAIL, user);
 
-		SecurityEngineUtils.setDefaultEngineMarkdown("id1", "First default");
+		SecurityEngineUtils.setDefaultEngineMarkdown(user, "id1", "First default");
 		assertEquals("First default", SecurityEngineUtils
 				.getAggregateEngineMetadata("id1", List.of(Constants.MARKDOWN), false).get(Constants.MARKDOWN));
 
-		SecurityEngineUtils.setDefaultEngineMarkdown("id1", "Second default");
+		SecurityEngineUtils.setDefaultEngineMarkdown(user, "id1", "Second default");
 		assertEquals("First default", SecurityEngineUtils
 				.getAggregateEngineMetadata("id1", List.of(Constants.MARKDOWN), false).get(Constants.MARKDOWN));
 
-		SecurityEngineUtils.updateEngineMetadata("id1", Map.of(Constants.MARKDOWN, ""));
-		SecurityEngineUtils.setDefaultEngineMarkdown("id1", "Replacement default");
+		SecurityEngineUtils.updateEngineMetadata(user, "id1", Map.of(Constants.MARKDOWN, ""));
+		SecurityEngineUtils.setDefaultEngineMarkdown(user, "id1", "Replacement default");
 		assertEquals("Replacement default", SecurityEngineUtils
 				.getAggregateEngineMetadata("id1", List.of(Constants.MARKDOWN), false).get(Constants.MARKDOWN));
 	}
@@ -435,7 +434,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		updatesMap.put("engineType", IEngine.CATALOG_TYPE.DATABASE);
 		updatesMap.put("permission", "EDIT");
 		updates.add(updatesMap);
-		SecurityEngineUtils.updateEngineUserPermissions(user, updates);
+		syncEnginePermissions(user, updates);
 
 		UnitTestSecurityAuthUtils.createUser("second", false);
 		List<Map<String, String>> requests = new ArrayList<>();
@@ -517,7 +516,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		updatesMap.put("engineType", IEngine.CATALOG_TYPE.DATABASE);
 		updatesMap.put("permission", "EDIT");
 		updates.add(updatesMap);
-		SecurityEngineUtils.updateEngineUserPermissions(user, updates);
+		syncEnginePermissions(user, updates);
 
 		List<String> requestIds = new ArrayList<>();
 
@@ -924,7 +923,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
 
-		SecurityEngineUtils.deleteEngine("testId");
+		SecurityEngineUtils.deleteEngine(user, "testId");
 
 		assertFalse(SecurityEngineUtils.engineExists("testId"));
 		assertFalse(SecurityEngineUtils.userIsOwner(user, "testId"));
@@ -944,7 +943,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		saveLimit(ModelUsageLimitKey.publicUse("testId"), tokensADay(10));
 		saveLimit(ModelUsageLimitKey.direct("otherId", "adminid", null), tokensADay(100));
 
-		SecurityEngineUtils.deleteEngine("testId");
+		SecurityEngineUtils.deleteEngine(user, "testId");
 
 		assertTrue(SecurityModelUsageLimitUtils.getEngineLimits("testId").isEmpty());
 		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("otherId", "adminid", null)));
@@ -1084,20 +1083,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		assertFalse(SecurityEngineUtils.engineIsGlobal("testId"));
 		SecurityEngineUtils.setEngineGlobal(user, "testId", true);
-		assertTrue(SecurityEngineUtils.engineIsGlobal("testId"));
-	}
-
-	///
-	/// setEngineCompletelyGlobal
-	///
-
-	@Test
-	void testSetEngineCompletelyGlobal() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
-
-		assertFalse(SecurityEngineUtils.engineIsGlobal("testId"));
-		SecurityEngineUtils.setEngineCompletelyGlobal("testId");
 		assertTrue(SecurityEngineUtils.engineIsGlobal("testId"));
 	}
 
@@ -1260,7 +1245,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		Map<String, Object> meta = Map.of("domain", "value1", "description", List.of("list1", "list2"), "markdown",
 				"#title");
-		SecurityEngineUtils.updateEngineMetadata("testId", meta);
+		SecurityEngineUtils.updateEngineMetadata(user, "testId", meta);
 
 		Map<String, Object> ret = SecurityEngineUtils.getAggregateEngineMetadata("testId",
 				List.of("domain", "description"), true);
@@ -1422,7 +1407,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		Map<String, Object> meta = Map.of("domain", "value1", "description", List.of("list1", "list2"), "markdown",
 				"#title");
-		SecurityEngineUtils.updateEngineMetadata("testId", meta);
+		SecurityEngineUtils.updateEngineMetadata(user, "testId", meta);
 
 		List<Map<String, Object>> metadata = SecurityEngineUtils.getAvailableMetaValues(List.of("testId"),
 				List.of("domain"));
@@ -1524,7 +1509,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		Map<String, Object> meta = Map.of("domain", "value1", "description", List.of("list1", "list2"), "markdown",
 				"#title");
-		SecurityEngineUtils.updateEngineMetadata("testId2", meta);
+		SecurityEngineUtils.updateEngineMetadata(user2, "testId2", meta);
 
 		List<Map<String, Object>> vals = SecurityEngineUtils.getUserDiscoverableEngineList(user,
 				List.of("DATABASE", "FUNCTION"), List.of("testId", "testId2"), Map.of("domain", "value1"), null, "0",
@@ -1583,7 +1568,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		updatesMap.put("engineType", IEngine.CATALOG_TYPE.MODEL);
 		updatesMap.put("permission", "READ_ONLY");
 		updates.add(updatesMap);
-		SecurityEngineUtils.updateEngineUserPermissions(user, updates);
+		syncEnginePermissions(user, updates);
 
 		assertEquals(AccessPermissionEnum.READ_ONLY.getId(),
 				SecurityEngineUtils.getUserEnginePermission("adminid", "keptId"));
@@ -1601,7 +1586,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		List<Map<String, Object>> updates = new ArrayList<>();
 		updates.add(loginSyncGrant("newId", "EDIT"));
-		List<Map<String, Object>> added = SecurityEngineUtils.updateEngineUserPermissions(user, updates);
+		List<Map<String, Object>> added = syncEnginePermissions(user, updates);
 
 		assertEquals(1, added.size());
 		assertEquals("newId", added.getFirst().get("engineId"));
@@ -1624,7 +1609,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		addCheck("SYNC_FAIL", "ENGINEPERMISSION", "ENGINEID <> 'rejectId'");
 		try {
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-					() -> SecurityEngineUtils.updateEngineUserPermissions(user, updates));
+					() -> syncEnginePermissions(user, updates));
 			assertEquals("An error occurred while updating the user engine permissions in db ", e.getMessage());
 		} finally {
 			dropCheck("SYNC_FAIL", "ENGINEPERMISSION");
@@ -1944,4 +1929,22 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 				QueryExecutionUtility.NO_PARAMETERS);
 	}
 
+	/**
+	 * Replaces a person's engine permissions the way the platform's own permission
+	 * sync does, inside a platform operation.
+	 */
+	private static List<Map<String, Object>> syncEnginePermissions(User user, List<Map<String, Object>> updates)
+			throws Exception {
+		try (PlatformOperation operation = PlatformOperation.begin("test permission sync")) {
+			return SecurityEngineUtils.updateEngineUserPermissions(user, updates);
+		}
+	}
+
+	@Test
+	void testUpdateEngineUserPermissions_onlyThePlatformReplacesThem() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+
+		assertThrows(IllegalArgumentException.class,
+				() -> SecurityEngineUtils.updateEngineUserPermissions(user, new ArrayList<>()));
+	}
 }

@@ -133,7 +133,7 @@ public class SetInsightCacheableReactor extends AbstractInsightReactor {
 		logger.info("1) Done");
 
 		logger.info("2) Updating insight in index");
-		SecurityInsightUtils.updateInsightCache(projectId, existingId, cache, cacheMinutes, cacheCron, cachedOn,
+		SecurityInsightUtils.updateInsightCache(this.insight.getUser(), projectId, existingId, cache, cacheMinutes, cacheCron, cachedOn,
 				cacheEncrypt);
 		logger.info("2) Done");
 

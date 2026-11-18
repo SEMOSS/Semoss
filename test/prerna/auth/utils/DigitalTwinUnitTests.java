@@ -96,7 +96,7 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 			UnitTestSecurityAuthUtils.addPermissionsToUserForProject(owner, projectId, "editorid", "EDIT");
 			UnitTestSecurityAuthUtils.addPermissionsToUserForProject(owner, projectId, "readerid", "READ_ONLY");
 		}
-		SecurityProjectUtils.markDigitalTwin(TWIN_ID);
+		SecurityProjectUtils.markDigitalTwin(owner, TWIN_ID);
 		UnitTestSecurityAuthUtils.createGroup(admin, GROUP_ID, CUSTOM);
 	}
 
@@ -113,10 +113,10 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		assertFalse(SecurityProjectUtils.isDigitalTwin(PLAIN_ID));
 
 		// what an uploaded project's metadata file, or a metadata reactor, would send
-		SecurityProjectUtils.updateProjectMetadata(TWIN_ID,
+		SecurityProjectUtils.updateProjectMetadata(owner, TWIN_ID,
 				Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, List.of(), "tag", List.of("kept")));
-		SecurityProjectUtils.updateProjectMetadata(TWIN_ID, Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "false"));
-		SecurityProjectUtils.updateProjectMetadata(PLAIN_ID, Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
+		SecurityProjectUtils.updateProjectMetadata(owner, TWIN_ID, Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "false"));
+		SecurityProjectUtils.updateProjectMetadata(owner, PLAIN_ID, Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
 
 		assertTrue(SecurityProjectUtils.isDigitalTwin(TWIN_ID));
 		assertFalse(SecurityProjectUtils.isDigitalTwin(PLAIN_ID));

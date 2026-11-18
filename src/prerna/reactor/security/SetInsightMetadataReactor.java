@@ -53,10 +53,6 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 		String projectId = this.getProject();
 		String insightId = this.getRdbmsId();
 
-		if (!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, insightId)) {
-			throw new IllegalArgumentException("Insight does not exist or user does not have access to edit");
-		}
-
 		Map<String, Object> metadata = getMetaMap();
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityInsightUtils.getAllMetakeys();
@@ -64,7 +60,7 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
 
-		SecurityInsightUtils.updateInsightMetadata(projectId, insightId, metadata);
+		SecurityInsightUtils.updateInsightMetadata(this.insight.getUser(), projectId, insightId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the insight"));

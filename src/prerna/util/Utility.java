@@ -949,7 +949,8 @@ public final class Utility {
 					// so if a different thread was waiting for the project to load,
 					// it doesn't go through this process again
 					if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
-						return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+						return EngineProxyFactory
+								.createGuardedProject((IProject) DIHelper.getInstance().getProjectProperty(projectId));
 					}
 
 					// If in a clustered environment, then pull the project first

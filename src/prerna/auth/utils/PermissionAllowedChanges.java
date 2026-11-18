@@ -63,12 +63,13 @@ final class PermissionAllowedChanges {
 	/** Why the user cannot change which teams have access */
 	private String teamsReason;
 	/**
-	 * Whether the user can change which apps have access to an engine, for their
-	 * custom reactors to use: only its owners can, and anyone in admin mode
+	 * Whether the user can change which apps and engines have access to an engine,
+	 * for an app's custom reactors or another engine's own code to use: only its
+	 * owners can, and anyone in admin mode
 	 */
-	private boolean canChangeProjects;
-	/** Why the user cannot change which apps have access */
-	private String projectsReason;
+	private boolean canChangeEngines;
+	/** Why the user cannot change which apps and engines have access */
+	private String enginesReason;
 	/**
 	 * The access levels whose usage limits the user may change on a model, by name:
 	 * every level for owners, none for anyone else, since only owners set usage
@@ -143,20 +144,20 @@ final class PermissionAllowedChanges {
 		this.teamsReason = teamsReason;
 	}
 
-	boolean canChangeProjects() {
-		return canChangeProjects;
+	boolean canChangeEngines() {
+		return canChangeEngines;
 	}
 
-	void setCanChangeProjects(boolean canChangeProjects) {
-		this.canChangeProjects = canChangeProjects;
+	void setCanChangeEngines(boolean canChangeEngines) {
+		this.canChangeEngines = canChangeEngines;
 	}
 
-	String getProjectsReason() {
-		return projectsReason;
+	String getEnginesReason() {
+		return enginesReason;
 	}
 
-	void setProjectsReason(String projectsReason) {
-		this.projectsReason = projectsReason;
+	void setEnginesReason(String enginesReason) {
+		this.enginesReason = enginesReason;
 	}
 
 	/**

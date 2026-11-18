@@ -54,6 +54,7 @@ public class ModelEngineInferenceLogsWorkerBillingUnitTests {
 		AbstractModelEngine engine = mock(AbstractModelEngine.class);
 		when(engine.getSmssProp()).thenReturn(new CaseInsensitiveProperties());
 		when(engine.getCatalogSubType(any())).thenReturn("OPEN_AI");
+		when(engine.getCatalogSubType()).thenReturn("OPEN_AI");
 		when(engine.getEngineId()).thenReturn("engine-id");
 		when(engine.keepInputOutput()).thenReturn(false);
 		User user = mock(User.class);

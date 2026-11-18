@@ -106,7 +106,7 @@ class AddDigitalTwinReactorUnitTests {
 		// made as any agent is: a private workspace project
 		projects.verify(() -> ProjectHelper.createWorkspaceProject(eq(twinId), eq("My Twin"),
 				eq(IProject.PROJECT_TYPE.WORKSPACE), eq(false), isNull(), isNull(), eq(user), any()));
-		security.verify(() -> SecurityProjectUtils.markDigitalTwin(twinId));
+		security.verify(() -> SecurityProjectUtils.markDigitalTwin(any(), eq(twinId)));
 	}
 
 	@Test
@@ -128,7 +128,7 @@ class AddDigitalTwinReactorUnitTests {
 			String twinId = (String) created.getValue();
 			projects.verify(() -> ProjectHelper.createWorkspaceProject(eq(twinId), any(),
 					eq(IProject.PROJECT_TYPE.WORKSPACE), eq(false), isNull(), isNull(), eq(user), any()));
-			security.verify(() -> SecurityProjectUtils.markDigitalTwin(twinId));
+			security.verify(() -> SecurityProjectUtils.markDigitalTwin(any(), eq(twinId)));
 		}
 	}
 
@@ -140,7 +140,7 @@ class AddDigitalTwinReactorUnitTests {
 		NounMetadata failed = twinNamed("My Twin").execute();
 
 		assertEquals(PixelDataType.ERROR, failed.getNounType());
-		security.verify(() -> SecurityProjectUtils.markDigitalTwin(any()), never());
+		security.verify(() -> SecurityProjectUtils.markDigitalTwin(any(), any()), never());
 	}
 
 	@Test

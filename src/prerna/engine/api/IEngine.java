@@ -30,11 +30,14 @@ package prerna.engine.api;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.logging.IgnoreEngineLogging;
+import prerna.util.Constants;
+import prerna.util.InternalUtility;
 
 public interface IEngine extends Closeable {
 
@@ -47,6 +50,11 @@ public interface IEngine extends Closeable {
 	String MODEL_METADATA_FILE_SUFFIX = "_modelmetadata.json";
 
 	String PIPELINE = "PIPELINE";
+
+	/**
+	 * The settings an editor may change with {@link #updateSetting(String, String)}
+	 */
+	Set<String> SETTINGS_EDITORS_CHANGE = Set.of(PIPELINE, Constants.MCP_ENABLED);
 
 	enum CATALOG_TYPE {
 		DATABASE, STORAGE, MODEL, VECTOR, FUNCTION, GUARDRAIL,
@@ -123,7 +131,7 @@ public interface IEngine extends Closeable {
 	 *                     connection details
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void open(String smssFilePath) throws Exception;
 
 	/**
@@ -137,8 +145,48 @@ public interface IEngine extends Closeable {
 	 *                 the engine connection details
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void open(Properties smssProp) throws Exception;
+
+	/**
+	 * Closes the engine and opens it again from its own smss file, so changes saved
+	 * to the file take effect. It takes no path, so a caller never picks the file
+	 * the engine opens from.
+	 *
+	 * @throws Exception if the engine cannot be opened again
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
+	default void reload() throws Exception {
+		String smssFilePath = getSmssFilePath();
+		close();
+		open(smssFilePath);
+	}
+
+	/**
+	 * Saves one setting an editor may change, such as {@link #PIPELINE} or
+	 * {@link Constants#MCP_ENABLED}, to the engine's smss file and its open
+	 * settings. Every other setting is changed by an owner, through the smss.
+	 *
+	 * @param key   the setting, one of {@link #SETTINGS_EDITORS_CHANGE}
+	 * @param value its new value
+	 * @throws IOException              if the smss file cannot be written
+	 * @throws IllegalArgumentException if the setting is not one an editor may
+	 *                                  change
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
+	default void updateSetting(String key, String value) throws IOException {
+		if (key == null || !SETTINGS_EDITORS_CHANGE.contains(key)) {
+			throw new IllegalArgumentException(
+					"Only the engine's owners can change the setting " + key + ", through its smss");
+		}
+		InternalUtility.changePropertiesFileValue(getSmssFilePath(), key, value);
+		Properties smssProp = getSmssProp();
+		if (smssProp != null) {
+			smssProp.setProperty(key, value);
+		}
+	}
 
 	/**
 	 * 
@@ -153,26 +201,40 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	String getSmssFilePath();
 
 	/**
 	 * Sets the properties object
-	 * 
+	 *
 	 * @param prop
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setSmssProp(Properties smssProp);
 
 	/**
-	 * Return the prop file
-	 * 
-	 * @return
+	 * Returns the engine's settings, secrets included, so only its owners read
+	 * them. Code that needs one setting uses the getter for it, such as
+	 * {@link #getCatalogSubType()} or {@link #getPipelineFile()}.
+	 *
+	 * @return the engine's settings
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	Properties getSmssProp();
+
+	/**
+	 * The name of the engine's pipeline file, its {@link #PIPELINE} setting.
+	 *
+	 * @return the pipeline file name, or null when the engine has none
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getPipelineFile() {
+		Properties smssProp = getSmssProp();
+		return smssProp == null ? null : smssProp.getProperty(PIPELINE);
+	}
 
 	/**
 	 * Get the original prop file content - w/o additional alterations during
@@ -182,7 +244,7 @@ public interface IEngine extends Closeable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	Properties getOrigSmssProp();
 
 	/**
@@ -200,6 +262,18 @@ public interface IEngine extends Closeable {
 	@IgnoreEngineLogging
 	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getCatalogSubType(Properties smssProp);
+
+	/**
+	 * The engine's catalog subtype, such as a model's brand, read from its own
+	 * settings.
+	 *
+	 * @return the subtype, or null when the engine has none
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getCatalogSubType() {
+		return getCatalogSubType(getSmssProp());
+	}
 
 	/**
 	 * Deletes the engine and any stored configuration

@@ -135,8 +135,8 @@ public final class OpenShellSecrets {
 	 */
 	public static void ensureForProject(OpenShellTransport transport, String projectId) {
 		IProject project = Utility.getProject(projectId);
-		if (project != null && project.getSmssProp() != null) {
-			ensureForProject(transport, projectId, project.getSmssProp());
+		if (project != null) {
+			ensureForProject(transport, projectId, project.getSandboxSecretSettings());
 		}
 	}
 

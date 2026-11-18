@@ -50,6 +50,18 @@ public interface IStorageEngine extends IEngine {
 	StorageTypeEnum getStorageType();
 
 	/**
+	 * The bucket the storage keeps its files in, for the kinds of storage that
+	 * have one, such as S3 or Google Cloud Storage.
+	 *
+	 * @return the bucket name, or null when the storage has no bucket
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getBucketName() {
+		return null;
+	}
+
+	/**
 	 * 
 	 * @param path
 	 * @return

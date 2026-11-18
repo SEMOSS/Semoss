@@ -74,7 +74,8 @@ public class DownloadProjectInsightsReactor extends AbstractReactor {
 
 		File insightsFile = null;
 		try {
-			insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, this.insight.getInsightFolder());
+			insightsFile = SecurityProjectUtils.createInsightsDatabase(this.insight.getUser(), projectId,
+					this.insight.getInsightFolder());
 		} catch (Exception e) {
 			classLogger.error("Failed to generate the insights database of project {} for download", projectId, e);
 			throw new IllegalArgumentException(

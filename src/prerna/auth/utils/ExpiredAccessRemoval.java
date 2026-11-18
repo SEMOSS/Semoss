@@ -58,10 +58,10 @@ import prerna.util.Utility;
 
 /**
  * Removes access whose end date has passed, from every table that keeps one: a
- * person's, a team's and an app's access to an engine, a person's and a team's
- * access to a project or an insight, and a person's place in a custom team. A
- * removal takes the grant's usage limit with it, and the audit trail records it
- * as ended, with SEMOSS as the actor.
+ * person's, a team's, an app's and another engine's access to an engine, a
+ * person's and a team's access to a project or an insight, and a person's place
+ * in a custom team. A removal takes the grant's usage limit with it, and the
+ * audit trail records it as ended, with SEMOSS as the actor.
  *
  * <p>
  * Every server sweeps the tables once a minute, starting at a random point in
@@ -93,8 +93,11 @@ public final class ExpiredAccessRemoval {
 		USER_ON_ENGINE("ENGINEPERMISSION", true, "ENGINEID", "USERID"),
 		/** A team's access to an engine: engine id, team id, team type */
 		TEAM_ON_ENGINE("GROUPENGINEPERMISSION", true, "ENGINEID", "ID", "TYPE"),
-		/** An app's access to an engine: engine id, project id */
-		APP_ON_ENGINE("PROJECTENGINEPERMISSION", true, "ENGINEID", "PROJECTID"),
+		/**
+		 * An app's or another engine's access to an engine: engine id, the grantee's
+		 * id, its catalog type
+		 */
+		ENGINE_ON_ENGINE("ENGINE2ENGINEPERMISSION", true, "ENGINEID", "GRANTEEENGINEID", "GRANTEEENGINETYPE"),
 		/** A person's access to a project: project id, user id */
 		USER_ON_PROJECT("PROJECTPERMISSION", true, "PROJECTID", "USERID"),
 		/** A team's access to a project: project id, team id, team type */
@@ -147,7 +150,8 @@ public final class ExpiredAccessRemoval {
 	public static void startSchedule() {
 		if (SCHEDULED.compareAndSet(false, true)) {
 			long first = TICK.toSeconds() + ThreadLocalRandom.current().nextLong(TICK.toSeconds() + 1);
-			SCHEDULE.scheduleWithFixedDelay(ExpiredAccessRemoval::runScheduledSweep, first, TICK.toSeconds(), TimeUnit.SECONDS);
+			SCHEDULE.scheduleWithFixedDelay(ExpiredAccessRemoval::runScheduledSweep, first, TICK.toSeconds(),
+					TimeUnit.SECONDS);
 		}
 	}
 
@@ -278,8 +282,8 @@ public final class ExpiredAccessRemoval {
 		case USER_ON_ENGINE -> SecurityModelUsageLimitUtils.deleteDirectLimits(connection, key.get(0), key.get(1));
 		case TEAM_ON_ENGINE -> SecurityModelUsageLimitUtils.setLimit(connection,
 				ModelUsageLimitKey.team(key.get(0), key.get(1), key.get(2)), null, null);
-		case APP_ON_ENGINE -> SecurityModelUsageLimitUtils.setLimit(connection,
-				ModelUsageLimitKey.app(key.get(0), key.get(1)), null, null);
+		case ENGINE_ON_ENGINE -> SecurityModelUsageLimitUtils.setLimit(connection,
+				ModelUsageLimitKey.grantee(key.get(0), key.get(1), key.get(2)), null, null);
 		default -> {
 		}
 		}
@@ -287,9 +291,10 @@ public final class ExpiredAccessRemoval {
 
 	/**
 	 * Reads the usage limits on a grant to a model, before the grant is removed,
-	 * for the audit trail: a person's Direct Limits, a team's Team Limit or an
-	 * app's App Limit. A grant to a project or an insight has none, and a read that
-	 * fails gives none, so it never stops the removal.
+	 * for the audit trail: a person's Direct Limits, a team's Team Limit, or an
+	 * app's App Limit or an engine's Engine Limit. A grant to a project or an
+	 * insight has none, and a read that fails gives none, so it never stops the
+	 * removal.
 	 *
 	 * @param table the table the grant is in
 	 * @param key   the grant's key, the engine id first
@@ -299,7 +304,7 @@ public final class ExpiredAccessRemoval {
 		ModelUsageLimitKey.Type type = switch (table) {
 		case USER_ON_ENGINE -> ModelUsageLimitKey.Type.USER;
 		case TEAM_ON_ENGINE -> ModelUsageLimitKey.Type.TEAM;
-		case APP_ON_ENGINE -> ModelUsageLimitKey.Type.PROJECT;
+		case ENGINE_ON_ENGINE -> ModelUsageLimitKey.Type.ENGINE;
 		default -> null;
 		};
 		if (type == null) {
@@ -307,7 +312,8 @@ public final class ExpiredAccessRemoval {
 		}
 		String engineId = key.get(0);
 		String subjectId = key.get(1);
-		String subjectType = table == AccessTable.TEAM_ON_ENGINE ? key.get(2) : null;
+		String subjectType = table == AccessTable.TEAM_ON_ENGINE || table == AccessTable.ENGINE_ON_ENGINE ? key.get(2)
+				: null;
 		Map<ModelUsageLimitKey, ModelUsageLimit> limits = new LinkedHashMap<>();
 		try {
 			SecurityModelUsageLimitUtils.getEngineLimits(engineId).forEach((limitKey, limit) -> {
@@ -327,9 +333,9 @@ public final class ExpiredAccessRemoval {
 	/**
 	 * Records access SEMOSS removed because its end date passed, with SEMOSS as the
 	 * actor: Access Ended on the engine, project or insight, naming the person,
-	 * team or app that had it and the level it gave, or a team member removed for a
-	 * place in a custom team. A failure to record is logged, since the access is
-	 * already removed.
+	 * team, app or engine that had it and the level it gave, or a team member
+	 * removed for a place in a custom team. A failure to record is logged, since
+	 * the access is already removed.
 	 *
 	 * @param table   the table the access was in
 	 * @param key     the values of the table's key columns, in their order
@@ -345,7 +351,7 @@ public final class ExpiredAccessRemoval {
 					.action(UserAuditTrailUtils.PERMISSION_EXPIRED_ACTION).status(AuditStatus.SUCCESS).systemActor();
 			Map<String, Object> details = new LinkedHashMap<>();
 			switch (table) {
-			case USER_ON_ENGINE, TEAM_ON_ENGINE, APP_ON_ENGINE ->
+			case USER_ON_ENGINE, TEAM_ON_ENGINE, ENGINE_ON_ENGINE ->
 				event.target(SecurityEngineUtils.getAuditTargetType(key.get(0)), key.get(0), null).context(null,
 						key.get(0), null, null);
 			case USER_ON_PROJECT, TEAM_ON_PROJECT ->
@@ -371,7 +377,10 @@ public final class ExpiredAccessRemoval {
 				details.put("groupId", key.get(2));
 				details.put("groupType", key.get(3));
 			}
-			case APP_ON_ENGINE -> details.put("granteeProjectId", key.get(1));
+			case ENGINE_ON_ENGINE -> {
+				details.put("granteeEngineId", key.get(1));
+				details.put("granteeEngineType", key.get(2));
+			}
 			case MEMBER_OF_TEAM -> {
 				event.subject(key.get(1), key.get(2), null);
 				details.put("groupType", SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE);

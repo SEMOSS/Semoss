@@ -33,20 +33,30 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityShareSessionUtils;
+import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.SandboxedClassLoading;
 
 public class GetShareAuthTokenReactor extends AbstractReactor {
 	
 	private static final Logger classLogger = LogManager.getLogger(GetShareAuthTokenReactor.class);
 
+	/**
+	 * Creates the token for the signed in user's session. A token lets its holder
+	 * act as the user, so it is created only on the user's own request and never
+	 * while a project's custom code is acting.
+	 */
 	@Override
 	public NounMetadata execute() {
+		if (SandboxedClassLoading.projectCodeIsOnTheStack()) {
+			throw new SecurityException("A share token is created on the user's own request, not by a custom reactor");
+		}
 		String token;
 		try {
-			token = SecurityShareSessionUtils.createAuthToken(this.insight.getUser(), getSessionId(), getRouteId());
+			token = SecurityShareSessionUtils.createAuthToken(this.insight.getUser(), ThreadStore.getSessionId(), getRouteId());
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
