@@ -41,7 +41,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,9 +61,11 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.owl.AbstractOWLEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -434,17 +435,14 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 			if (Boolean.TRUE.equals(options.get("includeModelSmssInfo"))) {
 				try {
-					Properties modelInfo = modelEngine.getOrigSmssProp();
-
 					Map<String, Object> filteredInfo = new LinkedHashMap<>();
-
-					String[] keys = { "MODEL", "MODEL_TYPE" };
-
-					for (String k : keys) {
-						String val = modelInfo.getProperty(k);
-						if (val != null) {
-							filteredInfo.put(k, val);
-						}
+					String modelName = modelEngine.getModelName();
+					if (modelName != null) {
+						filteredInfo.put("MODEL", modelName);
+					}
+					ModelTypeEnum modelType = modelEngine.getModelType();
+					if (modelType != null) {
+						filteredInfo.put("MODEL_TYPE", modelType.name());
 					}
 
 					input.put("modelSmssInfo", filteredInfo);
@@ -459,15 +457,15 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		else if (engine.getCatalogType() == IEngine.CATALOG_TYPE.FUNCTION) {
 			if (Boolean.TRUE.equals(options.get("includeFunctionSmssInfo"))) {
 				try {
-					Properties funcSmssInfo = engine.getOrigSmssProp();
+					IFunctionEngine functionEngine = Utility.getFunctionEngine(engineId);
 					Map<String, Object> filteredInfo = new LinkedHashMap<>();
-
-					String[] keys = { "FUNCTION_DESCRIPTION", "FUNCTION_TYPE" };
-					for (String k : keys) {
-						String val = funcSmssInfo.getProperty(k);
-						if (val != null) {
-							filteredInfo.put(k, val);
-						}
+					String functionDescription = functionEngine.getFunctionDescription();
+					if (functionDescription != null) {
+						filteredInfo.put(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
+					}
+					String functionType = functionEngine.getFunctionType();
+					if (functionType != null) {
+						filteredInfo.put(IFunctionEngine.FUNCTION_TYPE, functionType);
 					}
 
 					input.put("funcSmssInfo", filteredInfo);

@@ -48,6 +48,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.om.ThreadStore;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -128,8 +129,8 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 
 		// init r tables for use between methods
-		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
-		String rSessionJoinTable = "JoinTable" + this.getSessionId().substring(0, 10);
+		String rSessionTable = "NaturalLangTable" + ThreadStore.getSessionId().substring(0, 10);
+		String rSessionJoinTable = "JoinTable" + ThreadStore.getSessionId().substring(0, 10);
 
 		// source the proper script
 		StringBuilder sb = new StringBuilder();

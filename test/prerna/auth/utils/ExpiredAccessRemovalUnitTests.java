@@ -44,6 +44,8 @@ import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import com.google.gson.JsonObject;
 
@@ -70,6 +72,7 @@ class ExpiredAccessRemovalUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 
 	private static final String MODEL_ID = "claimsmodel";
 	private static final String APP_ID = "claimsapp";
+	private static final List<String> GRANTEE_COLUMNS = List.of("ENGINEID", "GRANTEEENGINEID", "GRANTEEENGINETYPE");
 
 	private IRDBMSEngine securityDb;
 	private List<String> tables = new ArrayList<>();
@@ -134,13 +137,16 @@ class ExpiredAccessRemovalUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 
 	/**
 	 * An ended grant names who had it: the person as the subject, the team by its
-	 * id and type, and the app by its project id, with the level each had.
+	 * id and type, and the app or engine by its id and catalog type, with the
+	 * level each had.
 	 */
 	@Test
 	void anEndedGrantNamesWhoHadItAndTheLevel() throws Exception {
 		insert(AccessTable.USER_ON_ENGINE, "person", past());
 		insert(AccessTable.TEAM_ON_ENGINE, "team", past());
-		insert(AccessTable.APP_ON_ENGINE, "app", past());
+		insert(AccessTable.ENGINE_ON_ENGINE, "app", past());
+		insertRow(AccessTable.ENGINE_ON_ENGINE.tableName(), GRANTEE_COLUMNS, List.of("db", "vector-db", "VECTOR"), true,
+				past());
 		List<JsonObject> events = new ArrayList<>();
 
 		withAudit(events, ExpiredAccessRemoval::removeAllEndedAccess);
@@ -150,32 +156,36 @@ class ExpiredAccessRemovalUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 		assertEquals("EDIT", person.getAsJsonObject("oldValueRaw").get("permission").getAsString());
 		JsonObject team = eventFor(events, "groupId", "team");
 		assertEquals("CUSTOM", team.getAsJsonObject("detailsRaw").get("groupType").getAsString());
-		assertEquals("app", eventFor(events, "granteeProjectId", "app").getAsJsonObject("detailsRaw")
-				.get("granteeProjectId").getAsString());
+		assertEquals("PROJECT", eventFor(events, "granteeEngineId", "app").getAsJsonObject("detailsRaw")
+				.get("granteeEngineType").getAsString());
+		assertEquals("VECTOR", eventFor(events, "granteeEngineId", "vector-db").getAsJsonObject("detailsRaw")
+				.get("granteeEngineType").getAsString());
 	}
 
 	/**
-	 * An app's ended permission on a model takes its App Limit with it, and the
-	 * audit trail records the limit removed with the grant.
+	 * An app's or engine's ended permission on a model takes its App Limit or
+	 * Engine Limit with it, and the audit trail records the limit removed with the
+	 * grant.
 	 */
-	@Test
-	void anEndedAppPermissionTakesItsAppLimitWithIt() throws Exception {
-		insertRow("PROJECTENGINEPERMISSION", List.of("ENGINEID", "PROJECTID"), List.of(MODEL_ID, APP_ID), true,
-				past());
-		ModelUsageLimitKey appLimit = ModelUsageLimitKey.app(MODEL_ID, APP_ID);
+	@ParameterizedTest
+	@ValueSource(strings = { "PROJECT", "GUARDRAIL" })
+	void anEndedAppOrEnginePermissionTakesItsLimitWithIt(String granteeType) throws Exception {
+		insertRow(AccessTable.ENGINE_ON_ENGINE.tableName(), GRANTEE_COLUMNS, List.of(MODEL_ID, APP_ID, granteeType),
+				true, past());
+		ModelUsageLimitKey granteeLimit = ModelUsageLimitKey.grantee(MODEL_ID, APP_ID, granteeType);
 		QueryExecutionUtility.write(this.securityDb, connection -> {
-			SecurityModelUsageLimitUtils.setLimit(connection, appLimit, tokensADay(1000), null);
+			SecurityModelUsageLimitUtils.setLimit(connection, granteeLimit, tokensADay(1000), null);
 			return null;
 		});
 		List<JsonObject> events = new ArrayList<>();
 
 		withAudit(events, ExpiredAccessRemoval::removeAllEndedAccess);
 
-		assertFalse(SecurityModelUsageLimitUtils.getEngineLimits(MODEL_ID).containsKey(appLimit));
+		assertFalse(SecurityModelUsageLimitUtils.getEngineLimits(MODEL_ID).containsKey(granteeLimit));
 		JsonObject limit = events.stream().filter(e -> "USAGE_LIMIT_UPDATE".equals(e.get("eventType").getAsString()))
 				.findFirst().orElseThrow();
 		assertTrue(limit.getAsJsonObject("detailsRaw").get("removedWithGrant").getAsBoolean());
-		assertFalse(limit.has("subjectUserId"), "an app's limit names no person");
+		assertFalse(limit.has("subjectUserId"), "an app's or engine's limit names no person");
 	}
 
 	/**
@@ -245,7 +255,7 @@ class ExpiredAccessRemovalUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 				endDate);
 		case TEAM_ON_ENGINE -> insertRow(table.tableName(), List.of("ENGINEID", "ID", "TYPE"),
 				List.of("db", subject, "CUSTOM"), true, endDate);
-		case APP_ON_ENGINE -> insertRow(table.tableName(), List.of("ENGINEID", "PROJECTID"), List.of("db", subject), true,
+		case ENGINE_ON_ENGINE -> insertRow(table.tableName(), GRANTEE_COLUMNS, List.of("db", subject, "PROJECT"), true,
 				endDate);
 		case USER_ON_PROJECT -> insertRow(table.tableName(), List.of("PROJECTID", "USERID"), List.of("app", subject), true,
 				endDate);
@@ -288,7 +298,7 @@ class ExpiredAccessRemovalUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 		String column = switch (table) {
 		case USER_ON_ENGINE, USER_ON_PROJECT, USER_ON_INSIGHT, MEMBER_OF_TEAM -> "USERID";
 		case TEAM_ON_ENGINE, TEAM_ON_PROJECT, TEAM_ON_INSIGHT -> "ID";
-		case APP_ON_ENGINE -> "PROJECTID";
+		case ENGINE_ON_ENGINE -> "GRANTEEENGINEID";
 		};
 		return QueryExecutionUtility.queryList(this.securityDb,
 				"SELECT " + column + " FROM " + table.tableName() + " ORDER BY " + column, ps -> {

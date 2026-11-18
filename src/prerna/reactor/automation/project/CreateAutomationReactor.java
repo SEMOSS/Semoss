@@ -96,7 +96,7 @@ public class CreateAutomationReactor extends AbstractReactor {
 		} catch (RuntimeException e) {
 			classLogger.error("Failed to scaffold automation project '{}' (id {})", projectName, projectId, e);
 			try {
-				cleanupFailedProject(project);
+				cleanupFailedProject(user, project);
 			} catch (RuntimeException cleanupFailure) {
 				e.addSuppressed(cleanupFailure);
 				classLogger.error("Failed to fully clean incomplete automation project '{}'.", projectId,
@@ -114,10 +114,10 @@ public class CreateAutomationReactor extends AbstractReactor {
 		return new NounMetadata(result, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
-	private static void cleanupFailedProject(IProject project) {
+	private static void cleanupFailedProject(User user, IProject project) {
 		String projectId = project.getProjectId();
 		UploadUtilities.removeProjectFromDIHelper(projectId);
-		SecurityProjectUtils.deleteProject(projectId);
+		SecurityProjectUtils.deleteProject(user, projectId);
 		UserTrackingUtils.deleteProject(projectId);
 		try {
 			project.delete();

@@ -171,7 +171,7 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 					if (!engineIds.contains(engine)) {
 						classLogger.info("Deleting the engine {} of type {} from security",
 								Utility.cleanLogString(engine), engineType);
-						SecurityEngineUtils.deleteEngine(engine);
+						SecurityEngineUtils.deleteEngine(null, engine);
 					}
 				}
 			}

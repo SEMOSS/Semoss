@@ -61,11 +61,38 @@ public class ModelUsageLimitPath {
 	public enum StepLimitType {
 		MODEL_TOTAL, DIRECT, TEAM,
 		/**
-		 * The limit on the permission the model gives an app. The step is on a path
-		 * only for a call the app's custom reactors make, and applies to a person with
-		 * no grant of their own and no team's grant on the model.
+		 * The limit on the permission the model gives an app, the App Limit. The step
+		 * is on a path only for a call the app's custom reactors make, and applies to a
+		 * person with no grant of their own and no team's grant on the model.
 		 */
-		APP, PUBLIC, ALL_MODELS, PLATFORM
+		APP,
+		/**
+		 * The limit on the permission the model gives another engine, the Engine Limit.
+		 * The step is on a path only for a call that engine's own code makes, and
+		 * applies as {@link #APP} does.
+		 */
+		ENGINE, PUBLIC, ALL_MODELS, PLATFORM;
+
+		/**
+		 * The step type of the limit on a model's permission for an app or another
+		 * engine.
+		 *
+		 * @param key the grantee's limit key
+		 * @return {@link #APP} for an app, {@link #ENGINE} for an engine
+		 */
+		public static StepLimitType ofGrantee(ModelUsageLimitKey key) {
+			return key.isAppGrantee() ? APP : ENGINE;
+		}
+
+		/**
+		 * Whether the step is the limit on a model's permission for an app or another
+		 * engine.
+		 *
+		 * @return whether the step is {@link #APP} or {@link #ENGINE}
+		 */
+		public boolean isGrantee() {
+			return this == APP || this == ENGINE;
+		}
 	}
 
 	/** Where a step stands */
@@ -97,8 +124,8 @@ public class ModelUsageLimitPath {
 		/** The person has no grant of their own on the model */
 		NO_GRANT,
 		/**
-		 * An app's limit applies only to a person with no grant of their own and no
-		 * team's grant on the model
+		 * An app's or engine's limit applies only to a person with no grant of their
+		 * own and no team's grant on the model
 		 */
 		HAS_GRANT
 	}

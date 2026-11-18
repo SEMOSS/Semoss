@@ -107,6 +107,7 @@ import com.google.gson.GsonBuilder;
 import prerna.auth.AccessToken;
 import prerna.io.connector.antivirus.VirusScannerUtils;
 import prerna.util.Constants;
+import prerna.util.SandboxedClassLoading;
 import prerna.util.SandboxedJavaExecution;
 import prerna.util.Utility;
 
@@ -399,7 +400,7 @@ public final class HttpHelperUtility {
 		 * @return true if the caller is project code
 		 */
 		boolean isProjectCode() {
-			return SandboxedJavaExecution.isProjectClass(this.type);
+			return SandboxedClassLoading.isProjectClass(this.type);
 		}
 	}
 

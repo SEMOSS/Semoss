@@ -86,7 +86,6 @@ import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.StorageTypeEnum;
-import prerna.engine.impl.storage.GoogleCloudStorageEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.util.Constants;
@@ -179,7 +178,7 @@ public class GoogleOCRFunctionEngine extends AbstractFunctionEngine {
 			IStorageEngine storageEngine = Utility.getStorage(this.googleStorageEngineId);
 			if (storageEngine.getStorageType() == StorageTypeEnum.GOOGLE_CLOUD_STORAGE
 					|| storageEngine.getStorageType() == StorageTypeEnum.GOOGLE_CLOUD_STORAGE) {
-				this.bucketName = storageEngine.getSmssProp().getProperty(GoogleCloudStorageEngine.GCS_BUCKET_KEY);
+				this.bucketName = storageEngine.getBucketName();
 			} else {
 				throw new IllegalArgumentException("Storage engine is not an Amazon S3 implementation.");
 			}

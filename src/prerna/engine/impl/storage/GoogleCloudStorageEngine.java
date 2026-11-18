@@ -253,6 +253,11 @@ public class GoogleCloudStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
+	public String getBucketName() {
+		return this.smssProp == null ? null : this.smssProp.getProperty(GCS_BUCKET_KEY);
+	}
+
+	@Override
 	public byte[] readBlobToMemory(String storagePath) throws Exception {
 		Blob blob = this.bucket.get(storagePath);
 		if (blob == null) {

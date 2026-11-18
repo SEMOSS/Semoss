@@ -678,15 +678,29 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Returns the maximum tool name length for the given model engine. Checks
-	 * MAX_TOOL_NAME_CHAR in the engine's SMSS first, then falls back to the
-	 * per-provider default.
+	 * Returns the maximum tool name length for the given model engine, from
+	 * {@link IModelEngine#getMaxToolNameLength()}.
+	 *
+	 * @param modelEngine the model, or null
+	 * @return the longest tool name, in characters
 	 */
 	public static int getMaxToolNameLength(IModelEngine modelEngine) {
 		if (modelEngine == null) {
 			return DEFAULT_MAX_TOOL_NAME_LENGTH;
 		}
-		java.util.Properties smssProp = modelEngine.getSmssProp();
+		return modelEngine.getMaxToolNameLength();
+	}
+
+	/**
+	 * Returns the maximum tool name length for a model from its own settings.
+	 * Checks MAX_TOOL_NAME_CHAR first, then falls back to the per-provider default.
+	 *
+	 * @param smssProp  the model's settings, or null
+	 * @param modelType the model's type, or null
+	 * @param engineId  the model's id, for the log
+	 * @return the longest tool name, in characters
+	 */
+	public static int getMaxToolNameLength(java.util.Properties smssProp, ModelTypeEnum modelType, String engineId) {
 		if (smssProp != null) {
 			String smssValue = smssProp.getProperty(MAX_TOOL_NAME_CHAR);
 			if (smssValue != null && !smssValue.isBlank()) {
@@ -694,11 +708,10 @@ public final class MCPUtility {
 					return Integer.parseInt(smssValue.trim());
 				} catch (NumberFormatException e) {
 					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} - falling back to provider default",
-							MAX_TOOL_NAME_CHAR, smssValue, modelEngine.getEngineId());
+							MAX_TOOL_NAME_CHAR, smssValue, engineId);
 				}
 			}
 		}
-		ModelTypeEnum modelType = modelEngine.getModelType();
 		// OpenAI's Responses API allows 128-char tool names; Chat Completions stays at
 		// 64
 		if (modelType == ModelTypeEnum.OPEN_AI && smssProp != null
@@ -1502,11 +1515,13 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Add the MCP tag to an existing engine (engine and project)
+	 * Add the MCP tag to an existing engine (engine and project). The user needs to
+	 * be able to edit it.
 	 *
-	 * @param engine
+	 * @param user   the signed in user
+	 * @param engine the engine or project
 	 */
-	public static void addMCPTag(IEngine engine) {
+	public static void addMCPTag(User user, IEngine engine) {
 		Map<String, Object> metadata = null;
 		boolean isProject = engine.getCatalogType() == IEngine.CATALOG_TYPE.PROJECT;
 		if (isProject) {
@@ -1531,9 +1546,9 @@ public final class MCPUtility {
 			tags.add("MCP");
 			metadata.put("tag", tags);
 			if (isProject) {
-				SecurityProjectUtils.updateProjectMetadata(engine.getEngineId(), metadata);
+				SecurityProjectUtils.updateProjectMetadata(user, engine.getEngineId(), metadata);
 			} else {
-				SecurityEngineUtils.updateEngineMetadata(engine.getEngineId(), metadata);
+				SecurityEngineUtils.updateEngineMetadata(user, engine.getEngineId(), metadata);
 			}
 		}
 	}

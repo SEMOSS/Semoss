@@ -27,9 +27,7 @@
  *******************************************************************************/
 package prerna.engine.impl.pipeline;
 
-import java.util.Set;
-
-import prerna.util.SandboxedJavaExecution;
+import prerna.util.SandboxedClassLoading;
 
 /**
  * Work the platform does for itself and for no user, such as syncing an
@@ -68,20 +66,15 @@ public final class PlatformOperation implements AutoCloseable {
 
 	private static final ThreadLocal<PlatformOperation> RUNNING = new ThreadLocal<>();
 
-	private static final StackWalker STACK = StackWalker.getInstance(
-			Set.of(StackWalker.Option.RETAIN_CLASS_REFERENCE, StackWalker.Option.SHOW_HIDDEN_FRAMES));
-
 	private final String name;
 	private final Thread thread;
 	private final PlatformOperation outer;
-	private final boolean opened;
 	private boolean closed;
 
-	private PlatformOperation(String name, PlatformOperation outer, boolean opened) {
+	private PlatformOperation(String name, PlatformOperation outer) {
 		this.name = name;
 		this.thread = Thread.currentThread();
 		this.outer = outer;
-		this.opened = opened;
 	}
 
 	/**
@@ -98,12 +91,10 @@ public final class PlatformOperation implements AutoCloseable {
 		if (name == null || name.isBlank()) {
 			throw new IllegalArgumentException("A platform operation needs a name");
 		}
-		PlatformOperation outer = RUNNING.get();
-		if (projectCodeIsOnTheStack()) {
-			return new PlatformOperation(name, outer, false);
+		PlatformOperation operation = new PlatformOperation(name, RUNNING.get());
+		if (!projectCodeIsOnTheStack()) {
+			RUNNING.set(operation);
 		}
-		PlatformOperation operation = new PlatformOperation(name, outer, true);
-		RUNNING.set(operation);
 		return operation;
 	}
 
@@ -113,7 +104,7 @@ public final class PlatformOperation implements AutoCloseable {
 	 */
 	@Override
 	public void close() {
-		if (!this.opened || this.closed || Thread.currentThread() != this.thread) {
+		if (this.closed || Thread.currentThread() != this.thread) {
 			return;
 		}
 		this.closed = true;
@@ -146,7 +137,7 @@ public final class PlatformOperation implements AutoCloseable {
 	 * @return the name of the running operation, or null when none is running or a
 	 *         project's custom code is on the call stack
 	 */
-	static String covering() {
+	public static String covering() {
 		PlatformOperation operation = RUNNING.get();
 		if (operation == null || projectCodeIsOnTheStack()) {
 			return null;
@@ -160,8 +151,7 @@ public final class PlatformOperation implements AutoCloseable {
 	 * @return true when project code is acting, directly or through the platform
 	 */
 	static boolean projectCodeIsOnTheStack() {
-		return STACK.walk(frames -> frames
-				.anyMatch(frame -> SandboxedJavaExecution.isProjectClass(frame.getDeclaringClass())));
+		return SandboxedClassLoading.projectCodeIsOnTheStack();
 	}
 
 }

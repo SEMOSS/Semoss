@@ -37,8 +37,6 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLStreamHandlerFactory;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -544,55 +542,7 @@ public final class SandboxedJavaExecution {
 		throw new SecurityException("System.exit() / Runtime.halt() is not permitted in project reactors");
 	}
 
-	/**
-	 * Sandboxed replacement for {@code Class.forName}: finds the class through the
-	 * sandbox loader of the project class that asked, so the block list applies and
-	 * the project's own classes are found. The three-argument form is reduced to
-	 * this by the bytecode transformer, so a loader the caller passes in is not
-	 * used.
-	 *
-	 * @param className the class name
-	 * @param caller    the project class that asked
-	 * @return the class
-	 * @throws SecurityException      if the class is on the reactor block list
-	 * @throws ClassNotFoundException if the class cannot be found
-	 */
-	public static Class<?> sandboxedForName(String className, Class<?> caller) throws ClassNotFoundException {
-		if (SemossClassLoader.isReflectionApiBlocked(className)) {
-			throw new SecurityException("Class.forName('" + className + "') is not permitted in project reactors");
-		}
-		return Class.forName(className, true, callerLoader(caller));
-	}
-
-	/**
-	 * Sandboxed replacement for {@code ClassLoader.loadClass(String)} on a loader a
-	 * project class holds: applies the block list whichever loader it is.
-	 *
-	 * @param loader    the loader the project class called
-	 * @param className the class name
-	 * @return the class
-	 * @throws SecurityException      if the class is on the reactor block list
-	 * @throws ClassNotFoundException if the class cannot be found
-	 */
-	public static Class<?> sandboxedLoadClass(ClassLoader loader, String className) throws ClassNotFoundException {
-		if (SemossClassLoader.isReflectionApiBlocked(className)) {
-			throw new SecurityException("Loading '" + className + "' is not permitted in project reactors");
-		}
-		return loader.loadClass(className);
-	}
-
-	// ---------------------------------------------------------- Class loaders
-
-	/**
-	 * True for a class a project's sandbox loaded: its custom reactors, the classes
-	 * in its jars and its copies of libraries.
-	 *
-	 * @param candidate a class, or null
-	 * @return true if the class is project code
-	 */
-	public static boolean isProjectClass(Class<?> candidate) {
-		return candidate != null && SemossClassLoader.isSandboxLoader(candidate.getClassLoader());
-	}
+	// ------------------------------------------------------------- Path values
 
 	/**
 	 * A file a project's code is about to use or hand to the JDK, the platform or a
@@ -628,6 +578,69 @@ public final class SandboxedJavaExecution {
 	}
 
 	/**
+	 * A URL a project's code is about to hand to the JDK, the platform or a shared
+	 * library, which would fetch what it names: it has to be a local file, and
+	 * follows the same path rule as {@link #file(String)}. Any other address is
+	 * fetched with HttpHelperUtility, which applies the request lists.
+	 *
+	 * @param url the URL the project holds
+	 * @return the same URL when it names a file inside the user's folder or no
+	 *         folder is set, otherwise the URL of that path inside the user's folder
+	 * @throws SecurityException if the URL names anything but a local file
+	 */
+	public static URL sandboxedUrlValue(URL url) {
+		if (url == null) {
+			return null;
+		}
+		if (!"file".equalsIgnoreCase(url.getProtocol())) {
+			throw new SecurityException("A URL handed to another class in a project reactor has to be a local file; "
+					+ "fetch '" + url.getProtocol() + "' addresses with HttpHelperUtility");
+		}
+		try {
+			String path = new File(url.toURI()).getPath();
+			String sandboxed = sanitize(path);
+			return sandboxed.equals(path) ? url : new File(sandboxed).toURI().toURL();
+		} catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
+			throw new SecurityException("Not a local file: " + url, e);
+		}
+	}
+
+	/**
+	 * The address of a zip or jar file a project's code is about to open as a file
+	 * system, such as {@code jar:file:/data/archive.zip}: the file follows the same
+	 * path rule as {@link #file(String)}.
+	 *
+	 * @param uri the address the project passed
+	 * @return the same address when the file is inside the user's folder or no
+	 *         folder is set, otherwise the address of that path inside the user's
+	 *         folder
+	 * @throws SecurityException if the address names anything but a zip or jar
+	 *                           file on the local disk
+	 */
+	public static URI sandboxedFileSystemUri(URI uri) {
+		if (uri == null) {
+			return null;
+		}
+		String address = uri.toString();
+		int inside = address.indexOf("!/");
+		String archive = inside < 0 ? address : address.substring(0, inside);
+		if (!archive.regionMatches(true, 0, "jar:file:", 0, 9)) {
+			throw new SecurityException(
+					"Only a zip or jar file on the local disk can be opened as a file system in project reactors");
+		}
+		try {
+			String path = new File(URI.create(archive.substring(4))).getPath();
+			String sandboxed = sanitize(path);
+			if (sandboxed.equals(path)) {
+				return uri;
+			}
+			return URI.create("jar:" + new File(sandboxed).toURI() + (inside < 0 ? "" : address.substring(inside)));
+		} catch (IllegalArgumentException e) {
+			throw new SecurityException("Not a zip or jar file on the local disk: " + address, e);
+		}
+	}
+
+	/**
 	 * A path a project's code handed to a platform helper, under the same path rule
 	 * as {@link #file(String)}.
 	 *
@@ -637,196 +650,6 @@ public final class SandboxedJavaExecution {
 	 */
 	public static String sandboxedPath(String path) {
 		return path == null ? null : sanitize(path);
-	}
-
-	/**
-	 * The project a class belongs to: the project of the sandbox loader that loaded
-	 * it, or of the nearest sandbox loader above that one, which covers the loaders
-	 * a project's own code creates.
-	 *
-	 * @param candidate a class, or null
-	 * @return the project id, or null when the class is not project code or its
-	 *         loader belongs to no project
-	 */
-	public static String projectIdOf(Class<?> candidate) {
-		ClassLoader loader = candidate == null ? null : candidate.getClassLoader();
-		while (SemossClassLoader.isSandboxLoader(loader)) {
-			String projectId = null;
-			if (loader instanceof SemossClassLoader projectLoader) {
-				projectId = projectLoader.getProjectId();
-			} else if (loader instanceof SemossJarClassLoader dependencyLoader) {
-				projectId = dependencyLoader.getProjectId();
-			}
-			if (projectId != null) {
-				return projectId;
-			}
-			if (loader != null) {
-				loader = loader.getParent();
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * The sandbox loader that loaded a project class.
-	 *
-	 * @param caller the project class
-	 * @return its loader
-	 * @throws SecurityException if the class was not loaded by the sandbox
-	 */
-	static ClassLoader callerLoader(Class<?> caller) {
-		ClassLoader loader = caller.getClassLoader();
-		if (!SemossClassLoader.isSandboxLoader(loader)) {
-			throw new SecurityException("Class loaders are only available to classes the project sandbox loaded");
-		}
-		return loader;
-	}
-
-	/**
-	 * Stands in for any class loader a project class is handed, such as the result
-	 * of {@code getClassLoader()}, {@code getSystemClassLoader()} or
-	 * {@code getParent()}. A sandbox loader is passed through. Any other loader is
-	 * swapped for the sandbox loader of the project class that asked.
-	 *
-	 * @param candidate the loader the call returned
-	 * @param caller    the project class that asked
-	 * @return a sandbox loader, or null when the call returned null
-	 */
-	public static ClassLoader sandboxLoader(ClassLoader candidate, Class<?> caller) {
-		if (candidate == null || SemossClassLoader.isSandboxLoader(candidate)) {
-			return candidate;
-		}
-		return callerLoader(caller);
-	}
-
-	/**
-	 * Checks a loader a project class cast to a specific loader type, such as
-	 * {@code URLClassLoader}: only a sandbox loader passes.
-	 *
-	 * @param candidate the loader that was cast
-	 * @return the same loader
-	 * @throws SecurityException if the loader is not a sandbox loader
-	 */
-	public static ClassLoader requireSandboxLoader(ClassLoader candidate) {
-		if (candidate != null && !SemossClassLoader.isSandboxLoader(candidate)) {
-			throw new SecurityException("This class loader is not available in project reactors");
-		}
-		return candidate;
-	}
-
-	/**
-	 * Sandboxed replacement for {@code new URLClassLoader(URL[])} and
-	 * {@code URLClassLoader.newInstance(URL[])}: a loader for local jars under the
-	 * sandbox loader of the project class that asked.
-	 *
-	 * @param urls   the local jars and folders
-	 * @param caller the project class that asked
-	 * @return the sandbox loader
-	 */
-	public static URLClassLoader urlClassLoader(URL[] urls, Class<?> caller) {
-		return new SemossProjectJarClassLoader(urls, caller);
-	}
-
-	/**
-	 * Sandboxed replacement for {@code new URLClassLoader(URL[], ClassLoader)} and
-	 * {@code URLClassLoader.newInstance(URL[], ClassLoader)}.
-	 *
-	 * @param urls            the local jars and folders
-	 * @param requestedParent the parent the project class asked for, which is not
-	 *                        used
-	 * @param caller          the project class that asked
-	 * @return the sandbox loader
-	 */
-	public static URLClassLoader urlClassLoader(URL[] urls, ClassLoader requestedParent, Class<?> caller) {
-		return new SemossProjectJarClassLoader(urls, caller);
-	}
-
-	/**
-	 * Sandboxed replacement for
-	 * {@code new URLClassLoader(URL[], ClassLoader, URLStreamHandlerFactory)}.
-	 *
-	 * @param urls             the local jars and folders
-	 * @param requestedParent  the parent the project class asked for, which is not
-	 *                         used
-	 * @param requestedFactory the URL handler factory the project class asked for,
-	 *                         which is not used
-	 * @param caller           the project class that asked
-	 * @return the sandbox loader
-	 */
-	public static URLClassLoader urlClassLoader(URL[] urls, ClassLoader requestedParent,
-			URLStreamHandlerFactory requestedFactory, Class<?> caller) {
-		return new SemossProjectJarClassLoader(urls, caller);
-	}
-
-	/**
-	 * Sandboxed replacement for
-	 * {@code new URLClassLoader(String, URL[], ClassLoader)}.
-	 *
-	 * @param name            the loader's name
-	 * @param urls            the local jars and folders
-	 * @param requestedParent the parent the project class asked for, which is not
-	 *                        used
-	 * @param caller          the project class that asked
-	 * @return the sandbox loader
-	 */
-	public static URLClassLoader urlClassLoader(String name, URL[] urls, ClassLoader requestedParent, Class<?> caller) {
-		return new SemossProjectJarClassLoader(name, urls, requestedParent, caller);
-	}
-
-	/**
-	 * Sandboxed replacement for
-	 * {@code new URLClassLoader(String, URL[], ClassLoader, URLStreamHandlerFactory)}.
-	 *
-	 * @param name             the loader's name
-	 * @param urls             the local jars and folders
-	 * @param requestedParent  the parent the project class asked for, which is not
-	 *                         used
-	 * @param requestedFactory the URL handler factory the project class asked for,
-	 *                         which is not used
-	 * @param caller           the project class that asked
-	 * @return the sandbox loader
-	 */
-	public static URLClassLoader urlClassLoader(String name, URL[] urls, ClassLoader requestedParent,
-			URLStreamHandlerFactory requestedFactory, Class<?> caller) {
-		return new SemossProjectJarClassLoader(name, urls, requestedParent, caller);
-	}
-
-	/**
-	 * The jars and folders a project class asked a loader to read, each checked by
-	 * {@link #sandboxedJarUrl(URL)}.
-	 *
-	 * @param urls the jars and folders
-	 * @return the same locations, under the path rule
-	 */
-	static URL[] sandboxedJarUrls(URL[] urls) {
-		URL[] sandboxed = new URL[urls.length];
-		for (int i = 0; i < urls.length; i++) {
-			sandboxed[i] = sandboxedJarUrl(urls[i]);
-		}
-		return sandboxed;
-	}
-
-	/**
-	 * A jar or folder a project class asked a loader to read. It has to be on the
-	 * local disk, and it follows the same path rule as {@link #file(String)}.
-	 *
-	 * @param url the jar or folder
-	 * @return the same location, under the path rule
-	 * @throws SecurityException if the location is not a local file
-	 */
-	static URL sandboxedJarUrl(URL url) {
-		if (!"file".equalsIgnoreCase(url.getProtocol())) {
-			throw new SecurityException("Only jars and folders on the local disk can be loaded in project reactors");
-		}
-		try {
-			String location = new File(sanitize(Path.of(url.toURI()).toString())).toURI().toString();
-			if (url.getPath().endsWith("/") && !location.endsWith("/")) {
-				location += "/";
-			}
-			return URI.create(location).toURL();
-		} catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
-			throw new SecurityException("Not a local jar or folder: " + e.getMessage(), e);
-		}
 	}
 
 	/**

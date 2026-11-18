@@ -95,14 +95,12 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		logger.info("1) Done");
 
 		logger.info("2) Updating insight in index");
-		SecurityInsightUtils.updateInsightName(projectId, existingId, insightName);
+		SecurityInsightUtils.updateInsightName(this.insight.getUser(), projectId, existingId, insightName);
 		logger.info("2) Done");
 
 		logger.info("3) Update mosfet file for collaboration");
 		updateRecipeFile(logger, project.getProjectId(), project.getProjectName(), existingId, insightName);
 		logger.info("3) Done");
-
-//		ClusterUtil.reactorPushInsightDB(projectId);
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("app_insight_id", existingId);
