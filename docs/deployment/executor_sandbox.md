@@ -183,13 +183,16 @@ plain `ubuntu:24.04` with `/usr/lib/python` copied in from the python-builder im
 (`quay.io/semoss/python-builder:3.14-cpu`, built by `docker/Dockerfile.python` from
 `py/install_config/pyproject.toml` with uv). A `Py()` block therefore gets the same Python and
 the same packages inside the sandbox as outside it. On top of that the image adds git, a uid
-1000 user and this repository's `py/` as the worker.
+10001 user and this repository's `py/` as the worker.
 
 CI publishes it as `quay.io/semoss/semoss-sandbox` from
 `.github/workflows/sandbox-builder.yml`. It rebuilds on any `py/` change on `dev`/`main` and
-after every successful Python Builder run. Tags are `<branch>-<python-builder tag>` (for example
-`dev-3.14-cpu`) plus a `-<short sha>` pin. Each architecture is smoke-tested before anything is
-tagged. Point `OPENSHELL_IMAGE` at one of these tags.
+after every successful Python Builder run. Each architecture is smoke-tested before CI publishes
+a rolling tag such as `dev-3.14-cpu` and a tag with the SEMOSS version and UTC publish date.
+Snapshot tags look like `dev-3.14-cpu-6.1.0-SNAPSHOT-2026-11-18`. With `RELEASE=TRUE`, CI
+publishes a dated release tag such as `main-3.14-cpu-6.1.0-2026-11-18` and a release alias
+such as `3.14-cpu-6.1.0`. Publishing the same branch and version again on the same UTC day
+updates that day's tag. Use the manifest digest in `OPENSHELL_IMAGE` to pin an exact image.
 
 `OPENSHELL_IMAGE` defaults to `quay.io/semoss/semoss-sandbox:dev-3.14-cpu`, so a deployment or
 a workstation that tracks `dev` sets nothing. To try a `py/` change before CI publishes it:
@@ -203,7 +206,17 @@ and set `OPENSHELL_IMAGE semoss-sandbox:dev`. The build context is `py/` itself,
 build carries the checkout's worker, uncommitted edits included. CI runs the same
 `docker/sandbox-smoke-test.sh`, which fails unless the worker tree in the image hashes to the
 source `py/`, the venv python imports the worker under a bare `PATH`, the interpreter is at the
-path the policy names, git is present and the image runs as uid 1000.
+path the policy names, git is present, the image runs as uid 10001 and can write the directories
+a sandbox writes.
+
+### Sandbox identity
+
+The image runs as uid/gid 10001. That is the one value every driver agrees on: the Kubernetes driver
+forces `runAsUser`/`runAsGroup`/`fsGroup` 10001 and ignores the image's `USER`, while Docker and
+Podman run the image's `USER`, so declaring 10001 there gives a workstation and a cluster the same
+identity. Every directory a sandbox writes must be owned by it; a directory owned by another uid
+works on a workstation only if that uid happens to match, and fails on Kubernetes with
+`Permission denied`.
 
 The venv lives at `/usr/lib/python/semossvenv` and the worker is launched by absolute path, because
 **both the environment and the filesystem inside a sandbox belong to the runtime**:
@@ -321,7 +334,7 @@ Nothing has to be built per developer. The home is taken from `BaseFolder` at ru
   `/home` for `/home/me/semoss`), and
 - when the sandbox starts, `OpenShellTransport` creates the home under it as the sandbox user.
 
-Both steps need that root to exist in the image when the sandbox starts, writable by uid 1000:
+Both steps need that root to exist in the image when the sandbox starts, writable by uid 10001:
 uploads run as the sandbox user inside the filesystem policy (measured: `ssh tar extract exited
 with status 1` for a path the image did not have), and the policy can only grant a path that
 exists. `docker/Dockerfile.sandbox` makes `/Users` and `/home` for this. A home under any other
@@ -330,8 +343,8 @@ root needs that root added the same way, for example:
 ```dockerfile
 FROM semoss-sandbox:dev
 USER root
-RUN mkdir -p /data && chown 1000:1000 /data
-USER 1000:1000
+RUN mkdir -p /data && chown 10001:10001 /data
+USER 10001:10001
 ```
 
 If the root is missing, sandbox creation fails with a message saying so, rather than with the
