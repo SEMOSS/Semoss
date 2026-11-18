@@ -163,7 +163,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest 
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		
 		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
 				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class)){
@@ -172,7 +172,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest 
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, embedderModel);
 			embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 			
 			// used in vectorCsvTable.generateAndAssignEmbeddings
 			EmbeddingsModelEngineResponse outputMocked = mock(EmbeddingsModelEngineResponse.class);
@@ -219,8 +219,8 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest 
 			// model embedder properties
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, "embedder_model");
-			embedderProps.setProperty(IModelEngine.MODEL_TYPE, "embedder_model_type");
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			embedderProps.setProperty(IModelEngine.MODEL_TYPE, "OPEN_AI");
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 			IllegalArgumentException e = assertThrows(
 					IllegalArgumentException.class,
@@ -238,7 +238,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest 
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		
 		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
 				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class)){
@@ -247,7 +247,7 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest 
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, embedderModel);
 			embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 			
 			// used in vectorCsvTable.generateAndAssignEmbeddings
 			EmbeddingsModelEngineResponse outputMocked = mock(EmbeddingsModelEngineResponse.class);
@@ -335,8 +335,8 @@ public class OpenSearchRestVectorDatabaseEngineUnitTests extends SemossUnitTest 
 			// model embedder properties
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, "embedder_model");
-			embedderProps.setProperty(IModelEngine.MODEL_TYPE, "embedder_model_type");
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			embedderProps.setProperty(IModelEngine.MODEL_TYPE, "OPEN_AI");
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 			///// all previous statements were for verifyModelProps()
 			
 			// mocking getting embeddings

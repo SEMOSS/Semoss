@@ -61,6 +61,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.impl.model.usage.ModelUsageGuard;
+import prerna.auth.access.EngineGrantee;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.ModelUsageLimitPath;
@@ -600,11 +601,11 @@ class SecurityModelUsageLimitUtilsUnitTests {
 
 	@Test
 	void resolve_aCallAnAppMakesForAPersonWithNoGrantIsBilledToTheAppsLimit() throws Exception {
-		save(ModelUsageLimitKey.app(MODEL, "claims-app"), tokensADay(100));
+		save(ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), tokensADay(100));
 		save(ModelUsageLimitKey.allModels("jdoe", "NATIVE"), tokensADay(5_000));
 
 		ModelUsageLimitPath path = ModelUsageLimitResolver
-				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, "claims-app");
+				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, EngineGrantee.ofApp("claims-app"));
 
 		assertEquals(StepLimitType.APP, path.getBilledLimitType());
 		assertEquals("claims-app", path.getBillingOrder().get(0).getKey().subjectId());
@@ -616,7 +617,7 @@ class SecurityModelUsageLimitUtilsUnitTests {
 	void resolve_anAppThatDoesNotExistIsRefused() {
 		IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
 				() -> ModelUsageLimitResolver.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL,
-						"no-such-app"));
+						EngineGrantee.ofApp("no-such-app")));
 
 		assertEquals("App no-such-app does not exist", refusal.getMessage());
 	}
@@ -626,7 +627,7 @@ class SecurityModelUsageLimitUtilsUnitTests {
 		save(ModelUsageLimitKey.allModels("jdoe", "NATIVE"), tokensADay(5_000));
 
 		ModelUsageLimitPath path = ModelUsageLimitResolver
-				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, "claims-app");
+				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, EngineGrantee.ofApp("claims-app"));
 
 		assertEquals(StepLimitType.ALL_MODELS, path.getBilledLimitType());
 		assertEquals(State.NOT_DEFINED, step(path, StepLimitType.APP).getState());
@@ -635,11 +636,11 @@ class SecurityModelUsageLimitUtilsUnitTests {
 	@Test
 	void resolve_theAppsLimitComesBeforePublicUse() throws Exception {
 		execute("UPDATE ENGINE SET GLOBAL = TRUE");
-		save(ModelUsageLimitKey.app(MODEL, "claims-app"), tokensADay(100));
+		save(ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), tokensADay(100));
 		save(ModelUsageLimitKey.publicUse(MODEL), tokensADay(50));
 
 		ModelUsageLimitPath path = ModelUsageLimitResolver
-				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, "claims-app");
+				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, EngineGrantee.ofApp("claims-app"));
 
 		assertEquals(StepLimitType.APP, path.getBilledLimitType());
 		assertEquals(State.NOT_REACHED, step(path, StepLimitType.PUBLIC).getState());
@@ -653,7 +654,7 @@ class SecurityModelUsageLimitUtilsUnitTests {
 		save(ModelUsageLimitKey.publicUse(MODEL), tokensADay(50));
 
 		ModelUsageLimitPath path = ModelUsageLimitResolver
-				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, "claims-app");
+				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, EngineGrantee.ofApp("claims-app"));
 
 		assertEquals(StepLimitType.PUBLIC, path.getBilledLimitType());
 		assertEquals(State.NOT_DEFINED, step(path, StepLimitType.APP).getState());
@@ -662,11 +663,11 @@ class SecurityModelUsageLimitUtilsUnitTests {
 	@Test
 	void resolve_anAppsLimitIsSkippedForAPersonWithAGrantOfTheirOwn() throws Exception {
 		addGrant("jdoe");
-		save(ModelUsageLimitKey.app(MODEL, "claims-app"), tokensADay(100));
+		save(ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), tokensADay(100));
 		save(ModelUsageLimitKey.allModels("jdoe", "NATIVE"), tokensADay(5_000));
 
 		ModelUsageLimitPath path = ModelUsageLimitResolver
-				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, "claims-app");
+				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, EngineGrantee.ofApp("claims-app"));
 
 		assertEquals(StepLimitType.ALL_MODELS, path.getBilledLimitType());
 		assertEquals(State.SKIPPED, step(path, StepLimitType.APP).getState());
@@ -677,11 +678,11 @@ class SecurityModelUsageLimitUtilsUnitTests {
 	void resolve_anAppsLimitIsSkippedForAPersonWithATeamsGrant() throws Exception {
 		execute("UPDATE ENGINE SET GLOBAL = TRUE");
 		addTeam("ops", "2026-01-01 00:00:00", "2026-01-01 00:00:00");
-		save(ModelUsageLimitKey.app(MODEL, "claims-app"), tokensADay(100));
+		save(ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), tokensADay(100));
 		save(ModelUsageLimitKey.publicUse(MODEL), tokensADay(50));
 
 		ModelUsageLimitPath path = ModelUsageLimitResolver
-				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, "claims-app");
+				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, EngineGrantee.ofApp("claims-app"));
 
 		assertEquals(StepLimitType.PUBLIC, path.getBilledLimitType());
 		assertEquals(Reason.HAS_GRANT, step(path, StepLimitType.APP).getReason());
@@ -690,7 +691,7 @@ class SecurityModelUsageLimitUtilsUnitTests {
 	@Test
 	void resolve_anAppsLimitIsNotOnAPathForACallNoAppMakes() throws Exception {
 		addGrant("jdoe");
-		save(ModelUsageLimitKey.app(MODEL, "claims-app"), tokensADay(100));
+		save(ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), tokensADay(100));
 
 		ModelUsageLimitPath path = resolveJdoe();
 
@@ -700,10 +701,10 @@ class SecurityModelUsageLimitUtilsUnitTests {
 
 	@Test
 	void resolve_oneAppsLimitIsNotAnotherApps() throws Exception {
-		save(ModelUsageLimitKey.app(MODEL, "claims-app"), tokensADay(100));
+		save(ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), tokensADay(100));
 
 		ModelUsageLimitPath path = ModelUsageLimitResolver
-				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, "another-app");
+				.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL, EngineGrantee.ofApp("another-app"));
 
 		assertEquals(State.NOT_DEFINED, step(path, StepLimitType.APP).getState());
 		assertNull(path.getBilledLimitType());
@@ -711,7 +712,7 @@ class SecurityModelUsageLimitUtilsUnitTests {
 
 	@Test
 	void theGuardKeepsTheAppsPathApartFromThePersonsOwn() throws Exception {
-		save(ModelUsageLimitKey.app(MODEL, "claims-app"), tokensADay(100));
+		save(ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), tokensADay(100));
 		User jdoe = new User();
 		jdoe.setPrimaryLogin(AuthProvider.NATIVE);
 		AccessToken login = new AccessToken();
@@ -720,13 +721,13 @@ class SecurityModelUsageLimitUtilsUnitTests {
 		jdoe.setAccessToken(login);
 
 		ModelUsageLimitPath own = ModelUsageGuard.pathOf(jdoe, MODEL);
-		ModelUsageLimitPath throughTheApp = ModelUsageGuard.pathOf(jdoe, MODEL, "claims-app");
-		ModelUsageLimitPath throughAnotherApp = ModelUsageGuard.pathOf(jdoe, MODEL, "another-app");
+		ModelUsageLimitPath throughTheApp = ModelUsageGuard.pathOf(jdoe, MODEL, EngineGrantee.ofApp("claims-app"));
+		ModelUsageLimitPath throughAnotherApp = ModelUsageGuard.pathOf(jdoe, MODEL, EngineGrantee.ofApp("another-app"));
 
 		assertNull(own.getBilledLimitType());
 		assertEquals(StepLimitType.APP, throughTheApp.getBilledLimitType());
 		assertNull(throughAnotherApp.getBilledLimitType());
-		assertSame(throughTheApp, ModelUsageGuard.pathOf(jdoe, MODEL, "claims-app"));
+		assertSame(throughTheApp, ModelUsageGuard.pathOf(jdoe, MODEL, EngineGrantee.ofApp("claims-app")));
 	}
 
 	@Test
@@ -735,22 +736,58 @@ class SecurityModelUsageLimitUtilsUnitTests {
 				new ModelUsageLimitRule(Metric.TOKENS, 1_000L, Window.DAY, Counts.SHARED),
 				new ModelUsageLimitRule(Metric.TOKENS, 100L, Window.DAY, Counts.EACH_PERSON)));
 
-		assertNull(SecurityModelUsageLimitUtils.findProblem(both, ModelUsageLimitKey.app(MODEL, "claims-app"), true));
+		assertNull(SecurityModelUsageLimitUtils.findProblem(both, ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), true));
 		assertNull(SecurityModelUsageLimitUtils.findProblem(ModelUsageLimit.unlimited(),
-				ModelUsageLimitKey.app(MODEL, "claims-app"), true));
+				ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), true));
 	}
 
 	@Test
 	void deletingAProjectsLimitsLeavesEveryOtherLimit() throws Exception {
-		save(ModelUsageLimitKey.app(MODEL, "claims-app"), tokensADay(100));
-		save(ModelUsageLimitKey.app(MODEL, "another-app"), tokensADay(200));
+		save(ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT"), tokensADay(100));
+		save(ModelUsageLimitKey.grantee(MODEL, "another-app", "PROJECT"), tokensADay(200));
 		save(ModelUsageLimitKey.direct(MODEL, "claims-app", "NATIVE"), tokensADay(300));
 
-		SecurityModelUsageLimitUtils.deleteProjectLimits(connection, "claims-app");
+		SecurityModelUsageLimitUtils.deleteGranteeLimits(connection, "claims-app", "PROJECT");
 
-		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.app(MODEL, "claims-app")));
-		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.app(MODEL, "another-app")));
+		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.grantee(MODEL, "claims-app", "PROJECT")));
+		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.grantee(MODEL, "another-app", "PROJECT")));
 		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct(MODEL, "claims-app", "NATIVE")));
+	}
+
+	@Test
+	void resolve_aCallAnEngineMakesForAPersonWithNoGrantIsBilledToTheEnginesLimit() throws Exception {
+		save(ModelUsageLimitKey.grantee(MODEL, "prompt-guard", "GUARDRAIL"), tokensADay(100));
+		save(ModelUsageLimitKey.grantee(MODEL, "prompt-guard", "PROJECT"), tokensADay(200));
+
+		ModelUsageLimitPath path;
+		try (MockedStatic<SecurityEngineUtils> engines = mockStatic(SecurityEngineUtils.class, CALLS_REAL_METHODS)) {
+			engines.when(() -> SecurityEngineUtils.engineExists("prompt-guard")).thenReturn(true);
+			path = ModelUsageLimitResolver.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL,
+					new EngineGrantee("prompt-guard", "GUARDRAIL"));
+		}
+
+		assertEquals(StepLimitType.ENGINE, path.getBilledLimitType());
+		assertEquals("GUARDRAIL", path.getBillingOrder().get(0).getKey().subjectType());
+		assertEquals(100L, path.getBillingOrder().get(0).getLimit().getRules().get(0).getAmount());
+		assertFalse(path.getSteps().stream().anyMatch(s -> s.getLimitType() == StepLimitType.APP));
+	}
+
+	@Test
+	void resolve_anEngineThatDoesNotExistIsRefused() {
+		IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
+				() -> ModelUsageLimitResolver.resolve(ModelUsageLimitResolver.storedPerson("jdoe", "NATIVE"), MODEL,
+						new EngineGrantee("no-such-engine", "GUARDRAIL")));
+
+		assertEquals("Engine no-such-engine does not exist", refusal.getMessage());
+	}
+
+	@Test
+	void findProblem_anEnginesLimitMayHaveSharedRules() {
+		ModelUsageLimit shared = ModelUsageLimit
+				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 1_000L, Window.DAY, Counts.SHARED)));
+
+		assertNull(SecurityModelUsageLimitUtils.findProblem(shared,
+				ModelUsageLimitKey.grantee(MODEL, "prompt-guard", "GUARDRAIL"), true));
 	}
 
 	private void addGrant(String userId) throws Exception {

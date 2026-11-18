@@ -30,17 +30,21 @@ package prerna.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.poi.hssf.record.crypto.Biff8EncryptionKey;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -306,6 +310,16 @@ class SandboxLibrariesUnitTests {
 	}
 
 	@ParameterizedTest
+	@CsvSource({ "com/zaxxer/hikari/HikariConfig, getPassword, ()Ljava/lang/String;",
+			"com/zaxxer/hikari/HikariDataSource, getPassword, ()Ljava/lang/String;",
+			"com/zaxxer/hikari/HikariDataSource, getDataSourceProperties, ()Ljava/util/Properties;" })
+	void aConnectionPoolKeepsItsPasswordToItself(String owner, String name, String descriptor) throws Exception {
+		Class<?> probe = SandboxProbe.loadCall(this.folder, owner, name, descriptor, false);
+
+		assertThrows(SecurityException.class, () -> SandboxProbe.run(probe, "run"));
+	}
+
+	@ParameterizedTest
 	@CsvSource({ "com/zaxxer/hikari/HikariConfig, setDataSourceJNDI",
 			"com/zaxxer/hikari/HikariConfig, setDataSourceClassName",
 			"com/zaxxer/hikari/HikariDataSource, setDataSourceJNDI",
@@ -391,6 +405,68 @@ class SandboxLibrariesUnitTests {
 		Class<?> probe = SandboxProbe.loadCall(this.folder, owner, name, descriptor, isStatic);
 
 		assertThrows(SecurityException.class, () -> SandboxProbe.run(probe, "run"));
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "org/apache/poi/openxml4j/util/ZipSecureFile, setMinInflateRatio, (D)V",
+			"org/apache/poi/util/IOUtils, setByteArrayMaxOverride, (I)V",
+			"org/apache/poi/hssf/usermodel/HSSFWorkbook, setMaxRecordLength, (I)V",
+			"org/apache/poi/ddf/EscherContainerRecord, setMaxNumberOfChildren, (I)V",
+			"org/apache/poi/util/TempFile, setTempFileCreationStrategy, (Lorg/apache/poi/util/TempFileCreationStrategy;)V",
+			"org/apache/poi/ss/usermodel/WorkbookFactory, addProvider, (Lorg/apache/poi/ss/usermodel/WorkbookProvider;)V",
+			"org/apache/poi/ss/formula/eval/FunctionEval, registerFunction, (Ljava/lang/String;Lorg/apache/poi/ss/formula/functions/Function;)V",
+			"org/apache/poi/ss/util/SheetUtil, setFailoverFunction, (Lorg/apache/poi/ss/util/SheetUtil$Function5Arity;)V",
+			"org/apache/poi/util/ThreadLocalUtil, registerCleaner, (Ljava/lang/Runnable;)V",
+			"org/apache/poi/util/LocaleUtil, setUserLocale, (Ljava/util/Locale;)V",
+			"org/apache/poi/hssf/record/crypto/Biff8EncryptionKey, setCurrentUserPassword, (Ljava/lang/String;)V" })
+	void poiCannotChangeWhatEveryUserShares(String owner, String name, String descriptor) throws Exception {
+		Class<?> probe = SandboxProbe.loadCall(this.folder, owner, name, descriptor, true);
+
+		assertThrows(SecurityException.class, () -> SandboxProbe.run(probe, "run"));
+	}
+
+	@Test
+	void anEncryptedWorkbookOpensWithItsPassword() throws Throwable {
+		File workbook = this.folder.resolve("secret.xls").toFile();
+		try (HSSFWorkbook written = new HSSFWorkbook(); FileOutputStream out = new FileOutputStream(workbook)) {
+			written.createSheet().createRow(0).createCell(0).setCellValue("opened");
+			Biff8EncryptionKey.setCurrentUserPassword("secret");
+			written.write(out);
+		} finally {
+			Biff8EncryptionKey.setCurrentUserPassword(null);
+		}
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe().method("open", mv -> {
+			mv.visitTypeInsn(Opcodes.NEW, "java/io/File");
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitLdcInsn(workbook.getAbsolutePath());
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/io/File", "<init>", "(Ljava/lang/String;)V", false);
+			mv.visitLdcInsn("secret");
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "org/apache/poi/ss/usermodel/WorkbookFactory", "create",
+					"(Ljava/io/File;Ljava/lang/String;)Lorg/apache/poi/ss/usermodel/Workbook;", false);
+			mv.visitInsn(Opcodes.ICONST_0);
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/apache/poi/ss/usermodel/Workbook", "getSheetAt",
+					"(I)Lorg/apache/poi/ss/usermodel/Sheet;", true);
+			mv.visitInsn(Opcodes.ICONST_0);
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/apache/poi/ss/usermodel/Sheet", "getRow",
+					"(I)Lorg/apache/poi/ss/usermodel/Row;", true);
+			mv.visitInsn(Opcodes.ICONST_0);
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/apache/poi/ss/usermodel/Row", "getCell",
+					"(I)Lorg/apache/poi/ss/usermodel/Cell;", true);
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/apache/poi/ss/usermodel/Cell", "getStringCellValue",
+					"()Ljava/lang/String;", true);
+		}).bytes());
+
+		assertEquals("opened", SandboxProbe.run(probe, "open"));
+		assertNull(Biff8EncryptionKey.getCurrentUserPassword());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "org/apache/poi/hssf/usermodel/HSSFWorkbook", "org/apache/poi/hslf/usermodel/HSLFSlideShow",
+			"org/apache/poi/ddf/AbstractEscherOptRecord" })
+	void aPoiClassWithRefusedCallsCannotBeExtended(String owner) {
+		byte[] subclass = new SandboxProbe("custom/sandbox/Extended", owner).bytes();
+
+		assertThrows(SecurityException.class, () -> SemossClassLoader.applyBytecodeTransformations(subclass));
 	}
 
 	@Test

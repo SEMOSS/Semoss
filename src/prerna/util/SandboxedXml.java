@@ -746,7 +746,7 @@ public final class SandboxedXml {
 	 * @return true if its class is project code
 	 */
 	private static boolean isProjectsOwn(Object value) {
-		return SandboxedJavaExecution.isProjectClass(value.getClass());
+		return SandboxedClassLoading.isProjectClass(value.getClass());
 	}
 
 	/**

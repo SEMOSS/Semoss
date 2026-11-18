@@ -20,7 +20,24 @@ The enabled providers and filters depend on `social.properties`, Monolith config
 
 Monolith establishes the configured session or integration identity. REST resources resolve the user's execution context. Reactors and service methods then validate the specific operation, such as viewing an engine, editing a target project, or changing ownership settings.
 
-Custom reactors should check access before loading and operating on a user-selected resource. A resource identifier supplied by a client or model is not proof of permission. Use the platform's security utilities and existing authorized operations instead of introducing a parallel permission model.
+Custom reactors should check access before loading and operating on a user-selected resource. A resource identifier supplied by a client or model is not proof of permission. Use `CustomReactorSecurity` for what the signed in user may do and to find people, and the platform's existing authorized operations, instead of introducing a parallel permission model; see [What custom reactors use instead](project_reactor_sandbox.md#what-custom-reactors-use-instead).
+
+## Changes to engines, projects and insights
+
+The write methods of the security utilities check the acting user themselves, so a caller that skips its own check is still refused. Each takes the signed in user and needs a level on the target:
+
+| Change | Needs |
+| --- | --- |
+| Creating an engine or a project: `addEngine`, `addProject` | The creation rules: the publisher rule, the admin only rule for the type, and for a public one the admin only rule for making it public |
+| Making its creator the owner: `addEngineOwner`, `addProjectOwner`, `addUserInsightCreator` | The user created the engine or project and no one has been given access to it yet; for an insight, edit access on its project and no one given access to the insight yet |
+| Changing an engine's or project's metadata, dependencies, portal and reactor records, and an insight: `updateEngineMetadata`, `setDefaultEngineMarkdown`, `updateProjectMetadata`, `updateProjectDependencies`, `setPortalPublish`, `setReactorCompilation`, `createInsightsDatabase`, `addInsight`, the `updateInsight` methods, `deleteInsight` | Edit access on the engine, project or insight; an owner of a project can edit its insights |
+| Deleting an engine or a project, and marking a Digital Twin: `deleteEngine`, `deleteProject`, `markDigitalTwin` | Ownership |
+| Syncing model metadata from the catalog: `syncModelMetadataFromCatalog` | An admin in an admin operation |
+| Replacing a person's engine permissions from an external permission service, and making a platform project public: `updateEngineUserPermissions`, `setProjectCompletelyGlobal` | The platform's own work |
+
+The user who created an engine or a project also passes the edit and owner checks until someone is given access to it, which covers the steps of creating one and cleaning up after a creation that fails. An admin passes every check in an admin operation: an admin reactor or endpoint. The platform's own work for no user runs inside a `PlatformOperation`; registering an engine or a project from its smss passes no user and gives no one access to it. A call with no user outside a platform operation is refused and logged. The checks live in `ResourceWriteAccess` and are tested in `ResourceWriteAccessUnitTests`.
+
+A reactor that does other work before the write, such as writing files or another database, also checks first, so it refuses before it changes anything.
 
 ## Shared authentication
 

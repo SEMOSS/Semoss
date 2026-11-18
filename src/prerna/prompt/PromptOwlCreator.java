@@ -52,6 +52,11 @@ public class PromptOwlCreator extends AbstractOwlCreator {
 		this.allSchemas = new ArrayList<>();
 
 		// @formatter:off
+		// one version of a saved prompt: every version of a prompt shares its ID, VERSION counts up
+		// from 0 and IS_LATEST marks the current one. CONTEXT is the prompt text, INTENT its
+		// optional purpose, and GLOBAL true shows it to every user; otherwise only its CREATED_BY
+		// user sees it. An agent attaches a prompt by ID as a PROMPT row of the inference logs'
+		// WORKSPACE_RESOURCE
 		addTable("PROMPT", Arrays.asList(
 				Pair.with("ID", VARCHAR_255),
 				Pair.with("TITLE", VARCHAR_255),
@@ -63,12 +68,21 @@ public class PromptOwlCreator extends AbstractOwlCreator {
 				Pair.with("IS_LATEST", BOOLEAN_DATATYPE_NAME),
 				Pair.with("GLOBAL", BOOLEAN_DATATYPE_NAME)));
 
+		// the tags and metadata of a prompt, one row per value: PROMPT_ID is the prompt's ID,
+		// shared by its versions, METAKEY is tag for a tag or one of the PROMPTMETAKEYS keys, and
+		// METAORDER orders the values of a key. Editing a prompt replaces its rows
 		addTable("PROMPTMETA", Arrays.asList(
 				Pair.with("PROMPT_ID", VARCHAR_255),
 				Pair.with("METAKEY", VARCHAR_255),
 				Pair.with("METAVALUE", CLOB_DATATYPE_NAME),
 				Pair.with("METAORDER", INTEGER_DATATYPE_NAMEA)));
 
+		// the metadata keys a prompt can have and how each is shown: whether it takes one value or
+		// many (SINGLEMULTI), its DISPLAYORDER, its input (DISPLAYOPTIONS, such as textarea or
+		// select-box) and the choices it offers (DEFAULTVALUES, comma separated). PromptUtils seeds
+		// the defaults (markdown, description, tag, domain, data classification and data
+		// restrictions), and copies a key a prompt uses from the security database's USERMETAKEYS
+		// when it is missing here
 		addTable("PROMPTMETAKEYS", Arrays.asList(
 				Pair.with("METAKEY", VARCHAR_255),
 				Pair.with("SINGLEMULTI", VARCHAR_255),

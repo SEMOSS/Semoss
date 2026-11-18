@@ -82,10 +82,9 @@ public class OpenDatabaseReactor extends AbstractReactor {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("database_name", engine.getEngineName());
 		returnMap.put("database_id", engine.getEngineId());
-		Object[] typeAndCost = SecurityEngineUtils.getEngineTypeAndSubTypeAndCost(engine.getSmssProp());
-		returnMap.put("database_type", typeAndCost[0].toString());
-		returnMap.put("database_subtype", typeAndCost[1]);
-		returnMap.put("database_cost", typeAndCost[2]);
+		returnMap.put("database_type", engine.getCatalogType().toString());
+		returnMap.put("database_subtype", engine.getCatalogSubType());
+		returnMap.put("database_cost", "$");
 
 		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_DATABASE);
 	}

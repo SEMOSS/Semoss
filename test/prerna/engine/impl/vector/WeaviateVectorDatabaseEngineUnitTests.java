@@ -309,7 +309,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testAddEmbeddings() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 
 		Properties testProps = new Properties();
@@ -361,7 +361,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 					// used in addEmbeddings()
 					VectorDatabaseCSVTable vectorCsvTable = mock();
@@ -455,7 +455,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testNearestNeighborCallHybrid() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 
 		Properties testProps = new Properties();
@@ -507,7 +507,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 					// used in getEmbeddingsFloat()
 					EmbeddingsModelEngineResponse embeddingRespMock = mock();
 					when(modelEmbedder.embeddings(any(List.class), any(Insight.class), nullable(Map.class)))
@@ -542,7 +542,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testNearestNeighborCallVectorOnly() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 
 		Properties testProps = new Properties();
@@ -595,7 +595,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 					// used in getEmbeddingsFloat()
 					EmbeddingsModelEngineResponse embeddingRespMock = mock();
 					when(modelEmbedder.embeddings(any(List.class), any(Insight.class), nullable(Map.class)))

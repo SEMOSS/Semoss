@@ -53,7 +53,6 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
-import prerna.engine.impl.guardrail.PromptGuardrailEngine;
 import prerna.engine.impl.model.inferencetracking.GuardrailHitStore;
 import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.engine.impl.pipeline.GuardrailHitLimit;
@@ -67,7 +66,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.GuardrailAudit;
 import prerna.util.EngineSyncUtility;
-import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 /**
@@ -164,7 +162,7 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 		lock.lock();
 		try {
-			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
+			String pipelineValue = engine.getPipelineFile();
 			boolean addSmssKey = pipelineValue == null || pipelineValue.trim().isEmpty();
 			String pipelineFileName = addSmssKey ? DEFAULT_PIPELINE_FILE : pipelineValue.trim();
 
@@ -182,15 +180,13 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 
 			if (addSmssKey) {
 				try {
-					InternalUtility.changePropertiesFileValue(engine.getSmssFilePath(), IEngine.PIPELINE,
-							DEFAULT_PIPELINE_FILE);
+					engine.updateSetting(IEngine.PIPELINE, DEFAULT_PIPELINE_FILE);
 				} catch (IOException e) {
 					throw new IllegalStateException(
 							"Wrote the guardrail configuration but was unable to add the PIPELINE key to the engine smss file: "
 									+ e.getMessage(),
 							e);
 				}
-				engine.getSmssProp().setProperty(IEngine.PIPELINE, DEFAULT_PIPELINE_FILE);
 				ClusterUtil.pushEngineSmss(engineId);
 			}
 		} finally {
@@ -561,8 +557,7 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 								"User does not have access to guardrail engine " + guardrailEngineId);
 					}
 					IGuardrailReactorFunctionEngine guardrail = Utility.getGuardrailEngine(guardrailEngineId);
-					String judgeEngineId = guardrail == null || guardrail.getSmssProp() == null ? null
-							: guardrail.getSmssProp().getProperty(PromptGuardrailEngine.MODEL_ENGINE_ID_KEY);
+					String judgeEngineId = guardrail == null ? null : guardrail.getJudgeModelEngineId();
 					if (judgeEngineId != null && guardedEngineId.equals(judgeEngineId.trim())) {
 						throw new IllegalArgumentException("Guardrail engine " + guardrailEngineId
 								+ " judges with this engine, so it cannot guard it: its check would call the engine it is checking");

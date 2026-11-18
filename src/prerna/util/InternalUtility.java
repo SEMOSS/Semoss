@@ -86,6 +86,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.pipeline.EngineCallPermission;
 import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.masterdatabase.AddToMasterDB;
 import prerna.masterdatabase.DeleteFromMasterDB;
@@ -507,10 +508,14 @@ public final class InternalUtility {
 			classLogger.info("Engine assets directory for {} exists = {}",
 					SmssUtilities.getUniqueName(engineName, engineId), hasAssetsFolder);
 
-			if (smssFilePath == null) {
-				engine.open(smssProp);
-			} else {
-				engine.open(smssFilePath);
+			IEngine.CATALOG_TYPE catalogType = engine.getCatalogType();
+			try (EngineCallPermission.Opening opening = EngineCallPermission.opening(engineId,
+					catalogType == null ? null : catalogType.name())) {
+				if (smssFilePath == null) {
+					engine.open(smssProp);
+				} else {
+					engine.open(smssFilePath);
+				}
 			}
 			// set the engine in DIHelper
 			DIHelper.getInstance().setEngineProperty(engineId, engine);
@@ -1226,13 +1231,15 @@ public final class InternalUtility {
 		Files.deleteIfExists(error);
 
 		try (OutputStream os = Files.newOutputStream(error)) {
-			return compileJava(os, compiler, fileManager, diagnostics, options, compilationUnits);
+			return compileJava(os, compiler, fileManager, diagnostics, options, compilationUnits,
+					Paths.get(Utility.normalizePath(outputFolder)), files);
 		}
 	}
 
 	private static int compileJava(OutputStream os, JavaCompiler compiler, StandardJavaFileManager fileManager,
 			DiagnosticCollector<JavaFileObject> diagnostics, List<String> options,
-			Iterable<? extends JavaFileObject> compilationUnits) throws IOException {
+			Iterable<? extends JavaFileObject> compilationUnits, Path classesFolder, List<File> sources)
+			throws IOException {
 
 		try (fileManager;
 				PrintWriter pw = new PrintWriter(
@@ -1241,6 +1248,9 @@ public final class InternalUtility {
 
 			pw.flush();
 			logDiagnostics(diagnostics.getDiagnostics(), pw);
+			if (hold) {
+				logSandboxNotices(classesFolder, sources, pw);
+			}
 
 			return hold ? 0 : -1;
 		}
@@ -1280,6 +1290,61 @@ public final class InternalUtility {
 			}
 			pw.flush();
 		}
+	}
+
+	/**
+	 * Adds a line to the compile output, in the compiler's own format, for each
+	 * call in the classes just compiled that the project sandbox treats
+	 * differently: a security question that is deprecated in custom reactors is a
+	 * warning, and a call that throws when it runs is an error. Each line names the
+	 * call to make instead when there is one. Classes whose source was not part of
+	 * this compile are left out.
+	 *
+	 * @param classesFolder the folder the classes were compiled into
+	 * @param sources       the source files that were compiled
+	 * @param pw            the compile output
+	 * @throws IOException when the classes folder cannot be read
+	 */
+	private static void logSandboxNotices(Path classesFolder, List<File> sources, PrintWriter pw)
+			throws IOException {
+		List<Path> classFiles;
+		try (Stream<Path> walk = Files.walk(classesFolder)) {
+			classFiles = walk.filter(file -> file.toString().endsWith(".class")).sorted().toList();
+		}
+		for (Path classFile : classFiles) {
+			List<SemossClassLoader.CompileNotice> notices;
+			try {
+				notices = SemossClassLoader.compileNotices(Files.readAllBytes(classFile));
+			} catch (IllegalArgumentException | ArrayIndexOutOfBoundsException e) {
+				classLogger.warn("Could not read {} for the compile notices: {}", classFile, e.getMessage());
+				continue;
+			}
+			for (SemossClassLoader.CompileNotice notice : notices) {
+				File source = compiledSource(notice.source(), sources);
+				if (source != null) {
+					Diagnostic.Kind kind = notice.refused() ? Diagnostic.Kind.ERROR : Diagnostic.Kind.WARNING;
+					pw.println("[" + kind + "] " + source.toURI() + ":" + notice.line() + " - " + notice.message());
+				}
+			}
+		}
+		pw.flush();
+	}
+
+	/**
+	 * The compiled source file a class came from.
+	 *
+	 * @param source  the source file as a path from the package root
+	 * @param sources the source files that were compiled
+	 * @return the file, or null when it was not part of the compile
+	 */
+	private static File compiledSource(String source, List<File> sources) {
+		String suffix = "/" + source;
+		for (File file : sources) {
+			if (file.toURI().getPath().endsWith(suffix)) {
+				return file;
+			}
+		}
+		return null;
 	}
 
 	/**

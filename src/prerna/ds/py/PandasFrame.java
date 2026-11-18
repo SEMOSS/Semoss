@@ -733,10 +733,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 			// run the query
 			Object output = pyTranslator.runDirectPy(query);
 
-			if (output instanceof String) {
-				output = PandasTimestampDeserializer.MAPPER.convertValue(output, Object.class);
-			}
-
 			// need to see if this is a parquet format as well
 			String format = "grid";
 			if (qs.getPragmap() != null && qs.getPragmap().containsKey("format")) {

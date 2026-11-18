@@ -40,6 +40,7 @@ import com.zaxxer.hikari.HikariConfig;
  * with the platform. A pool connects through its JDBC URL: the settings that
  * have it look a data source up by name, or create one from a class name, are
  * refused, whether they are set one at a time or come in a {@code Properties}.
+ * A pool keeps the password it connects with to itself.
  */
 public final class SandboxedHikari {
 
@@ -55,21 +56,17 @@ public final class SandboxedHikari {
 	static final Set<String> SHARED_EXACT_PACKAGES = Set.of("com.zaxxer.hikari");
 
 	/**
-	 * The setters that make the pool look a data source up by name, or create one
-	 * from a class name.
-	 */
-	private static final Set<String> LOOKUP_SETTERS = Set.of("setDataSourceJNDI", "setDataSourceClassName");
-
-	/**
 	 * The same settings as property names.
 	 */
 	private static final Set<String> LOOKUP_SETTINGS = Set.of("dataSourceJNDI", "dataSourceClassName");
 
 	/**
-	 * Calls project reactor code cannot make, by owner then method name.
+	 * Calls project reactor code cannot make, by owner then method name: the lookup
+	 * setters, and the getters that hand back the password a pool connects with,
+	 * which is the engine's own on a pool an engine hands out.
 	 */
-	static final Map<String, Set<String>> BLOCKED_CALLS = Map.of("com/zaxxer/hikari/HikariConfig", LOOKUP_SETTERS,
-			"com/zaxxer/hikari/HikariDataSource", LOOKUP_SETTERS);
+	static final Map<String, Set<String>> BLOCKED_CALLS = Map.of("com/zaxxer/hikari/HikariConfig",
+			Set.of("setDataSourceJNDI", "setDataSourceClassName", "getPassword", "getDataSourceProperties"));
 
 	/**
 	 * The constructors that move to the methods of this class, by class, then

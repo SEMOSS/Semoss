@@ -11,7 +11,7 @@ Unlimited.
 | --- | --- | --- |
 | Direct Limit | `usageLimit` on a person's grant on the model | the model's owners; admins in admin mode |
 | Team Limit | `usageLimit` on a team's grant on the model | the model's owners |
-| App Limit | `usageLimit` on the permission the model gives an app (a `PROJECT` subject) | the model's owners; admins in admin mode |
+| App Limit or Engine Limit | `usageLimit` on the permission the model gives an app or another engine (an `ENGINE` subject, with the type `PROJECT` for an app) | the model's owners; admins in admin mode |
 | Public Use Limit | a `PUBLIC` change on the model | the model's owners |
 | Model Total | a `MODEL` change on the model | the model's owners |
 | User's Total Model Limit | `SecurityAdminUtils.editUser` (`model_usage_limit`), `registerUser`, `addNativeUser` | admins |
@@ -146,7 +146,8 @@ every event the audit trail records), by
   General Platform Limit (at high severity), a Team Total, and a person's User's
   Total Model Limit, whether set when editing or registering the user.
 - A grant to a model that has ended is removed within about a minute, and its
-  Direct Limit, Team Limit or App Limit is recorded as removed with it, by SEMOSS
+  Direct Limit, Team Limit, App Limit or Engine Limit is recorded as removed with
+  it, by SEMOSS
   (`details.reason` is `EXPIRED`).
 - A change that leaves a limit as it is records nothing.
 

@@ -117,7 +117,7 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(engineId);
 		// remove from security
-		SecurityEngineUtils.deleteEngine(engineId);
+		SecurityEngineUtils.deleteEngine(this.insight.getUser(), engineId);
 		// remove from user tracking
 		UserTrackingUtils.deleteEngine(engineId);
 

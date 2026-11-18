@@ -737,15 +737,6 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * Get the session id set in the job
-	 * 
-	 * @return
-	 */
-	protected String getSessionId() {
-		return ThreadStore.getSessionId();
-	}
-
-	/**
 	 * Get the session id for the insight
 	 * 
 	 * @return

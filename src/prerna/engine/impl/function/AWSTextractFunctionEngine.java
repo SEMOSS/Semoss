@@ -48,7 +48,6 @@ import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.StorageTypeEnum;
-import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.util.Constants;
@@ -140,7 +139,7 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 			if (storageEngine.getStorageType() == StorageTypeEnum.S3
 					|| storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3
 					|| storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3_NATIVE) {
-				this.bucketName = storageEngine.getSmssProp().getProperty(S3StorageEngine.S3_BUCKET_KEY);
+				this.bucketName = storageEngine.getBucketName();
 			} else {
 				throw new IllegalArgumentException("Storage engine is not an Amazon S3 implementation.");
 			}

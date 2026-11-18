@@ -184,9 +184,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectId the project
 	 * @param global    whether the project is public, for a project not yet
 	 *                  registered or reloaded
-	 * @param user      the user recorded as the creator of a project not yet
-	 *                  registered, or null
-	 * @throws Exception when the insights database cannot be opened
+	 * @param user      the signed in user, recorded as the creator of a project not
+	 *                  yet registered: creating one needs the creation rules, and
+	 *                  reloading one needs the user to be able to edit it; or null
+	 *                  when the platform registers the project from its smss, which
+	 *                  gives no one access to it
+	 * @throws IllegalArgumentException when the user may not create or reload the
+	 *                                  project
+	 * @throws Exception                when the insights database cannot be opened
 	 */
 	public static void addProject(String projectId, boolean global, User user) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -211,6 +216,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			classLogger.info("Security database already contains project with unique id = {}",
 					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
+		}
+		if (user != null && projectExists) {
+			ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
+		} else if (user != null) {
+			ResourceWriteAccess.requireProjectCreation(user, IProject.PROJECT_TYPE.fromSmss(prop), global);
 		}
 
 		classLogger.info("Security database going to add project with alias = {}", Utility.cleanLogString(projectName));
@@ -460,8 +470,30 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		addProject(projectId, projectName, projectDisplayName, projectType, projectCost, global, false, user);
 	}
 
+	/**
+	 * Adds a new project to the security database. The project is not discoverable,
+	 * and the user, when given, is recorded as its creator.
+	 *
+	 * <p>
+	 * A user needs the creation rules: the publisher rule, the admin only rule for
+	 * the project's type, and for a public project the admin only rule for making
+	 * one public. With no user, the platform registers the project, which gives no
+	 * one access to it.
+	 *
+	 * @param projectId          the new project's id
+	 * @param projectName        its name
+	 * @param projectDisplayName its display name, or blank for its name
+	 * @param projectType        its type, as a {@link IProject.PROJECT_TYPE} name
+	 * @param projectCost        its cost
+	 * @param global             whether it is public
+	 * @param isTemplate         whether it is a template
+	 * @param user               the signed in user who creates it, or null when the
+	 *                           platform registers it
+	 * @throws IllegalArgumentException when the user may not create the project
+	 */
 	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
 			String projectCost, boolean global, boolean isTemplate, User user) {
+		ResourceWriteAccess.requireProjectCreation(user, projectTypeOf(projectType), global);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -517,30 +549,70 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		});
 	}
 
-	public static void addProjectOwner(User user, String projectId, String userId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?)";
+	/**
+	 * The project type a type name stands for: a blank name is an INSIGHTS project,
+	 * as in an smss, and a name that is no type is none.
+	 *
+	 * @param projectType the type name, or null
+	 * @return the type, or null when the name is no project type
+	 */
+	private static IProject.PROJECT_TYPE projectTypeOf(String projectType) {
+		if (projectType == null || projectType.isBlank()) {
+			return IProject.PROJECT_TYPE.INSIGHTS;
+		}
 		try {
-			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, userId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-			});
-			SecurityModelUsageLimitUtils.markChanged();
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to add project owner", e);
+			return IProject.PROJECT_TYPE.valueOf(projectType.trim());
+		} catch (IllegalArgumentException e) {
+			return null;
 		}
 	}
 
-	public static void updateProject(String projectID, String projectName, String projectType, String projectCost,
+	/**
+	 * Makes the user who created a new project its owner, with an OWNER row for
+	 * each of their logins that records them as the person who gave it. The project
+	 * must be new: created by this user, with no one given access to it yet. In an
+	 * admin operation, or the platform's own work, the user is made the owner of
+	 * any project.
+	 *
+	 * @param user      the signed in user who created the project
+	 * @param projectId the project
+	 * @throws IllegalArgumentException when there is no user, the project already
+	 *                                  has access given out, or the user did not
+	 *                                  create it
+	 */
+	public static void addProjectOwner(User user, String projectId) {
+		if (user == null) {
+			throw new IllegalArgumentException("A signed in user is needed to own project " + projectId);
+		}
+		ResourceWriteAccess.requireNewOwner(user, PermissionTargetResource.project(projectId));
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		Set<String> userIds = new LinkedHashSet<>();
+		for (AuthProvider login : user.getLogins()) {
+			userIds.add(user.getAccessToken(login).getId());
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?)";
+		for (String userId : userIds) {
+			try {
+				QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, userId);
+					ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
+				classLogger.error("Failed to add project owner", e);
+			}
+		}
+		SecurityModelUsageLimitUtils.markChanged();
+	}
+
+	static void updateProject(String projectID, String projectName, String projectType, String projectCost,
 			boolean global) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
@@ -598,25 +670,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Delete just the insights for a project
-	 * 
-	 * @param appId
-	 */
-	public static void deleteInsightsFromProjectForRecreation(String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String deleteQuery = "DELETE FROM INSIGHT WHERE PROJECTID=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, projectId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to delete project insights before recreation", e);
-			throw new IllegalArgumentException("An error occurred deleting the insights for project " + projectId);
-		}
-	}
-
-	/**
 	 * Builds a new insights database for the project in the given folder from the
 	 * insights and insight metadata stored in the security database, and returns
 	 * its file once the database is closed.
@@ -632,15 +685,18 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * failure is logged and the file is returned without it.
 	 * </p>
 	 *
+	 * @param user       the signed in user, who needs to be able to edit the
+	 *                   project, or null for the platform's own work
 	 * @param projectId  the project
 	 * @param folderPath the folder the new insights database is made in
 	 * @return the new insights database's file
-	 * @throws Exception when the new insights database cannot be made
+	 * @throws IllegalArgumentException when the user cannot edit the project
+	 * @throws Exception                when the new insights database cannot be
+	 *                                  made
 	 */
-	public static File createInsightsDatabase(String projectId, String folderPath) throws Exception {
+	public static File createInsightsDatabase(User user, String projectId, String folderPath) throws Exception {
+		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-
-		// TODO: potentially take into consideration playsheet legacy insights
 
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
@@ -1274,10 +1330,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * write go through ProjectPortalsHelper, which owns when a change counts as
 	 * one.
 	 *
-	 * @param user      user performing the write
+	 * @param user      user performing the write, who needs to be able to edit the
+	 *                  project
 	 * @param projectId project that was written to
+	 * @throws IllegalArgumentException when the user cannot edit the project
 	 */
 	public static void setPortalPublish(User user, String projectId) {
+		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String updateQ = "UPDATE PROJECT SET DATELASTEDITED=?, PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
@@ -1310,12 +1369,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Records that the project's reactors were compiled now, by the user's primary
-	 * login.
-	 * 
-	 * @param user
-	 * @param projectId
+	 * login. The user needs to be able to edit the project.
+	 *
+	 * @param user      the signed in user
+	 * @param projectId the project
+	 * @throws IllegalArgumentException when the user cannot edit the project
 	 */
 	public static void setReactorCompilation(User user, String projectId) {
+		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String updateQ = "UPDATE PROJECT SET REACTORSCOMPILED=?, REACTORSCOMPILEDUSER=?, REACTORSCOMPILEDTYPE=? WHERE PROJECTID=?";
@@ -1581,11 +1642,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Delete all values
-	 * 
-	 * @param projectId
+	 * Deletes a project's rows from the security database: the project, its
+	 * insights, who can use it, preferences, metadata, asset engines, access
+	 * requests, dependencies, the engines it was given and its usage limits. The
+	 * user needs to own the project; the user who created it can also delete it
+	 * before anyone is given access to it, which is how a failed creation is
+	 * cleaned up.
+	 *
+	 * @param user      the signed in user, or null for the platform's own work
+	 * @param projectId the project
+	 * @throws IllegalArgumentException when the user may not delete the project
 	 */
-	public static void deleteProject(String projectId) {
+	public static void deleteProject(User user, String projectId) {
+		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.OWNER);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM PROJECT WHERE PROJECTID=?");
@@ -1597,7 +1666,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTACCESSREQUEST WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?");
-		deletes.add("DELETE FROM PROJECTENGINEPERMISSION WHERE PROJECTID=?");
+		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE GRANTEEENGINEID=? AND GRANTEEENGINETYPE='"
+				+ PermissionSubject.PROJECT_TYPE + "'");
 		for (String deleteQuery : deletes) {
 			try {
 				QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> ps.setString(1, projectId));
@@ -1609,7 +1679,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
-				SecurityModelUsageLimitUtils.deleteProjectLimits(connection, projectId);
+				SecurityModelUsageLimitUtils.deleteGranteeLimits(connection, projectId,
+						PermissionSubject.PROJECT_TYPE);
 				return null;
 			});
 		} catch (RuntimeException e) {
@@ -1738,11 +1809,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Set a project and all its insights to be global
-	 * 
-	 * @param projectId
+	 * Makes a project and all its insights public. Only the platform's own work
+	 * does, inside a platform operation, such as seeding the platform's own
+	 * projects.
+	 *
+	 * @param projectId the project
+	 * @throws IllegalArgumentException when the call is not the platform's own work
 	 */
 	public static void setProjectCompletelyGlobal(String projectId) {
+		ResourceWriteAccess.requirePlatform("make project " + projectId + " and its insights public");
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -1859,6 +1934,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	@Deprecated
 	public static void updateProjectDependenciesWithoutType(User user, String projectId,
 			Collection<String> dependentEngineIds) {
+		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		List<Map<String, Object>> depEngines = new ArrayList<>();
 		for (String depEngineId : dependentEngineIds) {
 			Map<String, Object> depEngine = new HashMap<>();
@@ -1889,6 +1965,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateProjectDependencies(User user, String projectId,
 			List<Map<String, Object>> dependentEngines) {
+		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -2866,10 +2943,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * bulk insert. The Digital Twin mark is left as it is, whatever the metadata
 	 * says about it.
 	 *
-	 * @param projectId
-	 * @param metadata
+	 * The user needs to be able to edit the project.
+	 *
+	 * @param user      the signed in user, or null for the platform's own work
+	 * @param projectId the project
+	 * @param metadata  the values by metadata key
+	 * @throws IllegalArgumentException when the user cannot edit the project
 	 */
-	public static void updateProjectMetadata(String projectId, Map<String, Object> metadata) {
+	public static void updateProjectMetadata(User user, String projectId, Map<String, Object> metadata) {
+		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// the mark is not metadata: nothing that sets a project's metadata, an
 		// uploaded project's metadata file included, may set or clear it
@@ -3015,9 +3097,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Marks a new project as a Digital Twin. Nothing takes the mark off; it goes
-	 * when the project is deleted.
+	 * when the project is deleted. The user needs to own the project.
+	 *
+	 * @param user      the signed in user
+	 * @param projectId the project
+	 * @throws IllegalArgumentException when the user does not own the project
 	 */
-	public static void markDigitalTwin(String projectId) {
+	public static void markDigitalTwin(User user, String projectId) {
+		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.OWNER);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb,
