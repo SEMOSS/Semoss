@@ -28,6 +28,65 @@ from genai_client.text_generation.google_genai_clients.google_genai_client impor
 MODEL = "gemini-4-carbon"
 SETTINGS = ModelSettings(model_name=MODEL, max_tokens=1024)
 USER = {"type": "INPUT_TEXT", "io": "INPUT", "inputPrompt": "Hello"}
+
+
+@pytest.mark.parametrize("responses", [False, True])
+def test_openai_json_schema_formats_are_translated(responses):
+    schema = {"type": "object", "properties": {"answer": {"type": "string"}}}
+    params = (
+        {"text": {"format": {"type": "json_schema", "name": "answer", "schema": schema}}}
+        if responses
+        else {"response_format": {"type": "json_schema", "json_schema": {"name": "answer", "schema": schema}}}
+    )
+    built = request(**params)
+    assert built["response_format"] == [{"type": "text", "mime_type": "application/json", "schema": schema}]
+
+
+def test_openai_json_object_and_missing_schema():
+    assert request(response_format={"type": "json_object"})["response_format"] == [
+        {"type": "text", "mime_type": "application/json"}
+    ]
+    with pytest.raises(ValueError, match="requires a schema"):
+        request(response_format={"type": "json_schema"})
+    with pytest.raises(ValueError, match="must be an object"):
+        request(response_format=[{"type": "text"}])
+    with pytest.raises(ValueError, match="must be an object"):
+        request(response_format={"type": "json_schema", "json_schema": "invalid"})
+    with pytest.raises(ValueError, match="must be an object"):
+        request(text="invalid")
+
+
+def test_compatibility_stream_emits_private_replay_before_tool_handoff(monkeypatch):
+    obj = client()
+    events = []
+    for index, step in enumerate(STEPS):
+        events.extend([
+            {"event_type": "step.start", "index": index, "step": step},
+            {"event_type": "step.stop", "index": index},
+        ])
+    events.append({"event_type": "interaction.completed", "interaction": interaction()})
+    obj.google_client.interactions.create.return_value = iter(events)
+    frames = []
+    monkeypatch.setattr(adapter, "get_smss_stream", lambda: lambda data, **kw: frames.append((data, kw)))
+    result = adapter.ask_interactions(obj, messages(google_interactions_replay_available=True))
+    assert result.messageType == "TOOL"
+    state_index = next(i for i, (_, kw) in enumerate(frames) if kw["stream_type"] == "google_interactions")
+    tool_index = next(i for i, (_, kw) in enumerate(frames) if kw["stream_type"] == "tool")
+    assert state_index < tool_index
+    state, _ = frames[state_index]
+    assert state["google_interactions"]["steps"] == STEPS
+    assert [t["id"] for t in state["assistant"]["tool_calls"]] == ["call-1", "call-2"]
+    header = frames[tool_index][0]
+    assert header["id"] == "call-1" and header["function"]["name"] == "lookup"
+
+
+def test_compatibility_retention_failure_is_reported_before_calling_google():
+    obj = client()
+    with pytest.raises(ValueError, match="KEEP_INPUT_OUTPUT"):
+        adapter.ask_interactions(obj, messages(google_interactions_replay_available=False))
+    obj.google_client.interactions.create.assert_not_called()
+
+
 STEPS = [
     {"type": "thought", "signature": "opaque-signed-state"},
     {"type": "model_output", "content": [{"type": "text", "text": "Checking."}]},

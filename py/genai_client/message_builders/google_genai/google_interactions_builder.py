@@ -404,6 +404,24 @@ class GoogleInteractionsMessageBuilder:
                 config["tool_choice"] = "any" if mode == "required" else mode
         formats = [{"type": m.lower()} for m in settings.modalities or ["text"]]
         schema = params.get("schema")
+        text_config = params.get("text") or {}
+        if not isinstance(text_config, dict):
+            raise ValueError("OpenAI text configuration must be an object")
+        output_format = params.get("response_format") or text_config.get("format")
+        if output_format is not None:
+            if not isinstance(output_format, dict):
+                raise ValueError("OpenAI response format must be an object")
+            if output_format.get("type") == "json_schema":
+                schema_format = output_format.get("json_schema", output_format)
+                if not isinstance(schema_format, dict):
+                    raise ValueError("json_schema response format must be an object")
+                schema = schema or schema_format.get("schema")
+                if not isinstance(schema, dict):
+                    raise ValueError("json_schema response format requires a schema")
+            elif output_format.get("type") == "json_object":
+                formats = [{"type": "text", "mime_type": "application/json"}]
+            elif output_format.get("type") != "text":
+                raise ValueError("Unsupported OpenAI response format")
         if schema is not None:
             formats = [
                 {"type": "text", "mime_type": "application/json", "schema": schema}
