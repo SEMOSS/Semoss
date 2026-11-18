@@ -151,12 +151,16 @@ def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0)
     return mod
 
 
+# Which client connection the current thread is serving; see TCPServerHandler.current().
+_current_handler = threading.local()
+
+
 def _is_engine_owned_process():
     """
     Whether this process runs an engine's own python rather than a user's
     python code. Set from the --engine_owned flag the engines launch with.
     """
-    handler = TCPServerHandler.da_server
+    handler = TCPServerHandler.current()
     server = getattr(handler, "server", None) if handler is not None else None
     return bool(getattr(server, "engine_owned", False))
 
@@ -238,6 +242,11 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     da_server = None
     CANCELLED_MESSAGE = "The request was cancelled by the user"
 
+    @staticmethod
+    def current():
+        """The handler whose request this thread is serving, else the latest client."""
+        return getattr(_current_handler, "handler", None) or TCPServerHandler.da_server
+
     def log_level_mapper(self, log_level_name: str) -> int:
         """
         Maps a log level name to its corresponding logging constant.
@@ -305,6 +314,10 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         self.residue = None
 
         TCPServerHandler.da_server = self
+        live = getattr(self.server, "live_handlers", None)
+        if live is not None:
+            with self.server.monitor:
+                live.add(self)
 
         # a lock to serialise all socket writes. HuggingFace (and similar libraries)
         # download files in parallel worker threads that all write tqdm progress to
@@ -367,8 +380,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             socket_handler=self,
         )
 
-        # set the thread local
-        TCPServerHandler.thread_local = threading.local()
+        # Track filesystem changes so the host can pull back only what a block wrote.
+        # Absent module or an unsupported kernel just means the host falls back to a
+        # full reconcile, so this must never be able to break startup.
+        # The watcher is created lazily on the first CHANGES call: at setup time the
+        # session's project tree has not been materialised into the sandbox yet, so
+        # arming here yields zero roots and pins the host to the slow path forever.
+        self.change_watcher = None
+
+        # per connection: a class-level one is replaced by every new client, wiping the
+        # payload of requests still running on other connections to a persistent worker
+        self.thread_local = threading.local()
 
         # Sometimes the debugger is not effective or cannot handle certain troubleshooting scenarios.
         # This is where you can use the custom_log() method. It writes to the log txt file, ensuring the file exists, creates a new line, adds the message, and flushes the log.
@@ -412,6 +434,59 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         """
         if self.logger:
             self.logger.info(message)
+
+    def _watcher_roots(self):
+        """Project/room/user roots that exist *now* (the worker starts without --prefix)."""
+        bases = []
+        if self.prefix:
+            bases.append(self.prefix)
+        base_folder = os.environ.get("SEMOSS_HOME") or "/opt/semosshome"
+        if base_folder not in bases:
+            bases.append(base_folder)
+        for base in bases:
+            roots = [
+                os.path.join(base, name)
+                for name in ("project", "room", "user")
+                if os.path.isdir(os.path.join(base, name))
+            ]
+            if roots:
+                return roots
+        return []
+
+    def handle_changes(self):
+        """Return the files that changed since the last snapshot.
+
+        The host calls this after operations that can write, then pulls exactly those
+        paths. The watcher is created here rather than in ``setup()`` because the
+        session's project tree is not materialised yet when the first connection is
+        accepted -- arming that early yields zero roots and pins the host to the slow
+        path forever. Overflow, or a set past the cap, is reported so the host falls
+        back to a full reconcile instead of trusting a partial list.
+        """
+        try:
+            from gaas_change_watcher import shared_watcher
+
+            # Re-evaluated on every call: room/ and user/ appear only when the session
+            # first touches one, which is usually after the first CHANGES.
+            self.change_watcher = shared_watcher(self._watcher_roots())
+        except Exception as e:
+            # an unsupported kernel returns None without raising, so this is a real fault
+            if self.logger:
+                self.logger.warning(
+                    f"Change watcher failed, host falls back to a full reconcile: {e}",
+                    exc_info=True,
+                )
+            self.change_watcher = None
+        if self.change_watcher is None:
+            snapshot = {
+                "changes": [],
+                "overflow": True,
+                "baseline": False,
+                "watched": 0,
+            }
+        else:
+            snapshot = self.change_watcher.snapshot()
+        self.send_output(snapshot, operation="CHANGES", response=True)
 
     def handle(self):
         """
@@ -530,6 +605,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             epoc (Optional[str]): The epoc associated with the request. Defaults to None.
         """
         self.log_data(data)
+        # Code run for this request calls back to Java over this connection, not over
+        # whichever client connected last: a persistent worker serves several.
+        _current_handler.handler = self
 
         payload = ""
         # payload = data
@@ -631,6 +709,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             elif payload["operation"] == "PYTHON":
                 insight_id = payload.get("insightId")
                 self.handle_python(command, insight_id)
+            # host asks which files changed since the last snapshot (write-back)
+            elif payload["operation"] == "CHANGES":
+                self.handle_changes()
             # this is when it is a response
             elif payload["response"]:
                 self.handle_response()
@@ -920,6 +1001,16 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
     def stop_request(self):
         """Stops the request and closes the connection."""
         if not self.stop:
+            live = getattr(self.server, "live_handlers", None)
+            if live is not None:
+                # Other connection threads add and remove concurrently; iterating the
+                # set unguarded can raise "set changed size during iteration".
+                with self.server.monitor:
+                    live.discard(self)
+                    # A persistent worker keeps serving other clients; callbacks with no
+                    # request of their own must not keep pointing at a closed socket.
+                    if TCPServerHandler.da_server is self:
+                        TCPServerHandler.da_server = next(iter(live), None)
             self.server.remove_handler()
             self.server.stop_it()
             self.request.close()
