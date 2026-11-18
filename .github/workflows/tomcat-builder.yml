@@ -50,6 +50,8 @@ jobs:
             runner_prefix: codebuild-semoss-github-runner-arm64
             container: quay.io/semoss/test-quay:ubuntu-dind-arm64
     runs-on: ${{ matrix.runner_prefix }}-${{ github.run_id }}-${{ github.run_attempt }}
+    # A healthy leg takes ~4 min; fail fast instead of hanging on a stalled download.
+    timeout-minutes: 20
     container:
       image: ${{ matrix.container }}
     env:
@@ -162,6 +164,7 @@ jobs:
   merge:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
