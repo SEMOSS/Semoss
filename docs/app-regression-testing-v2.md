@@ -18,13 +18,13 @@ if one was installed. V2 installs no service worker and contains no database-rou
 1. Publish an editable CODE app with unique `data-testid` attributes on the controls and
    results being tested. Open its normal App preview and the **Testing** tab next to Files
    and version control.
-2. Click **Record**. Perform the workflow inside the app iframe, including ordinary links,
-   forms or SPA route changes between pages within that same app portal.
+2. Click **+** → **Record workflow**. Perform the workflow inside the app iframe, including
+   ordinary links, forms or SPA route changes between pages within that same app portal.
 3. Click **Add check**, then select the app element whose text/visibility should be checked.
    The selection is recorded without activating that element. Stop recording.
 4. Save with a name and a meaningful **description** explaining the workflow and expected
    result. A recording without an outcome check is not verified coverage.
-5. Under **Test files**, click a filename to view its JSON and select it for replay.
+5. Under **Test files**, click a filename to view its JSON.
    Use **Edit** for a form with test name, description, start page and individual steps,
    or **Delete** to confirm removal. Each step shows fields for its selected action,
    optional expected-page wait and nested iframe selectors. Steps can be added, removed
@@ -32,16 +32,17 @@ if one was installed. V2 installs no service worker and contains no database-rou
    version and last-edit timestamp are not editable; the backend updates the timestamp
    when saving. Failed writes keep the form open with its draft. View still shows the
    complete read-only JSON, and normal Files supports editing the underlying file.
-   Definitions live at `app_root/version/assets/app-tests/recordings/<id>.json`, visible
-   through normal **Files** as `app-tests/recordings`. Existing recordings migrate from
-   `app_root/app-tests/recordings` on first use; differing same-id copies stop migration
-   rather than overwrite either file. Reports remain private at `app_root/app-tests/reports`.
+   Definitions live at `app_root/version/assets/app-tests/tests/<id>.json`, visible
+   through normal **Files** as `app-tests/tests`. Existing tests migrate from
+   `app_root/app-tests/recordings` and `app_root/version/assets/app-tests/recordings` on first
+   use; differing same-id copies stop migration rather than overwrite either file. Reports remain private at `app_root/app-tests/reports`.
    Legacy version-1 recordings missing descriptions receive generated descriptions when
    listed; review those descriptions for business accuracy. After edits through normal
-   Files or chat, use **Refresh recordings** in the Test files header.
-6. Click **Run test**, or ask the app's chat to run its saved tests. Polling and the report
-   distinguish passes, assertion failures, missing targets, skipped workflows and runner
-   errors. Recording controls and saved-test replay controls are grouped separately.
+   Files or chat, use **Refresh tests** in the Test files header.
+6. Click **Run test** on the relevant file row, **Run all** beside **Refresh tests** for
+   the whole saved suite, or ask the app's chat to run relevant saved tests. Polling and the
+   report distinguish passes, assertion failures, missing targets, skipped workflows and runner
+   errors. The **+** menu adds tests; replay actions live on file rows and in the list toolbar.
    **Run test** runs once in a background browser; the former three-replay Verify button
    is removed. The page visibility check provides only limited smoke coverage. The API
    still supports an explicit repeat count when a caller needs a stability check.
@@ -125,3 +126,19 @@ Full runs are reserved for full-regression requests or justified broad shared ch
 unrelated successes do not establish coverage for a requested behavior. Project edit
 access is still enforced. The project argument is explicit; this change does not add a
 trusted server binding between a chat and its currently open app.
+
+
+## Upload a test
+
+Use **+** → **Upload test** to select one declarative test JSON file (non-empty, at most
+256 KB). It can be an exported definition or a draft with `name`, a nonblank `description`
+and 1–300 supported `steps`; omitted `startPath` defaults to app home. Version, if present,
+must be 1. The platform assigns a fresh UUID and timestamp, so importing never replaces
+an existing test just because the file contains the same id. Backend validation and edit
+permissions apply. Unsupported fields, invalid JSON and failed writes display an error;
+the import is not reported as successful. JavaScript/Playwright scripts are not supported.
+
+The per-file Run test action passes exactly that UUID without reading its definition.
+Run all explicitly sends `all=true` for the current app and is disabled for an empty list
+or while recording, saving or running. Each test runs once. The page visibility smoke
+check remains a separate, explicitly labeled action below the list.

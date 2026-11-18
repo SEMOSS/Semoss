@@ -93,7 +93,7 @@ class AppTestRecordingsUnitTests {
 	@Test
 	void migratesLegacyRecordingsAndRetainsTheirTimestamp() throws Exception {
 		String id = "11111111-1111-4111-8111-111111111111";
-		Path dir = temporary.resolve("recordings");
+		Path dir = temporary.resolve("tests");
 		Files.createDirectories(dir);
 		Path file = dir.resolve(id + ".json");
 		Files.writeString(file, "{\"id\":\"" + id + "\",\"name\":\"Old workflow\",\"version\":1,\"updatedAt\":\"2026-11-13T12:00:00Z\",\"steps\":[{\"type\":\"CLICK\",\"selector\":\"button\"}]}");
@@ -134,6 +134,7 @@ class AppTestRecordingsUnitTests {
 		Path old = temporary.resolve("app_root/app-tests");
 		Path assets = temporary.resolve("app_root/version/assets/app-tests");
 		Map<String, Object> saved = AppTestRecordings.save(old, recording("Old"));
+		Files.move(old.resolve("tests"), old.resolve("recordings"));
 		Path report = old.resolve("reports/private/report.json");
 		Files.createDirectories(report.getParent());
 		Files.writeString(report, "private evidence");
@@ -151,18 +152,19 @@ class AppTestRecordingsUnitTests {
 		Path old = temporary.resolve("old");
 		Path assets = temporary.resolve("assets");
 		Map<String, Object> original = AppTestRecordings.save(old, recording("Original"));
+		Files.move(old.resolve("tests"), old.resolve("recordings"));
 		Map<String, Object> changed = new LinkedHashMap<>(original);
 		changed.put("description", "A deliberately edited test.");
 		AppTestRecordings.save(assets, changed);
 		assertThrows(java.io.IOException.class, () -> AppTestRecordings.migrate(old, assets));
 		assertEquals("A deliberately edited test.", AppTestRecordings.list(assets).getFirst().get("description"));
-		assertEquals("Original", AppTestRecordings.list(old).getFirst().get("name"));
+		assertTrue(Files.exists(old.resolve("recordings/" + original.get("id") + ".json")));
 	}
 
 	@Test
 	void cannotChangeARecordingIdByEditingItsContents() throws Exception {
 		Map<String, Object> saved = AppTestRecordings.save(temporary, recording("Original"));
-		Path file = temporary.resolve("recordings/" + saved.get("id") + ".json");
+		Path file = temporary.resolve("tests/" + saved.get("id") + ".json");
 		saved.put("id", "22222222-2222-4222-8222-222222222222");
 		AppTestRecordings.write(file, saved);
 		assertThrows(java.io.IOException.class, () -> AppTestRecordings.list(temporary));
@@ -182,7 +184,7 @@ class AppTestRecordingsUnitTests {
 		Path first = temporary.resolve("first");
 		Map<String, Object> saved = AppTestRecordings.save(first, recording("Selected"));
 		String selected = (String) saved.get("id");
-		Files.writeString(first.resolve("recordings/22222222-2222-4222-8222-222222222222.json"), "not JSON");
+		Files.writeString(first.resolve("tests/22222222-2222-4222-8222-222222222222.json"), "not JSON");
 		assertEquals(saved, AppTestRecordings.get(first, selected));
 		assertEquals(List.of(saved), AppTestRuns.loadSelected(first, null, List.of(selected), false, List.of()));
 		assertEquals(List.of(saved), AppTestRuns.loadSelected(first, selected, null, false, List.of()));
@@ -208,6 +210,21 @@ class AppTestRecordingsUnitTests {
 		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.selectedIds("First", null, false));
 		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.loadSelected(temporary, null,
 				List.of(one, "33333333-3333-4333-8333-333333333333"), false, List.of()));
+	}
+
+	@Test
+	void renamesTheAssetsRecordingsFolderToTestsWithoutMovingReports() throws Exception {
+		Map<String, Object> saved = AppTestRecordings.save(temporary, recording("Existing asset"));
+		Files.move(temporary.resolve("tests"), temporary.resolve("recordings"));
+		Files.createDirectories(temporary.resolve("reports"));
+		Files.writeString(temporary.resolve("reports/evidence.json"), "private report");
+		AppTestRecordings.migrate(temporary, temporary);
+		assertEquals(saved, AppTestRecordings.list(temporary).getFirst());
+		assertTrue(Files.exists(temporary.resolve("tests/" + saved.get("id") + ".json")));
+		assertFalse(Files.exists(temporary.resolve("recordings")));
+		assertEquals("private report", Files.readString(temporary.resolve("reports/evidence.json")));
+		AppTestRecordings.migrate(temporary, temporary);
+		assertEquals(1, AppTestRecordings.list(temporary).size());
 	}
 
 }

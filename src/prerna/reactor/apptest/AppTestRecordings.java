@@ -68,6 +68,7 @@ final class AppTestRecordings {
 	static Path folder(String projectId) throws IOException {
 		Path destination = Path.of(AssetUtility.getProjectAssetsFolder(projectId), "app-tests");
 		migrate(legacyFolder(projectId), destination);
+		migrate(destination, destination);
 		return destination;
 	}
 
@@ -80,7 +81,7 @@ final class AppTestRecordings {
 	static synchronized void migrate(Path previous, Path destination) throws IOException {
 		Path source = previous.resolve("recordings");
 		if (!Files.isDirectory(source)) return;
-		Path target = destination.resolve("recordings");
+		Path target = destination.resolve("tests");
 		Files.createDirectories(target);
 		try (var files = Files.list(source)) {
 			for (Path file : files.filter(p -> p.getFileName().toString().endsWith(".json")).sorted().toList()) {
@@ -96,6 +97,11 @@ final class AppTestRecordings {
 				Files.delete(file);
 			}
 		}
+		boolean isEmpty;
+		try (var remaining = Files.list(source)) {
+			isEmpty = remaining.findAny().isEmpty();
+		}
+		if (isEmpty) Files.delete(source);
 	}
 
 	static String id(String value) {
@@ -234,7 +240,7 @@ final class AppTestRecordings {
 	static synchronized Map<String, Object> save(Path base, Map<String, Object> input) throws IOException {
 		Map<String, Object> recording = validate(input);
 		requireStableTargets(recording);
-		Path dir = base.resolve("recordings");
+		Path dir = base.resolve("tests");
 		Files.createDirectories(dir);
 		Path file = dir.resolve(recording.get("id") + ".json");
 		if (!Files.exists(file) && list(base).size() >= MAX_RECORDINGS) {
@@ -253,13 +259,13 @@ final class AppTestRecordings {
 
 	/** Read a single UUID file without parsing any other test in the app. */
 	static synchronized Map<String, Object> get(Path base, String recordingId) throws IOException {
-		Path file = base.resolve("recordings").resolve(id(recordingId) + ".json");
+		Path file = base.resolve("tests").resolve(id(recordingId) + ".json");
 		if (!Files.isRegularFile(file)) throw new IllegalArgumentException("Recording does not exist in this app: " + recordingId);
 		return read(file);
 	}
 
 	static synchronized List<Map<String, Object>> list(Path base) throws IOException {
-		Path dir = base.resolve("recordings");
+		Path dir = base.resolve("tests");
 		if (!Files.isDirectory(dir)) return List.of();
 		List<Map<String, Object>> recordings = new ArrayList<>();
 		try (var files = Files.list(dir)) {
@@ -292,7 +298,7 @@ final class AppTestRecordings {
 	}
 
 	static synchronized boolean delete(Path base, String recordingId) throws IOException {
-		return Files.deleteIfExists(base.resolve("recordings").resolve(id(recordingId) + ".json"));
+		return Files.deleteIfExists(base.resolve("tests").resolve(id(recordingId) + ".json"));
 	}
 
 	static void write(Path file, Object value) throws IOException {

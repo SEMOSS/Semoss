@@ -40,12 +40,14 @@ Give every interactive element and every value a test reads a unique `data-testi
 
 Each replay runs in a fresh browser with a fixed viewport, `en-US` locale, UTC timezone, light color scheme, reduced motion and CSS animations and transitions off. A deployment may also set `APP_TEST_FIXED_TIME` (an ISO instant) to start the page clock at a fixed time for screens that show dates.
 
-Definitions are stored at `app_root/version/assets/app-tests/recordings/<id>.json`,
-visible and editable in the app's normal Files panel under `app-tests/recordings`.
+Definitions are stored at `app_root/version/assets/app-tests/tests/<id>.json`,
+visible and editable in the app's normal Files panel under `app-tests/tests`.
 The Testing panel also supports viewing, editing and deleting these definitions.
 Keep each file's id equal to its UUID filename, version equal to 1, and a meaningful
-nonblank description. Legacy definitions migrate from `app_root/app-tests/recordings`
-on first use; private reports stay outside assets. Refresh recordings after editing files.
+nonblank description. Legacy definitions migrate from `app_root/app-tests/recordings` and
+`app_root/version/assets/app-tests/recordings` on first use; private reports stay outside assets.
+Use Refresh tests after editing files. The Testing tab offers Run test per file and an explicit
+Run all action. The + menu offers Record workflow or Upload test (JSON imported as a new test ID).
 
 ## Recording format
 
