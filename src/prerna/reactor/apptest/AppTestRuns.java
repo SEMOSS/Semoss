@@ -101,6 +101,12 @@ final class AppTestRuns {
     /** {@code repeat} replays each recording that many times (1 to 5) and passes it only if every replay passes. */
     static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
             String applicationUrl, String sessionId, String cookieName, int repeat) {
+        return start(owner, projectId, scenario, suite, pages, applicationUrl, sessionId, cookieName, repeat, null, false);
+    }
+
+    /** Real runs must choose UUIDs, the platform smoke check, or explicitly all recordings. */
+    static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
+            String applicationUrl, String sessionId, String cookieName, int repeat, List<String> recordingIds, boolean all) {
         int replays = Math.max(1, Math.min(MAX_REPEAT, repeat));
         String runId = UUID.randomUUID().toString();
         Map<String, Object> pending = new LinkedHashMap<>();
@@ -124,10 +130,12 @@ final class AppTestRuns {
             register(runId, run);
             return runId;
         }
+        selectedIds(suite, recordingIds, all); // Reject implicit broad runs before accessing project files.
         List<Map<String, Object>> recordings;
-        try { recordings = PLATFORM_SMOKE_SUITE.equals(suite) ? List.of() : AppTestRecordings.list(AppTestRecordings.folder(projectId)); }
+        try { recordings = PLATFORM_SMOKE_SUITE.equals(suite)
+                ? selectRecordings(List.of(), suite, pages)
+                : loadSelected(AppTestRecordings.folder(projectId), suite, recordingIds, all, pages); }
         catch (IOException e) { throw new IllegalArgumentException("Unable to read app test recordings", e); }
-        recordings = selectRecordings(recordings, suite, pages);
         if (recordings.isEmpty()) {
             run.result = AppTestRunner.report(runId, projectId, List.of());
             register(runId, run);
@@ -148,6 +156,30 @@ final class AppTestRuns {
             throw new IllegalArgumentException("App test runner is busy. Try again after an active run finishes.");
         }
         return runId;
+    }
+
+    /** Validate scope independently of filesystem state, including calls that have no tests. */
+    static List<String> selectedIds(String suite, List<String> recordingIds, boolean all) {
+        boolean hasSuite = suite != null && !suite.isBlank();
+        boolean hasIds = recordingIds != null && !recordingIds.isEmpty();
+        if ((all ? 1 : 0) + (hasSuite ? 1 : 0) + (hasIds ? 1 : 0) != 1) {
+            throw new IllegalArgumentException("Choose recordingIds, suite=<recording UUID or __platform_smoke__>, or all=true; exactly one selection is required");
+        }
+        if (all || PLATFORM_SMOKE_SUITE.equals(suite)) return List.of();
+        List<String> ids = hasSuite ? List.of(suite) : List.copyOf(recordingIds);
+        if (ids.size() > AppTestRecordings.MAX_RECORDINGS || ids.stream().distinct().count() != ids.size()) {
+            throw new IllegalArgumentException("Choose at most " + AppTestRecordings.MAX_RECORDINGS + " distinct recording UUIDs");
+        }
+        return ids.stream().map(AppTestRecordings::id).toList();
+    }
+
+    static List<Map<String, Object>> loadSelected(Path base, String suite, List<String> recordingIds,
+            boolean all, List<String> pages) throws IOException {
+        List<String> ids = selectedIds(suite, recordingIds, all);
+        List<Map<String, Object>> recordings = new ArrayList<>();
+        if (all) recordings = AppTestRecordings.list(base);
+        else for (String id : ids) recordings.add(AppTestRecordings.get(base, id));
+        return selectRecordings(recordings, null, pages);
     }
 
     static List<Map<String, Object>> selectRecordings(List<Map<String, Object>> recordings, String suite, List<String> pages) {

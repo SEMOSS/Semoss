@@ -8,9 +8,10 @@ description: Run saved Playwright regression recordings after changing a SEMOSS 
 Use the platform **App Tests** toolbox (`app-tests`). Always pass the explicit target app project id. The toolbox context belongs to the toolbox, not to the app being edited.
 
 1. Finish and publish the app change using its normal build/publish flow. Tests exercise the published app portal.
-2. Call `RunAppTests(project=<target app id>)`. Optional `suite` selects a saved recording by UUID or name; `pages` filters recording names/start paths. Omitting `suite` only runs saved recordings.
-3. Check the returned `target` matches the app being edited. Poll `GetAppTestRun(runId)` about once per second while status is `RUNNING`; stop after three minutes and report a runner timeout if it has not finished.
-4. Read `status`, `summary`, and each test's `classification`, `failedStep`, `reason`, `expected`, `actual`, and `evidence`.
+2. Call `ListAppTestRecordings(project=<current app id>)` to see only recording IDs, names and descriptions. Choose tests relevant to the requested behavior and changed shared components. Do not bulk-read the test directory or load every definition through file/Bash tools. Call `GetAppTestRecording(project=<same app>, recordingId=<one UUID>)` only when you need that test's steps or expectations; replaying it does not require reading its content first.
+3. Run the relevant IDs with `RunAppTests(project=<same app>, recordingIds=[<UUID>, ...])`. Never omit the selection. Use `all=true` only when the user requests full regression coverage or a shared change justifies it; state why the broader run is needed. `recordingIds`, `suite` and `all=true` are mutually exclusive. `suite` accepts a single UUID or `__platform_smoke__`, never a name. Optional `pages` only narrows an explicit selection by exact recording name/start path. No relevant saved test means missing coverage: report it, and create a new test only with a known expected outcome; do not run unrelated tests as a substitute.
+4. Check the returned `target` matches the app being edited. Poll `GetAppTestRun(runId)` about once per second while status is `RUNNING`; stop after three minutes and report a runner timeout if it has not finished.
+5. Read `status`, `summary`, and each test's `classification`, `failedStep`, `reason`, `expected`, `actual`, and `evidence`.
 
 | Result | Action |
 | --- | --- |
@@ -31,7 +32,7 @@ The reserved `__platform_smoke__` suite is platform-owned and generated in memor
 
 ## Verify a recording you save
 
-After `SaveAppTestRecording`, run `RunAppTests(project, suite=<id>)` once. Keep the recording only if it reports `PASSED`. A `FLAKY`, `TARGET_NOT_FOUND` or `FAILED` result means the recording is wrong or unstable: fix or remove it, and do not report it as coverage. A recording needs at least one check (`ASSERT_TEXT` or `ASSERT_VISIBLE`); without one it is `SKIPPED`.
+After `SaveAppTestRecording`, run `RunAppTests(project=<same app>, recordingIds=[<saved UUID>])` once. Keep the recording only if it reports `PASSED`. A `FLAKY`, `TARGET_NOT_FOUND` or `FAILED` result means the recording is wrong or unstable: fix or remove it, and do not report it as coverage. A recording needs at least one check (`ASSERT_TEXT` or `ASSERT_VISIBLE`); without one it is `SKIPPED`.
 
 ## Stable targets
 
@@ -48,7 +49,7 @@ on first use; private reports stay outside assets. Refresh recordings after edit
 
 ## Recording format
 
-`ListAppTestRecordings(project)` returns the app's recordings, including descriptions. `SaveAppTestRecording(project, recording)` requires `name`, a nonblank `description` explaining the workflow and expected outcome (at most 2000 characters), and `steps`. Optional fields are UUID `id` and app-relative `startPath` (empty for portal root). Give every test a meaningful description; for example, "Create an order on the checkout page, navigate to Orders, and verify the new order appears." Steps use CSS `selector`, optional nested iframe CSS selectors in `framePath`, and one of:
+`ListAppTestRecordings(project)` returns only `id`, `name` and `description` for recordings in that app. `GetAppTestRecording(project, recordingId)` reads one full recording, including steps, when needed. `SaveAppTestRecording(project, recording)` requires `name`, a nonblank `description` explaining the workflow and expected outcome (at most 2000 characters), and `steps`. Optional fields are UUID `id` and app-relative `startPath` (empty for portal root). Give every test a meaningful description; for example, "Create an order on the checkout page, navigate to Orders, and verify the new order appears." Steps use CSS `selector`, optional nested iframe CSS selectors in `framePath`, and one of:
 
 - `CLICK`, `ASSERT_VISIBLE`
 - `FILL` / `SELECT` with string `value`

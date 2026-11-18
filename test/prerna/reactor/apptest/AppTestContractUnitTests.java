@@ -46,11 +46,14 @@ class AppTestContractUnitTests {
 
 	@Test
 	void allAppScopedToolsRequireAnExplicitTargetAndDeclareMapOutputs() {
-		for (AbstractReactor reactor : List.of(new RunAppTestsReactor(), new SaveAppTestRecordingReactor(), new ListAppTestRecordingsReactor(), new DeleteAppTestRecordingReactor())) {
+		for (AbstractReactor reactor : List.of(new RunAppTestsReactor(), new SaveAppTestRecordingReactor(), new ListAppTestRecordingsReactor(), new GetAppTestRecordingReactor(), new DeleteAppTestRecordingReactor())) {
 			assertTrue(reactor.getReactorDefinition().getKey("project").getRequired());
 			assertEquals(Map.class, reactor.getReactorDefinition().getOutput().getType());
 		}
 		assertEquals(List.class, new RunAppTestsReactor().getReactorDefinition().getKey("pages").getType());
+		assertEquals(List.class, new RunAppTestsReactor().getReactorDefinition().getKey("recordingIds").getType());
+		assertEquals(Boolean.class, new RunAppTestsReactor().getReactorDefinition().getKey("all").getType());
+		assertTrue(new GetAppTestRecordingReactor().getReactorDefinition().getKey("recordingId").getRequired());
 		assertEquals(Map.class, new GetAppTestRunReactor().getReactorDefinition().getOutput().getType());
 	}
 
@@ -75,4 +78,33 @@ class AppTestContractUnitTests {
 			if (priorDir == null) properties.remove(AppTestRuns.STUB_DIR_PROP); else properties.put(AppTestRuns.STUB_DIR_PROP, priorDir);
 		}
 	}
+	@Test
+	void realRunsCannotDefaultToAllEvenWhenThereAreNoRecordings() {
+		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.start(
+				"NATIVE:editor", "app", null, null, List.of(), null, null, "JSESSIONID"));
+		assertThrows(IllegalArgumentException.class, () -> AppTestRuns.start(
+				"NATIVE:editor", "app", null, null, List.of("orders"), null, null, "JSESSIONID"));
+	}
+
+	@Test
+	void shippedToolboxExposesIndividualReadsAndExplicitSelections() throws Exception {
+		Path manifest = Path.of(System.getProperty("semoss.test.sourceRoot", "."),
+				"project/platform__app-tests/app_root/version/assets/mcp/pixel_mcp.json");
+		com.google.gson.JsonArray tools = com.google.gson.JsonParser.parseString(Files.readString(manifest)).getAsJsonObject().getAsJsonArray("tools");
+		boolean foundGet = false, foundRun = false;
+		for (var value : tools) {
+			var tool = value.getAsJsonObject();
+			if (tool.get("name").getAsString().equals("GetAppTestRecording")) {
+				foundGet = true;
+				assertEquals(2, tool.getAsJsonObject("inputSchema").getAsJsonArray("required").size());
+			}
+			if (tool.get("name").getAsString().equals("RunAppTests")) {
+				foundRun = true;
+				assertTrue(tool.getAsJsonObject("inputSchema").getAsJsonObject("properties").has("recordingIds"));
+				assertTrue(tool.getAsJsonObject("inputSchema").getAsJsonObject("properties").has("all"));
+			}
+		}
+		assertTrue(foundGet && foundRun);
+	}
+
 }
