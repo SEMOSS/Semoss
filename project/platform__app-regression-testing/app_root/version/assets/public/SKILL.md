@@ -39,6 +39,13 @@ Give every interactive element and every value a test reads a unique `data-testi
 
 Each replay runs in a fresh browser with a fixed viewport, `en-US` locale, UTC timezone, light color scheme, reduced motion and CSS animations and transitions off. A deployment may also set `APP_TEST_FIXED_TIME` (an ISO instant) to start the page clock at a fixed time for screens that show dates.
 
+Definitions are stored at `app_root/version/assets/app-tests/recordings/<id>.json`,
+visible and editable in the app's normal Files panel under `app-tests/recordings`.
+The Testing panel also supports viewing, editing and deleting these definitions.
+Keep each file's id equal to its UUID filename, version equal to 1, and a meaningful
+nonblank description. Legacy definitions migrate from `app_root/app-tests/recordings`
+on first use; private reports stay outside assets. Refresh recordings after editing files.
+
 ## Recording format
 
 `ListAppTestRecordings(project)` returns the app's recordings, including descriptions. `SaveAppTestRecording(project, recording)` requires `name`, a nonblank `description` explaining the workflow and expected outcome (at most 2000 characters), and `steps`. Optional fields are UUID `id` and app-relative `startPath` (empty for portal root). Give every test a meaningful description; for example, "Create an order on the checkout page, navigate to Orders, and verify the new order appears." Steps use CSS `selector`, optional nested iframe CSS selectors in `framePath`, and one of:

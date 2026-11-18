@@ -28,8 +28,11 @@
 package prerna.reactor.apptest;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 
+import prerna.cluster.util.ClusterUtil;
+import prerna.util.Utility;
 import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -47,7 +50,10 @@ public class DeleteAppTestRecordingReactor extends AbstractAppTestReactor {
 		organizeKeys();
 		String target = targetProject();
 		try {
-			return new NounMetadata(Map.of("deleted", AppTestRecordings.delete(AppTestRecordings.folder(target), getString("recordingId"))),
+			Path folder = AppTestRecordings.folder(target);
+			boolean deleted = AppTestRecordings.delete(folder, getString("recordingId"));
+			ClusterUtil.pushProjectFolder(Utility.getProject(target), folder.toString());
+			return new NounMetadata(Map.of("deleted", deleted),
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to delete app test recording", e);

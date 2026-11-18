@@ -129,4 +129,43 @@ class AppTestRecordingsUnitTests {
             "engineTestConfigurationId","aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","steps",List.of(Map.of("type","ASSERT_VISIBLE","selector","#result")))));
     }
 
+	@Test
+	void movesOnlyLegacyRecordingsToAssetsAndKeepsPrivateReports() throws Exception {
+		Path old = temporary.resolve("app_root/app-tests");
+		Path assets = temporary.resolve("app_root/version/assets/app-tests");
+		Map<String, Object> saved = AppTestRecordings.save(old, recording("Old"));
+		Path report = old.resolve("reports/private/report.json");
+		Files.createDirectories(report.getParent());
+		Files.writeString(report, "private evidence");
+		AppTestRecordings.migrate(old, assets);
+		assertEquals(saved, AppTestRecordings.list(assets).getFirst());
+		assertTrue(AppTestRecordings.list(old).isEmpty());
+		assertTrue(Files.exists(report));
+		assertFalse(Files.exists(assets.resolve("reports")));
+		AppTestRecordings.migrate(old, assets);
+		assertEquals(1, AppTestRecordings.list(assets).size());
+	}
+
+	@Test
+	void migrationNeverOverwritesAConflictingAsset() throws Exception {
+		Path old = temporary.resolve("old");
+		Path assets = temporary.resolve("assets");
+		Map<String, Object> original = AppTestRecordings.save(old, recording("Original"));
+		Map<String, Object> changed = new LinkedHashMap<>(original);
+		changed.put("description", "A deliberately edited test.");
+		AppTestRecordings.save(assets, changed);
+		assertThrows(java.io.IOException.class, () -> AppTestRecordings.migrate(old, assets));
+		assertEquals("A deliberately edited test.", AppTestRecordings.list(assets).getFirst().get("description"));
+		assertEquals("Original", AppTestRecordings.list(old).getFirst().get("name"));
+	}
+
+	@Test
+	void cannotChangeARecordingIdByEditingItsContents() throws Exception {
+		Map<String, Object> saved = AppTestRecordings.save(temporary, recording("Original"));
+		Path file = temporary.resolve("recordings/" + saved.get("id") + ".json");
+		saved.put("id", "22222222-2222-4222-8222-222222222222");
+		AppTestRecordings.write(file, saved);
+		assertThrows(java.io.IOException.class, () -> AppTestRecordings.list(temporary));
+	}
+
 }

@@ -124,9 +124,8 @@ final class AppTestRuns {
             register(runId, run);
             return runId;
         }
-        Path folder = AppTestRecordings.folder(projectId);
         List<Map<String, Object>> recordings;
-        try { recordings = PLATFORM_SMOKE_SUITE.equals(suite) ? List.of() : AppTestRecordings.list(folder); }
+        try { recordings = PLATFORM_SMOKE_SUITE.equals(suite) ? List.of() : AppTestRecordings.list(AppTestRecordings.folder(projectId)); }
         catch (IOException e) { throw new IllegalArgumentException("Unable to read app test recordings", e); }
         recordings = selectRecordings(recordings, suite, pages);
         if (recordings.isEmpty()) {
@@ -142,7 +141,7 @@ final class AppTestRuns {
         register(runId, run);
         long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * replays * 1_000_000;
         try {
-            Path reportFolder = folder.resolve("reports").resolve(ownerDirectory(owner));
+            Path reportFolder = AppTestRecordings.legacyFolder(projectId).resolve("reports").resolve(ownerDirectory(owner));
             WORKERS.execute(() -> run.result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected, reportFolder, deadline, replays));
         } catch (RejectedExecutionException e) {
             synchronized (RUNS) { RUNS.remove(runId); }

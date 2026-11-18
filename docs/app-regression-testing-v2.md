@@ -24,15 +24,23 @@ if one was installed. V2 installs no service worker and contains no database-rou
    The selection is recorded without activating that element. Stop recording.
 4. Save with a name and a meaningful **description** explaining the workflow and expected
    result. A recording without an outcome check is not verified coverage.
-5. Under **Test files**, read each saved test's description and click **Open file** to read
-   its complete JSON definition. Opening a file selects it for replay; this viewer is
-   read-only. Definitions live at `app_root/app-tests/recordings/<id>.json`, outside
-   published assets. Existing version-1 recordings missing descriptions receive generated
-   descriptions when listed; review those descriptions for business accuracy.
+5. Under **Test files**, click a filename to view its JSON and select it for replay.
+   Use **Edit** to update the definition or **Delete** to confirm its removal. Editing
+   requires valid JSON, the original id/version, a description and at least one step;
+   backend step validation also applies. Failed writes keep the editor open with its draft.
+   Definitions live at `app_root/version/assets/app-tests/recordings/<id>.json`, visible
+   through normal **Files** as `app-tests/recordings`. Existing recordings migrate from
+   `app_root/app-tests/recordings` on first use; differing same-id copies stop migration
+   rather than overwrite either file. Reports remain private at `app_root/app-tests/reports`.
+   Legacy version-1 recordings missing descriptions receive generated descriptions when
+   listed; review those descriptions for business accuracy. After edits through normal
+   Files or chat, use **Refresh recordings** in the Test files header.
 6. Click **Run test**, or ask the app's chat to run its saved tests. Polling and the report
    distinguish passes, assertion failures, missing targets, skipped workflows and runner
-   errors. The page visibility check provides only limited smoke coverage. Optional
-   **Verify (3 replays)** repeats the same recording in fresh contexts.
+   errors. Recording controls and saved-test replay controls are grouped separately.
+   **Run test** runs once in a background browser; the former three-replay Verify button
+   is removed. The page visibility check provides only limited smoke coverage. The API
+   still supports an explicit repeat count when a caller needs a stability check.
 
 Recording/replay performs real app actions using the app's normal connections. V2 does not
 create or substitute test databases. Use a suitably prepared app/environment for workflows
@@ -73,7 +81,7 @@ page route. The iframe must be accessible to the SEMOSS UI for manual recording.
 ## Platform integration
 
 The five app-test reactors require explicit app targets, authorize editing where applicable,
-store declarative JSON separately from the published app, and run bounded headless Playwright
+store declarative JSON in non-public app assets (outside `assets/public`), and run bounded headless Playwright
 replays. The initiating authenticated session is passed to a fresh browser context; no login
 credentials are saved in test definitions. Each replay starts with fresh browser state, which
 does not reset server-side data. The App Builder gets the shipped testing skill/toolbox via

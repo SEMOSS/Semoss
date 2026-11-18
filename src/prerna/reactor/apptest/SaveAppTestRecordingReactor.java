@@ -28,8 +28,11 @@
 package prerna.reactor.apptest;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Map;
 
+import prerna.cluster.util.ClusterUtil;
+import prerna.util.Utility;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -47,7 +50,10 @@ public class SaveAppTestRecordingReactor extends AbstractAppTestReactor {
 		organizeKeys();
 		String target = targetProject();
 		try {
-			return new NounMetadata(AppTestRecordings.save(AppTestRecordings.folder(target), getMap("recording")),
+			Path folder = AppTestRecordings.folder(target);
+			Map<String, Object> recording = AppTestRecordings.save(folder, getMap("recording"));
+			ClusterUtil.pushProjectFolder(Utility.getProject(target), folder.toString());
+			return new NounMetadata(recording,
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to save app test recording", e);
@@ -56,7 +62,7 @@ public class SaveAppTestRecordingReactor extends AbstractAppTestReactor {
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Save a declarative app regression recording outside published app assets. Requires app edit access.")
+		return super.getReactorDefinition().description("Save a declarative app regression recording in assets/app-tests/recordings (outside public assets). Requires app edit access.")
 				.key("project", "Required target app project id, never the toolbox id")
 				.key("recording", k -> k.type(Map.class).description("Recording with required name, description and steps; optional id and app-relative startPath. Description explains the workflow and expected outcome (at most 2000 characters)."))
 				.output(Map.class, "Saved recording with UUID, version, name, description, relative start path, steps and update time");

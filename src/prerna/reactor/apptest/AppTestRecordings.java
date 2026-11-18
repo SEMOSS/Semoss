@@ -48,7 +48,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-/** Declarative recordings live beside version/, never inside published assets. */
+/** Declarative test definitions live in non-public project assets; reports remain private. */
 final class AppTestRecordings {
 
 	private static final Gson GSON = new Gson();
@@ -65,8 +65,37 @@ final class AppTestRecordings {
 
 	private AppTestRecordings() { }
 
-	static Path folder(String projectId) {
+	static Path folder(String projectId) throws IOException {
+		Path destination = Path.of(AssetUtility.getProjectAssetsFolder(projectId), "app-tests");
+		migrate(legacyFolder(projectId), destination);
+		return destination;
+	}
+
+	/** Reports are intentionally kept out of the editable/versioned asset tree. */
+	static Path legacyFolder(String projectId) {
 		return Path.of(AssetUtility.getProjectAppRootFolder(projectId), "app-tests");
+	}
+
+	/** Move legacy definitions only; never replace a different file or relocate run evidence. */
+	static synchronized void migrate(Path previous, Path destination) throws IOException {
+		Path source = previous.resolve("recordings");
+		if (!Files.isDirectory(source)) return;
+		Path target = destination.resolve("recordings");
+		Files.createDirectories(target);
+		try (var files = Files.list(source)) {
+			for (Path file : files.filter(p -> p.getFileName().toString().endsWith(".json")).sorted().toList()) {
+				Path next = target.resolve(file.getFileName());
+				if (Files.exists(next)) {
+					if (Files.mismatch(file, next) != -1) {
+						throw new IOException("Conflicting app test recording: " + file.getFileName()
+								+ ". Resolve the legacy and assets copies before continuing.");
+					}
+				} else {
+					Files.copy(file, next, StandardCopyOption.COPY_ATTRIBUTES);
+				}
+				Files.delete(file);
+			}
+		}
 	}
 
 	static String id(String value) {
@@ -228,6 +257,9 @@ final class AppTestRecordings {
 					boolean needsDescription = !recording.containsKey("description");
 					if (needsDescription) recording.put("description", "Replays the recorded workflow: " + recording.get("name") + ".");
 					Map<String, Object> validated = validate(recording);
+					if (!file.getFileName().toString().equals(validated.get("id") + ".json")) {
+						throw new IllegalArgumentException("Recording id must match its filename");
+					}
 					if (recording.get("updatedAt") instanceof String updatedAt) validated.put("updatedAt", updatedAt);
 					if (needsDescription) write(file, validated);
 					recordings.add(validated);
