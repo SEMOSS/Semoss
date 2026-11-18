@@ -237,8 +237,10 @@ public class MessageUtils {
 		if (json == null || json.trim().isEmpty() || !json.trim().startsWith("{")) {
 			throw new IllegalArgumentException("Input must be a valid JSON object string.");
 		}
-		return GSON_FOR_DB.fromJson(json, new TypeToken<Map<String, Object>>() {
+		Map<String, Object> result = GSON_FOR_DB.fromJson(json, new TypeToken<Map<String, Object>>() {
 		}.getType());
+		result.remove(GoogleInteractionsState.KEY);
+		return result;
 	}
 
 	/**
@@ -254,6 +256,7 @@ public class MessageUtils {
 		}
 		messageMap.remove("systemPrompt");
 		messageMap.remove("system_prompt");
+		messageMap.remove(GoogleInteractionsState.KEY);
 
 		Object partsObj = messageMap.get("parts");
 		if (partsObj instanceof List<?>) {
@@ -517,11 +520,10 @@ public class MessageUtils {
 		}
 		// Ensure base64Data is loaded for all images
 		for (AbstractMessage msg : msgs) {
-			if (msg instanceof InputMessage) {
-				InputMessage input = (InputMessage) msg;
-				if (input.hasMediaInputs()) {
-					for (MessageInputMedia img : input.getMediaInfos()) {
-						// Populate the field (it will actually load the file if needed)
+			if (msg != null) {
+				for (MessagePart part : msg.getParts()) {
+					if (part instanceof MediaMessagePart media && media.getMediaInfo() != null) {
+						MessageInputMedia img = media.getMediaInfo();
 						img.setBase64Data(img.getBase64Data());
 					}
 				}
@@ -655,6 +657,8 @@ public class MessageUtils {
 	 */
 	public static List<AbstractMessage> getMessageBranchWithNewMessage(List<AbstractMessage> messages,
 			AbstractMessage newMessage) {
+		// Signed model steps and their tool results must remain intact until whole-turn compaction.
+		boolean signedHistory = messages.stream().anyMatch(m -> m.getGoogleInteractions() != null);
 		// 1. Build lookup map (messageId to message)
 		Map<String, AbstractMessage> idMap = new HashMap<>();
 		for (AbstractMessage m : messages) {
@@ -679,7 +683,7 @@ public class MessageUtils {
 			if (m.getPruneToolsAbove()) {
 				shouldPruneTools = true;
 			}
-			if (shouldPruneTools) {
+			if (shouldPruneTools && !signedHistory) {
 				m = deepCopyForPruning(m);
 				pruneToolsPartFromMessage(m);
 			}
@@ -705,6 +709,7 @@ public class MessageUtils {
 	 */
 	public static List<AbstractMessage> getMessageBranchFromParent(List<AbstractMessage> messages,
 			String parentMessageId) {
+		boolean signedHistory = messages.stream().anyMatch(m -> m.getGoogleInteractions() != null);
 		// 1. Build lookup map (messageId to message)
 		Map<String, AbstractMessage> idMap = new HashMap<>();
 		for (AbstractMessage m : messages) {
@@ -724,7 +729,7 @@ public class MessageUtils {
 			if (m.getPruneToolsAbove()) {
 				shouldPruneTools = true;
 			}
-			if (shouldPruneTools) {
+			if (shouldPruneTools && !signedHistory) {
 				m = deepCopyForPruning(m);
 				pruneToolsPartFromMessage(m);
 			}
@@ -950,13 +955,17 @@ public class MessageUtils {
 					builder.withType(MessageType.RESPONSE_TOOL); // This marks as RESPONSE_TOOL
 					builder.withText(asStringOrNull(content)); // Preserves the content/text if present
 					builder.withToolResponses(flattenedTools);
-					result.add(builder.build());
+					ResponseMessage response = builder.build();
+					response.setGoogleInteractions(map.get(GoogleInteractionsState.KEY));
+					result.add(response);
 					continue;
 				}
 				// -- Otherwise: classic assistant response
 				ResponseMessage.Builder builder = ResponseMessage.builder();
 				builder.withText(asStringOrNull(content));
-				result.add(builder.build());
+				ResponseMessage response = builder.build();
+				response.setGoogleInteractions(map.get(GoogleInteractionsState.KEY));
+				result.add(response);
 				continue;
 			}
 
