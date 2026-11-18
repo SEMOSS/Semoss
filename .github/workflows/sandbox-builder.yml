@@ -125,13 +125,20 @@ jobs:
       - name: Compute tags
         id: meta
         shell: bash
+        env:
+          SEMOSS_VERSION: ${{ vars.VERSION }}
+          RELEASE: ${{ vars.RELEASE }}
         run: |
+          : "${SEMOSS_VERSION:?Set the VERSION repository variable}"
           BASE="${BRANCH//\//-}-${PYTHON_BUILDER_TAG}"
           DATE=$(date -u +%F)
-          TAGS=( "-t" "${IMAGE}:${BASE}" "-t" "${IMAGE}:${BASE}-${DATE}" )
-          if [[ "${{ vars.RELEASE }}" == "TRUE" ]]; then
-            TAGS+=( "-t" "${IMAGE}:${PYTHON_BUILDER_TAG}-${{ vars.VERSION }}" )
+          TAGS=( "-t" "${IMAGE}:${BASE}" )
+          if [[ "${RELEASE}" == "TRUE" ]]; then
+            TAGS+=( "-t" "${IMAGE}:${PYTHON_BUILDER_TAG}-${SEMOSS_VERSION}" )
+          else
+            SEMOSS_VERSION="${SEMOSS_VERSION}-SNAPSHOT"
           fi
+          TAGS+=( "-t" "${IMAGE}:${BASE}-${SEMOSS_VERSION}-${DATE}" )
           echo "args=${TAGS[*]}" >> "$GITHUB_OUTPUT"
           echo "primary=${IMAGE}:${BASE}" >> "$GITHUB_OUTPUT"
 
