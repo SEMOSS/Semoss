@@ -45,9 +45,10 @@ RUN real="$(readlink -f /usr/lib/python/semossvenv/bin/python3)" \
 ENV VIRTUAL_ENV=/usr/lib/python/semossvenv
 ENV PATH=/usr/lib/python/semossvenv/bin:$PATH
 
-# the sandbox identity is uid/gid 1000 (ubuntu:24.04 already has it as "ubuntu")
-RUN if ! getent group 1000 >/dev/null; then groupadd -g 1000 sandbox; fi \
- && if ! getent passwd 1000 >/dev/null; then useradd -u 1000 -g 1000 -m -s /bin/bash sandbox; fi
+# The sandbox identity is uid/gid 10001. The Kubernetes driver forces it and ignores USER; the
+# Docker and Podman drivers run the image's USER, so declaring the same uid gives every driver
+# one identity. It has a passwd entry so python and pip can resolve a home directory.
+RUN groupadd -g 10001 sandbox && useradd -u 10001 -g 10001 -m -s /bin/bash sandbox
 
 # the worker source (build context is the repo's py/)
 COPY . /opt/semosshome/py/
@@ -55,15 +56,15 @@ COPY . /opt/semosshome/py/
 # setup() appends to insight/log.txt; grants-* are the policy's ro/rw drop points
 RUN mkdir -p /opt/semosshome/insight /opt/grants-rw /opt/grants-ro \
  && touch /opt/semosshome/insight/log.txt \
- && chown -R 1000:1000 /opt/semosshome /opt/grants-rw /opt/grants-ro \
+ && chown -R 10001:10001 /opt/semosshome /opt/grants-rw /opt/grants-ro \
  && chmod 755 /opt/grants-rw /opt/grants-ro
 
 # Workstation homes. Files cross into a sandbox at their host path, so a Mac's BaseFolder
 # (/Users/me/...) or a Linux one (/home/me/...) must exist inside it. A sandbox can only create
 # directories under a path its policy grants and that exists at start, so these roots are made
 # here, owned by the sandbox user; OpenShellTransport grants the root and creates the home.
-RUN mkdir -p /Users && chown 1000:1000 /Users /home
+RUN mkdir -p /Users && chown 10001:10001 /Users /home
 
 # OpenShell refuses to start unless the workspace is writable by the sandbox identity
-USER 1000:1000
+USER 10001:10001
 WORKDIR /opt/semosshome/py
