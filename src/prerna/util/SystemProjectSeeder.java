@@ -40,6 +40,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.pipeline.PlatformOperation;
 
 /**
  * Reconciles a platform project's security-database row with the smss file on
@@ -55,9 +56,10 @@ import prerna.engine.api.IRDBMSEngine;
  * not stop the project loading.
  *
  * <p>
- * These operations bypass the ownership checks in {@link SecurityProjectUtils}
- * because a platform project has no owner to check against; they are correct
- * only for the {@code platform__} projects the boot thread owns. The class is
+ * Seeding runs as a platform operation, the platform's own work for no user,
+ * since a platform project has no owner to check against; the write methods of
+ * {@link SecurityProjectUtils} let it through. It is correct only for the
+ * {@code platform__} projects the boot thread owns. The class is
  * deliberately package private so nothing outside {@code prerna.util} - in
  * particular no reactor - can reach it. {@link ProjectWatcher} is the intended
  * and only caller.
@@ -65,6 +67,8 @@ import prerna.engine.api.IRDBMSEngine;
 class SystemProjectSeeder {
 
 	private static final Logger classLogger = LogManager.getLogger(SystemProjectSeeder.class);
+
+	private static final String SEED_OPERATION = "platform project seeding";
 
 	private SystemProjectSeeder() {
 	}
@@ -77,12 +81,14 @@ class SystemProjectSeeder {
 	 * @param requiredTags PROJECTMETA tags the project must carry
 	 */
 	static void seed(String projectId, String smssPath, String... requiredTags) {
-		Properties smss = loadSmss(projectId, smssPath);
-		ensureGlobal(projectId);
-		ensureTags(projectId, requiredTags);
-		if (smss != null) {
-			ensureDisplayName(projectId, smss);
-			ensureTemplateFlag(projectId, smss);
+		try (PlatformOperation operation = PlatformOperation.begin(SEED_OPERATION)) {
+			Properties smss = loadSmss(projectId, smssPath);
+			ensureGlobal(projectId);
+			ensureTags(projectId, requiredTags);
+			if (smss != null) {
+				ensureDisplayName(projectId, smss);
+				ensureTemplateFlag(projectId, smss);
+			}
 		}
 	}
 
@@ -138,7 +144,7 @@ class SystemProjectSeeder {
 			if (changed) {
 				Map<String, Object> update = new HashMap<>();
 				update.put("tag", tags);
-				SecurityProjectUtils.updateProjectMetadata(projectId, update);
+				SecurityProjectUtils.updateProjectMetadata(null, projectId, update);
 			}
 		} catch (Exception e) {
 			classLogger.warn("Failed to ensure tags {} on platform project '{}': {}", Arrays.toString(requiredTags),

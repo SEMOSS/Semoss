@@ -33,7 +33,7 @@ dependencies = [
     "flask>=3.1.0",
     "gliner>=0.2.22",
     "google-auth>=2.62.0",
-    "google-genai==2.34.0",
+    "google-genai==3.4.0",
     "grpcio-status>=1.82.1",
     "guidance>=0.3.1",
     "gunicorn>=26.0.0",

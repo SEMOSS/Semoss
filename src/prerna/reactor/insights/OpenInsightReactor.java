@@ -53,6 +53,7 @@ import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightStore;
 import prerna.om.PixelList;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
@@ -175,7 +176,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			// get the app_root folder for the project
 			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(project.getProjectName(),
 					project.getProjectId());
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
+			this.insight.getUser().getSandbox().grantFolder(projectAppRootFolder);
 		}
 
 		/*
@@ -240,7 +241,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 
 		// add the insight to the insight store
 		InsightStore.getInstance().put(newInsight);
-		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
+		InsightStore.getInstance().addToSessionHash(ThreadStore.getSessionId(), newInsight.getInsightId());
 		// set user
 		newInsight.setUser(user);
 

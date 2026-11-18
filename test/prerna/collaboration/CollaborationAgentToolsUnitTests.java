@@ -30,6 +30,7 @@ package prerna.collaboration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -37,7 +38,10 @@ import java.util.Map;
 
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
+import prerna.auth.AuthProvider;
+import prerna.io.connector.ConnectorScopeAccess;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.collaboration.WorkShowUIReactor;
 
@@ -122,6 +126,27 @@ class CollaborationAgentToolsUnitTests {
 	@Test
 	void interactiveInterfacesCannotExecuteThroughAnOrdinaryApproval() {
 		assertThrows(IllegalArgumentException.class, () -> new WorkShowUIReactor().execute());
+	}
+
+	@Test
+	void readingAMeetingTranscriptIsOfferedOnlyWhereTheSignInAsksForItsScope() throws Exception {
+		// nothing in this test asks for the scope, as on a deployment whose
+		// organization has not consented to it
+		assertTrue(allDefinitions().stream().noneMatch(tool -> "GetMeetingTranscript".equals(tool.get("name"))));
+
+		try (MockedStatic<ConnectorScopeAccess> scopes = mockStatic(ConnectorScopeAccess.class)) {
+			scopes.when(() -> ConnectorScopeAccess.requestsAnyScope(AuthProvider.MICROSOFT,
+					List.of("OnlineMeetingTranscript.Read.All"))).thenReturn(true);
+			List<Map<String, Object>> tools = allDefinitions();
+			assertEquals(61, tools.size());
+			JSONObject tool = new JSONObject(tools.stream()
+					.filter(value -> "GetMeetingTranscript".equals(value.get("name"))).findFirst().orElseThrow());
+			// a read, so it runs without waiting for the owner and a routine keeps it
+			assertEquals(MCPUtility.MCPExecution.AUTO.getValue(),
+					tool.getJSONObject("_meta").getString(MCPUtility.SMSS_MCP_EXECUTION));
+			assertEquals("Id of the event, as returned by ListEvents.", tool.getJSONObject("inputSchema")
+					.getJSONObject("properties").getJSONObject("id").getString("description"));
+		}
 	}
 
 	@Test

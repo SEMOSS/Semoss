@@ -6,7 +6,7 @@ ARG BASE_TAG=24.04
 ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=11.0.27
+ARG TOMCAT_VERSION=11.0.29
 # Which tomcat-builder variant to base on. Empty = the standard image; pass
 #   --build-arg TOMCAT_TAG_SUFFIX=-fips
 # for the FIPS 140-3 variant. Only the SUFFIX crosses the workflow boundary, so
@@ -104,6 +104,7 @@ ENV LC_ALL=en_US.UTF-8
 
 COPY --from=tomcat_builder /usr/lib/jvm/zulu25 /usr/lib/jvm/zulu25
 COPY --from=tomcat_builder /usr/local/bin/copilot /usr/local/bin/copilot
+COPY --from=tomcat_builder /usr/bin/openshell /usr/local/bin/openshell
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN	apt-get update -qq \

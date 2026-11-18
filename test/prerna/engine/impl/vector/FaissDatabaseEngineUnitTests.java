@@ -234,7 +234,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		Properties embedderProps = new Properties();
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
@@ -256,7 +256,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 						})) {
 			// used in verifyModelProps & addEmbeddings
 			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 			engine.addEmbeddings(new Vector<String>(), insight, new HashMap<>());
 			Properties updateEngineProps = engine.getSmssProp();
@@ -291,7 +291,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		Properties embedderProps = new Properties();
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
@@ -339,7 +339,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 						})) {
 			// used in verifyModelProps & addEmbeddings
 			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 			allPaths.forEach(path -> assertTrue(Files.exists(path)));
 			engine.removeDocument(fileNamesMixed, parameters);
@@ -360,7 +360,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 
 		// model embedder properties in verifyModelProps
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		Properties embedderProps = new Properties();
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
@@ -393,7 +393,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 
 			// used in verifyModelProps()
 			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 			// nearestNeighborCall
 			when(insight.getVarStore()).thenReturn(new VarStore());
@@ -431,7 +431,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 
 		// model embedder properties in verifyModelProps
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		Properties embedderProps = new Properties();
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
@@ -458,7 +458,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 
 			// used in verifyModelProps()
 			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 			Map<String, String> actualOutput = engine.removeCorruptedFiles(indexClass);
 			assertEquals(scriptOutput.size(), actualOutput.size());
@@ -485,7 +485,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 
 		// model embedder properties in verifyModelProps
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		Properties embedderProps = new Properties();
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
@@ -515,7 +515,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 
 			// used in verifyModelProps
 			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 			Map<String, Object> methodParams = new HashMap<>();
 			methodParams.put("indexClass", indexClass);
@@ -551,7 +551,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 
 		// model embedder properties in verifyModelProps
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		Properties embedderProps = new Properties();
 		embedderProps.setProperty(Constants.MODEL, embedderModel);
 		embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
@@ -584,7 +584,7 @@ public class FaissDatabaseEngineUnitTests extends SemossUnitTest {
 			u.when(() -> Utility.normalizeParam(any(String.class))).thenReturn(tempDir.toString());
 
 			// model embedder properties in verifyModelProps
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 			List<Map<String, Object>> allRecords = engine.listAllRecords(new HashMap<>());
 			assertEquals(expectedOutput.size(), allRecords.size());

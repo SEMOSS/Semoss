@@ -27,15 +27,23 @@
  *******************************************************************************/
 package prerna.auth.access;
 
+import prerna.engine.api.IEngine;
+
 /**
- * Someone, some group, or on an engine some project, whose access a permission
- * batch changes.
+ * Someone, some group, or on an engine an app or another engine, whose access a
+ * permission batch changes.
  */
 public class PermissionSubject {
 
 	/**
+	 * The type of an {@link SubjectCategory#ENGINE} subject that is an app: the
+	 * catalog type of a project
+	 */
+	public static final String PROJECT_TYPE = IEngine.CATALOG_TYPE.PROJECT.name();
+
+	/**
 	 * The categories of subject: a person, a team, a model's public use or total,
-	 * or a project whose custom reactors use an engine
+	 * or an app or engine given a permission on an engine
 	 */
 	public enum SubjectCategory {
 		USER, TEAM,
@@ -52,18 +60,20 @@ public class PermissionSubject {
 		 */
 		MODEL,
 		/**
-		 * A project, on an engine: the access the project's custom reactors have to
-		 * the engine, whoever runs them. It has an id and no type, takes a level of
+		 * An app or another engine, on an engine: the access the app's custom reactors,
+		 * or the other engine's own code, have to the engine, whoever runs them. Its id
+		 * is the app's or engine's id and its type is the catalog type,
+		 * {@link PermissionSubject#PROJECT_TYPE} for an app. It takes a level of
 		 * {@code READ_ONLY} or {@code EDIT} with an end date, and only the engine's
 		 * owners, or admin mode, change it.
 		 */
-		PROJECT
+		ENGINE
 	}
 
 	/** What the subject is */
 	private SubjectCategory category;
 	private String id;
-	/** The user's login type, or the group's type */
+	/** The user's login type, the group's type, or an app's or engine's catalog type */
 	private String type;
 
 	public PermissionSubject() {
@@ -107,18 +117,20 @@ public class PermissionSubject {
 	}
 
 	/**
-	 * Builds the subject for a project whose custom reactors use an engine.
+	 * Builds the subject for an app or another engine given a permission on an
+	 * engine.
 	 *
-	 * @param id the project id
-	 * @return the project
+	 * @param id   the app's or engine's id
+	 * @param type its catalog type, {@link #PROJECT_TYPE} for an app
+	 * @return the app or engine
 	 */
-	public static PermissionSubject ofProject(String id) {
-		return new PermissionSubject(SubjectCategory.PROJECT, id, null);
+	public static PermissionSubject ofEngine(String id, String type) {
+		return new PermissionSubject(SubjectCategory.ENGINE, id, type);
 	}
 
 	/**
-	 * What the subject is: a person, a team, a model's public use or total, or a
-	 * project.
+	 * What the subject is: a person, a team, a model's public use or total, or an
+	 * app or engine.
 	 *
 	 * @return the subject's category
 	 */
@@ -148,8 +160,8 @@ public class PermissionSubject {
 			return "public use";
 		case MODEL:
 			return "the model's total";
-		case PROJECT:
-			return "app " + id;
+		case ENGINE:
+			return (PROJECT_TYPE.equals(type) ? "app " : "engine ") + id;
 		default:
 			return "user " + id;
 		}
