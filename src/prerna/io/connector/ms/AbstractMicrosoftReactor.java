@@ -28,16 +28,28 @@
 package prerna.io.connector.ms;
 
 import prerna.auth.AuthProvider;
+import prerna.auth.AccessToken;
 import prerna.io.connector.AbstractConnectorReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
 
 /**
  * Checks the user's Microsoft login before validating inputs or calling the
- * provider.
+ * provider. In fixture mode, skips login requirement.
  */
 public abstract class AbstractMicrosoftReactor extends AbstractConnectorReactor {
 
 	@Override
 	protected final AuthProvider getAuthProvider() {
 		return AuthProvider.MICROSOFT;
+	}
+
+	@Override
+	protected AccessToken requireLogin(AuthProvider provider) {
+		// In fixture mode, skip login requirement and return a dummy token
+		if (MicrosoftOneDriveHelper.fixturePath() != null) {
+			return new AccessToken();
+		}
+		// Otherwise, proceed with normal login check
+		return super.requireLogin(provider);
 	}
 }

@@ -28,6 +28,7 @@
 package prerna.io.connector.ms.teams;
 
 import java.io.File;
+import java.io.Reader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
@@ -53,6 +55,7 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
 import prerna.security.HttpHelperUtility;
+import prerna.util.Utility;
 
 /**
  * Helper utility for Microsoft Teams connector operations.
@@ -101,6 +104,8 @@ public class MicrosoftTeamsHelper {
 	private static final List<String> CONFLICT_BEHAVIORS = Arrays.asList(CONFLICT_FAIL, CONFLICT_RENAME,
 			CONFLICT_REPLACE);
 
+	private static final String FIXTURE_SETTING = "COLLABORATION_FIXTURE_MAIL";
+
 	/**
 	 * Graph recommends a resumable upload session for anything larger than 4MB.
 	 */
@@ -111,6 +116,101 @@ public class MicrosoftTeamsHelper {
 	 */
 	private MicrosoftTeamsHelper() {
 
+	}
+
+	static String fixturePath() {
+		try {
+			String fixture = Utility.getDIHelperProperty(FIXTURE_SETTING);
+			if (fixture == null || fixture.isBlank()) {
+				fixture = System.getenv(FIXTURE_SETTING);
+			}
+			if (fixture == null || fixture.isBlank()) {
+				classLogger.debug("No fixture setting found for COLLABORATION_FIXTURE_MAIL");
+				return null;
+			}
+			fixture = fixture.trim();
+			classLogger.debug("Found fixture mail path: {}", fixture);
+			Path mailPath = Path.of(fixture);
+			Path teamsM365Path = mailPath.resolveSibling("teams-m365.json");
+			classLogger.debug("Looking for Teams M365 fixture at: {}", teamsM365Path);
+			if (Files.exists(teamsM365Path)) {
+				classLogger.debug("Teams M365 fixture found, using fixture mode");
+				return teamsM365Path.toString();
+			} else {
+				classLogger.debug("Teams M365 fixture not found at: {}", teamsM365Path);
+				return null;
+			}
+		} catch (Exception e) {
+			classLogger.error("Error checking for Teams fixture", e);
+			return null;
+		}
+	}
+
+	static class TeamsFixtureSource {
+		private static final Map<String, Object> LOADED = new ConcurrentHashMap<>();
+		private final List<Map<String, Object>> teams = new ArrayList<>();
+		private final List<Map<String, Object>> channels = new ArrayList<>();
+
+		@SuppressWarnings("unchecked")
+		private TeamsFixtureSource(String path) {
+			try (Reader reader = Files.newBufferedReader(Path.of(path), StandardCharsets.UTF_8)) {
+				Map<String, Object> fixture = new Gson().fromJson(reader, Map.class);
+				if (fixture.get("teams") instanceof List<?> teamsList) {
+					for (Object item : teamsList) {
+						teams.add((Map<String, Object>) item);
+					}
+				}
+				if (fixture.get("channels") instanceof List<?> channelsList) {
+					for (Object item : channelsList) {
+						channels.add((Map<String, Object>) item);
+					}
+				}
+			} catch (Exception e) {
+				throw new IllegalStateException("Cannot read the " + FIXTURE_SETTING + " file at " + path, e);
+			}
+		}
+
+		static TeamsFixtureSource of(String path) {
+			return (TeamsFixtureSource) LOADED.computeIfAbsent(path, p -> new TeamsFixtureSource(p));
+		}
+
+		List<Map<String, Object>> listTeams(int limit) {
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (Map<String, Object> team : teams) {
+				result.add(team);
+				if (limit > 0 && result.size() >= limit) {
+					break;
+				}
+			}
+			return result;
+		}
+
+		List<Map<String, Object>> listChannels(String teamId, int limit) {
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (Map<String, Object> channel : channels) {
+				if (teamId.equals(channel.get("teamId"))) {
+					result.add(channel);
+					if (limit > 0 && result.size() >= limit) {
+						break;
+					}
+				}
+			}
+			return result;
+		}
+
+		Map<String, Object> getChannelFilesFolder(String teamId, String channelId) {
+			for (Map<String, Object> channel : channels) {
+				if (teamId.equals(channel.get("teamId")) && channelId.equals(channel.get("id"))) {
+					Map<String, Object> folder = new HashMap<>();
+					folder.put(DRIVE_ID, "drive-" + teamId);
+					folder.put(FOLDER_ID, "folder-" + channelId);
+					folder.put(NAME, channel.get(DISPLAY_NAME));
+					folder.put(WEB_URL, channel.get(WEB_URL));
+					return folder;
+				}
+			}
+			return null;
+		}
 	}
 
 	/**
@@ -609,6 +709,58 @@ public class MicrosoftTeamsHelper {
 		if (value == null || value.trim().isEmpty()) {
 			throw new IllegalArgumentException(message);
 		}
+	}
+
+	static List<Map<String, Object>> listTeamsFixture(int limit) throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING + " environment variable or DI property and ensure teams-m365.json exists next to mail.json.");
+		}
+		TeamsFixtureSource source = TeamsFixtureSource.of(fixturePath);
+		return source.listTeams(limit);
+	}
+
+	static List<Map<String, Object>> listChannelsFixture(String teamId, int limit) throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING + " environment variable or DI property and ensure teams-m365.json exists next to mail.json.");
+		}
+		TeamsFixtureSource source = TeamsFixtureSource.of(fixturePath);
+		return source.listChannels(teamId, limit);
+	}
+
+	public static Map<String, Object> getChannelFilesFolderFixture(String teamId, String channelId) throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING + " environment variable or DI property and ensure teams-m365.json exists next to mail.json.");
+		}
+		TeamsFixtureSource source = TeamsFixtureSource.of(fixturePath);
+		Map<String, Object> folder = source.getChannelFilesFolder(teamId, channelId);
+		if (folder == null) {
+			throw new IllegalStateException(
+					"Microsoft Graph returned no folder for channel id = " + channelId + " in team " + teamId + " in fixture data");
+		}
+		return folder;
+	}
+
+	public static List<Map<String, Object>> listChannelFilesFixture(String teamId, String channelId,
+			String folderPath, int limit) throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING + " environment variable or DI property and ensure teams-m365.json exists next to mail.json.");
+		}
+		Map<String, Object> folder = getChannelFilesFolderFixture(teamId, channelId);
+		String driveId = folder.get(DRIVE_ID).toString();
+		List<Map<String, Object>> items = new ArrayList<>();
+		try {
+			List<Map<String, Object>> files = MicrosoftOneDriveHelper.listFilesFixture(driveId, folder.get(FOLDER_ID).toString(), folderPath, limit);
+			for (Map<String, Object> file : files) {
+				items.add(toDriveItemMap(file, driveId));
+			}
+		} catch (Exception e) {
+			classLogger.debug("Channel files not found in OneDrive fixture, returning empty list", e);
+		}
+		return items;
 	}
 
 }

@@ -31,6 +31,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.Reader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -51,6 +52,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.util.Timeout;
@@ -65,6 +67,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
+import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
 /**
@@ -192,11 +195,98 @@ public class MicrosoftOneDriveHelper {
 	 */
 	private static final String MATCH_EVERYTHING = "*";
 
+	private static final String FIXTURE_SETTING = "COLLABORATION_FIXTURE_MAIL";
+
 	/**
 	 * Utility class constructor intentionally hidden.
 	 */
 	private MicrosoftOneDriveHelper() {
 
+	}
+
+	public static String fixturePath() {
+		try {
+			String fixture = Utility.getDIHelperProperty(FIXTURE_SETTING);
+			if (fixture == null || fixture.isBlank()) {
+				fixture = System.getenv(FIXTURE_SETTING);
+			}
+			if (fixture == null || fixture.isBlank()) {
+				classLogger.debug("No fixture setting found for COLLABORATION_FIXTURE_MAIL");
+				return null;
+			}
+			fixture = fixture.trim();
+			classLogger.debug("Found fixture mail path: {}", fixture);
+			Path mailPath = Path.of(fixture);
+			Path onedriveM365Path = mailPath.resolveSibling("onedrive-m365.json");
+			classLogger.debug("Looking for OneDrive M365 fixture at: {}", onedriveM365Path);
+			if (Files.exists(onedriveM365Path)) {
+				classLogger.debug("OneDrive M365 fixture found, using fixture mode");
+				return onedriveM365Path.toString();
+			} else {
+				classLogger.debug("OneDrive M365 fixture not found at: {}", onedriveM365Path);
+				return null;
+			}
+		} catch (Exception e) {
+			classLogger.error("Error checking for OneDrive fixture", e);
+			return null;
+		}
+	}
+
+	static class OneDriveFixtureSource {
+		private static final Map<String, Object> LOADED = new ConcurrentHashMap<>();
+		private final List<Map<String, Object>> drives = new ArrayList<>();
+		private final List<Map<String, Object>> items = new ArrayList<>();
+
+		@SuppressWarnings("unchecked")
+		private OneDriveFixtureSource(String path) {
+			try (Reader reader = Files.newBufferedReader(Path.of(path), StandardCharsets.UTF_8)) {
+				Map<String, Object> fixture = new Gson().fromJson(reader, Map.class);
+				if (fixture.get("drives") instanceof List<?> drivesList) {
+					for (Object item : drivesList) {
+						drives.add((Map<String, Object>) item);
+					}
+				}
+				if (fixture.get("items") instanceof List<?> itemsList) {
+					for (Object item : itemsList) {
+						items.add((Map<String, Object>) item);
+					}
+				}
+			} catch (Exception e) {
+				throw new IllegalStateException("Cannot read the " + FIXTURE_SETTING + " file at " + path, e);
+			}
+		}
+
+		static OneDriveFixtureSource of(String path) {
+			return (OneDriveFixtureSource) LOADED.computeIfAbsent(path, p -> new OneDriveFixtureSource(p));
+		}
+
+		List<Map<String, Object>> listFiles(String driveId, String itemId, String path, int limit) {
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (Map<String, Object> item : items) {
+				Object itemDriveId = item.get("driveId");
+				Object itemParentId = item.get("parentId");
+				boolean matchesDrive = driveId == null || (itemDriveId != null && itemDriveId.equals(driveId));
+				boolean matchesParent = itemId == null || (itemParentId != null && itemParentId.equals(itemId));
+				if (matchesDrive && matchesParent) {
+					result.add(item);
+					if (limit > 0 && result.size() >= limit) {
+						break;
+					}
+				}
+			}
+			return result;
+		}
+
+		Map<String, Object> getItem(String driveId, String itemId) {
+			for (Map<String, Object> item : items) {
+				Object itemDriveId = item.get("driveId");
+				Object itemItemId = item.get("id");
+				if (itemItemId != null && itemItemId.equals(itemId) && (driveId == null || (itemDriveId != null && itemDriveId.equals(driveId)))) {
+					return item;
+				}
+			}
+			return null;
+		}
 	}
 
 	/**
@@ -1872,6 +1962,36 @@ public class MicrosoftOneDriveHelper {
 			throw new IllegalArgumentException(
 					"A file name cannot contain a path separator. Name the folder in the path instead: " + fileName);
 		}
+	}
+
+	public static List<Map<String, Object>> listFilesFixture(String driveId, String itemId, String path, int limit)
+			throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING
+					+ " environment variable or DI property and ensure onedrive-m365.json exists next to mail.json.");
+		}
+		OneDriveFixtureSource source = OneDriveFixtureSource.of(fixturePath);
+		List<Map<String, Object>> items = new ArrayList<>();
+		for (Map<String, Object> item : source.listFiles(driveId, itemId, path, limit)) {
+			items.add(MicrosoftOneDriveItemMapper.toDriveItem(item, driveId));
+		}
+		return items;
+	}
+
+	public static Map<String, Object> getItemFixture(String driveId, String itemId) throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING
+					+ " environment variable or DI property and ensure onedrive-m365.json exists next to mail.json.");
+		}
+		OneDriveFixtureSource source = OneDriveFixtureSource.of(fixturePath);
+		Map<String, Object> item = source.getItem(driveId, itemId);
+		if (item == null) {
+			throw new IllegalStateException("Microsoft Graph returned no OneDrive item for drive = " + driveId
+					+ ", item = " + itemId + " in fixture data");
+		}
+		return MicrosoftOneDriveItemMapper.toDriveItem(item, driveId);
 	}
 
 }

@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.io.connector.ms.teams;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -83,10 +84,22 @@ public class MicrosoftTeamsListTeamsReactor extends AbstractMicrosoftReactor {
 		}
 
 		try {
+			String fixturePath = MicrosoftTeamsHelper.fixturePath();
+			if (fixturePath != null) {
+				List<Map<String, Object>> teams = MicrosoftTeamsHelper.listTeamsFixture(limit);
+				Map<String, Object> output = new LinkedHashMap<>();
+				output.put("count", teams.size());
+				output.put("teams", teams);
+				return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
+			}
+
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			List<Map<String, Object>> result = MicrosoftTeamsHelper.listTeams(accessToken, limit);
-			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
+			List<Map<String, Object>> teams = MicrosoftTeamsHelper.listTeams(accessToken, limit);
+			Map<String, Object> output = new LinkedHashMap<>();
+			output.put("count", teams.size());
+			output.put("teams", teams);
+			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while listing Microsoft Teams", e);
 			throw e;

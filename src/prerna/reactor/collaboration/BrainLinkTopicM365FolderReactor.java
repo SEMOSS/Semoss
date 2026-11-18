@@ -76,7 +76,11 @@ public class BrainLinkTopicM365FolderReactor extends AbstractCollaborationReacto
 			throw new IllegalArgumentException("A folder kind is required");
 		}
 		try {
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			String accessToken = null;
+			String fixturePath = MicrosoftOneDriveHelper.fixturePath();
+			if (fixturePath == null) {
+				accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			}
 			FolderPointer folder = resolveFolder(accessToken, kind);
 			return mapResult(BrainTopicLinks.link(user, topicId, folder));
 		} catch (SemossPixelException e) {
@@ -98,7 +102,13 @@ public class BrainLinkTopicM365FolderReactor extends AbstractCollaborationReacto
 			if (driveId == null || itemId == null) {
 				throw new IllegalArgumentException("A drive id and item id are required for a OneDrive folder");
 			}
-			Map<String, Object> item = MicrosoftOneDriveHelper.getItem(accessToken, driveId, itemId, null);
+			Map<String, Object> item;
+			String fixturePath = MicrosoftOneDriveHelper.fixturePath();
+			if (fixturePath != null) {
+				item = MicrosoftOneDriveHelper.getItemFixture(driveId, itemId);
+			} else {
+				item = MicrosoftOneDriveHelper.getItem(accessToken, driveId, itemId, null);
+			}
 			if (!Boolean.TRUE.equals(item.get("isFolder"))) {
 				throw new IllegalArgumentException("The selected OneDrive item is not a folder");
 			}
@@ -116,7 +126,13 @@ public class BrainLinkTopicM365FolderReactor extends AbstractCollaborationReacto
 			if (teamId == null || channelId == null) {
 				throw new IllegalArgumentException("A team id and channel id are required for Teams channel files");
 			}
-			Map<String, Object> folder = MicrosoftTeamsHelper.getChannelFilesFolder(accessToken, teamId, channelId);
+			Map<String, Object> folder;
+			String fixturePath = MicrosoftOneDriveHelper.fixturePath();
+			if (fixturePath != null) {
+				folder = MicrosoftTeamsHelper.getChannelFilesFolderFixture(teamId, channelId);
+			} else {
+				folder = MicrosoftTeamsHelper.getChannelFilesFolder(accessToken, teamId, channelId);
+			}
 			return new FolderPointer(kind, string(folder, "driveId"), string(folder, "folderId"), teamId, channelId,
 					null, string(folder, "name"), string(folder, "webUrl"));
 		}

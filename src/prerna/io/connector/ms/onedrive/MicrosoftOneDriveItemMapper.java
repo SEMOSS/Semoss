@@ -101,7 +101,9 @@ public class MicrosoftOneDriveItemMapper {
 		Map<String, Object> described = effectiveItem(item);
 
 		Map<String, Object> output = new LinkedHashMap<>();
-		output.put(ID, described.get(ID));
+		Object itemId = described.get(ID);
+		output.put("id", itemId);
+		output.put("itemId", itemId);
 		putIfPresent(output, NAME, described.get(NAME));
 		putIfPresent(output, DRIVE_ID, driveIdOf(item, fallbackDriveId));
 		output.put("isFolder", described.get(FOLDER) != null);
@@ -220,6 +222,11 @@ public class MicrosoftOneDriveItemMapper {
 		String driveId = ValueUtils.toNonBlankString(parentField(described, DRIVE_ID));
 		if (driveId == null) {
 			driveId = ValueUtils.toNonBlankString(parentField(item, DRIVE_ID));
+		}
+		// For fixture data, check if driveId is at the root level
+		if (driveId == null) {
+			Object rootDriveId = item.get(DRIVE_ID);
+			driveId = ValueUtils.toNonBlankString(rootDriveId == null ? null : rootDriveId.toString());
 		}
 		return driveId == null ? fallback : driveId;
 	}
