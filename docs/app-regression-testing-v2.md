@@ -25,9 +25,13 @@ if one was installed. V2 installs no service worker and contains no database-rou
 4. Save with a name and a meaningful **description** explaining the workflow and expected
    result. A recording without an outcome check is not verified coverage.
 5. Under **Test files**, click a filename to view its JSON and select it for replay.
-   Use **Edit** to update the definition or **Delete** to confirm its removal. Editing
-   requires valid JSON, the original id/version, a description and at least one step;
-   backend step validation also applies. Failed writes keep the editor open with its draft.
+   Use **Edit** for a form with test name, description, start page and individual steps,
+   or **Delete** to confirm removal. Each step shows fields for its selected action,
+   optional expected-page wait and nested iframe selectors. Steps can be added, removed
+   and reordered. A description and at least one valid step are required. Recording id,
+   version and last-edit timestamp are not editable; the backend updates the timestamp
+   when saving. Failed writes keep the form open with its draft. View still shows the
+   complete read-only JSON, and normal Files supports editing the underlying file.
    Definitions live at `app_root/version/assets/app-tests/recordings/<id>.json`, visible
    through normal **Files** as `app-tests/recordings`. Existing recordings migrate from
    `app_root/app-tests/recordings` on first use; differing same-id copies stop migration
