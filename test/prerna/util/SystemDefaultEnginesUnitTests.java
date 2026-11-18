@@ -40,6 +40,16 @@ import org.junit.jupiter.api.Test;
 class SystemDefaultEnginesUnitTests {
 
 	@Test
+	void appRegressionResourcesUseShippedPlatformIds() {
+		assertTrue(SystemDefaultEngines.getSystemSkills().contains("app-regression-testing"));
+		assertTrue(SystemDefaultEngines.getSystemMCPs().contains("app-tests"));
+		assertTrue(SystemDefaultEngines.isSystemProject("app-regression-testing"));
+		assertTrue(SystemDefaultEngines.isSystemProject("app-tests"));
+		assertFalse(SystemDefaultEngines.getSystemAgentMCPs(Constants.AGENT_APP_BUILDER).contains("f4f34ddb-bd6e-4ac3-a3e2-4160fe83e841"));
+		assertFalse(SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_APP_BUILDER).contains("01a1cfeb-3c86-75bd-8fe0-a715a88849ad"));
+	}
+
+	@Test
 	void officeSkillsAreRegisteredAndAvailableInCollaborationRooms() {
 		for (String id : List.of("docx", "xlsx")) {
 			assertTrue(SystemDefaultEngines.getSystemSkills().contains(id));
@@ -109,7 +119,7 @@ class SystemDefaultEnginesUnitTests {
 						Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FRONTEND_DESIGN, Constants.SKILL_FUNCTIONS,
 						Constants.SKILL_MCP, Constants.SKILL_MODEL, Constants.SKILL_PAGINATION,
 						Constants.SKILL_PERMISSIONS, Constants.SKILL_PYTHON, Constants.SKILL_ROOM,
-						Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR),
+						Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR, Constants.SKILL_APP_REGRESSION_TESTING),
 				SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_APP_BUILDER));
 	}
 
@@ -119,7 +129,7 @@ class SystemDefaultEnginesUnitTests {
 	 */
 	@Test
 	void appBuilderReceivesOnlyHeadlessMcps() {
-		assertEquals(List.of(Constants.MCP_DATABASE_MAKER, Constants.MCP_NODE_BUILDER, Constants.MCP_REACTOR_HELP),
+		assertEquals(List.of(Constants.MCP_DATABASE_MAKER, Constants.MCP_NODE_BUILDER, Constants.MCP_REACTOR_HELP, Constants.MCP_APP_TESTS),
 				SystemDefaultEngines.getSystemAgentMCPs(Constants.AGENT_APP_BUILDER));
 	}
 

@@ -1,0 +1,14 @@
+#Base Properties
+PROJECT	app-regression-testing
+PROJECT_ALIAS	platform
+PROJECT_DISPLAY_NAME	app-regression-testing
+PROJECT_TYPE	prerna.project.impl.Project
+PROJECT_ENUM_TYPE	SKILL
+RDBMS_INSIGHTS	project/@PROJECT@/insights_database
+RDBMS_INSIGHTS_TYPE	H2_DB
+DRIVER	org.h2.Driver
+RDBMS_TYPE	H2_DB
+USERNAME	sa
+PASSWORD
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/project/platform__app-regression-testing/insights_database;query_timeout=180000;cache_size=32768
+PIPELINE	pipeline.json

@@ -1,0 +1,19 @@
+{
+  "status": "COMPLETED",
+  "tests": [
+    {
+      "id": "t1",
+      "name": "Open home page",
+      "page": "home",
+      "status": "PASSED",
+      "description": "Development fixture for Open home page; no browser is tested."
+    },
+    {
+      "id": "t2",
+      "name": "Create an order",
+      "page": "orders",
+      "status": "PASSED",
+      "description": "Development fixture for Create an order; no browser is tested."
+    }
+  ]
+}
