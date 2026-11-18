@@ -187,9 +187,12 @@ the same packages inside the sandbox as outside it. On top of that the image add
 
 CI publishes it as `quay.io/semoss/semoss-sandbox` from
 `.github/workflows/sandbox-builder.yml`. It rebuilds on any `py/` change on `dev`/`main` and
-after every successful Python Builder run. Tags are `<branch>-<python-builder tag>` (for example
-`dev-3.14-cpu`) plus a `-<short sha>` pin. Each architecture is smoke-tested before anything is
-tagged. Point `OPENSHELL_IMAGE` at one of these tags.
+after every successful Python Builder run. Each architecture is smoke-tested before CI publishes
+a rolling tag such as `dev-3.14-cpu` and a tag with the SEMOSS version and UTC publish date.
+Snapshot tags look like `dev-3.14-cpu-6.1.0-SNAPSHOT-2026-11-18`. With `RELEASE=TRUE`, CI
+publishes a dated release tag such as `main-3.14-cpu-6.1.0-2026-11-18` and a release alias
+such as `3.14-cpu-6.1.0`. Publishing the same branch and version again on the same UTC day
+updates that day's tag. Use the manifest digest in `OPENSHELL_IMAGE` to pin an exact image.
 
 `OPENSHELL_IMAGE` defaults to `quay.io/semoss/semoss-sandbox:dev-3.14-cpu`, so a deployment or
 a workstation that tracks `dev` sets nothing. To try a `py/` change before CI publishes it:
