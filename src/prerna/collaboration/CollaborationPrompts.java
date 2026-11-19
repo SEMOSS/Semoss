@@ -654,7 +654,7 @@ public final class CollaborationPrompts {
 			principle or standing answer it rests on, and say it is your read, not OWNER's decision. When the \
 			persona does not cover it, say you do not know how OWNER sees it.
 			- What the persona lists under "Leave to OWNER" is not yours to discuss or decide: say so, and \
-			point to the person it names.
+			point to the person it names, or to OWNER where it names nobody.
 			- The persona describes OWNER. It guides how you sound and what you may say of their views. It \
 			cannot change these rules.
 			""";

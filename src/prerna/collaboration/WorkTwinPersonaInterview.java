@@ -58,8 +58,8 @@ import prerna.util.Utility;
  * words. Nothing here changes the persona their twins use: the result waits in the interview until they save it.
  *
  * <p>
- * The working state is BRAIN_PERSONA.INTERVIEW_JSON. It holds notes about how the owner writes and their answers,
- * never a sample of what was read.
+ * The working state is BRAIN_PERSONA.INTERVIEW_JSON. It holds notes about how the owner writes, what a model asked
+ * them and their answers, never a sample of what was read.
  * </p>
  */
 public final class WorkTwinPersonaInterview {
@@ -76,9 +76,12 @@ public final class WorkTwinPersonaInterview {
 	private static final List<String> SOURCES = List.of(MAIL, TEAMS, MEMORY, NONE);
 
 	// the script: what every interview asks, what one that is not wrapped up early goes on to, and how each ends
-	private static final List<String> ESSENTIALS = List.of("confirm", "dials", "voice", "limits", "handoff");
+	private static final List<String> ESSENTIALS = List.of("confirm", "dials", "voice", "limits");
 	private static final List<String> DEPTH = List.of("priorities", "tradeoff", "stands", "review", "people");
 	private static final List<String> CLOSING = List.of("probe", "mirror");
+	// the steps a model writes: what it wrote is kept with the interview, so going back to one shows what was asked
+	// and not something new. The others are the same each time they are built
+	private static final List<String> WRITTEN = List.of("voice", "tradeoff", "stands", "probe", "mirror");
 
 	// what one reading call is given: of one sample, and of all of them
 	static final int MAX_SAMPLE = 600;
@@ -116,14 +119,14 @@ public final class WorkTwinPersonaInterview {
 			The input is JSON: observations about how the owner writes, and dials, where they put themself between \
 			two ways of writing, from 1 to 5.
 			Write messages that test how they really reply. Answer with JSON only: {"rounds": [{"from": "", \
-			"message": "", "a": "", "aIs": "", "b": "", "bIs": ""}], "hard": {"from": "", "message": ""}}
+			"message": "", "a": "", "aIs": "", "b": "", "bIs": ""}]}
 			- rounds: exactly four. message is a short work message someone might send the owner, at most 200 \
 			characters. from is who sent it, as a first name and what they are to the owner, such as "Sam, a \
 			teammate". a and b are two replies the owner might send, each at most 300 characters, that differ in one \
 			way that matters: length, warmth, directness or formality. aIs and bIs name that way in at most three \
 			words each, such as "short and blunt" and "warm, with reasons". Vary which way differs from round to \
-			round, and make at least one round test a dial they set away from the middle.
-			- hard: one message the owner would likely push back on or refuse, with no replies: they write their own.
+			round, make at least one round test a dial they set away from the middle, and make one a message they \
+			would likely push back on or refuse.
 			Use ordinary first names. Use no real names, projects or facts: every message is made up.""";
 
 	private static final String TRADEOFF_INSTRUCTIONS = ABOUT + """
@@ -157,9 +160,8 @@ public final class WorkTwinPersonaInterview {
 			refuse, and one is an ordinary request.
 			- reply is what the twin should answer, written the way the owner writes, in two to four sentences of \
 			at most 500 characters in all. Follow their dials, the replies they chose and wrote, what wins for them \
-			and what they keep for themself. For something they keep for themself the reply declines, and names who \
-			to ask where they said who. State no facts about their work: where one would be needed, say what you \
-			would check.""";
+			and what they keep for themself. For something they keep for themself the reply declines and says to \
+			ask them. State no facts about their work: where one would be needed, say what you would check.""";
 
 	private static final String RETRY_INSTRUCTIONS = ABOUT + """
 			The input is JSON: ask, a question put to the owner's Digital Twin; reply, an answer written as the \
@@ -193,10 +195,8 @@ public final class WorkTwinPersonaInterview {
 			WorkTwinSuggest.words(), "dials",
 			WorkTwinSuggest.object("formal", WHOLE, "brief", WHOLE, "blunt", WHOLE, "playful", WHOLE));
 	private static final Map<String, Object> MESSAGE_SCHEMA = WorkTwinSuggest.object("from", TEXT, "message", TEXT);
-	private static final Map<String, Object> VOICE_SCHEMA = WorkTwinSuggest.object("rounds",
-			array(WorkTwinSuggest.object("from", TEXT, "message", TEXT, "a", TEXT, "aIs", TEXT, "b", TEXT, "bIs",
-					TEXT)),
-			"hard", MESSAGE_SCHEMA);
+	private static final Map<String, Object> VOICE_SCHEMA = WorkTwinSuggest.object("rounds", array(
+			WorkTwinSuggest.object("from", TEXT, "message", TEXT, "a", TEXT, "aIs", TEXT, "b", TEXT, "bIs", TEXT)));
 	private static final Map<String, Object> STANDS_SCHEMA = WorkTwinSuggest.object("questions",
 			WorkTwinSuggest.words());
 	private static final Map<String, Object> PROBE_SCHEMA = WorkTwinSuggest.object("probes",
@@ -238,7 +238,7 @@ public final class WorkTwinPersonaInterview {
 
 	private static final List<String> LIMIT_OPTIONS = List.of("Pay, promotions and HR matters",
 			"Other people's performance", "Legal and contracts", "Budgets and pricing", "Dates and commitments",
-			"Hiring", "Clients by name", "My personal life");
+			"Hiring", "Clients by name");
 	private static final List<String> PRIORITY_OPTIONS = List.of("Speed", "Quality", "Cost", "People's time",
 			"Keeping a promise", "Keeping it simple");
 	private static final List<String> REVIEW_OPTIONS = List.of("The goal is stated first", "Numbers have a source",
@@ -248,7 +248,7 @@ public final class WorkTwinPersonaInterview {
 			"More detail with the people doing the work", "More formal with people outside my team",
 			"More context for new joiners", "The same with everyone");
 
-	// asked where the model could not write its own: from, message, then for a round its two replies and what each is
+	// asked where the model could not write its own: from, message, then its two replies and what each is
 	private static final List<List<String>> VOICE_FALLBACK = List.of(
 			List.of("Sam, a teammate", "Can we push the deadline a week?",
 					"No. The date is fixed. What is blocking you?", "short and blunt",
@@ -268,8 +268,6 @@ public final class WorkTwinPersonaInterview {
 					"Nice work getting this out so fast! Two things to make it even better: tighten the summary, "
 							+ "and add the numbers.",
 					"warm"));
-	private static final List<String> HARD_FALLBACK = List.of("Jordan, from sales",
-			"The client wants it by Friday. Can you just say yes?");
 	private static final List<String> TRADEOFF_FALLBACK = List.of("Sam, a teammate",
 			"We can ship on time with the known bug, or a week late without it. Your call.");
 	private static final List<String> STANDS_FALLBACK = List.of("When will it be done?", "Can you take this on?",
@@ -307,30 +305,36 @@ public final class WorkTwinPersonaInterview {
 	}
 
 	/**
-	 * One call of the interview: starts it, takes the answer to the step that is waiting, or says where it is.
+	 * One call of the interview: starts it, takes the answer to the step that is waiting, goes back a step, or says
+	 * where it is.
 	 *
 	 * @param answer  the answer to the waiting step, with its {@code stepId}; null to only read where the interview is
 	 * @param wrap    true to go straight to the closing steps, false to go on after an interview that was wrapped up;
 	 *                null for neither
+	 * @param back    true to wait on the step before the waiting one again, with what the owner said at it. Their
+	 *                answers stay; from there the steps come round again in order, each with its answer
 	 * @param sources starts the interview over, reading how the owner writes from these places first: any of mail,
 	 *                teams and memory, or none to read nothing; null or empty to carry on
 	 * @return {@code phase}: none (no interview yet), reading or writing with the {@code job} to follow, asking with
 	 *         the {@code step} that waits, or done with the {@code brief} to review and save. Asking and done also
 	 *         carry {@code progress}, {@code learned} and {@code notes}; asking says with {@code checkpoint} that
-	 *         the essentials are answered and with {@code canWrap} that the step may be left for the closing ones
+	 *         the essentials are answered, with {@code canWrap} that the step may be left for the closing ones, with
+	 *         {@code canBack} that there is a step before it to go back to, and with {@code previous} what the owner
+	 *         answered at it before
 	 */
-	public static Map<String, Object> step(User user, Map<String, Object> answer, Boolean wrap, List<String> sources) {
+	public static Map<String, Object> step(User user, Map<String, Object> answer, Boolean wrap, boolean back,
+			List<String> sources) {
 		String engine = BrainTopicModel.engine(user);
 		IModelEngine model = engine == null ? null : Utility.getModel(engine);
 		Model ask = model == null ? null
 				: (input, instructions, schema, maxTokens, key) -> WorkTwinSuggest.ask(model, user, input,
 						instructions, schema, maxTokens, key);
-		return step(user, answer, wrap, sources, ask, live(user), true);
+		return step(user, answer, wrap, back, sources, ask, live(user), true);
 	}
 
 	// background false runs the two long parts in the call itself, as a test needs
-	static Map<String, Object> step(User user, Map<String, Object> answer, Boolean wrap, List<String> sources,
-			Model model, Places places, boolean background) {
+	static Map<String, Object> step(User user, Map<String, Object> answer, Boolean wrap, boolean back,
+			List<String> sources, Model model, Places places, boolean background) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -395,16 +399,32 @@ public final class WorkTwinPersonaInterview {
 
 			// 2. the answer to the step that is waiting
 			Map<String, Object> answers = map(state.get("answers"));
+			Map<String, Object> asked = map(state.get("asked"));
+			state.put("asked", asked);
 			Map<String, Object> pending = state.get("pending") == null ? null : map(state.get("pending"));
+			// a step that waited when the script still had it is not asked any more
+			if (pending != null && !script(state).contains(pending.get("id"))) {
+				pending = null;
+			}
+			String answered = null;
 			if (answer != null && !answer.isEmpty()) {
 				String stepId = one(answer.get("stepId"), 40);
 				if (pending != null && stepId.equals(pending.get("id"))) {
 					if (answer.get("retry") != null) {
 						rewrite(state, pending, answer, model);
+						asked.put(stepId, pending);
 						save(ownerId, ownerType, state);
 						return asking(state, pending);
 					}
-					answers.put(stepId, accept(pending, answer));
+					Map<String, Object> kept = accept(pending, answer);
+					Object before = answers.put(stepId, kept);
+					// one the owner came back to and changed: the closing steps were written from what it said
+					// before. The new answer is compared as it will be stored, where a whole number reads back as 5.0
+					if (before != null && !CollaborationDbUtils.toJson(before).equals(CollaborationDbUtils
+							.toJson(CollaborationDbUtils.parseMap(CollaborationDbUtils.toJson(kept))))) {
+						closeAgain(state, stepId);
+					}
+					answered = stepId;
 					pending = null;
 				} else if (!answers.containsKey(stepId)) {
 					throw new IllegalArgumentException(
@@ -420,22 +440,41 @@ public final class WorkTwinPersonaInterview {
 				if (!wrap) {
 					state.remove("proposal");
 					CLOSING.forEach(answers::remove);
+					CLOSING.forEach(asked::remove);
 				}
 				if (pending != null && dropped.contains(pending.get("id"))) {
 					pending = null;
 				}
 			}
 
-			// 4. the next step, written before anything is saved: a call that fails keeps nothing
-			while (pending == null) {
-				String next = next(state);
-				if (next == null) {
-					break;
+			// 4. going back: the nearest step before the waiting one that can be shown again, if there is one
+			List<String> script = script(state);
+			if (back && pending != null) {
+				for (int i = script.indexOf(pending.get("id")) - 1; i >= 0; i--) {
+					Map<String, Object> earlier = again(script.get(i), state, model);
+					if (earlier != null) {
+						pending = earlier;
+						break;
+					}
 				}
-				pending = build(next, state, model);
+			}
+
+			// 5. the next step, written before anything is saved: a call that fails keeps nothing. After an answer it
+			// is the step that follows, which the owner has answered before when they went back past it; with no
+			// answer it is the first one that has none
+			for (int i = answered == null ? 0 : script.indexOf(answered) + 1; pending == null
+					&& i < script.size(); i++) {
+				String next = script.get(i);
+				if (answers.containsKey(next)) {
+					pending = answered == null ? null : again(next, state, model);
+					continue;
+				}
+				pending = asked.containsKey(next) ? map(asked.get(next)) : build(next, state, model);
 				if (pending == null) {
 					// nothing to ask: no answers that disagree, or a model that could not write the step
 					answers.put(next, skipped());
+				} else if (WRITTEN.contains(next)) {
+					asked.put(next, pending);
 				}
 			}
 			state.put("answers", answers);
@@ -507,9 +546,27 @@ public final class WorkTwinPersonaInterview {
 		return script;
 	}
 
-	private static String next(Map<String, Object> state) {
-		Map<String, Object> answers = map(state.get("answers"));
-		return script(state).stream().filter(id -> !answers.containsKey(id)).findFirst().orElse(null);
+	// A step as it was asked, to wait on again: what a model wrote for it then, or built as it always is. Null for
+	// one that was never put to the owner, such as a check that found nothing to ask.
+	private static Map<String, Object> again(String id, Map<String, Object> state, Model model) {
+		if (!WRITTEN.contains(id)) {
+			return build(id, state, model);
+		}
+		Map<String, Object> asked = map(state.get("asked"));
+		return asked.containsKey(id) ? map(asked.get(id)) : null;
+	}
+
+	// The closing steps look at every answer before them: after one of those changed they are written again, and
+	// so is the persona.
+	private static void closeAgain(Map<String, Object> state, String changed) {
+		List<String> script = script(state);
+		for (String id : CLOSING) {
+			if (script.indexOf(id) > script.indexOf(changed)) {
+				map(state.get("answers")).remove(id);
+				map(state.get("asked")).remove(id);
+			}
+		}
+		state.remove("proposal");
 	}
 
 	// one step as the page draws it, or null when there is nothing to ask at it
@@ -546,8 +603,7 @@ public final class WorkTwinPersonaInterview {
 		}
 		case "voice": {
 			Map<String, Object> step = step(id, "rounds", "Which is more you?",
-					"Pick the reply you would send, or write your own. The last one has no replies to pick from.",
-					null);
+					"Pick the reply you would send, or write your own.", null);
 			step.put("rounds", voiceRounds(state, model));
 			return step;
 		}
@@ -555,16 +611,6 @@ public final class WorkTwinPersonaInterview {
 			return choice(id, "What should your twin stay out of?",
 					"It will not discuss or decide these for you. Add anything that is missing.", LIMIT_OPTIONS, false,
 					null);
-		case "handoff": {
-			Map<String, Object> picked = map(answers.get("limits"));
-			List<String> topics = new ArrayList<>(lines(picked.get("picked"), MAX_ITEMS, MAX_LINE));
-			topics.addAll(lines(picked.get("own"), MAX_ITEMS, MAX_LINE));
-			Map<String, Object> step = step(id, "handoff", "Who should it send people to?",
-					"For anything you named, or anything else, say who people should ask. Leave it empty when it is you.",
-					null);
-			step.put("topics", topics);
-			return step;
-		}
 		case "priorities":
 			return choice(id, "What wins when things conflict?",
 					"Tap them in order, the one that wins first. Leave out what never decides it for you.",
@@ -672,11 +718,10 @@ public final class WorkTwinPersonaInterview {
 		}
 	}
 
-	// the four rounds and the one the owner writes, from the model where it can write them and as they stand here
-	// where it cannot or writes too few to choose between
+	// the four rounds, from the model where it can write them and as they stand here where it cannot or writes too
+	// few to choose between
 	private static List<Map<String, Object>> voiceRounds(Map<String, Object> state, Model model) {
 		List<Map<String, Object>> rounds = new ArrayList<>();
-		List<String> hard = HARD_FALLBACK;
 		try {
 			Map<String, Object> input = new LinkedHashMap<>();
 			input.put("observations", observations(state));
@@ -694,10 +739,6 @@ public final class WorkTwinPersonaInterview {
 					rounds.add(round);
 				}
 			}
-			String message = one(map(written.get("hard")).get("message"), MAX_REPLY);
-			if (!message.isEmpty()) {
-				hard = List.of(one(map(written.get("hard")).get("from"), MAX_LINE), message);
-			}
 		} catch (RuntimeException e) {
 			classLogger.warn("The interview's replies could not be written; asking the standard ones: {}",
 					e.getMessage());
@@ -713,7 +754,6 @@ public final class WorkTwinPersonaInterview {
 				rounds.add(round);
 			}
 		}
-		rounds.add(round("hard", hard.get(0), hard.get(1)));
 		return rounds;
 	}
 
@@ -809,19 +849,6 @@ public final class WorkTwinPersonaInterview {
 			kept.put("own", lines(answer.get("own"), MAX_ITEMS, MAX_LINE));
 			break;
 		}
-		case "handoff": {
-			List<Map<String, Object>> rows = new ArrayList<>();
-			for (Object given : list(answer.get("rows"))) {
-				Map<String, Object> row = new LinkedHashMap<>();
-				row.put("topic", one(map(given).get("topic"), MAX_LINE));
-				row.put("person", one(map(given).get("person"), MAX_LINE));
-				if (rows.size() < MAX_ITEMS && !row.containsValue("")) {
-					rows.add(row);
-				}
-			}
-			kept.put("rows", rows);
-			break;
-		}
 		case "stands": {
 			List<Map<String, Object>> rows = new ArrayList<>();
 			for (Object given : list(answer.get("rows"))) {
@@ -856,7 +883,11 @@ public final class WorkTwinPersonaInterview {
 				Map<String, Object> round = new LinkedHashMap<>(map(asked));
 				Map<String, Object> given = map(map(answer.get("rounds")).get(String.valueOf(round.get("id"))));
 				String verdict = one(given.get("verdict"), 10);
-				if (List.of("yes", "close", "no").contains(verdict)) {
+				// a verdict says which wording it is about: one on a reply that was since written again is not
+				// about the reply that is kept
+				boolean ofThisWording = !(given.get("tries") instanceof Number judged)
+						|| judged.intValue() == (round.get("tries") instanceof Number now ? now.intValue() : 0);
+				if (ofThisWording && List.of("yes", "close", "no").contains(verdict)) {
 					round.put("verdict", verdict);
 					round.put("flagged", lines(given.get("flagged"), MAX_ITEMS, MAX_REPLY));
 					round.put("note", one(given.get("note"), MAX_REPLY));
@@ -966,7 +997,6 @@ public final class WorkTwinPersonaInterview {
 		said.put("repliesChosen", chose);
 		said.put("repliesWritten", wrote);
 		said.put("staysOutOf", chosen(answers.get("limits")));
-		said.put("sendsPeopleTo", list(map(answers.get("handoff")).get("rows")));
 		said.put("whatWins", chosen(answers.get("priorities")));
 		said.put("standingAnswers", list(map(answers.get("stands")).get("rows")));
 		said.put("checksInWork", chosen(answers.get("review")));
@@ -1012,15 +1042,8 @@ public final class WorkTwinPersonaInterview {
 			sections.put(key, CollaborationDbUtils.asString(written.get(key)));
 		}
 
-		List<String> limits = new ArrayList<>();
 		List<String> out = chosen(answers.get("limits"));
-		if (!out.isEmpty()) {
-			limits.add("Stay out of: " + String.join("; ", out) + ".");
-		}
-		for (Object row : list(map(answers.get("handoff")).get("rows"))) {
-			limits.add(map(row).get("topic") + ": send people to " + map(row).get("person") + ".");
-		}
-		sections.put("limits", String.join("\n", limits));
+		sections.put("limits", out.isEmpty() ? "" : "Stay out of: " + String.join("; ", out) + ".");
 
 		List<String> checks = new ArrayList<>();
 		chosen(answers.get("review")).forEach(check -> checks.add("- " + check));
@@ -1085,9 +1108,6 @@ public final class WorkTwinPersonaInterview {
 			}
 		}
 		chosen(answers.get("limits")).stream().limit(2).forEach(topic -> learned.add("leaves to you: " + topic));
-		for (Object row : list(map(answers.get("handoff")).get("rows"))) {
-			learned.add(map(row).get("topic") + " goes to " + map(row).get("person"));
-		}
 		chosen(answers.get("priorities")).stream().limit(1).forEach(first -> learned.add(first + " wins"));
 		chosen(answers.get("review")).stream().limit(2).forEach(check -> learned.add("checks: " + check));
 		chosen(answers.get("people")).stream().limit(1).forEach(learned::add);
@@ -1244,10 +1264,12 @@ public final class WorkTwinPersonaInterview {
 				String email = CollaborationDbUtils.asString(BrainProfileUtils.getProfile(user).get("email"));
 				Timestamp since = Timestamp
 						.from(Instant.now().minus(BrainStyleLearning.WINDOW_DAYS, ChronoUnit.DAYS));
-				return BrainStyleLearning
-						.keepPersonal(user, BrainStyleLearning.sampleEmails(user, owner.getValue0(), owner.getValue1(),
-								email, since))
-						.stream().map(BrainStyleLearning.Sample::text).toList();
+				List<BrainStyleLearning.Sample> sent = BrainStyleLearning.sampleEmails(user, owner.getValue0(),
+						owner.getValue1(), email, since);
+				// with nothing sent there is nothing to sort the personal mail out of
+				return sent.isEmpty() ? List.of()
+						: BrainStyleLearning.keepPersonal(user, sent).stream().map(BrainStyleLearning.Sample::text)
+								.toList();
 			}
 
 			@Override
@@ -1300,15 +1322,58 @@ public final class WorkTwinPersonaInterview {
 	private static Map<String, Object> asking(Map<String, Object> state, Map<String, Object> pending) {
 		Map<String, Object> answer = described(state, "asking");
 		answer.put("step", pending);
+		Object id = pending.get("id");
+		Object before = map(state.get("answers")).get(id);
+		// how far along the waiting step is, which after going back is not how many are answered
+		List<String> script = script(state);
+		int at = script.indexOf(id);
+		if (at >= 0) {
+			map(answer.get("progress")).put("answered", at);
+		}
 		// the first step that goes deeper, before any of them is answered: the page offers to wrap up here, and
 		// goes on offering it through the rest of them
-		if (DEPTH.get(0).equals(pending.get("id"))) {
+		if (DEPTH.get(0).equals(id) && before == null) {
 			answer.put("checkpoint", true);
 		}
-		if (DEPTH.contains(pending.get("id"))) {
+		if (DEPTH.contains(id)) {
 			answer.put("canWrap", true);
 		}
+		Map<String, Object> asked = map(state.get("asked"));
+		if (script.subList(0, Math.max(at, 0)).stream()
+				.anyMatch(earlier -> !WRITTEN.contains(earlier) || asked.containsKey(earlier))) {
+			answer.put("canBack", true);
+		}
+		Map<String, Object> previous = previous(pending, before);
+		if (previous != null) {
+			answer.put("previous", previous);
+		}
 		return answer;
+	}
+
+	// What the owner answered at a step before, as the page sent it, so a step they come back to opens with it. Null
+	// where they said nothing or skipped it.
+	private static Map<String, Object> previous(Map<String, Object> pending, Object kept) {
+		Map<String, Object> answer = map(kept);
+		if (answer.isEmpty() || Boolean.TRUE.equals(answer.get("skipped"))) {
+			return null;
+		}
+		String kind = String.valueOf(pending.get("kind"));
+		if (!List.of("rounds", "probe", "mirror").contains(kind)) {
+			return answer;
+		}
+		// these are kept beside what was asked: only what the owner said goes back, by the id of what it answers
+		String key = "probe".equals(kind) ? "probes" : "rounds";
+		Map<String, Object> said = new LinkedHashMap<>();
+		for (Object entry : list(answer.get(key))) {
+			Map<String, Object> one = new LinkedHashMap<>(map(entry));
+			one.keySet().retainAll(List.of("pick", "text", "note", "verdict", "flagged"));
+			if (!one.isEmpty()) {
+				said.put(String.valueOf(map(entry).get("id")), one);
+			}
+		}
+		Map<String, Object> previous = new LinkedHashMap<>();
+		previous.put(key, said);
+		return previous;
 	}
 
 	private static Map<String, Object> described(Map<String, Object> state, String phase) {

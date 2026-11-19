@@ -38,16 +38,18 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 // WorkTwinPersonaInterview(sources=["mail", "teams", "memory"]);   starts it
 // WorkTwinPersonaInterview();                                       where it is
 // WorkTwinPersonaInterview(answer=[{"stepId": "dials", ...}]);      answers the step that is waiting
+// WorkTwinPersonaInterview(back=[true]);                            waits on the step before it again
 // takes no model on purpose: the text model is the one an admin set in RDF_Map
 public class WorkTwinPersonaInterviewReactor extends AbstractCollaborationReactor {
 
 	private static final String ANSWER = "answer";
 	private static final String WRAP = "wrap";
+	private static final String BACK = "back";
 	private static final String SOURCES = "sources";
 
 	public WorkTwinPersonaInterviewReactor() {
-		this.keysToGet = new String[] { ANSWER, WRAP, SOURCES };
-		this.keyRequired = new int[] { 0, 0, 0 };
+		this.keysToGet = new String[] { ANSWER, WRAP, BACK, SOURCES };
+		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -56,8 +58,8 @@ public class WorkTwinPersonaInterviewReactor extends AbstractCollaborationReacto
 		List<String> sources = getNounAsStringList(SOURCES);
 		// shortcut: a step a model writes is one ordinary request, so one slower than the load balancer allows fails
 		// and the answer is sent again; run those through the persona job, as reading and writing are, if that shows up
-		return mapResult(
-				WorkTwinPersonaInterview.step(user, getMapFromKeyOrCurRow(ANSWER), getBoolean(WRAP), sources));
+		return mapResult(WorkTwinPersonaInterview.step(user, getMapFromKeyOrCurRow(ANSWER), getBoolean(WRAP),
+				Boolean.TRUE.equals(getBoolean(BACK)), sources));
 	}
 
 	@Override
@@ -65,7 +67,8 @@ public class WorkTwinPersonaInterviewReactor extends AbstractCollaborationReacto
 		return super.getReactorDefinition().description(
 				"One call of the interview that writes the signed-in user's persona for their Digital Twins. With "
 						+ "sources it starts the interview over; with answer it takes the answer to the step that "
-						+ "is waiting and returns the next; with neither it returns where the interview is. Nothing "
+						+ "is waiting and returns the next; with back it returns the step before the waiting one, with "
+						+ "what was answered there; with none of them it returns where the interview is. Nothing "
 						+ "changes the persona their twins use: the result is returned for review and saved with "
 						+ "WorkSaveTwinPersona")
 				.key(ANSWER, key -> key.type(Map.class).description(
@@ -75,11 +78,14 @@ public class WorkTwinPersonaInterviewReactor extends AbstractCollaborationReacto
 				.key(WRAP, key -> key.type(Boolean.class).description(
 						"true to go straight to the closing steps; false to go on with an interview that was "
 								+ "wrapped up"))
+				.key(BACK, key -> key.type(Boolean.class).description(
+						"true to go back to the step before the waiting one; the answers given since are kept"))
 				.key(SOURCES, key -> key.list(String.class).description(
 						"Starts the interview over, first reading how the user writes from these places of their "
 								+ "own: mail, teams, memory; or none to read nothing"))
 				.output(Map.class, "phase: none, reading or writing with the job to poll with BrainGetJob, asking "
 						+ "with the step that waits, or done with brief.sections to review; asking and done also "
-						+ "carry progress (answered, of), learned and notes");
+						+ "carry progress (answered, of), learned and notes; asking carries canBack and, at a "
+						+ "step answered before, previous");
 	}
 }

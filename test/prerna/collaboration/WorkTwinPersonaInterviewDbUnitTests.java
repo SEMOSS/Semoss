@@ -85,7 +85,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 	private final WorkTwinPersonaInterview.Model model = (input, instructions, schema, maxTokens, key) -> {
 		// the replies to choose between and the twin's own answers are both asked for as rounds, and the persona by
 		// the first of its sections
-		String kind = "rounds".equals(key) ? (instructions.contains("\"hard\"") ? "voice" : "mirror")
+		String kind = "rounds".equals(key) ? (instructions.contains("\"aIs\"") ? "voice" : "mirror")
 				: "voice".equals(key) ? "persona" : key;
 		asked.add(kind);
 		given.add(input);
@@ -174,8 +174,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 				round("Priya, your manager", "Can you take this on?", "Yes.", "short", "Yes, happily, tell me more.",
 						"warm"),
 				// not a choice: both replies are the same
-				round("Dana, a peer", "Thoughts?", "Fine.", "plain", "Fine.", "plain")),
-				"hard", Map.of("from", "Jordan, from sales", "message", "Just say yes to Friday.")));
+				round("Dana, a peer", "Thoughts?", "Fine.", "plain", "Fine.", "plain"))));
 		canned.put("message", Map.of("from", "Sam, a teammate", "message", "On time with the bug, or late without?"));
 		canned.put("questions", Map.of("questions", List.of("When will it be done?", "Who owns this?")));
 		canned.put("probes", Map.of("probes",
@@ -200,7 +199,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 		assertEquals(Map.of("phase", "none"), call(null, null, null));
 		assertNull(WorkTwinPersona.get(user).get("interview"));
 		IllegalArgumentException refused = assertThrows(IllegalArgumentException.class,
-				() -> WorkTwinPersonaInterview.step(user, null, null, List.of("mail"), null, places, false));
+				() -> WorkTwinPersonaInterview.step(user, null, null, false, List.of("mail"), null, places, false));
 		assertTrue(refused.getMessage().contains("can still be written by hand"), refused.getMessage());
 		assertThrows(IllegalArgumentException.class, () -> call(null, null, List.of("mail", "their-calendar")));
 		assertEquals(0, count("BRAIN_PERSONA"));
@@ -297,7 +296,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 		Map<String, Object> dials = call(null, null, List.of("none"));
 		assertEquals(List.of(), read);
 		assertEquals("dials", step(dials).get("id"));
-		assertEquals(Map.of("answered", 0, "of", 11), dials.get("progress"));
+		assertEquals(Map.of("answered", 0, "of", 10), dials.get("progress"));
 		assertEquals("Writing replies you might send", step(dials).get("wait"));
 
 		Map<String, Object> voice = call(
@@ -305,39 +304,32 @@ class WorkTwinPersonaInterviewDbUnitTests {
 				null);
 		assertEquals("voice", step(voice).get("id"));
 		assertEquals(List.of("formal", "brief", "diplomatic"), voice.get("learned"));
-		// two rounds were a choice and are kept; the round the owner writes is last
+		// two rounds were a choice and are kept, each with two replies
 		List<?> rounds = (List<?>) step(voice).get("rounds");
-		assertEquals(List.of("r1", "r2", "hard"), rounds.stream().map(round -> ((Map<?, ?>) round).get("id")).toList());
-		assertFalse(((Map<?, ?>) rounds.get(2)).containsKey("a"));
+		assertEquals(List.of("r1", "r2"), rounds.stream().map(round -> ((Map<?, ?>) round).get("id")).toList());
+		assertTrue(rounds.stream().allMatch(round -> ((Map<?, ?>) round).containsKey("a")), rounds.toString());
 		assertEquals(Map.of("formal", 2, "brief", 1, "blunt", 5, "playful", 3), given.get(0).get("dials"));
 
 		Map<String, Object> limits = call(answer("voice", Map.of("rounds", Map.of("r1", Map.of("pick", "a"), "r2",
-				Map.of("pick", "own", "text", "Yes, if the audit\n moves."), "hard",
-				Map.of("pick", "a", "text", "No. Friday is not real.")))), null, null);
+				Map.of("pick", "own", "text", "Yes, if the audit\n moves.")))), null, null);
 		assertEquals("limits", step(limits).get("id"));
 		assertTrue(((List<?>) limits.get("learned")).contains("blunt"), limits.get("learned").toString());
+		assertFalse(step(limits).get("options").toString().contains("personal"), step(limits).toString());
 
-		Map<String, Object> handoff = call(answer("limits", Map.of("picked",
-				List.of("Budgets and pricing", "Budgets and pricing", "Not an option"), "own", List.of("Vendor names"))),
-				null, null);
-		assertEquals("handoff", step(handoff).get("id"));
 		// only what was offered counts as picked; what the owner added is theirs
-		assertEquals(List.of("Budgets and pricing", "Vendor names"), step(handoff).get("topics"));
-
-		Map<String, Object> checkpoint = call(answer("handoff",
-				Map.of("rows", List.of(Map.of("topic", "Budgets and pricing", "person", "Dana Smith"),
-						Map.of("topic", "Hiring", "person", " ")))),
+		Map<String, Object> checkpoint = call(answer("limits", Map.of("picked",
+				List.of("Budgets and pricing", "Budgets and pricing", "Not an option"), "own", List.of("Vendor names"))),
 				null, null);
 		assertEquals("priorities", step(checkpoint).get("id"));
 		assertEquals(true, checkpoint.get("checkpoint"));
 		assertEquals(true, checkpoint.get("canWrap"));
-		assertNull(handoff.get("canWrap"));
-		assertEquals(Map.of("answered", 4, "of", 11), checkpoint.get("progress"));
+		assertNull(limits.get("canWrap"));
+		assertEquals(Map.of("answered", 3, "of", 10), checkpoint.get("progress"));
 
 		// wrapped up here: the steps that go deeper are left out, and it looks for answers that disagree
 		Map<String, Object> probe = call(null, true, null);
 		assertEquals("probe", step(probe).get("id"));
-		assertEquals(Map.of("answered", 4, "of", 6), probe.get("progress"));
+		assertEquals(Map.of("answered", 3, "of", 5), probe.get("progress"));
 		assertNull(probe.get("checkpoint"));
 		assertNull(probe.get("canWrap"));
 
@@ -353,7 +345,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 								Map.of("m1", Map.of("verdict", "close", "flagged", List.of("Happy to discuss further!")),
 										"m2", Map.of("verdict", "yes")))),
 						null, null));
-		assertEquals(Map.of("answered", 6, "of", 6, "wrapped", true, "done", false),
+		assertEquals(Map.of("answered", 5, "of", 5, "wrapped", true, "done", false),
 				WorkTwinPersona.get(user).get("interview"));
 		canned.put("persona", Map.of("short", "Direct and brief.", "voice", "# Voice\n- Leads with the answer.",
 				"decide", "", "people", ""));
@@ -364,18 +356,16 @@ class WorkTwinPersonaInterviewDbUnitTests {
 		assertEquals("Direct and brief.", sections.get("short"));
 		// a model's line that could pass for a heading is cut as a save would cut it
 		assertEquals("Voice\n- Leads with the answer.", sections.get("voice"));
-		// what a twin must leave alone is the owner's own words, with who to ask
-		assertEquals("Stay out of: Budgets and pricing; Vendor names.\nBudgets and pricing: send people to Dana Smith.",
-				sections.get("limits"));
+		// what a twin must leave alone is the owner's own words
+		assertEquals("Stay out of: Budgets and pricing; Vendor names.", sections.get("limits"));
 		// their own reply first, then the reply they chose, then the twin's answer they said sounds like them
 		assertEquals("Asked: Can you take this on?\nReply: Yes, if the audit moves.\n\n"
-				+ "Asked: Just say yes to Friday.\nReply: No. Friday is not real.\n\n"
 				+ "Asked: Can we move the date?\nReply: No.\n\n"
 				+ "Asked: What is the budget?\nReply: That is not mine to say. Ask Dana Smith.", sections.get("examples"));
 		assertEquals("", sections.get("stands"));
 		// the persona their twins use is not touched: the result waits for the owner to save it
 		assertEquals(false, WorkTwinPersona.get(user).get("exists"));
-		assertEquals(Map.of("answered", 6, "of", 6, "wrapped", true, "done", true),
+		assertEquals(Map.of("answered", 5, "of", 5, "wrapped", true, "done", true),
 				WorkTwinPersona.get(user).get("interview"));
 		// the model that wrote it was told what the owner marked as not them
 		Map<String, Object> told = given.get(given.size() - 1);
@@ -404,8 +394,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 		call(null, null, List.of("none"));
 		call(answer("dials", Map.of("skipped", true)), null, null);
 		call(answer("voice", Map.of("rounds",
-				Map.of("r1", Map.of("pick", "c"), "r2", Map.of("pick", "b"), "hard", Map.of("pick", "own", "text", " ")))),
-				null, null);
+				Map.of("r1", Map.of("pick", "c", "text", " "), "r2", Map.of("pick", "b")))), null, null);
 		call(answer("limits", Map.of("picked", "Hiring", "own", List.of("x".repeat(500), 7, Map.of()))), null, null);
 		String stored = text("INTERVIEW_JSON");
 		// only the round that was answered has a pick, and only text of a size is kept
@@ -419,11 +408,10 @@ class WorkTwinPersonaInterviewDbUnitTests {
 		canned.clear();
 		call(null, null, List.of("none"));
 		Map<String, Object> voice = step(call(answer("dials", Map.of("values", Map.of())), null, null));
-		assertEquals(5, ((List<?>) voice.get("rounds")).size());
+		assertEquals(4, ((List<?>) voice.get("rounds")).size());
 		assertEquals("Can we push the deadline a week?", ((Map<?, ?>) ((List<?>) voice.get("rounds")).get(0)).get("message"));
 		call(answer("voice", Map.of("rounds", Map.of("r1", Map.of("pick", "a")))), null, null);
 		call(answer("limits", Map.of()), null, null);
-		call(answer("handoff", Map.of()), null, null);
 		Map<String, Object> deeper = call(answer("priorities", Map.of("picked", List.of("Quality", "Speed"))), null,
 				null);
 		// past the first of the steps that go deeper there is no checkpoint, and wrapping up is still offered
@@ -445,7 +433,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 		Map<String, Object> end = call(null, null, null);
 		assertEquals("done", end.get("phase"));
 		assertTrue(end.get("notes").toString().contains("could not write sample answers"), end.get("notes").toString());
-		assertEquals(Map.of("answered", 11, "of", 11), end.get("progress"));
+		assertEquals(Map.of("answered", 10, "of", 10), end.get("progress"));
 		@SuppressWarnings("unchecked")
 		Map<String, String> sections = (Map<String, String>) ((Map<?, ?>) end.get("brief")).get("sections");
 		assertEquals("If asked: When will it be done?\nSay: When it is tested.", sections.get("stands"));
@@ -481,6 +469,24 @@ class WorkTwinPersonaInterviewDbUnitTests {
 	}
 
 	@Test
+	void aVerdictOnWordingThatWasSinceWrittenAgainIsNotKept() throws Exception {
+		reachMirror();
+		Map<String, Object> retry = new LinkedHashMap<>();
+		retry.put("stepId", "mirror");
+		retry.put("retry", "m1");
+		retry.put("flagged", List.of("Happy to discuss further!"));
+		call(retry, null, null);
+		canned.put("persona", Map.of("short", "Direct.", "voice", "", "decide", "", "people", ""));
+		// the page still holds what was said of the first wording of m1; m2 reads as it was judged
+		assertEquals("done", call(answer("mirror", Map.of("rounds", Map.of("m1",
+				Map.of("verdict", "no", "flagged", List.of("Happy to discuss further!"), "tries", 0), "m2",
+				Map.of("verdict", "yes", "tries", 0)))), null, null).get("phase"));
+		String stored = text("INTERVIEW_JSON");
+		assertEquals(1, stored.split("\"verdict\"", -1).length - 1, stored);
+		assertTrue(stored.contains("\"verdict\":\"yes\""), stored);
+	}
+
+	@Test
 	void anInterviewThatWasWrappedUpGoesOnWhereItLeftOff() {
 		reachMirror();
 		canned.put("persona", Map.of("short", "Direct.", "voice", "", "decide", "", "people", ""));
@@ -489,10 +495,127 @@ class WorkTwinPersonaInterviewDbUnitTests {
 		Map<String, Object> more = call(null, false, null);
 		assertEquals("priorities", step(more).get("id"));
 		// its persona and its closing answers are from before the new answers, so they go
-		assertEquals(Map.of("answered", 4, "of", 11, "wrapped", false, "done", false),
+		assertEquals(Map.of("answered", 3, "of", 10, "wrapped", false, "done", false),
 				WorkTwinPersona.get(user).get("interview"));
-		// wrapping up again while a deeper step waits drops that step and closes with fresh checks
+		// wrapping up again while a deeper step waits drops that step and closes with fresh checks: what was asked
+		// at the close before is not shown again
+		int calls = asked.size();
 		assertEquals("probe", step(call(null, true, null)).get("id"));
+		assertEquals(calls + 1, asked.size());
+	}
+
+	// ---- going back ----
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void goingBackWaitsOnTheStepBeforeWithWhatWasSaidAndComesForwardInOrder() {
+		Map<String, Object> dials = call(null, null, List.of("none"));
+		// nothing is before the first step, so going back from it stays on it
+		assertNull(dials.get("canBack"));
+		assertEquals("dials", step(back()).get("id"));
+		Map<String, Object> voice = call(answer("dials", Map.of("values", Map.of("formal", 5))), null, null);
+		assertEquals(true, voice.get("canBack"));
+		assertNull(voice.get("previous"));
+		Map<String, Object> picks = Map.of("rounds",
+				Map.of("r1", Map.of("pick", "a"), "r2", Map.of("pick", "own", "text", "Yes, later.")));
+		assertEquals("limits", step(call(answer("voice", picks), null, null)).get("id"));
+		int calls = asked.size();
+
+		// back to the replies: the same ones, with what was picked, and the model is not asked again
+		Map<String, Object> again = back();
+		assertEquals("voice", step(again).get("id"));
+		assertEquals(step(voice).get("rounds"), step(again).get("rounds"));
+		assertEquals(picks, again.get("previous"));
+		assertEquals(Map.of("answered", 1, "of", 10), again.get("progress"));
+		// and back again, to the dials where the owner left them
+		Map<String, Object> first = back();
+		assertEquals("dials", step(first).get("id"));
+		Map<String, Object> values = (Map<String, Object>) ((Map<String, Object>) first.get("previous")).get("values");
+		assertEquals(5, ((Number) values.get("formal")).intValue());
+		assertEquals(3, ((Number) values.get("brief")).intValue());
+		assertNull(first.get("canBack"));
+
+		// forward with nothing changed: the steps come round in order, each with its answer, to the one that waited
+		Map<String, Object> second = call(answer("dials", (Map<String, Object>) first.get("previous")), null, null);
+		assertEquals("voice", step(second).get("id"));
+		assertEquals(picks, second.get("previous"));
+		Map<String, Object> third = call(answer("voice", picks), null, null);
+		assertEquals("limits", step(third).get("id"));
+		assertNull(third.get("previous"));
+		assertEquals(calls, asked.size());
+
+		// the offer to wrap up is made once, before the first deeper step is answered
+		Map<String, Object> checkpoint = call(answer("limits", Map.of("picked", List.of("Hiring"))), null, null);
+		assertEquals(true, checkpoint.get("checkpoint"));
+		assertEquals("tradeoff",
+				step(call(answer("priorities", Map.of("picked", List.of("Quality", "Speed"))), null, null)).get("id"));
+		Map<String, Object> priorities = back();
+		assertEquals("priorities", step(priorities).get("id"));
+		assertNull(priorities.get("checkpoint"));
+		assertEquals(true, priorities.get("canWrap"));
+		assertEquals(List.of("Quality", "Speed"), ((Map<?, ?>) priorities.get("previous")).get("picked"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void anEarlierAnswerThatChangesHasTheClosingStepsWrittenAgain() {
+		reachMirror();
+		int calls = asked.size();
+		// back past the check, which was answered, to what the twin stays out of
+		Map<String, Object> probe = back();
+		assertEquals("probe", step(probe).get("id"));
+		assertEquals(Map.of("probes", Map.of()), probe.get("previous"));
+		assertEquals("limits", step(back()).get("id"));
+
+		// the same answer again: the check and the sample answers are the ones written before
+		assertEquals("probe", step(call(answer("limits", Map.of()), null, null)).get("id"));
+		Map<String, Object> mirror = call(answer("probe", Map.of()), null, null);
+		assertEquals("mirror", step(mirror).get("id"));
+		assertEquals(calls, asked.size());
+		// all the way back to the dials and forward again as each was left, numbers and all: still nothing new
+		back();
+		back();
+		Map<String, Object> voice = back();
+		assertEquals("voice", step(voice).get("id"));
+		Map<String, Object> dials = back();
+		assertEquals("dials", step(dials).get("id"));
+		call(answer("dials", (Map<String, Object>) dials.get("previous")), null, null);
+		call(answer("voice", (Map<String, Object>) voice.get("previous")), null, null);
+		call(answer("limits", Map.of()), null, null);
+		assertEquals("mirror", step(call(answer("probe", Map.of()), null, null)).get("id"));
+		assertEquals(calls, asked.size());
+
+		// a different answer: both were written from the old one, so both are written again
+		back();
+		back();
+		assertEquals("probe", step(call(answer("limits", Map.of("picked", List.of("Hiring"))), null, null)).get("id"));
+		assertEquals(calls + 1, asked.size());
+		assertEquals("probes", asked.get(asked.size() - 1));
+		assertEquals("mirror", step(call(answer("probe", Map.of()), null, null)).get("id"));
+		assertEquals(calls + 2, asked.size());
+
+		// a check that found nothing was never put to the owner, so going back passes it
+		canned.put("probes", Map.of("probes", List.of()));
+		back();
+		back();
+		assertEquals("mirror", step(call(answer("limits", Map.of()), null, null)).get("id"));
+		assertEquals("limits", step(back()).get("id"));
+	}
+
+	@Test
+	void anInterviewThatWaitedOnAStepThatIsGoneGoesOnToTheNext() throws Exception {
+		call(null, null, List.of("none"));
+		String waiting = "{\"sources\":[],\"notes\":{\"observations\":[],\"dials\":{},\"skipped\":[]},"
+				+ "\"answers\":{\"dials\":{\"values\":{}},\"voice\":{\"rounds\":[]},\"limits\":{\"picked\":[],\"own\":[]}},"
+				+ "\"pending\":{\"id\":\"handoff\",\"kind\":\"handoff\",\"title\":\"Who should it send people to?\","
+				+ "\"topics\":[]}}";
+		try (PreparedStatement statement = connection.prepareStatement("UPDATE BRAIN_PERSONA SET INTERVIEW_JSON = ?")) {
+			statement.setString(1, waiting);
+			assertEquals(1, statement.executeUpdate());
+		}
+		Map<String, Object> next = call(null, null, null);
+		assertEquals("priorities", step(next).get("id"));
+		assertEquals(Map.of("answered", 3, "of", 10), next.get("progress"));
 	}
 
 	// ---- Teams ----
@@ -547,7 +670,11 @@ class WorkTwinPersonaInterviewDbUnitTests {
 
 	private Map<String, Object> call(Map<String, Object> answer, Boolean wrap, List<String> sources) {
 		// the two long parts run in the call itself, where the server runs them as a job
-		return WorkTwinPersonaInterview.step(user, answer, wrap, sources, model, places, false);
+		return WorkTwinPersonaInterview.step(user, answer, wrap, false, sources, model, places, false);
+	}
+
+	private Map<String, Object> back() {
+		return WorkTwinPersonaInterview.step(user, null, null, true, null, model, places, false);
 	}
 
 	private void reachMirror() {
@@ -555,7 +682,6 @@ class WorkTwinPersonaInterviewDbUnitTests {
 		call(answer("dials", Map.of("values", Map.of())), null, null);
 		call(answer("voice", Map.of("rounds", Map.of("r1", Map.of("pick", "b")))), null, null);
 		call(answer("limits", Map.of()), null, null);
-		call(answer("handoff", Map.of()), null, null);
 		call(null, true, null);
 		assertEquals("mirror", step(call(answer("probe", Map.of()), null, null)).get("id"));
 	}
