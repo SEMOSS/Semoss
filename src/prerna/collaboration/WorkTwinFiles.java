@@ -188,6 +188,10 @@ public final class WorkTwinFiles {
 		if (path == null || !path.startsWith(prefix)) {
 			throw new IllegalArgumentException("Pass an exact agent:/ path to a shared document");
 		}
+		Path assets = folder.getParent();
+		if (Files.isSymbolicLink(folder) || Files.isSymbolicLink(assets) || Files.isSymbolicLink(assets.getParent())) {
+			throw new IllegalArgumentException("The shared files folder cannot be a link");
+		}
 		String name = path.substring(prefix.length());
 		if (name.contains("\\") || name.equalsIgnoreCase("About me.md") || name.equals(AgentFilesIndex.FILE_NAME)) {
 			throw new IllegalArgumentException("Pass the path of a shared document copy");
@@ -204,9 +208,6 @@ public final class WorkTwinFiles {
 			}
 		}
 		String asset = Constants.PUBLIC_ASSETS_FOLDER + "/" + name;
-		if (Files.isSymbolicLink(folder)) {
-			throw new IllegalArgumentException("The shared files folder cannot be a link");
-		}
 		// An earlier removal may have completed locally while the cluster publication failed.
 		if (Files.notExists(target, LinkOption.NOFOLLOW_LINKS)) {
 			return asset;
@@ -216,7 +217,6 @@ public final class WorkTwinFiles {
 				|| !target.toRealPath().equals(folder.toRealPath().resolve(name))) {
 			throw new IllegalArgumentException("No shared document at that path in this Digital Twin");
 		}
-		Path assets = folder.getParent();
 		Path sources = assets.resolve(WorkTwinUpdates.RECORD);
 		Map<Path, String> replacements = new LinkedHashMap<>();
 		if (Files.isRegularFile(sources, LinkOption.NOFOLLOW_LINKS)) {

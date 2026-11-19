@@ -350,6 +350,9 @@ class WorkTwinFilesUnitTests {
 			assertThrows(IllegalArgumentException.class,
 					() -> WorkTwinFiles.removeSharedCopy(twin, path, new ArrayList<>()), path);
 		}
+		Path linkedAssets = Files.createSymbolicLink(folder.resolve("linked-assets"), folder);
+		assertThrows(IllegalArgumentException.class, () -> WorkTwinFiles.removeSharedCopy(
+				linkedAssets.resolve("another"), "agent:/plan.md", new ArrayList<>()));
 		assertEquals("another twin", Files.readString(another.resolve("plan.md")));
 		assertEquals("this copy", Files.readString(twin.resolve("plan.md")));
 	}
