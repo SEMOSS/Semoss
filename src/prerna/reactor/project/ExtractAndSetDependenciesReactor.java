@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.auth.utils.CatalogDependencyRole;
 import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
@@ -91,8 +92,9 @@ public class ExtractAndSetDependenciesReactor extends AbstractReactor {
 		// update the project dependencies table only with valid engineIds
 		if (engineIdMap.containsKey("success")) {
 			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
-			SecurityCatalogDependencyUtils.setDependencyIds(user, projectId,
-					SecurityCatalogDependencyUtils.resolveCatalogType(projectId, null), successMap.keySet());
+			SecurityCatalogDependencyUtils.syncAutomaticDependencyIds(user, projectId,
+					SecurityCatalogDependencyUtils.resolveCatalogType(projectId, null), CatalogDependencyRole.CODE_REFERENCE,
+					"Engine referenced in this app's files", successMap.keySet());
 		}
 
 		// sending the success and failed list of engineIds to FE

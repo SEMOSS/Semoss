@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
+import prerna.auth.utils.CatalogDependencyRole;
 import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.project.api.IProject;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -146,9 +147,11 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 			// dependency of the workspace alongside MCP engines/projects; one already
 			// there is kept. Best-effort - WORKSPACE_RESOURCE row is the source of truth.
 			try {
-				SecurityCatalogDependencyUtils.addDependencies(user, workspaceId, IProject.PROJECT_TYPE.WORKSPACE.name(),
-						List.of(new SecurityCatalogDependencyUtils.Dependency(skillId,
-								IProject.PROJECT_TYPE.SKILL.name())));
+				SecurityCatalogDependencyUtils.addAutomaticDependencies(user, workspaceId,
+						IProject.PROJECT_TYPE.WORKSPACE.name(),
+						List.of(SecurityCatalogDependencyUtils.Dependency.automatic(skillId,
+								IProject.PROJECT_TYPE.SKILL.name(), CatalogDependencyRole.SKILL,
+								"Skill attached to this agent")));
 			} catch (Exception depEx) {
 				classLogger.warn("Attached skill '{}' to workspace '{}' but failed to record CATALOGDEPENDENCIES entry",
 						skillId, workspaceId, depEx);

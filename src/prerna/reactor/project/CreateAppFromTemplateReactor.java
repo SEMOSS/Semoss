@@ -179,7 +179,6 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 						.getWorkspaceResourcesByType(projectTemplateId, null);
 
 				List<Map<String, String>> clonedResources = new ArrayList<>();
-				List<String> dependencyIds = new ArrayList<>();
 				if (sourceResources != null) {
 					for (Map<String, Object> r : sourceResources) {
 						String resourceId = (String) r.get("resource_id");
@@ -192,14 +191,16 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 						entry.put("resource_type", resourceType);
 						entry.put("resource_subtype", resourceSubtype);
 						clonedResources.add(entry);
-						dependencyIds.add(resourceId);
 					}
 				}
 
 				// each resource is kept with its own engine type or project type, read from
 				// the security database
-				SecurityCatalogDependencyUtils.setDependencyIds(user, newProjectId,
-						SecurityCatalogDependencyUtils.resolveCatalogType(newProjectId, null), dependencyIds);
+				// the clone depends on what the template does, each link as it is
+				SecurityCatalogDependencyUtils.replaceAllDependencies(user, newProjectId,
+						SecurityCatalogDependencyUtils.resolveCatalogType(newProjectId, null),
+						SecurityCatalogDependencyUtils.fromExported(
+								SecurityCatalogDependencyUtils.getDependencyDetails(projectTemplateId)));
 				ModelInferenceLogsUtils.createNewWorkspaceEntry(newProjectId, user.getPrimaryLoginToken().getId(),
 						newProjectName, sourceDescription, sourceSystemPrompt, clonedResources);
 				if (sourceConfigJson != null) {

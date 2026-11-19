@@ -724,6 +724,7 @@ public abstract class AbstractSecurityUtils {
 			final String VARCHAR_20 = "VARCHAR(20)";
 			final String VARCHAR_255 = "VARCHAR(255)";
 			final String VARCHAR_500 = "VARCHAR(500)";
+			final String VARCHAR_2000 = "VARCHAR(2000)";
 
 			// 2021-08-06
 			// on h2 when you renmae a column it doens't update/change anything on the index
@@ -1600,11 +1601,16 @@ public abstract class AbstractSecurityUtils {
 
 			// CATALOGDEPENDENCIES
 			// an engine or a project (the catalog item) and the engines and projects it
-			// depends on, each kept with its own engine type or project type
+			// depends on, each kept with its own engine type or project type.
+			// IS_AUTOMATIC: written by a save reactor from the item's own configuration
+			// (true), picked by a user (false), or from before the column (null, read as
+			// picked). ROLE: why the link exists, MANUAL for a picked one. NAME: a picked
+			// link's key, unique per item. DESCRIPTION: what the link is for, in words.
+			// TYPE is the login type of USERID.
 			colNames = new String[] { "CATALOGID", "CATALOGTYPE", "DEPENDENCYID", "DEPENDENCYTYPE", "USERID", "TYPE",
-					"DATEADDED" };
+					"DATEADDED", "IS_AUTOMATIC", "ROLE", "NAME", "DESCRIPTION" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
-					TIMESTAMP_DATATYPE_NAME };
+					TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_2000 };
 			defaultValues = null;
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists(CatalogDependenciesMigration.NEW_TABLE, colNames, types);

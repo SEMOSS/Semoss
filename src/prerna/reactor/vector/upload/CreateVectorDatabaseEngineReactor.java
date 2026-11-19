@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.vector.upload;
 
+import prerna.auth.utils.CatalogDependencyDerivation;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -200,6 +201,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			vectorDb.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(vectorDbId, vectorDbName, vectorDb, smssFile);
 			SecurityEngineUtils.addEngine(vectorDbId, global, user);
+			CatalogDependencyDerivation.syncSmss(user, vectorDbId, IEngine.CATALOG_TYPE.VECTOR.name(), vectorDbDetails);
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {

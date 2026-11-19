@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.auth.utils;
 
 import java.io.File;
@@ -99,21 +126,91 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 
 	private static final String TABLE = "CATALOGDEPENDENCIES";
 
+	/** The longest DESCRIPTION kept */
+	private static final int MAX_DESCRIPTION = 2000;
+
 	/**
-	 * One dependency of a catalog item: the engine or project it depends on, and
-	 * that item's own type.
+	 * One dependency of a catalog item: the engine or project it depends on, that
+	 * item's own type, and what the link is.
 	 *
-	 * @param id   the engine id or project id
-	 * @param type its engine type or project type, read with
-	 *             {@link CatalogTypes#normalize}
+	 * @param id          the engine id or project id
+	 * @param type        its engine type or project type, read with
+	 *                    {@link CatalogTypes#normalize}
+	 * @param automatic   true when a save reactor derived it from the item's
+	 *                    configuration, false when a user picked it, null for a row
+	 *                    from before the column (read as picked)
+	 * @param role        why the link exists; {@link CatalogDependencyRole#MANUAL}
+	 *                    for a picked one
+	 * @param name        a picked link's key, unique per item, or null
+	 * @param description what the link is for, in words, or null
 	 */
-	public record Dependency(String id, String type) {
+	public record Dependency(String id, String type, Boolean automatic, CatalogDependencyRole role, String name,
+			String description) {
 		public Dependency {
 			if (id == null || id.isBlank()) {
 				throw new IllegalArgumentException("A dependency id is required");
 			}
 			type = CatalogTypes.normalize(type);
+			if (role == null) {
+				role = CatalogDependencyRole.MANUAL;
+			}
+			name = blankToNull(name);
+			description = blankToNull(description);
+			if (description != null && description.length() > MAX_DESCRIPTION) {
+				description = description.substring(0, MAX_DESCRIPTION);
+			}
 		}
+
+		/** A dependency a user picked, with no name or description */
+		public Dependency(String id, String type) {
+			this(id, type, false, CatalogDependencyRole.MANUAL, null, null);
+		}
+
+		/**
+		 * A dependency a user picked
+		 *
+		 * @param id          the engine id or project id
+		 * @param type        its type
+		 * @param name        its key, or null
+		 * @param description what it is for, or null
+		 * @return the dependency
+		 */
+		public static Dependency manual(String id, String type, String name, String description) {
+			return new Dependency(id, type, false, CatalogDependencyRole.MANUAL, name, description);
+		}
+
+		/**
+		 * A dependency a save reactor derived from the item's configuration
+		 *
+		 * @param id          the engine id or project id
+		 * @param type        its type
+		 * @param role        why the link exists; not MANUAL
+		 * @param description what it is for, in words
+		 * @return the dependency
+		 */
+		public static Dependency automatic(String id, String type, CatalogDependencyRole role, String description) {
+			if (role == null || !role.isAutomatic()) {
+				throw new IllegalArgumentException("An automatic dependency needs a role other than MANUAL");
+			}
+			return new Dependency(id, type, true, role, null, description);
+		}
+
+		/** Whether this is a picked dependency, a row from before the column included */
+		public boolean isManual() {
+			return !Boolean.TRUE.equals(automatic);
+		}
+
+		private String key() {
+			return isManual() ? id : id + "|" + role.name();
+		}
+	}
+
+	private static String blankToNull(String value) {
+		if (value == null) {
+			return null;
+		}
+		String trimmed = value.trim();
+		return trimmed.isEmpty() ? null : trimmed;
 	}
 
 	SecurityCatalogDependencyUtils() {
@@ -222,131 +319,265 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 
 	/*
 	 * Writes
+	 *
+	 * A catalog item has two kinds of dependencies. Picked ones (IS_AUTOMATIC false,
+	 * or null for a row from before the column) are set by a user with
+	 * SetCatalogDependencies. Automatic ones are derived by a save reactor from the
+	 * item's configuration, each under its role, and only that reactor changes
+	 * them. Writing one kind never touches the other, except that an automatic
+	 * dependency replaces a row from before the column on the same item, so an item
+	 * saved again does not list a dependency twice.
 	 */
 
+	/** The filter for a picked row, a row from before the column included */
+	private static final String MANUAL_ROWS = "(IS_AUTOMATIC IS NULL OR IS_AUTOMATIC = ?)";
+
 	/**
-	 * Replaces all the dependencies of a catalog item, in one transaction.
+	 * Replaces the dependencies a user picked for a catalog item, keeping the
+	 * automatic ones, in one transaction.
 	 *
 	 * @param user         who sets them
 	 * @param catalogId    the engine id or project id
 	 * @param catalogType  its engine type or project type
-	 * @param dependencies its dependencies; an empty list removes them all
-	 * @throws IllegalStateException when they cannot be saved; nothing is changed
+	 * @param dependencies the picked dependencies; an empty list removes them all
+	 * @throws IllegalArgumentException when two have the same name
+	 * @throws IllegalStateException    when they cannot be saved; nothing is changed
 	 */
-	public static void setDependencies(User user, String catalogId, String catalogType,
+	public static void setManualDependencies(User user, String catalogId, String catalogType,
 			Collection<Dependency> dependencies) {
 		String ownerType = CatalogTypes.normalize(catalogType);
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				QueryExecutionUtility.executeUpdate(connection, "DELETE FROM " + TABLE + " WHERE CATALOGID=?",
-						ps -> ps.setString(1, catalogId));
-				insert(connection, user, catalogId, ownerType, withoutOwnerAndRepeats(catalogId, dependencies));
-				return null;
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to set the dependencies of {}", catalogId, e);
-			throw new IllegalStateException("Unable to save the dependencies of " + catalogId, e);
+		List<Dependency> picked = new ArrayList<>();
+		for (Dependency dependency : withoutOwnerAndRepeats(catalogId, dependencies)) {
+			picked.add(Dependency.manual(dependency.id(), dependency.type(), dependency.name(),
+					dependency.description()));
 		}
+		checkUniqueNames(picked);
+		write(catalogId, "set the dependencies of", connection -> {
+			QueryExecutionUtility.executeUpdate(connection,
+					"DELETE FROM " + TABLE + " WHERE CATALOGID=? AND " + MANUAL_ROWS, ps -> {
+						ps.setString(1, catalogId);
+						ps.setBoolean(2, false);
+					});
+			insert(connection, user, catalogId, ownerType, picked);
+		});
 	}
 
 	/**
-	 * Replaces all the dependencies of a catalog item with the engines and projects
-	 * of these ids, reading their types from the security database. Ids that are
-	 * neither are left out.
+	 * Replaces the automatic dependencies of a catalog item under some roles with
+	 * the ones given, in one transaction. Dependencies under other roles, and the
+	 * picked ones, are kept, so each save reactor replaces only the roles it
+	 * derives.
 	 *
-	 * @param user        who sets them
+	 * @param user         who saved the item
+	 * @param catalogId    the engine id or project id
+	 * @param catalogType  its engine type or project type
+	 * @param roles        the roles the caller derives
+	 * @param dependencies the dependencies it derived now, each under one of the
+	 *                     roles; an empty list removes them all
+	 * @throws IllegalStateException when they cannot be saved; nothing is changed
+	 */
+	public static void syncAutomaticDependencies(User user, String catalogId, String catalogType,
+			Collection<CatalogDependencyRole> roles, Collection<Dependency> dependencies) {
+		if (roles == null || roles.isEmpty()) {
+			return;
+		}
+		String ownerType = CatalogTypes.normalize(catalogType);
+		List<Dependency> derived = automaticOnly(catalogId, roles, dependencies);
+		List<String> roleNames = roles.stream().map(CatalogDependencyRole::name).distinct().toList();
+		write(catalogId, "save the automatic dependencies of", connection -> {
+			deleteAutomatic(connection, catalogId, roleNames);
+			deleteLegacy(connection, catalogId, derived);
+			insert(connection, user, catalogId, ownerType, derived);
+		});
+	}
+
+	/**
+	 * Replaces the automatic dependencies of a catalog item under one role with the
+	 * engines and projects of these ids, reading their types from the security
+	 * database. Ids that are neither are left out.
+	 *
+	 * @param user        who saved the item
 	 * @param catalogId   the engine id or project id
 	 * @param catalogType its engine type or project type
+	 * @param role        the role of each
+	 * @param description what each is for, in words
 	 * @param ids         the engine ids and project ids it depends on
 	 * @return the ids left out, which are neither an engine nor a project
 	 */
-	public static List<String> setDependencyIds(User user, String catalogId, String catalogType,
-			Collection<String> ids) {
+	public static List<String> syncAutomaticDependencyIds(User user, String catalogId, String catalogType,
+			CatalogDependencyRole role, String description, Collection<String> ids) {
 		List<String> failed = new ArrayList<>();
-		setDependencies(user, catalogId, catalogType, resolveDependencies(ids, failed));
+		List<Dependency> dependencies = new ArrayList<>();
+		for (Dependency resolved : resolveDependencies(ids, failed)) {
+			dependencies.add(Dependency.automatic(resolved.id(), resolved.type(), role, description));
+		}
+		syncAutomaticDependencies(user, catalogId, catalogType, List.of(role), dependencies);
 		return failed;
 	}
 
 	/**
-	 * Adds dependencies to a catalog item, keeping the ones it has, in one
-	 * transaction.
+	 * Adds automatic dependencies to a catalog item, keeping every one it has, in
+	 * one transaction.
 	 *
-	 * @param user         who adds them
+	 * @param user         who saved the item
 	 * @param catalogId    the engine id or project id
 	 * @param catalogType  its engine type or project type
-	 * @param dependencies the dependencies to add; ones it has already are skipped
+	 * @param dependencies the automatic dependencies to add; ones it has already
+	 *                     under the same role are skipped
 	 * @throws IllegalStateException when they cannot be saved; nothing is changed
 	 */
-	public static void addDependencies(User user, String catalogId, String catalogType,
+	public static void addAutomaticDependencies(User user, String catalogId, String catalogType,
 			Collection<Dependency> dependencies) {
 		String ownerType = CatalogTypes.normalize(catalogType);
+		List<Dependency> derived = automaticOnly(catalogId, Arrays.asList(CatalogDependencyRole.values()),
+				dependencies);
+		write(catalogId, "add automatic dependencies to", connection -> {
+			Set<String> existing = new HashSet<>(QueryExecutionUtility.queryList(connection,
+					"SELECT DEPENDENCYID, ROLE FROM " + TABLE + " WHERE CATALOGID=? AND IS_AUTOMATIC = ?", ps -> {
+						ps.setString(1, catalogId);
+						ps.setBoolean(2, true);
+					}, rs -> rs.getString(1) + "|" + CatalogDependencyRole.fromStored(rs.getString(2)).name()));
+			List<Dependency> toAdd = derived.stream().filter(d -> !existing.contains(d.key())).toList();
+			deleteLegacy(connection, catalogId, toAdd);
+			insert(connection, user, catalogId, ownerType, toAdd);
+		});
+	}
+
+	/**
+	 * Removes one automatic dependency of a catalog item, under one role. The
+	 * picked dependencies on the same engine or project are kept.
+	 *
+	 * @param catalogId    the engine id or project id
+	 * @param dependencyId the engine id or project id
+	 * @param role         the role it no longer has
+	 * @throws IllegalStateException when it cannot be removed
+	 */
+	public static void removeAutomaticDependency(String catalogId, String dependencyId, CatalogDependencyRole role) {
+		write(catalogId, "remove an automatic dependency of", connection -> {
+			QueryExecutionUtility.executeUpdate(connection, "DELETE FROM " + TABLE
+					+ " WHERE CATALOGID=? AND DEPENDENCYID=? AND IS_AUTOMATIC = ? AND ROLE=?", ps -> {
+						ps.setString(1, catalogId);
+						ps.setString(2, dependencyId);
+						ps.setBoolean(3, true);
+						ps.setString(4, role.name());
+					});
+			// a row from before the column was most likely written by the same save
+			deleteLegacyIds(connection, catalogId, List.of(dependencyId));
+		});
+	}
+
+	/**
+	 * Replaces every dependency of a catalog item, picked and automatic, with the
+	 * ones given, as they are, in one transaction. For an item that was just
+	 * imported with its dependency file.
+	 *
+	 * @param user         who imported it
+	 * @param catalogId    the engine id or project id
+	 * @param catalogType  its engine type or project type
+	 * @param dependencies its dependencies
+	 * @throws IllegalStateException when they cannot be saved; nothing is changed
+	 */
+	public static void replaceAllDependencies(User user, String catalogId, String catalogType,
+			Collection<Dependency> dependencies) {
+		String ownerType = CatalogTypes.normalize(catalogType);
+		List<Dependency> kept = withoutOwnerAndRepeats(catalogId, dependencies);
+		List<Dependency> picked = kept.stream().filter(Dependency::isManual).toList();
+		checkUniqueNames(picked);
+		write(catalogId, "set the dependencies of", connection -> {
+			QueryExecutionUtility.executeUpdate(connection, "DELETE FROM " + TABLE + " WHERE CATALOGID=?",
+					ps -> ps.setString(1, catalogId));
+			insert(connection, user, catalogId, ownerType, kept);
+		});
+	}
+
+	/** Work run in a transaction on the security database */
+	@FunctionalInterface
+	private interface WriteWork {
+		void run(Connection connection) throws Exception;
+	}
+
+	private static void write(String catalogId, String action, WriteWork work) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
-				Set<String> existing = new HashSet<>(QueryExecutionUtility.queryList(connection,
-						"SELECT DEPENDENCYID FROM " + TABLE + " WHERE CATALOGID=?", ps -> ps.setString(1, catalogId),
-						rs -> rs.getString(1)));
-				List<Dependency> toAdd = new ArrayList<>();
-				for (Dependency dependency : withoutOwnerAndRepeats(catalogId, dependencies)) {
-					if (!existing.contains(dependency.id())) {
-						toAdd.add(dependency);
-					}
-				}
-				insert(connection, user, catalogId, ownerType, toAdd);
+				work.run(connection);
 				return null;
 			});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			classLogger.error("Failed to add dependencies to {}", catalogId, e);
+			classLogger.error("Failed to {} {}", action, catalogId, e);
 			throw new IllegalStateException("Unable to save the dependencies of " + catalogId, e);
 		}
 	}
 
-	/**
-	 * Removes one dependency from a catalog item.
-	 *
-	 * @param user         who removes it; they must be able to edit the item
-	 * @param catalogId    the engine id or project id
-	 * @param dependencyId the engine id or project id it no longer depends on
-	 * @throws IllegalAccessException when the user cannot edit the item
-	 */
-	public static void removeDependency(User user, String catalogId, String dependencyId)
-			throws IllegalAccessException {
-		String catalogType = resolveCatalogType(catalogId, null);
-		if (!userCanEdit(user, catalogId, catalogType)) {
-			throw new IllegalAccessException("User does not have permissions to remove dependencies");
-		}
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"DELETE FROM " + TABLE + " WHERE CATALOGID=? AND DEPENDENCYID=?", ps -> {
-						ps.setString(1, catalogId);
-						ps.setString(2, dependencyId);
-					});
-		} catch (Exception e) {
-			classLogger.error("Failed to remove the dependency of {} on {}", catalogId, dependencyId, e);
-			throw new IllegalStateException("Unable to remove the dependency on " + dependencyId, e);
+	private static void checkUniqueNames(Collection<Dependency> picked) {
+		Set<String> names = new HashSet<>();
+		for (Dependency dependency : picked) {
+			String name = dependency.name();
+			if (name != null && !names.add(name.toLowerCase(java.util.Locale.ROOT))) {
+				throw new IllegalArgumentException("Two dependencies are named '" + name + "'; each name must be unique");
+			}
 		}
 	}
 
-	/**
-	 * Removes the dependencies a deleted engine or project owned. The rows of other
-	 * items that depend on it are kept, so validating them shows it is gone.
-	 *
-	 * @param catalogId the engine id or project id
-	 */
-	public static void deleteDependenciesOwnedBy(String catalogId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, "DELETE FROM " + TABLE + " WHERE CATALOGID=?",
-					ps -> ps.setString(1, catalogId));
-		} catch (Exception e) {
-			classLogger.error("Failed to delete the dependencies of {}", catalogId, e);
+	private static List<Dependency> automaticOnly(String catalogId, Collection<CatalogDependencyRole> roles,
+			Collection<Dependency> dependencies) {
+		List<Dependency> derived = new ArrayList<>();
+		if (dependencies == null) {
+			return derived;
 		}
+		Set<String> seen = new HashSet<>();
+		for (Dependency dependency : dependencies) {
+			if (dependency.isManual() || !roles.contains(dependency.role())) {
+				throw new IllegalArgumentException(
+						"An automatic dependency must have one of the roles " + roles + ", not " + dependency.role());
+			}
+			if (dependency.id().equals(catalogId)) {
+				classLogger.warn("{} cannot depend on itself", catalogId);
+				continue;
+			}
+			if (seen.add(dependency.key())) {
+				derived.add(dependency);
+			}
+		}
+		return derived;
+	}
+
+	private static void deleteAutomatic(Connection connection, String catalogId, List<String> roleNames)
+			throws Exception {
+		String placeholders = String.join(", ", java.util.Collections.nCopies(roleNames.size(), "?"));
+		QueryExecutionUtility.executeUpdate(connection, "DELETE FROM " + TABLE
+				+ " WHERE CATALOGID=? AND IS_AUTOMATIC = ? AND ROLE IN (" + placeholders + ")", ps -> {
+					ps.setString(1, catalogId);
+					ps.setBoolean(2, true);
+					for (int i = 0; i < roleNames.size(); i++) {
+						ps.setString(3 + i, roleNames.get(i));
+					}
+				});
+	}
+
+	/** Deletes the rows from before IS_AUTOMATIC that the dependencies now stand for */
+	private static void deleteLegacy(Connection connection, String catalogId, List<Dependency> dependencies)
+			throws Exception {
+		Set<String> ids = new LinkedHashSet<>();
+		for (Dependency dependency : dependencies) {
+			ids.add(dependency.id());
+		}
+		deleteLegacyIds(connection, catalogId, ids);
+	}
+
+	private static void deleteLegacyIds(Connection connection, String catalogId, Collection<String> ids)
+			throws Exception {
+		if (ids.isEmpty()) {
+			return;
+		}
+		QueryExecutionUtility.executeBatch(connection,
+				"DELETE FROM " + TABLE + " WHERE CATALOGID=? AND DEPENDENCYID=? AND IS_AUTOMATIC IS NULL", ids,
+				(ps, id) -> {
+					ps.setString(1, catalogId);
+					ps.setString(2, id);
+				});
 	}
 
 	/*
@@ -409,7 +640,19 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 				classLogger.warn("Left out the exported dependency on {}: its type is not known", id);
 				continue;
 			}
-			dependencies.add(new Dependency(id, type));
+			// exports from before roles have no link fields: each is a picked dependency
+			boolean automatic = Boolean.TRUE.equals(row.get("is_automatic"));
+			Object role = row.get("role");
+			Object name = row.get("dependency_name");
+			Object description = row.get("dependency_description");
+			CatalogDependencyRole storedRole = CatalogDependencyRole.fromStored(role instanceof String r ? r : null);
+			if (automatic && storedRole.isAutomatic()) {
+				dependencies.add(Dependency.automatic(id, type, storedRole,
+						description instanceof String d ? d : null));
+			} else {
+				dependencies.add(Dependency.manual(id, type, name instanceof String n ? n : null,
+						description instanceof String d ? d : null));
+			}
 		}
 		return dependencies;
 	}
@@ -425,7 +668,7 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 				classLogger.warn("{} cannot depend on itself", catalogId);
 				continue;
 			}
-			if (seen.add(dependency.id())) {
+			if (seen.add(dependency.key())) {
 				kept.add(dependency);
 			}
 		}
@@ -442,8 +685,10 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 		String userType = token == null ? null : token.getProvider().getLabel();
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String query = "INSERT INTO " + TABLE
-				+ " (CATALOGID, CATALOGTYPE, DEPENDENCYID, DEPENDENCYTYPE, USERID, TYPE, DATEADDED) VALUES (?, ?, ?, ?, ?, ?, ?)";
+				+ " (CATALOGID, CATALOGTYPE, DEPENDENCYID, DEPENDENCYTYPE, USERID, TYPE, DATEADDED, IS_AUTOMATIC, ROLE, NAME, DESCRIPTION)"
+				+ " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		QueryExecutionUtility.executeBatch(connection, query, dependencies, (ps, dependency) -> {
+			boolean automatic = !dependency.isManual();
 			ps.setString(1, catalogId);
 			ps.setString(2, catalogType);
 			ps.setString(3, dependency.id());
@@ -451,6 +696,10 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 			ps.setString(5, userId);
 			ps.setString(6, userType);
 			ps.setTimestamp(7, timestamp);
+			ps.setBoolean(8, automatic);
+			ps.setString(9, automatic ? dependency.role().name() : CatalogDependencyRole.MANUAL.name());
+			ps.setString(10, automatic ? null : dependency.name());
+			ps.setString(11, dependency.description());
 		});
 	}
 
@@ -491,6 +740,8 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__DEPENDENCYID", "catalog_id"));
 		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__DEPENDENCYTYPE", "catalog_type"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CATALOGDEPENDENCIES__CATALOGID", "==", catalogId));
+		// a dependency with more than one role has a row for each; it is one dependency
+		qs.setDistinct(true);
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
@@ -505,6 +756,62 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 				collect((String) dependency.get("catalog_id"), true, visited, all, direct);
 			}
 		}
+	}
+
+	/**
+	 * The catalog items that depend on an engine or project, each with the link,
+	 * with the items that depend on those when asked. One row per link, so an
+	 * item that depends on it under two roles has two.
+	 *
+	 * @param dependencyId the engine id or project id
+	 * @param recursive    whether to add the items that depend on the dependents,
+	 *                     all the way up
+	 * @return each as dependency_id (what it depends on), catalog_id, catalog_type,
+	 *         catalog_name, catalog_subtype, is_automatic, role, dependency_name
+	 *         and dependency_description
+	 */
+	public static List<Map<String, Object>> getDependents(String dependencyId, boolean recursive) {
+		List<Map<String, Object>> all = new ArrayList<>();
+		Set<String> visited = new HashSet<>();
+		java.util.ArrayDeque<String> queue = new java.util.ArrayDeque<>();
+		queue.add(dependencyId);
+		while (!queue.isEmpty()) {
+			String id = queue.poll();
+			if (!visited.add(id)) {
+				continue;
+			}
+			for (Map<String, Object> dependent : getDirectDependents(id)) {
+				all.add(dependent);
+				if (recursive) {
+					queue.add((String) dependent.get("catalog_id"));
+				}
+			}
+		}
+		return all;
+	}
+
+	private static List<Map<String, Object>> getDirectDependents(String dependencyId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SimpleQueryFilter ownerIsProject = SimpleQueryFilter.makeColToValFilter("CATALOGDEPENDENCIES__CATALOGTYPE",
+				"==", new ArrayList<>(CatalogTypes.projectTypes()));
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__DEPENDENCYID", "dependency_id"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__CATALOGID", "catalog_id"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__CATALOGTYPE", "catalog_type"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__IS_AUTOMATIC", "is_automatic"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__ROLE", "role"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__NAME", "dependency_name"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__DESCRIPTION", "dependency_description"));
+		qs.addSelector(QueryIfSelector.makeQueryIfSelector(ownerIsProject,
+				new QueryColumnSelector("PROJECT__PROJECTNAME"), new QueryColumnSelector("ENGINE__ENGINENAME"),
+				"catalog_name"));
+		qs.addSelector(QueryIfSelector.makeQueryIfSelector(ownerIsProject, new QueryColumnSelector("PROJECT__TYPE"),
+				new QueryColumnSelector("ENGINE__ENGINESUBTYPE"), "catalog_subtype"));
+		qs.addRelation("CATALOGDEPENDENCIES__CATALOGID", "ENGINE__ENGINEID", "left.outer.join");
+		qs.addRelation("CATALOGDEPENDENCIES__CATALOGID", "PROJECT__PROJECTID", "left.outer.join");
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("CATALOGDEPENDENCIES__DEPENDENCYID", "==", dependencyId));
+		return normalizeLinks(QueryExecutionUtility.flushRsToMap(securityDb, qs));
 	}
 
 	/**
@@ -565,7 +872,24 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		addDetailSelectors(qs, catalogId);
-		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		return normalizeLinks(QueryExecutionUtility.flushRsToMap(securityDb, qs));
+	}
+
+	/**
+	 * Reads each row's link as its kind: a row from before IS_AUTOMATIC is a picked
+	 * one with the MANUAL role, and an automatic one never has a name
+	 */
+	private static List<Map<String, Object>> normalizeLinks(List<Map<String, Object>> rows) {
+		for (Map<String, Object> row : rows) {
+			boolean automatic = Boolean.TRUE.equals(row.get("is_automatic"));
+			row.put("is_automatic", automatic);
+			row.put("role", automatic ? CatalogDependencyRole.fromStored((String) row.get("role")).name()
+					: CatalogDependencyRole.MANUAL.name());
+			if (automatic) {
+				row.put("dependency_name", null);
+			}
+		}
+		return rows;
 	}
 
 	/**
@@ -577,6 +901,11 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__CATALOGID", "parent_id"));
 		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__DEPENDENCYID", "catalog_id"));
 		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__DEPENDENCYTYPE", "catalog_type"));
+		// the link itself: one row per role
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__IS_AUTOMATIC", "is_automatic"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__ROLE", "role"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__NAME", "dependency_name"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__DESCRIPTION", "dependency_description"));
 		qs.addSelector(QueryIfSelector.makeQueryIfSelector(isProjectDependency(),
 				new QueryColumnSelector("PROJECT__PROJECTNAME"), new QueryColumnSelector("ENGINE__ENGINENAME"),
 				"catalog_name"));
@@ -611,10 +940,11 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 	public static List<Map<String, Object>> getDependencyDetails(String catalogId, User user,
 			boolean subdependencies) {
 		if (!subdependencies) {
-			return getDependencyDetailsWithUserQuery(catalogId, user);
+			return normalizeLinks(getDependencyDetailsWithUserQuery(catalogId, user));
 		}
 		List<Map<String, Object>> all = new ArrayList<>();
-		collect(catalogId, true, new HashSet<>(), all, id -> getDependencyDetailsWithUserQuery(id, user));
+		collect(catalogId, true, new HashSet<>(), all,
+				id -> normalizeLinks(getDependencyDetailsWithUserQuery(id, user)));
 		calculateCanViewDependencies(all);
 		return all;
 	}

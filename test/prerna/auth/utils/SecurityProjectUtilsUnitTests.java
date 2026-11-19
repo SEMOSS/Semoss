@@ -1931,7 +1931,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	private static Map<String, Object> propagateToAModelWhoseAddsAreAdminOnly(User requester) {
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", requester);
 		UnitTestSecurityAuthUtils.createEngine("model1", "Model One", IEngine.CATALOG_TYPE.MODEL, requester);
-		SecurityCatalogDependencyUtils.setDependencies(requester, "testProjectId", "INSIGHTS",
+		SecurityCatalogDependencyUtils.setManualDependencies(requester, "testProjectId", "INSIGHTS",
 				List.of(new SecurityCatalogDependencyUtils.Dependency("model1", IEngine.CATALOG_TYPE.MODEL.name())));
 		boolean adminOnlyBefore = AbstractSecurityUtils.adminOnlyModelAddAccess;
 		AbstractSecurityUtils.adminOnlyModelAddAccess = true;

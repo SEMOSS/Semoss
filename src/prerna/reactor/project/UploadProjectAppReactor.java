@@ -399,9 +399,14 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					SecurityCatalogDependencyUtils.fromExported(exportedDependencies));
 			if (engineIdMap.containsKey("success")) {
 				Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
-				dependencies.addAll(SecurityCatalogDependencyUtils.resolveDependencies(successMap.keySet(), null));
+				for (SecurityCatalogDependencyUtils.Dependency found : SecurityCatalogDependencyUtils
+						.resolveDependencies(successMap.keySet(), null)) {
+					dependencies.add(SecurityCatalogDependencyUtils.Dependency.automatic(found.id(), found.type(),
+							prerna.auth.utils.CatalogDependencyRole.CODE_REFERENCE,
+							"Engine referenced in this app's files"));
+				}
 			}
-			SecurityCatalogDependencyUtils.setDependencies(user, projectId,
+			SecurityCatalogDependencyUtils.replaceAllDependencies(user, projectId,
 					SecurityCatalogDependencyUtils.resolveCatalogType(projectId, null), dependencies);
 		}
 

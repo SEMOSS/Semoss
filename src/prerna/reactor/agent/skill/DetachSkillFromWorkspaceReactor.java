@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.CatalogDependencyRole;
 import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -121,7 +122,8 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 
 		if (deleted > 0) {
 			try {
-				SecurityCatalogDependencyUtils.removeDependency(user, workspaceId, skillId);
+				SecurityCatalogDependencyUtils.removeAutomaticDependency(workspaceId, skillId,
+						CatalogDependencyRole.SKILL);
 			} catch (Exception depEx) {
 				classLogger.warn(
 						"Detached skill '{}' from workspace '{}' but failed to remove CATALOGDEPENDENCIES entry",

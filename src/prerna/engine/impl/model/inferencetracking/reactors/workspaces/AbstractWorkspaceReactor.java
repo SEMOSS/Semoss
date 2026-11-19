@@ -38,12 +38,14 @@ import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.auth.utils.CatalogDependencyRole;
 import prerna.auth.utils.CatalogTypes;
 import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityCatalogDependencyUtils.Dependency;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
@@ -600,6 +602,51 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
+	 * Saves the automatic dependencies of an agent: its tools, knowledge and
+	 * skills, and its model and subagents when the request gives them. A model or
+	 * subagent list that is not given keeps the dependencies it has.
+	 *
+	 * @param user              who saved the agent
+	 * @param workspaceId       the agent's id
+	 * @param toolsAndSkills    the tool, knowledge and skill dependencies read by
+	 *                          {@link #validateWorkspaceInputs}
+	 * @param modelProvided     whether the request gives the model
+	 * @param modelId           the agent's model, or blank for none
+	 * @param subagentsProvided whether the request gives the subagents
+	 * @param subagents         the normalized subagents, each with a workspaceId
+	 */
+	protected static void syncWorkspaceDependencies(User user, String workspaceId, List<Dependency> toolsAndSkills,
+			boolean modelProvided, String modelId, boolean subagentsProvided, List<Map<String, Object>> subagents) {
+		List<CatalogDependencyRole> roles = new ArrayList<>(
+				List.of(CatalogDependencyRole.TOOLBOX, CatalogDependencyRole.KNOWLEDGE, CatalogDependencyRole.SKILL));
+		List<Dependency> dependencies = new ArrayList<>(toolsAndSkills);
+		if (modelProvided) {
+			roles.add(CatalogDependencyRole.AGENT_MODEL);
+			if (modelId != null && !modelId.isBlank()) {
+				String modelType = CatalogTypes.resolve(modelId.trim());
+				if (modelType != null) {
+					dependencies.add(Dependency.automatic(modelId.trim(), modelType, CatalogDependencyRole.AGENT_MODEL,
+							"Model this agent runs on"));
+				}
+			}
+		}
+		if (subagentsProvided) {
+			roles.add(CatalogDependencyRole.SUBAGENT);
+			if (subagents != null) {
+				for (Map<String, Object> subagent : subagents) {
+					Object target = subagent.get("workspaceId");
+					if (target instanceof String targetId && !targetId.isBlank()) {
+						dependencies.add(Dependency.automatic(targetId, IProject.PROJECT_TYPE.WORKSPACE.name(),
+								CatalogDependencyRole.SUBAGENT, "Subagent this agent can delegate to"));
+					}
+				}
+			}
+		}
+		SecurityCatalogDependencyUtils.syncAutomaticDependencies(user, workspaceId,
+				IProject.PROJECT_TYPE.WORKSPACE.name(), roles, dependencies);
+	}
+
+	/**
 	 * Reads the MCP / prompt / skill nouns from the request, validates them, and
 	 * populates the caller-owned accumulators in place. Throws
 	 * {@link IllegalArgumentException} with a human-readable message on validation
@@ -643,7 +690,12 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			} else {
 				engines.add(id);
 			}
-			dependencyList.add(new Dependency(id, storedType));
+			// a vector database is knowledge the agent searches; anything else a tool
+			dependencyList.add(IEngine.CATALOG_TYPE.VECTOR.name().equals(storedType)
+					? Dependency.automatic(id, storedType, CatalogDependencyRole.KNOWLEDGE,
+							"Knowledge base this agent searches")
+					: Dependency.automatic(id, storedType, CatalogDependencyRole.TOOLBOX,
+							"Tool this agent can call"));
 		}
 
 		for (String engine : engines) {
@@ -685,7 +737,8 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 				throw new IllegalArgumentException("User lacks permission to one of the given skills: " + skillId);
 			}
 			workspaceResources.add(makeSkillResourceEntryMap(workspaceId, skillId));
-			dependencyList.add(new Dependency(skillId, IProject.PROJECT_TYPE.SKILL.name()));
+			dependencyList.add(Dependency.automatic(skillId, IProject.PROJECT_TYPE.SKILL.name(),
+					CatalogDependencyRole.SKILL, "Skill attached to this agent"));
 		}
 	}
 

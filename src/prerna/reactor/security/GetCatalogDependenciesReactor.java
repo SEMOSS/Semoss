@@ -44,6 +44,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetCatalogDependenciesReactor extends AbstractReactor {
 
+	/** The fields of a link, kept on each entry of links and not on the items */
+	private static final String[] LINK_KEYS = { "is_automatic", "role", "dependency_name",
+			"dependency_description" };
+
 	public GetCatalogDependenciesReactor() {
 		this.keysToGet = new String[] { CatalogDependencyKeys.CATALOG_ID, CatalogDependencyKeys.CATALOG_TYPE };
 		this.keyRequired = new int[] { 1, 0 };
@@ -113,9 +117,13 @@ public class GetCatalogDependenciesReactor extends AbstractReactor {
 			String engineId = entry.getKey();
 			Map<String, Object> originalEngine = entry.getValue();
 
-			// Create engine object with all metadata except parent_id
+			// Create engine object with all metadata except parent_id and the link,
+			// which belongs to an edge and is in links
 			Map<String, Object> engine = new HashMap<>(originalEngine);
 			engine.remove("parent_id");
+			for (String linkKey : LINK_KEYS) {
+				engine.remove(linkKey);
+			}
 
 			// Derive permission_name from the highest permission (lowest integer id) the
 			// user holds, considering both direct and group permissions
@@ -165,10 +173,31 @@ public class GetCatalogDependenciesReactor extends AbstractReactor {
 			}
 		}
 
+		// Every link between reachable items, one per role: the root's own
+		// dependencies are the links whose parent_id is the root
+		List<Map<String, Object>> links = new ArrayList<>();
+		for (Map<String, Object> dep : dependencies) {
+			String parentId = (String) dep.get("parent_id");
+			String childId = (String) dep.get("catalog_id");
+			boolean parentReachable = parentId != null
+					&& (parentId.equals(rootProjectId) || reachableEngines.containsKey(parentId));
+			if (!parentReachable || !reachableEngines.containsKey(childId)) {
+				continue;
+			}
+			Map<String, Object> link = new HashMap<>();
+			link.put("parent_id", parentId);
+			link.put("catalog_id", childId);
+			for (String linkKey : LINK_KEYS) {
+				link.put(linkKey, dep.get(linkKey));
+			}
+			links.add(link);
+		}
+
 		// Build result structure
 		Map<String, Object> result = new HashMap<>();
 		result.put("dependencies", engines);
 		result.put("dependencyIds", filteredRootDeps);
+		result.put("links", links);
 
 		return result;
 	}
@@ -215,7 +244,8 @@ public class GetCatalogDependenciesReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description("Get the engines and projects an engine or project depends on, all the way down, each once with "
-						+ "its direct dependencies");
+						+ "its direct dependencies, and links: each link between them as parent_id, catalog_id, "
+						+ "is_automatic, role, dependency_name and dependency_description, one per role");
 	}
 
 }

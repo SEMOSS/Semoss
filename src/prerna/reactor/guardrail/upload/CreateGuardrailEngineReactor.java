@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.guardrail.upload;
 
+import prerna.auth.utils.CatalogDependencyDerivation;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
@@ -147,6 +148,8 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 			UploadUtilities.addEngineToDIHelper(guardrailId, guardrailName, guardrail, smssFile);
 			SecurityEngineUtils.addEngine(guardrailId, global, user);
 			SecurityEngineUtils.setDefaultEngineMarkdown(guardrailId, guardrail.getDefaultMarkdown());
+			CatalogDependencyDerivation.syncSmss(user, guardrailId, IEngine.CATALOG_TYPE.GUARDRAIL.name(),
+					guardrailDetails);
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {

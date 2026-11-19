@@ -182,14 +182,13 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			return getError(e.getMessage());
 		}
 
-		SecurityCatalogDependencyUtils.setDependencies(user, workspaceId, IProject.PROJECT_TYPE.WORKSPACE.name(),
-				dependencyList);
-
 		// Default/fallback model engine for the agent. Presence-detected so omitting
 		// the key leaves any existing CONFIG_JSON.model_id untouched; passing it blank
 		// clears it (falling back to room MODEL_ID / options at run time).
 		boolean modelIdProvided = getGenRowStruct(MODEL_ID) != null;
 		String workspaceModelId = modelIdProvided ? this.keyValue.get(MODEL_ID) : null;
+		syncWorkspaceDependencies(user, workspaceId, dependencyList, modelIdProvided, workspaceModelId,
+				subagentsProvided, subagentUpdates);
 		boolean useDefaultToolsProvided = getGenRowStruct(USE_DEFAULT_AGENT_TOOLS) != null;
 		Boolean useDefaultTools = null;
 		if (useDefaultToolsProvided) {

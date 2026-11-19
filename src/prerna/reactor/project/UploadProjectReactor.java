@@ -296,7 +296,7 @@ public class UploadProjectReactor extends AbstractReactor {
 					// TypeToken<List<String>>() {}.getType());
 					if (projectDependencies != null && !projectDependencies.isEmpty()) {
 						// reads exports from this release and older ones, with each type
-						SecurityCatalogDependencyUtils.setDependencies(user, projectId,
+						SecurityCatalogDependencyUtils.replaceAllDependencies(user, projectId,
 								SecurityCatalogDependencyUtils.resolveCatalogType(projectId, null),
 								SecurityCatalogDependencyUtils.fromExported(projectDependencies));
 					}

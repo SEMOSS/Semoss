@@ -174,10 +174,21 @@ public final class AgentProjectArchiveUtils {
 				boolean current = dependency.has("catalog_id");
 				row.put("catalog_id", string(dependency, current ? "catalog_id" : "engine_id", true));
 				row.put("catalog_type", string(dependency, current ? "catalog_type" : "engine_type", true));
+				// the link, from exports that have it
+				for (String key : new String[] { "role", "dependency_name", "dependency_description" }) {
+					JsonElement value = dependency.get(key);
+					if (value != null && !value.isJsonNull()) {
+						row.put(key, value.getAsString());
+					}
+				}
+				JsonElement automatic = dependency.get("is_automatic");
+				if (automatic != null && !automatic.isJsonNull()) {
+					row.put("is_automatic", automatic.getAsBoolean());
+				}
 				rows.add(row);
 			}
 		}
-		SecurityCatalogDependencyUtils.setDependencies(user, projectId, IProject.PROJECT_TYPE.WORKSPACE.name(),
+		SecurityCatalogDependencyUtils.replaceAllDependencies(user, projectId, IProject.PROJECT_TYPE.WORKSPACE.name(),
 				SecurityCatalogDependencyUtils.fromExported(rows));
 		Files.delete(file.toPath());
 	}

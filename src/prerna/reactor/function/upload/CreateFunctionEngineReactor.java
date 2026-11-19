@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.function.upload;
 
+import prerna.auth.utils.CatalogDependencyDerivation;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -146,6 +147,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 			function.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(functionId, functionName, function, smssFile);
 			SecurityEngineUtils.addEngine(functionId, false, user);
+			CatalogDependencyDerivation.syncSmss(user, functionId, IEngine.CATALOG_TYPE.FUNCTION.name(), functionDetails);
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
