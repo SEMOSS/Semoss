@@ -142,7 +142,7 @@ class CreateModelEngineTokenLimitsUnitTests {
 			if (failInitialization) {
 				IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, reactor::execute);
 				assertSame(initializationFailure, failure.getCause());
-				engines.verify(() -> SecurityEngineUtils.deleteEngine(engineId.get()));
+				engines.verify(() -> SecurityEngineUtils.deleteEngine(any(), anyString()), never());
 				uploads.verify(() -> UploadUtilities.cleanUpCreateNewError(any(), eq(engineId.get()), any(), isNull(), any()));
 				uploads.verify(() -> UploadUtilities.getEngineReturnData(any(), anyString()), never());
 			} else {
@@ -150,7 +150,7 @@ class CreateModelEngineTokenLimitsUnitTests {
 				assertEquals(Map.of("engine_id", engineId.get()), result.getValue());
 				assertTrue(Files.isRegularFile(directory.resolve(engineId.get() + ".smss")));
 				engines.verify(() -> SecurityEngineUtils.addEngine(engineId.get(), false, user));
-				engines.verify(() -> SecurityEngineUtils.deleteEngine(anyString()), never());
+				engines.verify(() -> SecurityEngineUtils.deleteEngine(any(), anyString()), never());
 			}
 			assertEquals(1, models.constructed().size());
 			verify(models.constructed().get(0)).open(anyString());

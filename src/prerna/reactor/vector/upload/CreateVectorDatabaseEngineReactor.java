@@ -37,7 +37,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -136,7 +135,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			if (embeddingModel == null) {
 				throw new IllegalArgumentException("EMBEDDER_ENGINE_ID " + embeddingModel + " could not be found");
 			}
-			String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
+			String embeddingModelAlias = embeddingModel.getEngineName();
 			vectorDbDetails.put(Constants.EMBEDDER_ENGINE_NAME, embeddingModelAlias);
 		}
 
@@ -203,10 +202,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			SecurityEngineUtils.addEngine(vectorDbId, global, user);
 			CatalogDependencyDerivation.syncSmss(user, vectorDbId, IEngine.CATALOG_TYPE.VECTOR.name(), vectorDbDetails);
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(vectorDbId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, vectorDbId);
 
 			ClusterUtil.pushEngine(vectorDbId);
 			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.VECTOR_CREATE, AuditTargetType.VECTOR,

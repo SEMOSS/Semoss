@@ -74,7 +74,7 @@ class EngineAccessLevelsUnitTests {
 	}
 
 	@Test
-	void theLevelForProjectCodeIsOneLevelThatIsNoLowerThanTheUsers() {
+	void theLevelForProjectCodeIsOneLevelAboveTheLevelOfEveryCall() {
 		for (Class<?> type : PROXIED) {
 			for (Method method : type.getDeclaredMethods()) {
 				EngineAccess access = method.getAnnotation(EngineAccess.class);
@@ -86,23 +86,34 @@ class EngineAccessLevelsUnitTests {
 				assertTrue(access.projectCode().length <= 1, name);
 				if (access.projectCode().length == 1) {
 					assertTrue(access.projectCode()[0].getId() < access.value().getId(),
-							name + " gives project code a level that is not above the user's");
+							name + " gives project code a level that is not above the level of every call");
 				}
 			}
 		}
 	}
 
 	@ParameterizedTest
-	@CsvSource({ "prerna.engine.api.IEngine,getSmssProp,READ_ONLY,OWNER",
-			"prerna.engine.api.IEngine,getOrigSmssProp,EDIT,OWNER",
-			"prerna.engine.api.IEngine,getSmssFilePath,READ_ONLY,OWNER",
-			"prerna.engine.api.IEngine,setSmssProp,EDIT,OWNER", "prerna.engine.api.IEngine,open,EDIT,OWNER",
+	@CsvSource({ "prerna.engine.api.IEngine,getSmssProp,OWNER,OWNER",
+			"prerna.engine.api.IEngine,getOrigSmssProp,OWNER,OWNER",
+			"prerna.engine.api.IEngine,getSmssFilePath,OWNER,OWNER",
+			"prerna.engine.api.IEngine,setSmssProp,OWNER,OWNER", "prerna.engine.api.IEngine,open,OWNER,OWNER",
 			"prerna.engine.api.IEngine,delete,OWNER,OWNER", "prerna.engine.api.IEngine,setEngineId,OWNER,OWNER",
 			"prerna.engine.api.IEngine,getEngineId,READ_ONLY,READ_ONLY",
-			"prerna.engine.api.IExplorable,getProperty,READ_ONLY,OWNER",
-			"prerna.engine.api.IExplorable,addProperty,EDIT,OWNER",
+			"prerna.engine.api.IEngine,reload,EDIT,OWNER", "prerna.engine.api.IEngine,updateSetting,EDIT,OWNER",
+			"prerna.engine.api.IEngine,getCatalogSubType,READ_ONLY,READ_ONLY",
+			"prerna.engine.api.IEngine,getPipelineFile,READ_ONLY,READ_ONLY",
+			"prerna.engine.api.IModelEngine,getModelName,READ_ONLY,READ_ONLY",
+			"prerna.engine.api.IModelEngine,getMaxToolNameLength,READ_ONLY,READ_ONLY",
+			"prerna.engine.api.IVectorDatabaseEngine,getEmbedderEngineId,READ_ONLY,READ_ONLY",
+			"prerna.engine.api.IStorageEngine,getBucketName,READ_ONLY,READ_ONLY",
+			"prerna.engine.api.IDatabaseEngine,isBigData,READ_ONLY,READ_ONLY",
+			"prerna.engine.api.IFunctionEngine,getFunctionType,READ_ONLY,READ_ONLY",
+			"prerna.engine.api.IGuardrailReactorFunctionEngine,getJudgeModelEngineId,READ_ONLY,READ_ONLY",
+			"prerna.project.api.IProject,getSandboxSecretSettings,READ_ONLY,OWNER",
+			"prerna.engine.api.IExplorable,getProperty,OWNER,OWNER",
+			"prerna.engine.api.IExplorable,addProperty,OWNER,OWNER",
 			"prerna.engine.api.IExplorable,commitOWL,EDIT,EDIT",
-			"prerna.engine.api.IExplorable,setOwlFilePath,EDIT,OWNER",
+			"prerna.engine.api.IExplorable,setOwlFilePath,OWNER,OWNER",
 			"prerna.engine.api.IExplorable,setBaseDataEngine,EDIT,OWNER",
 			"prerna.project.api.IProject,setInsightDatabase,EDIT,OWNER",
 			"prerna.engine.api.IVenvEngine,pullRequirementsFile,EDIT,EDIT",
@@ -113,8 +124,8 @@ class EngineAccessLevelsUnitTests {
 			"prerna.engine.api.IRDBMSEngine,getConnection,READ_ONLY,EDIT",
 			"prerna.engine.api.IRDBMSEngine,getPreparedStatement,READ_ONLY,EDIT",
 			"prerna.engine.api.IRDBMSEngine,getQueryUtil,READ_ONLY,EDIT",
-			"prerna.engine.api.IRDBMSEngine,getDataSource,READ_ONLY,OWNER",
-			"prerna.engine.api.IRDBMSEngine,getConnectionUrl,READ_ONLY,OWNER",
+			"prerna.engine.api.IRDBMSEngine,getDataSource,OWNER,OWNER",
+			"prerna.engine.api.IRDBMSEngine,getConnectionUrl,OWNER,OWNER",
 			"prerna.engine.api.IRDBMSEngine,bulkInsertPreparedStatement,EDIT,EDIT",
 			"prerna.engine.api.IModelEngine,ask,READ_ONLY,READ_ONLY",
 			"prerna.engine.api.IModelEngine,embeddings,READ_ONLY,READ_ONLY",
@@ -133,13 +144,13 @@ class EngineAccessLevelsUnitTests {
 			"prerna.project.api.IProject,getProjectProperties,READ_ONLY,EDIT",
 			"prerna.project.api.IProject,getProjectPyTranslator,READ_ONLY,EDIT",
 			"prerna.project.api.IProject,setProjectId,OWNER,OWNER" })
-	void theMethodsThatMatterMostKeepTheirLevels(String type, String name, AccessPermissionEnum user,
+	void theMethodsThatMatterMostKeepTheirLevels(String type, String name, AccessPermissionEnum everyCall,
 			AccessPermissionEnum projectCode) throws ClassNotFoundException {
 		int found = 0;
 		for (Method method : Class.forName(type).getDeclaredMethods()) {
 			if (method.getName().equals(name)) {
 				EngineAccess access = method.getAnnotation(EngineAccess.class);
-				assertEquals(user, access.value(), name);
+				assertEquals(everyCall, access.value(), name);
 				assertEquals(projectCode, access.projectCode().length == 0 ? access.value() : access.projectCode()[0],
 						name);
 				found++;

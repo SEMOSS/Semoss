@@ -372,15 +372,20 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * Engines the catalog cannot speak to are reported rather than touched, and an
 	 * engine whose values would not change is never written, so running this over
 	 * the full catalog is cheap and repeatable.
+	 * <p>
+	 * Only an admin syncs it, in an admin operation: an admin reactor or endpoint.
 	 *
+	 * @param user      the signed in admin
 	 * @param engineIds engines to sync, or null/empty for all model engines
 	 * @param force     overwrite stored values instead of only filling gaps
 	 * @param dryRun    report what would change without writing
 	 * @return one result map per engine holding engineId, modelId, catalogModelKey,
 	 *         status, and the list of fields that changed
+	 * @throws IllegalArgumentException when the call is not an admin's
 	 */
-	public static List<Map<String, Object>> syncModelMetadataFromCatalog(Collection<String> engineIds, boolean force,
-			boolean dryRun) {
+	public static List<Map<String, Object>> syncModelMetadataFromCatalog(User user, Collection<String> engineIds,
+			boolean force, boolean dryRun) {
+		ResourceWriteAccess.requireAdmin(user, "sync model metadata from the catalog");
 		List<String> targets = new ArrayList<>();
 		if (engineIds == null || engineIds.isEmpty()) {
 			targets.addAll(SecurityEngineUtils.getAllEngineIds(List.of(IEngine.CATALOG_TYPE.MODEL.toString())));
@@ -698,21 +703,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		capabilities.put("benchmarks", emptyListIfNull(modelMetadata.get("benchmarks")));
 		capabilities.put("pricing", emptyListIfNull(modelMetadata.get("pricing")));
 		return capabilities;
-	}
-
-	public static void deleteModelMetadata(String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, "DELETE FROM MODELMETADATA WHERE ENGINEID=?",
-					ps -> ps.setString(1, engineId));
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to delete model metadata for engine {}", engineId, e);
-			throw new IllegalArgumentException("Failed to delete model metadata", e);
-		} finally {
-			ModelUsageCost.clearCache(engineId);
-		}
 	}
 
 	/**

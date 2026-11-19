@@ -142,7 +142,7 @@ public class ExportProjectReactor extends AbstractReactor {
 				if (ClusterUtil.IS_CLUSTER && project.getProjectType().holdsInsights()) {
 					logger.info("Creating insight database ...");
 					try {
-						insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, outputDir);
+						insightsFile = SecurityProjectUtils.createInsightsDatabase(user, projectId, outputDir);
 					} catch (Exception e) {
 						classLogger.error("Failed to generate the insights database for project {} during export",
 								projectId, e);

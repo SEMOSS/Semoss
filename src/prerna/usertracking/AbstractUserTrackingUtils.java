@@ -46,7 +46,8 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 	 * Persists a login session for the user, keyed by the access token id for the
 	 * given auth provider.
 	 *
-	 * @param sessionId the HTTP session id
+	 * @param sessionId the session's hash
+	 *                  ({@link prerna.security.SessionIds#hash(String)})
 	 * @param utd       the tracking details (IP and geolocation) for the session
 	 * @param user      the user logging in
 	 * @param ap        the auth provider the login was performed against
@@ -63,7 +64,8 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 	 * Inserts a user-tracking session row with the resolved user id, type, and
 	 * geolocation details.
 	 *
-	 * @param sessionId the HTTP session id
+	 * @param sessionId the session's hash
+	 *                  ({@link prerna.security.SessionIds#hash(String)})
 	 * @param utd       the tracking details (IP and geolocation) for the session
 	 * @param userId    the access token id
 	 * @param type      the auth provider
@@ -98,7 +100,8 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 	/**
 	 * Marks the session's tracking row as ended by stamping its end time.
 	 *
-	 * @param sessionId the HTTP session id that ended
+	 * @param sessionId the hash of the session that ended
+	 *                  ({@link prerna.security.SessionIds#hash(String)})
 	 */
 	@Override
 	public void registerLogout(String sessionId) {

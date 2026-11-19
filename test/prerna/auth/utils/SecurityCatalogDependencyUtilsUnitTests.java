@@ -371,7 +371,7 @@ public class SecurityCatalogDependencyUtilsUnitTests extends AbstractSecurityUti
 		SecurityCatalogDependencyUtils.setManualDependencies(owner, "skill1", "SKILL",
 				List.of(new Dependency("function1", "FUNCTION")));
 
-		SecurityEngineUtils.deleteEngine("function1");
+		SecurityEngineUtils.deleteEngine(owner, "function1");
 
 		assertTrue(SecurityCatalogDependencyUtils.getDependencies("function1").isEmpty());
 		// the skill still lists it, so validating the skill shows it is gone

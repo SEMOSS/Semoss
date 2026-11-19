@@ -220,7 +220,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 				String insightFolder = in.getInsightFolder();
 				new File(Utility.normalizePath(insightFolder)).mkdirs();
 				if (in.getUser() != null) {
-					in.getUser().getUserSymlinkHelper().symlinkFolder(insightFolder);
+					in.getUser().getSandbox().grantFolder(insightFolder);
 				}
 				newFileLoc = insightFolder + "/" + Utility.getRandomString(6) + ".json";
 			}
@@ -732,10 +732,6 @@ public class PandasFrame extends AbstractTableDataFrame {
 		if (!queryCache.containsKey(query) || !cache) {
 			// run the query
 			Object output = pyTranslator.runDirectPy(query);
-
-			if (output instanceof String) {
-				output = PandasTimestampDeserializer.MAPPER.convertValue(output, Object.class);
-			}
 
 			// need to see if this is a parquet format as well
 			String format = "grid";

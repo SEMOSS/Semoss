@@ -27,21 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Map;
-
-import org.apache.commons.text.StringEscapeUtils;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.impl.SmssUtilities;
-import prerna.io.connector.secrets.ISecrets;
-import prerna.io.connector.secrets.SecretsFactory;
-import prerna.project.api.IProject;
+import prerna.engine.impl.SmssEditCopy;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -64,38 +56,14 @@ public class GetProjectSMSSReactor extends AbstractReactor {
 					+ " does not exist or user does not have permissions to update the smss of the project. User must be the owner to perform this function.");
 		}
 
-		IProject project = Utility.getProject(projectId);
-		String currentSmssFileLocation = project.getSmssFilePath();
-		File currentSmssFile = new File(currentSmssFileLocation);
+		return new NounMetadata(SmssEditCopy.read(Utility.getProject(projectId)).toMap(), PixelDataType.MAP);
+	}
 
-		if (!currentSmssFile.exists() || !currentSmssFile.isFile()) {
-			throw new IllegalArgumentException("Could not find smss file for project " + projectId
-					+ ". Please reach out to an administrator for assistance");
-		}
-
-		String currentSmssContent = null;
-		try {
-			currentSmssContent = new String(Files.readAllBytes(Paths.get(currentSmssFile.toURI())));
-		} catch (IOException e) {
-			throw new IllegalArgumentException(
-					"An error occurred reading the current project smss details. Detailed message = " + e.getMessage());
-		}
-
-		ISecrets secretStore = SecretsFactory.getSecretConnector();
-		if (secretStore != null) {
-			Map<String, Object> engineSecrets = secretStore.getEngineSecrets(project.getCatalogType(),
-					project.getEngineId(), project.getEngineName());
-			if (engineSecrets != null && !engineSecrets.isEmpty()) {
-				currentSmssContent += "#Comments below this section will be lost\n#These values are stored in a secret store\n";
-
-				for (String key : engineSecrets.keySet()) {
-					currentSmssContent += "\n" + key + "\t"
-							+ StringEscapeUtils.escapeJava(String.valueOf(engineSecrets.get(key)));
-				}
-			}
-		}
-
-		String concealedSmssContent = SmssUtilities.concealSmssSensitiveInfo(currentSmssContent);
-		return new NounMetadata(concealedSmssContent, PixelDataType.CONST_STRING);
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the smss of a project for its owner to edit, with every secret masked, and the hash a save of it hands back")
+				.key(ReactorKeysEnum.PROJECT, "The project id")
+				.output(Map.class, "The masked smss text (smss) and the hash of the smss as it is now (smssHash)");
 	}
 }

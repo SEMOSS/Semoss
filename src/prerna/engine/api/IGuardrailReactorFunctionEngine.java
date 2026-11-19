@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.Properties;
+
 import prerna.auth.AccessPermissionEnum;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.reactor.IReactor;
@@ -39,6 +41,9 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	// this is what the FE sends for the type of storage we are creating
 	// as a result, cannot be a key in the smss file
 	String GUARDRAIL_TYPE = "GUARDRAIL_TYPE";
+
+	/** The setting that names a guardrail's judge model */
+	String MODEL_ENGINE_ID_KEY = "MODEL_ENGINE_ID";
 
 	/**
 	 * 
@@ -57,6 +62,20 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default String getDefaultMarkdown() {
 		return null;
+	}
+
+	/**
+	 * The id of the model a guardrail asks as its judge, its
+	 * {@link #MODEL_ENGINE_ID_KEY} setting, such as a prompt or Jev policy
+	 * guardrail's model.
+	 *
+	 * @return the judge model's id, or null when the guardrail has no judge
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getJudgeModelEngineId() {
+		Properties smssProp = getSmssProp();
+		return smssProp == null ? null : smssProp.getProperty(MODEL_ENGINE_ID_KEY);
 	}
 
 	/**

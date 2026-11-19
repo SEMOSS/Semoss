@@ -694,6 +694,9 @@ public class Room implements Serializable {
 				ToolExecutionContext context = findToolExecutionContext(
 						resolveToolContinuationMessageId(toolCallMessageId));
 				InputMessage original = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
+				if (context.toolResponse.getGoogleInteractions() != null) {
+					return 0;
+				}
 				if (original == null) {
 					return 0;
 				}
@@ -1197,6 +1200,16 @@ public class Room implements Serializable {
 	private ResponseMessage buildAssistantResponseFromModelResponse(AskModelEngineResponse llmResponse,
 			IModelEngine modelEngine, AbstractMessage parentMessage) {
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+		if (!modelEngine.keepsConversationHistory()) {
+			response.setGoogleInteractions(null);
+		}
+		boolean compatibilityReplay = parentMessage instanceof InputMessage input
+				&& Boolean.TRUE.equals(input.getParamMap().get("google_interactions_replay_available"));
+		if (!compatibilityReplay && llmResponse.getMetadata() != null) {
+			Map<String, Object> publicMetadata = new HashMap<>(llmResponse.getMetadata());
+			publicMetadata.remove("google_interactions");
+			llmResponse.setMetadata(publicMetadata);
+		}
 		String llmMessageId = llmResponse.getMessageId();
 		if (llmMessageId != null && !llmMessageId.isEmpty()) {
 			response.setMessageId(llmMessageId);

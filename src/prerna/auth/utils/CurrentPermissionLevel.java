@@ -285,6 +285,33 @@ final class CurrentPermissionLevel {
 		return qs;
 	}
 
+	/**
+	 * Whether anyone has been given access to the target: a row of any level in its
+	 * user or team permission table, ended or not. A project, an engine or an
+	 * insight that was just created has none until its creator is made its owner.
+	 *
+	 * @param target the project, engine or insight
+	 * @return whether the target has any permission row
+	 * @throws IllegalArgumentException when the rows cannot be read
+	 */
+	static boolean hasAnyGrant(PermissionTargetResource target) {
+		List<String> tables = switch (target.getResourceType()) {
+		case PROJECT -> List.of("PROJECTPERMISSION", "GROUPPROJECTPERMISSION");
+		case ENGINE -> List.of("ENGINEPERMISSION", "GROUPENGINEPERMISSION");
+		case INSIGHT -> List.of("USERINSIGHTPERMISSION", "GROUPINSIGHTPERMISSION");
+		default -> List.of();
+		};
+		for (String table : tables) {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector(table + "__PERMISSION"));
+			filterToTarget(qs, table, target);
+			if (hasRow(qs, target)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private static boolean hasRow(SelectQueryStruct qs, PermissionTargetResource target) {
 		qs.setLimit(1);
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()

@@ -30,6 +30,7 @@ package prerna.engine.api;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
@@ -38,6 +39,7 @@ import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.om.Insight;
+import prerna.util.Constants;
 
 public interface IVectorDatabaseEngine extends IEngine {
 
@@ -54,6 +56,28 @@ public interface IVectorDatabaseEngine extends IEngine {
 	@IgnoreEngineLogging
 	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	VectorDatabaseTypeEnum getVectorDatabaseType();
+
+	/**
+	 * The id of the model the vector database makes its embeddings with, its
+	 * {@link Constants#EMBEDDER_ENGINE_ID} setting or the older ENCODER_ID.
+	 *
+	 * @return the embedding model's id, or null when the vector database names none
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getEmbedderEngineId() {
+		Properties smssProp = getSmssProp();
+		if (smssProp == null) {
+			return null;
+		}
+		for (String key : new String[] { Constants.EMBEDDER_ENGINE_ID, "ENCODER_ID" }) {
+			String embedderEngineId = smssProp.getProperty(key);
+			if (embedderEngineId != null && !(embedderEngineId = embedderEngineId.trim()).isEmpty()) {
+				return embedderEngineId;
+			}
+		}
+		return null;
+	}
 
 	/**
 	 * This method is used to add documents to a vector database. The engine itself

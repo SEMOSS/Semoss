@@ -44,7 +44,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.reflect.TypeToken;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -157,10 +156,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 			SecurityEngineUtils.addEngine(functionId, false, user);
 			CatalogDependencyDerivation.syncSmss(user, functionId, IEngine.CATALOG_TYPE.FUNCTION.name(), functionDetails);
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, functionId);
 
 			ClusterUtil.pushEngine(functionId);
 			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.FUNCTION_CREATE, AuditTargetType.FUNCTION,

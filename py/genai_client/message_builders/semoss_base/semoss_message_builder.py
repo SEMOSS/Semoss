@@ -53,6 +53,7 @@ class SEMOSSMessageBuilder:
                 # loop through the parts
                 # and for each one add in the correct message type
                 semoss_message = SEMOSSMessage(
+                    google_interactions=message.get("google_interactions"),
                     type=message_type,
                     param_map=updated_param_map,
                     tokens=message.get("tokens", 0),
@@ -144,6 +145,7 @@ class SEMOSSMessageBuilder:
                     )
 
             semoss_message = SEMOSSMessage(
+                google_interactions=message.get("google_interactions"),
                 type=SEMOSSMessageType(message_type),
                 content=content,
                 param_map=updated_param_map,

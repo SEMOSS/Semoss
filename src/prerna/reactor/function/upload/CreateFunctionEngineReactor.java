@@ -30,7 +30,6 @@ package prerna.reactor.function.upload;
 import prerna.auth.utils.CatalogDependencyDerivation;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -39,7 +38,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -149,10 +147,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 			SecurityEngineUtils.addEngine(functionId, false, user);
 			CatalogDependencyDerivation.syncSmss(user, functionId, IEngine.CATALOG_TYPE.FUNCTION.name(), functionDetails);
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, functionId);
 
 			// Initialize git and commit initial engine files
 			try {

@@ -59,6 +59,7 @@ import prerna.auth.access.ModelUsageLimitRule;
 import prerna.auth.access.ModelUsageLimitRule.Counts;
 import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.auth.access.ModelUsageLimitRule.Window;
+import prerna.auth.access.PermissionSubject;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -376,8 +377,13 @@ public final class SecurityModelUsageLimitUtils {
 						rs.getString("COUNTS"), rs.getString("ID"), rs.getTimestamp("DATEMODIFIED") };
 			});
 			for (Object[] row : rows) {
-				ModelUsageLimitKey key = new ModelUsageLimitKey(Type.valueOf((String) row[1]), (String) row[0],
-						(String) row[2], (String) row[3]);
+				Type type = typeOf((String) row[1]);
+				if (type == null) {
+					classLogger.warn("Skipping model usage limit {} with the unknown limit type {}", row[10], row[1]);
+					continue;
+				}
+				ModelUsageLimitKey key = new ModelUsageLimitKey(type, (String) row[0], (String) row[2],
+						(String) row[3]);
 				Pair<String, Timestamp> limitRow = Pair.with((String) row[10], (Timestamp) row[11]);
 				Pair<String, Timestamp> kept = rowOf.get(key);
 				if (kept != null && !kept.getValue0().equals(limitRow.getValue0())) {
@@ -544,11 +550,40 @@ public final class SecurityModelUsageLimitUtils {
 	}
 
 	/**
-	 * Removes the limits on the permissions models give a project, for when the
-	 * project is deleted.
+	 * Removes the limits on the permissions models give an app or another engine,
+	 * for when the app or engine is deleted.
+	 *
+	 * @param connection        the caller's transaction
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
 	 */
-	static void deleteProjectLimits(Connection connection, String projectId) throws Exception {
-		deleteWhere(connection, "LIMITTYPE = ? AND SUBJECTID = ?", List.of(Type.PROJECT.name(), projectId));
+	static void deleteGranteeLimits(Connection connection, String granteeEngineId, String granteeEngineType)
+			throws Exception {
+		deleteWhere(connection, "LIMITTYPE = ? AND SUBJECTID = ? AND SUBJECTTYPE = ?",
+				List.of(Type.ENGINE.name(), granteeEngineId, granteeEngineType));
+	}
+
+	/**
+	 * Removes the limits on the permissions models give an engine, for when the
+	 * engine is deleted. An app's limits are left, since an app is a project.
+	 *
+	 * @param connection the caller's transaction
+	 * @param engineId   the engine
+	 */
+	static void deleteEngineGranteeLimits(Connection connection, String engineId) throws Exception {
+		deleteWhere(connection, "LIMITTYPE = ? AND SUBJECTID = ? AND SUBJECTTYPE <> ?",
+				List.of(Type.ENGINE.name(), engineId, PermissionSubject.PROJECT_TYPE));
+	}
+
+	/**
+	 * Removes every limit kept under a limit type, such as a type the platform no
+	 * longer has.
+	 *
+	 * @param connection the caller's connection
+	 * @param limitType  the {@code LIMITTYPE} to remove
+	 */
+	static void deleteLimitsOfType(Connection connection, String limitType) throws Exception {
+		deleteWhere(connection, "LIMITTYPE = ?", List.of(limitType));
 	}
 
 	/**
@@ -627,6 +662,21 @@ public final class SecurityModelUsageLimitUtils {
 			return subject + "(SUBJECTTYPE = ? OR SUBJECTTYPE IS NULL)";
 		}
 		return subject + matches("SUBJECTTYPE", key.subjectType(), values);
+	}
+
+	/**
+	 * Reads a stored limit type.
+	 *
+	 * @param limitType the {@code LIMITTYPE} of a row
+	 * @return the type, or null for one the platform does not have
+	 */
+	private static Type typeOf(String limitType) {
+		for (Type type : Type.values()) {
+			if (type.name().equals(limitType)) {
+				return type;
+			}
+		}
+		return null;
 	}
 
 	private static String matches(String column, String value, List<String> values) {
@@ -793,7 +843,7 @@ public final class SecurityModelUsageLimitUtils {
 			return null;
 		}
 		boolean canShare = key.type() == Type.TEAM || key.type() == Type.PUBLIC || key.type() == Type.MODEL
-				|| key.type() == Type.PROJECT;
+				|| key.type() == Type.ENGINE;
 		Set<String> measures = new HashSet<>();
 		for (ModelUsageLimitRule rule : limit.getRules()) {
 			if (rule.getMetric() == null || rule.getWindow() == null || rule.getCounts() == null) {
@@ -807,7 +857,7 @@ public final class SecurityModelUsageLimitUtils {
 				return "Each rule's amount is 1 or more";
 			}
 			if (rule.getCounts() == Counts.SHARED && !canShare) {
-				return "Only a team, an app, public use and a model's total can have shared rules";
+				return "Only a team, an app, an engine, public use and a model's total can have shared rules";
 			}
 			if (rule.getCounts() == Counts.EACH_PERSON && ceiling) {
 				return describe(key) + " has shared rules only";
@@ -850,8 +900,8 @@ public final class SecurityModelUsageLimitUtils {
 			return key.engineId() == null ? "A team's total" : "A team's limit";
 		case PUBLIC:
 			return "The Public Use Limit";
-		case PROJECT:
-			return "An app's limit";
+		case ENGINE:
+			return key.isAppGrantee() ? "An app's limit" : "An engine's limit";
 		default:
 			return "A person's limit";
 		}

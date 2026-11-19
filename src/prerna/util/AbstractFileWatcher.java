@@ -124,7 +124,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter {
 	@Override
 	public void run() {
 		classLogger.info("Starting watcher thread for type {} with class {} and thread ID {}", this.engineType,
-				this.getClass().getName(), Thread.currentThread().getId());
+				this.getClass().getName(), Thread.currentThread().threadId());
 		try (PlatformOperation operation = PlatformOperation.begin(CATALOG_OPERATION)) {
 			loadFirst();
 		}

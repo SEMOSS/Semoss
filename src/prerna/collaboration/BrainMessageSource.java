@@ -70,8 +70,9 @@ public interface BrainMessageSource {
 	}
 
 	// email whose subject or body holds the terms (every term when all is set, else any), newest first and at most max,
-	// each in Graph shape without the body: id, conversationId, subject, from, receivedDateTime, parentFolderId,
-	// isDraft. A source that cannot search returns null; a login problem (SemossPixelException) is thrown
+	// each in Graph shape without the body: id, internetMessageId, conversationId, subject, from, receivedDateTime,
+	// parentFolderId, isDraft. A term may name where it has to be, as subject:word does. A source that cannot search
+	// returns null; a login problem (SemossPixelException) is thrown
 	default List<Map<String, Object>> search(User user, List<String> terms, boolean all, Instant from, Instant to,
 			int max) throws Exception {
 		return null;
