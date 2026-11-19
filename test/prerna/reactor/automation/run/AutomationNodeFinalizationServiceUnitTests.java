@@ -35,6 +35,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 class AutomationNodeFinalizationServiceUnitTests {
 
@@ -62,6 +63,32 @@ class AutomationNodeFinalizationServiceUnitTests {
 		assertThrows(IllegalStateException.class,
 				() -> AutomationNodeFinalizationService.classify(node,
 						Map.of(AutomationConstants.INTERNAL_RESULT_VALUE, "partial")));
+	}
+
+	@Test
+	void aDeclareVariableSnapshotCarriesTheVariablesTheNodePublishes() {
+		Map<String, Object> scope = new java.util.LinkedHashMap<>();
+		scope.put("region", "old");
+		scope.put("other", 1);
+
+		String snapshot = AutomationNodeFinalizationService.prepare("declare", "declare_out",
+				Map.of("region", "new", "limit", 5), scope, true, true).scopeSnapshot();
+
+		Map<?, ?> values = AutomationRuntimeUtils.GSON.fromJson(snapshot, Map.class);
+		assertEquals("new", values.get("region"));
+		assertEquals(5.0, values.get("limit"));
+		assertEquals(1.0, values.get("other"));
+		assertEquals(Map.of("region", "new", "limit", 5.0), values.get("declare_out"));
+		// The caller's scope is not changed; publishing stays the executor's job.
+		assertEquals("old", scope.get("region"));
+	}
+
+	@Test
+	void otherNodesSnapshotsDoNotSpreadTheirOutput() {
+		String snapshot = AutomationNodeFinalizationService.prepare("transform", "out", Map.of("region", "new"),
+				Map.of("region", "old"), true).scopeSnapshot();
+
+		assertEquals("old", AutomationRuntimeUtils.GSON.fromJson(snapshot, Map.class).get("region"));
 	}
 
 	@Test

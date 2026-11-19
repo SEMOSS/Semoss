@@ -65,9 +65,20 @@ final class AutomationNodeFinalizationService {
 
 	static PreparedValue prepare(String nodeId, String outputVariable, Object value, Map<String, Object> scope,
 			boolean validateScope) {
+		return prepare(nodeId, outputVariable, value, scope, validateScope, false);
+	}
+
+	/**
+	 * @param publishesVariables whether the node publishes the entries of its object
+	 *                           result into scope by name (a declare-variable node does),
+	 *                           so its snapshot shows them as later nodes will see them
+	 */
+	static PreparedValue prepare(String nodeId, String outputVariable, Object value, Map<String, Object> scope,
+			boolean validateScope, boolean publishesVariables) {
 		String output = AutomationRuntimeUtils.toBoundedRuntimeJson(value,
 				AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation node '" + nodeId + "' output");
-		if (validateScope && outputVariable != null) {
+		String scopeSnapshot = null;
+		if (validateScope) {
 			Map<String, Object> prospectiveScope = new LinkedHashMap<>();
 			for (Map.Entry<String, Object> entry : scope.entrySet()) {
 				Object scopeValue = entry.getValue();
@@ -75,16 +86,21 @@ final class AutomationNodeFinalizationService {
 						? frame.summary()
 						: scopeValue);
 			}
-			prospectiveScope.put(outputVariable, value);
-			AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
-					"Automation run scope");
+			if (outputVariable != null) {
+				prospectiveScope.put(outputVariable, value);
+			}
+			if (publishesVariables) {
+				AutomationRunExecutionService.spreadChannelVariables(prospectiveScope, value);
+			}
+			scopeSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope,
+					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
 		}
-		return new PreparedValue(output, AutomationRuntimeUtils.generatePreview(output));
+		return new PreparedValue(output, AutomationRuntimeUtils.generatePreview(output), scopeSnapshot);
 	}
 
 	record ClassifiedResult(Object value, Object metadata) {
 	}
 
-	record PreparedValue(String output, String preview) {
+	record PreparedValue(String output, String preview, String scopeSnapshot) {
 	}
 }

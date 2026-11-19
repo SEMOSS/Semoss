@@ -132,7 +132,7 @@ class RunAutomationDefinitionReactorUnitTests {
 			// Stop at the durable start: reaching it proves the switches did not apply.
 			store.when(() -> AutomationRunStore.initializeRun(anyString(), eq(ownScope),
 					eq(AutomationConstants.DEFAULT_AUTOMATION_ID), anyInt(), any(), any(), any(),
-					eq(AutomationConstants.TRIGGER_MANUAL), any(), any(), any(), any()))
+					eq(AutomationConstants.TRIGGER_MANUAL), any(), any(), any(), any(), any()))
 					.thenThrow(new IllegalStateException("initialized"));
 
 			IllegalStateException stop = assertThrows(IllegalStateException.class,
@@ -155,7 +155,7 @@ class RunAutomationDefinitionReactorUnitTests {
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
 			store.when(() -> AutomationRunStore.initializeRun(anyString(), eq(ownScope),
 					eq(AutomationConstants.DEFAULT_AUTOMATION_ID), anyInt(), any(), any(), any(),
-					eq(AutomationConstants.TRIGGER_MANUAL), any(), any(), any(), any())).thenAnswer(call -> {
+					eq(AutomationConstants.TRIGGER_MANUAL), any(), any(), any(), any(), any())).thenAnswer(call -> {
 						if (!initializationSucceeds) {
 							throw new IllegalStateException("initialization failed");
 						}

@@ -94,6 +94,7 @@ import static prerna.reactor.automation.AutomationConstants.WORKSPACE_ID;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -202,8 +203,8 @@ public final class AutomationRunStore {
 			(RUN_ID, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH, DEFINITION_SNAPSHOT, \
 			INPUT_SNAPSHOT, \
 			STATUS, TRIGGER_TYPE, \
-			STARTED_AT, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY) \
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""";
+			STARTED_AT, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY, REPROCESSED_FROM_RUN_ID) \
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)""";
 
 	private static final String UPDATE_RUN_STATUS = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
@@ -221,6 +222,93 @@ public final class AutomationRunStore {
 	private static final String CLAIM_RUN = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, STARTED_AT = ?, LAST_HEARTBEAT = ? \
 			WHERE RUN_ID = ? AND STATUS = ?""";
+
+	// Re-running selected nodes of a finished run
+	private static final List<String> RERUNNABLE_RUN_STATUSES = List.of(AutomationConstants.STATUS_SUCCESS,
+			AutomationConstants.STATUS_FAILED, AutomationConstants.STATUS_CANCELLED, STATUS_INTERRUPTED);
+
+	private static final String REOPEN_RUN_FOR_NODE_RERUN = """
+			UPDATE AUTOMATION_RUNS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = NULL, FAILED_NODE_ID = NULL, \
+			ERROR_MESSAGE = NULL, RESULT_SUMMARY = NULL, CANCEL_REQUESTED = ?, LAST_HEARTBEAT = ?, \
+			DEFINITION_HASH = ?, DEFINITION_SNAPSHOT = ? \
+			WHERE RUN_ID = ? AND PROJECT_ID = ? AND STATUS IN (?, ?, ?, ?)""";
+
+	private static final String DELETE_RERUN_RESULT_CHUNKS = """
+			DELETE FROM AUTOMATION_RESULT_CHUNKS WHERE RESULT_ID IN \
+			(SELECT RESULT_ID FROM AUTOMATION_SAVED_RESULTS WHERE RUN_ID = ? AND (NODE_ID = ? OR PARENT_NODE_ID = ?))""";
+
+	private static final String DELETE_RERUN_SAVED_RESULTS = """
+			DELETE FROM AUTOMATION_SAVED_RESULTS WHERE RUN_ID = ? AND (NODE_ID = ? OR PARENT_NODE_ID = ?)""";
+
+	private static final String DELETE_RERUN_LOOP_ROWS =
+			"DELETE FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = ? AND PARENT_NODE_ID = ?";
+
+	private static final String RESET_NODE_SET = """
+			UPDATE AUTOMATION_NODE_OUTPUTS SET NODE_LABEL = ?, STATUS = ?, ROOM_ID = ?, WORKSPACE_ID = ?, \
+			STARTED_AT = NULL, COMPLETED_AT = NULL, DURATION_MS = NULL, OUTPUT_VAR_NAME = NULL, \
+			OUTPUT_KIND = NULL, OUTPUT_VALUE = NULL, OUTPUT_PREVIEW = NULL, MODEL_MESSAGE_ID = NULL, \
+			AGENT_RUN_ID = NULL, ERROR_MESSAGE = NULL, SCOPE_SNAPSHOT = NULL, CARRIED_OVER = NULL \
+			""";
+
+	private static final String RESET_NODE_FOR_RERUN =
+			RESET_NODE_SET + "WHERE RUN_ID = ? AND NODE_ID = ? AND PARENT_NODE_ID IS NULL";
+
+	/** A loop-body execution row is keyed by its own ID and always has a parent loop node. */
+	private static final String RESET_LOOP_NODE_FOR_RERUN =
+			RESET_NODE_SET + "WHERE RUN_ID = ? AND NODE_ID = ? AND PARENT_NODE_ID IS NOT NULL";
+
+	private static final String DELETE_RERUN_NODE_SOURCE =
+			"DELETE FROM AUTOMATION_RUN_NODE_SOURCES WHERE RUN_ID = ? AND NODE_ID = ?";
+
+	// Copying a finished run so a reprocess leaves the original untouched
+	private static final String CLONE_RUN = """
+			INSERT INTO AUTOMATION_RUNS \
+			(RUN_ID, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH, DEFINITION_SNAPSHOT, \
+			INPUT_SNAPSHOT, STATUS, TRIGGER_TYPE, STARTED_AT, COMPLETED_AT, FAILED_NODE_ID, ERROR_MESSAGE, \
+			LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY, CANCEL_REQUESTED, RESULT_SUMMARY, \
+			REPROCESSED_FROM_RUN_ID) \
+			SELECT ?, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH, DEFINITION_SNAPSHOT, \
+			INPUT_SNAPSHOT, STATUS, TRIGGER_TYPE, STARTED_AT, COMPLETED_AT, FAILED_NODE_ID, ERROR_MESSAGE, \
+			LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, ?, CANCEL_REQUESTED, RESULT_SUMMARY, RUN_ID \
+			FROM AUTOMATION_RUNS WHERE RUN_ID = ? AND PROJECT_ID = ? AND STATUS IN (?, ?, ?, ?)""";
+
+	private static final String CLONE_RUN_NODE_SOURCES = """
+			INSERT INTO AUTOMATION_RUN_NODE_SOURCES (RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE) \
+			SELECT ?, NODE_ID, SOURCE_HASH, SOURCE_CODE FROM AUTOMATION_RUN_NODE_SOURCES WHERE RUN_ID = ?""";
+
+	private static final String CLONE_NODE_OUTPUTS = """
+			INSERT INTO AUTOMATION_NODE_OUTPUTS \
+			(RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, STARTED_AT, COMPLETED_AT, DURATION_MS, \
+			OUTPUT_VAR_NAME, OUTPUT_KIND, OUTPUT_VALUE, OUTPUT_PREVIEW, ROOM_ID, WORKSPACE_ID, MODEL_MESSAGE_ID, \
+			AGENT_RUN_ID, PARENT_NODE_ID, ITERATION_INDEX, SOURCE_NODE_ID, ERROR_MESSAGE, SCOPE_SNAPSHOT, \
+			CARRIED_OVER) \
+			SELECT ?, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, STARTED_AT, COMPLETED_AT, DURATION_MS, \
+			OUTPUT_VAR_NAME, OUTPUT_KIND, OUTPUT_VALUE, OUTPUT_PREVIEW, ROOM_ID, WORKSPACE_ID, MODEL_MESSAGE_ID, \
+			AGENT_RUN_ID, PARENT_NODE_ID, ITERATION_INDEX, SOURCE_NODE_ID, ERROR_MESSAGE, SCOPE_SNAPSHOT, ? \
+			FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = ?""";
+
+	private static final String SELECT_SAVED_RESULT_IDS = "SELECT RESULT_ID FROM AUTOMATION_SAVED_RESULTS WHERE RUN_ID = ?";
+
+	private static final String CLONE_SAVED_RESULT = """
+			INSERT INTO AUTOMATION_SAVED_RESULTS \
+			(RESULT_ID, PROJECT_ID, RUN_ID, NODE_ID, PARENT_NODE_ID, ITERATION_INDEX, RESULT_KIND, FORMAT_VERSION, \
+			ROW_COUNT, BYTE_COUNT, CHECKSUM, CREATED_AT, RETAIN_UNTIL, CAPTURE_STATE, RESULT_ROLE, LOGICAL_NAME, \
+			PAYLOAD_VALUE) \
+			SELECT ?, PROJECT_ID, ?, NODE_ID, PARENT_NODE_ID, ITERATION_INDEX, RESULT_KIND, FORMAT_VERSION, \
+			ROW_COUNT, BYTE_COUNT, CHECKSUM, CREATED_AT, RETAIN_UNTIL, CAPTURE_STATE, RESULT_ROLE, LOGICAL_NAME, \
+			PAYLOAD_VALUE FROM AUTOMATION_SAVED_RESULTS WHERE RESULT_ID = ?""";
+
+	private static final String CLONE_RESULT_CHUNKS = """
+			INSERT INTO AUTOMATION_RESULT_CHUNKS \
+			(RESULT_ID, CHUNK_INDEX, FIRST_ROW_INDEX, CHUNK_ROW_COUNT, BYTE_COUNT, CHECKSUM, CHUNK_VALUE) \
+			SELECT ?, CHUNK_INDEX, FIRST_ROW_INDEX, CHUNK_ROW_COUNT, BYTE_COUNT, CHECKSUM, CHUNK_VALUE \
+			FROM AUTOMATION_RESULT_CHUNKS WHERE RESULT_ID = ?""";
+
+	private static final String RECOUNT_RUN_NODES = """
+			UPDATE AUTOMATION_RUNS SET \
+			TOTAL_NODES = (SELECT COUNT(*) FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = ?), \
+			COMPLETED_NODES = (SELECT COUNT(*) FROM AUTOMATION_NODE_OUTPUTS WHERE RUN_ID = ? AND STATUS IN (?, ?)) \
+			WHERE RUN_ID = ?""";
 
 	private static final String MARK_STALE_INTERRUPTED = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
@@ -314,7 +402,7 @@ public final class AutomationRunStore {
 	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
 			DURATION_MS = ?, OUTPUT_VAR_NAME = ?, OUTPUT_KIND = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
-			MODEL_MESSAGE_ID = ?, AGENT_RUN_ID = ? \
+			MODEL_MESSAGE_ID = ?, AGENT_RUN_ID = ?, SCOPE_SNAPSHOT = ? \
 			WHERE RUN_ID = ? AND NODE_ID = ?""";
 
 	private static final String UPDATE_NODE_OUTPUT_FAILED = """
@@ -523,6 +611,20 @@ public final class AutomationRunStore {
 			String definitionHash, String definitionSnapshot, Map<String, Object> inputs, String triggerType,
 			String createdBy, List<Map<String, Object>> orderedNodes, Map<String, String> traceRoomIds,
 			Map<String, String> nodeSources) {
+		initializeRun(runId, projectId, automationId, definitionVersion, definitionHash, definitionSnapshot, inputs,
+				triggerType, createdBy, orderedNodes, traceRoomIds, nodeSources, null);
+	}
+
+	/**
+	 * Same as the overload without {@code reprocessedFromRunId}, recording the run
+	 * this one reprocesses so run history can link the two.
+	 *
+	 * @param reprocessedFromRunId run this run re-runs, or {@code null}
+	 */
+	public static void initializeRun(String runId, String projectId, String automationId, int definitionVersion,
+			String definitionHash, String definitionSnapshot, Map<String, Object> inputs, String triggerType,
+			String createdBy, List<Map<String, Object>> orderedNodes, Map<String, String> traceRoomIds,
+			Map<String, String> nodeSources, String reprocessedFromRunId) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("initializing automation run history");
 
 		try {
@@ -533,7 +635,7 @@ public final class AutomationRunStore {
 
 				insertRun(conn, schedulerDb.getQueryUtil(), runId, projectId, automationId, definitionVersion,
 						definitionHash, definitionSnapshot, inputSnapshot, triggerType, orderedNodes.size(), createdBy,
-						now);
+						now, reprocessedFromRunId);
 				insertAllRunNodeSources(conn, schedulerDb.getQueryUtil(), runId, nodeSources);
 				insertAllNodeOutputs(conn, schedulerDb.getQueryUtil(), runId, orderedNodes, traceRoomIds);
 				return null;
@@ -572,6 +674,293 @@ public final class AutomationRunStore {
 			classLogger.error("Failed to claim submitted automation run '{}'", runId, e);
 			throw new IllegalStateException("Unable to claim the submitted automation run.", e);
 		}
+	}
+
+	/**
+	 * One top-level node being re-run: its identity and settings as of the current
+	 * automation, and the developer sources recorded for it.
+	 *
+	 * @param nodeId            graph node identifier, unchanged by the re-run
+	 * @param label             display label from the current automation
+	 * @param roomId            fresh conversation room for a conversational node, else {@code null}
+	 * @param workspaceId       configured agent workspace, else {@code null}
+	 * @param replacedSourceIds node IDs whose recorded source is dropped: the node and
+	 *                          the body nodes of a loop
+	 * @param sources           developer Python source to record, keyed by node ID
+	 */
+	public record NodeRerun(String nodeId, String label, String roomId, String workspaceId,
+			java.util.Set<String> replacedSourceIds, Map<String, String> sources) {
+	}
+
+	/**
+	 * Atomically reopens a finished run so the selected top-level nodes can run
+	 * again, in the same run. One transaction claims the run, replaces its recorded
+	 * graph and the selected nodes' sources, clears each selected node's result
+	 * (including a loop's iteration rows and every saved table or value they
+	 * captured), and recounts the run's nodes. Nodes that were not selected keep
+	 * their recorded results untouched.
+	 *
+	 * @param runId              finished run to reopen
+	 * @param projectId          owning Automation project
+	 * @param definitionHash     hash of the patched graph the run now records
+	 * @param definitionSnapshot patched graph snapshot the run now records
+	 * @param nodes              selected nodes, in execution order
+	 * @return {@code true} when this caller reopened the run; {@code false} when it
+	 *         was not in a finished state (already running, waiting, or reopened
+	 *         by another caller), in which case nothing changed
+	 */
+	public static boolean reopenRunForNodeRerun(String runId, String projectId, String definitionHash,
+			String definitionSnapshot, List<NodeRerun> nodes) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("reopening the automation run to re-run nodes");
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+				if (!claimFinishedRun(conn, queryUtil, runId, projectId, definitionHash, definitionSnapshot)) {
+					return false;
+				}
+				for (NodeRerun node : nodes) {
+					clearNodeForRerun(conn, queryUtil, runId, node);
+				}
+				recountRunNodes(conn, runId);
+				return true;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to reopen automation run '{}' for a node re-run", runId, e);
+			throw new IllegalStateException("Unable to reopen the automation run to re-run nodes.", e);
+		}
+	}
+
+	/**
+	 * One loop-body node of one iteration being re-run.
+	 *
+	 * @param executionNodeId   ID of this iteration's history row for the node
+	 * @param nodeId            the body node's graph ID, unchanged by the re-run
+	 * @param label             display label from the current automation
+	 * @param roomId            fresh conversation room for a conversational node, else {@code null}
+	 * @param workspaceId       configured agent workspace, else {@code null}
+	 */
+	public record LoopNodeRerun(String executionNodeId, String nodeId, String label, String roomId,
+			String workspaceId) {
+	}
+
+	/**
+	 * Atomically reopens a finished run so selected body nodes of one loop iteration
+	 * can run again, in the same run. Like {@link #reopenRunForNodeRerun}, one
+	 * transaction claims the run and replaces its recorded graph, but only the
+	 * selected nodes' rows for that iteration are cleared: every other iteration,
+	 * and the iteration's other nodes, keep their results.
+	 *
+	 * @param replacedSourceIds body-node IDs whose recorded source is dropped
+	 * @param sources           developer Python source to record, keyed by node ID
+	 * @return {@code true} when this caller reopened the run; {@code false} when it
+	 *         was not in a finished state, in which case nothing changed
+	 */
+	public static boolean reopenRunForLoopNodeRerun(String runId, String projectId, String definitionHash,
+			String definitionSnapshot, List<LoopNodeRerun> nodes, java.util.Set<String> replacedSourceIds,
+			Map<String, String> sources) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("reopening the automation run to re-run loop nodes");
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+				if (!claimFinishedRun(conn, queryUtil, runId, projectId, definitionHash, definitionSnapshot)) {
+					return false;
+				}
+				for (LoopNodeRerun node : nodes) {
+					clearLoopNodeForRerun(conn, queryUtil, runId, node);
+				}
+				replaceNodeSources(conn, queryUtil, runId, replacedSourceIds, sources);
+				recountRunNodes(conn, runId);
+				return true;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to reopen automation run '{}' for a loop node re-run", runId, e);
+			throw new IllegalStateException("Unable to reopen the automation run to re-run loop nodes.", e);
+		}
+	}
+
+	/**
+	 * Copies a finished run into a new run of its own, so a reprocess can work on
+	 * the copy and leave the original exactly as it ran. One transaction copies the
+	 * run row (including its recorded graph and inputs), its node rows (each marked
+	 * carried over until a reprocess runs it again), its node sources, and every
+	 * saved result with its chunks under a fresh result ID.
+	 *
+	 * @param sourceRunId finished run to copy
+	 * @param newRunId    identifier of the copy
+	 * @param projectId   owning Automation project
+	 * @param createdBy   user starting the reprocess
+	 * @return {@code true} when the copy was made; {@code false} when the source
+	 *         is not a finished run of that project, in which case nothing changed
+	 */
+	public static boolean cloneRunForReprocess(String sourceRunId, String newRunId, String projectId,
+			String createdBy) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("copying the automation run to reprocess it");
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(CLONE_RUN)) {
+					int index = 1;
+					ps.setString(index++, newRunId);
+					ps.setString(index++, createdBy);
+					ps.setString(index++, sourceRunId);
+					ps.setString(index++, projectId);
+					for (String status : RERUNNABLE_RUN_STATUSES) {
+						ps.setString(index++, status);
+					}
+					if (ps.executeUpdate() != 1) {
+						return false;
+					}
+				}
+				try (PreparedStatement ps = conn.prepareStatement(CLONE_RUN_NODE_SOURCES)) {
+					ps.setString(1, newRunId);
+					ps.setString(2, sourceRunId);
+					ps.executeUpdate();
+				}
+				try (PreparedStatement ps = conn.prepareStatement(CLONE_NODE_OUTPUTS)) {
+					ps.setString(1, newRunId);
+					ps.setBoolean(2, true);
+					ps.setString(3, sourceRunId);
+					ps.executeUpdate();
+				}
+				List<String> resultIds = new ArrayList<>();
+				try (PreparedStatement ps = conn.prepareStatement(SELECT_SAVED_RESULT_IDS)) {
+					ps.setString(1, sourceRunId);
+					try (ResultSet rs = ps.executeQuery()) {
+						while (rs.next()) {
+							resultIds.add(rs.getString(1));
+						}
+					}
+				}
+				for (String resultId : resultIds) {
+					String copyId = UUID.randomUUID().toString();
+					try (PreparedStatement ps = conn.prepareStatement(CLONE_SAVED_RESULT)) {
+						ps.setString(1, copyId);
+						ps.setString(2, newRunId);
+						ps.setString(3, resultId);
+						ps.executeUpdate();
+					}
+					try (PreparedStatement ps = conn.prepareStatement(CLONE_RESULT_CHUNKS)) {
+						ps.setString(1, copyId);
+						ps.setString(2, resultId);
+						ps.executeUpdate();
+					}
+				}
+				return true;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to copy automation run '{}' to reprocess it", sourceRunId, e);
+			throw new IllegalStateException("Unable to copy the automation run to reprocess it.", e);
+		}
+	}
+
+	/**
+	 * Compare-and-set: moves a finished run to RUNNING with its new recorded graph.
+	 * The run's clock starts over, so its start and end describe this reprocess.
+	 */
+	private static boolean claimFinishedRun(Connection conn, AbstractSqlQueryUtil queryUtil, String runId,
+			String projectId, String definitionHash, String definitionSnapshot)
+			throws SQLException, UnsupportedEncodingException {
+		try (PreparedStatement ps = conn.prepareStatement(REOPEN_RUN_FOR_NODE_RERUN)) {
+			int index = 1;
+			Timestamp now = toTimestamp(Instant.now());
+			ps.setString(index++, STATUS_RUNNING);
+			ps.setTimestamp(index++, now);
+			ps.setBoolean(index++, false);
+			ps.setTimestamp(index++, now);
+			ps.setString(index++, definitionHash);
+			queryUtil.setNullableLargeText(ps, index++, definitionSnapshot);
+			ps.setString(index++, runId);
+			ps.setString(index++, projectId);
+			for (String status : RERUNNABLE_RUN_STATUSES) {
+				ps.setString(index++, status);
+			}
+			return ps.executeUpdate() == 1;
+		}
+	}
+
+	private static void recountRunNodes(Connection conn, String runId) throws SQLException {
+		try (PreparedStatement ps = conn.prepareStatement(RECOUNT_RUN_NODES)) {
+			ps.setString(1, runId);
+			ps.setString(2, runId);
+			ps.setString(3, NODE_STATUS_SUCCESS);
+			ps.setString(4, NODE_STATUS_SKIPPED);
+			ps.setString(5, runId);
+			requireSingleRow(ps.executeUpdate(), "recount the run nodes", runId, null);
+		}
+	}
+
+	private static void replaceNodeSources(Connection conn, AbstractSqlQueryUtil queryUtil, String runId,
+			java.util.Set<String> replacedSourceIds, Map<String, String> sources)
+			throws SQLException, UnsupportedEncodingException {
+		for (String sourceNodeId : replacedSourceIds) {
+			try (PreparedStatement ps = conn.prepareStatement(DELETE_RERUN_NODE_SOURCE)) {
+				ps.setString(1, runId);
+				ps.setString(2, sourceNodeId);
+				ps.executeUpdate();
+			}
+		}
+		for (Map.Entry<String, String> source : sources.entrySet()) {
+			try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN_NODE_SOURCE)) {
+				int index = 1;
+				ps.setString(index++, runId);
+				ps.setString(index++, source.getKey());
+				ps.setString(index++, AutomationDefinitionService.calculateSourceHash(source.getValue()));
+				queryUtil.setNullableLargeText(ps, index, source.getValue());
+				ps.executeUpdate();
+			}
+		}
+	}
+
+	/** Deletes the saved results of one history row, and of the rows it owns. */
+	private static void deleteSavedResults(Connection conn, String runId, String rowId) throws SQLException {
+		try (PreparedStatement ps = conn.prepareStatement(DELETE_RERUN_RESULT_CHUNKS)) {
+			ps.setString(1, runId);
+			ps.setString(2, rowId);
+			ps.setString(3, rowId);
+			ps.executeUpdate();
+		}
+		try (PreparedStatement ps = conn.prepareStatement(DELETE_RERUN_SAVED_RESULTS)) {
+			ps.setString(1, runId);
+			ps.setString(2, rowId);
+			ps.setString(3, rowId);
+			ps.executeUpdate();
+		}
+	}
+
+	private static void clearLoopNodeForRerun(Connection conn, AbstractSqlQueryUtil queryUtil, String runId,
+			LoopNodeRerun node) throws SQLException {
+		deleteSavedResults(conn, runId, node.executionNodeId());
+		try (PreparedStatement ps = conn.prepareStatement(RESET_LOOP_NODE_FOR_RERUN)) {
+			int index = 1;
+			queryUtil.setNullableString(ps, index++, node.label());
+			ps.setString(index++, NODE_STATUS_PENDING);
+			queryUtil.setNullableString(ps, index++, node.roomId());
+			queryUtil.setNullableString(ps, index++, node.workspaceId());
+			ps.setString(index++, runId);
+			ps.setString(index++, node.executionNodeId());
+			requireSingleRow(ps.executeUpdate(), "reset the loop node for a re-run", runId, node.executionNodeId());
+		}
+	}
+
+	private static void clearNodeForRerun(Connection conn, AbstractSqlQueryUtil queryUtil, String runId,
+			NodeRerun node) throws SQLException, UnsupportedEncodingException {
+		String nodeId = node.nodeId();
+		deleteSavedResults(conn, runId, nodeId);
+		try (PreparedStatement ps = conn.prepareStatement(DELETE_RERUN_LOOP_ROWS)) {
+			ps.setString(1, runId);
+			ps.setString(2, nodeId);
+			ps.executeUpdate();
+		}
+		try (PreparedStatement ps = conn.prepareStatement(RESET_NODE_FOR_RERUN)) {
+			int index = 1;
+			queryUtil.setNullableString(ps, index++, node.label());
+			ps.setString(index++, NODE_STATUS_PENDING);
+			queryUtil.setNullableString(ps, index++, node.roomId());
+			queryUtil.setNullableString(ps, index++, node.workspaceId());
+			ps.setString(index++, runId);
+			ps.setString(index++, nodeId);
+			requireSingleRow(ps.executeUpdate(), "reset the node for a re-run", runId, nodeId);
+		}
+		replaceNodeSources(conn, queryUtil, runId, node.replacedSourceIds(), node.sources());
 	}
 
 	/**
@@ -772,8 +1161,8 @@ public final class AutomationRunStore {
 
 	private static void insertRun(Connection conn, AbstractSqlQueryUtil queryUtil, String runId, String projectId,
 			String automationId, int definitionVersion, String definitionHash, String definitionSnapshot,
-			String inputSnapshot, String triggerType, int totalNodes, String createdBy, Timestamp now)
-			throws SQLException, UnsupportedEncodingException {
+			String inputSnapshot, String triggerType, int totalNodes, String createdBy, Timestamp now,
+			String reprocessedFromRunId) throws SQLException, UnsupportedEncodingException {
 		try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN)) {
 			int index = 1;
 			ps.setString(index++, runId);
@@ -789,6 +1178,7 @@ public final class AutomationRunStore {
 			ps.setTimestamp(index++, now);
 			ps.setInt(index++, totalNodes);
 			ps.setString(index++, createdBy);
+			queryUtil.setNullableString(ps, index++, reprocessedFromRunId);
 			ps.executeUpdate();
 		}
 	}
@@ -1077,6 +1467,8 @@ public final class AutomationRunStore {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_NODES, COMPLETED_NODES));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CREATED_BY, CREATED_BY));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RESULT_SUMMARY_COL, RESULT_SUMMARY_COL));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AutomationConstants.REPROCESSED_FROM_RUN_ID,
+				AutomationConstants.REPROCESSED_FROM_RUN_ID));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + PROJECT_ID, "==", projectId,
 				PixelDataType.CONST_STRING));
@@ -1210,6 +1602,8 @@ public final class AutomationRunStore {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_NODES, COMPLETED_NODES));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CREATED_BY, CREATED_BY));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RESULT_SUMMARY_COL, RESULT_SUMMARY_COL));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AutomationConstants.REPROCESSED_FROM_RUN_ID,
+				AutomationConstants.REPROCESSED_FROM_RUN_ID));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUNS + "__" + RUN_ID, "==", runId,
 				PixelDataType.CONST_STRING));
@@ -1468,7 +1862,7 @@ public final class AutomationRunStore {
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputValue, String outputPreview, String modelMessageId, String agentRunId) {
 		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, null, outputValue, outputPreview,
-				modelMessageId, agentRunId);
+				modelMessageId, agentRunId, (String) null);
 	}
 
 	/** Updates a node output and its internal storage kind after successful execution. */
@@ -1476,13 +1870,29 @@ public final class AutomationRunStore {
 			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
 			String agentRunId) {
 		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, outputKind, outputValue, outputPreview,
-				modelMessageId, agentRunId, null);
+				modelMessageId, agentRunId, (String) null);
+	}
+
+	/** Updates a node output and its internal storage kind, retaining a run-scope snapshot, after successful execution. */
+	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
+			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
+			String agentRunId, String scopeSnapshot) {
+		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, outputKind, outputValue, outputPreview,
+				modelMessageId, agentRunId, scopeSnapshot, null);
 	}
 
 	/** Publishes a captured table and node success in one scheduler transaction. */
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
 			String agentRunId, AutomationTableCaptureService.TableCapture tableCapture) {
+		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, outputKind, outputValue, outputPreview,
+				modelMessageId, agentRunId, null, tableCapture);
+	}
+
+	/** Publishes a captured table and node success, retaining a run-scope snapshot, in one scheduler transaction. */
+	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
+			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
+			String agentRunId, String scopeSnapshot, AutomationTableCaptureService.TableCapture tableCapture) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the successful automation node result");
 
 		try {
@@ -1505,6 +1915,7 @@ public final class AutomationRunStore {
 					ps.setString(index++, outputPreview);
 					schedulerDb.getQueryUtil().setNullableString(ps, index++, modelMessageId);
 					schedulerDb.getQueryUtil().setNullableString(ps, index++, agentRunId);
+					queryUtil.setNullableLargeText(ps, index++, scopeSnapshot);
 					ps.setString(index++, runId);
 					ps.setString(index++, nodeId);
 					requireSingleRow(ps.executeUpdate(), "persist the successful node result", runId, nodeId);
@@ -1703,6 +2114,10 @@ public final class AutomationRunStore {
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AutomationConstants.SOURCE_NODE_ID,
 				AutomationConstants.SOURCE_NODE_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ERROR_MESSAGE, ERROR_MESSAGE));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AutomationConstants.SCOPE_SNAPSHOT,
+				AutomationConstants.SCOPE_SNAPSHOT));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AutomationConstants.CARRIED_OVER,
+				AutomationConstants.CARRIED_OVER));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_NODE_OUTPUTS + "__" + RUN_ID, "==", runId,
 				PixelDataType.CONST_STRING));
@@ -1764,7 +2179,8 @@ public final class AutomationRunStore {
 	 * to callers.
 	 *
 	 * <p>
-	 * Each entry contains: nodeId, nodeLabel, status, durationMs, a bounded display
+	 * Each entry contains: nodeId, nodeLabel, status, STARTED_AT and COMPLETED_AT (UTC,
+	 * null until the node runs; a re-run replaces them), durationMs, a bounded display
 	 * preview, an optional small outputValue, errorMessage, and an optional trace
 	 * map. Large values remain server-owned and are not copied into run-detail
 	 * responses.
@@ -1788,6 +2204,8 @@ public final class AutomationRunStore {
 					sourceNodeId == null ? output.get(AutomationConstants.NODE_ID) : sourceNodeId);
 			nodeResult.put(AutomationConstants.NODE_LABEL, output.get(AutomationConstants.NODE_LABEL));
 			nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));
+			nodeResult.put(AutomationConstants.STARTED_AT, output.get(AutomationConstants.STARTED_AT));
+			nodeResult.put(AutomationConstants.COMPLETED_AT, output.get(AutomationConstants.COMPLETED_AT));
 			nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
 			String outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_PREVIEW);
 			String outputValue = (String) output.get(AutomationConstants.OUTPUT_VALUE);
@@ -1800,6 +2218,9 @@ public final class AutomationRunStore {
 				nodeResult.put(AutomationConstants.OUTPUT_VALUE, outputValue);
 			}
 			nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
+			nodeResult.put(AutomationConstants.RESULT_SCOPE_SNAPSHOT, output.get(AutomationConstants.SCOPE_SNAPSHOT));
+			nodeResult.put(AutomationConstants.CARRIED_OVER,
+					Boolean.TRUE.equals(output.get(AutomationConstants.CARRIED_OVER)));
 			Map<String, Object> trace = new LinkedHashMap<>();
 			putIfPresent(trace, AutomationConstants.TRACE_AUTOMATION_RUN_ID, output.get(AutomationConstants.RUN_ID));
 			putIfPresent(trace, AutomationConstants.TRACE_NODE_ID, output.get(AutomationConstants.NODE_ID));

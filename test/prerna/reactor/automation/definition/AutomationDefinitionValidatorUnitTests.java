@@ -394,6 +394,86 @@ public class AutomationDefinitionValidatorUnitTests {
 				.parseAndValidateForAuthoring(definition(Map.of(AutomationConstants.CONFIG_PYTHON_SOURCE, 42))));
 	}
 
+	/** Without any fields the generated node would build an empty object and do nothing. */
+	@Test
+	void transformNodeRequiresAtLeastOneField() {
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+						definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM, Map.of()))));
+	}
+
+	@Test
+	void transformNodeAcceptsFieldsWithBlankValues() {
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM,
+						Map.of("fields", List.of(Map.of("name", "message",
+								"node", Map.of("kind", "value", "value", "")))))));
+		assertEquals(2, validated.nodes().size());
+	}
+
+	/** "object" and "array" nodes nest to any depth, mirroring arbitrary JSON shapes. */
+	@Test
+	void transformNodeAcceptsNestedObjectsAndArrays() {
+		Map<String, Object> patient = Map.of("kind", "object", "fields", List.of(
+				Map.of("name", "familyName", "node", Map.of("kind", "value", "value", "PILATE")),
+				Map.of("name", "address2", "node", Map.of("kind", "null"))));
+		Map<String, Object> fields = Map.of("fields", List.of(
+				Map.of("name", "cancel", "node", Map.of("kind", "boolean", "boolValue", false)),
+				Map.of("name", "patientIdentification", "node", Map.of("kind", "array", "items", List.of(patient)))));
+
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(
+						definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM, fields)));
+		assertEquals(2, validated.nodes().size());
+	}
+
+	/** An object node's fields still need non-blank names even when nested. */
+	@Test
+	void transformNodeRejectsNestedObjectFieldsMissingAName() {
+		Map<String, Object> nestedObject = Map.of("kind", "object",
+				"fields", List.of(Map.of("name", "", "node", Map.of("kind", "value", "value", "x"))));
+		Map<String, Object> fields = Map.of("fields",
+				List.of(Map.of("name", "top", "node", nestedObject)));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+						definition(Map.of(), workNode(AutomationConstants.NODE_DATA_TRANSFORM, fields))));
+	}
+
+	/** A declare-variable node requires at least one named field, like transform. */
+	@Test
+	void declareVariableNodeRequiresAtLeastOneField() {
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_DATA_DECLARE_VARIABLE, Map.of()))));
+	}
+
+	@Test
+	void declareVariableNodeAcceptsNamedFields() {
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_DATA_DECLARE_VARIABLE, Map.of("fields", List.of(
+								Map.of("name", "accountId", "node", Map.of("kind", "value", "value", "${request}")))))));
+		assertEquals(2, validated.nodes().size());
+	}
+
+	@Test
+	void declareVariableNodeRejectsAFieldNameThatIsNotAPythonIdentifier() {
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_DATA_DECLARE_VARIABLE, Map.of("fields", List.of(Map.of(
+								"name", "not a valid name", "node", Map.of("kind", "value", "value", "x"))))))));
+	}
+
+	@Test
+	void declareVariableNodeRejectsDuplicateFieldNames() {
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_DATA_DECLARE_VARIABLE, Map.of("fields", List.of(
+								Map.of("name", "accountId", "node", Map.of("kind", "value", "value", "x")),
+								Map.of("name", "accountId", "node", Map.of("kind", "value", "value", "y"))))))));
+	}
+
 	@Test
 	void triggerRejectsSetupSourceEvenWhenGlobalsAreValid() {
 		Map<String, Object> config = new LinkedHashMap<>();

@@ -1,4 +1,4 @@
-# Automation — Agent Guide
+﻿# Automation — Agent Guide
 
 Automation is a Java-first execution product built on existing SEMOSS reactors,
 engines, Insights, and project security. The persisted typed graph is canonical.
@@ -19,6 +19,7 @@ orchestrator.
 | `GetAutomationRun` | optional `project`, `runId` | Returns authorized durable run state, node history, and bounded output details. |
 | `ListAutomationRuns` | optional `project`, optional `limit` | Returns authorized run history, newest first. |
 | `CancelAutomationRun` | optional `project`, `runId` | Persists cancellation and signals the same-JVM fast path. |
+| `RerunAutomationNodes` | `project`, `runId`, `nodeIds` or `wholeRun`, optional `loopNodeId` + `iteration` | Reprocesses a finished run as a new run, leaving the finished run untouched: the whole automation again (`wholeRun`), or the chosen top-level nodes chained in run order with every other node carried over; with `loopNodeId` and a zero-based `iteration`, the chosen body nodes of that one loop iteration. See "Reprocessing a run". |
 | `RemoveAutomationStep` | `project`, `nodeId`, optional `removeDownstream` | Removes the requested step and validates the resulting draft. |
 
 Inline runs use `SYSTEM__AUTOMATION_INLINE__<sha256(loginType:loginId)>` as
@@ -66,6 +67,15 @@ references such as `${query_result[0].ID}` are resolved by
 `AutomationScopeResolver` while preserving the underlying Java value. The UI
 and durable history receive bounded presentation contracts, not raw tasks,
 engine objects, provider handles, Python variable names, or Insight internals.
+`data.transform` is a pure scope transform resolved directly by
+`AutomationDataTransformExecutor` - no Pixel call and no generated Python. It
+recursively resolves a configured field tree (nested objects/arrays, literals,
+and `${name.path}` references) into a brand-new JSON object built only from
+that tree; it never merges in any prior scope value. `data.declare-variable`
+builds its field tree the same way; besides its own `outputVar` entry, Java
+also spreads the declared names into scope as individually named variables -
+exactly like trigger globals - so later nodes can reference `${name}` directly
+instead of a dotted path into one output object.
 
 ## Node execution
 
@@ -144,6 +154,73 @@ metadata, and successful upstream outputs.
   resources for one run. It is not a durable-history database.
 - Resume reconstructs Java scope only from authorized persisted inputs and
   successful outputs. It must never rerun a successful node to recreate data.
+
+## Reprocessing a run
+
+`RerunAutomationNodes` reprocesses a finished run as a **new run**. The finished
+run is never modified, so its history stays exactly as it ran. It is the one
+explicit exception to "never rerun a successful node": the caller either asks for
+the whole automation again or names the nodes, so nothing runs that they did not
+ask for.
+
+- Only a finished run (SUCCESS, FAILED, CANCELLED, INTERRUPTED) can be
+  reprocessed, and only by an editor of the project.
+- The new run records the run it came from in `REPROCESSED_FROM_RUN_ID`, and its
+  own `STARTED_AT`/`COMPLETED_AT` describe the reprocess.
+- Both paths use the automation as it is saved now, never the original run's
+  snapshot.
+
+### Whole run (`wholeRun=["true"]`)
+
+`reprocessWholeRun` starts the automation from its trigger through the normal
+`start` path, with the automation's current defaults. Only inputs the finished run
+was given beyond its own defaults (`inputOverrides`) are carried over, so editing
+a trigger variable's default takes effect.
+
+### Chosen nodes
+
+`reprocessNodes` copies the finished run (`AutomationRunStore.cloneRunForReprocess`:
+run row, node rows, node sources, and saved results with their chunks under new
+result IDs; every copied node row has `CARRIED_OVER` set) and then runs the chosen
+nodes on the copy with `rerunNodes`, which resets only those rows (clearing
+`CARRIED_OVER`). Nodes that were not chosen keep their recorded result, shown as
+carried over, and the chosen nodes read it as upstream scope
+(`reconstructScope` with the chosen nodes excluded).
+
+- The selection is validated (`planNodeRerun`) before anything is copied, and a
+  copy refused before it started (for example a table that left memory) is
+  deleted again, so history never shows a phantom run.
+- Tables the finished run still holds in its execution Insight are made
+  available to the new run's Insight (`carryOverFrames`); a table that has left
+  memory refuses the reprocess untouched.
+- The chosen nodes' graph and sources are patched with their current settings
+  and recorded on the new run. A chosen node must still exist in the current
+  automation; the patched graph is validated as a whole.
+- Trigger, wait, and agent nodes cannot be reprocessed on their own (a whole
+  run covers them). A chosen loop re-runs entirely.
+- A failing chosen node stops the chain, later chosen nodes are skipped, and the
+  run settles through the normal `finishRun`: FAILED if any node, chosen or
+  carried over, is failed. Unchosen nodes downstream of a reprocessed node are
+  not recomputed and may be stale; choose them too.
+
+### One loop iteration
+
+Passing `loopNodeId` and a zero-based `iteration` reprocesses the chosen body
+nodes (`nodeIds` are the loop body's source node ids) of that single iteration,
+as a new run created the same way (`rerunLoopIterationNodes` on the copy).
+
+- Scope is rebuilt with the whole loop excluded, then the iteration's loop
+  variables are recomputed (`planLoop`). A while loop's carried outputs come from
+  the previous iteration's recorded rows.
+- The body runs once in order: chosen nodes run and publish their output;
+  unchosen successful nodes publish their recorded output so chosen nodes read
+  the same inputs they did originally.
+- Only the chosen iteration rows are reset (`reopenRunForLoopNodeRerun`); other
+  iterations, the loop node row, and its siblings stay carried over.
+- The loop's own collected `results` are not recomputed. Wait and agent nodes are
+  refused.
+- The loop must be a loop of the run, the iteration must exist, and the chosen
+  nodes must still exist in the current automation's loop body.
 
 ## Package layout
 

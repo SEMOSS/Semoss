@@ -224,6 +224,8 @@ public final class UserAuditTrailUtils {
 					new AuditedAction(AuditEventType.AUTOMATION_RUN_CANCEL, AuditTargetType.AUTOMATION)),
 			Map.entry("ResumeAutomationRun",
 					new AuditedAction(AuditEventType.AUTOMATION_RUN_RESUME, AuditTargetType.AUTOMATION)),
+			Map.entry("RerunAutomationNodes",
+					new AuditedAction(AuditEventType.AUTOMATION_RUN_RERUN, AuditTargetType.AUTOMATION)),
 			Map.entry("ResolveAutomationAgentRunAction",
 					new AuditedAction(AuditEventType.AUTOMATION_ACTION_RESOLVE, AuditTargetType.AUTOMATION)),
 			Map.entry("CreateSkill", new AuditedAction(AuditEventType.SKILL_CREATE, AuditTargetType.SKILL)),

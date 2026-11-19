@@ -84,6 +84,8 @@ public final class AutomationConstants {
 	public static final String CREATED_BY = "CREATED_BY";
 	public static final String CANCEL_REQUESTED = "CANCEL_REQUESTED";
 	public static final String RESULT_SUMMARY_COL = "RESULT_SUMMARY";
+	/** Run this run reprocessed (a re-run of its message or some of its nodes), else null. */
+	public static final String REPROCESSED_FROM_RUN_ID = "REPROCESSED_FROM_RUN_ID";
 
 	// -- AUTOMATION_RUN_NODE_SOURCES columns
 	// ---------------------------------------
@@ -104,6 +106,10 @@ public final class AutomationConstants {
 	public static final String OUTPUT_KIND_TABLE = "TABLE";
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
+	/** Bounded JSON of every run-scope variable as of this node's completion. */
+	public static final String SCOPE_SNAPSHOT = "SCOPE_SNAPSHOT";
+	/** True while a node row still holds the result copied from the run it was reprocessed from. */
+	public static final String CARRIED_OVER = "CARRIED_OVER";
 	public static final String ROOM_ID = "ROOM_ID";
 	public static final String WORKSPACE_ID = "WORKSPACE_ID";
 	public static final String MODEL_MESSAGE_ID = "MODEL_MESSAGE_ID";
@@ -212,6 +218,8 @@ public final class AutomationConstants {
 	public static final String NODE_FUNCTION_EXECUTE = "function.execute";
 	public static final String NODE_APP_PIXEL = "app.pixel";
 	public static final String NODE_AGENT_RUN = "agent.run";
+	public static final String NODE_DATA_TRANSFORM = "data.transform";
+	public static final String NODE_DATA_DECLARE_VARIABLE = "data.declare-variable";
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_CONTROL_IF = "control.if";
 	public static final String NODE_CONTROL_JEV = "control.jev";
@@ -247,6 +255,7 @@ public final class AutomationConstants {
 	public static final String CONFIG_GLOBALS = "globals";
 	public static final String CONFIG_DEFAULT_VALUE = "defaultValue";
 	public static final String CONFIG_SOURCE = "source";
+	public static final String CONFIG_FIELDS = "fields";
 	public static final String CONFIG_PATH = "path";
 	public static final String CONFIG_FORMAT = "format";
 	public static final String CONFIG_MISSING_VALUE = "missingValue";
@@ -303,6 +312,8 @@ public final class AutomationConstants {
 	/** How the ERROR_MESSAGE of an agent node cut off by its waitTimeoutMs ends. */
 	public static final String AGENT_WAIT_TIMEOUT_ERROR = " did not complete before the wait timeout.";
 	public static final String CONFIG_APP_ID = "appId";
+	public static final String CONFIG_CSV_HAS_HEADER = "csvHasHeader";
+	public static final String DATA_FORMAT_CSV = "csv";
 
 	// -- Node execution defaults / bounds
 	// --------------------------------------------
@@ -445,6 +456,8 @@ public final class AutomationConstants {
 	public static final String RESULT_SUMMARY = "summary";
 	/** Per-node variable descriptors used by Automation authoring clients. */
 	public static final String RESULT_SCOPE_VARIABLES = "scopeVariables";
+	/** Point-in-time run-scope snapshot for one node's run-history "Variables" view. */
+	public static final String RESULT_SCOPE_SNAPSHOT = "scopeSnapshot";
 
 	// -- Pixel execution defaults
 	// ----------------------------------------------------

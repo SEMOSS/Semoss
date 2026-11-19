@@ -402,7 +402,8 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.COMPLETED_NODES, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.CREATED_BY, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN_DATATYPE),
-				Pair.with(AutomationConstants.RESULT_SUMMARY_COL, AutomationConstants.VARCHAR_2000)));
+				Pair.with(AutomationConstants.RESULT_SUMMARY_COL, AutomationConstants.VARCHAR_2000),
+				Pair.with(AutomationConstants.REPROCESSED_FROM_RUN_ID, AutomationConstants.VARCHAR_255)));
 
 		// the Python source of each developer.python node as the run captured it, with its
 		// SOURCE_HASH. The run executes this snapshot, and the hash is checked before the source is
@@ -440,7 +441,9 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.PARENT_NODE_ID, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.ITERATION_INDEX, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.SOURCE_NODE_ID, AutomationConstants.VARCHAR_255),
-				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE)));
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.SCOPE_SNAPSHOT, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.CARRIED_OVER, BOOLEAN_DATATYPE)));
 
 		// a point where a run waits for input: an agent node (WAIT_TYPE AGENT_ACTION) paused on a
 		// pending action of its agent run (AGENT_RUN_ID and ROOM_ID in the model inference logs).
