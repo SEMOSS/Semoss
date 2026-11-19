@@ -155,6 +155,7 @@ public final class BrainTopicUtils {
 		topic.put("people", getPeople(ownerId, ownerType, topicId));
 		topic.put("folders", BrainMailFolders.ofTopic(ownerId, ownerType, topicId));
 		topic.put("files", BrainTopicFiles.ofTopic(ownerId, ownerType, topicId));
+		topic.put("m365Folders", BrainTopicLinks.ofTopic(ownerId, ownerType, topicId));
 
 		return topic;
 	}
