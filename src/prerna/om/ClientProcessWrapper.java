@@ -1609,6 +1609,13 @@ public class ClientProcessWrapper {
 			commands.add("--jail-root");
 			commands.add(jailDir);
 			addSandboxPathMounts(commands);
+			// When SANDBOX_ALLOW_NETWORK=true the launcher skips CLONE_NEWNET so
+			// user code can reach external services. Filesystem isolation, capability
+			// drop, and seccomp still apply; only the empty-netns and the AF_UNIX-
+			// only socket restriction are lifted.
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.SANDBOX_ALLOW_NETWORK))) {
+				commands.add("--no-net");
+			}
 			commands.add("--");
 			commands.add("--port");
 			commands.add(port);
