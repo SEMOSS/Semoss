@@ -121,6 +121,32 @@ class AutomationPixelExpressionRendererUnitTests {
 		assertEquals("TemplatePPTX(template_file=\"templates/deck.pptx\",payload="
 				+ AutomationRuntimeUtils.GSON.toJson(payload) + ");", expression);
 	}
+	
+	@Test
+	void includesFileNameInTemplatePptxExpressionWhenProvided() {
+		Map<String, Object> config = Map.of(
+				"templateFile", "deck.pptx",
+				"replacements", List.of(),
+				"outputFileName", "Q${quarter}_Report");
+		Map<String, Object> scope = Map.of("quarter", 3);
+
+		String expression = AutomationPixelExpressionRenderer.templatePptx(config, scope, "deck", "/runs/1");
+
+		assertTrue(expression.contains(",fileName=\"Q3_Report\""), expression);
+	}
+
+	@Test
+	void omitsFileNameFromTemplatePptxExpressionWhenAbsentOrBlank() {
+		Map<String, Object> noFileName = Map.of("templateFile", "deck.pptx", "replacements", List.of());
+		String expression = AutomationPixelExpressionRenderer.templatePptx(noFileName, Map.of(), "deck", "/runs/1");
+		assertTrue(!expression.contains("fileName"), expression);
+
+		Map<String, Object> blankFileName = Map.of("templateFile", "deck.pptx", "replacements", List.of(),
+				"outputFileName", "   ");
+		String expressionBlank = AutomationPixelExpressionRenderer.templatePptx(blankFileName, Map.of(), "deck",
+				"/runs/1");
+		assertTrue(!expressionBlank.contains("fileName"), expressionBlank);
+	}
 
 	@Test
 	void rejectsTemplatePptxPathsOutsideTheRunWorkspace() {
@@ -150,6 +176,44 @@ class AutomationPixelExpressionRendererUnitTests {
 				() -> AutomationPixelExpressionRenderer.templatePptx(
 						Map.of("templateFile", "deck.pptx", "replacements", List.of(chart)),
 						Map.of("amounts", List.of("not a number")), "deck", "/runs/1"));
+	}
+
+	@Test
+	void rendersChartWithMixedLiteralAndReferencedSeriesValues() {
+		Map<String, Object> chart = Map.of("shapeName", "Revenue", "type", "chart", "categories", "${labels}",
+				"series", List.of(Map.of("name", "Actual", "values", "${amounts}"),
+						Map.of("name", "Target", "values", List.of(5, "${bonus}"))));
+		Map<String, Object> config = Map.of("templateFile", "deck.pptx", "replacements", List.of(chart));
+		Map<String, Object> scope = Map.of("labels", List.of("Q1", "Q2"), "amounts", List.of(1, 2), "bonus", 7);
+
+		String expression = AutomationPixelExpressionRenderer.templatePptx(config, scope, "deck", "/runs/1");
+
+		String payload = "{\"Revenue\":{\"type\":\"chart\",\"categories\":[\"Q1\",\"Q2\"],"
+				+ "\"series\":[{\"name\":\"Actual\",\"values\":[1,2]},"
+				+ "{\"name\":\"Target\",\"values\":[5,7]}]}}";
+		assertEquals("TemplatePPTX(template_file=\"deck.pptx\",payload=" + AutomationRuntimeUtils.GSON.toJson(payload)
+				+ ");", expression);
+	}
+
+	@Test
+	void rejectsChartReferencesThatDoNotResolveToLists() {
+		Map<String, Object> categoriesRef = Map.of("shapeName", "Revenue", "type", "chart", "categories",
+				"${labels}", "series", List.of(Map.of("name", "2026", "values", List.of(1))));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationPixelExpressionRenderer.templatePptx(
+						Map.of("templateFile", "deck.pptx", "replacements", List.of(categoriesRef)),
+						Map.of("labels", "Q1, Q2"), "deck", "/runs/1"));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationPixelExpressionRenderer.templatePptx(
+						Map.of("templateFile", "deck.pptx", "replacements", List.of(categoriesRef)),
+						Map.of("labels", List.of(Map.of("a", 1))), "deck", "/runs/1"));
+
+		Map<String, Object> valuesRef = Map.of("shapeName", "Revenue", "type", "chart", "categories", List.of("A"),
+				"series", List.of(Map.of("name", "2026", "values", "${amounts}")));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationPixelExpressionRenderer.templatePptx(
+						Map.of("templateFile", "deck.pptx", "replacements", List.of(valuesRef)),
+						Map.of("amounts", 42), "deck", "/runs/1"));
 	}
 
 	@Test

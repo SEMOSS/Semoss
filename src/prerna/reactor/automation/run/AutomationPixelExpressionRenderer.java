@@ -105,8 +105,17 @@ final class AutomationPixelExpressionRenderer {
 			payload.put(shapeName,
 					templatePptxOperation(replacement, scope, replacementLabel, workspaceFolder));
 		}
-		return "TemplatePPTX(template_file=" + json(templateFile) + ",payload="
-				+ json(AutomationRuntimeUtils.GSON.toJson(payload)) + ");";
+		Object fileNameRaw = config.get("outputFileName");
+		String fileName = fileNameRaw != null ? interpolatedText(fileNameRaw, scope, label + " fileName") : null;
+		if (fileName != null && fileName.isBlank()) {
+			fileName = null;
+		}
+		String expression = "TemplatePPTX(template_file=" + json(templateFile) + ",payload="
+				+ json(AutomationRuntimeUtils.GSON.toJson(payload));
+		if (fileName != null) {
+			expression += ",fileName=" + json(fileName);
+		}
+		return expression + ");";
 	}
 
 	private static Map<String, Object> templatePptxOperation(Map<?, ?> replacement, Map<String, Object> scope,
