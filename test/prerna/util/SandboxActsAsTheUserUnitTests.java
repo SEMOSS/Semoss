@@ -48,6 +48,7 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.StoredAdmin;
 import prerna.reactor.utils.GetShareAuthTokenReactor;
 import prerna.reactor.utils.GetShareSessionTokenReactor;
+import prerna.security.SessionIds;
 import prerna.util.insight.InsightUtility;
 
 /**
@@ -104,7 +105,8 @@ class SandboxActsAsTheUserUnitTests {
 	void aSessionsFolderNameDoesNotTellTheSessionId() {
 		String name = InsightUtility.getFolderDirSessionId(SESSION_ID);
 
-		assertTrue(name.matches("[0-9a-f]{32}"), name);
+		assertTrue(name.matches("[0-9a-f]{64}"), name);
+		assertEquals(SessionIds.hash(SESSION_ID), name);
 		assertNotEquals(SESSION_ID.toLowerCase(), name);
 		assertEquals(name, InsightUtility.getFolderDirSessionId(SESSION_ID));
 		assertNotEquals(name, InsightUtility.getFolderDirSessionId(SESSION_ID + "0"));

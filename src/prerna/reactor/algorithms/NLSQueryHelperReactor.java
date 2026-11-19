@@ -44,6 +44,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.SessionIds;
 import prerna.util.Utility;
 
 public class NLSQueryHelperReactor extends AbstractRFrameReactor {
@@ -136,7 +137,7 @@ public class NLSQueryHelperReactor extends AbstractRFrameReactor {
 
 	private String getColHeadersAndTypes(boolean global, List<String> dbFilters) {
 		String dbTable = "db_" + Utility.getRandomString(6);
-		String rSessionTable = "NaturalLangTable" + ThreadStore.getSessionId().substring(0, 10);
+		String rSessionTable = "NaturalLangTable" + SessionIds.hash(ThreadStore.getSessionId()).substring(0, 10);
 
 		if (global) {
 			StringBuilder rsb = new StringBuilder();

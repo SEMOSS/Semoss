@@ -31,13 +31,9 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -91,6 +87,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.security.SessionIds;
 import prerna.util.Utility;
 import prerna.util.gson.FrameCacheHelper;
 import prerna.util.gson.InsightPanelAdapter;
@@ -106,12 +103,6 @@ public class InsightUtility {
 
 	protected static final Logger classLogger = LogManager.getLogger(InsightUtility.class.getName());
 	public static final String PANEL_VIEW_VISUALIZATION = "visualization";
-
-	/**
-	 * How many bytes of a session id's hash name its folder: 16, which is 32 hex
-	 * characters.
-	 */
-	private static final int SESSION_FOLDER_NAME_BYTES = 16;
 
 	public static final String OUTPUT_TYPE = "output";
 	public static final String MAP_OUTPUT = "map";
@@ -176,25 +167,22 @@ public class InsightUtility {
 	}
 
 	/**
-	 * The folder name that stands for a session in file locations: the first 32
-	 * characters of the SHA-256 hash of the session id, in hex. The same session
-	 * always gets the same name, and the name does not tell anyone the session id,
-	 * which is all a browser needs to act as the user.
+	 * The folder name that stands for a session in file locations: the session's
+	 * hash ({@link SessionIds#hash(String)}), the same value the logs and audit
+	 * tables hold. The same session always gets the same name, and the name does
+	 * not tell anyone the session id, which is all a browser needs to act as the
+	 * user.
 	 *
 	 * @param sessionId the session id, or null
 	 * @return the folder name for the session
 	 */
 	public static String getFolderDirSessionId(String sessionId) {
-		if (sessionId == null) {
+		String hash = SessionIds.hash(sessionId);
+		if (hash == null) {
 			classLogger.warn("SESSION ID is null");
 			return "UNKNOWN_SESSION_ID";
 		}
-		try {
-			byte[] hash = MessageDigest.getInstance("SHA-256").digest(sessionId.getBytes(StandardCharsets.UTF_8));
-			return HexFormat.of().formatHex(hash, 0, SESSION_FOLDER_NAME_BYTES);
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException("SHA-256 is not available to name the session folder", e);
-		}
+		return hash;
 	}
 
 	/**

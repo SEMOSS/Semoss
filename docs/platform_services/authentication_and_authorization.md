@@ -22,6 +22,12 @@ Monolith establishes the configured session or integration identity. REST resour
 
 Custom reactors should check access before loading and operating on a user-selected resource. A resource identifier supplied by a client or model is not proof of permission. Use `CustomReactorSecurity` for what the signed in user may do and to find people, and the platform's existing authorized operations, instead of introducing a parallel permission model; see [What custom reactors use instead](project_reactor_sandbox.md#what-custom-reactors-use-instead).
 
+## Session ids
+
+A session id is all a browser needs to act as its user, so the platform writes its hash, never the id, everywhere people or other processes can read it: the insight cache folder of the session, the log4j `sessionId` context and the `AUDIT_LOGS` and `SERVER_LOGS` rows written from it, `USER_TRACKING`, the user audit trail, the inference logs, an agent room's insight id, and the OpenShell sandbox leases. [SessionIds](../../src/prerna/security/SessionIds.java) makes the hash: an HMAC-SHA256 keyed by the RDF_Map setting `LOG_HASH_SALT`, as 64 hex characters, so the same session has the same hash in every folder, log and table. Every server of a cluster has the same `LOG_HASH_SALT`, so a session's hash is the same on each of them; without the setting, the hash is a plain SHA-256 of the id.
+
+The id itself stays with the parts that find or become the live session: the HTTP session and its cookie, the headless browser cookie an export sets, the `InsightStore` and `ThreadStore` session lookups, a share-session token, which becomes the browser's cookie when it is used, and the user's own Python process, which hands the id back on its calls. A share token that only signs its holder in keeps no session id.
+
 ## Changes to engines, projects and insights
 
 The write methods of the security utilities check the acting user themselves, so a caller that skips its own check is still refused. Each takes the signed in user and needs a level on the target:
