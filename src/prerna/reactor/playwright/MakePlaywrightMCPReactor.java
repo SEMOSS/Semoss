@@ -147,7 +147,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		// Make the selected app discoverable as an MCP toolbox in Playground. This
 		// preserves any existing tags and is the same registration used by the
 		// standard project MCP generators.
-		MCPUtility.addMCPTag(project);
+		MCPUtility.addMCPTag(user, project);
 
 		// Git operations
 		String versionGitFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,

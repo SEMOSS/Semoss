@@ -30,7 +30,7 @@ package prerna.engine.impl.pipeline;
 import java.util.Iterator;
 import java.util.Set;
 
-import prerna.util.SandboxedJavaExecution;
+import prerna.util.SandboxedClassLoading;
 import prerna.util.SemossClassLoader;
 
 /**
@@ -50,27 +50,27 @@ import prerna.util.SemossClassLoader;
  *
  * <p>
  * Nothing begins or ends one: being an admin class is the declaration. An admin
- * operation never runs under a project's custom code, which cannot load an admin
- * class either, so an admin pixel a custom reactor runs through its insight has
- * the admin's own permissions only. A thread the work starts is outside the
- * operation.
+ * operation never runs under a project's custom code, which cannot load an
+ * admin class either, so an admin pixel a custom reactor runs through its
+ * insight has the admin's own permissions only. A thread the work starts is
+ * outside the operation.
  */
 public final class AdminOperation {
 
-	private static final StackWalker STACK = StackWalker.getInstance(
-			Set.of(StackWalker.Option.RETAIN_CLASS_REFERENCE, StackWalker.Option.SHOW_HIDDEN_FRAMES));
+	private static final StackWalker STACK = StackWalker
+			.getInstance(Set.of(StackWalker.Option.RETAIN_CLASS_REFERENCE, StackWalker.Option.SHOW_HIDDEN_FRAMES));
 
 	private AdminOperation() {
 	}
 
 	/**
-	 * Whether the call being made on this thread is part of an admin operation.
-	 * The caller still checks that the signed in user is an admin.
+	 * Whether the call being made on this thread is part of an admin operation. The
+	 * caller still checks that the signed in user is an admin.
 	 *
 	 * @return true when a class that requires an admin is on the call stack and no
 	 *         class of a project is
 	 */
-	static boolean isRunning() {
+	public static boolean isRunning() {
 		return STACK.walk(frames -> {
 			boolean adminClassIsActing = false;
 			Iterator<StackWalker.StackFrame> each = frames.iterator();
@@ -79,7 +79,7 @@ public final class AdminOperation {
 				if (frameClass.getNestHost() == AdminOperation.class) {
 					continue;
 				}
-				if (SandboxedJavaExecution.isProjectClass(frameClass)) {
+				if (SandboxedClassLoading.isProjectClass(frameClass)) {
 					return false;
 				}
 				adminClassIsActing = adminClassIsActing || SemossClassLoader.requiresAdmin(frameClass.getName());

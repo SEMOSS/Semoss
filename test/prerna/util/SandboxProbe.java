@@ -441,6 +441,16 @@ public final class SandboxProbe {
 	}
 
 	/**
+	 * Reads the held engine's settings from the code of a platform engine class,
+	 * the way a platform engine reads the engine configured on it.
+	 *
+	 * @return the held engine's settings
+	 */
+	public static Object readHeldEngineSettingsAsAPlatformEngine() {
+		return PlatformEngine.settingsOfTheHeldEngine();
+	}
+
+	/**
 	 * Runs one method of a loaded probe class.
 	 *
 	 * @param probe  the sandboxed class
@@ -479,6 +489,23 @@ public final class SandboxProbe {
 			}
 		}, 0);
 		return calls;
+	}
+
+	/**
+	 * An engine class of the platform, whose code reads the held engine as an
+	 * engine reads the one configured on it.
+	 */
+	public abstract static class PlatformEngine implements IEngine {
+
+		/**
+		 * The settings of the held engine, read from this engine class's own code.
+		 *
+		 * @return the settings
+		 */
+		public static Object settingsOfTheHeldEngine() {
+			return ((IEngine) heldObject).getSmssProp();
+		}
+
 	}
 
 	/**

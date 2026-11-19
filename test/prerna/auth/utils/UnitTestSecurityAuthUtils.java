@@ -57,6 +57,7 @@ import prerna.auth.ReadOnlyAccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
 import prerna.util.DIHelperTestUtils;
@@ -266,9 +267,8 @@ public class UnitTestSecurityAuthUtils {
 	}
 
 	static void createProject(String id, String name, User user) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityProjectUtils.addProject(id, name, "APP", null, false, user);
-		SecurityProjectUtils.addProjectOwner(user, id, userId);
+		SecurityProjectUtils.addProjectOwner(user, id);
 	}
 
 	/**
@@ -280,33 +280,28 @@ public class UnitTestSecurityAuthUtils {
 	 * @param user the owner
 	 */
 	static void createProjectOfType(String id, String name, String type, User user) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityProjectUtils.addProject(id, name, type, null, false, user);
-		SecurityProjectUtils.addProjectOwner(user, id, userId);
+		SecurityProjectUtils.addProjectOwner(user, id);
 	}
 
 	static void createEngine(String id, String name, User user) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityEngineUtils.addEngine(id, name, IEngine.CATALOG_TYPE.DATABASE, null, null, false, user);
-		SecurityEngineUtils.addEngineOwner(id, userId);
+		SecurityEngineUtils.addEngineOwner(user, id);
 	}
 
 	static void createEngineGlobal(String id, String name, User user) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityEngineUtils.addEngine(id, name, IEngine.CATALOG_TYPE.DATABASE, null, null, true, user);
-		SecurityEngineUtils.addEngineOwner(id, userId);
+		SecurityEngineUtils.addEngineOwner(user, id);
 	}
 
 	static void createEngine(String id, String name, IEngine.CATALOG_TYPE catalogType, User user) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityEngineUtils.addEngine(id, name, catalogType, null, null, false, user);
-		SecurityEngineUtils.addEngineOwner(id, userId);
+		SecurityEngineUtils.addEngineOwner(user, id);
 	}
 
 	static void createEngineWithSubtype(String id, String name, User user, String subtype) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityEngineUtils.addEngine(id, name, IEngine.CATALOG_TYPE.DATABASE, subtype, null, false, user);
-		SecurityEngineUtils.addEngineOwner(id, userId);
+		SecurityEngineUtils.addEngineOwner(user, id);
 	}
 
 	static void addPermissionsToUserForEngine(User user, String userId, String engineId, String permission) {
@@ -384,9 +379,20 @@ public class UnitTestSecurityAuthUtils {
 		}
 	}
 
+	/**
+	 * Adds an insight to a project as test setup, the way the platform does for
+	 * no user.
+	 *
+	 * @param projectId   the project
+	 * @param insightId   the insight
+	 * @param insightName the insight's name
+	 * @param layout      the insight's layout
+	 */
 	public static void createInsight(String projectId, String insightId, String insightName, String layout) {
-		SecurityInsightUtils.addInsight(projectId, insightId, insightName, false, layout, false, 0, null, null, false,
-				null, null);
+		try (PlatformOperation operation = PlatformOperation.begin("test setup")) {
+			SecurityInsightUtils.addInsight(null, projectId, insightId, insightName, false, layout, false, 0, null,
+					null, false, null, null);
+		}
 	}
 
 	static Path createSmssFileFromProps(Properties securityProps, String folder, String filename) throws IOException {

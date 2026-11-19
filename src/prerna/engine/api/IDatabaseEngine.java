@@ -28,11 +28,13 @@
 package prerna.engine.api;
 
 import java.time.ZoneId;
+import java.util.Properties;
 import java.util.Vector;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.logging.IgnoreEngineLogging;
+import prerna.util.Constants;
 
 /**
  * This interface standardizes the functionality of all engines. All engines
@@ -168,4 +170,17 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	@IgnoreEngineLogging
 	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	ZoneId getDatabaseZoneId();
+
+	/**
+	 * Whether the database is a big data engine, its
+	 * {@link Constants#BIG_DATA_ENGINE} setting, which its queries account for.
+	 *
+	 * @return true for a big data engine
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default boolean isBigData() {
+		Properties smssProp = getSmssProp();
+		return smssProp != null && Boolean.parseBoolean(smssProp.getProperty(Constants.BIG_DATA_ENGINE));
+	}
 }

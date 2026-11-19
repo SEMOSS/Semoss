@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Prove a built sandbox image is usable: the worker tree matches the given py/, the venv
-# python imports the worker, git is present and the image runs as uid 1000.
+# python imports the worker, git is present and the image runs as uid 10001 and can write the
+# directories a sandbox writes.
 #
 #   docker/sandbox-smoke-test.sh <image> [py-dir]      # py-dir defaults to the repo's py/
 set -euo pipefail
@@ -31,6 +32,13 @@ docker run --rm --entrypoint bash -e EXPECT="$EXPECT" "$IMAGE" -ec "
   # same launch shape as OpenShellTransport: explicit interpreter, bare PATH
   env -i PATH=/usr/local/bin:/usr/bin:/bin \"\$P\" -c 'import sys, pandas, numpy, jsonpickle, gaas_tcp_server_handler, gaas_change_watcher; print(sys.version)'
   git --version
-  [ \"\$(id -u)\" = 1000 ] || { echo 'image does not run as uid 1000' >&2; exit 1; }
+  # the Kubernetes driver forces 10001; the Docker driver runs the image's USER, which matches
+  [ \"\$(id -u)\" = 10001 ] || { echo 'image does not run as uid 10001' >&2; exit 1; }
+  for d in /opt/semosshome /opt/semosshome/insight /opt/semosshome/py /opt/grants-rw /opt/grants-ro /Users /home; do
+    f=\"\$d/.smoke-\$\$\"
+    touch \"\$f\" 2>/dev/null || { echo \"uid 10001 cannot write \$d\" >&2; exit 1; }
+    rm -f \"\$f\"
+  done
+  [ -w /opt/semosshome/insight/log.txt ] || { echo 'worker log is not writable' >&2; exit 1; }
 "
 echo "smoke test passed for $IMAGE"

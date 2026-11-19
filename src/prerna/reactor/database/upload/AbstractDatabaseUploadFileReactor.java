@@ -28,7 +28,6 @@
 package prerna.reactor.database.upload;
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,7 +35,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -203,10 +201,7 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 				}
 			}
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, this.databaseId);
 		}
 
 		ClusterUtil.pushEngine(this.databaseId);

@@ -77,7 +77,7 @@ public class AdminSyncModelMetadataReactor extends AbstractReactor {
 		boolean force = Boolean.parseBoolean(this.keyValue.get(FORCE_KEY) + "");
 		boolean dryRun = Boolean.parseBoolean(this.keyValue.get(DRY_RUN_KEY) + "");
 
-		List<Map<String, Object>> results = SecurityModelMetadataUtils.syncModelMetadataFromCatalog(engineIds, force,
+		List<Map<String, Object>> results = SecurityModelMetadataUtils.syncModelMetadataFromCatalog(user, engineIds, force,
 				dryRun);
 
 		Map<String, Object> retMap = new LinkedHashMap<>();

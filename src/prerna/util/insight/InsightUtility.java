@@ -87,6 +87,7 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.security.SessionIds;
 import prerna.util.Utility;
 import prerna.util.gson.FrameCacheHelper;
 import prerna.util.gson.InsightPanelAdapter;
@@ -166,21 +167,22 @@ public class InsightUtility {
 	}
 
 	/**
-	 * Get a subset of the session Id to use in file locations to do file structure
-	 * length restrictions
-	 * 
-	 * @param sessionId
-	 * @return
+	 * The folder name that stands for a session in file locations: the session's
+	 * hash ({@link SessionIds#hash(String)}), the same value the logs and audit
+	 * tables hold. The same session always gets the same name, and the name does
+	 * not tell anyone the session id, which is all a browser needs to act as the
+	 * user.
+	 *
+	 * @param sessionId the session id, or null
+	 * @return the folder name for the session
 	 */
 	public static String getFolderDirSessionId(String sessionId) {
-		if (sessionId == null) {
+		String hash = SessionIds.hash(sessionId);
+		if (hash == null) {
 			classLogger.warn("SESSION ID is null");
 			return "UNKNOWN_SESSION_ID";
 		}
-		if (sessionId.length() > 32) {
-			return sessionId.substring(0, 32);
-		}
-		return sessionId;
+		return hash;
 	}
 
 	/**

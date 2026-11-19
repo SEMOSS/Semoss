@@ -28,6 +28,8 @@
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
 import java.util.List;
+
+import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
@@ -49,12 +51,12 @@ public class AddDigitalTwinReactor extends AddWorkspaceReactor {
 
 	@Override
 	public NounMetadata execute() {
-		requireUser();
+		User user = requireUser();
 		NounMetadata created = super.execute();
 		if (created.getNounType() != PixelDataType.ERROR) {
 			// shortcut: if this write fails the new agent stays, as an ordinary private
 			// agent; delete it here if that ever happens
-			SecurityProjectUtils.markDigitalTwin((String) created.getValue());
+			SecurityProjectUtils.markDigitalTwin(user, (String) created.getValue());
 		}
 		return created;
 	}

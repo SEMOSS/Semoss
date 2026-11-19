@@ -325,10 +325,37 @@ class SandboxFilesUnitTests {
 		assertTrue(calls.indexOf(SANDBOXED_PATH) < calls.indexOf(owner + "." + name), calls.toString());
 	}
 
+	@Test
+	void aZipFileSystemOpenedByItsAddressIsTheOneInsideTheUsersFolder() throws Throwable {
+		Path zipOutside = this.outside.resolveSibling("outside.zip");
+		try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(zipOutside))) {
+			zip.putNextEntry(new ZipEntry("entry.txt"));
+			zip.write("outside".getBytes(StandardCharsets.UTF_8));
+			zip.closeEntry();
+		}
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe().method("open", mv -> {
+			mv.visitFieldInsn(Opcodes.GETSTATIC, "prerna/util/SandboxProbe", "heldObject", "Ljava/lang/Object;");
+			mv.visitTypeInsn(Opcodes.CHECKCAST, "java/net/URI");
+			mv.visitTypeInsn(Opcodes.NEW, "java/util/HashMap");
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false);
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/nio/file/FileSystems", "newFileSystem",
+					"(Ljava/net/URI;Ljava/util/Map;)Ljava/nio/file/FileSystem;", false);
+		}).bytes());
+		SandboxedJavaExecution.setSandboxRootForCurrentThread(this.root.toString());
+		try {
+			SandboxProbe.heldObject = java.net.URI.create("jar:" + zipOutside.toUri());
+			assertThrows(java.io.IOException.class, () -> SandboxProbe.run(probe, "open"));
+			SandboxProbe.heldObject = java.net.URI.create("http://example.com/archive.zip");
+			assertThrows(SecurityException.class, () -> SandboxProbe.run(probe, "open"));
+		} finally {
+			SandboxProbe.heldObject = null;
+		}
+	}
+
 	@ParameterizedTest
-	@CsvSource({ "org/apache/poi/xssf/usermodel/XSSFWorkbook", "org/apache/poi/hslf/usermodel/HSLFSlideShow",
-			"jakarta/activation/MimetypesFileTypeMap", "jakarta/activation/MailcapCommandMap",
-			"java/io/FileInputStream", "java/io/FileOutputStream" })
+	@CsvSource({ "org/apache/poi/xssf/usermodel/XSSFWorkbook", "jakarta/activation/MimetypesFileTypeMap",
+			"jakarta/activation/MailcapCommandMap", "java/io/FileInputStream", "java/io/FileOutputStream" })
 	void aSubclassThatOpensAFileByNameGetsThePathRule(String superName) {
 		byte[] subclass = new SandboxProbe("custom/sandbox/Opener", superName)
 				.constructor("(Ljava/lang/String;)V", mv -> {

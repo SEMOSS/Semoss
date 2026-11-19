@@ -57,7 +57,7 @@ public class SandboxedClassLoader extends SecureClassLoader {
 	 * @param owner the project class that extends this loader
 	 */
 	protected SandboxedClassLoader(Class<?> owner) {
-		super(SandboxedJavaExecution.callerLoader(owner));
+		super(SandboxedClassLoading.callerLoader(owner));
 	}
 
 	/**
@@ -68,7 +68,7 @@ public class SandboxedClassLoader extends SecureClassLoader {
 	 * @param owner           the project class that extends this loader
 	 */
 	protected SandboxedClassLoader(ClassLoader requestedParent, Class<?> owner) {
-		super(SandboxedJavaExecution.callerLoader(owner));
+		super(SandboxedClassLoading.callerLoader(owner));
 	}
 
 	/**
@@ -80,7 +80,7 @@ public class SandboxedClassLoader extends SecureClassLoader {
 	 * @param owner           the project class that extends this loader
 	 */
 	protected SandboxedClassLoader(String name, ClassLoader requestedParent, Class<?> owner) {
-		super(name, SandboxedJavaExecution.callerLoader(owner));
+		super(name, SandboxedClassLoading.callerLoader(owner));
 	}
 
 	/**

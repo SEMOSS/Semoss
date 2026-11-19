@@ -724,7 +724,7 @@ public final class OpenShellTransport {
 			throw new IOException("Could not make " + home + ", the SEMOSS home (BaseFolder), inside the sandbox."
 					+ " Files cross into the sandbox at their host path, so the image must have a writable "
 					+ homeRoot() + ": docker/Dockerfile.sandbox provides /Users and /home. For a home under"
-					+ " another root, add that root to the image owned by uid 1000 (see"
+					+ " another root, add that root to the image owned by uid 10001 (see"
 					+ " docs/deployment/executor_sandbox.md) and set " + IMAGE_PROP + " to it.", e);
 		}
 	}

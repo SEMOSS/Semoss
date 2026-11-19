@@ -428,6 +428,30 @@ public abstract class AbstractOwlCreator {
 	}
 
 	/**
+	 * Whether the persisted OWL lacks a relationship written by
+	 * {@link #writeRelations(WriteOWLEngine)}, so a creator can remake an OWL
+	 * written before that relationship was added or corrected.
+	 *
+	 * @param engine       the engine whose persisted OWL is being inspected
+	 * @param fromTable    the table the relationship starts from
+	 * @param toTable      the table the relationship points to
+	 * @param relationName the relationship's name, such as
+	 *                     {@code FROM.COLUMN.TO.COLUMN}
+	 * @return true if the persisted OWL has no such relationship
+	 */
+	protected boolean relationMissing(IDatabaseEngine engine, String fromTable, String toTable,
+			String relationName) {
+		for (String[] existing : engine.getPhysicalRelationships()) {
+			if (fromTable.equals(Utility.getInstanceName(existing[0]))
+					&& toTable.equals(Utility.getInstanceName(existing[1]))
+					&& relationName.equals(Utility.getInstanceName(existing[2]))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
 	 * Remake the OWL from the declared schema.
 	 *
 	 * @param engine the engine whose OWL is being (re)written

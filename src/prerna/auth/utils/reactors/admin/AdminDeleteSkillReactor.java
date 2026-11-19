@@ -132,7 +132,7 @@ public class AdminDeleteSkillReactor extends AbstractReactor {
 	private void deleteProject(IProject project) {
 		String projectId = project.getProjectId();
 		UploadUtilities.removeProjectFromDIHelper(projectId);
-		SecurityProjectUtils.deleteProject(projectId);
+		SecurityProjectUtils.deleteProject(this.insight.getUser(), projectId);
 		UserTrackingUtils.deleteProject(projectId);
 		try {
 			project.delete();
