@@ -243,11 +243,18 @@ final class AppTestRecordings {
 		Path dir = base.resolve("tests");
 		Files.createDirectories(dir);
 		Path file = dir.resolve(recording.get("id") + ".json");
-		if (!Files.exists(file) && list(base).size() >= MAX_RECORDINGS) {
+		if (!Files.exists(file) && countFiles(dir) >= MAX_RECORDINGS) {
 			throw new IllegalArgumentException("An app can have at most " + MAX_RECORDINGS + " recordings");
 		}
 		write(file, recording);
 		return recording;
+	}
+
+	/** Counts recording files without parsing them, so an invalid neighbour cannot block saving a new one. */
+	private static long countFiles(Path dir) throws IOException {
+		try (var files = Files.list(dir)) {
+			return files.filter(p -> p.getFileName().toString().endsWith(".json")).count();
+		}
 	}
 
 	/** Discovery exposes metadata only; test bodies never enter list responses. */
@@ -293,7 +300,7 @@ final class AppTestRecordings {
 			if (needsDescription) write(file, validated);
 			return validated;
 		} catch (RuntimeException e) {
-			throw new IOException("Saved recording " + file.getFileName() + " is invalid; review it before running app tests", e);
+			throw new IOException("Saved recording " + file.getFileName() + " is invalid (" + e.getMessage() + "); review it before running app tests", e);
 		}
 	}
 

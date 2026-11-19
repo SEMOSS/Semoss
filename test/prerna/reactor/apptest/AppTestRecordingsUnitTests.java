@@ -171,6 +171,18 @@ class AppTestRecordingsUnitTests {
 	}
 
 	@Test
+	void anInvalidNeighbourDoesNotBlockSavingAndIsNamedWhenListed() throws Exception {
+		Map<String, Object> first = AppTestRecordings.save(temporary, recording("First"));
+		Files.writeString(temporary.resolve("tests/change-task-lane.json"), "{\"id\":\"change-task-lane\",\"version\":1,\"name\":\"Bad\",\"description\":\"x\",\"steps\":[{\"type\":\"CLICK\",\"selector\":\"a\"}]}");
+		Map<String, Object> second = AppTestRecordings.save(temporary, recording("Second"));
+		assertTrue(Files.exists(temporary.resolve("tests/" + second.get("id") + ".json")));
+		assertEquals(first.get("name"), AppTestRecordings.get(temporary, (String) first.get("id")).get("name"));
+		java.io.IOException failure = assertThrows(java.io.IOException.class, () -> AppTestRecordings.list(temporary));
+		assertTrue(failure.getMessage().contains("change-task-lane.json"));
+		assertTrue(failure.getMessage().contains("Invalid recording id"));
+	}
+
+	@Test
 	void discoveryReturnsOnlyIdNameAndDescription() throws Exception {
 		Map<String, Object> saved = AppTestRecordings.save(temporary, recording("Workflow"));
 		Map<String, Object> summary = AppTestRecordings.summaries(temporary).getFirst();

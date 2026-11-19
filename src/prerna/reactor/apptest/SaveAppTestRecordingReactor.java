@@ -56,7 +56,7 @@ public class SaveAppTestRecordingReactor extends AbstractAppTestReactor {
 			return new NounMetadata(recording,
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to save app test recording", e);
+			throw new IllegalArgumentException("Unable to save app test recording: " + e.getMessage(), e);
 		}
 	}
 
