@@ -39,7 +39,9 @@ use numeric strings (or `""`); use `longText` when a text value contains newline
 
 Bind editable values with `{"@path":"/field"}` and initialize them in
 `createSurface.dataModel`: strings for text/date, booleans for checkboxes,
-string arrays for choices, and numbers for sliders. Input labels and button Text
+string arrays for choices, and numbers for sliders. A ChoicePicker value is an
+array even for single selection: `[]` for nothing chosen, `["review"]` for one.
+Input labels and button Text
 labels must be nonempty literal strings. Date/time values use local native-input
 formats: `YYYY-MM-DD`, `HH:mm`, or `YYYY-MM-DDTHH:mm`; use `""` when unset.
 Use visible labels, short button labels, and Columns
@@ -84,6 +86,12 @@ Treat that as the owner's input. Use the existing tools for actual work and keep
 their ordinary approval requirements. A button does not send mail, update a
 calendar, or authorize a different external action. If the owner dismisses an
 interface, do not repeatedly recreate it; offer a simpler text interaction.
+
+A result with `userAction: "a2ui-invalid"` means the interface failed validation
+and the owner never saw it. `result.error` says what is wrong and names the
+component or path. Correct that and call `ShowUI` again; after two invalid
+attempts, ask in plain text instead. `messages` must be valid JSON: check that
+every bracket and brace closes.
 
 `updateComponents`, `updateDataModel`, and `deleteSurface` are supported inside
 the ordered message batch. There is no cross-call surface editing or token-level
