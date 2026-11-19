@@ -85,6 +85,10 @@ public final class AgentConfig {
 	private final String workingDir;
 	private final String agentFilesDir;
 
+	// A Digital Twin, and the display name of the person it answers about
+	private final boolean digitalTwin;
+	private final String digitalTwinOwner;
+
 	// MCP tool projects (union of WORKSPACE_RESOURCE + room.options.mcp[])
 	private final List<Map<String, String>> mcps;
 
@@ -138,6 +142,8 @@ public final class AgentConfig {
 				: Collections.emptySet();
 		this.workingDir = b.workingDir;
 		this.agentFilesDir = b.agentFilesDir;
+		this.digitalTwin = b.digitalTwin;
+		this.digitalTwinOwner = b.digitalTwinOwner;
 		this.mcps = b.mcps != null ? Collections.unmodifiableList(new ArrayList<>(b.mcps)) : Collections.emptyList();
 		this.skills = b.skills != null ? Collections.unmodifiableList(new ArrayList<>(b.skills))
 				: Collections.emptyList();
@@ -332,6 +338,23 @@ public final class AgentConfig {
 		return agentFilesDir;
 	}
 
+	/**
+	 * Whether the agent is a Digital Twin: an agent that answers about one person
+	 * from the copies that person put into its files, for the people they named.
+	 */
+	public boolean isDigitalTwin() {
+		return digitalTwin;
+	}
+
+	/**
+	 * The display name of the person a Digital Twin answers about, its creator.
+	 * {@code null} for any other agent, and for a twin whose creator is not on
+	 * record.
+	 */
+	public String getDigitalTwinOwner() {
+		return digitalTwinOwner;
+	}
+
 	// MCP tool projects
 	/**
 	 * Resolved MCP project refs for this run.
@@ -421,6 +444,8 @@ public final class AgentConfig {
 		private Map<String, Object> pptxWorkflow;
 		private String workingDir;
 		private String agentFilesDir;
+		private boolean digitalTwin;
+		private String digitalTwinOwner;
 		private List<Map<String, String>> mcps;
 		private List<Map<String, String>> skills;
 		private Budgets budgets;
@@ -526,6 +551,16 @@ public final class AgentConfig {
 
 		public Builder agentFilesDir(String v) {
 			this.agentFilesDir = v;
+			return this;
+		}
+
+		public Builder digitalTwin(boolean v) {
+			this.digitalTwin = v;
+			return this;
+		}
+
+		public Builder digitalTwinOwner(String v) {
+			this.digitalTwinOwner = v;
 			return this;
 		}
 

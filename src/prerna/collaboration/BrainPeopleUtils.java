@@ -284,6 +284,8 @@ public final class BrainPeopleUtils {
 	private static final String PHOTO = "/photos/96x96/$value";
 	// the address goes into a Graph path as is, so only plain ones are asked about
 	private static final Pattern PLAIN_ADDRESS = Pattern.compile("[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+");
+	// so does a Microsoft user id, so only what has an id's own shape is asked about
+	private static final Pattern USER_ID = Pattern.compile("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}");
 
 	// what the Brain knows of an address: how it relates to the owner, and the directory's answer
 	private record Known(String relationship, String directoryId, boolean checked) {
@@ -298,6 +300,21 @@ public final class BrainPeopleUtils {
 	 */
 	public static byte[] photo(User user, String address) throws Exception {
 		return photo(user, address, BrainMailHeaderSource.current());
+	}
+
+	/**
+	 * The same for someone known only by their Microsoft user id, as Teams names the people of a chat. Graph finds
+	 * a user by their id whatever their address is, so the Brain is asked nothing. Null when it is not an id.
+	 *
+	 * @throws Exception when Graph refuses, most often a 404 for someone who never set a photo
+	 */
+	public static byte[] photoById(User user, String userId) throws Exception {
+		return photoById(user, userId, BrainMailHeaderSource.current());
+	}
+
+	static byte[] photoById(User user, String userId, BrainMailHeaderSource source) throws Exception {
+		String id = userId == null ? "" : userId.trim();
+		return USER_ID.matcher(id).matches() ? source.photo(user, "/users/" + id + PHOTO) : null;
 	}
 
 	static byte[] photo(User user, String address, BrainMailHeaderSource source) throws Exception {

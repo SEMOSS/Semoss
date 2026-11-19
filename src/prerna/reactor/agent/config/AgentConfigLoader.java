@@ -201,8 +201,15 @@ public final class AgentConfigLoader {
 
 		// 6. Working directory
 		b.workingDir(StringUtils.trimToNull(workingDir));
-		b.agentFilesDir(resolveAgentFilesDir(workspaceId, workspaceRow,
-				room.getInsight() != null ? room.getInsight().getUser() : null));
+		User runUser = room.getInsight() != null ? room.getInsight().getUser() : null;
+		b.agentFilesDir(resolveAgentFilesDir(workspaceId, workspaceRow, runUser));
+		// A Digital Twin's rules follow it into every run. A run without a user has no
+		// agent files and nobody's tools, so the mark is not read for it.
+		if (workspaceId != null && workspaceRow != null && runUser != null
+				&& SecurityProjectUtils.isDigitalTwin(workspaceId)) {
+			b.digitalTwin(true);
+			b.digitalTwinOwner(SecurityProjectUtils.getProjectCreatorName(workspaceId));
+		}
 
 		// CONFIG_JSON budgets override per field; remaining values come from caller
 		// args.

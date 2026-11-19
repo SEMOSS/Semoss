@@ -127,6 +127,13 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	}
 
 	@Test
+	void aTwinNamesThePersonItAnswersAbout() {
+		// its creator, by id and login type, as the fixture registered them
+		assertEquals("ownername", SecurityProjectUtils.getProjectCreatorName(TWIN_ID));
+		assertNull(SecurityProjectUtils.getProjectCreatorName("no-such-project"));
+	}
+
+	@Test
 	void itsOwnerCannotMakeItPublicDiscoverableOrATemplate() throws Exception {
 		assertPeopleOnly(() -> SecurityProjectUtils.setProjectGlobal(owner, TWIN_ID, true));
 		assertPeopleOnly(() -> SecurityProjectUtils.setProjectDiscoverable(owner, TWIN_ID, true));

@@ -264,6 +264,18 @@ uploaded project's metadata file or a metadata reactor sends.
   everyone access to it (`grantNewUsersProjectAccess`, `addAllProjectUsers`);
   `grantAllProjects` leaves twins out. `CreateAppFromTemplate` does not clone one.
 - People are added and removed as on any project.
+- **Its rules at chat time.** `AgentConfigLoader` reads the mark for every run
+  that has a user (`AgentConfig.isDigitalTwin`, with its creator's name from
+  `SecurityProjectUtils.getProjectCreatorName`), and the SEMOSS harness then
+  adds `CollaborationPrompts.twinPrompt` after the twin's own instructions:
+  it is an AI and not its owner, it answers about its owner only from its
+  files, and it names the files it used. The owner cannot write these away.
+  `isDigitalTwin` throws when the mark cannot be read, so the run fails
+  sooner than start without them.
+- **Its index.** `WorkIndexTwinFiles(project)` describes the twin's files for
+  its chats (`WorkTwinIndex`). It is refused for anyone who cannot edit the
+  project, and with the same answer for a project that is not a twin, so
+  only someone who can change a twin learns that it is one.
 - **Avatars.** Where `COLLAB_AVATAR_GENERATION_ENABLED` is true,
   `WorkGenerateTwinAvatar` makes avatar options with the image model in
   `COLLAB_AVATAR_ENGINE_ID` for anyone in Collaboration, with no catalog check
@@ -271,7 +283,9 @@ uploaded project's metadata file or a metadata reactor sends.
   model's usage limits still apply. Do not add an engine key to it. The reactor
   refuses when the setting is off; hiding the button is not the check.
 
-`test/prerna/auth/utils/DigitalTwinUnitTests` covers these.
+`test/prerna/auth/utils/DigitalTwinUnitTests` covers these, with
+`AgentPromptCompositionUnitTests` for the chat-time rules and
+`WorkIndexTwinFilesReactorUnitTests` for who may run the index.
 
 ## Who can call it
 

@@ -63,7 +63,8 @@ import prerna.util.sql.SqlQueryUtilFactory;
 
 /**
  * Which Microsoft photo an avatar asks Graph for, against an in-memory H2 Collaboration schema: the owner's own, a
- * directory colleague's by id, an address not looked up yet, and nothing for the people Graph has no photo of.
+ * directory colleague's by id, an address not looked up yet, someone Teams names only by their Microsoft user id,
+ * and nothing for the people Graph has no photo of.
  */
 class BrainPeoplePhotoDbUnitTests {
 
@@ -183,6 +184,21 @@ class BrainPeoplePhotoDbUnitTests {
 		assertNull(pathFor(""));
 		assertNull(pathFor(null));
 		assertNull(BrainPeopleUtils.photo(user, "client@other.com", graph));
+	}
+
+	@Test
+	void readsAPhotoByMicrosoftUserIdAndByNothingElse() throws Exception {
+		String id = "8f3c1a2b-4d5e-4f60-9a7b-0c1d2e3f4a5b";
+		assertArrayEquals(JPEG, BrainPeopleUtils.photoById(user, " " + id + " ", graph));
+		assertEquals(List.of("/users/" + id + "/photos/96x96/$value"), paths);
+
+		// only an id reaches a Graph path
+		paths.clear();
+		for (String notAnId : new String[] { "me", "ana@test.com", id + "/../../me/messages", id + "?$select=id", "",
+				null }) {
+			assertNull(BrainPeopleUtils.photoById(user, notAnId, graph));
+		}
+		assertEquals(List.of(), paths);
 	}
 
 	// the Graph path one avatar reads its photo from, or null when it asks Graph nothing

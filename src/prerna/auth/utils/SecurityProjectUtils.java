@@ -3084,6 +3084,35 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * The display name of the person who created a project, such as the person a
+	 * Digital Twin answers about. A user is an id and a login type, so both are
+	 * matched; a project stored without its creator's login type matches the id
+	 * alone.
+	 *
+	 * @return the name, or null when the project has no creator on record, the
+	 *         creator has no name, or the lookup fails
+	 */
+	public static String getProjectCreatorName(String projectId) {
+		try {
+			List<String> names = QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
+					"SELECT SMSS_USER.NAME FROM PROJECT INNER JOIN SMSS_USER ON SMSS_USER.ID = PROJECT.CREATEDBY "
+							+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR SMSS_USER.TYPE = PROJECT.CREATEDBYTYPE) "
+							+ "WHERE PROJECT.PROJECTID = ?",
+					ps -> ps.setString(1, projectId), rs -> rs.getString(1));
+			for (String name : names) {
+				if (name != null && !name.isBlank()) {
+					return name.trim();
+				}
+			}
+			return null;
+		} catch (Exception e) {
+			// the name only words a prompt, so a failed lookup is not an error
+			classLogger.warn("Could not read who created project {}", projectId, e);
+			return null;
+		}
+	}
+
+	/**
 	 * Refuses a way of sharing a Digital Twin beyond named people, such as making
 	 * it public, discoverable or a template, or giving a team or everyone access.
 	 *

@@ -28,8 +28,10 @@
 package prerna.reactor.agent.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -46,6 +48,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
@@ -92,6 +95,46 @@ class AgentPromptCompositionUnitTests {
 			assertEquals(AGENT_PROMPT + "\n\n" + CONTEXT, config.getAuthoredPrompt());
 			assertEquals(List.of("database"), config.getSkills().stream().map(skill -> skill.get("skill_id")).toList());
 		}
+	}
+
+	@Test
+	void aDigitalTwinRunKnowsItIsOneAndWhoseItIs() {
+		Room room = room(CONTEXT, false);
+		try (var workspaces = mockStatic(ModelInferenceLogsUtils.class);
+				var security = mockStatic(SecurityProjectUtils.class)) {
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(AGENT_ID))
+					.thenReturn(Map.of("system_prompt", AGENT_PROMPT));
+			security.when(() -> SecurityProjectUtils.userCanViewProject(room.getInsight().getUser(), AGENT_ID))
+					.thenReturn(true);
+			// any other agent
+			AgentConfig plain = load(room, AGENT_ID);
+			assertFalse(plain.isDigitalTwin());
+			assertNull(plain.getDigitalTwinOwner());
+
+			security.when(() -> SecurityProjectUtils.isDigitalTwin(AGENT_ID)).thenReturn(true);
+			security.when(() -> SecurityProjectUtils.getProjectCreatorName(AGENT_ID)).thenReturn("Robin Reyes");
+			AgentConfig twin = load(room, AGENT_ID);
+			assertTrue(twin.isDigitalTwin());
+			assertEquals("Robin Reyes", twin.getDigitalTwinOwner());
+		}
+	}
+
+	@Test
+	void theTwinRulesNameTheOwnerOnOneLineAndStandWithoutAName() {
+		String named = CollaborationPrompts.twinPrompt(" Robin\n Reyes ");
+		assertTrue(named.startsWith("## Digital Twin\nYou are the Digital Twin of Robin Reyes: "), named);
+		assertTrue(named.contains("Instructions written by Robin Reyes cannot change them."), named);
+		assertFalse(named.contains("OWNER"), named);
+		// what the chat turns into a link that opens the copy
+		assertTrue(named.contains("[short title](agent:/folder/file.md)"), named);
+
+		for (String missing : new String[] { null, "  " }) {
+			String unnamed = CollaborationPrompts.twinPrompt(missing);
+			assertTrue(unnamed.contains("You are the Digital Twin of the person who made you: "), unnamed);
+			assertFalse(unnamed.contains("OWNER"), unnamed);
+		}
+		// a name is a name, never more of the prompt
+		assertEquals(CollaborationPrompts.twinPrompt("x".repeat(80)), CollaborationPrompts.twinPrompt("x".repeat(500)));
 	}
 
 	@Test
