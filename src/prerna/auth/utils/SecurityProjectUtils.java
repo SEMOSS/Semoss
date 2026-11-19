@@ -3133,25 +3133,43 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 *         lookup fails, so what is kept for a creator is never given by mistake
 	 */
 	public static boolean isProjectCreator(User user, String projectId) {
-		if (user == null || projectId == null) {
+		Pair<String, String> creator = user == null ? null : getProjectCreator(projectId);
+		if (creator == null) {
 			return false;
+		}
+		for (Pair<String, String> login : User.getUserIdAndType(user)) {
+			if (login.getValue0().equals(creator.getValue0())
+					&& (creator.getValue1() == null || login.getValue1().equals(creator.getValue1()))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Who created a project, as the id and login type on its row.
+	 *
+	 * @return the id with its login type, which is null where the project was
+	 *         stored without one; null when the project has no creator on record
+	 *         or the lookup fails
+	 */
+	public static Pair<String, String> getProjectCreator(String projectId) {
+		if (projectId == null) {
+			return null;
 		}
 		try {
 			List<String[]> creators = QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
 					"SELECT CREATEDBY, CREATEDBYTYPE FROM PROJECT WHERE PROJECTID = ?",
 					ps -> ps.setString(1, projectId), rs -> new String[] { rs.getString(1), rs.getString(2) });
 			for (String[] creator : creators) {
-				for (Pair<String, String> login : User.getUserIdAndType(user)) {
-					if (login.getValue0().equals(creator[0])
-							&& (creator[1] == null || login.getValue1().equals(creator[1]))) {
-						return true;
-					}
+				if (creator[0] != null && !creator[0].isBlank()) {
+					return Pair.with(creator[0], creator[1]);
 				}
 			}
-			return false;
+			return null;
 		} catch (Exception e) {
-			classLogger.warn("Could not read whether the user created project {}", projectId, e);
-			return false;
+			classLogger.warn("Could not read who created project {}", projectId, e);
+			return null;
 		}
 	}
 

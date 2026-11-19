@@ -146,12 +146,18 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		assertFalse(SecurityProjectUtils.isProjectCreator(stranger, TWIN_ID));
 		assertFalse(SecurityProjectUtils.isProjectCreator(null, TWIN_ID));
 		assertFalse(SecurityProjectUtils.isProjectCreator(owner, "no-such-project"));
+		// the id and login type Collaboration keeps that person's data under, their persona included
+		assertEquals(User.getPrimaryUserIdAndTypePair(owner), SecurityProjectUtils.getProjectCreator(TWIN_ID));
+		assertNull(SecurityProjectUtils.getProjectCreator("no-such-project"));
+		assertNull(SecurityProjectUtils.getProjectCreator(null));
 
 		// a project stored without its creator's login type matches the id alone
 		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET CREATEDBYTYPE = NULL WHERE PROJECTID = ?",
 				ps -> ps.setString(1, TWIN_ID));
 		assertTrue(SecurityProjectUtils.isProjectCreator(owner, TWIN_ID));
 		assertFalse(SecurityProjectUtils.isProjectCreator(editor, TWIN_ID));
+		// and says so, for a caller that must not take an id alone for a person
+		assertNull(SecurityProjectUtils.getProjectCreator(TWIN_ID).getValue1());
 	}
 
 	@Test

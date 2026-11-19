@@ -524,7 +524,7 @@ public final class WorkTwinSuggest {
 	record RecentChat(String name, List<Map<String, Object>> hits) {
 	}
 
-	private static List<RecentChat> recentChats(String token, String email) throws Exception {
+	static List<RecentChat> recentChats(String token, String email) throws Exception {
 		List<RecentChat> out = new ArrayList<>();
 		// a few chats at a time: Graph turns a burst away
 		try (ExecutorService pool = Executors.newFixedThreadPool(4)) {
@@ -546,6 +546,8 @@ public final class WorkTwinSuggest {
 						Map<String, Object> hit = new LinkedHashMap<>();
 						hit.put("chatId", chatId);
 						hit.put("chatName", name);
+						hit.put("chatType", chat.get("chatType"));
+						hit.put("fromId", message.get("fromId"));
 						hit.put("fromName", message.get("fromName"));
 						hit.put("createdDateTime", message.get("createdDateTime"));
 						hit.put("summary", message.get("body"));
@@ -666,7 +668,7 @@ public final class WorkTwinSuggest {
 	// ---- the rules ----
 
 	/** What the owner's rules keep from Brain, decided once for a search. */
-	private static final class Gate {
+	static final class Gate {
 		private final String ownerId;
 		private final String ownerType;
 		private final List<BrainRulesGate.Rule> rules;
@@ -683,6 +685,11 @@ public final class WorkTwinSuggest {
 			this.rules = BrainRulesGate.activeRules(ownerId, ownerType);
 			this.ownMail = BrainOwnMail.keys(ownerId, ownerType);
 			this.self = BrainRulesGate.norm(email);
+		}
+
+		// whether the owner keeps anything out at all; without a rule nothing needs looking up
+		boolean hasRules() {
+			return !rules.isEmpty();
 		}
 
 		// Mail Collaboration itself sent the owner, such as a routine's result. It names whatever the owner works on,
@@ -717,7 +724,7 @@ public final class WorkTwinSuggest {
 	// ---- the model ----
 
 	// the model's answer as JSON that holds the key it must, asked once more when it does not
-	private static Map<String, Object> ask(IModelEngine model, User user, Map<String, Object> input,
+	static Map<String, Object> ask(IModelEngine model, User user, Map<String, Object> input,
 			String instructions, Map<String, Object> schema, int maxTokens, String key) {
 		for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
 			Map<String, Object> params = new LinkedHashMap<>();
@@ -736,12 +743,12 @@ public final class WorkTwinSuggest {
 		throw new IllegalArgumentException("The model's answer could not be read. Try again.");
 	}
 
-	private static Map<String, Object> words() {
+	static Map<String, Object> words() {
 		return Map.of("type", "array", "items", Map.of("type", "string"));
 	}
 
 	// an object that must hold every one of these properties and nothing else; the arguments are name, schema pairs
-	private static Map<String, Object> object(Object... properties) {
+	static Map<String, Object> object(Object... properties) {
 		Map<String, Object> byName = new LinkedHashMap<>();
 		for (int i = 0; i < properties.length; i += 2) {
 			byName.put((String) properties[i], properties[i + 1]);

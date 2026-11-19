@@ -55,6 +55,7 @@ import prerna.collaboration.CollaborationMemoryRunHook;
 import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationSkills;
 import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.WorkTwinPersona;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -209,9 +210,12 @@ public final class AgentConfigLoader {
 				&& SecurityProjectUtils.isDigitalTwin(workspaceId);
 		if (digitalTwin) {
 			b.digitalTwin(true);
-			b.digitalTwinOwner(SecurityProjectUtils.getProjectCreatorName(workspaceId));
+			String twinOwner = SecurityProjectUtils.getProjectCreatorName(workspaceId);
+			b.digitalTwinOwner(twinOwner);
 			// its owner's own chat: the twin is told who it is talking to and may add to its files
 			b.digitalTwinOwnChat(SecurityProjectUtils.isProjectCreator(runUser, workspaceId));
+			// how its owner sounds and decides, unless they have no persona or switched it off for this twin
+			b.digitalTwinPersona(WorkTwinPersona.promptBlock(workspaceId, twinOwner));
 		}
 
 		// CONFIG_JSON budgets override per field; remaining values come from caller

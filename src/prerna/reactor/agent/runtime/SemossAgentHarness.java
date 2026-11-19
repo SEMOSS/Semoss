@@ -292,10 +292,16 @@ public class SemossAgentHarness implements IAgentHarness {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
 		// a Digital Twin's rules, after its owner's instructions so those cannot take
-		// them away
+		// them away. Its owner's persona goes between the two: whoever is chatting can
+		// replace the instructions through their room, never this, and it never goes
+		// without the rules that say how it may be used
+		String twinPersona = agentConfig.isDigitalTwin() ? agentConfig.getDigitalTwinPersona() : null;
 		if (agentConfig.isDigitalTwin()) {
+			if (twinPersona != null) {
+				composed.append("\n\n").append(twinPersona);
+			}
 			composed.append("\n\n").append(CollaborationPrompts.twinPrompt(agentConfig.getDigitalTwinOwner(),
-					agentConfig.isDigitalTwinOwnChat(), twinFileTool != null));
+					agentConfig.isDigitalTwinOwnChat(), twinFileTool != null, twinPersona != null));
 		}
 		// who the owner is and what they asked to remember, in their chat or routine;
 		// after the static parts so they stay cacheable
@@ -335,10 +341,11 @@ public class SemossAgentHarness implements IAgentHarness {
 		room.setOptionsMap(opts);
 
 		logger.info(
-				"SemossAgentHarness: composed system prompt room={} workspaceId={} harnessChars={} agentSideChars={} (agentAgentsMd={} workdirAgentsMd={} authored={})",
+				"SemossAgentHarness: composed system prompt room={} workspaceId={} harnessChars={} agentSideChars={} (agentAgentsMd={} workdirAgentsMd={} authored={}) twinPersonaChars={}",
 				room.getId(), agentConfig.getWorkspaceId(), SemossHarnessPrompts.SYSTEM_PROMPT.length(),
 				agentSidePrompt != null ? agentSidePrompt.length() : 0, lengthOrZero(agentConfig.getAgentAgentsMd()),
-				lengthOrZero(agentConfig.getWorkdirAgentsMd()), lengthOrZero(agentConfig.getAuthoredPrompt()));
+				lengthOrZero(agentConfig.getWorkdirAgentsMd()), lengthOrZero(agentConfig.getAuthoredPrompt()),
+				lengthOrZero(twinPersona));
 
 		AgentLoopState state = new AgentLoopState();
 		String progressOutcome = "failed";

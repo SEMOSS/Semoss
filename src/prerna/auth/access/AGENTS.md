@@ -307,6 +307,20 @@ uploaded project's metadata file or a metadata reactor sends.
   someone who can only edit a twin is neither handed the tool nor served by
   it. Do not make the tool run without approval: what it adds is readable by
   everyone the twin is shared with.
+- **Its owner's persona.** A person keeps one persona for their twins
+  (`WorkTwinPersona`, table `BRAIN_PERSONA`): how they sound, how they decide
+  and what a twin must leave to them. Only its owner reads or writes it
+  (`WorkGetTwinPersona`, `WorkSaveTwinPersona`, `WorkDeleteTwinPersona`); the
+  people a twin is shared with never get it from a reactor, though a twin can
+  be talked into quoting what it was told. `AgentConfigLoader` puts it on the
+  run (`AgentConfig.getDigitalTwinPersona`) and the harness adds it between
+  the twin's own instructions and its rules, which then let the twin write in
+  that voice and give its read of its owner's views
+  (`twinPrompt(..., hasPersona)`). It goes only to a twin whose creator is on
+  record with their login type, can still edit the twin, and has not switched
+  it off there (`WorkSetTwinPersona`, creator only). Any failure to read it
+  means a run without it, never a failed run. Do not put it into the twin's
+  own instructions: whoever is chatting can replace those through their room.
 - **Avatars.** Where `COLLAB_AVATAR_GENERATION_ENABLED` is true,
   `WorkGenerateTwinAvatar` makes avatar options with the image model in
   `COLLAB_AVATAR_ENGINE_ID` for anyone in Collaboration, with no catalog check
