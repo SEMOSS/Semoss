@@ -1172,6 +1172,35 @@ written to the security audit trail (`LOGIN_SUCCESS`/`LOGIN_FAILURE`, see
 "Security audit logging" above) via the same
 `SemossLogUtils.logSecurityAuditEvent` path `UserResource.loginNative` uses.
 
+### Behind an AWS Application Load Balancer (mutual TLS in verify mode)
+
+A load balancer that ends TLS (an ALB, so that a WAF can sit in front) means Tomcat no longer
+sees the card. The ALB checks the card instead, against a trust store of the DoD CAs, and passes the
+leaf certificate to the task in the `X-Amzn-Mtls-Clientcert-Leaf` header (URL encoded PEM, with
+`+ = /` left as they are). Monolith's `AlbClientCertFilter` turns that header back into the certificate
+`CACRequiredFilter`, `CACFilter` and `PIVFilter` read, ahead of them in `web.xml`, so they work unchanged.
+
+| Variable | Meaning |
+|---|---|
+| `ALB_MTLS_ENABLED` | `true` to honor the header; default `false`, which ignores it. Any other value stops the start. |
+| `ALB_MTLS_TRUSTED_CIDRS` | Comma separated subnets the ALB's requests come from, such as `192.168.200.0/24`. Required with `ALB_MTLS_ENABLED=true`: the start is refused without it, or with anything but address characters. |
+
+A header is only as trustworthy as whoever sent it, so the filter is strict:
+
+- It honors the header only when the request's **TCP peer** is inside `ALB_MTLS_TRUSTED_CIDRS`. The peer is the socket's address, never `X-Forwarded-For`, which a client can set.
+- **The tasks must accept connections only from the ALB's security group.** The address check is a second layer, not a substitute: a task that anyone can reach directly, from inside the allowed range, can be sent a forged header.
+- A certificate that came over a direct TLS connection (no ALB) is never replaced.
+- A header that is malformed, over 16 KB, or holds an expired or not yet valid certificate is ignored. The request then has no certificate and is refused further down, like any request without a card.
+
+What is and is not checked where:
+
+- **The ALB** checks the chain against its trust store (and revocation lists, if loaded). This filter does not validate a chain. Load the same DoD roots and ID CAs the Tomcat trust store has, and turn on "advertise trust store CA names" so a browser's certificate picker offers only cards the ALB will accept.
+- **Revocation** is the ALB's, and an issuer with no list loaded gets no revocation check at all. The DoD CRLs measured on 2026-11-19 total about 3.1 million entries across 15 lists (about 151 MB as PEM; the three biggest are about 600,000 entries each). That is far over the default of 500,000 entries per trust store and needs a quota increase and a refresh job, because a list is only valid for about a week. Leave it out until that is set up, or check the card against the DoD OCSP responders in the application instead.
+- **No card, no page.** In verify mode the ALB refuses a connection that has no acceptable certificate at the TLS stage, so a browser shows its own error and `/cacRequired/` is not reached; retrying prompts for the card again.
+- The CAC trust store secret is still required at start (see above). Behind an ALB it is not used to validate clients.
+
+Mapped from the environment by `conf/setenv.sh` to the `alb.mtls.enabled` and `alb.mtls.trusted.cidrs` system properties.
+
 ### Not in this pass
 
 `CACReader.java`/`PIVReader.java` (fully dead, commented-out PKCS#11-smartcard

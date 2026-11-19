@@ -52,6 +52,35 @@ else
   CATALINA_OPTS="$CATALINA_OPTS -Dcac.piv.truststore.password=changeit"
 fi
 CATALINA_OPTS="$CATALINA_OPTS -Dcac.piv.required=$CAC_PIV_REQUIRED"
+# Behind an AWS Application Load Balancer doing mutual TLS in verify mode the TLS
+# connection ends at the load balancer, so Tomcat never sees the card: the ALB checks the
+# chain against its trust store and passes the leaf certificate in the
+# X-Amzn-Mtls-Clientcert-Leaf header. Monolith's AlbClientCertFilter turns that back into
+# the certificate the CAC/PIV filters read, but only when asked to and only from the load
+# balancer's addresses, because a header is only as trustworthy as whoever sent it:
+#   ALB_MTLS_ENABLED=true        honor the header (default false)
+#   ALB_MTLS_TRUSTED_CIDRS=...   comma separated subnets the ALB's requests come from, such
+#                                as 192.168.200.0/24; required with ALB_MTLS_ENABLED=true.
+#                                The start is refused without it. The tasks must also accept
+#                                connections only from the ALB's security group.
+# Only these two settings go through the JVM options (catalina.sh re-parses them with eval),
+# so the range is limited to the characters of an address list.
+case "${ALB_MTLS_ENABLED:-false}" in
+  false) ;;
+  true)
+    ALB_MTLS_CIDRS="$(printf '%s' "${ALB_MTLS_TRUSTED_CIDRS:-}" | tr -d ' ')"
+    # a list of nothing but commas names no address
+    case "$(printf '%s' "$ALB_MTLS_CIDRS" | tr -d ',')" in
+      "") ALB_MTLS_CIDRS="" ;;
+    esac
+    case "$ALB_MTLS_CIDRS" in
+      ""|*[!0-9A-Fa-f:./,]*)
+        echo "ALB_MTLS_ENABLED=true needs ALB_MTLS_TRUSTED_CIDRS: the load balancer's subnets, comma separated (for example 192.168.200.0/24)" >&2
+        return 1 2>/dev/null || exit 1 ;;
+    esac
+    CATALINA_OPTS="$CATALINA_OPTS -Dalb.mtls.enabled=true -Dalb.mtls.trusted.cidrs=$ALB_MTLS_CIDRS" ;;
+  *) echo "ALB_MTLS_ENABLED must be true or false" >&2; return 1 2>/dev/null || exit 1 ;;
+esac
 # Login sessions. By default each lives in the memory of the one container that
 # created it, so a deployment with a single container needs nothing. With several
 # containers set SESSION_STORE=jdbc: the entrypoint (session_store.py) writes a
