@@ -86,6 +86,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
+import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
@@ -3446,6 +3447,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
+		if (projectMetadataFilter != null && projectMetadataFilter.containsKey(DIGITAL_TWIN_METAKEY)) {
+			// A legacy untyped creator id may identify people on more than one provider.
+			qs1.addSelector(new QueryOpaqueSelector("(SELECT CASE WHEN COUNT(*) = 1 THEN MIN(creator.NAME) END "
+					+ "FROM SMSS_USER creator WHERE creator.ID = PROJECT.CREATEDBY "
+					+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR creator.TYPE = PROJECT.CREATEDBYTYPE))",
+					"digital_twin_owner_name"));
+		}
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DATECREATED", "project_date_created"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DATELASTEDITED", "project_date_last_edited"));
 

@@ -119,6 +119,11 @@ public final class WorkTwinIndex {
 	record Outcome(Map<String, AgentFilesIndex.Entry> entries, boolean changed, int described, int remaining) {
 	}
 
+	/** Serializes description updates with removing a copy and its description. */
+	static Object lockFor(String projectId) {
+		return LOCKS.computeIfAbsent(projectId, id -> new Object());
+	}
+
 	/**
 	 * One pass over a Digital Twin's files. The caller has checked that the project
 	 * is a twin this user may change.
@@ -162,7 +167,7 @@ public final class WorkTwinIndex {
 		}
 		long started = System.nanoTime();
 		Outcome outcome;
-		synchronized (LOCKS.computeIfAbsent(projectId, id -> new Object())) {
+		synchronized (lockFor(projectId)) {
 			try {
 				outcome = pass(folder, describer);
 				if (outcome.changed()) {

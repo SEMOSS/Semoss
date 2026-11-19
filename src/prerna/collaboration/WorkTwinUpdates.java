@@ -597,8 +597,8 @@ public final class WorkTwinUpdates {
 
 	// ---- the rows ----
 
-	private static String id(String ownerId, String ownerType, Copy copy) {
-		return CollaborationDbUtils.deterministicId(ownerId, ownerType, "twin-copy", copy.projectId(), copy.path());
+	private static String id(String ownerId, String ownerType, String projectId, String path) {
+		return CollaborationDbUtils.deterministicId(ownerId, ownerType, "twin-copy", projectId, path);
 	}
 
 	// timestamps are stored as UTC wall time
@@ -635,7 +635,7 @@ public final class WorkTwinUpdates {
 		Map<String, Row> rows = rows(ownerId, ownerType);
 		List<Copy> known = new ArrayList<>();
 		for (Copy copy : copies) {
-			Row row = rows.get(id(ownerId, ownerType, copy));
+			Row row = rows.get(id(ownerId, ownerType, copy.projectId(), copy.path()));
 			known.add(row == null || row.copiedAt() == null || !copy.key().equals(row.key()) ? copy
 					: new Copy(copy.projectId(), copy.path(), copy.kind(), copy.key(), copy.driveId(),
 							row.copiedAt()));
@@ -659,7 +659,7 @@ public final class WorkTwinUpdates {
 				Set<String> held = new HashSet<>();
 				for (Finding finding : findings) {
 					Copy copy = finding.copy();
-					String id = id(ownerId, ownerType, copy);
+					String id = id(ownerId, ownerType, copy.projectId(), copy.path());
 					held.add(id);
 					Row row = rows.get(id);
 					boolean found = CHANGED.equals(finding.state()) || GONE.equals(finding.state())
@@ -791,6 +791,19 @@ public final class WorkTwinUpdates {
 					}
 					return update;
 				}, ownerId, ownerType, OPEN);
+	}
+
+	/** Dismiss a pending update for a copy removed in chat, as the owner's Files page does. */
+	static void dismissRemovedCopy(User user, String projectId, String path) {
+		if (COPY_PATH.matcher(path).matches()) {
+			try {
+				Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+				settle(user, id(owner.getValue0(), owner.getValue1(), projectId, path), DISMISSED);
+			} catch (RuntimeException e) {
+				// The file is already gone; the next update check also drops rows for missing files.
+				classLogger.warn("Could not dismiss a Digital Twin update after its copy was removed", e);
+			}
+		}
 	}
 
 	/**

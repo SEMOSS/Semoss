@@ -288,7 +288,7 @@ uploaded project's metadata file or a metadata reactor sends.
   Collaboration keeps for them (no profile, memories or routine preferences),
   gets none of their assistant skills, and no after-run hook runs, so nothing
   from the chat is learned or filed in their account. The one exception is
-  the file tool of its owner's own chat, below. Do not hand a twin a tool that
+  the file tools of its owner's own chat, below. Do not hand a twin a tool that
   reads or acts for the person chatting.
 - **Its index.** `WorkIndexTwinFiles(project)` describes the twin's files for
   its chats (`WorkTwinIndex`). It is refused for anyone who cannot edit the
@@ -299,14 +299,12 @@ uploaded project's metadata file or a metadata reactor sends.
 - **Its owner's own chat.** `AgentConfigLoader` also reads whether the person
   running a twin created it (`SecurityProjectUtils.isProjectCreator`,
   `AgentConfig.isDigitalTwinOwnChat`). The twin is then told it is talking to
-  the person it answers about, and in a Collaboration chat it is handed one
-  tool, `SaveToDigitalTwin` (`WorkSaveToTwin`), which copies a file of the
-  chat into the twin's `public/files` once that person approves the call. The
-  reactor takes no twin: it adds to the agent of the chat it runs in, and
-  refuses unless that agent is a twin the caller created and can edit, so
-  someone who can only edit a twin is neither handed the tool nor served by
-  it. Do not make the tool run without approval: what it adds is readable by
-  everyone the twin is shared with.
+  the person it answers about. The root of their Collaboration chat can propose
+  `SaveToDigitalTwin` to copy a file from that room or `RemoveFromDigitalTwin`
+  to delete one exact shared document from that twin. Each action waits for
+  its owner's approval. Both reactors resolve the twin from the chat and
+  require its creator to retain edit access. The approval is bound to the room
+  and twin that requested it. Removing a copy leaves the source in place.
 - **Its owner's persona.** A person keeps one persona for their twins
   (`WorkTwinPersona`, table `BRAIN_PERSONA`): how they sound, how they decide
   and what a twin must leave to them. Only its owner reads or writes it

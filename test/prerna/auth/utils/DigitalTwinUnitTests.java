@@ -32,14 +32,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +59,12 @@ import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.inferencetracking.reactors.workspaces.GetWorkspaceReactor;
 import prerna.io.connector.ms.MicrosoftGraphUserLookup;
+import prerna.om.Insight;
+import prerna.reactor.agent.runtime.PlatformAgentTools;
+import prerna.sablecc2.om.NounStore;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -253,8 +262,10 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	void itIsListedForItsOwnerAndThePeopleItIsSharedWith() {
 		Map<String, Object> twins = Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, List.of("true"));
 
-		assertEquals(List.of(TWIN_ID), ids(
-				SecurityProjectUtils.getUserProjectList(reader, null, null, false, twins, null, null, null, null)));
+		List<Map<String, Object>> shared = SecurityProjectUtils.getUserProjectList(reader, null, null, false, twins,
+				null, null, null, null);
+		assertEquals(List.of(TWIN_ID), ids(shared));
+		assertEquals("ownername", shared.getFirst().get("digital_twin_owner_name"));
 		assertEquals(List.of(), ids(
 				SecurityProjectUtils.getUserProjectList(stranger, null, null, false, twins, null, null, null, null)));
 		// what the create step asks before it makes a second one: a twin the user made and owns
@@ -264,6 +275,24 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		assertEquals(List.of(),
 				ids(SecurityProjectUtils.getUserProjectList(editor, null, null, false, twins, null, null, null, null,
 						null, false, List.of(AccessPermissionEnum.OWNER.getId()), User.getUserIdAndType(editor))));
+	}
+
+	@Test
+	void twinBylinesResolveLegacyIdsOnlyWhenUnambiguous() throws Exception {
+		Map<String, Object> twins = Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, List.of("true"));
+		Supplier<Object> byline = () -> SecurityProjectUtils
+				.getUserProjectList(reader, null, null, false, twins, null, null, null, null)
+				.getFirst().get("digital_twin_owner_name");
+		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET CREATEDBYTYPE = NULL WHERE PROJECTID = ?",
+				ps -> ps.setString(1, TWIN_ID));
+		assertEquals("ownername", byline.get());
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"INSERT INTO SMSS_USER (ID, TYPE, NAME) VALUES (?, 'MICROSOFT', 'Other person')",
+				ps -> ps.setString(1, "ownerid"));
+		assertNull(byline.get());
+		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET CREATEDBYTYPE = 'NATIVE' WHERE PROJECTID = ?",
+				ps -> ps.setString(1, TWIN_ID));
+		assertEquals("ownername", byline.get());
 	}
 
 	@Test
@@ -320,10 +349,42 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		assertTrue(SecurityProjectUtils.userCanViewProject(reader, TWIN_ID));
 	}
 
+	@Test
+	void chatFileAccessIsOptInAndFollowsTheCallerAndTwin() {
+		try (MockedStatic<ModelInferenceLogsUtils> workspaces = mockStatic(ModelInferenceLogsUtils.class);
+				MockedStatic<PlatformAgentTools> tools = mockStatic(PlatformAgentTools.class)) {
+			tools.when(PlatformAgentTools::getDefaultToolDefinitions).thenReturn(List.of());
+			for (String id : List.of(TWIN_ID, PLAIN_ID)) {
+				workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
+						.thenAnswer(call -> new HashMap<>(Map.of("workspace_id", id, "is_active", true)));
+			}
+			assertFalse(workspace(owner, TWIN_ID, false).containsKey("digital_twin_file_access"));
+			assertEquals("manage", workspace(owner, TWIN_ID, true).get("digital_twin_file_access"));
+			assertEquals("read", workspace(editor, TWIN_ID, true).get("digital_twin_file_access"));
+			assertEquals("read", workspace(reader, TWIN_ID, true).get("digital_twin_file_access"));
+			assertEquals("read", workspace(owner, PLAIN_ID, true).get("digital_twin_file_access"));
+			assertThrows(IllegalArgumentException.class, () -> workspace(stranger, TWIN_ID, true));
+		}
+	}
+
 	///
 
 	private static void assertPeopleOnly(Executable sharing) {
 		assertEquals(PEOPLE_ONLY, assertThrows(IllegalArgumentException.class, sharing).getMessage());
+	}
+
+	private static Map<String, Object> workspace(User user, String projectId, boolean includeAccess) {
+		Insight insight = mock(Insight.class);
+		when(insight.getUser()).thenReturn(user);
+		NounStore store = new NounStore("get-workspace");
+		store.makeNoun("workspaceId").addLiteral(projectId);
+		if (includeAccess) {
+			store.makeNoun("includeDigitalTwinFileAccess").addBoolean(true);
+		}
+		GetWorkspaceReactor reactor = new GetWorkspaceReactor();
+		reactor.setInsight(insight);
+		reactor.setNounStore(store);
+		return map(reactor.execute().getValue());
 	}
 
 	private static void assertBlocked(Map<String, Object> change) {

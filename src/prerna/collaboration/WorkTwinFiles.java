@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,8 +43,10 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -97,9 +100,7 @@ public final class WorkTwinFiles {
 		String twinId = room == null ? null : agentOf(room);
 		// one answer whether the chat has no agent, its agent is not a twin, or the twin is someone else's:
 		// only its owner is told that an agent is a twin
-		if (twinId == null || !SecurityProjectUtils.isDigitalTwin(twinId)
-				|| !SecurityProjectUtils.isProjectCreator(user, twinId)
-				|| !SecurityProjectUtils.userCanEditProject(user, twinId)) {
+		if (!canManage(user, twinId)) {
 			throw new IllegalArgumentException("Files can only be added in a chat with your own Digital Twin");
 		}
 		Path source = chatFile(Path.of(Room.roomFolderPath(room.getId())), path);
@@ -136,6 +137,131 @@ public final class WorkTwinFiles {
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("file", "agent:/" + saved);
 		return out;
+	}
+
+	/** Whether this person can change the shared copies belonging to this twin. */
+	public static boolean canManage(User user, String twinId) {
+		return user != null && twinId != null && SecurityProjectUtils.isDigitalTwin(twinId)
+				&& SecurityProjectUtils.isProjectCreator(user, twinId)
+				&& SecurityProjectUtils.userCanEditProject(user, twinId);
+	}
+
+	/** Whether a room still contains the same twin that proposed a pending file change. */
+	public static boolean approvalMatches(Room room, Object expectedTwin) {
+		return expectedTwin instanceof String id && !id.isBlank() && room != null && id.equals(agentOf(room));
+	}
+
+	/** Removes exactly one shared document from the twin bound to its creator's chat. */
+	public static Map<String, Object> remove(User user, Room room, String path) {
+		String twinId = room == null ? null : agentOf(room);
+		if (!canManage(user, twinId)) {
+			throw new IllegalArgumentException("Files can only be removed in a chat with your own Digital Twin");
+		}
+		IProject project = Utility.getProject(twinId);
+		if (project == null) {
+			throw new IllegalArgumentException("The Digital Twin could not be opened");
+		}
+		Path folder = filesFolder(project);
+		String removed;
+		// The indexer must finish writing any in-flight description before the copy and its entry go away.
+		synchronized (WorkTwinIndex.lockFor(twinId)) {
+			ReentrantLock lock = ProjectSyncUtility.getProjectLock(twinId);
+			lock.lock();
+			try {
+				List<String> changedAssets = new ArrayList<>();
+				removed = removeSharedCopy(folder, path, changedAssets);
+				record(user, project, folder.getParent(), changedAssets, List.of(removed),
+						"remove: " + removed + " from a chat with the twin");
+			} catch (IOException e) {
+				throw new IllegalStateException("The shared copy could not be removed", e);
+			} finally {
+				lock.unlock();
+			}
+		}
+		WorkTwinUpdates.dismissRemovedCopy(user, twinId, removed);
+		return Map.of("file", path);
+	}
+
+	/** Delete a single listed document and drop its description and source association. Caller holds both locks. */
+	static String removeSharedCopy(Path folder, String path, List<String> changedAssets) throws IOException {
+		String prefix = "agent:/";
+		if (path == null || !path.startsWith(prefix)) {
+			throw new IllegalArgumentException("Pass an exact agent:/ path to a shared document");
+		}
+		String name = path.substring(prefix.length());
+		if (name.contains("\\") || name.equalsIgnoreCase("About me.md") || name.equals(AgentFilesIndex.FILE_NAME)) {
+			throw new IllegalArgumentException("Pass the path of a shared document copy");
+		}
+		Path target = folder;
+		for (String part : name.split("/", -1)) {
+			if (part.isBlank() || part.startsWith(".") || part.equalsIgnoreCase(PLACEHOLDER)
+					|| part.contains(":") || part.codePoints().anyMatch(Character::isISOControl)) {
+				throw new IllegalArgumentException("Pass the path of a shared document copy");
+			}
+			target = target.resolve(part);
+			if (Files.isSymbolicLink(target)) {
+				throw new IllegalArgumentException("Pass the path of a shared document copy");
+			}
+		}
+		String asset = Constants.PUBLIC_ASSETS_FOLDER + "/" + name;
+		if (Files.isSymbolicLink(folder)) {
+			throw new IllegalArgumentException("The shared files folder cannot be a link");
+		}
+		// An earlier removal may have completed locally while the cluster publication failed.
+		if (Files.notExists(target, LinkOption.NOFOLLOW_LINKS)) {
+			return asset;
+		}
+		if (!AgentFilesIndex.listFiles(folder).containsKey(name)
+				|| !Files.isRegularFile(target, LinkOption.NOFOLLOW_LINKS)
+				|| !target.toRealPath().equals(folder.toRealPath().resolve(name))) {
+			throw new IllegalArgumentException("No shared document at that path in this Digital Twin");
+		}
+		Path assets = folder.getParent();
+		Path sources = assets.resolve(WorkTwinUpdates.RECORD);
+		Map<Path, String> replacements = new LinkedHashMap<>();
+		if (Files.isRegularFile(sources, LinkOption.NOFOLLOW_LINKS)) {
+			JSONObject entries = new JSONObject(Files.readString(sources));
+			if (entries.remove(asset) != null) {
+				replacements.put(sources, entries.toString());
+			}
+		}
+		Map<String, AgentFilesIndex.Entry> index = AgentFilesIndex.read(folder);
+		if (index.remove(name) != null) {
+			replacements.put(folder.resolve(AgentFilesIndex.FILE_NAME), AgentFilesIndex.toJson(index));
+		}
+		if (replacements.isEmpty()) {
+			Files.delete(target);
+			return asset;
+		}
+
+		// Stage outside the shared assets. Atomic replacement also avoids writing through a hard link.
+		Path staging = Files.createTempDirectory(assets.getParent(), ".twin-remove-");
+		List<Path> updated = new ArrayList<>();
+		try {
+			for (var entry : replacements.entrySet()) {
+				Path file = entry.getKey();
+				Files.copy(file, staging.resolve(file.getFileName()), LinkOption.NOFOLLOW_LINKS);
+				Files.writeString(staging.resolve(file.getFileName() + ".new"), entry.getValue());
+			}
+			for (Path file : replacements.keySet()) {
+				Files.move(staging.resolve(file.getFileName() + ".new"), file,
+						StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+				updated.add(file);
+			}
+			Files.delete(target);
+		} catch (IOException | RuntimeException e) {
+			for (Path file : updated) {
+				Files.move(staging.resolve(file.getFileName()), file,
+						StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+			}
+			FileUtils.deleteQuietly(staging.toFile());
+			throw e;
+		}
+		FileUtils.deleteQuietly(staging.toFile());
+		for (Path file : updated) {
+			changedAssets.add(assets.relativize(file).toString().replace('\\', '/'));
+		}
+		return asset;
 	}
 
 	/**
@@ -215,7 +341,7 @@ public final class WorkTwinFiles {
 		try {
 			String gitFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
 					project.getEngineId(), project.getEngineName());
-			String inRepository = Constants.ASSETS_FOLDER + "/" + Constants.PUBLIC_ASSETS_FOLDER + "/";
+			String inRepository = folder.toAbsolutePath().toString().replace('\\', '/') + "/";
 			GitRepoUtils.addSpecificFiles(gitFolder, added.stream().map(file -> inRepository + file).toList());
 			// the files are gone from disk already; this takes them out of what the repository tracks
 			GitDestroyer.removeSpecificFiles(gitFolder, false,

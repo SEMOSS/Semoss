@@ -65,7 +65,7 @@ class TwinGuestUnitTests {
 			"WriteFile", "LoadSkill");
 
 	// the file tool a twin has in its owner's own chat with it
-	private static final String ITS_FILE_TOOL = "SaveToDigitalTwin";
+	private static final List<String> ITS_FILE_TOOLS = List.of("SaveToDigitalTwin", "RemoveFromDigitalTwin");
 
 	private static AgentRunContext run(boolean inCollaboration, boolean twin) {
 		return run(inCollaboration, twin, false);
@@ -100,19 +100,25 @@ class TwinGuestUnitTests {
 			assertNull(HarnessToolExecutor.twinRefusal(twin, tool), tool);
 		}
 		// adding to its files is its owner's to ask for, not a guest's
-		assertEquals(ITS_FILE_TOOL + REFUSED, HarnessToolExecutor.twinRefusal(twin, ITS_FILE_TOOL));
+		for (String fileTool : ITS_FILE_TOOLS) {
+			assertEquals(fileTool + REFUSED, HarnessToolExecutor.twinRefusal(twin, fileTool));
+		}
 	}
 
 	@Test
 	void inItsOwnersOwnChatItAddsToItsFilesAndStillRunsNothingElseOfTheirs() {
 		AgentRunContext own = run(true, true, true);
-		assertNull(HarnessToolExecutor.twinRefusal(own, ITS_FILE_TOOL));
+		for (String fileTool : ITS_FILE_TOOLS) {
+			assertNull(HarnessToolExecutor.twinRefusal(own, fileTool));
+		}
 		for (String tool : ASKERS_TOOLS) {
 			assertEquals(tool + REFUSED, HarnessToolExecutor.twinRefusal(own, tool), tool);
 		}
 		// a sub-agent of that chat is not handed the tool, so it does not run it
 		when(own.getSpawnDepth()).thenReturn(AgentRunContext.ROOT_SPAWN_DEPTH + 1);
-		assertEquals(ITS_FILE_TOOL + REFUSED, HarnessToolExecutor.twinRefusal(own, ITS_FILE_TOOL));
+		for (String fileTool : ITS_FILE_TOOLS) {
+			assertEquals(fileTool + REFUSED, HarnessToolExecutor.twinRefusal(own, fileTool));
+		}
 	}
 
 	@Test

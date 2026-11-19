@@ -44,6 +44,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.collaboration.BrainMemoryRecall;
 import prerna.collaboration.BrainProfileUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationRunMode;
@@ -226,15 +227,12 @@ public class SemossAgentHarness implements IAgentHarness {
 			subAgentTools.addAll(CollaborationAgentTools.definitions(ctx.getRoom(), ctx.getInsight().getUser(),
 					ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH));
 		}
-		// The one Collaboration tool a twin is handed, and only in the chat its owner
-		// has with it: adding a file of the chat to its own files, which waits for the
-		// owner's approval. The reactor checks whose twin it is again.
-		Map<String, Object> twinFileTool = agentConfig.isDigitalTwinOwnChat() && CollaborationRunMode.isChat(room)
-				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH ? CollaborationAgentTools.twinFileTool()
-						: null;
-		if (twinFileTool != null) {
-			subAgentTools.add(twinFileTool);
-		}
+		// Each change to a twin's shared files needs the owner's approval in their own chat.
+		List<Map<String, Object>> twinFileTools = agentConfig.isDigitalTwinOwnChat() && CollaborationRunMode.isChat(room)
+				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+				&& SecurityProjectUtils.userCanEditProject(ctx.getInsight().getUser(), agentConfig.getWorkspaceId())
+						? CollaborationAgentTools.twinFileTools(agentConfig.getWorkspaceId()) : List.of();
+		subAgentTools.addAll(twinFileTools);
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
 		// Register on root only; descendants look up the shared per-tree budget.
@@ -301,7 +299,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				composed.append("\n\n").append(twinPersona);
 			}
 			composed.append("\n\n").append(CollaborationPrompts.twinPrompt(agentConfig.getDigitalTwinOwner(),
-					agentConfig.isDigitalTwinOwnChat(), twinFileTool != null, twinPersona != null));
+					agentConfig.isDigitalTwinOwnChat(), !twinFileTools.isEmpty(), twinPersona != null));
 		}
 		// who the owner is and what they asked to remember, in their chat or routine;
 		// after the static parts so they stay cacheable

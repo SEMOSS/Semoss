@@ -547,9 +547,7 @@ final class HarnessToolExecutor {
 	 * in the chat of whoever asks it, working from instructions someone else wrote.
 	 * Listed or not, it runs none of the asker's Collaboration tools and no person
 	 * lookup, and it starts no sub-agent, which would be handed those tools in its
-	 * place. The one Collaboration tool it does run is the one SemossAgentHarness
-	 * hands it, where it hands it: adding a file to its own files, in its owner's
-	 * own chat with it.
+	 * place. Only the root of its owner's own chat can change its shared files.
 	 */
 	static String twinRefusal(AgentRunContext ctx, String toolName) {
 		AgentConfig config = ctx.getAgentConfig();
@@ -610,6 +608,10 @@ final class HarnessToolExecutor {
 					result.isSuccess());
 		}
 		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && CollaborationAgentTools.isTool(tc.rawToolName)) {
+			// Approved changes run in the decision handler. A missing or stale tool definition must never run one here.
+			if (CollaborationAgentTools.isTwinFileTool(tc.rawToolName)) {
+				return new ToolExecOutcome("The file change needs a separate approval from the twin's owner.", false);
+			}
 			ToolExecutionResult result = CollaborationAgentTools.execute(tc.rawToolName, tc.toolParams,
 					ctx.getInsight(), ctx.getInput());
 			String output = result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError();

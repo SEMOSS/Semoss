@@ -103,6 +103,7 @@ import prerna.reactor.collaboration.WorkOpenSkillReactor;
 import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkSaveRoutinePreferencesReactor;
+import prerna.reactor.collaboration.WorkRemoveFromTwinReactor;
 import prerna.reactor.collaboration.WorkSaveToTwinReactor;
 import prerna.reactor.collaboration.WorkSaveWorkReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
@@ -130,9 +131,9 @@ public final class CollaborationAgentTools {
 	 */
 	public static final String TOOL_KIND = "semoss_collaboration_tool";
 
-	// adds a file of the chat to the Digital Twin the chat is with: never one of the tools every agent gets, only
-	// the one a twin is handed in its owner's own chat
-	private static final String TWIN_FILE_TOOL = "SaveToDigitalTwin";
+	// These tools are handed only to a twin in its owner's chat.
+	private static final List<String> TWIN_FILE_TOOLS = List.of("SaveToDigitalTwin", "RemoveFromDigitalTwin");
+	public static final String TWIN_APPROVAL_PROJECT = "SMSS_TWIN_APPROVAL_PROJECT";
 
 	// tool name the model sees -> reactor it runs
 	private static final Map<String, Class<? extends AbstractReactor>> REACTORS = new LinkedHashMap<>();
@@ -223,8 +224,8 @@ public final class CollaborationAgentTools {
 		REACTORS.put("PublishSkill", WorkPublishSkillReactor.class);
 		REACTORS.put("UseSkillInAssistant", WorkUseSkillInAssistantReactor.class);
 		REACTORS.put("DeleteMySkill", WorkDeleteMySkillReactor.class);
-		// a Digital Twin's alone, in its owner's own chat with it (see twinFileTool); waits for the owner
-		REACTORS.put(TWIN_FILE_TOOL, WorkSaveToTwinReactor.class);
+		REACTORS.put("SaveToDigitalTwin", WorkSaveToTwinReactor.class);
+		REACTORS.put("RemoveFromDigitalTwin", WorkRemoveFromTwinReactor.class);
 	}
 
 	private static final Set<String> MEMORY_TOOLS = Set.of("Remember", "Forget", "SearchMemories");
@@ -342,22 +343,28 @@ public final class CollaborationAgentTools {
 			if ((memory || !MEMORY_TOOLS.contains(tool.getKey())) && (chat || !CHAT_TOOLS.contains(tool.getKey()))
 					&& (owner || !OWNER_TOOLS.contains(tool.getKey()))
 					&& (transcripts || !TRANSCRIPT_TOOL.equals(tool.getKey()))
-					&& !TWIN_FILE_TOOL.equals(tool.getKey())) {
+					&& !isTwinFileTool(tool.getKey())) {
 				tools.add(tool.getValue().toMap());
 			}
 		}
 		return tools;
 	}
 
-	/**
-	 * The one Collaboration tool a Digital Twin is handed, and only in the chat
-	 * its owner has with it: SaveToDigitalTwin, which adds a file of the chat to
-	 * the twin's own files once the owner approves. A fresh copy, safe for the
-	 * caller to change; null when the tool could not be built.
-	 */
-	public static Map<String, Object> twinFileTool() {
-		JSONObject tool = tools().get(TWIN_FILE_TOOL);
-		return tool == null ? null : tool.toMap();
+	/** The approved file tools for an owner's chat, bound to the twin that requested the changes. */
+	public static List<Map<String, Object>> twinFileTools(String twinId) {
+		List<Map<String, Object>> result = new ArrayList<>();
+		for (String name : TWIN_FILE_TOOLS) {
+			JSONObject tool = tools().get(name);
+			if (tool == null) {
+				return List.of();
+			}
+			Map<String, Object> definition = tool.toMap();
+			Map<String, Object> meta = tool.getJSONObject("_meta").toMap();
+			meta.put(TWIN_APPROVAL_PROJECT, twinId);
+			definition.put("_meta", meta);
+			result.add(definition);
+		}
+		return result;
 	}
 
 	/**
@@ -394,9 +401,9 @@ public final class CollaborationAgentTools {
 		return toolName != null && tools().containsKey(toolName);
 	}
 
-	/** Whether the tool is the one a Digital Twin is handed in its owner's own chat (see twinFileTool). */
+	/** Whether this tool changes shared files in a Digital Twin owner's own chat. */
 	public static boolean isTwinFileTool(String toolName) {
-		return TWIN_FILE_TOOL.equals(toolName);
+		return toolName != null && TWIN_FILE_TOOLS.contains(toolName);
 	}
 
 	/** Whether a stored pending action's _meta came from one of these tools. */
