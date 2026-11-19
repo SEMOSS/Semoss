@@ -91,6 +91,7 @@ import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.security.SessionIds;
 import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -1131,7 +1132,7 @@ public class ModelInferenceLogsUtils {
 	 * @param reponseTime   model response time
 	 * @param agentId       agent/model id
 	 * @param insightId     insight id
-	 * @param sessionId     session id
+	 * @param sessionId     session id; the table keeps its hash
 	 * @param userId        user id
 	 * @param userName      user display name
 	 * @param userEmail     user email
@@ -1298,7 +1299,7 @@ public class ModelInferenceLogsUtils {
 					ps.setString(index++, agentId);
 					ps.setString(index++, insightId);
 					ps.setString(index++, roomId);
-					ps.setString(index++, sessionId);
+					ps.setString(index++, SessionIds.hash(sessionId));
 					ps.setString(index++, userId);
 					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userName);
 					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userEmail);

@@ -26,6 +26,20 @@ When you add a setting that holds a secret to an engine, give it a name the rule
 | Audit trail | `[REDACTED]` for values under secret keys and for the secret shapes listed below. |
 | Error text | `[REDACTED]` in place of each secret, as described next. |
 
+## Editing an smss
+
+An engine's or project's owners, and admins in admin mode, edit its smss in the smss editor. The read reactors return the masked text (`smss`) and `smssHash`, the SHA-256 of the smss file's bytes and of the secret store's values in key order ([SmssEditCopy](../../src/prerna/engine/impl/SmssEditCopy.java)). With a secret store, a save changes the store and not the file, so the hash covers both. The server works the hash out from what is stored, never from the text the editor sends back, so the masking does not change it.
+
+The save endpoints (`/e-{engineId}/updateSmssFile`, `/project-{projectId}/updateSmssFile` and the admin `auth/admin/engine/updateSmssFile` and `auth/admin/project/updateSmssFile`) take the edited text and that `smssHash`. Under the engine's or project's lock, the save goes through only while the smss is still as the editor read it, and its answer carries the new `smssHash`:
+
+| The save | The answer |
+| --- | --- |
+| Made from the smss as it is now | 200 with `success` and the new `smssHash` |
+| Made after someone else saved the smss, or after its secret store values changed | 409 with `errorMessage` and `errorCode` `SMSS_CHANGED`; the smss is not changed |
+| Sent without `smssHash` | 400, asking to load the smss again |
+
+The editor shows a 409 as "This SMSS changed since you opened it", keeps the user's text, and offers Load Latest, which first warns that the unsaved changes will be lost.
+
 ## Error text
 
 Error text is built from internal state: a provider's error body, a Python traceback, or a failed HTTP call that names its URL. SEMOSS removes secrets from it before it leaves the server, with two checks in [SecretRedactor](../../src/prerna/security/SecretRedactor.java):

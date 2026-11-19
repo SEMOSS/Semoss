@@ -99,15 +99,16 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param sessionId
-	 * @param routeId
-	 * @return
-	 * @throws SQLException
+	 * Creates a token that signs its holder in as the user, in a session of their
+	 * own. It never hands over the user's session, so it stores no session id.
+	 *
+	 * @param user    the user the token signs in as
+	 * @param routeId the load balancer route of the user's server, or null
+	 * @return the token
+	 * @throws SQLException if the token cannot be stored
 	 */
-	public static String createAuthToken(User user, String sessionId, String routeId) throws SQLException {
-		return createToken(user, sessionId, routeId, false, true);
+	public static String createAuthToken(User user, String routeId) throws SQLException {
+		return createToken(user, null, routeId, false, true);
 	}
 
 	/**

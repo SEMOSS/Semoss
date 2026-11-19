@@ -33,7 +33,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityShareSessionUtils;
-import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -56,7 +55,7 @@ public class GetShareAuthTokenReactor extends AbstractReactor {
 		}
 		String token;
 		try {
-			token = SecurityShareSessionUtils.createAuthToken(this.insight.getUser(), ThreadStore.getSessionId(), getRouteId());
+			token = SecurityShareSessionUtils.createAuthToken(this.insight.getUser(), getRouteId());
 		} catch (SQLException e) {
 			classLogger.error(e.getMessage());
 			classLogger.error(Constants.STACKTRACE, e);
