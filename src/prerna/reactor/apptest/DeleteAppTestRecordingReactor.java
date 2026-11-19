@@ -52,7 +52,7 @@ public class DeleteAppTestRecordingReactor extends AbstractAppTestReactor {
 		try {
 			Path folder = AppTestRecordings.folder(target);
 			boolean deleted = AppTestRecordings.delete(folder, getString("recordingId"));
-			ClusterUtil.pushProjectFolder(Utility.getProject(target), folder.toString());
+			ClusterUtil.pushProjectFolder(Utility.getProject(target), folder.resolve("tests").toString());
 			return new NounMetadata(Map.of("deleted", deleted),
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {

@@ -52,7 +52,7 @@ public class SaveAppTestRecordingReactor extends AbstractAppTestReactor {
 		try {
 			Path folder = AppTestRecordings.folder(target);
 			Map<String, Object> recording = AppTestRecordings.save(folder, getMap("recording"));
-			ClusterUtil.pushProjectFolder(Utility.getProject(target), folder.toString());
+			ClusterUtil.pushProjectFolder(Utility.getProject(target), folder.resolve("tests").toString());
 			return new NounMetadata(recording,
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {

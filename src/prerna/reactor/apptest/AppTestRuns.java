@@ -47,6 +47,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.time.Instant;
 
 import com.google.gson.Gson;
 
@@ -138,6 +139,11 @@ final class AppTestRuns {
         catch (IOException e) { throw new IllegalArgumentException("Unable to read app test recordings", e); }
         if (recordings.isEmpty()) {
             run.result = AppTestRunner.report(runId, projectId, List.of());
+            Map<String, Object> empty = AppTestHistory.pending(runId, projectId, List.of(), replays, Instant.now());
+            empty.putAll(run.result);
+            try { AppTestHistory.publish(projectId, empty); }
+            catch (IOException | RuntimeException e) { throw new IllegalArgumentException("Unable to persist test run history", e); }
+            run.result = empty;
             register(runId, run);
             return runId;
         }
@@ -146,16 +152,64 @@ final class AppTestRuns {
         }
         URI root = AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId);
         List<Map<String, Object>> selected = recordings;
-        register(runId, run);
         long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * replays * 1_000_000;
+        pending.putAll(AppTestHistory.pending(runId, projectId, selected, replays, Instant.now()));
+        try { AppTestHistory.publish(projectId, pending); }
+        catch (IOException | RuntimeException e) {
+            throw new IllegalArgumentException("Unable to persist test run history; no browser was started", e);
+        }
+        try { register(runId, run); }
+        catch (IllegalArgumentException e) {
+            pending.put("status", "ERROR");
+            pending.put("finishedAt", Instant.now().toString());
+            @SuppressWarnings("unchecked") List<Map<String, Object>> tests = (List<Map<String, Object>>) pending.get("tests");
+            for (Map<String, Object> test : tests) {
+                test.put("status", "ERROR");
+                test.put("classification", "ERROR");
+                test.put("reason", "The runner could not accept this run; this test was not executed.");
+            }
+            update(run, projectId, pending, pending);
+            throw e;
+        }
         try {
             Path reportFolder = AppTestRecordings.legacyFolder(projectId).resolve("reports").resolve(ownerDirectory(owner));
-            WORKERS.execute(() -> run.result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected, reportFolder, deadline, replays));
+            WORKERS.execute(() -> {
+                Map<String, Object> result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected,
+                        reportFolder, deadline, replays, progress -> update(run, projectId, pending, progress));
+                if (!result.containsKey("reportWarning")) result.put("privateReportRunId", runId);
+                update(run, projectId, pending, result);
+            });
         } catch (RejectedExecutionException e) {
-            synchronized (RUNS) { RUNS.remove(runId); }
+            Map<String, Object> rejected = new LinkedHashMap<>(pending);
+            rejected.put("status", "ERROR");
+            rejected.put("finishedAt", Instant.now().toString());
+            @SuppressWarnings("unchecked") List<Map<String, Object>> tests = (List<Map<String, Object>>) rejected.get("tests");
+            for (Map<String, Object> test : tests) {
+                test.put("status", "ERROR");
+                test.put("classification", "ERROR");
+                test.put("reason", "The runner queue was full; this test was not executed.");
+            }
+            update(run, projectId, pending, rejected);
             throw new IllegalArgumentException("App test runner is busy. Try again after an active run finishes.");
         }
         return runId;
+    }
+
+    /** Store progress independently of the UI lifecycle; failures remain visible on the live result. */
+    private static void update(Run run, String projectId, Map<String, Object> initial, Map<String, Object> progress) {
+        Map<String, Object> next = new LinkedHashMap<>(progress);
+        next.put("version", 1);
+        next.put("expiresAt", initial.get("expiresAt"));
+        next.put("repeat", initial.get("repeat"));
+        next.put("queuedAt", initial.get("startedAt"));
+        try { AppTestHistory.publish(projectId, next); }
+        catch (IOException | RuntimeException e) {
+            next.put("historyWarning", "The test result is available, but its latest history could not be saved or synchronized.");
+        }
+        // Progress maps contain no evidence and are independent of the runner's mutable list.
+        Map<String, Object> snapshot = "RUNNING".equals(next.get("status")) ? new LinkedHashMap<>(AppTestHistory.compact(next)) : next;
+        if (next.containsKey("historyWarning")) snapshot.put("historyWarning", next.get("historyWarning"));
+        run.result = snapshot;
     }
 
     /** Validate scope independently of filesystem state, including calls that have no tests. */
@@ -204,7 +258,7 @@ final class AppTestRuns {
     private static void register(String id, Run run) {
         synchronized (RUNS) {
             if (RUNS.size() >= MAX_RUNS) {
-                String terminal = RUNS.entrySet().stream().filter(e -> !"RUNNING".equals(e.getValue().result.get("status")))
+                String terminal = RUNS.entrySet().stream().filter(e -> !List.of("RUNNING", "QUEUED").contains(e.getValue().result.get("status")))
                         .map(Map.Entry::getKey).findFirst().orElse(null);
                 if (terminal == null) throw new IllegalArgumentException("Too many active app test runs");
                 RUNS.remove(terminal);

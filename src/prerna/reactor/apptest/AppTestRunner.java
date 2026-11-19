@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
@@ -121,30 +122,42 @@ final class AppTestRunner {
 	/** Replays each recording {@code repeat} times in fresh browser contexts; it passes only if every replay does. */
 	static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
 			List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat) {
+		return run(runId, target, root, sessionId, cookieName, recordings, reportFolder, deadline, repeat, progress -> { });
+	}
+
+	/** Publish progress through the backend even when no browser tab is polling. */
+	static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
+			List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat,
+			Consumer<Map<String, Object>> progress) {
+		Instant startedAt = Instant.now();
 		List<Map<String, Object>> tests = new ArrayList<>();
+		for (Map<String, Object> recording : recordings) tests.add(pendingTest(recording, "QUEUED"));
+		progress.accept(progressReport(runId, target, tests, startedAt));
 		// Browser provisioning belongs to deployment; never download binaries in a user job.
 		try {
 			if (System.nanoTime() >= deadline) throw new IllegalStateException("Run expired in queue");
 			try (Playwright playwright = Playwright.create(new Playwright.CreateOptions().setEnv(Map.of("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")));
 					Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setTimeout(30_000))) {
-				for (Map<String, Object> recording : recordings) {
+				for (int index = 0; index < recordings.size(); index++) {
 					if (System.nanoTime() >= deadline) throw new IllegalStateException("Run exceeded its time limit");
-					tests.add(replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat));
+					Map<String, Object> recording = recordings.get(index);
+					tests.set(index, pendingTest(recording, "RUNNING"));
+					progress.accept(progressReport(runId, target, tests, startedAt));
+					tests.set(index, replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat));
+					progress.accept(progressReport(runId, target, tests, startedAt));
 				}
 			}
 		} catch (RuntimeException | AssertionError e) {
-			Map<String, Object> error = new LinkedHashMap<>();
-			error.put("name", "Runner");
-			error.put("description", "Launch the browser and execute the selected app tests within the run budget.");
-			error.put("page", "");
-			error.put("status", "ERROR");
-			error.put("classification", "ERROR");
-			error.put("scope", recordings.stream().anyMatch(r -> "PAGE_VISIBILITY_SMOKE".equals(r.get("scope")))
-					? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSION");
-			error.put("reason", "Browser runner could not start or exceeded its time limit. Check server Playwright/browser installation and application URL.");
-			tests.add(error);
+			for (Map<String, Object> test : tests) if (List.of("QUEUED", "RUNNING").contains(test.get("status"))) {
+				test.put("status", "ERROR");
+				test.put("classification", "ERROR");
+				test.put("finishedAt", Instant.now().toString());
+				test.put("reason", "The runner could not start or finish this test within its time limit. Check browser installation and application URL.");
+			}
 		}
 		Map<String, Object> report = report(runId, target, tests);
+		report.put("startedAt", startedAt.toString());
+		report.put("durationMs", java.time.Duration.between(startedAt, Instant.now()).toMillis());
 		try {
 			AppTestRecordings.write(reportFolder.resolve(runId + ".json"), report);
 		} catch (java.io.IOException e) {
@@ -154,12 +167,40 @@ final class AppTestRunner {
 	}
 
 	@SuppressWarnings("unchecked")
+	static Map<String, Object> pendingTest(Map<String, Object> recording, String status) {
+		Map<String, Object> test = new LinkedHashMap<>();
+		for (String field : List.of("id", "name", "description")) test.put(field, recording.get(field));
+		test.put("definitionHash", AppTestHistory.definitionHash(recording));
+		test.put("status", status);
+		test.put("scope", recording.getOrDefault("scope", "SAVED_WORKFLOW_REGRESSION"));
+		List<Map<String, Object>> steps = (List<Map<String, Object>>) recording.get("steps");
+		test.put("steps", steps.size());
+		test.put("stepsAttempted", 0);
+		test.put("stepsCompleted", 0);
+		test.put("assertions", steps.stream().filter(step -> String.valueOf(step.get("type")).startsWith("ASSERT_")).count());
+		test.put("assertionsPassed", 0);
+		if ("RUNNING".equals(status)) test.put("startedAt", Instant.now().toString());
+		return test;
+	}
+
+	private static Map<String, Object> progressReport(String runId, String target, List<Map<String, Object>> tests, Instant startedAt) {
+		Map<String, Object> report = report(runId, target, tests);
+		report.put("status", "RUNNING");
+		report.put("startedAt", startedAt.toString());
+		report.remove("finishedAt");
+		return report;
+	}
+
+	@SuppressWarnings("unchecked")
 	private static Map<String, Object> replay(Browser browser, URI root, String sessionId, String cookieName,
 			Map<String, Object> recording, long deadline) {
+		Instant startedAt = Instant.now();
 		Map<String, Object> test = new LinkedHashMap<>();
 		test.put("id", recording.get("id"));
 		test.put("name", recording.get("name"));
 		test.put("description", recording.getOrDefault("description", "Replay the recorded app workflow."));
+		test.put("definitionHash", AppTestHistory.definitionHash(recording));
+		test.put("startedAt", startedAt.toString());
 		test.put("page", recording.get("startPath"));
 		boolean smoke = "PAGE_VISIBILITY_SMOKE".equals(recording.get("scope"));
 		test.put("scope", smoke ? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSION");
@@ -170,6 +211,8 @@ final class AppTestRunner {
 		test.put("steps", steps.size());
 		int currentStep = 0;
 		int completedAssertions = 0;
+		int completedSteps = 0;
+		int attemptedSteps = 0;
 		AtomicBoolean unauthorized = new AtomicBoolean();
 		AtomicBoolean unsafeNavigation = new AtomicBoolean();
 		AtomicInteger runtimeErrors = new AtomicInteger();
@@ -210,11 +253,13 @@ final class AppTestRunner {
 					currentStep++;
 					if (System.nanoTime() >= deadline) throw new IllegalStateException("Run time limit exceeded");
 					if (unauthorized.get() || unsafeNavigation.get()) throw new IllegalStateException("App session or navigation failed");
+					attemptedSteps++;
 					if (smoke && "ASSERT_VISIBLE".equals(step.get("type"))) {
 						// Fixed-position apps can have a zero-height body while their content is visible.
 						assertThat(page.locator("body:visible, body :visible").first())
 								.isVisible(new LocatorAssertions.IsVisibleOptions().setTimeout(STEP_TIMEOUT_MS));
 					} else execute(page, root, step);
+					completedSteps++;
 					if (String.valueOf(step.get("type")).startsWith("ASSERT_")) completedAssertions++;
 				}
 				// Flush protocol events before evaluating environment failures.
@@ -236,7 +281,7 @@ final class AppTestRunner {
 				boolean targetMissing = !environment && currentStep > 0 && targetMissing(page, steps.get(currentStep - 1));
 				test.put("status", environment ? "ERROR" : "FAILED");
 				test.put("classification", environment ? "ERROR" : targetMissing ? "TARGET_NOT_FOUND" : "REGRESSION_SUSPECTED");
-				test.put("failedStep", currentStep);
+				if (currentStep > 0) test.put("failedStep", currentStep);
 				test.put("reason", unauthorized.get() ? "SEMOSS session expired or access was denied. Sign in again before running tests."
 						: unsafeNavigation.get() ? "Navigation left the target app or required a different authentication origin."
 						: smoke && runtimeErrors.get() > 0 ? "The page visibility smoke check observed unhandled JavaScript errors. This check provides no workflow coverage."
@@ -270,6 +315,10 @@ final class AppTestRunner {
 			}
 		}
 		test.put("assertionsPassed", completedAssertions);
+		test.put("stepsAttempted", attemptedSteps);
+		test.put("stepsCompleted", completedSteps);
+		test.put("finishedAt", Instant.now().toString());
+		test.put("durationMs", java.time.Duration.between(startedAt, Instant.now()).toMillis());
 		if (smoke) test.put("runtimeErrorCount", runtimeErrors.get());
 		return test;
 	}
@@ -320,6 +369,18 @@ final class AppTestRunner {
 		if (requested <= 1) return result;
 		result.put("repeats", outcomes.size());
 		result.put("passedRepeats", passed);
+		result.put("attempts", outcomes);
+		if (chosen.get("steps") instanceof Number steps) {
+			result.put("stepsPerReplay", steps.intValue());
+			result.put("steps", steps.intValue() * requested);
+		}
+		if (chosen.get("assertions") instanceof Number assertions) result.put("assertions", assertions.intValue() * requested);
+		for (String field : List.of("stepsAttempted", "stepsCompleted", "assertionsPassed")) {
+			result.put(field, outcomes.stream().mapToLong(outcome -> outcome.get(field) instanceof Number count ? count.longValue() : 0).sum());
+		}
+		result.put("startedAt", outcomes.getFirst().get("startedAt"));
+		result.put("finishedAt", outcomes.getLast().get("finishedAt"));
+		result.put("durationMs", outcomes.stream().mapToLong(outcome -> outcome.get("durationMs") instanceof Number duration ? duration.longValue() : 0).sum());
 		if (outcomes.size() < requested && passed == outcomes.size()) {
 			result.put("status", "ERROR");
 			result.put("classification", "ERROR");

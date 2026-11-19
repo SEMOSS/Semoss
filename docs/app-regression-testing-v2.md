@@ -52,6 +52,48 @@ create or substitute test databases. Use a suitably prepared app/environment for
 that write data. Recordings marked as requiring the old experimental database profile are
 rejected instead of being replayed with normal connections.
 
+## Run history
+
+Each accepted real run writes one compact JSON file at
+`app_root/version/assets/app-tests/test-runs/<run-id>.json`. The backend records queued/running
+state and updates results as selected tests finish, including runs started from chat when the
+Testing tab is closed. Existing test UUIDs link results to definitions across edits/renames.
+History starts with this feature; older private reports are not automatically imported.
+
+The test-file table shows **Last run**, **Result** and **Completed steps**. Click **History**
+on a file to page through its runs, then **View result** for that test's counts, timestamps,
+duration, failed step, classification and SHA-256 definition hash. Refresh tests refreshes
+history too. The mounted tab refreshes visible history periodically (faster while runs are
+active), on window focus and after local run transitions. Definitions are not fetched merely
+to view history. A test's hash identifies the test content that ran, not the app source revision.
+
+Step totals, attempted steps and successfully completed steps are separate. For example,
+failure on step 6 of 8 normally means 6 attempted and 5 completed. Action-only tests remain
+SKIPPED/NO_ASSERTIONS. Explicit repeated runs retain individual attempt summaries and aggregate
+counts; the UI still defaults to one replay. Runner startup failures retain each selected
+UUID with ERROR and zero executed steps.
+
+The latest **100 finished runs per app**, plus active runs, are retained. Pending work without
+a final result becomes INTERRUPTED on reads after its fixed execution deadline plus a
+120-second shutdown/persistence allowance. Reads do not overwrite the unfinished file, so a
+late worker's final result cannot be overwritten by a history viewer. History survives browser
+reloads and backend restarts. It contains no screenshots, selectors, step values or captured
+expected/actual page text. Detailed reports stay outside assets, private to the initiating
+caller; their existing retention and caller-owned live-result API are unchanged.
+
+`ListAppTestRuns(project, recordingId?, offset?, limit?)` returns paginated summaries and latest
+results for current test files; an explicit recording UUID can also find retained results for
+a deleted test. `GetAppTestRunHistory(project, runId, recordingId?)` reads one compact run/result.
+Both require app edit access. The shipped toolbox/skill expose these tools. In clusters,
+individual history files are copied to project storage; reads synchronize the history folder.
+Publication failure prevents browser startup initially, or surfaces a history warning if a run
+has already started. Assets history is editable project data, not a tamper-proof audit log.
+
+To check persistence: run a saved test, open its History, reload the editor and reopen History;
+then ask chat to run that UUID and confirm it appears as another run. A Run all entry should
+appear under each selected file. Edit/rename a definition and confirm its earlier entries
+remain linked to the same UUID.
+
 ## Multiple pages
 
 The recorder remains attached to the normal iframe and reattaches to a new document after
@@ -85,7 +127,7 @@ page route. The iframe must be accessible to the SEMOSS UI for manual recording.
 
 ## Platform integration
 
-The six app-test reactors require explicit app targets, authorize editing where applicable,
+App-scoped test and history reactors require explicit app targets, authorize editing where applicable,
 store declarative JSON in non-public app assets (outside `assets/public`), and run bounded headless Playwright
 replays. The initiating authenticated session is passed to a fresh browser context; no login
 credentials are saved in test definitions. Each replay starts with fresh browser state, which

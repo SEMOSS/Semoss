@@ -222,6 +222,47 @@ class AppTestRunnerUnitTests {
 		assertTrue(String.valueOf(first(report).get("reason")).contains("Navigation"));
 	}
 
+	@Test
+	void recordsPartialStepCountsAndPersistsProgressWithoutAnyUiPoll() throws Exception {
+		Map<String, Object> recording = AppTestRecordings.validate(Map.of("name", "Partial workflow", "description", "Check partial execution counts.", "steps",
+				List.of(Map.of("type", "ASSERT_VISIBLE", "selector", "#result"),
+						Map.of("type", "ASSERT_TEXT", "selector", "#result", "text", "Wrong value"),
+						Map.of("type", "CLICK", "selector", "#save"))));
+		String runId = UUID.randomUUID().toString();
+		Path history = temporary.resolve("history");
+		Map<String, Object> initial = AppTestHistory.pending(runId, "app-one", List.of(recording), 1, java.time.Instant.now());
+		AppTestHistory.write(history, initial);
+		List<String> observed = new ArrayList<>();
+		Map<String, Object> report = AppTestRunner.run(runId, "app-one", root, "test-session", "JSESSIONID",
+				List.of(recording), temporary.resolve("private"), System.nanoTime() + 30_000_000_000L, 1, progress -> {
+					Map<String, Object> state = new java.util.LinkedHashMap<>(initial);
+					state.putAll(progress);
+					observed.add(String.valueOf(first(progress).get("status")));
+					try { AppTestHistory.write(history, state); } catch (java.io.IOException e) { throw new RuntimeException(e); }
+				});
+		Map<String, Object> result = first(report);
+		assertEquals("FAILED", result.get("status"));
+		assertEquals(3, result.get("steps"));
+		assertEquals(2, result.get("stepsAttempted"));
+		assertEquals(1, result.get("stepsCompleted"));
+		assertEquals(1, result.get("assertionsPassed"));
+		assertEquals(2, result.get("failedStep"));
+		assertTrue(((Number) result.get("durationMs")).longValue() > 0);
+		assertTrue(observed.containsAll(List.of("QUEUED", "RUNNING", "FAILED")));
+		assertEquals("FAILED", first(AppTestHistory.read(history, runId, "app-one", java.time.Instant.now())).get("status"));
+		assertFalse(java.nio.file.Files.readString(history.resolve(runId + ".json")).contains("screenshot"));
+	}
+
+	@Test
+	void browserStartupFailureKeepsEverySelectedTestIdAndZeroExecutedSteps() {
+		Map<String, Object> one = AppTestRecordings.validate(Map.of("name", "One", "description", "Check one.", "steps", List.of(Map.of("type", "ASSERT_VISIBLE", "selector", "#result"))));
+		Map<String, Object> two = AppTestRecordings.validate(Map.of("name", "Two", "description", "Check two.", "steps", List.of(Map.of("type", "ASSERT_VISIBLE", "selector", "#result"))));
+		Map<String, Object> report = AppTestRunner.run(UUID.randomUUID().toString(), "app-one", root, "test-session", "JSESSIONID", List.of(one, two), temporary, System.nanoTime() - 1);
+		@SuppressWarnings("unchecked") List<Map<String, Object>> tests = (List<Map<String, Object>>) report.get("tests");
+		assertEquals(List.of(one.get("id"), two.get("id")), tests.stream().map(test -> test.get("id")).toList());
+		assertTrue(tests.stream().allMatch(test -> "ERROR".equals(test.get("status")) && Integer.valueOf(0).equals(test.get("stepsAttempted"))));
+	}
+
 	private Map<String, Object> run(String session, List<Map<String, Object>> steps) {
 		Map<String, Object> recording = AppTestRecordings.validate(Map.of("name", "Example", "description", "Exercise the selected app steps and expected outcomes.", "startPath", "", "steps", steps));
 		return AppTestRunner.run(UUID.randomUUID().toString(), "app-one", root, session, "JSESSIONID", List.of(recording), temporary);

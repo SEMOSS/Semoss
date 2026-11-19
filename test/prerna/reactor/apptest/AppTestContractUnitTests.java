@@ -46,7 +46,7 @@ class AppTestContractUnitTests {
 
 	@Test
 	void allAppScopedToolsRequireAnExplicitTargetAndDeclareMapOutputs() {
-		for (AbstractReactor reactor : List.of(new RunAppTestsReactor(), new SaveAppTestRecordingReactor(), new ListAppTestRecordingsReactor(), new GetAppTestRecordingReactor(), new DeleteAppTestRecordingReactor())) {
+		for (AbstractReactor reactor : List.of(new RunAppTestsReactor(), new SaveAppTestRecordingReactor(), new ListAppTestRecordingsReactor(), new GetAppTestRecordingReactor(), new DeleteAppTestRecordingReactor(), new ListAppTestRunsReactor(), new GetAppTestRunHistoryReactor())) {
 			assertTrue(reactor.getReactorDefinition().getKey("project").getRequired());
 			assertEquals(Map.class, reactor.getReactorDefinition().getOutput().getType());
 		}
@@ -91,20 +91,25 @@ class AppTestContractUnitTests {
 		Path manifest = Path.of(System.getProperty("semoss.test.sourceRoot", "."),
 				"project/platform__app-tests/app_root/version/assets/mcp/pixel_mcp.json");
 		com.google.gson.JsonArray tools = com.google.gson.JsonParser.parseString(Files.readString(manifest)).getAsJsonObject().getAsJsonArray("tools");
-		boolean foundGet = false, foundRun = false;
+		boolean foundGet = false, foundRun = false, foundHistoryList = false, foundHistoryRead = false;
 		for (var value : tools) {
 			var tool = value.getAsJsonObject();
 			if (tool.get("name").getAsString().equals("GetAppTestRecording")) {
 				foundGet = true;
 				assertEquals(2, tool.getAsJsonObject("inputSchema").getAsJsonArray("required").size());
 			}
-			if (tool.get("name").getAsString().equals("RunAppTests")) {
+			if (tool.get("name").getAsString().equals("ListAppTestRuns")) {
+                foundHistoryList = true;
+                assertTrue(tool.getAsJsonObject("inputSchema").getAsJsonObject("properties").has("recordingId"));
+            }
+            if (tool.get("name").getAsString().equals("GetAppTestRunHistory")) foundHistoryRead = true;
+            if (tool.get("name").getAsString().equals("RunAppTests")) {
 				foundRun = true;
 				assertTrue(tool.getAsJsonObject("inputSchema").getAsJsonObject("properties").has("recordingIds"));
 				assertTrue(tool.getAsJsonObject("inputSchema").getAsJsonObject("properties").has("all"));
 			}
 		}
-		assertTrue(foundGet && foundRun);
+		assertTrue(foundGet && foundRun && foundHistoryList && foundHistoryRead);
 	}
 
 }

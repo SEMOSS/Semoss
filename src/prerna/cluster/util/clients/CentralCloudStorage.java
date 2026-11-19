@@ -918,7 +918,8 @@ public final class CentralCloudStorage implements ICloudClient {
 	@Override
 	public void copyLocalFileToEngineCloudFolder(String engineId, CATALOG_TYPE engineType, String localFilePath)
 			throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(engineId, false);
+		IEngine engine = engineType == IEngine.CATALOG_TYPE.PROJECT
+				? Utility.getProject(engineId, false) : Utility.getEngine(engineId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("Engine not found...");
 		}
@@ -965,7 +966,8 @@ public final class CentralCloudStorage implements ICloudClient {
 	@Override
 	public void copyEngineCloudFileToLocalFile(String engineId, CATALOG_TYPE engineType, String localFilePath)
 			throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(engineId, false);
+		IEngine engine = engineType == IEngine.CATALOG_TYPE.PROJECT
+				? Utility.getProject(engineId, false) : Utility.getEngine(engineId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("Engine not found...");
 		}
@@ -1009,7 +1011,8 @@ public final class CentralCloudStorage implements ICloudClient {
 	@Override
 	public void deleteEngineCloudFile(String engineId, CATALOG_TYPE engineType, String localFilePath)
 			throws IOException, InterruptedException {
-		IEngine engine = Utility.getEngine(engineId, false);
+		IEngine engine = engineType == IEngine.CATALOG_TYPE.PROJECT
+				? Utility.getProject(engineId, false) : Utility.getEngine(engineId, false);
 		if (engine == null) {
 			throw new IllegalArgumentException("Engine not found...");
 		}

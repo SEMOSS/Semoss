@@ -274,6 +274,81 @@
         "type": "object",
         "description": "deleted boolean"
       }
+    },
+    {
+      "name": "ListAppTestRuns",
+      "description": "List compact persisted test-run summaries and latest per-test results for the current app. Optionally filter one recording UUID. No definitions or private evidence. History retains 100 finished runs plus active runs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Required current app project id."
+          },
+          "recordingId": {
+            "type": "string",
+            "description": "Optional single test UUID to filter history."
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": [
+          "project"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "ListAppTestRuns",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Explicit app target and compact persisted history."
+      }
+    },
+    {
+      "name": "GetAppTestRunHistory",
+      "description": "Read one persisted compact app test run. Optional recordingId returns only that test. No screenshots, selectors or captured page text. Requires app edit access.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "string",
+            "description": "Run UUID from ListAppTestRuns."
+          },
+          "recordingId": {
+            "type": "string",
+            "description": "Optional single test UUID within the run."
+          }
+        },
+        "required": [
+          "project",
+          "runId"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "GetAppTestRunHistory",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "description": "Explicit app target and compact persisted history."
+      }
     }
   ]
 }
