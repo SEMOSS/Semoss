@@ -263,7 +263,13 @@ uploaded project's metadata file or a metadata reactor sends.
   twin public, discoverable or a template (`requireNotDigitalTwin`), and to give
   everyone access to it (`grantNewUsersProjectAccess`, `addAllProjectUsers`);
   `grantAllProjects` leaves twins out. `CreateAppFromTemplate` does not clone one.
-- People are added and removed as on any project.
+- **People.** People are added and removed as on any project, and an add can
+  carry an end date, after which `ExpiredAccessRemoval` takes the access away
+  on its next pass, a minute apart. Who a twin is shared with is its owner's
+  to know: `getProjectUsers`, `getProjectUsersCount` and
+  `getProjectUsersNoCredentials` need edit access on a twin, not view access
+  (`userCanSeeProjectPeople`), and someone it is only shared with gets the
+  refusal a project they cannot view would get.
 - **Its rules at chat time.** `AgentConfigLoader` reads the mark for every run
   that has a user (`AgentConfig.isDigitalTwin`, with its creator's name from
   `SecurityProjectUtils.getProjectCreatorName`), and the SEMOSS harness then
@@ -272,10 +278,35 @@ uploaded project's metadata file or a metadata reactor sends.
   files, and it names the files it used. The owner cannot write these away.
   `isDigitalTwin` throws when the mark cannot be read, so the run fails
   sooner than start without them.
+- **A guest in the chat of whoever asks it.** A twin's instructions, skills
+  and toolboxes are its owner's, so in a Collaboration chat the harness hands
+  it none of what the person chatting has: no Collaboration tools, no person
+  lookup and no sub-agent, which would be handed those tools in its place.
+  `HarnessToolExecutor.twinRefusal` refuses the same tools by name, since a
+  tool left off the list can still be called. It starts from the general
+  harness prompt, is told the name of the person chatting and nothing
+  Collaboration keeps for them (no profile, memories or routine preferences),
+  gets none of their assistant skills, and no after-run hook runs, so nothing
+  from the chat is learned or filed in their account. The one exception is
+  the file tool of its owner's own chat, below. Do not hand a twin a tool that
+  reads or acts for the person chatting.
 - **Its index.** `WorkIndexTwinFiles(project)` describes the twin's files for
   its chats (`WorkTwinIndex`). It is refused for anyone who cannot edit the
   project, and with the same answer for a project that is not a twin, so
-  only someone who can change a twin learns that it is one.
+  only someone who can change a twin learns that it is one. Each pass first
+  takes out the `placeholder.txt` the file explorer left in any folder of the
+  twin's files that now holds a file (`WorkTwinFiles.tidy`).
+- **Its owner's own chat.** `AgentConfigLoader` also reads whether the person
+  running a twin created it (`SecurityProjectUtils.isProjectCreator`,
+  `AgentConfig.isDigitalTwinOwnChat`). The twin is then told it is talking to
+  the person it answers about, and in a Collaboration chat it is handed one
+  tool, `SaveToDigitalTwin` (`WorkSaveToTwin`), which copies a file of the
+  chat into the twin's `public/files` once that person approves the call. The
+  reactor takes no twin: it adds to the agent of the chat it runs in, and
+  refuses unless that agent is a twin the caller created and can edit, so
+  someone who can only edit a twin is neither handed the tool nor served by
+  it. Do not make the tool run without approval: what it adds is readable by
+  everyone the twin is shared with.
 - **Avatars.** Where `COLLAB_AVATAR_GENERATION_ENABLED` is true,
   `WorkGenerateTwinAvatar` makes avatar options with the image model in
   `COLLAB_AVATAR_ENGINE_ID` for anyone in Collaboration, with no catalog check
@@ -284,8 +315,10 @@ uploaded project's metadata file or a metadata reactor sends.
   refuses when the setting is off; hiding the button is not the check.
 
 `test/prerna/auth/utils/DigitalTwinUnitTests` covers these, with
-`AgentPromptCompositionUnitTests` for the chat-time rules and
-`WorkIndexTwinFilesReactorUnitTests` for who may run the index.
+`AgentPromptCompositionUnitTests` for the chat-time rules,
+`TwinGuestUnitTests` for the tools a twin is refused,
+`WorkIndexTwinFilesReactorUnitTests` for who may run the index and
+`WorkTwinFilesUnitTests` for the placeholders and the owner's own chat.
 
 ## Who can call it
 

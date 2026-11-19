@@ -142,6 +142,9 @@ public final class WorkTwinIndex {
 		if (!Files.isDirectory(folder)) {
 			return out;
 		}
+		// before the slow part: the twin's pages ask for a pass after every change, so this is where the file
+		// explorer's placeholder.txt goes once its folder holds a file, however the file got there
+		WorkTwinFiles.tidy(user, project);
 		Describer describer = null;
 		String note = null;
 		try {

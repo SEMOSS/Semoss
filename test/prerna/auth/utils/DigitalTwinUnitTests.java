@@ -34,6 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +56,7 @@ import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.io.connector.ms.MicrosoftGraphUserLookup;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 /**
@@ -131,6 +135,23 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		// its creator, by id and login type, as the fixture registered them
 		assertEquals("ownername", SecurityProjectUtils.getProjectCreatorName(TWIN_ID));
 		assertNull(SecurityProjectUtils.getProjectCreatorName("no-such-project"));
+	}
+
+	@Test
+	void onlyThePersonWhoMadeATwinIsItsCreator() throws Exception {
+		assertTrue(SecurityProjectUtils.isProjectCreator(owner, TWIN_ID));
+		// someone who can change the twin did not make it, and it is not theirs to add to from a chat
+		assertTrue(SecurityProjectUtils.userCanEditProject(editor, TWIN_ID));
+		assertFalse(SecurityProjectUtils.isProjectCreator(editor, TWIN_ID));
+		assertFalse(SecurityProjectUtils.isProjectCreator(stranger, TWIN_ID));
+		assertFalse(SecurityProjectUtils.isProjectCreator(null, TWIN_ID));
+		assertFalse(SecurityProjectUtils.isProjectCreator(owner, "no-such-project"));
+
+		// a project stored without its creator's login type matches the id alone
+		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET CREATEDBYTYPE = NULL WHERE PROJECTID = ?",
+				ps -> ps.setString(1, TWIN_ID));
+		assertTrue(SecurityProjectUtils.isProjectCreator(owner, TWIN_ID));
+		assertFalse(SecurityProjectUtils.isProjectCreator(editor, TWIN_ID));
 	}
 
 	@Test
@@ -237,6 +258,60 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		assertEquals(List.of(),
 				ids(SecurityProjectUtils.getUserProjectList(editor, null, null, false, twins, null, null, null, null,
 						null, false, List.of(AccessPermissionEnum.OWNER.getId()), User.getUserIdAndType(editor))));
+	}
+
+	@Test
+	void onlySomeoneWhoCanChangeItSeesWhoItIsSharedWith() throws Exception {
+		// its owner and an editor see its people, and who could still be added
+		for (User manager : List.of(owner, editor)) {
+			assertEquals(3, SecurityProjectUtils.getProjectUsers(manager, TWIN_ID, null, null, -1, -1).size());
+			assertEquals(3L, SecurityProjectUtils.getProjectUsersCount(manager, TWIN_ID, null, null));
+			SecurityProjectUtils.getProjectUsersNoCredentials(manager, TWIN_ID, null, -1, -1);
+		}
+		// someone it is only shared with is not told who else has it, in the words a
+		// project they cannot view at all would get
+		String refusal = "The user does not have access to view this project";
+		for (User other : List.of(reader, stranger)) {
+			assertEquals(refusal, assertThrows(IllegalAccessException.class,
+					() -> SecurityProjectUtils.getProjectUsers(other, TWIN_ID, null, null, -1, -1)).getMessage());
+			assertEquals(refusal, assertThrows(IllegalAccessException.class,
+					() -> SecurityProjectUtils.getProjectUsersCount(other, TWIN_ID, null, null)).getMessage());
+			assertEquals(refusal, assertThrows(IllegalAccessException.class,
+					() -> SecurityProjectUtils.getProjectUsersNoCredentials(other, TWIN_ID, null, -1, -1))
+					.getMessage());
+		}
+		// any other project is as it was: a reader sees who else has it
+		assertEquals(3, SecurityProjectUtils.getProjectUsers(reader, PLAIN_ID, null, null, -1, -1).size());
+		assertEquals(3L, SecurityProjectUtils.getProjectUsersCount(reader, PLAIN_ID, null, null));
+		SecurityProjectUtils.getProjectUsersNoCredentials(reader, PLAIN_ID, null, -1, -1);
+	}
+
+	@Test
+	void accessGivenUntilADayEndsThen() throws Exception {
+		// as the People tab adds someone: the last second of the day its owner picked
+		SecurityProjectUtils.addProjectUserPermissions(owner, TWIN_ID,
+				List.of(Map.of("userid", "strangerid", "permission", "READ_ONLY")), "2999-12-31T23:59:59.000Z");
+		assertTrue(SecurityProjectUtils.userCanViewProject(stranger, TWIN_ID));
+
+		// its owner's list says when, as a UTC time without a zone
+		String ends = SecurityProjectUtils.getProjectUsers(owner, TWIN_ID, null, null, -1, -1).stream()
+				.filter(person -> "strangerid".equals(person.get("id")))
+				.map(person -> String.valueOf(person.get("end_date"))).findFirst().orElse(null);
+		assertEquals("2999-12-31 23:59:59", ends);
+
+		// the day is over: the server's once-a-minute removal of ended access takes theirs
+		QueryExecutionUtility.write(securityDb, connection -> {
+			QueryExecutionUtility.executeUpdate(connection,
+					"UPDATE PROJECTPERMISSION SET ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?", ps -> {
+						ps.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now(ZoneOffset.UTC).minusDays(1)));
+						ps.setString(2, "strangerid");
+						ps.setString(3, TWIN_ID);
+					});
+			return null;
+		});
+		ExpiredAccessRemoval.removeAllEndedAccess();
+		assertFalse(SecurityProjectUtils.userCanViewProject(stranger, TWIN_ID));
+		assertTrue(SecurityProjectUtils.userCanViewProject(reader, TWIN_ID));
 	}
 
 	///

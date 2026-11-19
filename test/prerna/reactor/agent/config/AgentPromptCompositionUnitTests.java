@@ -48,7 +48,10 @@ import org.junit.jupiter.api.io.TempDir;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.BrainProfileUtils;
+import prerna.collaboration.CollaborationMemoryRunHook;
 import prerna.collaboration.CollaborationPrompts;
+import prerna.collaboration.CollaborationSkills;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
@@ -117,6 +120,45 @@ class AgentPromptCompositionUnitTests {
 			assertTrue(twin.isDigitalTwin());
 			assertEquals("Robin Reyes", twin.getDigitalTwinOwner());
 		}
+	}
+
+	@Test
+	void aDigitalTwinIsAGuestInTheChatOfWhoeverAsksIt() {
+		Room room = room(CONTEXT, false);
+		room.setProjectId(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		User asker = room.getInsight().getUser();
+		try (var workspaces = mockStatic(ModelInferenceLogsUtils.class);
+				var security = mockStatic(SecurityProjectUtils.class);
+				var profile = mockStatic(BrainProfileUtils.class);
+				var skills = mockStatic(CollaborationSkills.class)) {
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(AGENT_ID))
+					.thenReturn(Map.of("system_prompt", AGENT_PROMPT));
+			security.when(() -> SecurityProjectUtils.userCanViewProject(asker, AGENT_ID)).thenReturn(true);
+			// a skill the asker turned on for their own assistant
+			profile.when(() -> BrainProfileUtils.assistantSkills(asker)).thenReturn(List.of("askers-skill"));
+			skills.when(() -> CollaborationSkills.keepMine(asker, List.of("askers-skill")))
+					.thenReturn(List.of("askers-skill"));
+
+			// their own assistant has it, and their chat is reviewed for memories afterwards
+			AgentConfig assistant = load(room, AGENT_ID);
+			assertTrue(assistant.getSkills().stream().anyMatch(skill -> "askers-skill".equals(skill.get("skill_id"))));
+			assertTrue(assistant.getRunHooks().stream().anyMatch(CollaborationMemoryRunHook.class::isInstance));
+
+			// someone else's twin borrows neither
+			security.when(() -> SecurityProjectUtils.isDigitalTwin(AGENT_ID)).thenReturn(true);
+			AgentConfig twin = load(room, AGENT_ID);
+			assertTrue(twin.isDigitalTwin());
+			assertFalse(twin.getSkills().stream().anyMatch(skill -> "askers-skill".equals(skill.get("skill_id"))));
+			assertTrue(twin.getRunHooks().isEmpty(), twin.getRunHooks().toString());
+		}
+	}
+
+	@Test
+	void aTwinIsToldOnlyTheNameOfWhoeverIsAsking() {
+		assertEquals("## Person chatting\nName: Sam Lee", CollaborationPrompts.twinAsker(" Sam\n Lee "));
+		assertNull(CollaborationPrompts.twinAsker(null));
+		assertNull(CollaborationPrompts.twinAsker("  "));
+		assertTrue(CollaborationPrompts.twinPrompt("Robin Reyes").contains("You are a guest in this chat."));
 	}
 
 	@Test

@@ -40,6 +40,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.auth.AccessToken;
+import prerna.auth.User;
 import prerna.collaboration.BrainMemoryRecall;
 import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.CollaborationAgentTools;
@@ -198,7 +200,12 @@ public class SemossAgentHarness implements IAgentHarness {
 		// one level; etc.
 		AgentConfig.SubAgentSpawnPolicy policy = agentConfig.getSpawnPolicy();
 		List<SubAgentSpec> subAgentSpecs = agentConfig.getSubagents();
-		boolean canSpawn = ctx.getSpawnDepth() < policy.getMaxSubagentDepth();
+		// A Digital Twin is a guest in the chat of whoever asks it: someone else wrote
+		// its instructions, so it is handed none of the asker's Collaboration tools,
+		// and it starts no sub-agent, which would be handed them in its place.
+		// HarnessToolExecutor refuses the same tools by name.
+		boolean guest = agentConfig.isDigitalTwin();
+		boolean canSpawn = !guest && ctx.getSpawnDepth() < policy.getMaxSubagentDepth();
 		List<Map<String, Object>> subAgentTools = new ArrayList<>();
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.addAll(SubAgentToolSynthesizer.allTools(subAgentSpecs));
@@ -209,15 +216,24 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (delegationActionId != null) {
 			subAgentTools.add(SubAgentToolSynthesizer.buildSubmitDelegationTool(
 					HumanDelegationService.requesterName(ctx.getInsight(), delegationActionId)));
-		} else if (CollaborationUtils.isCollaborationRoom(ctx.getRoom())
+		} else if (!guest && CollaborationUtils.isCollaborationRoom(ctx.getRoom())
 				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH && !agentConfig.hasPptxWorkflow()) {
 			// DelegateToPerson is on hold; FindPerson stays for email addresses
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
-		// Microsoft 365 tools for every agent in a collaboration room
-		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && !agentConfig.hasPptxWorkflow()) {
+		// Microsoft 365 tools for every agent in a collaboration room, but a guest
+		if (!guest && CollaborationAgentTools.appliesTo(ctx.getRoom()) && !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.addAll(CollaborationAgentTools.definitions(ctx.getRoom(), ctx.getInsight().getUser(),
 					ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH));
+		}
+		// The one Collaboration tool a twin is handed, and only in the chat its owner
+		// has with it: adding a file of the chat to its own files, which waits for the
+		// owner's approval. The reactor checks whose twin it is again.
+		Map<String, Object> twinFileTool = agentConfig.isDigitalTwinOwnChat() && CollaborationRunMode.isChat(room)
+				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH ? CollaborationAgentTools.twinFileTool()
+						: null;
+		if (twinFileTool != null) {
+			subAgentTools.add(twinFileTool);
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
@@ -278,11 +294,20 @@ public class SemossAgentHarness implements IAgentHarness {
 		// a Digital Twin's rules, after its owner's instructions so those cannot take
 		// them away
 		if (agentConfig.isDigitalTwin()) {
-			composed.append("\n\n").append(CollaborationPrompts.twinPrompt(agentConfig.getDigitalTwinOwner()));
+			composed.append("\n\n").append(CollaborationPrompts.twinPrompt(agentConfig.getDigitalTwinOwner(),
+					agentConfig.isDigitalTwinOwnChat(), twinFileTool != null));
 		}
 		// who the owner is and what they asked to remember, in their chat or routine;
 		// after the static parts so they stay cacheable
-		if (CollaborationRunMode.of(room) != null && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+		if (guest) {
+			// a Digital Twin is told who is asking, and nothing Collaboration keeps for
+			// them: not their profile, their memories or their routine preferences
+			String asker = CollaborationPrompts.twinAsker(loginName(ctx.getInsight().getUser()));
+			if (asker != null && CollaborationRunMode.of(room) != null
+					&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH) {
+				composed.append("\n\n").append(asker);
+			}
+		} else if (CollaborationRunMode.of(room) != null && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
 			String ownerBlock = BrainProfileUtils.promptBlock(ctx.getInsight().getUser());
 			if (ownerBlock != null) {
@@ -1702,7 +1727,17 @@ public class SemossAgentHarness implements IAgentHarness {
 	// a Collaboration chat or routine starts from the Collaboration prompt; a PPTX
 	// workflow agent keeps its own
 	private static boolean collaborationBaseline(AgentRunContext ctx, Room room) {
-		return CollaborationRunMode.of(room) != null && !ctx.getAgentConfig().hasPptxWorkflow();
+		// A Digital Twin keeps the general one: the Collaboration prompt is for the
+		// assistant of the person chatting, with their mail and calendar, and a twin is
+		// a guest with neither.
+		return CollaborationRunMode.of(room) != null && !ctx.getAgentConfig().hasPptxWorkflow()
+				&& !ctx.getAgentConfig().isDigitalTwin();
+	}
+
+	// The display name a person signed in with; null when there is none.
+	private static String loginName(User user) {
+		AccessToken login = user == null ? null : user.getAccessToken(user.getPrimaryLogin());
+		return login == null ? null : login.getName();
 	}
 
 }

@@ -205,10 +205,13 @@ public final class AgentConfigLoader {
 		b.agentFilesDir(resolveAgentFilesDir(workspaceId, workspaceRow, runUser));
 		// A Digital Twin's rules follow it into every run. A run without a user has no
 		// agent files and nobody's tools, so the mark is not read for it.
-		if (workspaceId != null && workspaceRow != null && runUser != null
-				&& SecurityProjectUtils.isDigitalTwin(workspaceId)) {
+		boolean digitalTwin = workspaceId != null && workspaceRow != null && runUser != null
+				&& SecurityProjectUtils.isDigitalTwin(workspaceId);
+		if (digitalTwin) {
 			b.digitalTwin(true);
 			b.digitalTwinOwner(SecurityProjectUtils.getProjectCreatorName(workspaceId));
+			// its owner's own chat: the twin is told who it is talking to and may add to its files
+			b.digitalTwinOwnChat(SecurityProjectUtils.isProjectCreator(runUser, workspaceId));
 		}
 
 		// CONFIG_JSON budgets override per field; remaining values come from caller
@@ -220,8 +223,7 @@ public final class AgentConfigLoader {
 		b.mcps(resolveMcps(workspaceId, room, cfgJson));
 
 		// Skills follow the same layered merge and are staged later by AgentRunner.
-		b.skills(resolveSkills(workspaceId, room, cfgJson,
-				room.getInsight() != null ? room.getInsight().getUser() : null));
+		b.skills(resolveSkills(workspaceId, room, cfgJson, runUser, digitalTwin));
 
 		// Hooks and subagents currently come from CONFIG_JSON only. resolveHooks
 		// classifies
@@ -229,7 +231,7 @@ public final class AgentConfigLoader {
 		// list,
 		// or both.
 		ResolvedHooks rh = resolveHooks(cfgJson);
-		b.runHooks(withBuiltInRunHooks(room, rh.runHooks));
+		b.runHooks(withBuiltInRunHooks(room, rh.runHooks, digitalTwin));
 		b.toolHooks(rh.toolHooks);
 		b.subagents(resolveSubagents(cfgJson));
 
@@ -447,7 +449,7 @@ public final class AgentConfigLoader {
 	 * retain their pinned version when also present in the defaults.
 	 */
 	private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson,
-			User user) {
+			User user, boolean digitalTwin) {
 		List<Map<String, String>> out = new ArrayList<>();
 		Set<String> seen = new LinkedHashSet<>();
 
@@ -517,8 +519,9 @@ public final class AgentConfigLoader {
 			out.add(entry);
 		}
 
-		// the owner's own Collaboration skills they turned on for their assistant, in chats and routines
-		if (user != null && CollaborationRunMode.of(room) != null) {
+		// the owner's own Collaboration skills they turned on for their assistant, in chats and routines;
+		// a Digital Twin is someone else's agent, a guest in the chat, and borrows none of them
+		if (user != null && !digitalTwin && CollaborationRunMode.of(room) != null) {
 			for (String skillId : CollaborationSkills.keepMine(user, BrainProfileUtils.assistantSkills(user))) {
 				if (seen.add(skillId)) {
 					out.add(skillRef(skillId, null));
@@ -871,10 +874,13 @@ public final class AgentConfigLoader {
 
 	/**
 	 * An owner's chat also saves the OneDrive copies a finished run changed back over their originals, and reviews
-	 * its finished runs for memories to suggest, whatever its agent configures; a routine's runs get neither.
+	 * its finished runs for memories to suggest, whatever its agent configures; a routine's runs get neither. Nor
+	 * does a chat with a Digital Twin: what someone else's agent did there is not written back to the asker's
+	 * OneDrive, learned as their memory or filed under their topics.
 	 */
-	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
-		if (!CollaborationRunMode.isChat(room)) {
+	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured,
+			boolean digitalTwin) {
+		if (digitalTwin || !CollaborationRunMode.isChat(room)) {
 			return configured;
 		}
 		List<IAgentRunHook> hooks = new ArrayList<>(configured);

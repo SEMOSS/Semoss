@@ -380,6 +380,9 @@ public final class BrainProfileUtils {
 		settings.put("assistantAgent", CollaborationUtils.threadAgent(user));
 		// read-only: whether an admin turned Digital Twin avatars on and set their image model
 		settings.put("avatarGeneration", WorkTwinAvatar.available());
+		// read-only: whether this deployment's Microsoft sign in asks for the scope a
+		// meeting transcript is read with, so a page offers one only where it can be read
+		settings.put("meetingTranscripts", CollaborationAgentTools.transcriptsRequested());
 		return settings;
 	}
 
