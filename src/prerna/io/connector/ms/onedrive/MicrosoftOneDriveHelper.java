@@ -281,9 +281,22 @@ public class MicrosoftOneDriveHelper {
 			for (Map<String, Object> item : items) {
 				Object itemDriveId = item.get("driveId");
 				Object itemItemId = item.get("id");
-				if (itemItemId != null && itemItemId.equals(itemId) && (driveId == null || (itemDriveId != null && itemDriveId.equals(driveId)))) {
+				if (itemItemId != null && itemItemId.equals(itemId)
+						&& (driveId == null || (itemDriveId != null && itemDriveId.equals(driveId)))) {
 					return item;
 				}
+			}
+			return null;
+		}
+
+		String getFileContent(String driveId, String itemId) {
+			Map<String, Object> item = getItem(driveId, itemId);
+			if (item == null) {
+				return null;
+			}
+			Object content = item.get("content");
+			if (content instanceof String) {
+				return (String) content;
 			}
 			return null;
 		}
@@ -548,8 +561,8 @@ public class MicrosoftOneDriveHelper {
 			}
 
 			List<Map<String, Object>> recent = new ArrayList<>(files.values());
-			recent.sort(Comparator.comparing((Map<String, Object> file) -> instantOf(file.get(LAST_MODIFIED)))
-					.reversed());
+			recent.sort(
+					Comparator.comparing((Map<String, Object> file) -> instantOf(file.get(LAST_MODIFIED))).reversed());
 			if (limit > 0 && recent.size() > limit) {
 				return new ArrayList<>(recent.subList(0, limit));
 			}
@@ -731,8 +744,8 @@ public class MicrosoftOneDriveHelper {
 	 *
 	 * <p>
 	 * Where the copy came from is recorded beside it (see
-	 * {@link MicrosoftOneDriveSources}). A copy of the same file that is already
-	 * in the destination, and that nobody changed there, is the one brought up to
+	 * {@link MicrosoftOneDriveSources}). A copy of the same file that is already in
+	 * the destination, and that nobody changed there, is the one brought up to
 	 * date: it is fetched again only when OneDrive holds a newer version, and no
 	 * second copy is written under another name. A copy that was changed there is
 	 * never written over unless the caller names it: a download that names no file
@@ -850,12 +863,12 @@ public class MicrosoftOneDriveHelper {
 	 * </p>
 	 *
 	 * <p>
-	 * An upload that replaces is the one that can lose somebody's work, so when
-	 * the local file is a copy a download recorded, and the upload is aimed at the
-	 * file it was copied from, it goes through {@link #saveBack} instead, as a save
-	 * the owner asked for. Aimed nowhere in particular (no drive, folder or other
-	 * name) it goes back to that file too, wherever it lives, rather than to the
-	 * drive root.
+	 * An upload that replaces is the one that can lose somebody's work, so when the
+	 * local file is a copy a download recorded, and the upload is aimed at the file
+	 * it was copied from, it goes through {@link #saveBack} instead, as a save the
+	 * owner asked for. Aimed nowhere in particular (no drive, folder or other name)
+	 * it goes back to that file too, wherever it lives, rather than to the drive
+	 * root.
 	 * </p>
 	 *
 	 * @param accessToken      Microsoft Graph access token for the user
@@ -956,9 +969,9 @@ public class MicrosoftOneDriveHelper {
 	 * {@link MicrosoftOneDriveSources}), and the original has to still hold the
 	 * version the copy was taken from. When somebody changed the original in the
 	 * meantime nothing is uploaded, since writing the copy over it would discard
-	 * their change without anybody having seen it. That refusal is recorded, and
-	 * an owner who was told of the change and asks again gets their way: the
-	 * second informed save writes the copy over it.
+	 * their change without anybody having seen it. That refusal is recorded, and an
+	 * owner who was told of the change and asks again gets their way: the second
+	 * informed save writes the copy over it.
 	 * </p>
 	 *
 	 * <p>
@@ -968,9 +981,9 @@ public class MicrosoftOneDriveHelper {
 	 *
 	 * @param accessToken Microsoft Graph access token for the user
 	 * @param copy        the local copy to upload
-	 * @param informed    whether the owner asked for this save themselves, which
-	 *                    is what lets it write over a change they were already
-	 *                    told about; a save nobody asked for never does
+	 * @param informed    whether the owner asked for this save themselves, which is
+	 *                    what lets it write over a change they were already told
+	 *                    about; a save nobody asked for never does
 	 * @return the file as OneDrive now holds it
 	 * @throws SaveBackRefused if the file is not a recorded copy, or its original
 	 *                         is gone or has changed
@@ -1325,8 +1338,8 @@ public class MicrosoftOneDriveHelper {
 	 * </p>
 	 *
 	 * @param url     what to fetch
-	 * @param headers the request headers, or null for a url that is pre-authenticated,
-	 *                which a failure then does not quote
+	 * @param headers the request headers, or null for a url that is
+	 *                pre-authenticated, which a failure then does not quote
 	 * @param file    where the bytes go, in a folder that exists
 	 * @param name    what a refusal calls the file
 	 * @return how many bytes were written; the file is left as it was when there
@@ -1446,11 +1459,11 @@ public class MicrosoftOneDriveHelper {
 
 	/**
 	 * Sends a file to an upload session in pieces, for whichever helper opened the
-	 * session. A session whose upload fails is cancelled: while one is open OneDrive
-	 * answers every other upload of the same file with a 409, "currently being
-	 * uploaded", for a quarter of an hour or so, which is how one refusal of a file
-	 * open in Office became many. The failure does not quote the session's url,
-	 * which is what signs its requests.
+	 * session. A session whose upload fails is cancelled: while one is open
+	 * OneDrive answers every other upload of the same file with a 409, "currently
+	 * being uploaded", for a quarter of an hour or so, which is how one refusal of
+	 * a file open in Office became many. The failure does not quote the session's
+	 * url, which is what signs its requests.
 	 *
 	 * @param uploadUrl the url the session answered with
 	 * @param file      the file to send
@@ -1488,7 +1501,8 @@ public class MicrosoftOneDriveHelper {
 			try {
 				HttpHelperUtility.deleteRequestStringBody(uploadUrl, null, null, null, null);
 			} catch (Exception notCancelled) {
-				// the url is what signs the request, so the failure, which quotes it, is not logged
+				// the url is what signs the request, so the failure, which quotes it, is not
+				// logged
 				classLogger.warn("Could not cancel the upload session of {}; Graph refuses another upload of that "
 						+ "file until the session expires", fileName);
 			}
@@ -1507,8 +1521,10 @@ public class MicrosoftOneDriveHelper {
 	 * @return the failure itself when it does not quote the url, or one that says
 	 *         the same without it
 	 */
-	// shortcut: HttpHelperUtility logs the url itself when the connection drops, before it throws;
-	// have it leave query strings out of its own lines once that has to be closed too
+	// shortcut: HttpHelperUtility logs the url itself when the connection drops,
+	// before it throws;
+	// have it leave query strings out of its own lines once that has to be closed
+	// too
 	private static Exception withoutUrl(Exception e, String url, String what) {
 		String why = e.getMessage();
 		if (why == null || !why.contains(url)) {
@@ -1585,11 +1601,11 @@ public class MicrosoftOneDriveHelper {
 	 * @param itemId     the folder the upload names, or null
 	 * @param folderPath the folder path the upload names, or null
 	 * @param fileName   the name the upload gives the file
-	 * @return true when the local file is a recorded copy and the upload names
-	 *         its original, or names nowhere else to go
+	 * @return true when the local file is a recorded copy and the upload names its
+	 *         original, or names nowhere else to go
 	 */
-	private static boolean isOriginal(String accessToken, File copy, String driveId, String itemId,
-			String folderPath, String fileName) throws Exception {
+	private static boolean isOriginal(String accessToken, File copy, String driveId, String itemId, String folderPath,
+			String fileName) throws Exception {
 		MicrosoftOneDriveSources.Source source = MicrosoftOneDriveSources.read(copy);
 		if (source == null) {
 			return false;
@@ -1994,4 +2010,18 @@ public class MicrosoftOneDriveHelper {
 		return MicrosoftOneDriveItemMapper.toDriveItem(item, driveId);
 	}
 
+	public static String getFileContentFixture(String driveId, String itemId) throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING
+					+ " environment variable or DI property and ensure onedrive-m365.json exists next to mail.json.");
+		}
+		OneDriveFixtureSource source = OneDriveFixtureSource.of(fixturePath);
+		String content = source.getFileContent(driveId, itemId);
+		if (content == null) {
+			throw new IllegalStateException(
+					"No content found for item in fixture data for drive = " + driveId + ", item = " + itemId);
+		}
+		return content;
+	}
 }
