@@ -57,6 +57,21 @@ class AppTestHistoryUnitTests {
         return AppTestHistory.pending(UUID.randomUUID().toString(), "app", tests, 1, accepted);
     }
 
+    @Test void replicationFailureKeepsLocalTerminalResultAndReportsASeparateWarning() throws Exception {
+        Map<String,Object> run=pending(List.of(recording("Local result")),Instant.now());
+        run.put("status","COMPLETED");
+        try(var cloud=org.mockito.Mockito.mockStatic(prerna.cluster.util.ClusterUtil.class)) {
+            cloud.when(()->prerna.cluster.util.ClusterUtil.copyLocalFileToEngineCloudFolder(
+                org.mockito.ArgumentMatchers.eq("app"),org.mockito.ArgumentMatchers.eq(prerna.engine.api.IEngine.CATALOG_TYPE.PROJECT),org.mockito.ArgumentMatchers.anyString()))
+                .thenThrow(new IllegalStateException("Fixture storage unavailable"));
+            String warning=AppTestHistory.publishAt("app",folder,run);
+            assertTrue(warning.contains("saved locally"));
+            assertEquals("COMPLETED",AppTestHistory.read(folder,(String)run.get("runId"),"app",Instant.now()).get("status"));
+        }
+        Path blocked=folder.resolve("not-a-directory"); Files.writeString(blocked,"blocked");
+        assertThrows(IOException.class,()->AppTestHistory.publishAt("app",blocked,run));
+    }
+
     @Test void hashIsStableAcrossMapOrderingAndEditTimestampsButChangesWithTheTest() {
         Map<String, Object> first = recording("Checkout");
         Map<String, Object> copy = new LinkedHashMap<>(first);

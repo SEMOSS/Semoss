@@ -112,4 +112,12 @@ class AppTestContractUnitTests {
 		assertTrue(foundGet && foundRun && foundHistoryList && foundHistoryRead);
 	}
 
+    @Test void generatedRecordingSchemaEqualsTheShippedToolSchema() throws Exception {
+        var generated=new SaveAppTestRecordingReactor().asMcpTool().getJSONObject("inputSchema").getJSONObject("properties").getJSONObject("recording");
+        assertEquals(0, generated.getJSONObject("properties").getJSONObject("cleanupSteps").getInt("minItems"));
+        var manifest=com.google.gson.JsonParser.parseString(Files.readString(Path.of(System.getProperty("semoss.test.sourceRoot","."),"project/platform__app-tests/app_root/version/assets/mcp/pixel_mcp.json"))).getAsJsonObject();
+        for(var item:manifest.getAsJsonArray("tools"))if(item.getAsJsonObject().get("name").getAsString().equals("SaveAppTestRecording"))
+            assertEquals(com.google.gson.JsonParser.parseString(generated.toString()),item.getAsJsonObject().getAsJsonObject("inputSchema").getAsJsonObject("properties").get("recording"));
+    }
+
 }

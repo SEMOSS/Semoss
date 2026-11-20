@@ -143,7 +143,7 @@ final class AppTestRunner {
 					Map<String, Object> recording = recordings.get(index);
 					tests.set(index, pendingTest(recording, "RUNNING"));
 					progress.accept(progressReport(runId, target, tests, startedAt));
-					tests.set(index, replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat));
+					tests.set(index, replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat, runId));
 					progress.accept(progressReport(runId, target, tests, startedAt));
 				}
 			}
@@ -170,7 +170,7 @@ final class AppTestRunner {
 	static Map<String, Object> pendingTest(Map<String, Object> recording, String status) {
 		Map<String, Object> test = new LinkedHashMap<>();
 		for (String field : List.of("id", "name", "description")) test.put(field, recording.get(field));
-		test.put("definitionHash", AppTestHistory.definitionHash(recording));
+		test.put("definitionHash", recording.getOrDefault("templateHash", AppTestHistory.definitionHash(recording)));
 		test.put("status", status);
 		test.put("scope", recording.getOrDefault("scope", "SAVED_WORKFLOW_REGRESSION"));
 		List<Map<String, Object>> steps = (List<Map<String, Object>>) recording.get("steps");
@@ -199,7 +199,7 @@ final class AppTestRunner {
 		test.put("id", recording.get("id"));
 		test.put("name", recording.get("name"));
 		test.put("description", recording.getOrDefault("description", "Replay the recorded app workflow."));
-		test.put("definitionHash", AppTestHistory.definitionHash(recording));
+		test.put("definitionHash", recording.getOrDefault("templateHash", AppTestHistory.definitionHash(recording)));
 		test.put("startedAt", startedAt.toString());
 		test.put("page", recording.get("startPath"));
 		boolean smoke = "PAGE_VISIBILITY_SMOKE".equals(recording.get("scope"));
@@ -258,7 +258,7 @@ final class AppTestRunner {
 						// Fixed-position apps can have a zero-height body while their content is visible.
 						assertThat(page.locator("body:visible, body :visible").first())
 								.isVisible(new LocatorAssertions.IsVisibleOptions().setTimeout(STEP_TIMEOUT_MS));
-					} else execute(page, root, step);
+					} else AppTestPlayback.execute(page, root, step, String.valueOf(recording.getOrDefault("routeMatch", "EXACT")), deadline);
 					completedSteps++;
 					if (String.valueOf(step.get("type")).startsWith("ASSERT_")) completedAssertions++;
 				}
@@ -275,24 +275,37 @@ final class AppTestRunner {
 					test.put("reason", "Actions replayed, but this recording has no checks. Add a text or visibility check to verify behavior.");
 				} else test.put("status", "PASSED");
 			} catch (RuntimeException | AssertionError e) {
-				boolean environment = unauthorized.get() || unsafeNavigation.get()
-						|| !(e instanceof TimeoutError || e instanceof AssertionError);
+				boolean ambiguous = AppTestPlayback.ambiguous(e);
+                boolean invalidSelector = AppTestPlayback.invalidSelector(e);
+                boolean environment = unauthorized.get() || unsafeNavigation.get()
+						|| !(ambiguous || invalidSelector || e instanceof TimeoutError || e instanceof AssertionError);
 				// A missing element may be a removal that was intended, so it is not called a regression.
-				boolean targetMissing = !environment && currentStep > 0 && targetMissing(page, steps.get(currentStep - 1));
+				boolean routeMismatch = e instanceof AppTestPlayback.WrongPage;
+				boolean targetMissing = !environment && !routeMismatch && !ambiguous && !invalidSelector && currentStep > 0 && targetMissing(page, steps.get(currentStep - 1));
 				test.put("status", environment ? "ERROR" : "FAILED");
-				test.put("classification", environment ? "ERROR" : targetMissing ? "TARGET_NOT_FOUND" : "REGRESSION_SUSPECTED");
+				test.put("classification", environment ? "ERROR" : ambiguous ? "AMBIGUOUS_SELECTOR" : invalidSelector ? "INVALID_SELECTOR" : routeMismatch ? "WRONG_PAGE" : targetMissing ? "TARGET_NOT_FOUND" : "REGRESSION_SUSPECTED");
 				if (currentStep > 0) test.put("failedStep", currentStep);
 				test.put("reason", unauthorized.get() ? "SEMOSS session expired or access was denied. Sign in again before running tests."
 						: unsafeNavigation.get() ? "Navigation left the target app or required a different authentication origin."
 						: smoke && runtimeErrors.get() > 0 ? "The page visibility smoke check observed unhandled JavaScript errors. This check provides no workflow coverage."
-						: environment ? "The app could not load, a step was unsupported, or the runner timed out."
+						: ambiguous ? "The selector matches multiple elements. Use a unique data-testid or scope it to the intended row/lane. The runner will not choose the first match."
+                        : invalidSelector ? "The selector could not be parsed. Use a valid CSS selector scoped to this app."
+                        : routeMismatch ? "The app did not reach this step's pagePath. pagePath is the route expected BEFORE the action, not its destination. Check the preceding navigation, entry file, query and hash."
+						: environment ? "The app could not load or execute this step. Check browser availability, app responses and the saved step format."
 						: targetMissing ? "The recorded element was not found in the app. It may have been removed or renamed; confirm whether that was intended. Do not weaken the test to make it pass."
 						: "The recorded element or expected check did not match the app.");
 				if (currentStep > 0) {
 					Map<String, Object> failed = steps.get(currentStep - 1);
-					test.put("expected", failed.getOrDefault("text", failed.get("type")));
+					test.put("expected", routeMismatch ? AppTestPlayback.safeRoute(root, ((AppTestPlayback.WrongPage)e).expected) : failed.getOrDefault("text", failed.getOrDefault("value", failed.getOrDefault("count", failed.get("type")))));
 					test.put("actual", "Recorded action or check could not be completed");
-					if ("ASSERT_TEXT".equals(failed.get("type"))) {
+                    test.put("page", AppTestPlayback.safeRoute(root, page.url()));
+                    if (routeMismatch) {
+                        test.put("actual", AppTestPlayback.safeRoute(root, page.url()));
+                        if (!java.util.Objects.equals(URI.create(page.url()).getRawQuery(), URI.create(((AppTestPlayback.WrongPage)e).expected).getRawQuery())) test.put("reason", test.get("reason") + " Query parameters differ (values are redacted).");
+                    }
+                    if (ambiguous) try { test.put("actual", locator(page, failed).count() + " elements matched"); } catch (RuntimeException ignored) { }
+                    if ((targetMissing || ambiguous) && failed.get("selector") != null) test.put("availableTestIds", AppTestPlayback.targets(page, failed));
+					if (!routeMismatch && "ASSERT_TEXT".equals(failed.get("type"))) {
 						try {
 							String actual = locator(page, failed).textContent(new Locator.TextContentOptions().setTimeout(500));
 							if (actual != null) test.put("actual", actual.substring(0, Math.min(actual.length(), 2000)));
@@ -313,6 +326,28 @@ final class AppTestRunner {
 					}
 				} catch (RuntimeException ignored) { /* Browser may already have closed. */ }
 			}
+            if (recording.get("cleanupSteps") instanceof List<?> cleanup && !cleanup.isEmpty()) {
+                Map<String,Object> cleanupResult = new LinkedHashMap<>();
+                int attempted = 0, completed = 0;
+                try {
+                    for (Object raw : cleanup) {
+                        attempted++;
+                        if (unauthorized.get() || unsafeNavigation.get()) throw new IllegalStateException("Session or navigation failed");
+                        AppTestPlayback.execute(page, root, (Map<String,Object>)raw, String.valueOf(recording.getOrDefault("routeMatch", "EXACT")), deadline);
+                        completed++;
+                    }
+                    cleanupResult.put("status","PASSED");
+                } catch (RuntimeException | AssertionError failure) {
+                    cleanupResult.put("status","FAILED");
+                    cleanupResult.put("failedStep",attempted);
+                    cleanupResult.put("reason","Cleanup could not complete; check its steps, session and remaining run budget. Original workflow outcome is preserved.");
+                    if ("PASSED".equals(test.get("status"))) {
+                        test.put("status","FAILED"); test.put("classification","CLEANUP_FAILED"); test.put("reason","The workflow passed but cleanup failed; shared test data may remain changed.");
+                    }
+                }
+                cleanupResult.put("stepsAttempted",attempted); cleanupResult.put("stepsCompleted",completed);
+                test.put("cleanup",cleanupResult);
+            }
 		}
 		test.put("assertionsPassed", completedAssertions);
 		test.put("stepsAttempted", attemptedSteps);
@@ -336,7 +371,7 @@ final class AppTestRunner {
 
 	/** True when the step's element does not exist in the page right now. */
 	private static boolean targetMissing(Page page, Map<String, Object> step) {
-		if ("NAVIGATE".equals(String.valueOf(step.get("type"))) || step.get("selector") == null) return false;
+		if (List.of("NAVIGATE", "ASSERT_URL", "ASSERT_ABSENT", "ASSERT_COUNT", "ASSERT_HIDDEN").contains(String.valueOf(step.get("type"))) || step.get("selector") == null) return false;
 		try {
 			return locator(page, step).count() == 0;
 		} catch (RuntimeException e) {
@@ -345,10 +380,10 @@ final class AppTestRunner {
 	}
 
 	private static Map<String, Object> replayRepeated(Browser browser, URI root, String sessionId, String cookieName,
-			Map<String, Object> recording, long deadline, int repeat) {
+			Map<String, Object> recording, long deadline, int repeat, String runId) {
 		List<Map<String, Object>> outcomes = new ArrayList<>();
 		for (int i = 0; i < Math.max(1, repeat); i++) {
-			outcomes.add(replay(browser, root, sessionId, cookieName, recording, deadline));
+			outcomes.add(replay(browser, root, sessionId, cookieName, AppTestPlayback.variables(recording, runId, i + 1), deadline));
 			if (System.nanoTime() >= deadline) break;
 		}
 		return aggregateRepeats(outcomes, Math.max(1, repeat));
@@ -390,46 +425,14 @@ final class AppTestRunner {
 			result.put("status", "FAILED");
 			result.put("classification", "FLAKY");
 			result.put("reason", "The same recording passed " + passed + " of " + outcomes.size()
-					+ " identical replays. Its result is not deterministic, so do not rely on it.");
+					+ " replays. Outcomes differed; inspect attempts and shared data/setup before attributing the cause. Fresh browser contexts do not reset databases.");
 		}
 		return result;
 	}
 
-	@SuppressWarnings("unchecked")
-	static void execute(Page page, URI root, Map<String, Object> step) {
-        String type = String.valueOf(step.get("type"));
-        if (step.containsKey("pagePath")) {
-            String expected = root.resolve(AppTestRecordings.relativePath(step.get("pagePath"))).toString();
-            assertThat(page).hasURL(expected, new com.microsoft.playwright.assertions.PageAssertions.HasURLOptions().setTimeout(STEP_TIMEOUT_MS));
-        }
-        if (type.equals("NAVIGATE")) {
-			page.navigate(root.resolve(AppTestRecordings.relativePath(step.get("path"))).toString(),
-					new Page.NavigateOptions().setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
-			return;
-		}
-		Locator locator = locator(page, step);
-		switch (type) {
-		case "CLICK" -> locator.click();
-		case "FILL" -> {
-			if ("password".equalsIgnoreCase(locator.getAttribute("type"))) throw new IllegalArgumentException("Password replay is not supported");
-			locator.fill(String.valueOf(step.get("value")));
-		}
-		case "SELECT" -> locator.selectOption(String.valueOf(step.get("value")));
-		case "CHECK" -> locator.setChecked((Boolean) step.get("checked"));
-		case "KEY" -> locator.press(String.valueOf(step.get("key")));
-		case "SCROLL" -> locator.evaluate("(el, p) => el.scrollTo(p.x, p.y)", Map.of("x", step.get("x"), "y", step.get("y")));
-		case "ASSERT_TEXT" -> {
-			String expected = String.valueOf(step.get("text"));
-			if (Boolean.TRUE.equals(step.get("exact"))) {
-				assertThat(locator).hasText(expected, new LocatorAssertions.HasTextOptions().setTimeout(STEP_TIMEOUT_MS));
-			} else {
-				assertThat(locator).containsText(expected, new LocatorAssertions.ContainsTextOptions().setTimeout(STEP_TIMEOUT_MS));
-			}
-		}
-		case "ASSERT_VISIBLE" -> assertThat(locator).isVisible(new LocatorAssertions.IsVisibleOptions().setTimeout(STEP_TIMEOUT_MS));
-		default -> throw new IllegalArgumentException("Unsupported app test step");
-		}
-	}
+    static void execute(Page page, URI root, Map<String,Object> step) {
+        AppTestPlayback.execute(page, root, step, "EXACT", System.nanoTime() + 30_000_000_000L);
+    }
 
 	@SuppressWarnings("unchecked")
 	private static Locator locator(Page page, Map<String, Object> step) {

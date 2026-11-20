@@ -239,4 +239,64 @@ class AppTestRecordingsUnitTests {
 		assertEquals(1, AppTestRecordings.list(temporary).size());
 	}
 
+	@Test
+	void validationErrorsIdentifyTheFieldStepAndSupportedFormat() {
+		Map<String, Object> input = new LinkedHashMap<>(recording("Diagnostic"));
+		input.put("startPath", "/portals/index.html");
+		String pathError = assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(input)).getMessage();
+		assertTrue(pathError.startsWith("startPath:"));
+		assertTrue(pathError.contains("index.html#/"));
+		input.put("startPath", "index.html?env=test#/boards/b1");
+		input.put("steps", List.of(Map.of("type", "CLICK", "selector", "a"), Map.of("type", "GOTO", "url", "#/task/t1")));
+		String typeError = assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(input)).getMessage();
+		assertTrue(typeError.startsWith("Step 2:"));
+		assertTrue(typeError.contains("GOTO"));
+		assertTrue(typeError.contains("NAVIGATE uses path"));
+		input.put("steps", List.of(Map.of("type", "CLICK", "selector", "a", "pagePath", "/task/t1")));
+		assertTrue(assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(input)).getMessage().startsWith("Step 1: pagePath:"));
+		input.put("steps", List.of(Map.of("type", "NAVIGATE", "url", "#/task/t1")));
+		assertTrue(assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(input)).getMessage().contains("NAVIGATE requires a string path"));
+		input.put("id", "my-test-name");
+		assertTrue(assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.validate(input)).getMessage().contains("Omit id"));
+	}
+
+	@Test
+	void acceptsHashRoutingAndTestQueryOnEveryPageOfTheUserWorkflow() throws Exception {
+		Map<String, Object> saved = AppTestRecordings.save(temporary, Map.of(
+			"name", "Task lane", "description", "Save and verify a task lane on a separate page.", "startPath", "#/",
+			"steps", List.of(
+				Map.of("type", "CLICK", "selector", "[data-testid=\"task-t1\"]", "pagePath", "#/"),
+				Map.of("type", "SELECT", "selector", "[data-testid=\"task-lane\"]", "value", "In Progress", "pagePath", "#/task/t1"),
+				Map.of("type", "CLICK", "selector", "[data-testid=\"task-save\"]", "pagePath", "#/task/t1"),
+				Map.of("type", "ASSERT_VISIBLE", "selector", "[data-testid=\"task-t1\"]", "pagePath", "#/"))));
+		assertEquals(saved, AppTestRecordings.get(temporary, (String) saved.get("id")));
+		assertEquals("index.html?env=test#/boards/b1/tasks/t1", AppTestRecordings.relativePath("index.html?env=test#/boards/b1/tasks/t1"));
+	}
+
+    @Test void discoveryKeepsValidMetadataAndAllowsOnlyExplicitMalformedFileDeletion() throws Exception {
+        Map<String,Object> saved=AppTestRecordings.save(temporary,recording("Good"));
+        Files.writeString(temporary.resolve("tests/bad-name.json"),"{\"id\":\"not-a-uuid\"}");
+        Map<String,Object> listing=AppTestRecordings.discover(temporary);
+        assertEquals(1,((List<?>)listing.get("recordings")).size());
+        assertEquals("bad-name.json",((Map<?,?>)((List<?>)listing.get("invalid")).getFirst()).get("file"));
+        assertFalse(listing.toString().contains("selector"));
+        assertThrows(java.io.IOException.class,()->AppTestRuns.loadSelected(temporary,null,null,true,List.of()));
+        assertEquals(saved,AppTestRecordings.get(temporary,(String)saved.get("id")));
+        assertThrows(IllegalArgumentException.class,()->AppTestRecordings.deleteInvalid(temporary,"../outside.json"));
+        assertThrows(IllegalArgumentException.class,()->AppTestRecordings.deleteInvalid(temporary,saved.get("id")+".json"));
+        assertTrue(AppTestRecordings.deleteInvalid(temporary,"bad-name.json"));
+    }
+
+    @Test void validatesExtendedStepFieldsAndExplainsFrameSemantics() {
+        Map<String,Object> definition=new LinkedHashMap<>(recording("Fields"));
+        definition.put("steps",List.of(Map.of("type","ASSERT_VALUE","selector","select","value","ready","timeoutMs",30000)));
+        assertNotNull(AppTestRecordings.validate(definition));
+        for (Map<String,Object> step : List.of(Map.<String,Object>of("type","ASSERT_COUNT","selector","a","count",-1),Map.<String,Object>of("type","WAIT_FOR","selector","a","state","forever"),Map.<String,Object>of("type","CLICK","selector","a","timeoutMs",30001))) {
+            definition.put("steps",List.of(step));assertThrows(IllegalArgumentException.class,()->AppTestRecordings.validate(definition));
+        }
+        definition.put("steps",List.of(Map.of("type","CLICK","selector","a","framePath",List.of(Map.of("data-testid","lane")))));
+        assertTrue(assertThrows(IllegalArgumentException.class,()->AppTestRecordings.validate(definition)).getMessage().contains("nested iframes"));
+        assertTrue(assertThrows(IllegalArgumentException.class,()->AppTestRecordings.validate(null)).getMessage().contains("not a JSON string"));
+    }
+
 }

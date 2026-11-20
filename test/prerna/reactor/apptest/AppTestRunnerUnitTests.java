@@ -59,7 +59,7 @@ class AppTestRunnerUnitTests {
 		server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
 		server.createContext("/Monolith/public_home/app-one/portals/", exchange -> {
 			boolean authenticated = "JSESSIONID=test-session".equals(exchange.getRequestHeaders().getFirst("Cookie"));
-			String html = "<html><body><input id='name'><select id='choice'><option value='one'>One</option><option value='two'>Two</option></select>"
+			String html = "<html><body><div id='drag-source' draggable='true' ondragstart=\"event.dataTransfer.setData('text/plain','fixture')\">Source</div><div id='drag-target' ondragover=\"event.preventDefault()\" ondrop=\"event.preventDefault();this.textContent='Dropped'\">Target</div><input id='name'><select id='choice'><option value='one'>One</option><option value='two'>Two</option></select>"
 					+ "<input id='agree' type='checkbox'><button id='save' onclick=\"document.querySelector('#result').textContent='Saved '+document.querySelector('#name').value\">Save</button>"
 					+ "<div id='result'>Ready</div><iframe id='child' srcdoc=\"<span id='nested'>Nested content</span>\"></iframe>"
 					+ "<a id='escape' href='/elsewhere'>Leave app</a>"
@@ -270,4 +270,92 @@ class AppTestRunnerUnitTests {
 
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> first(Map<String, Object> report) { return ((List<Map<String, Object>>) report.get("tests")).getFirst(); }
+	@Test
+	void wrongPageBarrierIsNotMisreportedAsAMissingTarget() {
+		Map<String, Object> report = run("test-session", List.of(
+			Map.of("type", "ASSERT_VISIBLE", "selector", "#missing-on-destination", "pagePath", "#/never-reached")));
+		Map<String, Object> result = first(report);
+		assertEquals("FAILED", result.get("status"));
+		assertEquals("WRONG_PAGE", result.get("classification"));
+		assertEquals(1, result.get("failedStep"));
+		assertTrue(String.valueOf(result.get("reason")).contains("BEFORE"));
+		assertEquals("#/never-reached", result.get("expected"));
+	}
+
+    @Test void ambiguousSelectorsAreTestFailuresAndCountsCanMatchMultipleElements() {
+        Map<String,Object> report = run("test-session",List.of(Map.of("type","CLICK","selector","input")));
+        assertEquals("COMPLETED",report.get("status"));
+        assertEquals("AMBIGUOUS_SELECTOR",first(report).get("classification"));
+        assertEquals("2 elements matched",first(report).get("actual"));
+        assertEquals("PASSED",first(run("test-session",List.of(Map.of("type","ASSERT_COUNT","selector","input","count",2)))).get("status"));
+    }
+
+    @Test void actualFormValuesCheckedStateAbsenceAndHiddenHaveDistinctChecks() {
+        Map<String,Object> report = run("test-session",List.of(
+            Map.of("type","FILL","selector","#name","value","Ada"),
+            Map.of("type","ASSERT_VALUE","selector","#name","value","Ada"),
+            Map.of("type","SELECT","selector","#choice","value","two"),
+            Map.of("type","ASSERT_VALUE","selector","#choice","value","two"),
+            Map.of("type","CHECK","selector","#agree","checked",true),
+            Map.of("type","ASSERT_CHECKED","selector","#agree","checked",true),
+            Map.of("type","ASSERT_ABSENT","selector","#not-present"),
+            Map.of("type","ASSERT_HIDDEN","selector","#not-present")));
+        assertEquals("PASSED",first(report).get("status"));
+        assertEquals(5,first(report).get("assertionsPassed"));
+        assertEquals("FAILED",first(run("test-session",List.of(Map.of("type","ASSERT_VALUE","selector","#choice","value","wrong")))).get("status"));
+    }
+
+    @Test void portalRootAliasesAreExplicitAndNeverEraseTheTestDatabaseQuery() {
+        assertFalse(AppTestPlayback.samePage(root,root.toString(),root+"#/","EXACT"));
+        assertTrue(AppTestPlayback.samePage(root,root.toString(),root+"index.html#/","PORTAL_ROOT"));
+        assertTrue(AppTestPlayback.samePage(root,root+"?env=test#/",root+"index.html?env=test","PORTAL_ROOT"));
+        assertFalse(AppTestPlayback.samePage(root,root+"?env=production#/",root+"?env=test#/","PORTAL_ROOT"));
+        assertFalse(AppTestPlayback.samePage(root,root+"orders/",root+"orders","PORTAL_ROOT"));
+        assertFalse(AppTestPlayback.samePage(root,root+"#/orders",root+"#/","PORTAL_ROOT"));
+        assertFalse(AppTestPlayback.safeRoute(root,root+"?token=private#/orders").contains("private"));
+    }
+
+    @Test void variablesAreStableWithinAnAttemptAndChangeAcrossRepeats() {
+        Map<String,Object> template = AppTestRecordings.validate(Map.of("name","Unique","description","Verify unique per-attempt values.","useVariables",true,
+            "steps",List.of(Map.of("type","FILL","selector","#name","value","{{uniqueId}}"),Map.of("type","ASSERT_VALUE","selector","#name","value","{{uniqueId}}"))));
+        Map<String,Object> one = AppTestPlayback.variables(template,"run",1), two = AppTestPlayback.variables(template,"run",2);
+        List<?> steps = (List<?>)one.get("steps");
+        assertEquals(((Map<?,?>)steps.get(0)).get("value"),((Map<?,?>)steps.get(1)).get("value"));
+        assertNotEquals(one.get("steps"),two.get("steps"));
+        assertEquals(AppTestHistory.definitionHash(template),one.get("templateHash"));
+        assertTrue(String.valueOf(template.get("steps")).contains("{{uniqueId}}"));
+    }
+
+    @Test void cleanupExecutesAfterAWorkflowFailureWithoutManufacturingCoverage() {
+        Map<String,Object> definition = AppTestRecordings.validate(Map.of("name","Cleanup","description","Verify cleanup after a failed expectation.",
+            "steps",List.of(Map.of("type","ASSERT_TEXT","selector","#result","text","Wrong","timeoutMs",100)),
+            "cleanupSteps",List.of(Map.of("type","FILL","selector","#name","value","Cleaned"),Map.of("type","ASSERT_VALUE","selector","#name","value","Cleaned"))));
+        Map<String,Object> result = first(AppTestRunner.run("cleanup","app-one",root,"test-session","JSESSIONID",List.of(definition),temporary));
+        assertEquals("FAILED",result.get("status"));
+        assertEquals("PASSED",((Map<?,?>)result.get("cleanup")).get("status"));
+        assertEquals(0,result.get("assertionsPassed"));
+    }
+
+    @Test void nativeDragBoundedWaitAndRouteAssertionsExerciseTheBrowser() {
+        Map<String,Object> report=run("test-session",List.of(
+            Map.of("type","WAIT_FOR","selector","#drag-target","state","visible","timeoutMs",1000),
+            Map.of("type","DRAG","selector","#drag-source","targetSelector","#drag-target"),
+            Map.of("type","ASSERT_TEXT","selector","#drag-target","text","Dropped","exact",true),
+            Map.of("type","NAVIGATE","path","details.html"),
+            Map.of("type","ASSERT_URL","path","details.html"),
+            Map.of("type","WAIT_FOR","selector","#missing","state","detached","timeoutMs",100)));
+        assertEquals("PASSED",first(report).get("status"));
+        Map<String,Object> failed=first(run("test-session",List.of(Map.of("type","WAIT_FOR","selector","#missing","state","visible","timeoutMs",100))));
+        assertEquals("FAILED",failed.get("status"));
+    }
+
+    @Test void failedCleanupCannotTurnIntoAPassingTest() {
+        Map<String,Object> definition=AppTestRecordings.validate(Map.of("name","Cleanup failure","description","Report cleanup failure separately from successful main assertions.",
+            "steps",List.of(Map.of("type","ASSERT_VISIBLE","selector","#result")),
+            "cleanupSteps",List.of(Map.of("type","CLICK","selector","#missing","timeoutMs",100))));
+        Map<String,Object> result=first(AppTestRunner.run("cleanup-failure","app-one",root,"test-session","JSESSIONID",List.of(definition),temporary));
+        assertEquals("FAILED",result.get("status"));assertEquals("CLEANUP_FAILED",result.get("classification"));
+        assertEquals(1,result.get("assertionsPassed"));assertEquals("FAILED",((Map<?,?>)result.get("cleanup")).get("status"));
+    }
+
 }

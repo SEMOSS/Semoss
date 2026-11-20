@@ -46,10 +46,12 @@ public class ListAppTestRecordingsReactor extends AbstractAppTestReactor {
 		organizeKeys();
 		String target = targetProject();
 		try {
-			return new NounMetadata(Map.of("target", target, "recordings", AppTestRecordings.summaries(AppTestRecordings.folder(target))),
+			Map<String,Object> result = new java.util.LinkedHashMap<>(AppTestRecordings.discover(AppTestRecordings.folder(target)));
+            result.put("target", target);
+			return new NounMetadata(result,
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to read app test recordings", e);
+			throw new IllegalArgumentException("Unable to read app test recordings: " + e.getMessage(), e);
 		}
 	}
 
@@ -57,6 +59,6 @@ public class ListAppTestRecordingsReactor extends AbstractAppTestReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("List only saved regression recording ids, names and descriptions for an explicit app; use GetAppTestRecording to read one definition. Requires app edit access.")
 				.key("project", "Required target app project id")
-				.output(Map.class, "Explicit target app and recordings containing only id, name and description; no steps or values");
+				.output(Map.class, "Explicit target app and recordings containing only id, name and description; no steps or values; invalid lists filenames and validation reasons without hiding valid tests");
 	}
 }

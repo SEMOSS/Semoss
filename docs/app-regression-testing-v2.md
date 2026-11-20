@@ -20,7 +20,7 @@ if one was installed. V2 installs no service worker and contains no database-rou
    and version control.
 2. Click **+** → **Record workflow**. Perform the workflow inside the app iframe, including
    ordinary links, forms or SPA route changes between pages within that same app portal.
-3. Click **Add check**, then select the app element whose text/visibility should be checked.
+3. Click **Add check**, then select the app element whose text, value, checked state or visibility should be checked.
    The selection is recorded without activating that element. Stop recording.
 4. Save with a name and a meaningful **description** explaining the workflow and expected
    result. A recording without an outcome check is not verified coverage.
@@ -86,8 +86,9 @@ results for current test files; an explicit recording UUID can also find retaine
 a deleted test. `GetAppTestRunHistory(project, runId, recordingId?)` reads one compact run/result.
 Both require app edit access. The shipped toolbox/skill expose these tools. In clusters,
 individual history files are copied to project storage; reads synchronize the history folder.
-Publication failure prevents browser startup initially, or surfaces a history warning if a run
-has already started. Assets history is editable project data, not a tamper-proof audit log.
+Initial local persistence failure prevents browser startup. Later local failures surface a history warning.
+Cloud replication/retention failures preserve local results and report a separate warning;
+cloud refresh protects terminal local results from stale unfinished replicas. Assets history is editable project data, not a tamper-proof audit log.
 
 To check persistence: run a saved test, open its History, reload the editor and reopen History;
 then ask chat to run that UUID and confirm it appears as another run. A Run all entry should
@@ -184,3 +185,38 @@ The per-file Run test action passes exactly that UUID without reading its defini
 Run all explicitly sends `all=true` for the current app and is disabled for an empty list
 or while recording, saving or running. Each test runs once. The page visibility smoke
 check remains a separate, explicitly labeled action below the list.
+
+## Hardened authoring and playback
+
+The shipped Save tool exposes a nested recording JSON schema matching backend validation.
+Validation identifies the step/field, allowed types, UUID requirements and nested-iframe semantics.
+Discovery includes `invalid: [{file, code, reason}]` without hiding valid test summaries.
+Explicit runs of valid UUIDs work independently; full-suite selection rejects invalid definitions
+rather than claiming full coverage. The UI shows malformed files separately and confirms deletion.
+
+Add check uses `ASSERT_VALUE` for single-select/input/textarea controls and `ASSERT_CHECKED`
+for checkbox/radio controls. Reading all option labels is not a selected-value assertion.
+The form editor supports these plus `ASSERT_COUNT`, `ASSERT_HIDDEN`, `ASSERT_ABSENT`,
+`ASSERT_URL`, bounded `WAIT_FOR` and native DOM `DRAG` with a destination selector.
+Native drag recording does not cover every custom pointer/canvas drag implementation.
+Live results retain failed steps, safe route details, counts and test-ID hints; compact history
+still excludes captured text/values/selectors. Ambiguous or malformed selectors are test failures,
+not generic environment failures; no first-match fallback is used.
+
+Routes default to `EXACT`. Optional recording `routeMatch: "PORTAL_ROOT"` aliases only the
+portal directory and index.html plus empty/#/#/ root fragments; query parameters remain exact.
+Use it only when those URLs represent the same app page. Full-page and hash navigation retain
+the same app boundary and per-step route barriers. Each step's optional timeoutMs is bounded
+100–30000 ms and includes its route barrier; the overall run deadline still applies.
+
+Optional `useVariables: true` expands runId/testId/attemptId/uniqueId templates within step
+strings; uniqueId differs per replay and is shared with that attempt's cleanupSteps. Up to
+50 cleanup steps execute best effort with the remaining time, even after a main failure.
+Cleanup results are separate; cleanup failure prevents an otherwise passing outcome. This
+is not a database reset or rollback. Same-app runs are serialized by rejection on one backend
+node, not by a cluster-wide lock. Browser freshness does not isolate persistent data.
+
+Deploy both feature branches and the shipped system skill/toolbox together. Rebuild backend,
+install its matching Chromium, build UI and restart. Try a saved multi-page test; a select-value
+check after reopening; duplicate selectors; one malformed neighboring JSON; and a failed workflow
+with cleanup. Verify history still contains the terminal result after closing/reopening Testing.

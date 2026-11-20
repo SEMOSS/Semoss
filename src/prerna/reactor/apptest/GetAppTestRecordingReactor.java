@@ -49,7 +49,7 @@ public class GetAppTestRecordingReactor extends AbstractAppTestReactor {
 			return new NounMetadata(Map.of("target", target, "recording", AppTestRecordings.get(AppTestRecordings.folder(target), getString("recordingId"))),
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to read this app test recording", e);
+			throw new IllegalArgumentException("Unable to read this app test recording: " + e.getMessage(), e);
 		}
 	}
 

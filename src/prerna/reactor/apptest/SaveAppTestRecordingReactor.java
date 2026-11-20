@@ -60,11 +60,18 @@ public class SaveAppTestRecordingReactor extends AbstractAppTestReactor {
 		}
 	}
 
+    @Override
+    public org.json.JSONObject getMcpProperties() {
+        org.json.JSONObject properties = super.getMcpProperties();
+        properties.put("recording", AppTestSchema.recording());
+        return properties;
+    }
+
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("Save a declarative app regression recording in assets/app-tests/tests (outside public assets). Requires app edit access.")
 				.key("project", "Required target app project id, never the toolbox id")
-				.key("recording", k -> k.type(Map.class).description("Recording with required name, description and steps; optional id and app-relative startPath. Description explains the workflow and expected outcome (at most 2000 characters)."))
+				.key("recording", k -> k.type(Map.class).description("Recording with required name, description and steps. Omit id for a new test; updates require its saved canonical lowercase UUID. startPath is relative to portals/, e.g. index.html?env=test#/boards/b1, never / or a full URL. Use the nested recording schema for supported uppercase actions and assertions, bounded waits, drag, route policy, variables and cleanupSteps. NAVIGATE uses path; pagePath is the expected route BEFORE a step. SELECT value is the option value. Description explains the workflow and expected outcome (at most 2000 characters)."))
 				.output(Map.class, "Saved recording with UUID, version, name, description, relative start path, steps and update time");
 	}
 }

@@ -55,6 +55,7 @@ final class AppTestHistory {
     static final int RETAINED_RUNS = 100;
     private static final int MAX_BYTES = 256_000;
     private static final Gson GSON = new Gson();
+    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger(AppTestHistory.class);
     private static final Set<String> ACTIVE = Set.of("QUEUED", "RUNNING");
     private static final List<String> TEST_FIELDS = List.of("id", "name", "description", "definitionHash", "status",
             "scope", "steps", "stepsAttempted", "stepsCompleted", "assertions", "assertionsPassed", "failedStep",
@@ -69,7 +70,7 @@ final class AppTestHistory {
     /** Hash definition content, excluding mutable timestamps and file identity. */
     static String definitionHash(Map<String, Object> recording) {
         Map<String, Object> definition = new TreeMap<>();
-        for (String field : List.of("version", "name", "description", "startPath", "steps")) {
+        for (String field : List.of("version", "name", "description", "startPath", "steps", "cleanupSteps", "routeMatch", "useVariables")) {
             if (recording.containsKey(field)) definition.put(field, canonical(recording.get(field)));
         }
         try {
@@ -138,10 +139,20 @@ final class AppTestHistory {
                             if (!List.of("id", "name", "description", "definitionHash", "scope").contains(field)
                                     && outcome.containsKey(field)) compact.put(field, outcome.get(field));
                         }
+                        copyCleanup(outcome, compact);
                         return compact;
                     }).toList());
         }
+        copyCleanup(source, test);
         return test;
+    }
+
+    private static void copyCleanup(Map<?,?> source, Map<String,Object> test) {
+        if (source.get("cleanup") instanceof Map<?,?> cleanup) {
+            Map<String,Object> safe = new LinkedHashMap<>();
+            for (String field : List.of("status","stepsAttempted","stepsCompleted","failedStep","reason")) if (cleanup.containsKey(field)) safe.put(field,cleanup.get(field));
+            test.put("cleanup",safe);
+        }
     }
 
     static synchronized void write(Path folder, Map<String, Object> run) throws IOException {
@@ -153,22 +164,49 @@ final class AppTestHistory {
     }
 
     /** Publish only this run's file: syncing the entire folder could remove another node's runs. */
-    static synchronized void publish(String projectId, Map<String, Object> run) throws IOException {
-        Path folder = folder(projectId);
+    static synchronized String publish(String projectId, Map<String, Object> run) throws IOException {
+        return publishAt(projectId, folder(projectId), run);
+    }
+
+    /** Local persistence is authoritative on this node; cloud failures are a separate warning. */
+    static synchronized String publishAt(String projectId, Path folder, Map<String,Object> run) throws IOException {
         write(folder, run);
-        ClusterUtil.copyLocalFileToEngineCloudFolder(projectId, IEngine.CATALOG_TYPE.PROJECT,
-                folder.resolve(run.get("runId") + ".json").toString());
-        if (!ACTIVE.contains(run.get("status"))) {
-            for (Path removed : prune(folder, projectId, Instant.now())) {
+        try {
+            ClusterUtil.copyLocalFileToEngineCloudFolder(projectId, IEngine.CATALOG_TYPE.PROJECT, folder.resolve(run.get("runId") + ".json").toString());
+            if (!ACTIVE.contains(run.get("status"))) for (Path removed : prune(folder, projectId, Instant.now()))
                 ClusterUtil.deleteEngineCloudFile(projectId, IEngine.CATALOG_TYPE.PROJECT, removed.toString());
-            }
+            return null;
+        } catch (IOException | RuntimeException failure) {
+            LOGGER.warn("App test history replication/pruning failed: project={}, run={}, status={}, folder={}", projectId, run.get("runId"), run.get("status"), folder, failure);
+            return "Test history was saved locally, but cloud replication or retention could not complete.";
         }
     }
 
     static synchronized Path refresh(String projectId) throws IOException {
         Path folder = folder(projectId);
         Files.createDirectories(folder);
-        ClusterUtil.pullProjectFolder(Utility.getProject(projectId), folder.toString());
+        if (!ClusterUtil.IS_CLUSTER) return folder;
+        Map<String,Map<String,Object>> localFinished = new LinkedHashMap<>();
+        try (var files = Files.list(folder)) {
+            for (Path file : files.filter(p -> p.getFileName().toString().endsWith(".json")).toList()) {
+                String name = file.getFileName().toString();
+                try {
+                    Map<String,Object> value = read(folder, name.substring(0,name.length()-5), projectId, Instant.now());
+                    if (!ACTIVE.contains(value.get("status")) && !"INTERRUPTED".equals(value.get("status"))) localFinished.put(name,value);
+                } catch (IOException | RuntimeException ignored) { /* Invalid history remains visible to normal reads. */ }
+            }
+        }
+        try { ClusterUtil.pullProjectFolder(Utility.getProject(projectId), folder.toString()); }
+        catch (RuntimeException failure) { LOGGER.warn("Unable to refresh cloud app test history for project {}; retaining local finished results", projectId, failure); }
+        for (var saved : localFinished.entrySet()) {
+            boolean restore = true;
+            try {
+                String name = saved.getKey();
+                Map<String,Object> cloud = read(folder,name.substring(0,name.length()-5),projectId,Instant.now());
+                restore = ACTIVE.contains(cloud.get("status")) || "INTERRUPTED".equals(cloud.get("status"));
+            } catch (IOException | RuntimeException ignored) { /* A stale/missing cloud copy must not erase local completion. */ }
+            if (restore) AppTestRecordings.write(folder.resolve(saved.getKey()),saved.getValue());
+        }
         return folder;
     }
 

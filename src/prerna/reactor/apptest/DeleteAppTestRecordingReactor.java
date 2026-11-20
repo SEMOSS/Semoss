@@ -41,8 +41,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class DeleteAppTestRecordingReactor extends AbstractAppTestReactor {
 	public DeleteAppTestRecordingReactor() {
-		this.keysToGet = new String[] { "project", "recordingId" };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { "project", "recordingId", "fileName" };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -51,7 +51,9 @@ public class DeleteAppTestRecordingReactor extends AbstractAppTestReactor {
 		String target = targetProject();
 		try {
 			Path folder = AppTestRecordings.folder(target);
-			boolean deleted = AppTestRecordings.delete(folder, getString("recordingId"));
+			String id = getString("recordingId"), file = getString("fileName");
+            if ((id == null) == (file == null)) throw new IllegalArgumentException("Choose exactly one recordingId or invalid fileName");
+            boolean deleted = file == null ? AppTestRecordings.delete(folder, id) : AppTestRecordings.deleteInvalid(folder,file);
 			ClusterUtil.pushProjectFolder(Utility.getProject(target), folder.resolve("tests").toString());
 			return new NounMetadata(Map.of("deleted", deleted),
 					PixelDataType.MAP, PixelOperationType.OPERATION);
@@ -71,7 +73,8 @@ public class DeleteAppTestRecordingReactor extends AbstractAppTestReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("Delete a saved app test recording. Requires app edit access; do not delete tests to hide a failure.")
 				.key("project", "Required target app project id")
-				.key("recordingId", "Recording UUID returned by ListAppTestRecordings")
+				.key("recordingId", "Recording UUID returned by ListAppTestRecordings; mutually exclusive with fileName")
+                .key("fileName", "Explicit basename from ListAppTestRecordings.invalid, only for a malformed test; mutually exclusive with recordingId")
 				.output(Map.class, "Whether the requested recording was deleted");
 	}
 }

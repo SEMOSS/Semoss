@@ -41,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -63,6 +64,8 @@ final class AppTestRuns {
     static final String PLATFORM_SMOKE_SUITE = "__platform_smoke__";
     private static final Pattern SCENARIO_NAME = Pattern.compile("[A-Za-z0-9_-]{1,64}");
     private static final Map<String, Run> RUNS = new LinkedHashMap<>();
+    private static final Set<String> ACTIVE_PROJECTS = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger(AppTestRuns.class);
     private static final int MAX_RUNS = 50;
     static final int MAX_REPEAT = 5;
     private static final ThreadPoolExecutor WORKERS = new ThreadPoolExecutor(2, 2, 0, TimeUnit.MILLISECONDS,
@@ -74,6 +77,7 @@ final class AppTestRuns {
 
     private static final class Run {
         final String owner;
+        Path historyFolder;
         volatile Map<String, Object> result;
         Run(String owner, Map<String, Object> result) { this.owner = owner; this.result = result; }
     }
@@ -136,12 +140,12 @@ final class AppTestRuns {
         try { recordings = PLATFORM_SMOKE_SUITE.equals(suite)
                 ? selectRecordings(List.of(), suite, pages)
                 : loadSelected(AppTestRecordings.folder(projectId), suite, recordingIds, all, pages); }
-        catch (IOException e) { throw new IllegalArgumentException("Unable to read app test recordings", e); }
+        catch (IOException e) { throw new IllegalArgumentException("Unable to read app test recordings: " + e.getMessage(), e); }
         if (recordings.isEmpty()) {
             run.result = AppTestRunner.report(runId, projectId, List.of());
             Map<String, Object> empty = AppTestHistory.pending(runId, projectId, List.of(), replays, Instant.now());
             empty.putAll(run.result);
-            try { AppTestHistory.publish(projectId, empty); }
+            try { String warning=AppTestHistory.publish(projectId, empty); if(warning!=null)empty.put("historyWarning",warning); }
             catch (IOException | RuntimeException e) { throw new IllegalArgumentException("Unable to persist test run history", e); }
             run.result = empty;
             register(runId, run);
@@ -150,11 +154,17 @@ final class AppTestRuns {
         if (sessionId == null || sessionId.isBlank()) {
             throw new IllegalArgumentException("A signed-in browser session is required to replay app tests. Run from the app editor after signing in.");
         }
+        if (!ACTIVE_PROJECTS.add(projectId)) throw new IllegalArgumentException("An app test run is already active for this app. Wait for it to finish before starting another shared-data workflow.");
+        try {
         URI root = AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId);
         List<Map<String, Object>> selected = recordings;
         long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * replays * 1_000_000;
         pending.putAll(AppTestHistory.pending(runId, projectId, selected, replays, Instant.now()));
-        try { AppTestHistory.publish(projectId, pending); }
+        try {
+            run.historyFolder = AppTestHistory.folder(projectId);
+            String warning = AppTestHistory.publishAt(projectId, run.historyFolder, pending);
+            if (warning != null) pending.put("historyWarning",warning);
+        }
         catch (IOException | RuntimeException e) {
             throw new IllegalArgumentException("Unable to persist test run history; no browser was started", e);
         }
@@ -174,10 +184,18 @@ final class AppTestRuns {
         try {
             Path reportFolder = AppTestRecordings.legacyFolder(projectId).resolve("reports").resolve(ownerDirectory(owner));
             WORKERS.execute(() -> {
+                try {
                 Map<String, Object> result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected,
                         reportFolder, deadline, replays, progress -> update(run, projectId, pending, progress));
                 if (!result.containsKey("reportWarning")) result.put("privateReportRunId", runId);
                 update(run, projectId, pending, result);
+                } catch (RuntimeException | AssertionError failure) {
+                    LOGGER.error("Unexpected app test worker failure: project={}, run={}",projectId,runId,failure);
+                    Map<String,Object> failed = new LinkedHashMap<>(pending);
+                    failed.put("status","ERROR"); failed.put("finishedAt",Instant.now().toString());
+                    failed.put("error","The app test worker could not finish. Check the server log using this run ID.");
+                    update(run,projectId,pending,failed);
+                } finally { ACTIVE_PROJECTS.remove(projectId); }
             });
         } catch (RejectedExecutionException e) {
             Map<String, Object> rejected = new LinkedHashMap<>(pending);
@@ -193,6 +211,7 @@ final class AppTestRuns {
             throw new IllegalArgumentException("App test runner is busy. Try again after an active run finishes.");
         }
         return runId;
+        } catch (RuntimeException failure) { ACTIVE_PROJECTS.remove(projectId); throw failure; }
     }
 
     /** Store progress independently of the UI lifecycle; failures remain visible on the live result. */
@@ -202,9 +221,13 @@ final class AppTestRuns {
         next.put("expiresAt", initial.get("expiresAt"));
         next.put("repeat", initial.get("repeat"));
         next.put("queuedAt", initial.get("startedAt"));
-        try { AppTestHistory.publish(projectId, next); }
+        try {
+            String warning = AppTestHistory.publishAt(projectId, run.historyFolder, next);
+            if (warning != null) next.put("historyWarning",warning);
+        }
         catch (IOException | RuntimeException e) {
-            next.put("historyWarning", "The test result is available, but its latest history could not be saved or synchronized.");
+            LOGGER.warn("App test local history write failed: project={}, run={}, status={}, folder={}", projectId, next.get("runId"), next.get("status"), run.historyFolder, e);
+            next.put("historyWarning", "The test result is available, but its latest local history could not be saved. Check the server log using this run ID.");
         }
         // Progress maps contain no evidence and are independent of the runner's mutable list.
         Map<String, Object> snapshot = "RUNNING".equals(next.get("status")) ? new LinkedHashMap<>(AppTestHistory.compact(next)) : next;
@@ -270,7 +293,7 @@ final class AppTestRuns {
     static Map<String, Object> get(String owner, String runId) {
         Run run;
         synchronized (RUNS) { run = RUNS.get(runId); }
-        if (run == null || !run.owner.equals(owner)) throw new IllegalArgumentException("Unknown run id");
+        if (run == null || !run.owner.equals(owner)) throw new IllegalArgumentException("Unknown run id for this caller. Use the runId returned by RunAppTests; live runs can expire, be evicted, or be lost after a server restart. Use app-scoped persisted history for older runs.");
         return new LinkedHashMap<>(run.result);
     }
 

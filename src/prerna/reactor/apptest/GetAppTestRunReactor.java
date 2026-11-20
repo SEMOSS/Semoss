@@ -66,8 +66,8 @@ public class GetAppTestRunReactor extends AbstractReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
 				"Get a caller-owned app test run. status is RUNNING, COMPLETED, ERROR or NO_TESTS. scope PAGE_VISIBILITY_SMOKE verifies page visibility and immediate runtime errors only, never saved workflow coverage. "
-						+ "Each failed test has a classification: REGRESSION_SUSPECTED (the change likely broke it, fix the app), "
-						+ "TEST_NEEDS_UPDATE (requires confirmation of intended change), NO_ASSERTIONS (actions replayed without checks, unverified) or ERROR (runner/environment failed). Never claim zero tests or skipped tests passed.")
+						+ "Each failed test has a classification: REGRESSION_SUSPECTED (an action/check failed; inspect the app and expectation), "
+						+ "AMBIGUOUS_SELECTOR (multiple targets), INVALID_SELECTOR (malformed CSS), WRONG_PAGE (expected route not reached), CLEANUP_FAILED, TARGET_NOT_FOUND, FLAKY (outcomes differ), TEST_NEEDS_UPDATE (requires confirmation of intended change), NO_ASSERTIONS (actions replayed without checks, unverified) or ERROR (runner/environment failed). Never claim zero tests or skipped tests passed.")
 				.key(RUN_ID, "The runId returned by RunAppTests")
 				.output(Map.class, "Caller-owned run status, target, summary counts, per-recording results and private failure evidence");
 	}
