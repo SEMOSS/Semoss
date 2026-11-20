@@ -41,12 +41,18 @@ public final class SpawnResult {
     private final String jobId;
     private final String roomId;
     private final String alias;
+    private final String label;
     private final AgentRunStatus status;
 
     public SpawnResult(String jobId, String roomId, String alias, AgentRunStatus status) {
+        this(jobId, roomId, alias, null, status);
+    }
+
+    public SpawnResult(String jobId, String roomId, String alias, String label, AgentRunStatus status) {
         this.jobId  = jobId;
         this.roomId = roomId;
         this.alias  = alias;
+        this.label = label;
         this.status = status;
     }
 
@@ -68,6 +74,11 @@ public final class SpawnResult {
     /** Configured alias if the spawn was named; {@code null} for anonymous spawns. */
     public String getAlias() {
         return alias;
+    }
+
+    /** Short display name describing this subagent's task; {@code null} if absent. */
+    public String getLabel() {
+        return label;
     }
 
     /** Initial AgentRun status after submission. */
