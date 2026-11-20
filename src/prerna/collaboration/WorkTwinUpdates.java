@@ -59,6 +59,7 @@ import prerna.engine.api.IEngine;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
 import prerna.io.connector.ms.teams.MicrosoftTeamsMessageHelper;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -203,17 +204,38 @@ public final class WorkTwinUpdates {
 		return true;
 	}
 
+	/**
+	 * Runs a check as its owner. A job runs on a pool thread, where nobody is signed in, and a twin's project opens
+	 * only for someone who may read it: the owner is that thread's signed in user for the length of their check, as
+	 * on the thread of their own request, and the thread is left as it was.
+	 *
+	 * @throws IllegalStateException when a twin could not be opened, once what the other twins hold is compared and
+	 *                               kept, so the owner is told and does not read silence as nothing having changed
+	 */
 	static void check(User user, CollaborationJobUtils.Job job) throws Exception {
+		User onThread = ThreadStore.getUser();
+		ThreadStore.setUser(user);
+		try {
+			compareTwins(user, job);
+		} finally {
+			ThreadStore.setUser(onThread);
+		}
+	}
+
+	private static void compareTwins(User user, CollaborationJobUtils.Job job) throws Exception {
 		String ownerId = job.ownerId();
 		String ownerType = job.ownerType();
 		job.step("twins", 5);
 		// the twins whose record could be read; one that could not is left as it is, not emptied
 		Set<String> twins = new LinkedHashSet<>();
+		List<String> unopened = new ArrayList<>();
 		List<Copy> copies = new ArrayList<>();
-		for (String twinId : twinIds(user)) {
-			List<Copy> held = copies(twinId);
-			if (held != null) {
-				twins.add(twinId);
+		for (Map.Entry<String, String> twin : ownedTwins(user).entrySet()) {
+			List<Copy> held = copies(twin.getKey());
+			if (held == null) {
+				unopened.add(twin.getValue());
+			} else {
+				twins.add(twin.getKey());
 				copies.addAll(held);
 			}
 		}
@@ -221,7 +243,9 @@ public final class WorkTwinUpdates {
 		job.count("copies", copies.size());
 		List<Finding> findings = List.of();
 		if (!copies.isEmpty()) {
-			String token = token(user);
+			// before anything is read, so a missing sign-in fails the check as itself. Each read then asks for the
+			// token again: one that runs out while a long check is under way is renewed, as the mail read does
+			token(user);
 			BrainMessageSource mailbox = BrainMessageSource.current();
 			Source source = new Source() {
 				@Override
@@ -233,8 +257,11 @@ public final class WorkTwinUpdates {
 				@Override
 				public List<Map<String, Object>> chat(String chatId) throws Exception {
 					try {
-						// the text is cut to one character: only who wrote and when is used
-						return MicrosoftTeamsMessageHelper.listChatMessages(token, chatId, 1, CHAT_MESSAGES);
+						// the text is cut to one character: only who wrote and when is used. With a time limit,
+						// as the mail read has: nobody waits at this read, and one that is never answered would
+						// hold the job, and every check after it, until the server restarts
+						return MicrosoftTeamsMessageHelper.listChatMessages(token(user), chatId, 1, CHAT_MESSAGES, false,
+								BrainGraphHeaderSource.TIMEOUT);
 					} catch (IllegalArgumentException e) {
 						if (e.getMessage() != null && e.getMessage().contains(" returned HTTP 404")) {
 							return null;
@@ -245,7 +272,7 @@ public final class WorkTwinUpdates {
 
 				@Override
 				public Map<String, Object> file(String driveId, String itemId) throws Exception {
-					return MicrosoftOneDriveHelper.fileState(token, driveId, itemId, null);
+					return MicrosoftOneDriveHelper.fileState(token(user), driveId, itemId, null);
 				}
 			};
 			// only a copied thread needs the folders, and reading them walks the mailbox when they are old
@@ -258,6 +285,28 @@ public final class WorkTwinUpdates {
 		save(ownerId, ownerType, twins, findings);
 		for (String state : List.of(CHANGED, GONE, DUPLICATE, UNKNOWN)) {
 			job.count(state, findings.stream().filter(finding -> state.equals(finding.state())).count());
+		}
+		// what each twin's page says of this check: how many of its copies were compared, and how many of those
+		// could not be read where they came from. A twin that is not in here was not checked
+		Map<String, Object> byTwin = new LinkedHashMap<>();
+		for (String twinId : twins) {
+			int held = 0;
+			int unknown = 0;
+			for (Finding finding : findings) {
+				if (twinId.equals(finding.copy().projectId())) {
+					held++;
+					if (UNKNOWN.equals(finding.state())) {
+						unknown++;
+					}
+				}
+			}
+			byTwin.put(twinId, Map.of("copies", held, "unknown", unknown));
+		}
+		job.count("byTwin", byTwin);
+		if (!unopened.isEmpty()) {
+			boolean one = unopened.size() == 1;
+			throw new IllegalStateException("Could not open " + (one ? "this Digital Twin" : "these Digital Twins")
+					+ " to check " + (one ? "it" : "them") + ": " + String.join(", ", unopened));
 		}
 	}
 
@@ -272,15 +321,18 @@ public final class WorkTwinUpdates {
 		}
 	}
 
-	// the twins this person created and still owns, which is what their pages list as theirs
-	private static List<String> twinIds(User user) {
-		List<String> ids = new ArrayList<>();
+	// the twins this person created and still owns, which is what their pages list as theirs: each one's id and the
+	// name those pages show for it
+	private static Map<String, String> ownedTwins(User user) {
+		Map<String, String> twins = new LinkedHashMap<>();
 		for (Map<String, Object> twin : SecurityProjectUtils.getUserProjectList(user, null, null, false,
 				Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, List.of("true")), null, null, null, null, null, false,
 				List.of(AccessPermissionEnum.OWNER.getId()), User.getUserIdAndType(user))) {
-			ids.add(String.valueOf(twin.get("project_id")));
+			String name = CollaborationDbUtils.asString(twin.get("project_display_name"));
+			twins.put(String.valueOf(twin.get("project_id")),
+					name == null || name.isBlank() ? String.valueOf(twin.get("project_name")) : name);
 		}
-		return ids;
+		return twins;
 	}
 
 	// ---- what a twin holds ----
@@ -440,14 +492,22 @@ public final class WorkTwinUpdates {
 			List<Map<String, Object>> listed = byThread.getOrDefault(copy.key().substring(THREAD_KEY.length()),
 					List.of());
 			int kept = 0;
+			// mail of the thread that is still in the mailbox, in a folder the import does not read
+			int elsewhere = 0;
 			int newer = 0;
 			Instant latestAt = null;
 			Map<String, Object> latest = null;
 			for (Map<String, Object> message : listed) {
 				// what the import leaves out is no part of the thread here either: a draft, and mail in a folder it
 				// skips, such as Deleted Items
-				if (Boolean.TRUE.equals(message.get("isDraft"))
-						|| folders.skipped(CollaborationDbUtils.asString(message.get("parentFolderId")))) {
+				if (Boolean.TRUE.equals(message.get("isDraft"))) {
+					continue;
+				}
+				String folder = CollaborationDbUtils.asString(message.get("parentFolderId"));
+				if (folders.skipped(folder)) {
+					if (!folders.deleted(folder)) {
+						elsewhere++;
+					}
 					continue;
 				}
 				kept++;
@@ -472,7 +532,9 @@ public final class WorkTwinUpdates {
 			// a newer email is proof of a change wherever it turns up. That none turned up proves nothing when a
 			// listing failed (the count does not say whose) or the thread came back at its limit and may hold more
 			boolean whole = unread.get() == 0 && listed.size() < PER_THREAD;
-			findings.add(Finding.of(copy, !whole ? UNKNOWN : kept == 0 ? GONE : CURRENT));
+			// gone is what the owner deleted, or what is listed no more. A thread that sits in Junk Email, or
+			// another folder that is not read, is still in the mailbox: its copy is not one to remove
+			findings.add(Finding.of(copy, !whole ? UNKNOWN : kept == 0 && elsewhere == 0 ? GONE : CURRENT));
 		}
 		return findings;
 	}
@@ -481,15 +543,19 @@ public final class WorkTwinUpdates {
 		List<Finding> findings = new ArrayList<>();
 		// each chat's messages, or GONE, or UNKNOWN when it could not be read
 		Map<String, Object> read = new HashMap<>();
+		boolean silent = false;
 		for (Copy copy : copies) {
 			if (!read.containsKey(copy.key())) {
-				Object answer;
-				try {
-					List<Map<String, Object>> messages = source.chat(copy.key());
-					answer = messages == null ? GONE : messages;
-				} catch (Exception e) {
-					classLogger.warn("A Digital Twin check could not read a copied Teams chat", e);
-					answer = UNKNOWN;
+				Object answer = UNKNOWN;
+				if (!silent) {
+					try {
+						List<Map<String, Object>> messages = source.chat(copy.key());
+						answer = messages == null ? GONE : messages;
+					} catch (Exception e) {
+						classLogger.warn("A Digital Twin check could not read a copied Teams chat", e);
+						// Graph did not answer, and the chats after this one would only wait for the same
+						silent = e.getMessage() == null || !e.getMessage().contains(" returned HTTP ");
+					}
 				}
 				read.put(copy.key(), answer);
 			}
@@ -498,15 +564,21 @@ public final class WorkTwinUpdates {
 				continue;
 			}
 			int newer = 0;
+			// whether the read goes back as far as the copy: it holds something no newer than it
+			boolean reached = messages.size() < CHAT_MESSAGES;
 			Instant latestAt = null;
 			Map<?, ?> latest = null;
 			for (Object each : messages) {
-				// what people wrote, not that someone joined or the chat was renamed, and not what was taken back
-				if (!(each instanceof Map<?, ?> message) || Boolean.TRUE.equals(message.get("isDeleted"))
-						|| (message.get("messageType") != null && !"message".equals(message.get("messageType")))) {
+				if (!(each instanceof Map<?, ?> message)) {
 					continue;
 				}
 				Instant at = at(message.get("createdDateTime"));
+				reached |= at != null && !at.isAfter(copy.copiedAt());
+				// what people wrote, not that someone joined or the chat was renamed, and not what was taken back
+				if (Boolean.TRUE.equals(message.get("isDeleted"))
+						|| (message.get("messageType") != null && !"message".equals(message.get("messageType")))) {
+					continue;
+				}
 				if (at == null || !at.isAfter(copy.copiedAt())) {
 					continue;
 				}
@@ -517,11 +589,17 @@ public final class WorkTwinUpdates {
 				}
 			}
 			if (newer == 0) {
-				findings.add(Finding.of(copy, CURRENT));
+				// everything read is newer than the copy and none of it is a message: what people wrote may lie
+				// further back than was read
+				findings.add(Finding.of(copy, reached ? CURRENT : UNKNOWN));
 				continue;
 			}
 			Map<String, Object> detail = new LinkedHashMap<>();
 			detail.put("count", newer);
+			if (!reached) {
+				// the newest CHAT_MESSAGES entries are all newer than the copy, so more may be: the count is a floor
+				detail.put("more", true);
+			}
 			put(detail, "latestFrom", CollaborationDbUtils.asString(latest.get("fromName")));
 			findings.add(new Finding(copy, CHANGED, latestAt, detail));
 		}
@@ -758,7 +836,7 @@ public final class WorkTwinUpdates {
 		List<Map<String, Object>> updates = open(ownerId, ownerType);
 		if (!updates.isEmpty()) {
 			// a twin they deleted or no longer own keeps its rows until a reset; those are not theirs to see
-			Set<String> mine = new HashSet<>(twinIds(user));
+			Set<String> mine = ownedTwins(user).keySet();
 			updates.removeIf(update -> !mine.contains(update.get("twinId")));
 		}
 		Map<String, Object> out = new LinkedHashMap<>();
@@ -791,6 +869,50 @@ public final class WorkTwinUpdates {
 					}
 					return update;
 				}, ownerId, ownerType, OPEN);
+	}
+
+	/**
+	 * Notes a copy the owner's page just made, so that a check compares it with the moment it was made. Until its
+	 * first check a copy is timed by its file, and a server that loads a twin from storage gives every file the time
+	 * of the load: without this, what changed between a copy and that load would never be suggested. The item is
+	 * taken from the twin's own record, not from the page. A row the path already had is replaced: it was about a
+	 * copy that is no longer there, and a suggestion made for that one is not one for this.
+	 *
+	 * @param path the copy, as the record names it: public/emails, public/teams-chats or public/files and one name
+	 * @return whether the copy is one a check compares, and is now noted
+	 * @throws IllegalArgumentException when the path is not a copy's, or the twin is not one they own
+	 */
+	public static boolean copied(User user, String projectId, String path) {
+		if (projectId == null || path == null || !COPY_PATH.matcher(path).matches()) {
+			throw new IllegalArgumentException("Pass a Digital Twin as project and one of its copies as path");
+		}
+		if (!ownedTwins(user).containsKey(projectId)) {
+			throw new IllegalArgumentException("That is not a Digital Twin of yours");
+		}
+		List<Copy> held = copies(projectId);
+		Copy copy = held == null ? null
+				: held.stream().filter(each -> each.path().equals(path)).findFirst().orElse(null);
+		if (copy == null) {
+			// an upload, an attachment or a single email: nothing a check compares
+			return false;
+		}
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		String id = id(ownerId, ownerType, projectId, path);
+		// the file's time is when its item was read, on the server that just wrote it; never later than now
+		Instant now = Instant.now();
+		Instant copiedAt = copy.copiedAt().isAfter(now) ? now : copy.copiedAt();
+		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
+			CollaborationDbUtils.batch(conn -> {
+				CollaborationDbUtils.update("DELETE FROM WORK_TWIN_COPY WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
+						+ "COPY_ID = ?", ownerId, ownerType, id);
+				CollaborationDbUtils.update("INSERT INTO WORK_TWIN_COPY (OWNER_ID, OWNER_TYPE, COPY_ID, PROJECT_ID, "
+						+ "COPIED_AT, DETAIL_JSON) VALUES (?, ?, ?, ?, ?, ?)", ownerId, ownerType, id, projectId,
+						stamp(copiedAt), detail(copy, Finding.of(copy, CURRENT)));
+			});
+		}
+		return true;
 	}
 
 	/** Dismiss a pending update for a copy removed in chat, as the owner's Files page does. */

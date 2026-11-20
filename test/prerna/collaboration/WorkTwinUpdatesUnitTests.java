@@ -39,6 +39,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.file.Files;
@@ -47,8 +48,11 @@ import java.nio.file.attribute.FileTime;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -69,12 +73,21 @@ import org.mockito.MockedStatic;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.collaboration.WorkTwinUpdates.Copy;
 import prerna.collaboration.WorkTwinUpdates.Finding;
 import prerna.collaboration.WorkTwinUpdates.Source;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
+import prerna.io.connector.ms.teams.MicrosoftTeamsMessageHelper;
+import prerna.om.ThreadStore;
+import prerna.project.api.IProject;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.EngineUtility;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
@@ -169,8 +182,9 @@ class WorkTwinUpdatesUnitTests {
 		ownerId = owner.getValue0();
 		ownerType = owner.getValue1();
 		folders = BrainMailFolders.build(List.of(Map.of("id", "f-inbox", "displayName", "Inbox", "wellKnownName",
-				"inbox"), Map.of("id", "f-deleted", "displayName", "Deleted Items", "wellKnownName", "deleteditems")),
-				null);
+				"inbox"), Map.of("id", "f-deleted", "displayName", "Deleted Items", "wellKnownName", "deleteditems"),
+				Map.of("id", "f-deleted-old", "displayName", "Old", "parentFolderId", "f-deleted"),
+				Map.of("id", "f-junk", "displayName", "Junk Email", "wellKnownName", "junkemail")), null);
 	}
 
 	@AfterEach
@@ -263,6 +277,26 @@ class WorkTwinUpdatesUnitTests {
 	}
 
 	@Test
+	void aThreadIsGoneWhenItWasDeletedAndNotWhenItSitsInAFolderThatIsNotRead() {
+		// under Deleted Items is deleted too
+		mail.add(email("conv-1", BEFORE, "Sam Park", "f-deleted-old", false));
+		// Junk Email is not read, but what is in it is still in the mailbox: its copy is not one to remove, and
+		// newer mail there is none the import would bring in
+		mail.add(email("conv-2", BEFORE, "Sam Park", "f-junk", false));
+		mail.add(email("conv-2", AFTER, "Sam Park", "f-junk", false));
+		Copy junk = new Copy(TWIN, "public/emails/Email thread - Offer.md", "email", "conversation:conv-2", null,
+				COPIED);
+		// nothing is listed of a thread that is in the mailbox no more
+		Copy purged = new Copy(TWIN, "public/emails/Email thread - Purged.md", "email", "conversation:conv-3", null,
+				COPIED);
+
+		assertEquals(List.of("gone", "current", "gone"), states(thread("conv-1"), junk, purged));
+		assertTrue(folders.skipped("f-junk") && folders.skipped("f-deleted") && folders.skipped("f-deleted-old"));
+		assertTrue(folders.deleted("f-deleted") && folders.deleted("f-deleted-old"));
+		assertFalse(folders.deleted("f-junk") || folders.deleted("f-inbox") || folders.skipped("f-inbox"));
+	}
+
+	@Test
 	void aChatIsChangedByWhatPeopleWroteAfterTheCopy() {
 		Copy quiet = chat("19:quiet@thread.v2");
 		Copy busy = chat("19:busy@thread.v2");
@@ -279,6 +313,41 @@ class WorkTwinUpdatesUnitTests {
 		assertEquals(List.of("current", "changed", "gone", "unknown"), findings.stream().map(Finding::state).toList());
 		assertEquals(Instant.parse(LATER), findings.get(1).sourceAt());
 		assertEquals(Map.of("count", 2, "latestFrom", "Priya"), findings.get(1).detail());
+	}
+
+	@Test
+	void aChatsCountIsAFloorWhenEverythingReadIsNewerThanTheCopy() {
+		Copy busy = chat("19:busy@thread.v2");
+		Copy whole = chat("19:whol@thread.v2");
+		Copy events = chat("19:evnt@thread.v2");
+		// the newest fifty entries, every one after the copy: forty-nine messages and someone joining
+		List<Map<String, Object>> newest = new ArrayList<>();
+		for (int i = 1; i < WorkTwinUpdates.CHAT_MESSAGES; i++) {
+			newest.add(message(AFTER, "Sam", "message", false));
+		}
+		chats.put("19:busy@thread.v2", with(newest, message(LATER, null, "systemEventMessage", false)));
+		// the same, but the fiftieth is from before the copy: the read went back as far as the copy
+		chats.put("19:whol@thread.v2", with(newest, message(BEFORE, "Sam", "message", false)));
+		// fifty entries after the copy and none of them a message: what people wrote may lie further back
+		List<Map<String, Object>> joins = new ArrayList<>();
+		for (int i = 0; i < WorkTwinUpdates.CHAT_MESSAGES; i++) {
+			joins.add(message(AFTER, null, "systemEventMessage", false));
+		}
+		chats.put("19:evnt@thread.v2", joins);
+
+		List<Finding> findings = WorkTwinUpdates.compare(List.of(busy, whole, events), source, folders, null);
+		assertEquals(List.of("changed", "changed", "unknown"), findings.stream().map(Finding::state).toList());
+		assertEquals(Map.of("count", 49, "more", true, "latestFrom", "Sam"), findings.get(0).detail());
+		assertEquals(Map.of("count", 49, "latestFrom", "Sam"), findings.get(1).detail());
+	}
+
+	@Test
+	void theChatsAfterOneGraphDidNotAnswerForAreNotAsked() {
+		chats.put("19:dead@thread.v2", new IllegalStateException("Failed to execute GET request: Read timed out"));
+		chats.put("19:next@thread.v2", List.of(message(AFTER, "Sam", "message", false)));
+
+		assertEquals(List.of("unknown", "unknown"), states(chat("19:dead@thread.v2"), chat("19:next@thread.v2")));
+		assertEquals(List.of("chat 19:dead@thread.v2"), read);
 	}
 
 	@Test
@@ -465,7 +534,198 @@ class WorkTwinUpdatesUnitTests {
 		}
 	}
 
+	// ---- a whole check, as its job runs it ----
+
+	@Test
+	void aCheckFlagsATwinsCopiedChatThatPeopleWroteInSince(@TempDir Path assets, @TempDir Path empty)
+			throws Exception {
+		String chat = "public/teams-chats/Chat - Hiring.md";
+		holds(assets, Map.of(chat, "19:abc@thread.v2"));
+		IProject twin = twin(TWIN, "Holiday");
+		// another twin of theirs, which holds nothing a check compares
+		IProject other = twin("twin-three", "Offsite");
+		CollaborationJobUtils.Job job = job();
+		try (MockedStatic<SecurityProjectUtils> projects = owns(Map.of("project_id", TWIN, "project_name", "Holiday"),
+				Map.of("project_id", "twin-three", "project_name", "Offsite"));
+				MockedStatic<Utility> utility = mockStatic(Utility.class);
+				MockedStatic<EngineUtility> engines = mockStatic(EngineUtility.class);
+				MockedStatic<MicrosoftLoginUtils> login = mockStatic(MicrosoftLoginUtils.class);
+				MockedStatic<MicrosoftTeamsMessageHelper> teams = mockStatic(MicrosoftTeamsMessageHelper.class)) {
+			utility.when(Utility::getCurrentSqlTimestampUTC).thenAnswer(call -> utcNow());
+			utility.when(() -> Utility.getProject(TWIN)).thenReturn(twin);
+			utility.when(() -> Utility.getProject("twin-three")).thenReturn(other);
+			engines.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, TWIN, "Holiday"))
+					.thenReturn(assets.toString());
+			engines.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, "twin-three",
+					"Offsite")).thenReturn(empty.toString());
+			login.when(() -> MicrosoftLoginUtils.getValidAccessToken(user)).thenReturn("token");
+			// read with a time limit, so a chat Graph never answers for cannot hold the job for good
+			teams.when(() -> MicrosoftTeamsMessageHelper.listChatMessages("token", "19:abc@thread.v2", 1,
+					WorkTwinUpdates.CHAT_MESSAGES, false, BrainGraphHeaderSource.TIMEOUT))
+					.thenReturn(List.of(message(LATER, "Priya", "message", false),
+							message(AFTER, "Sam", "message", false), message(BEFORE, "Sam", "message", false)));
+
+			WorkTwinUpdates.check(user, job);
+			// the sign-in is asked for before anything is read and again at the read, so a token that runs out
+			// during a long check is renewed
+			login.verify(() -> MicrosoftLoginUtils.getValidAccessToken(user), times(2));
+		}
+		Map<String, Object> waiting = only(WorkTwinUpdates.open(ownerId, ownerType));
+		assertEquals(TWIN, waiting.get("twinId"));
+		assertEquals(chat, waiting.get("path"));
+		assertEquals("changed", waiting.get("change"));
+		assertEquals(2, waiting.get("count"));
+		assertEquals("Priya", waiting.get("latestFrom"));
+		assertEquals(LATER, waiting.get("latestAt"));
+		// what each twin's page says of the check: the one copy of the first was compared, and the other, which
+		// was read too, holds none
+		verify(job).count("byTwin", Map.of(TWIN, Map.of("copies", 1, "unknown", 0), "twin-three",
+				Map.of("copies", 0, "unknown", 0)));
+		// and the job's thread is left with nobody signed in, as it was
+		assertNull(ThreadStore.getUser());
+	}
+
+	@Test
+	void aTwinThatCannotBeOpenedFailsTheCheckOnceWhatTheOthersHoldIsKept(@TempDir Path assets) throws Exception {
+		String file = "public/files/Old.xlsx";
+		holds(assets, Map.of(file, "item-1", "drive:item-1", "b!drive", "public/teams-chats/Chat - Hiring.md",
+				"19:failing@thread.v2"));
+		IProject twin = twin(TWIN, "Holiday");
+		CollaborationJobUtils.Job job = job();
+		try (MockedStatic<SecurityProjectUtils> projects = owns(Map.of("project_id", TWIN, "project_name", "Holiday"),
+				// named on its pages by its display name
+				Map.of("project_id", "twin-two", "project_name", "ryans", "project_display_name", "Ryans Digital Twin"));
+				MockedStatic<Utility> utility = mockStatic(Utility.class);
+				MockedStatic<EngineUtility> engines = mockStatic(EngineUtility.class);
+				MockedStatic<MicrosoftLoginUtils> login = mockStatic(MicrosoftLoginUtils.class);
+				MockedStatic<MicrosoftTeamsMessageHelper> teams = mockStatic(MicrosoftTeamsMessageHelper.class);
+				MockedStatic<MicrosoftOneDriveHelper> drives = mockStatic(MicrosoftOneDriveHelper.class)) {
+			// the drive holds no such file any more: its original is gone
+			drives.when(() -> MicrosoftOneDriveHelper.fileState("token", "b!drive", "item-1", null)).thenReturn(null);
+			utility.when(Utility::getCurrentSqlTimestampUTC).thenAnswer(call -> utcNow());
+			utility.when(() -> Utility.getProject(TWIN)).thenReturn(twin);
+			utility.when(() -> Utility.getProject("twin-two"))
+					.thenThrow(new SemossPixelException("Project twin-two could not be loaded"));
+			engines.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, TWIN, "Holiday"))
+					.thenReturn(assets.toString());
+			login.when(() -> MicrosoftLoginUtils.getValidAccessToken(user)).thenReturn("token");
+			teams.when(() -> MicrosoftTeamsMessageHelper.listChatMessages("token", "19:failing@thread.v2", 1,
+					WorkTwinUpdates.CHAT_MESSAGES, false, BrainGraphHeaderSource.TIMEOUT))
+					.thenThrow(new IllegalStateException("Graph returned HTTP 503"));
+
+			IllegalStateException failure = assertThrows(IllegalStateException.class,
+					() -> WorkTwinUpdates.check(user, job));
+			// the owner is told which twin, by the name its pages show
+			assertTrue(failure.getMessage().contains("Ryans Digital Twin"), failure.getMessage());
+			assertFalse(failure.getMessage().contains("Holiday"), failure.getMessage());
+		}
+		// what the twin that opened holds was compared and kept all the same
+		Map<String, Object> waiting = only(WorkTwinUpdates.open(ownerId, ownerType));
+		assertEquals(file, waiting.get("path"));
+		assertEquals("gone", waiting.get("change"));
+		// its page says one of its two copies could not be compared; the twin that did not open is not in here
+		verify(job).count("byTwin", Map.of(TWIN, Map.of("copies", 2, "unknown", 1)));
+		assertNull(ThreadStore.getUser());
+	}
+
+	// ---- a copy the owner's page just made ----
+
+	@Test
+	void aCopyIsNotedWhenItIsMadeAndReplacesWhatWasKnownOfTheCopyThatHadItsName(@TempDir Path assets)
+			throws Exception {
+		String chat = "public/teams-chats/Chat - Hiring.md";
+		holds(assets, Map.of(chat, "19:abc@thread.v2", "public/files/Notes.txt", "AAMk=:att-1"));
+		Copy first = new Copy(TWIN, chat, "chat", "19:abc@thread.v2", null, COPIED);
+		// the copy that had this name was a week older, and an update was waiting for it
+		Instant before = COPIED.minus(Duration.ofDays(7));
+		Copy old = new Copy(TWIN, chat, "chat", "19:abc@thread.v2", null, before);
+		WorkTwinUpdates.save(ownerId, ownerType, Set.of(TWIN),
+				List.of(new Finding(old, "changed", Instant.parse(BEFORE), Map.of("count", 4))));
+		assertEquals(1, WorkTwinUpdates.open(ownerId, ownerType).size());
+		assertEquals(before, only(WorkTwinUpdates.known(ownerId, ownerType, List.of(first))).copiedAt());
+
+		IProject twin = twin(TWIN, "Holiday");
+		User onThread = ThreadStore.getUser();
+		ThreadStore.setUser(user);
+		try (MockedStatic<SecurityProjectUtils> projects = owns(Map.of("project_id", TWIN, "project_name", "Holiday"));
+				MockedStatic<Utility> utility = mockStatic(Utility.class);
+				MockedStatic<EngineUtility> engines = mockStatic(EngineUtility.class)) {
+			utility.when(() -> Utility.getProject(TWIN)).thenReturn(twin);
+			engines.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT, TWIN, "Holiday"))
+					.thenReturn(assets.toString());
+
+			assertTrue(WorkTwinUpdates.copied(user, TWIN, chat));
+			// an attachment is no copy a check compares, a path outside the copy folders is refused, and so is a
+			// twin that is someone else's
+			assertFalse(WorkTwinUpdates.copied(user, TWIN, "public/files/Notes.txt"));
+			assertThrows(IllegalArgumentException.class,
+					() -> WorkTwinUpdates.copied(user, TWIN, "public/files/../twin-sources.json"));
+			assertThrows(IllegalArgumentException.class, () -> WorkTwinUpdates.copied(user, "twin-two", chat));
+		} finally {
+			ThreadStore.setUser(onThread);
+		}
+		// the new copy is compared with its own time, on any server and however its file is dated later, and the
+		// suggestion made for the old one is gone
+		assertEquals(List.of(), WorkTwinUpdates.open(ownerId, ownerType));
+		Copy pulled = new Copy(TWIN, chat, "chat", "19:abc@thread.v2", null, COPIED.plus(Duration.ofDays(2)));
+		assertEquals(COPIED, only(WorkTwinUpdates.known(ownerId, ownerType, List.of(pulled))).copiedAt());
+	}
+
 	// ---- helpers ----
+
+	private static List<Map<String, Object>> with(List<Map<String, Object>> messages, Map<String, Object> last) {
+		List<Map<String, Object>> all = new ArrayList<>(messages);
+		all.add(last);
+		return all;
+	}
+
+	// a twin as the server hands one out: it answers only on a thread whose signed in user may read it, which a
+	// job's pool thread has none of until the check names the owner
+	private IProject twin(String id, String name) {
+		IProject project = mock(IProject.class);
+		when(project.getEngineId()).thenAnswer(call -> {
+			if (ThreadStore.getUser() != user) {
+				throw new SemossPixelException(
+						"Project " + id + " does not exist or user does not have READ_ONLY permission on it");
+			}
+			return id;
+		});
+		when(project.getEngineName()).thenReturn(name);
+		return project;
+	}
+
+	// the twins the owner's pages list as theirs
+	@SafeVarargs
+	private static MockedStatic<SecurityProjectUtils> owns(Map<String, Object>... twins) {
+		return mockStatic(SecurityProjectUtils.class,
+				call -> "getUserProjectList".equals(call.getMethod().getName()) ? List.of(twins) : null);
+	}
+
+	private CollaborationJobUtils.Job job() {
+		CollaborationJobUtils.Job job = mock(CollaborationJobUtils.Job.class);
+		when(job.ownerId()).thenReturn(ownerId);
+		when(job.ownerType()).thenReturn(ownerType);
+		return job;
+	}
+
+	// a twin's files as its pages leave them: each copy, written when the copies of these tests were, and the record
+	// of what each came from
+	private static void holds(Path assets, Map<String, Object> record) throws Exception {
+		for (String path : record.keySet()) {
+			if (path.startsWith("public/")) {
+				Path copy = assets.resolve(path);
+				Files.createDirectories(copy.getParent());
+				Files.writeString(copy, "copy");
+				Files.setLastModifiedTime(copy, FileTime.from(COPIED));
+			}
+		}
+		Files.writeString(assets.resolve(WorkTwinUpdates.RECORD), CollaborationDbUtils.toJson(record));
+	}
+
+	// the server's clock as its rows keep it, UTC wall time (Utility.getCurrentSqlTimestampUTC)
+	private static Timestamp utcNow() {
+		return Timestamp.valueOf(LocalDateTime.now(ZoneOffset.UTC));
+	}
 
 	private Copy thread(String conversationId) {
 		return new Copy(TWIN, THREAD, "email", "conversation:" + conversationId, null, COPIED);
