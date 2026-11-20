@@ -331,6 +331,8 @@ public final class AgentSubAgentRegistry {
 					req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS,
 					childParamMap, null, null, null, childInsight).withParentRunId(req.parentJobId);
 			runRequest = runRequest.withCompletionMode(req.completionMode);
+			// Issue 3857: carry the spawn label so the run persists it and the UI shows a real name.
+			runRequest = runRequest.withLabel(req.label);
 			AgentRunHandle runHandle = AgentRunService.get().runWithId(childRunId, runRequest);
 			childStarted = true;
 
