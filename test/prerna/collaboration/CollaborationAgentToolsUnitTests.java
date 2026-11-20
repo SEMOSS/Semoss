@@ -28,6 +28,7 @@
 package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
@@ -42,6 +43,7 @@ import org.mockito.MockedStatic;
 import prerna.auth.AuthProvider;
 import prerna.io.connector.ConnectorScopeAccess;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.collaboration.WorkShowUIReactor;
 
 class CollaborationAgentToolsUnitTests {
 
@@ -56,7 +58,7 @@ class CollaborationAgentToolsUnitTests {
 	@Test
 	void everyDedicatedToolHasAViewAndItsOwnApprovalSchema() throws Exception {
 		List<Map<String, Object>> tools = allDefinitions();
-		assertEquals(59, tools.size());
+		assertEquals(60, tools.size());
 		for (Map<String, Object> value : tools) {
 			JSONObject tool = new JSONObject(value);
 			JSONObject meta = tool.getJSONObject("_meta");
@@ -102,6 +104,31 @@ class CollaborationAgentToolsUnitTests {
 	}
 
 	@Test
+	void interactiveInterfacesUseTheOwnerChatAndWaitForAResponse() throws Exception {
+		JSONObject tool = allDefinitions().stream().map(JSONObject::new)
+				.filter(value -> "ShowUI".equals(value.getString("name"))).findFirst().orElseThrow();
+		JSONObject meta = tool.getJSONObject("_meta");
+		assertEquals("ask", meta.getString(MCPUtility.SMSS_MCP_EXECUTION));
+		assertEquals("component://collaboration/a2ui",
+				meta.getJSONObject(MCPUtility.SMSS_MCP_UI).getString(MCPUtility.UI_RESOURCE_URI));
+		assertEquals("inline", meta.getJSONObject(MCPUtility.SMSS_MCP_UI).getString(MCPUtility.UI_DISPLAY_LOCATION));
+		assertEquals("array", tool.getJSONObject("inputSchema").getJSONObject("properties")
+				.getJSONObject("messages").getString("type"));
+		Method definitions = CollaborationAgentTools.class.getDeclaredMethod("definitions", boolean.class,
+				boolean.class, boolean.class);
+		definitions.setAccessible(true);
+		Object withoutChat = definitions.invoke(null, true, false, true);
+		assertTrue(withoutChat instanceof List<?>);
+		assertTrue(((List<?>) withoutChat).stream().noneMatch(value -> value instanceof Map<?, ?> map
+				&& "ShowUI".equals(map.get("name"))));
+	}
+
+	@Test
+	void interactiveInterfacesCannotExecuteThroughAnOrdinaryApproval() {
+		assertThrows(IllegalArgumentException.class, () -> new WorkShowUIReactor().execute());
+	}
+
+	@Test
 	void readingAMeetingTranscriptIsOfferedOnlyWhereTheSignInAsksForItsScope() throws Exception {
 		// nothing in this test asks for the scope, as on a deployment whose
 		// organization has not consented to it
@@ -111,7 +138,7 @@ class CollaborationAgentToolsUnitTests {
 			scopes.when(() -> ConnectorScopeAccess.requestsAnyScope(AuthProvider.MICROSOFT,
 					List.of("OnlineMeetingTranscript.Read.All"))).thenReturn(true);
 			List<Map<String, Object>> tools = allDefinitions();
-			assertEquals(60, tools.size());
+			assertEquals(61, tools.size());
 			JSONObject tool = new JSONObject(tools.stream()
 					.filter(value -> "GetMeetingTranscript".equals(value.get("name"))).findFirst().orElseThrow());
 			// a read, so it runs without waiting for the owner and a routine keeps it
