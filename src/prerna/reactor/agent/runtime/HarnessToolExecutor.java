@@ -64,6 +64,7 @@ import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.IToolHook;
+import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentInputRequiredException;
@@ -541,8 +542,37 @@ final class HarnessToolExecutor {
 		}
 	}
 
+	/**
+	 * Why a Digital Twin may not run a tool, or null when it may. A twin is a guest
+	 * in the chat of whoever asks it, working from instructions someone else wrote.
+	 * Listed or not, it runs none of the asker's Collaboration tools and no person
+	 * lookup, and it starts no sub-agent, which would be handed those tools in its
+	 * place. Only the root of its owner's own chat can change its shared files.
+	 */
+	static String twinRefusal(AgentRunContext ctx, String toolName) {
+		AgentConfig config = ctx.getAgentConfig();
+		if (config == null || !config.isDigitalTwin() || toolName == null) {
+			return null;
+		}
+		boolean ownFileTool = CollaborationAgentTools.isTwinFileTool(toolName) && config.isDigitalTwinOwnChat()
+				&& CollaborationRunMode.isChat(ctx.getRoom())
+				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH;
+		boolean refused = HumanDelegationService.FIND_PERSON_TOOL_NAME.equals(toolName)
+				|| SubAgentToolSynthesizer.isSubAgentTool(toolName, config.getSubagents())
+				// outside Collaboration the name belongs to whatever toolbox the twin was given
+				|| (CollaborationAgentTools.appliesTo(ctx.getRoom()) && CollaborationAgentTools.isTool(toolName)
+						&& !ownFileTool);
+		return refused
+				? toolName + " is not available in a chat with a Digital Twin. Nothing was run. Do not retry it."
+				: null;
+	}
+
 	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx,
 			Map<String, Object> paramMap, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
+		String twinRefusal = twinRefusal(ctx, tc.rawToolName);
+		if (twinRefusal != null) {
+			return new ToolExecOutcome(twinRefusal, false);
+		}
 		if (CollaborationRunMode.isRoutine(ctx.getRoom()) && isAskTool(tc.toolCall)) {
 			return new ToolExecOutcome(
 					tc.rawToolName + " needs the owner's approval, and this scheduled routine runs "
@@ -578,6 +608,10 @@ final class HarnessToolExecutor {
 					result.isSuccess());
 		}
 		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && CollaborationAgentTools.isTool(tc.rawToolName)) {
+			// Approved changes run in the decision handler. A missing or stale tool definition must never run one here.
+			if (CollaborationAgentTools.isTwinFileTool(tc.rawToolName)) {
+				return new ToolExecOutcome("The file change needs a separate approval from the twin's owner.", false);
+			}
 			ToolExecutionResult result = CollaborationAgentTools.execute(tc.rawToolName, tc.toolParams,
 					ctx.getInsight(), ctx.getInput());
 			String output = result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError();

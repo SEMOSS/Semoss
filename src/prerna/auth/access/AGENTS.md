@@ -263,7 +263,62 @@ uploaded project's metadata file or a metadata reactor sends.
   twin public, discoverable or a template (`requireNotDigitalTwin`), and to give
   everyone access to it (`grantNewUsersProjectAccess`, `addAllProjectUsers`);
   `grantAllProjects` leaves twins out. `CreateAppFromTemplate` does not clone one.
-- People are added and removed as on any project.
+- **People.** People are added and removed as on any project, and an add can
+  carry an end date, after which `ExpiredAccessRemoval` takes the access away
+  on its next pass, a minute apart. Who a twin is shared with is its owner's
+  to know: `getProjectUsers`, `getProjectUsersCount` and
+  `getProjectUsersNoCredentials` need edit access on a twin, not view access
+  (`userCanSeeProjectPeople`), and someone it is only shared with gets the
+  refusal a project they cannot view would get.
+- **Its rules at chat time.** `AgentConfigLoader` reads the mark for every run
+  that has a user (`AgentConfig.isDigitalTwin`, with its creator's name from
+  `SecurityProjectUtils.getProjectCreatorName`), and the SEMOSS harness then
+  adds `CollaborationPrompts.twinPrompt` after the twin's own instructions:
+  it is an AI and not its owner, it answers about its owner only from its
+  files, and it names the files it used. The owner cannot write these away.
+  `isDigitalTwin` throws when the mark cannot be read, so the run fails
+  sooner than start without them.
+- **A guest in the chat of whoever asks it.** A twin's instructions, skills
+  and toolboxes are its owner's, so in a Collaboration chat the harness hands
+  it none of what the person chatting has: no Collaboration tools, no person
+  lookup and no sub-agent, which would be handed those tools in its place.
+  `HarnessToolExecutor.twinRefusal` refuses the same tools by name, since a
+  tool left off the list can still be called. It starts from the general
+  harness prompt, is told the name of the person chatting and nothing
+  Collaboration keeps for them (no profile, memories or routine preferences),
+  gets none of their assistant skills, and no after-run hook runs, so nothing
+  from the chat is learned or filed in their account. The one exception is
+  the file tools of its owner's own chat, below. Do not hand a twin a tool that
+  reads or acts for the person chatting.
+- **Its index.** `WorkIndexTwinFiles(project)` describes the twin's files for
+  its chats (`WorkTwinIndex`). It is refused for anyone who cannot edit the
+  project, and with the same answer for a project that is not a twin, so
+  only someone who can change a twin learns that it is one. Each pass first
+  takes out the `placeholder.txt` the file explorer left in any folder of the
+  twin's files that now holds a file (`WorkTwinFiles.tidy`).
+- **Its owner's own chat.** `AgentConfigLoader` also reads whether the person
+  running a twin created it (`SecurityProjectUtils.isProjectCreator`,
+  `AgentConfig.isDigitalTwinOwnChat`). The twin is then told it is talking to
+  the person it answers about. The root of their Collaboration chat can propose
+  `SaveToDigitalTwin` to copy a file from that room or `RemoveFromDigitalTwin`
+  to delete one exact shared document from that twin. Each action waits for
+  its owner's approval. Both reactors resolve the twin from the chat and
+  require its creator to retain edit access. The approval is bound to the room
+  and twin that requested it. Removing a copy leaves the source in place.
+- **Its owner's persona.** A person keeps one persona for their twins
+  (`WorkTwinPersona`, table `BRAIN_PERSONA`): how they sound, how they decide
+  and what a twin must leave to them. Only its owner reads or writes it
+  (`WorkGetTwinPersona`, `WorkSaveTwinPersona`, `WorkDeleteTwinPersona`); the
+  people a twin is shared with never get it from a reactor, though a twin can
+  be talked into quoting what it was told. `AgentConfigLoader` puts it on the
+  run (`AgentConfig.getDigitalTwinPersona`) and the harness adds it between
+  the twin's own instructions and its rules, which then let the twin write in
+  that voice and give its read of its owner's views
+  (`twinPrompt(..., hasPersona)`). It goes only to a twin whose creator is on
+  record with their login type, can still edit the twin, and has not switched
+  it off there (`WorkSetTwinPersona`, creator only). Any failure to read it
+  means a run without it, never a failed run. Do not put it into the twin's
+  own instructions: whoever is chatting can replace those through their room.
 - **Avatars.** Where `COLLAB_AVATAR_GENERATION_ENABLED` is true,
   `WorkGenerateTwinAvatar` makes avatar options with the image model in
   `COLLAB_AVATAR_ENGINE_ID` for anyone in Collaboration, with no catalog check
@@ -271,7 +326,11 @@ uploaded project's metadata file or a metadata reactor sends.
   model's usage limits still apply. Do not add an engine key to it. The reactor
   refuses when the setting is off; hiding the button is not the check.
 
-`test/prerna/auth/utils/DigitalTwinUnitTests` covers these.
+`test/prerna/auth/utils/DigitalTwinUnitTests` covers these, with
+`AgentPromptCompositionUnitTests` for the chat-time rules,
+`TwinGuestUnitTests` for the tools a twin is refused,
+`WorkIndexTwinFilesReactorUnitTests` for who may run the index and
+`WorkTwinFilesUnitTests` for the placeholders and the owner's own chat.
 
 ## Who can call it
 

@@ -239,6 +239,12 @@ public final class BrainSync {
 		} catch (RuntimeException e) {
 			classLogger.warn("New-topic look could not start", e);
 		}
+		// the owner's Digital Twins: whether what they hold copies of has changed since, when a check is due
+		try {
+			job.count("twinCheck", WorkTwinUpdates.watch(user, ownerId, ownerType));
+		} catch (RuntimeException e) {
+			classLogger.warn("Digital Twin check could not start", e);
+		}
 		job.count("resumed", run.owed.size() - run.imported);
 		finishFollowUps(ownerId, ownerType, run);
 

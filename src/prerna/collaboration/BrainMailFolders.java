@@ -53,6 +53,9 @@ public final class BrainMailFolders {
 
 	static final String CUSTOM = "custom";
 	static final String SKIPPED = "skipped";
+	// Deleted Items and what is under it: skipped as well, and told apart because mail in it was deleted by the
+	// owner, while the other skipped folders (Junk Email and the like) hold mail that is still in the mailbox
+	static final String DELETED = "deleteditems";
 	static final String SENT = "sentitems";
 	// system folders mail is read from; every other system folder (and what is under it) is skipped
 	private static final Set<String> READ = Set.of("inbox", "sentitems", "archive", "scheduled");
@@ -82,7 +85,14 @@ public final class BrainMailFolders {
 
 		boolean skipped(String folderId) {
 			Folder folder = folderId == null ? null : byId.get(folderId);
-			return folder != null && SKIPPED.equals(folder.kind());
+			return folder != null && (SKIPPED.equals(folder.kind()) || DELETED.equals(folder.kind()));
+		}
+
+		// whether mail in this folder was deleted by the owner; a tree saved before folders were told apart
+		// answers false until it is read again
+		boolean deleted(String folderId) {
+			Folder folder = folderId == null ? null : byId.get(folderId);
+			return folder != null && DELETED.equals(folder.kind());
 		}
 
 		boolean sent(String folderId) {
@@ -193,7 +203,7 @@ public final class BrainMailFolders {
 				Map<String, Object> f = raw.get(up);
 				names.add(0, Objects.toString(f.get("displayName"), ""));
 				if (f.get("wellKnownName") instanceof String w && !READ.contains(w)) {
-					kind = SKIPPED;
+					kind = DELETED.equals(w) ? DELETED : SKIPPED;
 				}
 				up = f.get("parentFolderId") instanceof String p ? p : null;
 			}
@@ -251,7 +261,7 @@ public final class BrainMailFolders {
 		int read = 0;
 		for (Folder f : tree.byId().values()) {
 			custom += CUSTOM.equals(f.kind()) ? 1 : 0;
-			read += SKIPPED.equals(f.kind()) ? 0 : 1;
+			read += tree.skipped(f.id()) ? 0 : 1;
 		}
 		out.put("known", !tree.isEmpty());
 		out.put("read", read);
