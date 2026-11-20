@@ -49,8 +49,9 @@ public class WorkDeleteTwinPersonaReactor extends AbstractCollaborationReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
 				"Deletes the signed-in user's persona and any interview in progress. Their Digital Twins answer "
-						+ "without it from their next chat. The twins it was switched off for stay on record, so a "
-						+ "persona written later does not come back on for them")
+						+ "without it from their next chat, and their own assistant writes for them without it; "
+						+ "their email writing style is not touched. What it was switched off for stays on record, "
+						+ "so a persona written later does not come back on there")
 				.noKeys().output(Map.class, "The persona as WorkGetTwinPersona returns it, now without sections");
 	}
 }
