@@ -32,7 +32,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.objectweb.asm.AnnotationVisitor;
@@ -46,6 +49,8 @@ import org.objectweb.asm.Type;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.pipeline.AdminEngineCalls;
 import prerna.engine.impl.pipeline.PlatformOperation;
+import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -70,6 +75,11 @@ public final class SandboxProbe {
 	 * An object a test leaves for a probe to read and cast.
 	 */
 	public static Object heldObject;
+
+	/**
+	 * The insight a test leaves for {@link #onExecutor(Function)}.
+	 */
+	public static Insight heldInsight;
 
 	private final ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_MAXS);
 
@@ -349,6 +359,59 @@ public final class SandboxProbe {
 	 */
 	public static Object runAsPlatform(Supplier<?> work) {
 		return work.get();
+	}
+
+	/**
+	 * Reads who is signed in on the thread, which is where the engine access check
+	 * reads the user from, as a task a custom reactor hands to a thread would.
+	 *
+	 * @param insight the insight the task was given
+	 * @return the user signed in on this thread, or null
+	 */
+	public static Object readSignedInUser(Insight insight) {
+		return ThreadStore.getUser();
+	}
+
+	/**
+	 * Runs the work on a {@link UserContextExecutor} made for the held insight, as
+	 * a custom reactor would, and waits for it.
+	 *
+	 * @param work the work, written by the probe
+	 * @return what the work returned
+	 * @throws Throwable what the work threw
+	 */
+	public static Object onExecutor(Function<Insight, Object> work) throws Throwable {
+		try (UserContextExecutor executor = UserContextExecutor.create(heldInsight, 1)) {
+			return executor.submit(work).get();
+		} catch (ExecutionException e) {
+			throw e.getCause();
+		}
+	}
+
+	/**
+	 * Runs the work on a thread made by hand, which carries no user, to show what
+	 * the executor adds.
+	 *
+	 * @param work the work, written by the probe
+	 * @return what the work returned
+	 * @throws Throwable what the work threw
+	 */
+	public static Object onBareThread(Function<Insight, Object> work) throws Throwable {
+		AtomicReference<Object> result = new AtomicReference<>();
+		AtomicReference<Throwable> failure = new AtomicReference<>();
+		Thread thread = new Thread(() -> {
+			try {
+				result.set(work.apply(heldInsight));
+			} catch (Throwable e) {
+				failure.set(e);
+			}
+		});
+		thread.start();
+		thread.join();
+		if (failure.get() != null) {
+			throw failure.get();
+		}
+		return result.get();
 	}
 
 	/**

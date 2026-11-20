@@ -290,6 +290,17 @@ public final class SandboxedJavaExecution {
 	}
 
 	/**
+	 * The chroot path this thread was given with
+	 * {@link #setSandboxRootForCurrentThread(String)}, so work handed to another
+	 * thread can be given the same one.
+	 *
+	 * @return the thread's chroot path, or null when the thread has none
+	 */
+	static String sandboxRootOfCurrentThread() {
+		return THREAD_SANDBOX_ROOT.get();
+	}
+
+	/**
 	 * Removes the thread-local sandbox root. Always call this in a {@code finally}
 	 * block after reactor code finishes to prevent the chroot path leaking to
 	 * subsequent work on the same thread.
