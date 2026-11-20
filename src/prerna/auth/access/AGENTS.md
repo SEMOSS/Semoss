@@ -319,6 +319,12 @@ uploaded project's metadata file or a metadata reactor sends.
   it off there (`WorkSetTwinPersona`, creator only). Any failure to read it
   means a run without it, never a failed run. Do not put it into the twin's
   own instructions: whoever is chatting can replace those through their room.
+  The same persona also reaches its owner's own assistant, and only theirs:
+  `GetWritingStyle` (`BrainGetWritingStyleReactor`) adds the sections a draft
+  reads (`WorkTwinPersona.forAssistant`) to its result for the signed-in
+  person, unless they switched that off (`WorkSetAssistantPersona`). A twin is
+  a guest and is never handed that tool, so the persona of whoever is chatting
+  cannot reach a twin.
 - **Avatars.** Where `COLLAB_AVATAR_GENERATION_ENABLED` is true,
   `WorkGenerateTwinAvatar` makes avatar options with the image model in
   `COLLAB_AVATAR_ENGINE_ID` for anyone in Collaboration, with no catalog check

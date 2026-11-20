@@ -43,10 +43,11 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 
 /**
- * A person's persona for their Digital Twins (BRAIN_PERSONA, one row per owner): how they sound, how they decide and
- * what a twin must leave to them, in eight short sections of plain text. Every twin the person created is given it as
- * a section of its prompt, ahead of the twin's rules, unless they switched it off for that twin. Only its owner reads
- * or changes it here; the people a twin is shared with never get it from a reactor.
+ * A person's persona (BRAIN_PERSONA, one row per owner): how they sound, how they decide and what is left to them, in
+ * eight short sections of plain text. Every Digital Twin the person created is given it as a section of its prompt,
+ * ahead of the twin's rules, unless they switched it off for that twin. Their own assistant is given the sections a
+ * draft reads when it writes for them (GetWritingStyle), unless they switched that off. Only its owner reads or
+ * changes it here; the people a twin is shared with never get it from a reactor.
  */
 public final class WorkTwinPersona {
 
@@ -63,10 +64,16 @@ public final class WorkTwinPersona {
 	/** The most characters of persona text a twin's prompt is given. */
 	static final int MAX_PROMPT = 6000;
 
+	/**
+	 * The sections the owner's own assistant writes with: how they sound, their standing answers and what is left to
+	 * them. How they decide and what they check stay with their twins.
+	 */
+	static final List<String> ASSISTANT_SECTIONS = List.of("short", "voice", "stands", "people", "limits", "examples");
+
 	private WorkTwinPersona() {
 	}
 
-	private record Row(Map<String, String> sections, List<String> offTwins, String updatedAt) {
+	private record Row(Map<String, String> sections, List<String> offTwins, boolean assistantOff, String updatedAt) {
 	}
 
 	/**
@@ -74,8 +81,8 @@ public final class WorkTwinPersona {
 	 *
 	 * @return {@code exists}, whether any section holds text; {@code sections}, the text of every section by its key,
 	 *         empty where nothing is written; {@code offTwins}, the ids of the twins they switched it off for;
-	 *         {@code interview}, where the interview that writes it is, or null when there is none; and
-	 *         {@code updatedAt}
+	 *         {@code assistant}, whether their own assistant writes for them with it; {@code interview}, where the
+	 *         interview that writes it is, or null when there is none; and {@code updatedAt}
 	 */
 	public static Map<String, Object> get(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -88,6 +95,7 @@ public final class WorkTwinPersona {
 		persona.put("exists", row != null && !row.sections().isEmpty());
 		persona.put("sections", sections);
 		persona.put("offTwins", row == null ? List.of() : row.offTwins());
+		persona.put("assistant", row == null || !row.assistantOff());
 		persona.put("interview", WorkTwinPersonaInterview.summary(owner.getValue0(), owner.getValue1()));
 		persona.put("updatedAt", row == null ? null : row.updatedAt());
 		return persona;
@@ -164,6 +172,57 @@ public final class WorkTwinPersona {
 	}
 
 	/**
+	 * Switches the signed-in person's persona on or off for their own assistant, which writes for them with it until
+	 * it is switched off.
+	 */
+	public static Map<String, Object> setAssistant(User user, boolean enabled) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
+			Row row = read(ownerId, ownerType);
+			// written only when it changes: someone with no row yet has it on
+			if ((row != null && row.assistantOff()) == enabled) {
+				write(ownerId, ownerType, "ASSISTANT_OFF", !enabled);
+			}
+		}
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("enabled", enabled);
+		return result;
+	}
+
+	/**
+	 * The persona the signed-in person's own assistant writes for them with, as text for a tool's result: the
+	 * sections a draft reads. Never fails a draft.
+	 *
+	 * @return the text, or null when the assistant writes without one: Collaboration is off, they have no persona or
+	 *         switched it off for their assistant, none of those sections holds text, or it could not be read
+	 */
+	public static String forAssistant(User user) {
+		try {
+			if (user == null || !CollaborationDbUtils.isInitalized()) {
+				return null;
+			}
+			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+			Row row = read(owner.getValue0(), owner.getValue1());
+			if (row == null || row.assistantOff()) {
+				return null;
+			}
+			Map<String, String> kept = new LinkedHashMap<>();
+			for (String key : ASSISTANT_SECTIONS) {
+				String text = row.sections().get(key);
+				if (text != null) {
+					kept.put(key, text);
+				}
+			}
+			return CollaborationPrompts.assistantPersona(kept);
+		} catch (Exception e) {
+			classLogger.warn("Could not read the persona for its owner's assistant; it writes without one", e);
+			return null;
+		}
+	}
+
+	/**
 	 * The persona a Digital Twin's run is given, as a section of its prompt. It is the persona of the person who
 	 * created the twin, and it stays theirs: it stops going to a twin they can no longer change. Never fails a run.
 	 *
@@ -233,24 +292,28 @@ public final class WorkTwinPersona {
 		return plain.length() > max ? plain.substring(0, max).strip() : plain;
 	}
 
-	// One column of the owner's row, which is made the first time anything is written. Callers hold the persona lock.
-	static void write(String ownerId, String ownerType, String column, String json) {
+	// One column of the owner's row, which is made the first time anything is written: JSON text, or the assistant's
+	// switch. Callers hold the persona lock.
+	static void write(String ownerId, String ownerType, String column, Object value) {
 		Timestamp now = CollaborationDbUtils.now();
 		int updated = CollaborationDbUtils.update(
-				"UPDATE BRAIN_PERSONA SET " + column + " = ?, UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ?", json,
+				"UPDATE BRAIN_PERSONA SET " + column + " = ?, UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ?", value,
 				now, ownerId, ownerType);
 		if (updated == 0) {
 			CollaborationDbUtils.update("INSERT INTO BRAIN_PERSONA (OWNER_ID, OWNER_TYPE, " + column
-					+ ", CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?)", ownerId, ownerType, json, now, now);
+					+ ", CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?)", ownerId, ownerType, value, now, now);
 		}
 	}
 
 	private static Row read(String ownerId, String ownerType) {
 		return CollaborationDbUtils.queryOne(
-				"SELECT BRIEF_JSON, OFF_TWINS_JSON, UPDATED_AT FROM BRAIN_PERSONA WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				"SELECT BRIEF_JSON, OFF_TWINS_JSON, ASSISTANT_OFF, UPDATED_AT FROM BRAIN_PERSONA "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> new Row(stored(CollaborationDbUtils.getString(rs, "BRIEF_JSON")),
 						CollaborationDbUtils.toStringList(
 								CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "OFF_TWINS_JSON"))),
+						// a row from before the switch existed has it on
+						Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "ASSISTANT_OFF")),
 						CollaborationDbUtils.getTimestamp(rs, "UPDATED_AT")),
 				ownerId, ownerType);
 	}

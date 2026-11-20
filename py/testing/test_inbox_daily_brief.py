@@ -209,7 +209,7 @@ class InboxDailyBriefTests(unittest.TestCase):
         self.assertEqual("right", meetings[0]["related"][0]["threadId"])
         self.assertEqual("right", meetings[0]["preReads"][0]["threadId"])
 
-    def test_uses_both_owner_addresses_and_supplies_confirmed_style_and_sent_mail_for_drafting(self):
+    def test_uses_both_owner_addresses_and_supplies_persona_and_sent_mail_for_drafting(self):
         self.queue(
             [item("scope-owner", "2026-10-20T10:00:00Z"), item("profile-owner", "2026-10-20T10:00:00Z"),
              item("needs-reply", "2026-10-20T10:00:00Z")],
@@ -222,26 +222,30 @@ class InboxDailyBriefTests(unittest.TestCase):
                 return {"name": "Owner", "email": "profile@example.com",
                         "role": {"source": "you", "value": "Manager"},
                         "style": {"confirmed": True, "summary": "Concise and friendly", "examples": ["Thanks, Dana."]}}
+            if reactor == "BrainGetWritingStyle":
+                return {"persona": "Uses short, direct replies."}
             if reactor == "MicrosoftOutlookListMail":
-                return {"messages": [{"subject": "Prior reply", "body": "Thanks + agreed 100%."}]}
-            self.assertEqual("BrainListThreads", reactor)
+                return {"messages": [{"subject": "Prior reply", "to": ["dana@example.com"], "body": "Thanks + agreed 100%."}]}
+            self.assertIn(reactor, {"BrainListThreads", "WorkListItems"})
             return {}
 
         self.gather["_optional"].side_effect = optional
-        context = self.run_at(datetime.datetime(2026, 10, 20, 12, tzinfo=UTC))
+        context = self.run_at(datetime.datetime(2026, 10, 20, 12, tzinfo=UTC), sections=["replies"])
 
         self.assertEqual(["needs-reply"], [reply["threadId"] for reply in context["replies"]])
         self.assertEqual([
             call("BrainGetProfile"),
-            call("MicrosoftOutlookListMail", folder="sentitems", limit=5, includeBody=True, maxBodyChars=1500),
-            call("BrainListThreads", limit=100, offset=0, detail=True),
+            call("BrainListThreads", limit=2000, offset=0, detail=True),
+            call("BrainGetWritingStyle"),
+            call("MicrosoftOutlookListMail", folder="sentitems", limit=50, includeBody=True, maxBodyChars=1500),
+            call("WorkListItems", view="needs_me", limit=50),
         ], self.gather["_optional"].call_args_list)
         self.assertEqual([("WorkListItems",)], [call.args for call in self.gather["_pixel"].call_args_list])
         self.assertEqual({
             "name": "Owner", "email": "profile@example.com", "role": "Manager",
-            "writingStyle": "Concise and friendly", "styleExamples": ["Thanks, Dana."],
+            "persona": "Uses short, direct replies.",
             "recentSentEmails": [{"subject": "Prior reply", "text": "Thanks + agreed 100%."}],
-        }, json.loads(unquote_plus(context["draftsInput"]))["owner"])
+        }, json.loads(context["draftsInput"])["owner"])
 
     def test_shipped_workflow_drafts_and_saves_before_writing_the_brief(self):
         agents = [node for node in self.definition["graph"]["nodes"] if node["type"] == "agent.run"]
