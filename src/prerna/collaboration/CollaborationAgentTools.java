@@ -104,6 +104,8 @@ import prerna.reactor.collaboration.WorkOpenSkillReactor;
 import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkSaveRoutinePreferencesReactor;
+import prerna.reactor.collaboration.WorkRemoveFromTwinReactor;
+import prerna.reactor.collaboration.WorkSaveToTwinReactor;
 import prerna.reactor.collaboration.WorkSaveWorkReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 import prerna.reactor.collaboration.WorkShowItemReactor;
@@ -129,6 +131,10 @@ public final class CollaborationAgentTools {
 	 * room tool.
 	 */
 	public static final String TOOL_KIND = "semoss_collaboration_tool";
+
+	// These tools are handed only to a twin in its owner's chat.
+	private static final List<String> TWIN_FILE_TOOLS = List.of("SaveToDigitalTwin", "RemoveFromDigitalTwin");
+	public static final String TWIN_APPROVAL_PROJECT = "SMSS_TWIN_APPROVAL_PROJECT";
 
 	// tool name the model sees -> reactor it runs
 	private static final Map<String, Class<? extends AbstractReactor>> REACTORS = new LinkedHashMap<>();
@@ -219,6 +225,8 @@ public final class CollaborationAgentTools {
 		REACTORS.put("PublishSkill", WorkPublishSkillReactor.class);
 		REACTORS.put("UseSkillInAssistant", WorkUseSkillInAssistantReactor.class);
 		REACTORS.put("DeleteMySkill", WorkDeleteMySkillReactor.class);
+		REACTORS.put("SaveToDigitalTwin", WorkSaveToTwinReactor.class);
+		REACTORS.put("RemoveFromDigitalTwin", WorkRemoveFromTwinReactor.class);
 	}
 
 	private static final Set<String> MEMORY_TOOLS = Set.of("Remember", "Forget", "SearchMemories");
@@ -355,18 +363,36 @@ public final class CollaborationAgentTools {
 		for (Map.Entry<String, JSONObject> tool : tools().entrySet()) {
 			if ((memory || !MEMORY_TOOLS.contains(tool.getKey())) && (chat || !CHAT_TOOLS.contains(tool.getKey()))
 					&& (owner || !OWNER_TOOLS.contains(tool.getKey()))
-					&& (transcripts || !TRANSCRIPT_TOOL.equals(tool.getKey()))) {
+					&& (transcripts || !TRANSCRIPT_TOOL.equals(tool.getKey()))
+					&& !isTwinFileTool(tool.getKey())) {
 				tools.add(tool.getValue().toMap());
 			}
 		}
 		return tools;
 	}
 
+	/** The approved file tools for an owner's chat, bound to the twin that requested the changes. */
+	public static List<Map<String, Object>> twinFileTools(String twinId) {
+		List<Map<String, Object>> result = new ArrayList<>();
+		for (String name : TWIN_FILE_TOOLS) {
+			JSONObject tool = tools().get(name);
+			if (tool == null) {
+				return List.of();
+			}
+			Map<String, Object> definition = tool.toMap();
+			Map<String, Object> meta = tool.getJSONObject("_meta").toMap();
+			meta.put(TWIN_APPROVAL_PROJECT, twinId);
+			definition.put("_meta", meta);
+			result.add(definition);
+		}
+		return result;
+	}
+
 	/**
 	 * Whether the deployment's Microsoft sign in asks for the scope a meeting
 	 * transcript is read with.
 	 */
-	private static boolean transcriptsRequested() {
+	static boolean transcriptsRequested() {
 		try {
 			return ConnectorScopeAccess.requestsAnyScope(AuthProvider.MICROSOFT,
 					List.of(MicrosoftCalendarHelper.TRANSCRIPT_SCOPE));
@@ -394,6 +420,11 @@ public final class CollaborationAgentTools {
 
 	public static boolean isTool(String toolName) {
 		return toolName != null && tools().containsKey(toolName);
+	}
+
+	/** Whether this tool changes shared files in a Digital Twin owner's own chat. */
+	public static boolean isTwinFileTool(String toolName) {
+		return toolName != null && TWIN_FILE_TOOLS.contains(toolName);
 	}
 
 	/** Whether a stored pending action's _meta came from one of these tools. */
