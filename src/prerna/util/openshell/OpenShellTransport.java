@@ -278,7 +278,7 @@ public final class OpenShellTransport {
 	 * Relative paths, per transported root, that the sandbox is known to have held:
 	 * everything in its last full capture plus every path written back since. Deletions
 	 * are inferred only for these, so a host file the sandbox never received --
-	 * gitignored, added on the host mid-session, missed by a partial upload -- is never
+	 * added on the host mid-session, missed by a partial upload -- is never
 	 * mistaken for one the sandbox removed.
 	 */
 	private final Map<String, Set<String>> seenBySandbox = new ConcurrentHashMap<>();
@@ -954,6 +954,46 @@ public final class OpenShellTransport {
 		return true;
 	}
 
+	/** Sandbox-only folder for query results handed to Python; the worker never watches it. */
+	private static final String SCRATCH_PARENT = "/tmp";
+	private static final String SCRATCH_DIR = "semoss-engine-results";
+	private static final Pattern RESULT_FILE = Pattern.compile("a_[A-Za-z0-9]{6}\\.json");
+
+	/**
+	 * Copies a query result file into the sandbox's scratch folder and returns its path there.
+	 * No stamps are recorded: Python deletes the sandbox copy after reading it, and the file must
+	 * not be refreshed or written back as part of a transported root.
+	 *
+	 * @param hostFile the result file the engine worker wrote on the host
+	 * @return the path of the copy inside the sandbox
+	 * @throws IOException when the file is not a result file or the upload fails
+	 */
+	public String pushScratchFile(Path hostFile) throws IOException {
+		Path name = hostFile.getFileName();
+		if (name == null || !RESULT_FILE.matcher(name.toString()).matches()
+				|| !Files.isRegularFile(hostFile, LinkOption.NOFOLLOW_LINKS)) {
+			throw new IOException("Not a query result file: " + hostFile);
+		}
+		Path stage = Files.createTempDirectory("openshell-result-");
+		try {
+			// the folder is uploaded into /tmp, so it lands as /tmp/semoss-engine-results
+			Path dir = Files.createDirectory(stage.resolve(SCRATCH_DIR));
+			Files.copy(hostFile, dir.resolve(name.toString()));
+			run(uploadCommand(propOr(CLI_PROP, DEFAULT_CLI), dir.toString(), SCRATCH_PARENT), 60);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IOException("interrupted pushing " + name, e);
+		} finally {
+			deleteQuietly(stage);
+		}
+		return SCRATCH_PARENT + "/" + SCRATCH_DIR + "/" + name;
+	}
+
+	/** Upload command with git filtering off: the CLI would otherwise apply .gitignore when the source sits in a repo. */
+	private List<String> uploadCommand(String cli, String source, String destination) {
+		return Arrays.asList(cli, "sandbox", "upload", "--no-git-ignore", sandboxName, source, destination);
+	}
+
 	private boolean uploadInFull(String absPath, String normalized) {
 		String cli = propOr(CLI_PROP, DEFAULT_CLI);
 		// `sandbox upload <src> <dst>` copies src INTO dst, i.e. it appends basename(src).
@@ -965,7 +1005,7 @@ public final class OpenShellTransport {
 				: Paths.get(absPath).getParent().toString();
 		classLogger.info("Sandbox upload {} -> {}:{}", absPath, sandboxName, destination);
 		try {
-			String out = run(Arrays.asList(cli, "sandbox", "upload", sandboxName, absPath, destination), 300);
+			String out = run(uploadCommand(cli, absPath, destination), 300);
 			// `sandbox upload` prints a tick with its result; treat a non-zero exit as failure,
 			// which run() already raises as IOException.
 			classLogger.info("Sandbox upload result for {}: {}", absPath, out.trim());
@@ -1016,8 +1056,7 @@ public final class OpenShellTransport {
 			SymlinkHelper.copyProjectForReadOnlyUser(root, staged);
 			String destination = root.getParent() == null ? "/" : root.getParent().toString();
 			classLogger.info("Sandbox view-only upload {} -> {}:{}", absPath, sandboxName, destination);
-			String out = run(Arrays.asList(cli, "sandbox", "upload", sandboxName, staged.toString(), destination),
-					300);
+			String out = run(uploadCommand(cli, staged.toString(), destination), 300);
 			classLogger.info("Sandbox upload result for {}: {}", absPath, out.trim());
 			if (TransportedRoots.isUserSpace(normalized)) {
 				recordUploadedStamps(root);
@@ -1108,7 +1147,7 @@ public final class OpenShellTransport {
 	 * <p>
 	 * A full capture also propagates deletions, but only for paths the sandbox is known
 	 * to have held (see {@link #seenBySandbox}); absence alone proves nothing, because
-	 * the upload skips gitignored files and the host can gain files mid-session.
+	 * a partial upload leaves files out and the host can gain files mid-session.
 	 *
 	 * @param absPath a path previously passed to {@link #upload(String)}
 	 * @return number of files written back or removed
@@ -1255,8 +1294,7 @@ public final class OpenShellTransport {
 				}
 				// `sandbox upload` merges into the existing tree and keeps mtimes, so after it
 				// both sides carry the stamp recorded below.
-				run(Arrays.asList(cli, "sandbox", "upload", sandboxName, staged.toString(),
-						root.getParent().toString()), 300);
+				run(uploadCommand(cli, staged.toString(), root.getParent().toString()), 300);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 				throw new IOException("interrupted refreshing " + root, e);
