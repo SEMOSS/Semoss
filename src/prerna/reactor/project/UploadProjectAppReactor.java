@@ -44,7 +44,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -66,7 +65,6 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
@@ -191,7 +189,6 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		String projectFolderPath = EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT);
 
 		boolean replace = deleteIfExisting();
-		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
 		File finalProjectSmssF = null;
@@ -248,10 +245,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			} else {
 				// first time upload
 				// need to ignore file watcher
-				if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
-						|| projects.endsWith(";" + projectId))) {
-					String newProjects = projects + ";" + projectId;
-					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
+				if (InternalUtility.addProjectId(projectId)) {
 					projectAddedToDIHelper = true;
 				}
 			}
@@ -309,7 +303,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
+			InternalUtility.setProjectSmssPath(projectId,
 					finalProjectSmssF.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
 			if (!replacingExistingProject) {
@@ -338,7 +332,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile,
 							new TypeToken<Map<String, Object>>() {
 							}.getType());
-					SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+					SecurityProjectUtils.updateProjectMetadata(user, projectId, metadata);
 					// delete this file since values can update and file is dynamically generated on
 					// export
 					metadataFile.delete();
@@ -370,7 +364,9 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					UploadUtilities.removeProjectFromDIHelper(projectId);
 				}
 				// delete from security
-				SecurityProjectUtils.deleteProject(projectId);
+				if (SecurityProjectUtils.containsProjectId(projectId)) {
+					SecurityProjectUtils.deleteProject(user, projectId);
+				}
 			} else {
 				File[] assetsFilesToDelete = finalProjectAssetF
 						.listFiles((dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX)
@@ -382,10 +378,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 		// add user as engine owner
 		if (!replacingExistingProject) {
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
-			}
+			SecurityProjectUtils.addProjectOwner(user, projectId);
 		}
 
 		// push new project to cloud

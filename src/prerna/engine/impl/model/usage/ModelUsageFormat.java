@@ -39,13 +39,15 @@ import prerna.auth.access.ModelUsageLimitPath.StepLimitType;
 import prerna.auth.access.ModelUsageLimitRule.Counts;
 import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.auth.access.ModelUsageLimitRule.Window;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.usage.ModelUsageEvaluation.RuleCheck;
 
 /**
  * The words a refused call is answered with. Each message says which limit
  * refused the call and when it resets, and names only the model, the caller's
- * own limits, the teams the caller is in and the app the caller is using.
+ * own limits, the teams the caller is in, and the app or engine the caller is
+ * using.
  */
 final class ModelUsageFormat {
 
@@ -89,7 +91,7 @@ final class ModelUsageFormat {
 				message += (teams.size() <= 1 ? " It resets at " : " The soonest resets at ") + resetsAt + ".";
 			}
 		} else {
-			message = step.getLimitType() == StepLimitType.APP ? appSentence(step, check, modelName)
+			message = step.getLimitType().isGrantee() ? granteeSentence(step, check, modelName)
 					: sentence(step.getLimitType(), check, modelName);
 			if (resetsAt != null) {
 				message += " It resets at " + resetsAt + ".";
@@ -147,34 +149,47 @@ final class ModelUsageFormat {
 	}
 
 	/**
-	 * Words the refusal of a call an app's limit on a model refused: the app's
-	 * shared amount is used up for everyone in the app, or the person's own amount
-	 * in the app is.
+	 * Words the refusal of a call an app's or engine's limit on a model refused:
+	 * its shared amount is used up for everyone, or the person's own amount in the
+	 * app, or through the engine, is.
 	 *
-	 * @param step      the app's step
+	 * @param step      the app's or engine's step
 	 * @param check     the rule that refused, or null
 	 * @param modelName the model's name
 	 * @return the sentence
 	 */
-	private static String appSentence(Step step, RuleCheck check, String modelName) {
+	private static String granteeSentence(Step step, RuleCheck check, String modelName) {
 		String during = check == null ? "for now" : during(check.window(), check.length());
-		String app = appName(step);
+		String grantee = granteeName(step);
 		if (check != null && check.rule.getCounts() == Counts.SHARED) {
-			return app + " has reached its " + modelName + " limit " + during + ".";
+			return grantee + " has reached its " + modelName + " limit " + during + ".";
 		}
-		return "You have reached your " + modelName + " limit in " + app + " " + during + ".";
+		return "You have reached your " + modelName + " limit " + granteeWay(step) + grantee + " " + during + ".";
 	}
 
 	/**
-	 * The name of the app an App Limit belongs to, for a message to someone who is
-	 * using the app: its display name, or its name when it has none. The app is
-	 * known to exist, since a path is never resolved for one that does not.
+	 * The name of the app or engine an App Limit or Engine Limit belongs to, for a
+	 * message to someone who is using it: an app's display name, or its name when
+	 * it has none, and an engine's name. It is known to exist, since a path is
+	 * never resolved for one that does not.
 	 *
-	 * @param step the app's step
-	 * @return the app's name
+	 * @param step the app's or engine's step
+	 * @return its name
 	 */
-	private static String appName(Step step) {
-		return SecurityProjectUtils.getProjectDisplayNameForId(step.getKey().subjectId());
+	private static String granteeName(Step step) {
+		String granteeId = step.getKey().subjectId();
+		return step.getKey().isAppGrantee() ? SecurityProjectUtils.getProjectDisplayNameForId(granteeId)
+				: SecurityEngineUtils.getEngineAliasForId(granteeId);
+	}
+
+	/**
+	 * How a person's own amount is reached: in an app, or through an engine.
+	 *
+	 * @param step the app's or engine's step
+	 * @return the words before the app's or engine's name
+	 */
+	private static String granteeWay(Step step) {
+		return step.getKey().isAppGrantee() ? "in " : "through ";
 	}
 
 	private static String source(RuleCheck check, String modelName) {
@@ -190,8 +205,9 @@ final class ModelUsageFormat {
 			return check.rule.getCounts() == Counts.SHARED ? "the public use limit on " + modelName
 					: "your public allowance of " + modelName;
 		case APP:
-			return check.rule.getCounts() == Counts.SHARED ? appName(check.step) + "'s limit on " + modelName
-					: "your limit on " + modelName + " in " + appName(check.step);
+		case ENGINE:
+			return check.rule.getCounts() == Counts.SHARED ? granteeName(check.step) + "'s limit on " + modelName
+					: "your limit on " + modelName + " " + granteeWay(check.step) + granteeName(check.step);
 		case ALL_MODELS:
 			return "your limit across all models";
 		case PLATFORM:

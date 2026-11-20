@@ -91,8 +91,8 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.security.HttpHelperUtility;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -201,10 +201,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(mockConn.createStatement()).thenReturn(mockStm);// RDBMSNativeEngine.open() -> used in initSQL() ->
 																	// execCreateStatement()
 
-			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-				DIHelper diMock = mock(DIHelper.class);
-				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+			try (MockedDIHelper dh = MockedDIHelper.start();) {
+				dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)) {
 
@@ -289,10 +287,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(mockConn.createStatement()).thenReturn(mockStm);// RDBMSNativeEngine.open() -> used in initSQL() ->
 																	// execCreateStatement()
 
-			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-				DIHelper diMock = mock(DIHelper.class);
-				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+			try (MockedDIHelper dh = MockedDIHelper.start();) {
+				dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
@@ -368,10 +364,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(mockConn.createStatement()).thenReturn(mockStm);// RDBMSNativeEngine.open() -> used in initSQL() ->
 																	// execCreateStatement()
 
-			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-				DIHelper diMock = mock(DIHelper.class);
-				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+			try (MockedDIHelper dh = MockedDIHelper.start();) {
+				dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
@@ -413,7 +407,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties, connection
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 
 		// Create a temporary database file
@@ -512,7 +506,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties, connection
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 
 		// Create a temporary database file
@@ -578,7 +572,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties, connection
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 
 		PreparedStatement psMock = mock(PreparedStatement.class);
@@ -730,7 +724,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties, connection
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 
 		List<List<Double>> allEmbeddings = new Vector<>();
@@ -893,7 +887,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	void testAddDocument() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
@@ -975,7 +969,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 
 		Map<String, Object> parameters = new HashMap<>();
@@ -1024,7 +1018,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	void testUserCanAccessEmbeddingModels() throws Exception {
 		String testEmbedderId = "123-456-789";
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		Map<String, String> extraProps = new HashMap<>();
 		extraProps.put(Constants.EMBEDDER_ENGINE_ID, testEmbedderId);
 		openEngine(tempDir, engine, extraProps); // set initial properties
@@ -1088,7 +1082,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 
 			// model embedder properties
 			Properties embedderProps = new Properties();
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.verifyModelProps());
 			assertEquals("Embedder engine exists but does not contain key " + Constants.MODEL, e.getMessage());
@@ -1162,10 +1156,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			when(mockConn.createStatement()).thenReturn(mockStm);// RDBMSNativeEngine.open() -> used in initSQL() ->
 																	// execCreateStatement()
 
-			try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-				DIHelper diMock = mock(DIHelper.class);
-				dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-				when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+			try (MockedDIHelper dh = MockedDIHelper.start();) {
+				dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 				try (MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);
 						MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);) {
 
@@ -1203,7 +1195,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, embedderModel);
 			embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 			engine.verifyModelProps();
 		}
 	}

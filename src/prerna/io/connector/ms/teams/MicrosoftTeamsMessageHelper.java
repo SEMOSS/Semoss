@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -548,12 +549,23 @@ public class MicrosoftTeamsMessageHelper {
 	/** Opt-in original bodies are for UI display only. */
 	public static List<Map<String, Object>> listChatMessages(String accessToken, String chatId, int maxBodyChars,
 			int limit, boolean includeDisplayBody) throws Exception {
+		return listChatMessages(accessToken, chatId, maxBodyChars, limit, includeDisplayBody, null);
+	}
+
+	/**
+	 * As above, for a read nobody is waiting at: each request to Graph is given up
+	 * after {@code timeout}, so one that is never answered ends in an exception
+	 * and does not hold its thread for good. A null timeout waits for as long as
+	 * Graph takes, as the other listings do.
+	 */
+	public static List<Map<String, Object>> listChatMessages(String accessToken, String chatId, int maxBodyChars,
+			int limit, boolean includeDisplayBody, Timeout timeout) throws Exception {
 		try {
 			requireValue(chatId, "Chat ID is required to read Microsoft Teams chat messages.");
 
 			String url = chatPath(chatId) + "/messages?$top=" + pageSize(limit) + "&$orderby=createdDateTime%20desc";
 			List<Map<String, Object>> result = new ArrayList<>();
-			for (Map<String, Object> message : getPagedValues(accessToken, url, limit)) {
+			for (Map<String, Object> message : getPagedValues(accessToken, url, limit, timeout)) {
 				Map<String, Object> described = MicrosoftTeamsMessageMapper.toMessage(message, maxBodyChars, false);
 				if (includeDisplayBody) {
 					described.put("displayBody",
@@ -1315,11 +1327,18 @@ public class MicrosoftTeamsMessageHelper {
 	 * limit is met or the collection runs out.
 	 */
 	static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit) throws Exception {
+		return getPagedValues(accessToken, url, limit, null);
+	}
+
+	/** As above, giving each request up after {@code timeout}; null waits for as long as Graph takes. */
+	private static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit,
+			Timeout timeout) throws Exception {
 		List<Map<String, Object>> collected = new ArrayList<>();
 		String nextUrl = url;
 		while (nextUrl != null) {
-			Map<String, Object> json = readMap(
-					HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null));
+			Map<String, Object> json = readMap(timeout == null
+					? HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null)
+					: HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null, timeout));
 			if (json == null) {
 				break;
 			}

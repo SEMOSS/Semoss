@@ -345,7 +345,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		callMaker.append(")");
 
-		classLogger.debug("Running model command {}", callMaker.toString());
+		classLogger.debug("Running model ask for {}", this.engineId);
 
 		Object output = pyTranslator.runDirectPyNoCancelTrace(insight, callMaker.toString());
 		// the client refused the call before the provider saw it: it does not fit in
@@ -357,7 +357,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		try {
 			response = AskModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.error("Could not create response object from output: {}", output, e);
+			classLogger.error("Could not create model response object", e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 

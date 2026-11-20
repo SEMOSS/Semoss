@@ -38,7 +38,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.client.SocketClient;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ProjectReconnectServerReactor extends AbstractReactor {
@@ -53,9 +52,6 @@ public class ProjectReconnectServerReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0]));
-
-		// make sure valid id for user
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			// you don't have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
@@ -76,7 +72,7 @@ public class ProjectReconnectServerReactor extends AbstractReactor {
 		try {
 			cpw.reconnect();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to reconnect the TCP server of project {}", projectId, e);
 			return new NounMetadata("Unable to restart TCP Server", PixelDataType.CONST_STRING);
 		}
 		SocketClient client = project.getProjectTcpClient(false);

@@ -35,14 +35,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
-import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URI;
-import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
@@ -77,6 +76,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
+import org.apache.hc.client5.http.ssl.HttpsSupport;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ContentType;
@@ -107,6 +107,7 @@ import com.google.gson.GsonBuilder;
 import prerna.auth.AccessToken;
 import prerna.io.connector.antivirus.VirusScannerUtils;
 import prerna.util.Constants;
+import prerna.util.SandboxedClassLoading;
 import prerna.util.SandboxedJavaExecution;
 import prerna.util.Utility;
 
@@ -123,7 +124,8 @@ public final class HttpHelperUtility {
 	 * The methods that hand out a client. A project's custom reactor uses the
 	 * request methods instead.
 	 */
-	private static final Set<String> CLIENT_BUILDERS = Set.of("getCustomClient", "getSchedulerClient");
+	private static final Set<String> CLIENT_BUILDERS = Set.of("getCustomClient", "getSchedulerClient",
+			"getSystemClient");
 
 	/**
 	 * Checks the host of every request a client sends, including each redirect it
@@ -139,8 +141,12 @@ public final class HttpHelperUtility {
 	/**
 	 * Builds a custom Apache HttpClient instance for connector requests.
 	 * <p>
-	 * The client is configured to trust all certificates and can optionally load
-	 * client key material from a keystore for mutual TLS scenarios.
+	 * The client trusts every certificate and does not check host names, so it
+	 * reaches servers with self-signed or internal certificates. It takes the JVM's
+	 * proxy settings, can load client key material from a keystore for mutual TLS,
+	 * and applies the whitelist and the blacklist to every request, redirect and
+	 * resolved address. {@link #getSystemClient()} is the same client with the
+	 * server's certificate checked.
 	 * </p>
 	 *
 	 * @param cookieStore  optional cookie store to attach to the client
@@ -167,7 +173,54 @@ public final class HttpHelperUtility {
 	 */
 	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass,
 			String keyPass, Timeout timeout) {
-		return buildClient(cookieStore, keyStore, keyStorePass, keyPass, timeout, null);
+		return buildClient(cookieStore, keyStore, keyStorePass, keyPass, timeout, null, true);
+	}
+
+	/**
+	 * Builds an Apache HttpClient that checks every server's certificate and host
+	 * name against the JVM's truststore, the one {@code javax.net.ssl.trustStore}
+	 * names or the JDK's own {@code cacerts}. Requests that carry a sign in, such
+	 * as an OAuth token exchange or the user information read with its token, use
+	 * it. Everything else matches
+	 * {@link #getCustomClient(CookieStore, String, String, String)}: the JVM's proxy
+	 * settings, and the whitelist and the blacklist on every request, redirect and
+	 * resolved address.
+	 *
+	 * @return configured {@link CloseableHttpClient}
+	 */
+	public static CloseableHttpClient getSystemClient() {
+		return getSystemClient(null, null, null, null, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #getSystemClient()}, with a cookie store and client key
+	 * material for mutual TLS.
+	 *
+	 * @param cookieStore  optional cookie store to attach to the client
+	 * @param keyStore     optional path to a keystore file that contains client
+	 *                     certificates
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password; when omitted, {@code keyStorePass}
+	 *                     is used
+	 * @return configured {@link CloseableHttpClient}
+	 */
+	public static CloseableHttpClient getSystemClient(CookieStore cookieStore, String keyStore, String keyStorePass,
+			String keyPass) {
+		return getSystemClient(cookieStore, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #getSystemClient(CookieStore, String, String, String)}, with a
+	 * limit on how long a request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return configured {@link CloseableHttpClient}
+	 */
+	public static CloseableHttpClient getSystemClient(CookieStore cookieStore, String keyStore, String keyStorePass,
+			String keyPass, Timeout timeout) {
+		return buildClient(cookieStore, keyStore, keyStorePass, keyPass, timeout, null, false);
 	}
 
 	/**
@@ -185,9 +238,9 @@ public final class HttpHelperUtility {
 	 *                     is used
 	 * @return configured {@link CloseableHttpClient}
 	 */
-	public static CloseableHttpClient getSchedulerClient(CookieStore cookieStore, String keyStore,
-			String keyStorePass, String keyPass) {
-		return buildClient(cookieStore, keyStore, keyStorePass, keyPass, Timeout.DISABLED, schedulerHost());
+	public static CloseableHttpClient getSchedulerClient(CookieStore cookieStore, String keyStore, String keyStorePass,
+			String keyPass) {
+		return buildClient(cookieStore, keyStore, keyStorePass, keyPass, Timeout.DISABLED, schedulerHost(), true);
 	}
 
 	/**
@@ -209,9 +262,11 @@ public final class HttpHelperUtility {
 	}
 
 	/**
-	 * Builds a client that trusts all certificates, can load client key material
-	 * for mutual TLS, and applies the whitelist and the blacklist to every request
-	 * and to every address a host resolves to.
+	 * Builds a client that takes the JVM's proxy settings, can load client key
+	 * material for mutual TLS, and applies the whitelist and the blacklist to every
+	 * request and to every address a host resolves to. It either trusts every
+	 * certificate without checking host names, or checks both against the JVM's
+	 * truststore.
 	 *
 	 * @param cookieStore  optional cookie store to attach to the client
 	 * @param keyStore     optional path to a keystore file
@@ -220,10 +275,12 @@ public final class HttpHelperUtility {
 	 * @param timeout      how long a request waits to connect and for each read
 	 * @param platformHost a host of the platform's own that the lists do not apply
 	 *                     to, or null
+	 * @param trustAll     true to trust every certificate without checking host
+	 *                     names; false to check both against the JVM's truststore
 	 * @return configured {@link CloseableHttpClient}
 	 */
 	private static CloseableHttpClient buildClient(CookieStore cookieStore, String keyStore, String keyStorePass,
-			String keyPass, Timeout timeout, String platformHost) {
+			String keyPass, Timeout timeout, String platformHost, boolean trustAll) {
 		Caller caller = caller();
 		boolean projectCaller = caller.isProjectCode();
 		if (projectCaller && CLIENT_BUILDERS.contains(caller.entered())) {
@@ -241,11 +298,13 @@ public final class HttpHelperUtility {
 			}
 		};
 
-		HostnameVerifier verifier = NoopHostnameVerifier.INSTANCE;
+		HostnameVerifier verifier = trustAll ? NoopHostnameVerifier.INSTANCE
+				: HttpsSupport.getDefaultHostnameVerifier();
 		DefaultClientTlsStrategy tlsStrategy = null;
 
 		try {
-			SSLContextBuilder sslContextBuilder = SSLContextBuilder.create().loadTrustMaterial(trustStrategy);
+			SSLContextBuilder sslContextBuilder = trustAll ? SSLContextBuilder.create().loadTrustMaterial(trustStrategy)
+					: SSLContextBuilder.create().loadTrustMaterial((KeyStore) null, null);
 
 			// add the cert if required
 			if (keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {
@@ -269,7 +328,7 @@ public final class HttpHelperUtility {
 					SSLBufferMode.DYNAMIC, verifier);
 
 		} catch (Exception e) {
-			classLogger.error("Failed to configure TLS strategy or keystore while creating a custom HTTP client", e);
+			classLogger.error("Failed to configure TLS strategy or keystore while creating an HTTP client", e);
 		}
 
 		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
@@ -278,7 +337,7 @@ public final class HttpHelperUtility {
 
 		connectionManager.setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(timeout).build());
 
-		HttpClientBuilder builder = HttpClients.custom();
+		HttpClientBuilder builder = HttpClients.custom().useSystemProperties();
 		if (cookieStore != null) {
 			builder.setDefaultCookieStore(cookieStore);
 		}
@@ -292,46 +351,6 @@ public final class HttpHelperUtility {
 			}
 		});
 		return builder.build();
-	}
-
-	/**
-	 * Builds a client that takes its proxy and TLS settings from the JVM's system
-	 * properties, with the whitelist and the blacklist applied to every request it
-	 * sends and to every address a host resolves to.
-	 *
-	 * @return configured {@link CloseableHttpClient}
-	 */
-	private static CloseableHttpClient systemClient() {
-		boolean projectCaller = caller().isProjectCode();
-		PoolingHttpClientConnectionManager connectionManager = PoolingHttpClientConnectionManagerBuilder.create()
-				.useSystemProperties().setDnsResolver(new RuleCheckingDnsResolver(projectCaller, null)).build();
-		return HttpClientBuilder.create().useSystemProperties().setConnectionManager(connectionManager)
-				.addRequestInterceptorFirst(URL_RULES).build();
-	}
-
-	/**
-	 * Applies the whitelist and the blacklist to a URL that is about to be opened
-	 * without one of this class's clients: the host as written, then every address
-	 * it resolves to.
-	 *
-	 * @param url the URL about to be opened
-	 * @throws IllegalArgumentException when the lists do not allow the URL
-	 */
-	private static void checkBeforeConnecting(String url) {
-		UrlAccessRules.checkUrl(url);
-		boolean projectCaller = caller().isProjectCode();
-		if (!UrlAccessRules.checksAddresses(projectCaller)) {
-			return;
-		}
-		String host = URI.create(url).getHost();
-		if (host == null) {
-			return;
-		}
-		try {
-			UrlAccessRules.checkAddresses(host, InetAddress.getAllByName(host), projectCaller);
-		} catch (UnknownHostException e) {
-			classLogger.debug("Could not resolve {} before connecting", host);
-		}
 	}
 
 	/**
@@ -381,7 +400,7 @@ public final class HttpHelperUtility {
 		 * @return true if the caller is project code
 		 */
 		boolean isProjectCode() {
-			return SandboxedJavaExecution.isProjectClass(this.type);
+			return SandboxedClassLoading.isProjectClass(this.type);
 		}
 	}
 
@@ -474,8 +493,25 @@ public final class HttpHelperUtility {
 	 */
 	public static String getRequest(String url, Map<String, String> headerMap, String keyStore, String keyStorePass,
 			String keyPass, Timeout timeout) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
-				timeout)) {
+		return getRequest(getCustomClient(null, keyStore, keyStorePass, keyPass, timeout), url, headerMap);
+	}
+
+	/**
+	 * Executes an HTTP GET request with the client given and returns the response
+	 * body as UTF-8 text. {@link #getSystemClient()} checks the server's
+	 * certificate, and {@link #getCustomClient(CookieStore, String, String, String)}
+	 * trusts it. The client is closed when the request is done.
+	 *
+	 * @param httpClient the client to send the request with, which this closes
+	 * @param url        target URL
+	 * @param headerMap  optional request headers
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws HttpStatusException      if the endpoint returns a non-2xx status
+	 * @throws IllegalArgumentException if the URL cannot be reached
+	 */
+	public static String getRequest(CloseableHttpClient httpClient, String url, Map<String, String> headerMap) {
+		try (httpClient) {
 			HttpGet httpGet = new HttpGet(url);
 			if (headerMap != null && !headerMap.isEmpty()) {
 				for (String key : headerMap.keySet()) {
@@ -499,6 +535,136 @@ public final class HttpHelperUtility {
 			classLogger.error("Failed to execute GET request to URL: {}", url, e);
 			throw buildConnectionException("GET", url, e);
 		}
+	}
+
+	/**
+	 * Executes an HTTP GET request and returns a reader over the response body,
+	 * read as UTF-8 while it arrives. The request goes through the custom client,
+	 * as {@link #getRequest(String, Map, Duration)} does, so the whitelist and the
+	 * blacklist apply to it and to every redirect it follows. Closing the reader
+	 * closes the response and its client.
+	 *
+	 * @param url       target URL
+	 * @param headerMap optional request headers
+	 * @param timeout   how long the request waits to connect and for each read of
+	 *                  the response; null waits for as long as the server stays
+	 *                  silent
+	 * @return a reader over the response body, which the caller closes
+	 * @throws HttpStatusException      if the endpoint returns a non-2xx status
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the response has no body
+	 */
+	public static BufferedReader getRequestReader(String url, Map<String, String> headerMap, Duration timeout) {
+		return getRequestReader(getCustomClient(null, null, null, null, toTimeout(timeout)), url, headerMap);
+	}
+
+	/**
+	 * Same as {@link #getRequestReader(String, Map, Duration)}, with the client
+	 * given. {@link #getSystemClient()} checks the server's certificate, and
+	 * {@link #getCustomClient(CookieStore, String, String, String)} trusts it.
+	 * Closing the reader closes the client.
+	 *
+	 * @param httpClient the client to send the request with, which the reader
+	 *                   closes
+	 * @param url        target URL
+	 * @param headerMap  optional request headers
+	 * @return a reader over the response body, which the caller closes
+	 * @throws HttpStatusException      if the endpoint returns a non-2xx status
+	 * @throws IllegalArgumentException if the URL cannot be reached, or the
+	 *                                  response has no body
+	 */
+	public static BufferedReader getRequestReader(CloseableHttpClient httpClient, String url,
+			Map<String, String> headerMap) {
+		ClassicHttpResponse response = null;
+		try {
+			HttpGet httpGet = new HttpGet(url);
+			if (headerMap != null) {
+				for (Map.Entry<String, String> header : headerMap.entrySet()) {
+					httpGet.addHeader(requireSafeHeaderValue(header.getKey()),
+							requireSafeHeaderValue(header.getValue()));
+				}
+			}
+			response = httpClient.executeOpen(null, httpGet, null);
+			int statusCode = response.getCode();
+			HttpEntity entity = response.getEntity();
+			if (statusCode < 200 || statusCode >= 300) {
+				throw buildHttpStatusException("GET", url, statusCode, readEntityAsStringOrEmpty(entity));
+			}
+			if (entity == null) {
+				throw new IllegalArgumentException("GET request to '" + url + "' returned no body.");
+			}
+			ClassicHttpResponse openResponse = response;
+			return new BufferedReader(new InputStreamReader(entity.getContent(), StandardCharsets.UTF_8)) {
+				@Override
+				public void close() throws IOException {
+					try (httpClient; openResponse) {
+						super.close();
+					}
+				}
+			};
+		} catch (IOException e) {
+			closeAfterFailure(url, response, httpClient);
+			classLogger.error("Failed to execute GET request to URL: {}", url, e);
+			throw buildConnectionException("GET", url, e);
+		} catch (RuntimeException e) {
+			closeAfterFailure(url, response, httpClient);
+			throw e;
+		}
+	}
+
+	/**
+	 * Closes what a GET request opened before it failed. A close that fails is
+	 * logged, so the request's own failure is the one the caller sees.
+	 *
+	 * @param url       the URL of the request
+	 * @param resources the response and the client, either of which may be null
+	 */
+	private static void closeAfterFailure(String url, AutoCloseable... resources) {
+		for (AutoCloseable resource : resources) {
+			if (resource == null) {
+				continue;
+			}
+			try {
+				resource.close();
+			} catch (Exception e) {
+				classLogger.warn("Failed to close the GET request to URL: {}", url, e);
+			}
+		}
+	}
+
+	/**
+	 * Adds query parameters to a URL, each key and value URL encoded, after a
+	 * {@code ?}, or after a {@code &} when the URL already has a query.
+	 *
+	 * @param url    the URL
+	 * @param params the parameters, or null or empty for none
+	 * @return the URL with the parameters
+	 */
+	public static String withQueryParameters(String url, Map<String, ?> params) {
+		if (params == null || params.isEmpty()) {
+			return url;
+		}
+		StringBuilder withParams = new StringBuilder(url).append(url.contains("?") ? '&' : '?');
+		boolean first = true;
+		for (Map.Entry<String, ?> param : params.entrySet()) {
+			if (!first) {
+				withParams.append('&');
+			}
+			withParams.append(URLEncoder.encode(param.getKey(), StandardCharsets.UTF_8)).append('=')
+					.append(URLEncoder.encode(String.valueOf(param.getValue()), StandardCharsets.UTF_8));
+			first = false;
+		}
+		return withParams.toString();
+	}
+
+	/**
+	 * The headers of a request that a bearer token signs and that asks for JSON.
+	 *
+	 * @param accessToken the bearer token
+	 * @return the Authorization and Accept headers
+	 */
+	public static Map<String, String> bearerJsonHeaders(String accessToken) {
+		return Map.of("Authorization", "Bearer " + accessToken, "Accept", "application/json");
 	}
 
 	/**
@@ -1200,7 +1366,7 @@ public final class HttpHelperUtility {
 		CloseableHttpClient httpclient = null;
 		String result = null;
 		try {
-			httpclient = systemClient();
+			httpclient = getSystemClient();
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			if (headers != null) {
@@ -1284,7 +1450,7 @@ public final class HttpHelperUtility {
 		CloseableHttpClient httpclient = null;
 		String result = null;
 		try {
-			httpclient = systemClient();
+			httpclient = getSystemClient();
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			// loop through all keys and add as basic name value pair
@@ -1502,178 +1668,6 @@ public final class HttpHelperUtility {
 	 */
 
 	/**
-	 * Executes an authenticated GET request without query parameters.
-	 *
-	 * @param urlStr      target URL
-	 * @param accessToken bearer token value
-	 * @return response body
-	 */
-	public static String makeGetCall(String urlStr, String accessToken) {
-		return makeGetCall(urlStr, accessToken, null, true);
-	}
-
-	/**
-	 * Executes a GET request with optional query parameters and optional bearer
-	 * authentication.
-	 *
-	 * @param urlStr      target URL
-	 * @param accessToken bearer token used when {@code auth} is {@code true}
-	 * @param params      optional query-string parameters
-	 * @param auth        {@code true} to add an Authorization header; {@code false}
-	 *                    for an unauthenticated request
-	 * @return response body
-	 * @throws NullPointerException     if {@code urlStr} is {@code null}
-	 * @throws IllegalArgumentException if the response status is 4xx/5xx
-	 */
-	public static String makeGetCall(String urlStr, String accessToken, Map<String, Object> params, boolean auth) {
-		if (urlStr == null) {
-			throw new NullPointerException("Must provide the URL");
-		}
-		// fill the params on the get since it is not null
-		if (params != null) {
-			StringBuffer urlBuf = new StringBuffer(urlStr);
-			urlBuf.append("?");
-			boolean first = true;
-			Set<String> keys = params.keySet();
-			for (String key : keys) {
-				Object value = params.get(key);
-				if (!first) {
-					urlBuf.append("&");
-				}
-
-				urlBuf.append(key).append("=").append(URLEncoder.encode(value + "", StandardCharsets.UTF_8));
-				first = false;
-			}
-			urlStr = urlBuf.toString();
-		}
-
-		String retString = null;
-		Integer responseCode = null;
-		Exception requestException = null;
-		BufferedReader br = null;
-		InputStreamReader isr = null;
-		try {
-			HttpURLConnection con = null;
-			checkBeforeConnecting(urlStr);
-			URL url = new URI(urlStr).toURL();
-			con = (HttpURLConnection) url.openConnection();
-			con.setDoInput(true);
-			con.setDoOutput(true);
-			con.setUseCaches(false);
-			con.setRequestMethod("GET");
-			con.setRequestProperty("User-Agent", "SEMOSS");
-			if (auth) {
-				con.setRequestProperty("Authorization", "Bearer " + accessToken);
-			}
-			con.setRequestProperty("Accept", "application/json"); // I added this line.
-			con.connect();
-
-			isr = new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8);
-			br = new BufferedReader(isr);
-			StringBuilder str = new StringBuilder();
-			String line;
-			while ((line = br.readLine()) != null) {
-				str.append(line);
-			}
-			retString = str.toString();
-
-			responseCode = con.getResponseCode();
-		} catch (Exception e) {
-			classLogger.error("Failed to execute GET request to URL: {}", urlStr, e);
-			requestException = e;
-		} finally {
-			if (br != null) {
-				try {
-					br.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to close response BufferedReader for URL: {}", urlStr, e);
-				}
-			}
-			if (isr != null) {
-				try {
-					isr.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to close response InputStreamReader for URL: {}", urlStr, e);
-				}
-			}
-		}
-
-		classLogger.info("Return from {} with response {} = {}", urlStr, responseCode, retString);
-		if (requestException != null) {
-			throw buildConnectionException("GET", urlStr, requestException);
-		}
-		if (responseCode == null) {
-			throw new IllegalArgumentException(
-					"GET request to '" + urlStr + "' did not return an HTTP status code or response body.");
-		}
-		if (responseCode >= 400) {
-			throw buildHttpStatusException("GET", urlStr, responseCode, retString);
-		}
-
-		return retString;
-	}
-
-	/**
-	 * Opens a GET request and returns a reader for streaming the response body.
-	 * <p>
-	 * The caller is responsible for closing the returned {@link BufferedReader}.
-	 * </p>
-	 *
-	 * @param urlStr      target URL
-	 * @param accessToken bearer token used when {@code auth} is {@code true}
-	 * @param params      optional query-string parameters
-	 * @param auth        {@code true} to add an Authorization header; {@code false}
-	 *                    for an unauthenticated request
-	 * @return open {@link BufferedReader} for the response body, or {@code null}
-	 *         when the request fails
-	 */
-	public static BufferedReader getHttpStream(String urlStr, String accessToken, Map<String, Object> params,
-			boolean auth) {
-		// fill the params on the get since it is not null
-		// fill the params on the get since it is not null
-		if (params != null) {
-			StringBuffer urlBuf = new StringBuffer(urlStr);
-			urlBuf.append("?");
-			boolean first = true;
-			Set<String> keys = params.keySet();
-			for (String key : keys) {
-				Object value = params.get(key);
-				if (!first) {
-					urlBuf.append("&");
-				}
-
-				urlBuf.append(key).append("=").append(URLEncoder.encode(value + "", StandardCharsets.UTF_8));
-				first = false;
-			}
-			urlStr = urlBuf.toString();
-		}
-
-		try {
-			HttpURLConnection con = null;
-			checkBeforeConnecting(urlStr);
-			URL url = new URI(urlStr).toURL();
-			con = (HttpURLConnection) url.openConnection();
-			con.setDoInput(true);
-			con.setDoOutput(true);
-			con.setUseCaches(false);
-			con.setRequestMethod("GET");
-			con.setRequestProperty("User-Agent", "SEMOSS");
-			if (auth) {
-				con.setRequestProperty("Authorization", "Bearer " + accessToken);
-			}
-			con.setRequestProperty("Accept", "application/json"); // I added this line.
-			con.connect();
-
-			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
-			return br;
-		} catch (Exception e) {
-			classLogger.error("Failed to open HTTP stream for URL: {}", urlStr, e);
-		}
-
-		return null;
-	}
-
-	/**
 	 * Executes an authenticated POST request with either URL-encoded form values or
 	 * a JSON payload.
 	 *
@@ -1688,7 +1682,7 @@ public final class HttpHelperUtility {
 	public static String makePostCall(String url, String accessToken, Object input, boolean json) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = systemClient();
+			httpclient = getSystemClient();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type", "application/json; charset=utf-8");
@@ -1754,7 +1748,7 @@ public final class HttpHelperUtility {
 	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName, String localPath) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = systemClient();
+			httpclient = getSystemClient();
 			HttpPut httpput = new HttpPut(url);
 			httpput.addHeader("Authorization", "Bearer " + accessToken);
 			httpput.addHeader("Content-Type", "application/json; charset=utf-8");
@@ -1807,7 +1801,7 @@ public final class HttpHelperUtility {
 	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = systemClient();
+			httpclient = getSystemClient();
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type", "application/octet-stream");
@@ -1859,7 +1853,7 @@ public final class HttpHelperUtility {
 	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = systemClient();
+			httpclient = getSystemClient();
 			HttpPatch httppatch = new HttpPatch(url);
 			httppatch.addHeader("Authorization", "Bearer " + accessToken);
 

@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
@@ -57,11 +56,6 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 		organizeKeys();
 		String databaseId = UploadInputUtility.getEngineNameOrId(this.store,
 				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
-		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
-			throw new IllegalArgumentException("Database does not exist or user does not have access to edit");
-		}
-
 		Map<String, Object> metadata = getMetaMap();
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityEngineUtils.getAllMetakeys();
@@ -69,7 +63,7 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
 
-		SecurityEngineUtils.updateEngineMetadata(databaseId, metadata);
+		SecurityEngineUtils.updateEngineMetadata(this.insight.getUser(), databaseId, metadata);
 		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(databaseId);
 		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_METADATA_UPDATE,
 				engineType == null ? AuditTargetType.DATABASE : AuditTargetType.ofEngine(engineType), databaseId,
@@ -81,6 +75,7 @@ public class SetDatabaseMetadataReactor extends AbstractSetMetadataReactor {
 		return noun;
 	}
 
+	@Deprecated
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description("Define metadata on a datasource").key(META,

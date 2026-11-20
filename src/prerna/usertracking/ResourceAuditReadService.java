@@ -429,9 +429,11 @@ public final class ResourceAuditReadService {
 			var object = JsonParser.parseString(value).getAsJsonObject();
 			var safe = new JsonObject();
 			// Who the access was given to or taken from: a team (groupId, groupType), a
-			// person (granteeId, granteeType), or an app given a permission on an engine
-			// (granteeProjectId)
-			for (String key : List.of("groupId", "groupType", "granteeId", "granteeType", "granteeProjectId")) {
+			// person (granteeId, granteeType), or an app or engine given a permission on
+			// an engine (granteeEngineId, granteeEngineType, and granteeProjectId on
+			// events that name an app by its project id)
+			for (String key : List.of("groupId", "groupType", "granteeId", "granteeType", "granteeEngineId",
+					"granteeEngineType", "granteeProjectId")) {
 				var item = object.get(key);
 				// Kept only when it is a short piece of text, as an id or a type is
 				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
@@ -568,7 +570,8 @@ public final class ResourceAuditReadService {
 		try {
 			var object = JsonParser.parseString(value).getAsJsonObject();
 			var safe = new JsonObject();
-			for (String key : List.of("limitType", "groupId", "groupType", "projectId")) {
+			for (String key : List.of("limitType", "groupId", "groupType", "granteeEngineId", "granteeEngineType",
+					"projectId")) {
 				var item = object.get(key);
 				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
 						&& item.getAsString().length() <= 255) {

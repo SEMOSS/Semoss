@@ -49,7 +49,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.om.Insight;
@@ -108,15 +107,12 @@ public class UpdateFormUnitTests {
 
 		try (MockedStatic<Utility> ut = Mockito.mockStatic(Utility.class);
 				MockedStatic<FormFactory> ff = Mockito.mockStatic(FormFactory.class);
-				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class);
 				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
 			IDatabaseEngine engine = mock(IDatabaseEngine.class);
 			AbstractFormBuilder formBuilder = mock(AbstractFormBuilder.class);
 
 			ut.when(() -> Utility.getDatabase(anyString())).thenReturn(engine);
 			ff.when(() -> FormFactory.getFormBuilder(any(IDatabaseEngine.class))).thenReturn(formBuilder);
-			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(any(User.class), anyString()))
-					.thenAnswer(invocation -> invocation.getArgument(1));
 			seu.when(() -> SecurityEngineUtils.userCanEditEngine(any(User.class), anyString())).thenReturn(true);
 
 			when(this.ns.getGenRowStruct(any(String.class))).thenReturn(grs);
@@ -143,15 +139,12 @@ public class UpdateFormUnitTests {
 
 		try (MockedStatic<Utility> ut = Mockito.mockStatic(Utility.class);
 				MockedStatic<FormFactory> ff = Mockito.mockStatic(FormFactory.class);
-				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class);
 				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
 			IDatabaseEngine engine = mock(IDatabaseEngine.class);
 			AbstractFormBuilder formBuilder = mock(AbstractFormBuilder.class);
 
 			ut.when(() -> Utility.getDatabase(anyString())).thenReturn(engine);
 			ff.when(() -> FormFactory.getFormBuilder(any(IDatabaseEngine.class))).thenReturn(formBuilder);
-			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(any(User.class), anyString()))
-					.thenAnswer(invocation -> invocation.getArgument(1));
 			seu.when(() -> SecurityEngineUtils.userCanEditEngine(any(User.class), anyString())).thenReturn(true);
 
 			when(this.ns.getGenRowStruct(any(String.class))).thenReturn(grs);
@@ -174,10 +167,8 @@ public class UpdateFormUnitTests {
 		when(ns.getGenRowStruct(any(String.class))).thenReturn(grs);
 		when(ns.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey())).thenReturn(databaseGrs);
 
-		try (MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class);
-				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);
+		try (MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);
 				MockedStatic<FormFactory> ff = Mockito.mockStatic(FormFactory.class)) {
-			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "testdb")).thenReturn("testdb");
 			seu.when(() -> SecurityEngineUtils.userCanEditEngine(user, "testdb")).thenReturn(false);
 
 			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);

@@ -80,7 +80,7 @@ public final class CollaborationSkills {
 						+ "\n",
 				name.trim(), description.trim());
 		String skillId = String.valueOf(created.get("skill_id"));
-		SecurityProjectUtils.updateProjectMetadata(skillId,
+		SecurityProjectUtils.updateProjectMetadata(user, skillId,
 				Map.of("tag", List.of(ProjectHelper.SKILL_PROJECT_TAG, TAG)));
 		return describe(skillId);
 	}

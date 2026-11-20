@@ -47,6 +47,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineSyncUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 public class GetDatabaseMetamodelReactor extends AbstractReactor {
@@ -123,7 +124,7 @@ public class GetDatabaseMetamodelReactor extends AbstractReactor {
 		// this is for the OWL positions for the new layout
 		if (options.contains("positions")) {
 			Map<String, Object> positions = GenerateMetamodelUtility.getMetamodelPositions(databaseId,
-					database.getEngineName(), database.getSmssFilePath());
+					database.getEngineName(), InternalUtility.getEngineSmssPath(databaseId));
 			metamodelObject.put("positions", positions);
 			logger.info("Done pulling database positions for database " + databaseId);
 		}

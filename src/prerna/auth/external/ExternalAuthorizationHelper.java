@@ -47,12 +47,13 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -60,6 +61,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 public class ExternalAuthorizationHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(ExternalAuthorizationHelper.class);
+
+	private static final String EXTERNAL_PERMISSION_SYNC = "external permission sync";
 
 	/**
 	 * 
@@ -79,7 +82,10 @@ public class ExternalAuthorizationHelper {
 			List<Map<String, Object>> enginePermissions = transformApiResponse(user, apiResponse);
 
 			//Update permissions for engine
-			List<Map<String, Object>> newEngines = SecurityEngineUtils.updateEngineUserPermissions(user, enginePermissions);
+			List<Map<String, Object>> newEngines;
+			try (PlatformOperation operation = PlatformOperation.begin(EXTERNAL_PERMISSION_SYNC)) {
+				newEngines = SecurityEngineUtils.updateEngineUserPermissions(user, enginePermissions);
+			}
 			classLogger.info("Engine permissions update for userid = " + User.getSingleLogginName(user));
 			
 			//Create SMSS for this engine
@@ -101,10 +107,10 @@ public class ExternalAuthorizationHelper {
 				}
 				
 				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+				InternalUtility.setEngineSmssPath(engineId, tempSmss.getAbsolutePath());
 				File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
 				FileUtils.copyFile(tempSmss, smssFile);
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+				InternalUtility.setEngineSmssPath(engineId, smssFile.getAbsolutePath());
 				tempSmss.delete();
 				
 				// also make the folder to persist... even if empty

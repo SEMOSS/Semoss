@@ -36,17 +36,19 @@ import java.lang.annotation.Target;
 import prerna.auth.AccessPermissionEnum;
 
 /**
- * The permission a caller needs on an engine or project to call one of its
+ * The permission a call needs on an engine or project to run one of its
  * methods. Every method of the engine and project interfaces carries one, and
- * the engine proxy checks it before the call reaches the engine.
+ * the engine proxy checks it on every call before the call reaches the engine,
+ * whoever makes it: the platform for a user, a project's custom code, or
+ * another engine's own code.
  *
  * <p>
- * {@link #value()} is what the signed in user needs. {@link #projectCode()} is
- * what is needed when a project's custom code makes the call itself, for the
- * methods that hand back more than the platform's own callers pass on: a raw
- * connection, or the engine's settings. A project's custom code meets a level
- * through the signed in user's permission or through a permission the engine
- * gave the project.
+ * {@link #value()} is the level every call needs. {@link #projectCode()} is a
+ * higher level for a call a project's custom code makes itself, on the methods
+ * that hand back more than the platform's own callers pass on: a raw
+ * connection, or the engine's settings. A call meets its level through the
+ * signed in user's permission, or through the permission the engine gives the
+ * app or engine making the call.
  */
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
@@ -54,7 +56,7 @@ import prerna.auth.AccessPermissionEnum;
 public @interface EngineAccess {
 
 	/**
-	 * The permission the signed in user needs to call the method.
+	 * The permission every call to the method needs, whoever makes it.
 	 *
 	 * @return the level
 	 */
@@ -62,7 +64,8 @@ public @interface EngineAccess {
 
 	/**
 	 * The permission needed when a project's custom code calls the method itself.
-	 * Empty means the same level as {@link #value()}; otherwise one level.
+	 * Empty means the same level as {@link #value()}; otherwise one level, above
+	 * it.
 	 *
 	 * @return no level, or the one level for project code
 	 */

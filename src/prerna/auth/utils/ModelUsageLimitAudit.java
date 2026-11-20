@@ -76,8 +76,8 @@ final class ModelUsageLimitAudit {
 	 *
 	 * @param key where a limit is set
 	 * @return {@code DIRECT}, {@code TEAM}, {@code PUBLIC}, {@code MODEL_TOTAL},
-	 *         {@code TEAM_TOTAL}, {@code APP}, {@code ALL_MODELS} or
-	 *         {@code PLATFORM}
+	 *         {@code TEAM_TOTAL}, {@code APP}, {@code ENGINE}, {@code ALL_MODELS}
+	 *         or {@code PLATFORM}
 	 */
 	static String limitTypeOf(ModelUsageLimitKey key) {
 		switch (key.type()) {
@@ -89,8 +89,8 @@ final class ModelUsageLimitAudit {
 			return "PUBLIC";
 		case MODEL:
 			return "MODEL_TOTAL";
-		case PROJECT:
-			return "APP";
+		case ENGINE:
+			return key.isAppGrantee() ? "APP" : "ENGINE";
 		default:
 			return "PLATFORM";
 		}
@@ -128,7 +128,7 @@ final class ModelUsageLimitAudit {
 	 *
 	 * @param key where the limit is set
 	 * @return the limit type and, for a team's limit or total, the team, or for an
-	 *         app's limit, the project
+	 *         app's or engine's limit, the app or engine and its catalog type
 	 */
 	static Map<String, Object> details(ModelUsageLimitKey key) {
 		Map<String, Object> details = new LinkedHashMap<>();
@@ -137,8 +137,9 @@ final class ModelUsageLimitAudit {
 			details.put("groupId", key.subjectId());
 			details.put("groupType", key.subjectType());
 		}
-		if (key.type() == ModelUsageLimitKey.Type.PROJECT) {
-			details.put("projectId", key.subjectId());
+		if (key.type() == ModelUsageLimitKey.Type.ENGINE) {
+			details.put("granteeEngineId", key.subjectId());
+			details.put("granteeEngineType", key.subjectType());
 		}
 		return details;
 	}
@@ -197,13 +198,14 @@ final class ModelUsageLimitAudit {
 	}
 
 	/**
-	 * Records the Direct Limits removed with a grant that ended, which SEMOSS
-	 * removes itself when the person next reaches the model. A failure to record is
-	 * logged, since the grant is already removed.
+	 * Records the usage limits removed with a grant to a model that ended, which
+	 * SEMOSS removes itself: a person's Direct Limits, a team's Team Limit or an
+	 * app's App Limit. A failure to record is logged, since the grant is already
+	 * removed.
 	 *
 	 * @param engineId the model
-	 * @param removed  the person's Direct Limits on the model, by key, as they were
-	 *                 before the removal
+	 * @param removed  the limits on the grant, by key, as they were before the
+	 *                 removal
 	 */
 	static void recordRemovedWithExpiredGrant(String engineId, Map<ModelUsageLimitKey, ModelUsageLimit> removed) {
 		try {
@@ -217,10 +219,12 @@ final class ModelUsageLimitAudit {
 				Map<String, Object> details = details(key);
 				details.put("removedWithGrant", true);
 				details.put("reason", "EXPIRED");
-				UserAuditTrailUtils.recordEvent(event(key, entry.getValue(), null).systemActor()
-						.subject(key.subjectId(), key.subjectType(), null)
-						.target(AuditTargetType.MODEL, engineId, modelName).context(null, engineId, null, null)
-						.details(details));
+				AuditEvent event = event(key, entry.getValue(), null).systemActor()
+						.target(AuditTargetType.MODEL, engineId, modelName).context(null, engineId, null, null);
+				if (key.isDirect()) {
+					event.subject(key.subjectId(), key.subjectType(), null);
+				}
+				UserAuditTrailUtils.recordEvent(event.details(details));
 			}
 		} catch (Exception e) {
 			classLogger.warn("Unable to audit the usage limits removed with an expired grant", e);

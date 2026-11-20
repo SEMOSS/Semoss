@@ -33,12 +33,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
 
 import java.beans.PropertyEditor;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
@@ -59,7 +58,7 @@ public class SemossUnitTest {
     static Path firstIsTempDirTheRestAreImpostersToNotBeUsed;
 
     @BeforeAll
-    static void setupSemossUnitTest() throws IOException, NoSuchFieldException, IllegalAccessException {
+    static void setupSemossUnitTest() throws IOException, ReflectiveOperationException {
         if (!first) {
             System.out.println("Run Once");
             tempDir = firstIsTempDirTheRestAreImpostersToNotBeUsed;
@@ -72,7 +71,7 @@ public class SemossUnitTest {
             Files.createDirectories(tempDir);
         }
         Properties prop = setupProperties(tempDir);
-        resetProperties(prop);
+        DIHelperTestUtils.reset(prop);
     }
 
     private static Properties setupProperties(Path tempDir) throws IOException {
@@ -95,14 +94,6 @@ public class SemossUnitTest {
         prop.setProperty(Constants.VECTOR_FOLDER, vectorDir.toString());
 
         return prop;
-    }
-
-    private static void resetProperties(Properties coreProp) throws IllegalAccessException, NoSuchFieldException {
-        Field f = DIHelper.class.getDeclaredField("helper");
-        f.setAccessible(true);
-        f.set(null, null);
-
-        DIHelper.getInstance().setCoreProp(coreProp);
     }
 
     @AfterAll

@@ -197,7 +197,7 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 	 * user the call was made for.
 	 */
 	private void recordMessages() {
-		String agentType = engine.getCatalogSubType(engine.getSmssProp());
+		String agentType = engine.getCatalogSubType();
 
 		// assumption, if project level, then they will be inferencing through a saved
 		// insight or SetContext

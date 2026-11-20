@@ -222,13 +222,6 @@ public final class Utility {
 		return DIHelper.getInstance().getProperty(prop);
 	}
 
-	public static Object getDIHelperLocalProperty(String prop) {
-		if (DIHelper.getInstance() == null) {
-			return null;
-		}
-		return DIHelper.getInstance().getLocalProp(prop);
-	}
-
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
 	 * of the query matches a part of the pattern, set substring as the key with
@@ -956,7 +949,8 @@ public final class Utility {
 					// so if a different thread was waiting for the project to load,
 					// it doesn't go through this process again
 					if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
-						return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+						return EngineProxyFactory
+								.createGuardedProject((IProject) DIHelper.getInstance().getProjectProperty(projectId));
 					}
 
 					// If in a clustered environment, then pull the project first

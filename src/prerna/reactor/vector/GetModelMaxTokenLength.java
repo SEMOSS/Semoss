@@ -27,15 +27,12 @@
  *******************************************************************************/
 package prerna.reactor.vector;
 
-import java.util.Properties;
-
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GetModelMaxTokenLength extends AbstractReactor {
@@ -55,12 +52,8 @@ public class GetModelMaxTokenLength extends AbstractReactor {
 		}
 				
 		IModelEngine modelEngine = Utility.getModel(engineId);
-		Properties modelProperties = modelEngine.getSmssProp();
-
-		String maxTokens = "512";
-		if (!modelProperties.isEmpty() && modelProperties.containsKey(Constants.MAX_TOKENS)) {
-			maxTokens = modelProperties.getProperty(Constants.MAX_TOKENS);
-		}
+		long modelMaxTokens = modelEngine.getMaxTokens();
+		String maxTokens = modelMaxTokens > 0 ? String.valueOf(modelMaxTokens) : "512";
 		
 		return new NounMetadata(maxTokens, PixelDataType.CONST_STRING);
 	}

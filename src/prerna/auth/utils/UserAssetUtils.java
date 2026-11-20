@@ -49,7 +49,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -99,16 +99,8 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 		// Add database into DIHelper so that the web watcher doesn't try to load as
 		// well
 		File tempSmss = SmssUtilities.createTemporaryAssetSmss(projectId, projectName, null);
-		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-
-		// Create the project
 		Project project = new Project();
-
-		// Only at end do we add to DIHelper
-		DIHelper.getInstance().setProjectProperty(projectId, project);
-		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-		projects = projects + ";" + projectId;
-		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
+		InternalUtility.registerNewProject(projectId, project, tempSmss.getAbsolutePath());
 
 		// Rename .temp to .smss
 		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -122,7 +114,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 			ClusterUtil.pushUserAsset(projectId);
 		}
 
-		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+		InternalUtility.setProjectSmssPath(projectId, smssFile.getAbsolutePath());
 		return projectId;
 	}
 
@@ -133,7 +125,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @throws SQLException
 	 */
-	public static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
+	static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb,
@@ -159,7 +151,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @throws SQLException
 	 */
-	public static void registerUserAssetProject(User user, AuthProvider provider, String projectId)
+	static void registerUserAssetProject(User user, AuthProvider provider, String projectId)
 			throws SQLException {
 		registerUserAssetProject(user.getAccessToken(provider), projectId);
 	}

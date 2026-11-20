@@ -39,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.util.Constants;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 /**
@@ -161,8 +162,8 @@ public final class TypeColorShapeTable {
 	 * @param shape String - the shape itself.
 	 */
 	public void addShape(String type, String shape) {
-		Shape thisShape = (Shape) Utility.getDIHelperLocalProperty(shape);
-		Shape thisShapeL = (Shape) Utility.getDIHelperLocalProperty(shape + Constants.LEGEND);
+		Shape thisShape = (Shape) InternalUtility.getLocalProperty(shape);
+		Shape thisShapeL = (Shape) InternalUtility.getLocalProperty(shape + Constants.LEGEND);
 		shapeStringHash.put(type, shape);
 		shapeHash.put(type, thisShape);
 		shapeHashL.put(type, thisShapeL);
@@ -188,8 +189,8 @@ public final class TypeColorShapeTable {
 	 */
 	public void addColor(String type, String color) {
 		// get the shape from DIHelper
-		if (Utility.getDIHelperLocalProperty(color) != null) {
-			Color thisColor = (Color) Utility.getDIHelperLocalProperty(color);
+		if (InternalUtility.getLocalProperty(color) != null) {
+			Color thisColor = (Color) InternalUtility.getLocalProperty(color);
 			colorHash.put(type, thisColor);
 		}
 		colorStringHash.put(type, color);
@@ -217,7 +218,7 @@ public final class TypeColorShapeTable {
 			retShape = shapeHash.get(type);
 		} else if (Utility.getDIHelperProperty(type + "_SHAPE") != null) {
 			// try to search the properties file for the first time
-			retShape = (Shape) Utility.getDIHelperLocalProperty(Utility.getDIHelperProperty(type + "_SHAPE"));
+			retShape = (Shape) InternalUtility.getLocalProperty(Utility.getDIHelperProperty(type + "_SHAPE"));
 		}
 		if (retShape == null) {
 			// instead of returning default color, going to return random color that hasn't
@@ -225,7 +226,7 @@ public final class TypeColorShapeTable {
 			for (String shape : shapes) {
 				if (!shapeStringHash.containsValue(shape)) {
 					// got a unique color, set node that color
-					retShape = (Shape) Utility.getDIHelperLocalProperty(shape);
+					retShape = (Shape) InternalUtility.getLocalProperty(shape);
 					addShape(type, shape);
 					break;
 				}
@@ -263,8 +264,8 @@ public final class TypeColorShapeTable {
 			retShape = shapeHashL.get(type);
 		} else if (Utility.getDIHelperProperty(type + "_SHAPE") != null) {
 			// try to search the properties file for the first time
-			retShape = (Shape) Utility
-					.getDIHelperLocalProperty(Utility.getDIHelperProperty(type + "_SHAPE") + Constants.LEGEND);
+			retShape = (Shape) InternalUtility
+					.getLocalProperty(Utility.getDIHelperProperty(type + "_SHAPE") + Constants.LEGEND);
 		}
 		if (retShape == null) {
 			// instead of returning default color, going to return random color that hasn't
@@ -272,7 +273,7 @@ public final class TypeColorShapeTable {
 			for (String shape : shapes) {
 				if (!shapeStringHash.containsValue(shape)) {
 					// got a unique color, set node that color
-					retShape = (Shape) Utility.getDIHelperLocalProperty(shape + Constants.LEGEND);
+					retShape = (Shape) InternalUtility.getLocalProperty(shape + Constants.LEGEND);
 					addShape(type, shape);
 					break;
 				}
@@ -313,7 +314,7 @@ public final class TypeColorShapeTable {
 			retColor = colorHash.get(type);
 		} else if (Utility.getDIHelperProperty(type + "_COLOR") != null) {
 			// try to search the properties file for the first time
-			retColor = (Color) Utility.getDIHelperLocalProperty(Utility.getDIHelperProperty(type + "_COLOR"));
+			retColor = (Color) InternalUtility.getLocalProperty(Utility.getDIHelperProperty(type + "_COLOR"));
 		}
 		if (retColor == null && !colorStringHash.containsKey(vertName)) {
 			// instead of returning default color, going to return random color that hasn't
@@ -321,7 +322,7 @@ public final class TypeColorShapeTable {
 			for (String color : colors) {
 				if (!colorStringHash.containsValue(color)) {
 					// got a unique color, set node that color
-					retColor = (Color) Utility.getDIHelperLocalProperty(color);
+					retColor = (Color) InternalUtility.getLocalProperty(color);
 					addColor(type, color);
 					break;
 				}

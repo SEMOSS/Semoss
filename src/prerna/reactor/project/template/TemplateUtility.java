@@ -48,15 +48,17 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public class TemplateUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(TemplateUtility.class);
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	@Deprecated
 	public static final String TEMPLATE_PROPS_FILE = "template.properties";
+	@Deprecated
 	public static final String TEMPLATE = "template";
 
 	/**
@@ -66,6 +68,7 @@ public class TemplateUtility {
 	 * @param projectId
 	 * @return
 	 */
+	@Deprecated
 	public static Map<String, String> getTemplateList(String projectId) {
 		Map<String, String> templateDataMap = new HashMap<>();
 		IProject project = Utility.getProject(projectId);
@@ -80,7 +83,8 @@ public class TemplateUtility {
 			try {
 				file.createNewFile();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create the template properties file {} of project {}",
+						file.getAbsolutePath(), projectId, e);
 			}
 		}
 		Properties props = Utility.loadProperties(file.getAbsolutePath());
@@ -99,6 +103,7 @@ public class TemplateUtility {
 	 * @param templateName
 	 * @return
 	 */
+	@Deprecated
 	public static String getTemplateFile(String projectId, String templateName) {
 		String assetFolder = AssetUtility.getProjectAppRootFolder(projectId).replace('\\', '/');
 		String fileName = getTemplateList(projectId).get(templateName);
@@ -119,6 +124,7 @@ public class TemplateUtility {
 	 * @param templateName
 	 * @return
 	 */
+	@Deprecated
 	public static Map<String, String> deleteTemplate(String projectId, String templateRelativeFilePath,
 			String templateName) {
 		Map<String, String> templateDataMap = new HashMap<>();
@@ -153,16 +159,19 @@ public class TemplateUtility {
 			// Key(k) as template name and Value (v) as file name
 			templateProps.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to open the template properties file {} to remove template {}",
+					templatePropsFile.getAbsolutePath(), templateName, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to remove template {} from the template properties file {}",
+					templateName, templatePropsFile.getAbsolutePath(), e);
 		} finally {
 			try {
 				if (out != null) {
 					out.close();
 				}
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to close the template properties file {}",
+						templatePropsFile.getAbsolutePath(), e);
 			}
 		}
 
@@ -181,6 +190,7 @@ public class TemplateUtility {
 	 * @param templateName
 	 * @return
 	 */
+	@Deprecated
 	public static Map<String, String> addTemplate(String projectId, String filename, String templateName) {
 		Map<String, String> templateDataMap = new HashMap<>();
 		IProject project = Utility.getProject(projectId);
@@ -195,7 +205,8 @@ public class TemplateUtility {
 			try {
 				templatePropsFile.createNewFile();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create the template properties file {} of project {}",
+						templatePropsFile.getAbsolutePath(), projectId, e);
 			}
 		}
 		Properties templateProps = Utility.loadProperties(templatePropsFile.getAbsolutePath());
@@ -218,15 +229,18 @@ public class TemplateUtility {
 			// Key(k) as template name and Value (v) as file name
 			templateProps.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to open the template properties file {} to add template {}",
+					templatePropsFile.getAbsolutePath(), templateName, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to add template {} to the template properties file {}", templateName,
+					templatePropsFile.getAbsolutePath(), e);
 		} finally {
 			if (out != null) {
 				try {
 					out.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the template properties file {}",
+							templatePropsFile.getAbsolutePath(), e);
 				}
 			}
 		}
@@ -245,6 +259,7 @@ public class TemplateUtility {
 	 * @param templateName
 	 * @return
 	 */
+	@Deprecated
 	public static Map<String, String> editTemplate(String projectId, String templateRelativeFilePath,
 			String templateName) {
 		Map<String, String> templateDataMap = new HashMap<>();
@@ -287,15 +302,18 @@ public class TemplateUtility {
 			// Key(k) as template name and Value (v) as file name
 			templateProps.forEach((k, v) -> templateDataMap.put((String) k, (String) v));
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to open the template properties file {} to update template {}",
+					templatePropsFile.getAbsolutePath(), templateName, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to update template {} in the template properties file {}", templateName,
+					templatePropsFile.getAbsolutePath(), e);
 		} finally {
 			if (out != null) {
 				try {
 					out.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the template properties file {}",
+							templatePropsFile.getAbsolutePath(), e);
 				}
 			}
 		}
@@ -314,6 +332,7 @@ public class TemplateUtility {
 	 * @param templateName
 	 * @return
 	 */
+	@Deprecated
 	public static Map<String, List<String>> getPlaceHolderInfo(String projectId, String templateName) {
 		Map<String, List<String>> placeHolderData = new HashMap<String, List<String>>();
 		FileInputStream fis = null;
@@ -332,22 +351,25 @@ public class TemplateUtility {
 				placeHolderData = extractPlaceHolderInfo(placeholderSheet);
 			}
 		} catch (FileNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to find the file of template {} in project {}", templateName, projectId, e);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read the placeholders of template {} in project {}", templateName,
+					projectId, e);
 		} finally {
 			if (wb != null) {
 				try {
 					wb.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the workbook of template {} in project {}", templateName,
+							projectId, e);
 				}
 			}
 			if (fis != null) {
 				try {
 					fis.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the file of template {} in project {}", templateName, projectId,
+							e);
 				}
 			}
 		}
@@ -363,6 +385,7 @@ public class TemplateUtility {
 	 * @param sheet
 	 * @return
 	 */
+	@Deprecated
 	public static Map<String, List<String>> extractPlaceHolderInfo(XSSFSheet sheet) {
 		Map<String, List<String>> placeHolderData = new HashMap<String, List<String>>();
 		Iterator<Row> rows = sheet.iterator(); // iterating over place holder sheet

@@ -28,7 +28,7 @@
 package prerna.reactor.qs.source;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.reactor.EmbeddedRoutineReactor;
 import prerna.reactor.EmbeddedScriptReactor;
@@ -38,7 +38,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DatabaseReactor extends AbstractQueryStructReactor {
@@ -52,8 +51,6 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 		// get the selectors
 		this.organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-		// we may have the alias
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 			throw new IllegalArgumentException(
 					"Database " + databaseId + " does not exist or user does not have access to database");
@@ -64,11 +61,8 @@ public class DatabaseReactor extends AbstractQueryStructReactor {
 		this.insight.addQueriedDatabases(databaseId);
 
 		// checking if it is a big data engine
-		Object bigDataProp = Utility.getEngine(databaseId).getSmssProp().get(Constants.BIG_DATA_ENGINE);
-		if (bigDataProp != null) {
-			if (Boolean.parseBoolean(bigDataProp.toString())) {
-				this.qs.setBigDataEngine(true);
-			}
+		if (Utility.getEngine(databaseId) instanceof IDatabaseEngine database && database.isBigData()) {
+			this.qs.setBigDataEngine(true);
 		}
 		// need to account if this is a hard query struct
 		if (this.qs.getQsType() == AbstractQueryStruct.QUERY_STRUCT_TYPE.RAW_ENGINE_QUERY

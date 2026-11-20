@@ -46,7 +46,6 @@ import com.google.gson.JsonSyntaxException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
@@ -54,6 +53,7 @@ import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightStore;
 import prerna.om.PixelList;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
@@ -119,7 +119,6 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 
 		User user = this.insight.getUser();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityInsightUtils.userCanViewInsight(user, projectId, rdbmsId)) {
 			NounMetadata noun = new NounMetadata("User does not have access to this insight",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -145,7 +144,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			logger.warn(
 					"Failed to load insight {} in project {} from the security database, loading it from the project",
 					rdbmsId, projectId, e);
-			logger.info("Pulling project from cloud storage, projectId=" + projectId);
+			logger.info("Pulling project from cloud storage, projectId={}", projectId);
 			ClusterUtil.pullInsightsDB(projectId);
 			// this is needed for the pipeline json
 			ClusterUtil.pullProjectFolder(project,
@@ -177,7 +176,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			// get the app_root folder for the project
 			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(project.getProjectName(),
 					project.getProjectId());
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
+			this.insight.getUser().getSandbox().grantFolder(projectAppRootFolder);
 		}
 
 		/*
@@ -242,7 +241,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 
 		// add the insight to the insight store
 		InsightStore.getInstance().put(newInsight);
-		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
+		InsightStore.getInstance().addToSessionHash(ThreadStore.getSessionId(), newInsight.getInsightId());
 		// set user
 		newInsight.setUser(user);
 

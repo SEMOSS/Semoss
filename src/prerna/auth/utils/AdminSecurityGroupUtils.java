@@ -446,7 +446,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param groups rows with {@code id} and {@code type}, as the group lists
 	 *               return them
 	 */
-	public static void addMemberCounts(List<Map<String, Object>> groups) {
+	static void addMemberCounts(List<Map<String, Object>> groups) {
 		List<String> customIds = new ArrayList<>();
 		for (Map<String, Object> group : groups) {
 			if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(group.get("type")) && group.get("id") != null) {

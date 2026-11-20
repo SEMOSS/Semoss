@@ -37,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteEngineRunner;
@@ -53,7 +52,6 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -81,8 +79,6 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 			if (UserAssetUtils.isAssetProject(databaseId)) {
 				throw new IllegalArgumentException("Users are not allowed to delete your workspace or asset database.");
 			}
-			// we may have the alias
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 			boolean isOwner = SecurityEngineUtils.userIsOwner(user, databaseId);
 			if (!isOwner) {
 				throw new IllegalArgumentException("Database " + databaseId
@@ -91,8 +87,6 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 		}
 
 		for (String databaseId : databaseIds) {
-			// we may have the alias
-			databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 			IDatabaseEngine database = Utility.getDatabase(databaseId);
 			String databaseName = database.getEngineName();
 
@@ -123,14 +117,14 @@ public class DeleteDatabaseReactor extends AbstractReactor {
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(engineId);
 		// remove from security
-		SecurityEngineUtils.deleteEngine(engineId);
+		SecurityEngineUtils.deleteEngine(this.insight.getUser(), engineId);
 		// remove from user tracking
 		UserTrackingUtils.deleteEngine(engineId);
 
 		try {
 			database.delete();
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to delete the files of database {}", engineId, e);
 		}
 		return true;
 	}

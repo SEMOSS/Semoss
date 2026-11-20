@@ -82,9 +82,9 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 import prerna.util.ProjectSyncUtility;
 import prerna.util.ProjectWatcher;
 import prerna.util.SMSSNoInitEngineWatcher;
@@ -1638,7 +1638,7 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<EngineUtility> euMock = mockStatic(EngineUtility.class);
 					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
 					MockedStatic<ClusterUtil> clusterMock = mockStatic(ClusterUtil.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+					MockedDIHelper diMock = MockedDIHelper.start()) {
 
 				utilMock.when(() -> Utility.getEngine("eng1", false)).thenReturn(mockEngine);
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
@@ -1648,14 +1648,12 @@ class CentralCloudStorageUnitTests {
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.MODEL))
 						.thenReturn(testDir.toString());
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("eng1")).thenReturn(lock);
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 
 				instance.pushEngine("eng1");
 
-				verify(mockDI).removeEngineProperty("eng1");
+				diMock.verifyLoadedEngineRemoved("eng1");
 				verify(mockEngine).close();
 				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
 				verify(mockStorageEngine).copyToStorage(anyString(), anyString(), any());
@@ -1704,7 +1702,7 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
 					MockedStatic<EngineUtility> euMock = mockStatic(EngineUtility.class);
 					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+					MockedDIHelper diMock = MockedDIHelper.start()) {
 
 				utilMock.when(() -> Utility.getEngine("eng1", false)).thenReturn(mockEngine);
 				utilMock.when(() -> Utility.getEngine("eng1", IEngine.CATALOG_TYPE.STORAGE, false))
@@ -1717,14 +1715,12 @@ class CentralCloudStorageUnitTests {
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.STORAGE))
 						.thenReturn(testDir.toString());
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("eng1")).thenReturn(lock);
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 
 				instance.pullEngine("eng1", IEngine.CATALOG_TYPE.STORAGE, true);
 
-				verify(mockDI).removeEngineProperty("eng1");
+				diMock.verifyLoadedEngineRemoved("eng1");
 				verify(mockEngine).close();
 				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 				verify(mockStorageEngine).copyToLocal(anyString(), anyString());
@@ -2345,20 +2341,18 @@ class CentralCloudStorageUnitTests {
 			ReentrantLock lock = new ReentrantLock();
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class);
+					MockedDIHelper diMock = MockedDIHelper.start();
 					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
 				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 				instance.pushProject("proj1");
 
-				verify(mockDI).removeProjectProperty("proj1");
+				diMock.verifyLoadedProjectRemoved("proj1");
 				verify(mockProject).close();
 				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
 				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(), any());
@@ -2376,17 +2370,15 @@ class CentralCloudStorageUnitTests {
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 					MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class);
+					MockedDIHelper diMock = MockedDIHelper.start();
 					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
 				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
 				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("AliasProj");
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 				instance.pushProject("proj1");
@@ -2433,7 +2425,7 @@ class CentralCloudStorageUnitTests {
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 					MockedStatic<SecurityProjectUtils> secMock = mockStatic(SecurityProjectUtils.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class);
+					MockedDIHelper diMock = MockedDIHelper.start();
 					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
@@ -2441,15 +2433,13 @@ class CentralCloudStorageUnitTests {
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
 				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 				instance.pullProject("proj1", true);
 
-				verify(mockDI).removeProjectProperty("proj1");
+				diMock.verifyLoadedProjectRemoved("proj1");
 				verify(mockProject).close();
 				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 			}
@@ -2498,17 +2488,15 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
 					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
 					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+					MockedDIHelper diMock = MockedDIHelper.start()) {
 				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
 				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 
 				instance.pushLocalDatabaseFile("db1", RdbmsTypeEnum.SQLITE);
 
@@ -2534,17 +2522,15 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
 					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
 					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+					MockedDIHelper diMock = MockedDIHelper.start()) {
 				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
 				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 
 				instance.pushLocalDatabaseFile("db1", RdbmsTypeEnum.H2_DB);
 
@@ -2566,17 +2552,15 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
 					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
 					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+					MockedDIHelper diMock = MockedDIHelper.start()) {
 				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
 				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 
 				instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.SQLITE);
 
@@ -2599,17 +2583,15 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
 					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
 					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+					MockedDIHelper diMock = MockedDIHelper.start()) {
 				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
 				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("MyDb");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyDb", "db1")).thenReturn("MyDb__db1");
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 
 				instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.H2_DB);
 
@@ -2691,19 +2673,17 @@ class CentralCloudStorageUnitTests {
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+					MockedDIHelper diMock = MockedDIHelper.start()) {
 				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
 				utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
 				smssMock.when(() -> SmssUtilities.getUniqueName("AssetApp", "proj1")).thenReturn("AssetApp__proj1");
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 
 				instance.pullUserAsset("proj1", true);
 
-				verify(mockDI).removeProjectProperty("proj1");
+				diMock.verifyLoadedProjectRemoved("proj1");
 				verify(mockProject).close();
 				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 			}
@@ -2718,18 +2698,16 @@ class CentralCloudStorageUnitTests {
 			when(mockProject.getProjectName()).thenReturn("AssetApp");
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+					MockedDIHelper diMock = MockedDIHelper.start()) {
 				utilMock.when(Utility::getBaseFolder).thenReturn(testDir.toString());
 
 				utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
-				DIHelper mockDI = mock(DIHelper.class);
-				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
-				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+				diMock.withEngineIds("eng1");
+				diMock.withProjectIds("proj1");
 
 				instance.pushUserAsset("proj1");
 
-				verify(mockDI).removeProjectProperty("proj1");
+				diMock.verifyLoadedProjectRemoved("proj1");
 				verify(mockProject).close();
 				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
 				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(), any());

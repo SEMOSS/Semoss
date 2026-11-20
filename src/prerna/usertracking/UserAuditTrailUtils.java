@@ -58,6 +58,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.security.SessionIds;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -405,18 +406,6 @@ public final class UserAuditTrailUtils {
 			String oldPermission, Object details) {
 		recordPermissionChange(user, AuditEventType.PERMISSION_DELETE, targetType, targetId, targetName, projectId,
 				engineId, insightId, granteeId, granteeType, oldPermission, null, details);
-	}
-
-	/**
-	 * Records a permission the platform removed because its end date passed. The
-	 * actor is the system, not a user.
-	 */
-	public static void recordExpiredPermissionRemoval(AuditTargetType targetType, String targetId, String projectId,
-			String engineId, String insightId, String userId) {
-		recordEvent(new AuditEvent().eventType(AuditEventType.PERMISSION_DELETE).action(PERMISSION_EXPIRED_ACTION)
-				.status(AuditStatus.SUCCESS).systemActor().subject(userId, null, null)
-				.target(targetType, targetId, null).context(projectId, engineId, insightId, null)
-				.details(Map.of("reason", "EXPIRED")));
 	}
 
 	/**
@@ -901,17 +890,18 @@ public final class UserAuditTrailUtils {
 	}
 
 	/**
-	 * One-way hash of a session id so events from the same session can be
-	 * correlated without storing a value that could be replayed.
+	 * The session's hash ({@link SessionIds#hash(String)}), so events from the same
+	 * session can be correlated without storing a value that could be replayed. It
+	 * is the same value the logs and the other tables hold.
 	 *
 	 * @param sessionId raw session id
-	 * @return {@code sha256:<hex>} or null
+	 * @return the session's hash, or null for no session or a placeholder
 	 */
 	public static String hashSessionId(String sessionId) {
 		if (sessionId == null || sessionId.isBlank() || PLACEHOLDER_CONTEXT_VALUES.contains(sessionId)) {
 			return null;
 		}
-		return "sha256:" + sha256Hex(sessionId);
+		return SessionIds.hash(sessionId);
 	}
 
 	// ------------------------------------------------------------------------
@@ -1561,8 +1551,8 @@ public final class UserAuditTrailUtils {
 			if (this.userAgent == null) {
 				this.userAgent = contextValue(SemossLogUtils.USER_AGENT);
 			}
-			String rawSession = this.sessionId != null ? this.sessionId : contextValue(SemossLogUtils.SESSION_ID);
-			this.sessionId = hashSessionId(rawSession);
+			this.sessionId = this.sessionId != null ? hashSessionId(this.sessionId)
+					: contextValue(SemossLogUtils.SESSION_ID);
 		}
 
 		/** The name an enum value is stored by, or null */

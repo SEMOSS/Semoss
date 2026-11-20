@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -59,15 +58,11 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 		}
 
 		List<Map<String, Object>> baseInfo = null;
-		// make sure valid id for user
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 		if (SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
-			// user has access!
 			baseInfo = SecurityEngineUtils.getUserEngineList(this.insight.getUser(), databaseId, null);
 		} else if (SecurityEngineUtils.engineIsDiscoverable(databaseId)) {
 			baseInfo = SecurityEngineUtils.getDiscoverableEngineList(databaseId, null);
 		} else {
-			// you dont have access
 			throw new IllegalArgumentException("Database does not exist or user does not have access to the database");
 		}
 
@@ -88,6 +83,7 @@ public class GetDatabaseMetadataReactor extends AbstractReactor {
 		return new NounMetadata(databaseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_INFO);
 	}
 
+	@Deprecated
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(

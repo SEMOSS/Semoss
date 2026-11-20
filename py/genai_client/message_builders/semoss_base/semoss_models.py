@@ -399,6 +399,8 @@ class SEMOSSMessageType(StringEnum):
 
 
 class SEMOSSMessage(BaseModel):
+    # Private provider replay data; display parts are not a lossless transcript.
+    google_interactions: Optional[Dict[str, Any]] = None
     # all of the below should be replaced with just parts
     type: SEMOSSMessageType
     content: Optional[str] = None

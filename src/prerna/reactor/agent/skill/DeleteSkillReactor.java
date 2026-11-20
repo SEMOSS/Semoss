@@ -146,7 +146,7 @@ public class DeleteSkillReactor extends AbstractReactor {
 
 		try {
 			ModelInferenceLogsUtils.detachSkillFromAllWorkspaces(skillId);
-			deleteProject(project);
+			deleteProject(user, project);
 			if (ClusterUtil.IS_CLUSTER) {
 				Thread.ofVirtual().start(new DeleteProjectRunner(skillId));
 			}
@@ -158,10 +158,10 @@ public class DeleteSkillReactor extends AbstractReactor {
 				project.getProjectName(), skillId, null, null, null);
 	}
 
-	private static boolean deleteProject(IProject project) {
+	private static boolean deleteProject(User user, IProject project) {
 		String projectId = project.getProjectId();
 		UploadUtilities.removeProjectFromDIHelper(projectId);
-		SecurityProjectUtils.deleteProject(projectId);
+		SecurityProjectUtils.deleteProject(user, projectId);
 		UserTrackingUtils.deleteProject(projectId);
 		try {
 			project.delete();

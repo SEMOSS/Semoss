@@ -34,7 +34,6 @@ import java.util.Map;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -74,7 +73,6 @@ public class IsInsightParameterizedReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Need to input the id for the insight");
 		}
 
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
 			NounMetadata noun = new NounMetadata("User does not have access to this insight",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -93,7 +91,7 @@ public class IsInsightParameterizedReactor extends AbstractInsightReactor {
 			List<Insight> in = project.getInsight(rdbmsId + "");
 			newInsight = in.get(0);
 		} catch (ArrayIndexOutOfBoundsException e) {
-			logger.info("Pulling app from cloud storage, projectId=" + projectId);
+			logger.info("Pulling app from cloud storage, projectId={}", projectId);
 //			ClusterUtil.reactorPullInsightsDB(projectId);
 			// this is needed for the pipeline json
 			ClusterUtil.pullProjectFolder(project,

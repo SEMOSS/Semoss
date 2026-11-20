@@ -63,7 +63,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
@@ -566,9 +565,9 @@ public abstract class AbstractReactor implements IReactor {
 
 	@Override
 	public void modifySignature(String stringToFind, String stringReplacement) {
-		classLogger.debug("Original signature value = " + this.signature);
+		classLogger.debug("Original signature value = {}", this.signature);
 		this.signature = Strings.CS.replaceOnce(this.signature, stringToFind, stringReplacement);
-		classLogger.debug("New signature value = " + this.signature);
+		classLogger.debug("New signature value = {}", this.signature);
 	}
 
 	/**
@@ -738,15 +737,6 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * Get the session id set in the job
-	 * 
-	 * @return
-	 */
-	protected String getSessionId() {
-		return ThreadStore.getSessionId();
-	}
-
-	/**
 	 * Get the session id for the insight
 	 * 
 	 * @return
@@ -764,22 +754,20 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String testDatabaseId(String databaseId, boolean edit) {
-		String testId = databaseId;
-		testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
 		if (edit) {
 			// need edit permission
-			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), testId)) {
+			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException(
 						"Database " + databaseId + " does not exist or user does not have access to the database");
 			}
 		} else {
 			// just need read access
-			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), testId)) {
+			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
 				throw new IllegalArgumentException(
 						"Database " + databaseId + " does not exist or user does not have access to the database");
 			}
 		}
-		return testId;
+		return databaseId;
 	}
 
 	/**

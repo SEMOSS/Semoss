@@ -60,6 +60,10 @@ public class BrainSaveSettingsReactor extends AbstractCollaborationReactor {
 				"Updates the signed-in user's Brain settings; pass version to refuse the save if they changed elsewhere")
 				.key(KEY,
 						"Partial settings: fileAt, askAt, sourcesJson {sourceId: bool}, memory {use: bool, learn: bool}, "
-								+ "syncEveryMinutes (0 off, 15, 30, 60 or 240: how often mail syncs while the app is closed), version");
+								+ "syncEveryMinutes (0 off, 15, 30, 60 or 240: how often mail syncs while the app is closed), "
+								+ "newTopicsEveryHours (0 never, 24, 72 or 168: how often new topics may be proposed from "
+								+ "incoming mail), closeAcrossThreads (bool: a message on one conversation of a topic may "
+								+ "finish a step from another), twinCheckEveryHours (0 never, 1, 4 or 24: how often "
+								+ "their Digital Twins are checked for copies whose original changed), version");
 	}
 }

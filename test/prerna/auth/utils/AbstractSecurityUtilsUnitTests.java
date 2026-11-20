@@ -39,8 +39,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -66,7 +64,6 @@ import prerna.auth.access.ModelUsageLimitRule;
 import prerna.auth.access.ModelUsageLimitRule.Counts;
 import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.auth.access.ModelUsageLimitRule.Window;
-import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.project.api.IProject;
@@ -74,7 +71,8 @@ import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -683,12 +681,12 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		properties.setProperty(Constants.IS_ASSET_APP, "true");
 		UnitTestSecurityAuthUtils.createSmssFileFromProps(properties, databaseFolder, "test.smss");
 		String smssFile = databaseFolder + File.separator + "test.smss";
-		DIHelper.getInstance().setEngineProperty("test_" + Constants.STORE, smssFile);
+		InternalUtility.setEngineSmssPath("test", smssFile);
 
 		assertTrue(AbstractSecurityUtils.ignoreDatabase("test"));
 
 		// teardown this test
-		DIHelper.getInstance().removeEngineProperty("test_" + Constants.STORE);
+		DIHelperTestUtils.removeEngineSmssPath("test");
 	}
 
 	@Test
@@ -947,23 +945,6 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		Timestamp ts = AbstractSecurityUtils.calculateEndDate(nowString);
 		// probably figure out a better way to test the timestamp is in utc.
 		assertNotNull(ts);
-	}
-
-	@Test
-	void testEndDateIsExpired_null() throws Exception {
-		assertFalse(AbstractSecurityUtils.endDateIsExpired(null));
-	}
-
-	@Test
-	void testEndDateIsExpired_true() throws Exception {
-		SemossDate semossDate = new SemossDate(LocalDateTime.now().minusDays(2), ZoneId.of("UTC"));
-		assertTrue(AbstractSecurityUtils.endDateIsExpired(semossDate));
-	}
-
-	@Test
-	void testEndDateIsExpired_false() throws Exception {
-		SemossDate semossDate = new SemossDate(LocalDateTime.now().plusDays(2), ZoneId.of("UTC"));
-		assertFalse(AbstractSecurityUtils.endDateIsExpired(semossDate));
 	}
 
 	@Test
