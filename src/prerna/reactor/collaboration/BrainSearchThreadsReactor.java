@@ -70,7 +70,8 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 			return mapResult(BrainThreadFinder.searchTopic(user, topicId, topic, getString(QUERY), getString(PERSON),
 					getString(FROM), getString(TO), getIntFromKeyOrCurRow(LIMIT)));
 		}
-		// in a chat about topics the search stays in them, unless the assistant asks for everything
+		// in a chat about topics the search stays in them, unless the assistant asks
+		// for everything
 		if (!Boolean.TRUE.equals(getBoolean(ALL_TOPICS))) {
 			List<String> chatTopics = chatTopics(user);
 			if (!chatTopics.isEmpty()) {
@@ -85,7 +86,8 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 				getString(TO), getIntFromKeyOrCurRow(LIMIT)));
 	}
 
-	// the topics of the chat this runs in; none outside an owner's chat, or when the chat has no topic yet
+	// the topics of the chat this runs in; none outside an owner's chat, or when
+	// the chat has no topic yet
 	private List<String> chatTopics(User user) {
 		String roomId = this.insight.getRoomId();
 		if (roomId == null) {
@@ -96,7 +98,8 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (RuntimeException e) {
-			// without the chat's topics this becomes a search of all mail, so the failure must not go unseen
+			// without the chat's topics this becomes a search of all mail, so the failure
+			// must not go unseen
 			classLogger.warn("The topics of chat {} could not be read, so the search covers all mail", roomId, e);
 			return List.of();
 		}
@@ -105,7 +108,7 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Finds threads in the owner's Brain by words in the subject, summary, or people, by person, or by date, "
+				"Finds threads in the owner's Brain, including email and Teams chats, by words in the subject, summary, or people, by person, or by date, "
 						+ "newest first; each result names its topics. Pass a topic to look only inside it, and with nothing "
 						+ "else it lists that topic's newest threads. Inside a topic it also reads the messages and a model "
 						+ "picks the passages that answer the question, so ask in a full sentence with the question's own "
@@ -120,8 +123,7 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 				.key(PERSON, "Only threads with a person whose name or email contains this")
 				.key(FROM, "Only threads with a message on or after this date (YYYY-MM-DD)")
 				.key(TO, "Only threads with a message on or before this date (YYYY-MM-DD)")
-				.key(LIMIT, "Best N threads, default 10, at most 25")
-				.key(ALL_TOPICS, key -> key.type(Boolean.class).description(
-						"true to search all of the owner's threads even though this chat has topics"));
+				.key(LIMIT, "Best N threads, default 10, at most 25").key(ALL_TOPICS, key -> key.type(Boolean.class)
+						.description("true to search all of the owner's threads even though this chat has topics"));
 	}
 }

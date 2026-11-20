@@ -147,6 +147,11 @@ public final class CollaborationPrompts {
 			- Give only dates and facts that a quoted passage states. When passages disagree or change over time, \
 			list each with who wrote it and when, and say which is newest. Never work a date out from other clues, \
 			and never state one as certain when no passage says so.
+			- Teams chats: SearchMail and ReadThread find and read them from Brain, with the owner's rules applied. \
+			If the result seems too old or incomplete (messages older than the owner's recent activity), use ListChatMessages with the same chatId as a fallback \
+			to get the most recent messages live. (Note: refresh=true on ReadThread applies to mail threads only, not Teams chats.) \
+			Use ListChats to list all current chats or check unread status; use SearchTeamsMessages only \
+			after SearchMail finds nothing or for searching across all Teams chats.
 			- Only then use ListM365Mail, which reads Outlook directly. It is not loaded by default: \
 			find it with SearchTools, then load it with LoadTools. Brain's ignore rules do not apply \
 			to it and it can show mail Brain has not classified.
@@ -473,7 +478,8 @@ public final class CollaborationPrompts {
 			to the owner as "you", in Markdown.
 			""";
 
-	// the brief prints it under the routine's name (the sections and brief steps of the inbox automation)
+	// the brief prints it under the routine's name (the sections and brief steps of
+	// the inbox automation)
 	private static final String ROUTINE_BRIEF = """
 			Your final message becomes one section of the owner's daily brief, printed under this routine's \
 			name. Nothing is sent on its own. Write only that section's content, to the owner as "you", in \

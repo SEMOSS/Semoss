@@ -28,6 +28,7 @@
 package prerna.collaboration;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -235,7 +236,8 @@ public final class CollaborationAgentTools {
 
 	// calendar reads that take a timeZone, filled in with the owner's when the
 	// model leaves it out
-	// times the model writes are read in the owner's zone too: CreateEvent at 09:00 with no zone was 09:00 UTC
+	// times the model writes are read in the owner's zone too: CreateEvent at 09:00
+	// with no zone was 09:00 UTC
 	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent", "CreateEvent", "UpdateEvent");
 
 	// tools about the chat itself: only for the owner's chat at the root of the
@@ -263,30 +265,49 @@ public final class CollaborationAgentTools {
 	private static final String TRANSCRIPT_TOOL = "GetMeetingTranscript";
 
 	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365
-	// mail after Brain's own search,
-	// calendar changes, Teams channels and their files, one Teams chat or message
-	// by id, skills, Brain edits, and listing or managing routines
+	// mail after Brain's own search, calendar changes, Teams channels and their
+	// files,
+	// Teams live search, one Teams chat or message by id, skills, Brain edits, and
+	// listing or managing routines
 	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill", "CreateEvent", "UpdateEvent",
 			"DeleteEvent", "RespondToEvent", "ListChannels", "ListChannelFiles", "DownloadChannelFile",
-			"UploadChannelFile", "GetChat", "GetChatMessage", "ListMySkills", "OpenSkill", "PublishSkill",
-			"UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines", "ManageRoutine");
+			"UploadChannelFile", "GetChat", "GetChatMessage", "SearchTeamsMessages", "ListMySkills", "OpenSkill",
+			"PublishSkill", "UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines", "ManageRoutine");
 	// what the chat card calls a tool when its words alone would not say it
 	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat");
 
 	// said first in a mail tool's description, so the model knows which side of
-	// Brain it is on
-	private static final Map<String, String> SOURCE_NOTES = Map.of("ListMyWork",
-			"[Brain: the owner's to-do list and work items, start here for what is on their plate]", "ListTopics",
-			"[Brain: topics, or one topic in full with its people]", "EditTopic",
-			"[Brain: changes a topic, or creates one]", "EditThread", "[Brain: changes a thread's topics]", "TagTopic",
-			"[Brain: tags this chat with a topic]", "SaveDraft",
-			"[Outlook: saves a draft in the owner's drafts folder for them to review; it never sends]", "SearchMail",
-			"[Brain: the owner's classified mail, start here; one topic or all]", "ReadThread",
-			"[Brain: reads a thread found in Brain]", "RelatedThreads",
-			"[Brain: other mail, meetings, and chats that belong with a thread you already have]", "ListM365Mail",
-			"[Microsoft 365, direct: Outlook as it is now, outside Brain. Brain's never-ingest rules "
-					+ "and exclusions do NOT apply here, and mail Brain has not classified can show up. Use it after "
-					+ "SearchMail finds nothing, or when the owner asks about Outlook itself.]");
+	// Brain it is on; for Teams chats, all note that SearchMail and ReadThread are
+	// the Brain path and live tools are fallback for unread or unseen chats
+	private static final Map<String, String> SOURCE_NOTES;
+	static {
+		Map<String, String> notes = new LinkedHashMap<>();
+		notes.put("ListMyWork",
+				"[Brain: the owner's to-do list and work items, start here for what is on their plate]");
+		notes.put("ListTopics", "[Brain: topics, or one topic in full with its people]");
+		notes.put("EditTopic", "[Brain: changes a topic, or creates one]");
+		notes.put("EditThread", "[Brain: changes a thread's topics]");
+		notes.put("TagTopic", "[Brain: tags this chat with a topic]");
+		notes.put("SaveDraft",
+				"[Outlook: saves a draft in the owner's drafts folder for them to review; it never sends]");
+		notes.put("SearchMail",
+				"[Brain: the owner's classified mail and Teams chats, start here; one topic or all]");
+		notes.put("ReadThread",
+				"[Brain: reads a thread—email or Teams chat—from Brain. For email threads, use refresh=true for messages after the last sync. For stale Teams chats, use ListChatMessages as a fallback.]");
+		notes.put("RelatedThreads",
+				"[Brain: other mail, meetings, and chats that belong with a thread you already have]");
+		notes.put("ListChats",
+				"[Live: Teams chats as they are now. SearchMail + ReadThread read them from Brain first. Use ListChats to list all current chats or check unread status directly.]");
+		notes.put("ListChatMessages",
+				"[Live: messages from a Teams chat by chatId, newest first. SearchMail + ReadThread cover this from Brain. Use ListChatMessages as a fallback for stale Teams chats (refresh=true only applies to email threads).]");
+		notes.put("SearchTeamsMessages",
+				"[Live: searches Teams messages live, outside Brain; never-ingest rules do NOT apply. Use after SearchMail finds nothing.]");
+		notes.put("ListM365Mail",
+				"[Microsoft 365, direct: Outlook as it is now, outside Brain. Brain's never-ingest rules "
+						+ "and exclusions do NOT apply here, and mail Brain has not classified can show up. Use it after "
+						+ "SearchMail finds nothing, or when the owner asks about Outlook itself.]");
+		SOURCE_NOTES = Collections.unmodifiableMap(notes);
+	}
 
 	private static volatile Map<String, JSONObject> toolsByName;
 
