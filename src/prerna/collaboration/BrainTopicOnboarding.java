@@ -36,7 +36,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -47,9 +46,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
-// Adapts the completed import into discovery and model votes; returns candidates without publishing topics.
-// Before a sort only stored headers are used. After one the pool's messages are also read, through the thread
-// read (today's rules, no quoted history, no footer), to group by what they say; nothing read is stored.
+// Adapts the completed import into header discovery and model votes; returns candidates without publishing topics.
 final class BrainTopicOnboarding {
 
 	// Retain the persisted ID namespace and recognize links created by earlier
@@ -59,83 +56,7 @@ final class BrainTopicOnboarding {
 	record Result(List<BrainTopicSuggest.Candidate> candidates, Map<String, Object> diagnostics) {
 	}
 
-	// reading the pool: this many mailbox reads at once, the newest messages of each thread
-	static int readers = 6;
-	private static final int READ_MESSAGES = 8;
-	// reading the pool: when the first reads all fail (no login, mailbox away) stop asking; the headers then decide
-	private static final int GIVE_UP_AFTER = 20;
-
 	private BrainTopicOnboarding() {
-	}
-
-	/**
-	 * What the pool's conversations say, for grouping by wording after a sort. Each is read the way the sort read
-	 * it, so a message today's rules hide is not read here either. A conversation that cannot be read has no text;
-	 * when the mailbox cannot be read at all the answer is empty and discovery falls back to the headers.
-	 */
-	static BrainTopicStructure.Reader reader(User user, String ownerId, String ownerType, BrainMessageSource source,
-			Map<String, Object> notes) {
-		return pool -> {
-			Map<String, List<BrainTopicStructure.Text>> out = new java.util.concurrent.ConcurrentHashMap<>();
-			java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
-			List<Runnable> jobs = new ArrayList<>();
-			for (BrainTopicStructure.Facts thread : pool) {
-				jobs.add(() -> {
-					if (out.isEmpty() && failed.get() >= GIVE_UP_AFTER) {
-						return;
-					}
-					try {
-						Map<String, Object> read = BrainThreadMessages.read(user, ownerId, ownerType, thread.id(),
-								READ_MESSAGES, source);
-						List<BrainTopicStructure.Text> said = new ArrayList<>();
-						if (!Boolean.TRUE.equals(read.get("muted")) && read.get("messages") instanceof List<?> messages) {
-							for (Object each : messages) {
-								if (each instanceof Map<?, ?> message && !Boolean.TRUE.equals(message.get("excluded"))
-										&& message.get("text") instanceof String text && !text.isBlank()) {
-									Object from = message.get("fromId") != null ? message.get("fromId")
-											: message.get("fromAddress");
-									said.add(new BrainTopicStructure.Text(from == null ? "" : from.toString(), text));
-								}
-							}
-						}
-						if (!said.isEmpty()) {
-							out.put(thread.id(), said);
-						}
-					} catch (Exception e) {
-						failed.incrementAndGet();
-					}
-				});
-			}
-			if (readers <= 1) {
-				jobs.forEach(Runnable::run);
-			} else {
-				java.util.concurrent.ExecutorService reads = java.util.concurrent.Executors.newFixedThreadPool(readers,
-						r -> {
-							Thread thread = new Thread(r, "collaboration-topic-read");
-							thread.setDaemon(true);
-							return thread;
-						});
-				try {
-					List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
-					jobs.forEach(job -> pending.add(reads.submit(job)));
-					for (java.util.concurrent.Future<?> each : pending) {
-						try {
-							each.get();
-						} catch (InterruptedException e) {
-							Thread.currentThread().interrupt();
-							break;
-						} catch (java.util.concurrent.ExecutionException e) {
-							failed.incrementAndGet();
-						}
-					}
-				} finally {
-					reads.shutdownNow();
-				}
-			}
-			notes.put("readThreads", out.size());
-			notes.put("unreadThreads", pool.size() - out.size());
-			return out;
-		};
 	}
 
 	static Result propose(User user, String engineId, String ownerId, String ownerType,
@@ -145,24 +66,22 @@ final class BrainTopicOnboarding {
 		if (job != null) {
 			job.step("grouping", 10);
 		}
-		// stored headers after a sort: per-message To/Cc only fed the engagement gate, which WIDE does not use;
-		// what the messages say is read only then, and only for the pool
-		BrainTopicVotes.Caller caller = caller(user, engineId);
+		// stored headers after a sort: per-message To/Cc only fed the engagement gate, which WIDE does not use
 		BrainTopicStructure.Prepared prepared = snapshot(ownerId, ownerType, eligible.keySet(), self, emails, vips,
-				ownOrg, notes, caller, reader(user, ownerId, ownerType, BrainMessageSource.current(), notes));
+				ownOrg, notes);
 		if (job != null) {
 			job.count("conversations", prepared.pool().size());
 			job.count("groups", prepared.seeds().size());
 			job.step("naming", 30);
 		}
-		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings(ownerId, ownerType), caller);
+		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings(ownerId, ownerType),
+				caller(user, engineId));
 		Map<String, Object> diagnostics = new LinkedHashMap<>();
 		diagnostics.putAll(notes);
 		diagnostics.put("status", votes.status());
 		diagnostics.put("poolThreads", prepared.pool().size());
 		diagnostics.put("gatedThreads", prepared.gated());
 		diagnostics.put("seedTopics", prepared.seeds().size());
-		diagnostics.put("folderTopics", prepared.folders().stream().filter(java.util.Objects::nonNull).count());
 		diagnostics.put("droppedTopics", votes.dropped().size());
 		diagnostics.put("modelCalls", votes.calls());
 		diagnostics.put("failedVotes", votes.failedVotes());
@@ -171,16 +90,8 @@ final class BrainTopicOnboarding {
 			return new Result(List.of(), diagnostics);
 		}
 		List<BrainTopicSuggest.Candidate> candidates = new ArrayList<>();
-		BrainMailFolders.Tree folderTree = BrainMailFolders.load(ownerId, ownerType);
 		Set<String> names = new HashSet<>(takenNames);
 		Set<Integer> grouped = new HashSet<>();
-		// mail already under a topic the owner has: a group made largely of it is that topic, not a new one
-		Set<String> held = new HashSet<>(CollaborationDbUtils.query(
-				"SELECT l.THREAD_ID FROM BRAIN_THREAD_TOPIC l JOIN BRAIN_TOPIC t ON t.OWNER_ID = l.OWNER_ID AND "
-						+ "t.OWNER_TYPE = l.OWNER_TYPE AND t.TOPIC_ID = l.TOPIC_ID WHERE l.OWNER_ID = ? AND l.OWNER_TYPE = ? "
-						+ "AND (t.STATUS IS NULL OR t.ORIGIN IS NULL OR t.STATUS <> ? OR t.ORIGIN <> ?)",
-				rs -> rs.getString(1), ownerId, ownerType, BrainTopicUtils.SUGGESTED, "brain"));
-		int known = 0;
 		// Apply votes after discovery assignment so rejected groups do not spill their
 		// mail into kept groups.
 		for (int i = 0; i < prepared.seeds().size(); i++) {
@@ -193,29 +104,17 @@ final class BrainTopicOnboarding {
 						grouped.add(e.getKey());
 						return eligible.get(prepared.pool().get(e.getKey()).id());
 					}).toList();
-			List<String> ids = members.stream().map(BrainTopicSuggest.Thread::id).sorted().toList();
-			if (alreadyATopic(ids, held)) {
-				known++;
-				continue;
-			}
 			String name = uniqueName(votes.names().get(i), names);
+			List<String> ids = members.stream().map(BrainTopicSuggest.Thread::id).sorted().toList();
 			String key = VERSION + ":"
 					+ CollaborationDbUtils.deterministicId(ownerId, ownerType, ids.toArray(String[]::new));
 			// the card shows threads, people and your part; how it was grouped stays in
 			// diagnostics
 			// no name-word keywords: a rename would leave the old words behind for the
 			// classifier
-			// filing from the folder is offered only for a project folder; any other folder is a naming hint
-			String folder = prepared.folders().get(i);
-			String path = folder == null ? null : (String) prepared.cards().get(i).get("outlookFolder");
 			candidates.add(new BrainTopicSuggest.Candidate(key, name, members, List.of(), null, votes.abouts().get(i),
-					// the clues offered to the owner: what the group's mail says when it was read, else its subjects
-					prepared.cards().get(i).get("words") instanceof List<?> said
-							? said.stream().map(String::valueOf).toList()
-							: BrainTopicStructure.terms(prepared, i, 8),
-					BrainFolderRoles.PROJECT.equals(folderTree.role(folder)) ? folder : null, path));
+					BrainTopicStructure.terms(prepared, i, 8)));
 		}
-		diagnostics.put("knownTopics", known);
 		diagnostics.put("groupedThreads", grouped.size());
 		diagnostics.put("unsortedThreads", prepared.pool().size() - grouped.size());
 		if (job != null) {
@@ -223,16 +122,6 @@ final class BrainTopicOnboarding {
 			job.step("saving", 70);
 		}
 		return new Result(candidates, diagnostics);
-	}
-
-	/**
-	 * After onboarding the same grouping runs over all the mail, filed or not. A group with a quarter or more of
-	 * its conversations already under the owner's topics is one of those topics showing up again; a new piece of
-	 * work shows up as a group of mail nothing holds yet. On the fixture worlds this proposed no known topic twice
-	 * and 15 of 18 topics that appeared after onboarding.
-	 */
-	static boolean alreadyATopic(List<String> threads, Set<String> held) {
-		return 4 * threads.stream().filter(held::contains).count() >= threads.size() && !threads.isEmpty();
 	}
 
 	// one model call as the owner; each call gets its own insight
@@ -273,10 +162,10 @@ final class BrainTopicOnboarding {
 
 	// The imported headers as stored: sender, time and bulk per message, the thread's included people as its
 	// recipients. Email always; Teams chats with a real name when Teams is on (chats named only by who is in them
-	// never reach here). No mailbox calls of its own: after a sort the reader is asked for the pool's wording.
+	// never reach here). No mailbox calls.
 	private static BrainTopicStructure.Prepared snapshot(String ownerId, String ownerType, Set<String> eligible,
 			String self, Map<String, String> emails, Set<String> vips, BrainOrgDomains.Org ownOrg,
-			Map<String, Object> notes, BrainTopicVotes.Caller caller, BrainTopicStructure.Reader reader) {
+			Map<String, Object> notes) {
 		if (self == null || emails.get(self) == null) {
 			throw new IllegalStateException("Import the mailbox before proposing topics");
 		}
@@ -343,15 +232,8 @@ final class BrainTopicOnboarding {
 		String me = emails.get(self);
 		Map<String, List<BrainTopicStructure.Message>> byThread = new LinkedHashMap<>();
 		Set<String> sentHistory = new HashSet<>();
-		// threads with a calendar item (invite, hold or reply), a hint for the away-notice check
-		Set<String> calendar = new HashSet<>();
 		int[] read = { 0 };
-		// the owner's own folders by id, with their paths; system folders say nothing about the work
-		BrainMailFolders.Tree tree = BrainMailFolders.load(ownerId, ownerType);
-		Map<String, String> folderPaths = new HashMap<>();
-		Map<String, Set<String>> folderThreads = new HashMap<>();
-		Map<String, Set<String>> folderWrote = new HashMap<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT, BULK, FOLDER, CATEGORIES_JSON, MEETING FROM BRAIN_MESSAGE "
+		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT, BULK, FOLDER FROM BRAIN_MESSAGE "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DECISION = ? AND RECEIVED_AT >= ? AND RECEIVED_AT <= ? "
 				+ "ORDER BY RECEIVED_AT", rs -> {
 					String thread = rs.getString(1);
@@ -377,102 +259,20 @@ final class BrainTopicOnboarding {
 						sentHistory.addAll(to);
 					}
 					read[0]++;
-					if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MEETING"))) {
-						calendar.add(thread);
-					}
-					String path = tree.custom(folder);
-					if (path != null) {
-						folderPaths.put(folder, path);
-						folderThreads.computeIfAbsent(folder, k -> new LinkedHashSet<>()).add(thread);
-						if (me.equals(from)) {
-							folderWrote.computeIfAbsent(folder, k -> new HashSet<>()).add(thread);
-						}
-					}
 					byThread.computeIfAbsent(thread, k -> new ArrayList<>())
 							.add(new BrainTopicStructure.Message(subjects.get(thread),
 									at.toLocalDateTime().toInstant(ZoneOffset.UTC).toString(), from, to, List.of(),
-									Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "BULK")),
-									path == null ? null : folder, CollaborationDbUtils.toStringList(CollaborationDbUtils
-											.parseList(CollaborationDbUtils.getString(rs, "CATEGORIES_JSON")))));
+									Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "BULK"))));
 					return null;
 				}, ownerId, ownerType, BrainRulesGate.INGESTED,
 				Timestamp.valueOf(LocalDateTime.ofInstant(since, ZoneOffset.UTC)), end);
 		notes.put("messages", read[0]);
 		notes.put("chats", byThread.keySet().stream().filter(t -> "teams".equals(sources.get(t))).count());
-		// what each folder the owner made is for; only project, area and other folders steer grouping, and mail
-		// in a folder kept for automated mail counts as bulk. No folders: the plain discovery, no model call
-		Map<String, String> roles = folderRoles(caller, tree, folderThreads, folderWrote, byThread, subjects, me);
-		BrainFolderRoles.save(ownerId, ownerType, roles);
-		Map<String, String> guides = new HashMap<>();
-		folderPaths.forEach((id, path) -> {
-			if (BrainFolderRoles.guides(roles.getOrDefault(id, BrainFolderRoles.OTHER))) {
-				guides.put(id, path);
-			}
-		});
-		BrainTopicStructure.Settings settings = settings(ownerId, ownerType);
-		// conversations that only say someone is away join no topic; the model judges each one
-		Set<String> away = BrainTopicNotices.judge(caller, byThread.entrySet().stream()
-				.map(e -> new BrainTopicNotices.Card(e.getKey(), subjects.getOrDefault(e.getKey(), ""),
-						e.getValue().size(), calendar.contains(e.getKey())))
-				.toList(), settings);
-		notes.put("awayNotices", away.size());
 		List<BrainTopicStructure.MailThread> input = byThread.entrySet().stream()
-				.filter(e -> !away.contains(e.getKey()))
-				.map(e -> new BrainTopicStructure.MailThread(e.getKey(), e.getValue().stream()
-						.map(m -> new BrainTopicStructure.Message(m.subject(), m.at(), m.sender(), m.to(), m.cc(),
-								m.bulk() || BrainFolderRoles.AUTOMATED.equals(roles.get(m.folder())),
-								guides.containsKey(m.folder()) ? m.folder() : null, m.categories()))
-						.toList()))
-				.toList();
+				.map(e -> new BrainTopicStructure.MailThread(e.getKey(), e.getValue())).toList();
+		BrainTopicStructure.Settings settings = settings(ownerId, ownerType);
 		notes.put("wide", settings.wide());
-		notes.put("folders", folderPaths.size());
-		notes.put("guideFolders", guides.size());
-		notes.put("folderRoles", roles.values().stream()
-				.collect(java.util.stream.Collectors.groupingBy(r -> r, LinkedHashMap::new,
-						java.util.stream.Collectors.counting())));
-		BrainTopicStructure.Prepared prepared = BrainTopicStructure.prepare(input, me, ownOrg::isMine, vipEmails,
-				settings, sentHistory, guides, settings.wide() ? reader : null);
-		notes.put("groupedBy", prepared.cards().stream().anyMatch(c -> c.containsKey("words")) ? "wording" : "headers");
-		return prepared;
-	}
-
-	// one card per folder with two or more conversations in the window, judged in one model call
-	private static Map<String, String> folderRoles(BrainTopicVotes.Caller caller, BrainMailFolders.Tree tree,
-			Map<String, Set<String>> folderThreads, Map<String, Set<String>> folderWrote,
-			Map<String, List<BrainTopicStructure.Message>> byThread, Map<String, String> subjects, String me) {
-		List<Map<String, Object>> cards = new ArrayList<>();
-		Map<String, String> byCard = new HashMap<>();
-		folderThreads.entrySet().stream().filter(e -> e.getValue().size() >= 2)
-				.sorted(java.util.Comparator.<Map.Entry<String, Set<String>>>comparingInt(e -> e.getValue().size())
-						.reversed())
-				.forEach(e -> {
-					String folder = e.getKey();
-					Map<String, Integer> people = new HashMap<>();
-					int bulk = 0;
-					for (String thread : e.getValue()) {
-						List<BrainTopicStructure.Message> messages = byThread.getOrDefault(thread, List.of());
-						bulk += messages.stream().anyMatch(BrainTopicStructure.Message::bulk) ? 1 : 0;
-						Set<String> seen = new HashSet<>();
-						messages.forEach(m -> seen.add(m.sender()));
-						seen.remove(me);
-						seen.forEach(p -> people.merge(p, 1, Integer::sum));
-					}
-					int children = (int) tree.byId().values().stream().filter(f -> folder.equals(f.parentId()))
-							.count();
-					String id = "f" + (cards.size() + 1);
-					byCard.put(id, folder);
-					cards.add(BrainFolderRoles.card(id, tree.path(folder), children, e.getValue().size(),
-							folderWrote.getOrDefault(folder, Set.of()).size(), bulk,
-							people.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-									.limit(3).map(Map.Entry::getKey).toList(),
-							e.getValue().stream().map(subjects::get).filter(x -> x != null && !x.isBlank()).distinct()
-									.limit(8).toList()));
-				});
-		Map<String, String> roles = new HashMap<>();
-		if (!cards.isEmpty()) {
-			BrainFolderRoles.judge(caller, cards).forEach((card, role) -> roles.put(byCard.get(card), role));
-		}
-		return roles;
+		return BrainTopicStructure.prepare(input, me, ownOrg::isMine, vipEmails, settings, sentHistory);
 	}
 
 	// the person's address when they are an included participant no keep-out rule covers here

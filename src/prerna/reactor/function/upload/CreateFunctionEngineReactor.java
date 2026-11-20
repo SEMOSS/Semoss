@@ -29,6 +29,7 @@ package prerna.reactor.function.upload;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -37,6 +38,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -47,15 +49,12 @@ import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -66,15 +65,28 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateFunctionEngineReactor.class);
 
 	public CreateFunctionEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.FUNCTION.getKey(),
-				ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
 				ReactorKeysEnum.FILE_PATH.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = requireUser();
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create a function engine",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
+
+		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+			if (this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		}
 
 		// throw error is user doesn't have rights to publish new databases
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
@@ -87,7 +99,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String functionName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
+		String functionName = getStringFromKeyOrCurRowStringValue(ReactorKeysEnum.FUNCTION.getKey());
 		if (functionName == null || (functionName = functionName.trim()).isEmpty()) {
 			throw new NullPointerException("Must define the name of the new function engine");
 		}
@@ -145,7 +157,10 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 			UploadUtilities.addEngineToDIHelper(functionId, functionName, function, smssFile);
 			SecurityEngineUtils.addEngine(functionId, false, user);
 
-			SecurityEngineUtils.addEngineOwner(user, functionId);
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
+			}
 
 			// Initialize git and commit initial engine files
 			try {
@@ -161,8 +176,6 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 			}
 
 			ClusterUtil.pushEngine(functionId);
-			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.FUNCTION_CREATE, AuditTargetType.FUNCTION,
-					functionId, functionName, Map.of("functionType", functionType.getFunctionName()));
 		} catch (Exception e) {
 			classLogger.error("Unable to create function engine '{}' ({})", functionName, functionId, e);
 			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineAssetsFolder);
@@ -195,20 +208,31 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("""
+	public String getReactorDescription() {
+		return """
 				Create and register a function engine from the supplied function metadata. The reactor validates the
 				engine type, creates its assets and SMSS configuration, assigns the caller as an owner, initializes
 				version control, and synchronizes the engine to the cluster.
-				""").key(ReactorKeysEnum.CATALOG_NAME,
-				"The catalog name for the new function engine. The name must be unique and contain only supported engine-name characters.")
-				.key(ReactorKeysEnum.FUNCTION_DETAILS, """
-						The function-engine SMSS properties. The map must include FUNCTION_TYPE and the configuration
-						required by that engine type, such as FUNCTION_NAME, FUNCTION_DESCRIPTION, parameters,
-						credentials, connection settings, or provider-specific options.
-						""").key(ReactorKeysEnum.FILE_PATH, """
-						Optional path to a file in the current insight folder. For LOCAL_PYTHON engines, each supplied
-						file is moved into the new engine assets folder.
-						""");
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.FUNCTION.getKey().equals(key)) {
+			return "The catalog name for the new function engine. The name must be unique and contain only supported engine-name characters.";
+		} else if (ReactorKeysEnum.FUNCTION_DETAILS.getKey().equals(key)) {
+			return """
+					The function-engine SMSS properties. The map must include FUNCTION_TYPE and the configuration
+					required by that engine type, such as FUNCTION_NAME, FUNCTION_DESCRIPTION, parameters,
+					credentials, connection settings, or provider-specific options.
+					""";
+		} else if (ReactorKeysEnum.FILE_PATH.getKey().equals(key)) {
+			return """
+					Optional path to a file in the current insight folder. For LOCAL_PYTHON engines, each supplied
+					file is moved into the new engine assets folder.
+					""";
+		}
+
+		return super.getDescriptionForKey(key);
 	}
 }

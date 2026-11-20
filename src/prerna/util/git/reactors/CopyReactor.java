@@ -43,6 +43,7 @@ import org.json.JSONObject;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -53,7 +54,6 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -92,6 +92,8 @@ public class CopyReactor extends AbstractReactor {
 	private static final String TARGET = "target";
 	private static final String TARGET_TYPE = "targetType";
 	private static final String TARGET_FILE_PATH = "targetFilePath";
+	private static final String OVERRIDE = ReactorKeysEnum.OVERRIDE.getKey();
+	private static final String COMMENT = ReactorKeysEnum.COMMENT_KEY.getKey();
 
 	private enum SpaceType {
 		INSIGHT, ROOM, PROJECT, ENGINE, USER;
@@ -124,14 +126,18 @@ public class CopyReactor extends AbstractReactor {
 
 	public CopyReactor() {
 		this.keysToGet = new String[] { SOURCE, SOURCE_TYPE, SOURCE_FILE_PATH, TARGET, TARGET_TYPE, TARGET_FILE_PATH,
-				ReactorKeysEnum.OVERRIDE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
+				OVERRIDE, COMMENT };
 		this.keyRequired = new int[] { 0, 1, 1, 0, 1, 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
 		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		SpaceType sourceType = SpaceType.parse(SOURCE_TYPE, this.keyValue.get(SOURCE_TYPE));
 		SpaceType targetType = SpaceType.parse(TARGET_TYPE, this.keyValue.get(TARGET_TYPE));
@@ -143,8 +149,8 @@ public class CopyReactor extends AbstractReactor {
 		String sourceAbsolute = absolutePath(source.assetFolder, sourceRelative);
 		String targetAbsolute = absolutePath(target.assetFolder, targetRelative);
 
-		boolean override = getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false);
-		String comment = this.keyValue.get(ReactorKeysEnum.COMMENT_KEY.getKey());
+		boolean override = getBoolean(OVERRIDE, false);
+		String comment = this.keyValue.get(COMMENT);
 		if (comment == null || comment.trim().isEmpty()) {
 			comment = "copy: " + sourceRelative + " (" + sourceType + ") to " + targetRelative + " (" + targetType
 					+ ")";
@@ -156,34 +162,33 @@ public class CopyReactor extends AbstractReactor {
 			lock.lock();
 		}
 		try {
-			File written = FileSystemUtil.copyResolvedFile(sourceAbsolute, targetAbsolute, override);
-			String writtenRelative = FileSystemUtil.siblingPath(targetRelative, written.getName());
+			long size = FileSystemUtil.copyResolvedFile(sourceAbsolute, targetAbsolute, override);
 
 			if (target.gitFolder != null) {
 				// Version history on asset folders is bookkeeping. The file is on disk;
 				// a git problem must not turn a successful copy into a failed pixel.
 				try {
 					List<String> toAdd = new ArrayList<>();
-					toAdd.add(Constants.ASSETS_FOLDER + "/" + writtenRelative);
+					toAdd.add(Constants.ASSETS_FOLDER + "/" + targetRelative);
 					GitRepoUtils.addSpecificFiles(target.gitFolder, toAdd);
 					AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 					GitRepoUtils.commitAddedFiles(target.gitFolder, comment, accessToken.getResolvedUsername(),
 							accessToken.getEmail());
 				} catch (RuntimeException e) {
-					classLogger.error("Copied {} into {} {} but could not record it in git", writtenRelative,
-							targetType, target.id, e);
+					classLogger.error("Copied {} into {} {} but could not record it in git", targetRelative, targetType,
+							target.id, e);
 				}
 			}
 
-			push(target, written.getAbsolutePath());
+			push(target, targetAbsolute);
 
 			Map<String, Object> result = new HashMap<>();
 			result.put(TARGET_TYPE, targetType.name());
 			if (target.id != null) {
 				result.put(TARGET, target.id);
 			}
-			result.put(TARGET_FILE_PATH, writtenRelative);
-			result.put("size", written.length());
+			result.put(TARGET_FILE_PATH, targetRelative);
+			result.put("size", size);
 			result.put("versioned", target.gitFolder != null);
 			return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 		} finally {
@@ -362,32 +367,50 @@ public class CopyReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Copy a single file between asset locations (insight, room, project, engine, user). "
-						+ "Requires view access on the source and edit access on the target. Project, engine and user targets "
-						+ "are committed to git and replicated to cloud storage in a cluster.")
-				.key(SOURCE,
-						"Id of the source location: room id, project id, or engine id. Ignored for INSIGHT (the current insight) and USER (the logged in user).")
-				.key(SOURCE_TYPE, "One of INSIGHT, ROOM, PROJECT, ENGINE, USER.")
-				.key(SOURCE_FILE_PATH, "File to copy, relative to the source location's assets folder.")
-				.key(TARGET,
-						"Id of the target location: room id, project id, or engine id. Ignored for INSIGHT and USER.")
-				.key(TARGET_TYPE, "One of INSIGHT, ROOM, PROJECT, ENGINE, USER.")
-				.key(TARGET_FILE_PATH,
-						"Destination path, relative to the target location's assets folder. Parent folders are created as needed. "
-								+ "The result's targetFilePath is the path written, which carries a copy number when the destination was taken.")
-				.key(ReactorKeysEnum.OVERRIDE,
-						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_KEEP_DESCRIPTION))
-				.key(ReactorKeysEnum.COMMENT_KEY,
-						"Git commit message used when the target is a project, engine, or user location.");
+	public String getReactorDescription() {
+		return "Copy a single file between asset locations (insight, room, project, engine, user). "
+				+ "Requires view access on the source and edit access on the target. Project, engine and user targets "
+				+ "are committed to git and replicated to cloud storage in a cluster.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		switch (key) {
+		case SOURCE:
+			return "Id of the source location: room id, project id, or engine id. Ignored for INSIGHT (the current insight) and USER (the logged in user).";
+		case SOURCE_TYPE:
+			return "One of INSIGHT, ROOM, PROJECT, ENGINE, USER.";
+		case SOURCE_FILE_PATH:
+			return "File to copy, relative to the source location's assets folder.";
+		case TARGET:
+			return "Id of the target location: room id, project id, or engine id. Ignored for INSIGHT and USER.";
+		case TARGET_TYPE:
+			return "One of INSIGHT, ROOM, PROJECT, ENGINE, USER.";
+		case TARGET_FILE_PATH:
+			return "Destination path, relative to the target location's assets folder. Parent folders are created as needed.";
+		default:
+			if (key.equals(OVERRIDE)) {
+				return "Whether to replace an existing destination file. Defaults to false, in which case an existing destination is an error.";
+			} else if (key.equals(COMMENT)) {
+				return "Git commit message used when the target is a project, engine, or user location.";
+			}
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 	@Override
 	public JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
+		properties.getJSONObject(OVERRIDE).put("default", false);
 		return properties;
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(OVERRIDE)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 }

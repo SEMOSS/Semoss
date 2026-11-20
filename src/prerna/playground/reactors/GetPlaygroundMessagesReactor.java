@@ -62,7 +62,10 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		String dateSortStr = this.keyValue.get(ReactorKeysEnum.SORT.getKey());
 		String dateSort = "ASC";
 
-		User user = requireUser();
+		User user = this.insight.getUser();
+		if (user == null) {
+			throw new IllegalArgumentException("You are not properly logged in");
+		}
 		String userId = user.getPrimaryLoginToken().getId();
 
 		/**

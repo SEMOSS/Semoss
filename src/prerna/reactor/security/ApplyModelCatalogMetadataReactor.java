@@ -29,7 +29,6 @@ package prerna.reactor.security;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -39,14 +38,13 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.Utility;
@@ -61,9 +59,9 @@ import prerna.util.Utility;
  * <p>
  * Every property the catalog defines for the entry replaces the stored value.
  * Properties the catalog cannot speak to - the serving provider, built-in
- * tools, and description - are left as they are. Pass dryRun to get the list of
- * fields that would change without writing anything, which is what the settings
- * screen shows in its confirmation dialog.
+ * tools, and description - are left as they are. Pass dryRun to get the list
+ * of fields that would change without writing anything, which is what the
+ * settings screen shows in its confirmation dialog.
  */
 public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 
@@ -86,6 +84,7 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 		}
 
 		User user = this.insight.getUser();
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 			throw new IllegalArgumentException("Model engine does not exist or user does not have access to edit it");
 		}
@@ -95,14 +94,6 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 
 		String catalogKey = resolveCatalogKey();
 		boolean dryRun = Boolean.parseBoolean(this.keyValue.get(DRY_RUN_KEY) + "");
-
-		// prices decide how far the model's usage limits go, so only the model's owners
-		// can change them, here as anywhere
-		if (!dryRun && !SecurityEngineUtils.userIsOwner(user, engineId)
-				&& changesPrices(SecurityModelMetadataUtils.applyCatalogMetadata(engineId, catalogKey, true))) {
-			throw new IllegalArgumentException("Only the model's owners can change its prices, and applying the "
-					+ "model catalog would change them");
-		}
 
 		Map<String, Object> result = SecurityModelMetadataUtils.applyCatalogMetadata(engineId, catalogKey, dryRun);
 		String status = String.valueOf(result.get("status"));
@@ -123,7 +114,8 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 			lock.lock();
 			try {
 				IModelEngine modelEngine = Utility.getModel(engineId);
-				modelEngine.reload();
+				modelEngine.close();
+				modelEngine.open(modelEngine.getSmssFilePath());
 			} catch (Exception e) {
 				classLogger.error("Failed to reload model engine '{}' after applying the catalog metadata",
 						Utility.cleanLogString(engineId), e);
@@ -148,8 +140,8 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 
 	/**
 	 * The exact catalog key the requested entry resolves to, or null when the
-	 * caller did not name one. The key is resolved the same way a model id is, so a
-	 * provider id that maps onto a catalog key is accepted and stored in its
+	 * caller did not name one. The key is resolved the same way a model id is, so
+	 * a provider id that maps onto a catalog key is accepted and stored in its
 	 * canonical form.
 	 */
 	private String resolveCatalogKey() {
@@ -171,18 +163,20 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Overwrites a model engine's stored metadata with its meta/model.json catalog entry, "
-						+ "optionally associating the engine with a different entry first")
-				.key(CATALOG_KEY,
-						"Optional catalog entry to associate with the engine and apply. "
-								+ "Defaults to the entry already associated, falling back to the engine's model id")
-				.key(DRY_RUN_KEY, "Report the fields that would change without writing anything. Default false");
+	public String getReactorDescription() {
+		return "Overwrites a model engine's stored metadata with its meta/model.json catalog entry, "
+				+ "optionally associating the engine with a different entry first";
 	}
 
-	private static boolean changesPrices(Map<String, Object> dryRunResult) {
-		Object changed = dryRunResult.get("changedFields");
-		return changed instanceof Collection<?> fields && fields.contains(Constants.PRICING);
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(CATALOG_KEY)) {
+			return "Optional catalog entry to associate with the engine and apply. "
+					+ "Defaults to the entry already associated, falling back to the engine's model id";
+		}
+		if (key.equals(DRY_RUN_KEY)) {
+			return "Report the fields that would change without writing anything. Default false";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

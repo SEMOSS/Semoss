@@ -212,4 +212,24 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 
+	@Override
+	public void setModelMaxTokens(int modelMaxTokens) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+
+	@Override
+	public void setModelMaxResponseTime(double modelMaxResponseTime) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+
+	@Override
+	public void setModelUsageFrequency(String modelUsageFrequency) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+
+	@Override
+	public void setModelUsageRestriction(String modelUsageRestriction) {
+		throw new IllegalArgumentException("This object cannot be modified");
+	}
+
 }

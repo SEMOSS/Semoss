@@ -41,7 +41,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -55,14 +54,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final String SELECT = "id,internetMessageId,conversationId,subject,from,toRecipients,ccRecipients,"
-			+ "receivedDateTime,parentFolderId,sender,inferenceClassification,categories,flag,importance,hasAttachments,"
-			+ "isDraft,lastModifiedDateTime";
-	// system folders by Graph's well-known name; the rest are the owner's own
-	static final List<String> WELL_KNOWN = List.of("inbox", "sentitems", "archive", "deleteditems", "junkemail",
-			"drafts", "outbox", "conversationhistory", "scheduled", "syncissues", "clutter");
-	// a mailbox with more folders than this is read to here
-	private static final int MAX_FOLDERS = 2000;
-	private static final int FOLDER_PAGE = 250;
+			+ "receivedDateTime,parentFolderId,sender,inferenceClassification";
 	// Graph allows up to 1000 messages a page; headers only, so a page stays small
 	private static final int PAGE = 500;
 	private static final int BATCH = 20;
@@ -71,9 +63,6 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	private static final int CHAT_PAGE = 50;
 	// the subject of a chat with no topic of its own
 	static final String CHAT_PREFIX = "Chat: ";
-	// a call Graph leaves unanswered this long fails, so the job it is part of ends with Retry rather than waiting
-	// for good; BrainGraphMessageSource uses it too
-	static final Timeout TIMEOUT = Timeout.ofMinutes(2);
 	private static final String USER_SELECT = "id,displayName,mail,userPrincipalName,jobTitle,department,companyName,"
 			+ "accountEnabled,userType";
 	private static final Logger classLogger = LogManager.getLogger(BrainGraphHeaderSource.class);
@@ -128,68 +117,11 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		return get(user, BASE + "/me/messages/" + encode(messageId) + "?$select=" + SELECT + ",internetMessageHeaders");
 	}
 
-	@Override
-	public List<Map<String, Object>> folders(User user) throws Exception {
-		String token = MicrosoftLoginUtils.getValidAccessToken(user);
-		// the system folders' ids in one call; a mailbox without one (no Archive) answers 404 for it
-		List<Map<String, Object>> requests = new ArrayList<>();
-		for (int i = 0; i < WELL_KNOWN.size(); i++) {
-			requests.add(Map.of("id", String.valueOf(i), "method", "GET", "url",
-					"/me/mailFolders/" + WELL_KNOWN.get(i) + "?$select=id"));
-		}
-		Map<String, String> wellKnown = new java.util.HashMap<>();
-		Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
-				BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
-				CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null, null,
-				null, TIMEOUT));
-		for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
-			if (r instanceof Map<?, ?> response && response.get("body") instanceof Map<?, ?> body
-					&& body.get("id") instanceof String id && response.get("status") instanceof Number status
-					&& status.intValue() == 200) {
-				wellKnown.put(id, WELL_KNOWN.get(Integer.parseInt(String.valueOf(response.get("id")))));
-			}
-		}
-		// breadth first from the top, every page of every level
-		List<Map<String, Object>> out = new ArrayList<>();
-		java.util.Deque<String> pending = new java.util.ArrayDeque<>();
-		pending.add(BASE + "/me/mailFolders?$top=" + FOLDER_PAGE
-				+ "&$select=id,parentFolderId,displayName,totalItemCount,childFolderCount");
-		while (!pending.isEmpty() && out.size() < MAX_FOLDERS) {
-			String url = pending.poll();
-			while (url != null && out.size() < MAX_FOLDERS) {
-				Map<String, Object> page = get(token, url);
-				for (Map<String, Object> folder : values(page)) {
-					Map<String, Object> row = new LinkedHashMap<>(folder);
-					row.put("wellKnownName", wellKnown.get(folder.get("id")));
-					out.add(row);
-					if (folder.get("childFolderCount") instanceof Number children && children.intValue() > 0) {
-						pending.add(BASE + "/me/mailFolders/" + encode(String.valueOf(folder.get("id")))
-								+ "/childFolders?$top=" + FOLDER_PAGE
-								+ "&$select=id,parentFolderId,displayName,totalItemCount,childFolderCount");
-					}
-				}
-				url = (String) page.get("@odata.nextLink");
-			}
-		}
-		return out;
-	}
-
-	@Override
-	public List<Map<String, Object>> allMail(User user, Instant since, int max, boolean changed) throws Exception {
-		String field = changed ? "lastModifiedDateTime" : "receivedDateTime";
-		return page(user, BASE + "/me/messages?$select=" + SELECT + ",internetMessageHeaders&$top=" + PAGE
-				+ "&$orderby=" + field + "%20desc&$filter=" + encode(field + " ge " + since), max);
-	}
-
-	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields) throws Exception {
-		return page(user, BASE + "/me/mailFolders/" + folder + "/messages?$select=" + fields + "&$top=" + PAGE
-				+ "&$orderby=receivedDateTime%20desc&$filter=" + encode("receivedDateTime ge " + since), max);
-	}
-
 	@SuppressWarnings("unchecked")
-	private static List<Map<String, Object>> page(User user, String first, int max) throws Exception {
+	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields) throws Exception {
 		List<Map<String, Object>> out = new ArrayList<>();
-		String url = first;
+		String url = BASE + "/me/mailFolders/" + folder + "/messages?$select=" + fields + "&$top=" + PAGE
+				+ "&$orderby=receivedDateTime%20desc&$filter=" + encode("receivedDateTime ge " + since);
 		while (url != null && out.size() < max) {
 			Map<String, Object> page = get(user, url);
 			if (page.get("value") instanceof List<?> values) {
@@ -446,7 +378,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			// $search on users needs eventual consistency
 			headers.put("ConsistencyLevel", "eventual");
 			for (Map<String, Object> row : values(
-					CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url, headers, null, null, null, TIMEOUT)))) {
+					CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url, headers, null, null, null)))) {
 				String email = address(row);
 				// admin and service accounts have no mailbox
 				if (email == null || row.get("mail") == null || Boolean.FALSE.equals(row.get("accountEnabled"))) {
@@ -493,13 +425,6 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			classLogger.warn("Could not read the org chart: {}", e.getMessage());
 		}
 		return out;
-	}
-
-	@Override
-	public byte[] photo(User user, String path) throws Exception {
-		// User.Read covers the owner's own photo, anyone else's needs User.ReadBasic.All or more; 404 when none is set
-		return HttpHelperUtility.getRequestBytes(BASE + path,
-				MicrosoftLoginUtils.getBearerHeader(MicrosoftLoginUtils.getValidAccessToken(user)), null, null, null);
 	}
 
 	// person, guest, or a mailbox with no one signing in to it (shared, room, or a
@@ -550,7 +475,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 					Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 							BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 							CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON,
-							null, null, null, TIMEOUT));
+							null, null, null));
 					for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
 						Map<String, Object> response = (Map<String, Object>) r;
 						int status = ((Number) response.getOrDefault("status", 0)).intValue();
@@ -608,8 +533,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	private static Map<String, Object> get(String token, String url) throws Exception {
-		return CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url,
-				MicrosoftLoginUtils.getBearerHeader(token), null, null, null, TIMEOUT));
+		return CollaborationDbUtils.parseMap(
+				HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
 	}
 
 	private static String encode(String value) {

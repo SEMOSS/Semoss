@@ -46,14 +46,15 @@ import com.google.gson.JsonSyntaxException;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cache.InsightCacheUtility;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.SmssUtilities;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.PixelList;
-import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.query.parsers.ParamStruct;
 import prerna.query.parsers.ParamStructDetails;
@@ -87,19 +88,22 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// Workflow for this insight
-		// 1) Permission checks / pulling the recipe from the insights database
-		// 2) Do we want to use an existing insight that the user has opened?
-		// - If yes and it is opened, redirect to the UI state
-		// 3) Running the base insight recipe or pulling the cached insight
-		// 4) Parameter insight
-		// - Params are set in THIS current insight (not the new insight being created
-		// from the reactor)
-		// - If they are set, we then look for panel 0 and make sure it has a param view
-		// - If yes, then we do the replacement and run that pixel
-		// 5) Run any additional pixels that are also passed in
-		// - Such as scheduling an export after the insight runs (after the parameter
-		// filled recipe)
+		/*
+		 * Workflow for this insight
+		 * 
+		 * 1) Permission checks / pulling the recipe from the insights database 2)
+		 * Legacy insight check - not really important for most developers 3) Do we want
+		 * to use an existing insight that the user has opened? ******* If yes and it is
+		 * opened - redirect to the UI State 4) Running the base insight recipe or
+		 * pulling the cached insight 5) Parameter insight ******* Params are set in
+		 * THIS current insight (not the new insight being created from the reactor)
+		 * ******* If they are set, we then look for Panel 0 and make sure it has a
+		 * param view ******* If yes - then we do the replacement and run that pixel 6)
+		 * Run any additional pixels that are also passed in ******* This is things like
+		 * scheduling an export post insight execution (but post the parameter filled
+		 * recipe)
+		 * 
+		 */
 
 		Logger logger = getLogger(CLASS_NAME);
 
@@ -119,6 +123,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 
 		User user = this.insight.getUser();
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityInsightUtils.userCanViewInsight(user, projectId, rdbmsId)) {
 			NounMetadata noun = new NounMetadata("User does not have access to this insight",
 					PixelDataType.CONST_STRING, PixelOperationType.ERROR);
@@ -141,10 +146,8 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		try {
 			newInsight = SecurityInsightUtils.getInsight(projectId, rdbmsId);
 		} catch (Exception e) {
-			logger.warn(
-					"Failed to load insight {} in project {} from the security database, loading it from the project",
-					rdbmsId, projectId, e);
-			logger.info("Pulling project from cloud storage, projectId={}", projectId);
+			logger.warn(Constants.STACKTRACE, e);
+			logger.info("Pulling project from cloud storage, projectId=" + projectId);
 			ClusterUtil.pullInsightsDB(projectId);
 			// this is needed for the pipeline json
 			ClusterUtil.pullProjectFolder(project,
@@ -176,11 +179,22 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 			// get the app_root folder for the project
 			String projectAppRootFolder = AssetUtility.getProjectAppRootFolder(project.getProjectName(),
 					project.getProjectId());
-			this.insight.getUser().getSandbox().grantFolder(projectAppRootFolder);
+			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(projectAppRootFolder);
 		}
 
 		/*
-		 * 2) Do we want to use an existing insight that the user has opened?
+		 * 2) Legacy insight check - not really important for most developers
+		 */
+
+		// OLD INSIGHT
+		if (newInsight instanceof OldInsight) {
+			return getOldInsightReturn((OldInsight) newInsight);
+		}
+
+		// yay... not legacy
+
+		/*
+		 * 3) Do we want to use an existing insight that the user has opened?
 		 */
 		if (user != null && useExistingInsightIfOpen()) {
 			List<String> userOpen = user.getOpenInsightInstances(projectId, rdbmsId);
@@ -204,7 +218,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		}
 
 		/*
-		 * 3) Running the base insight recipe or pulling the cached insight
+		 * 4) Running the base insight recipe or pulling the cached insight
 		 */
 
 		Boolean cacheable = getUserDefinedCacheable();
@@ -233,7 +247,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 				}
 			} catch (IOException | RuntimeException e) {
 				hasCache = true;
-				classLogger.error("Failed to read the cache of insight {}", rdbmsId, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		// note! if we have a cached insight
@@ -241,7 +255,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 
 		// add the insight to the insight store
 		InsightStore.getInstance().put(newInsight);
-		InsightStore.getInstance().addToSessionHash(ThreadStore.getSessionId(), newInsight.getInsightId());
+		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 		// set user
 		newInsight.setUser(user);
 
@@ -267,7 +281,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 						paramValues, true);
 				additionalMetas.add(getWarning(
 						"An error occurred with retrieving the cache for this insight. System has deleted the cache and recreated the insight."));
-				classLogger.error("Failed to load the cache of insight {}, rerunning its recipe", rdbmsId, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -292,9 +306,9 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 					ClusterUtil.pushProjectFolder(projectId, cacheFolder, relative.toString());
 				} catch (InsightEncryptionException e) {
 					additionalMetas.add(NounMetadata.getWarningNounMessage(e.getMessage()));
-					classLogger.error("Failed to encrypt the cache of insight {}", rdbmsId, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				} catch (IOException e) {
-					classLogger.error("Failed to cache insight {}", rdbmsId, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}
@@ -426,7 +440,7 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 											PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.FRAME_HEADERS),
 									true);
 						} catch (Exception e) {
-							classLogger.error("Failed to add the headers of cached frame {}", k, e);
+							classLogger.error(Constants.STACKTRACE, e);
 							// ignore
 						}
 					}
@@ -545,6 +559,29 @@ public class OpenInsightReactor extends AbstractInsightReactor {
 		// return the runner - should be the runner from executing RunParameterRecipe
 		// if execution was successful
 		return runner;
+	}
+
+	/**
+	 * For legacy insights Do not use other than to handle that case
+	 * 
+	 * @param oldInsight
+	 * @return
+	 */
+	private NounMetadata getOldInsightReturn(OldInsight oldInsight) {
+		Map<String, Object> insightMap = new HashMap<String, Object>();
+		// return to the FE the recipe
+		insightMap.put("name", oldInsight.getInsightName());
+		// keys below match those in solr
+		insightMap.put("app_id", oldInsight.getProjectId());
+		insightMap.put("app_name", oldInsight.getProjectName());
+		insightMap.put("app_insight_id", oldInsight.getRdbmsId());
+
+		// LEGACY PARAMS
+		insightMap.put("core_engine", oldInsight.getProjectName());
+		insightMap.put("core_engine_id", oldInsight.getRdbmsId());
+
+		insightMap.put("layout", oldInsight.getOutput());
+		return new NounMetadata(insightMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OLD_INSIGHT);
 	}
 
 }

@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.imports;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -108,7 +107,7 @@ public class MergeReactor extends AbstractReactor {
 		// btw this can also be valid for HardQueryStruct any frame possibly..
 		ITableDataFrame mergeFrame = null;
 
-		ITableDataFrame curFrame = this.insight.getCurrentFrame();
+		ITableDataFrame curFrame = this.insight.getCurFrame();
 
 		if (frame instanceof NativeFrame) {
 			try {
@@ -136,7 +135,11 @@ public class MergeReactor extends AbstractReactor {
 						classLogger.error("Failed to merge data from the task into the frame", e);
 						throw new SemossPixelException(e.getMessage(), e);
 					} finally {
-						closeAfterMerge(task);
+						try {
+							task.close();
+						} catch (IOException e) {
+							classLogger.error("Failed to close the task after merging into the frame", e);
+						}
 					}
 				} else {
 					throw new IllegalArgumentException("Could not find any data input to merge into the frame");
@@ -156,7 +159,7 @@ public class MergeReactor extends AbstractReactor {
 				this.insight.getVarStore().put(frame.getName(), noun);
 			}
 			if (frame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
-				this.insight.setCurrentFrame(mergeFrame);
+				this.insight.setDataMaker(mergeFrame);
 			}
 		}
 
@@ -339,8 +342,9 @@ public class MergeReactor extends AbstractReactor {
 			classLogger.info("Adjusting merge query with limit 1 because frame is empty");
 		}
 
-		IRawSelectWrapper it = ImportUtility.generateIterator(qs, frame);
+		IRawSelectWrapper it = null;
 		try {
+			it = ImportUtility.generateIterator(qs, frame);
 			if (!FrameSizeRetrictions.importWithinLimit(frame, it)) {
 				SemossPixelException exception = new SemossPixelException(
 						new NounMetadata("Frame size is too large, please limit the data size before proceeding",
@@ -363,24 +367,13 @@ public class MergeReactor extends AbstractReactor {
 
 			return frame;
 		} finally {
-			closeAfterMerge(it);
-		}
-	}
-
-	/**
-	 * Closes the task or iterator a merge read from. The merge has changed the
-	 * frame by then, so a failure to close is logged rather than failing the merge.
-	 *
-	 * @param source the task or iterator, or null
-	 */
-	private static void closeAfterMerge(Closeable source) {
-		if (source == null) {
-			return;
-		}
-		try {
-			source.close();
-		} catch (IOException e) {
-			classLogger.error("Failed to close the data source after merging into the frame", e);
+			if (it != null) {
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error("Failed to close the iterator after merging into the frame", e);
+				}
+			}
 		}
 	}
 
@@ -494,7 +487,7 @@ public class MergeReactor extends AbstractReactor {
 			return (ITableDataFrame) frameCur.get(0).getValue();
 		}
 
-		ITableDataFrame defaultFrame = this.insight.getCurrentFrame();
+		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
 		this.store.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey())
 				.add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
 		return defaultFrame;

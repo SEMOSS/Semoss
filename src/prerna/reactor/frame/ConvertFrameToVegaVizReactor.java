@@ -43,7 +43,6 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -166,7 +165,7 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 		// else, grab the default frame from the insight
 		// put this into the noun store
 		// so that we can pull it for other pipeline
-		ITableDataFrame defaultFrame = this.insight.getCurrentFrame();
+		ITableDataFrame defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
 		if (defaultFrame != null) {
 			this.store.makeNoun(ReactorKeysEnum.FRAME.getKey())
 					.add(new NounMetadata(defaultFrame, PixelDataType.FRAME));
@@ -539,11 +538,19 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Converts a Frame into a Vega Block JSON spec template. The data field will be empty but sometimes partially filled out")
-				.key(ReactorKeysEnum.FRAME, "This is a required value that takes in the frame id.")
-				.key(ReactorKeysEnum.MODEL, "This is a required value that takes in the model id").key(USER_INPUT,
-						"This is an optional field to steer the model's graph generation behavior tailored to the user's prompt.");
+	public String getReactorDescription() {
+		return "Converts a Frame into a Vega Block JSON spec template. The data field will be empty but sometimes partially filled out";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FRAME.getKey())) {
+			return "This is a required value that takes in the frame id.";
+		} else if (key.equals(ReactorKeysEnum.MODEL.getKey())) {
+			return "This is a required value that takes in the model id";
+		} else if (key.equals(USER_INPUT)) {
+			return "This is an optional field to steer the model's graph generation behavior tailored to the user's prompt.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

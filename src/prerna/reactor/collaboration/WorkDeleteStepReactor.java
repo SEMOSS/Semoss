@@ -29,7 +29,6 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkWorkspaceUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkDeleteStep(threadId=["..."], stepId=["..."]);
@@ -58,8 +57,17 @@ public class WorkDeleteStepReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Removes a step from a thread workspace")
-				.key(THREAD_ID, "Thread id").key(STEP_ID, "Step id");
+	public String getReactorDescription() {
+		return "Removes a step from a thread workspace";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		} else if (STEP_ID.equals(key)) {
+			return "Step id";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

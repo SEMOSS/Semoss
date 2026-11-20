@@ -34,7 +34,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -70,10 +69,16 @@ public class ServiceNowListTablesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Fetches all the tables present in a ServiceNow instance via OAuth authentication.")
-				.key(INSTANCE_URL, "Required URL of the ServiceNow user's instance.");
+	public String getReactorDescription() {
+		return "Fetches all the tables present in a ServiceNow instance via OAuth authentication.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(INSTANCE_URL)) {
+			return "Required URL of the ServiceNow user's instance.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

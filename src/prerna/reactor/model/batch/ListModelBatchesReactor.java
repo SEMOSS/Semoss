@@ -33,7 +33,6 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.impl.model.batch.ModelBatchManager;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -74,8 +73,7 @@ public class ListModelBatchesReactor extends AbstractModelBatchReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("List the batches you submitted to a model engine, most recent first");
+	public String getReactorDescription() {
+		return "List the batches visible to a model engine's provider credentials";
 	}
 }

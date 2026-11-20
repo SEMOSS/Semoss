@@ -79,7 +79,7 @@ public class ImputeNullValuesReactor extends AbstractRFrameReactor {
 		// now create the frame and return the noun
 		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.asDataTable(frameName, newFrameName));
 		RDataTable newTable = createNewFrameFromVariable(frameName);
-		this.insight.setCurrentFrame(newTable);
+		this.insight.setDataMaker(newTable);
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 		this.insight.getVarStore().put(frameName, noun);

@@ -29,9 +29,7 @@ package prerna.engine.impl.model.openai;
 
 import java.io.IOException;
 import java.io.Writer;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.github.f4b6a3.uuid.alt.GUID;
@@ -70,7 +68,6 @@ public class OpenAIResponsesStream extends AbstractOpenAISseStream {
 	private int outputIndex = 0;
 	private int contentIndex = 0;
 	private final StringBuilder currentAccumulator = new StringBuilder();
-	private final List<Map<String, Object>> completedItems = new ArrayList<>();
 
 	// Token usage forwarded by Python via stream_type="usage".
 	// Attached to response.completed.response.usage at end of stream.
@@ -161,7 +158,6 @@ public class OpenAIResponsesStream extends AbstractOpenAISseStream {
 				doneEvent.put("output_index", this.outputIndex);
 				doneEvent.put("item", doneItem);
 				OpenAIResponsesHelper.writeSSEEvent(doneEvent, writer);
-				this.completedItems.add(doneItem);
 
 				this.outputIndex++;
 				this.imgItemId = null;
@@ -172,10 +168,6 @@ public class OpenAIResponsesStream extends AbstractOpenAISseStream {
 
 		if ("usage".equalsIgnoreCase(streamType)) {
 			captureUsage(streamData);
-			return false;
-		}
-		if (!"content".equalsIgnoreCase(streamType) && !"tool".equalsIgnoreCase(streamType)
-				&& !"function_call".equalsIgnoreCase(streamType)) {
 			return false;
 		}
 
@@ -201,9 +193,9 @@ public class OpenAIResponsesStream extends AbstractOpenAISseStream {
 							this.outputIndex, this.contentIndex, this.currentAccumulator.toString());
 					this.isContentPartOpen = false;
 				}
-				this.completedItems.add(OpenAIResponsesHelper.sendItemDone(writer, this.seq++, this.responseId, this.currentItemId,
+				OpenAIResponsesHelper.sendItemDone(writer, this.seq++, this.responseId, this.currentItemId,
 						this.outputIndex, this.currentItemType, this.currentAccumulator.toString(),
-						this.currentToolName));
+						this.currentToolName);
 
 				this.outputIndex++;
 				this.currentAccumulator.setLength(0);
@@ -291,8 +283,8 @@ public class OpenAIResponsesStream extends AbstractOpenAISseStream {
 				OpenAIResponsesHelper.sendContentPartDone(writer, this.seq++, this.responseId, this.currentItemId,
 						this.outputIndex, this.contentIndex, this.currentAccumulator.toString());
 			}
-			this.completedItems.add(OpenAIResponsesHelper.sendItemDone(writer, this.seq++, this.responseId, this.currentItemId,
-					this.outputIndex, this.currentItemType, this.currentAccumulator.toString(), this.currentToolName));
+			OpenAIResponsesHelper.sendItemDone(writer, this.seq++, this.responseId, this.currentItemId,
+					this.outputIndex, this.currentItemType, this.currentAccumulator.toString(), this.currentToolName);
 		}
 
 		Map<String, Object> completedEvent = OpenAIResponsesHelper.createBaseEvent("response.completed", this.seq++,
@@ -304,7 +296,6 @@ public class OpenAIResponsesStream extends AbstractOpenAISseStream {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> completedResp = (Map<String, Object>) completedRespObj;
 			completedResp.put("status", "completed");
-			completedResp.put("output", this.completedItems);
 		}
 		OpenAIResponsesHelper.attachUsage(completedEvent, this.capturedInputTokens, this.capturedOutputTokens,
 				this.capturedCachedTokens, this.capturedReasoningTokens);
@@ -325,8 +316,8 @@ public class OpenAIResponsesStream extends AbstractOpenAISseStream {
 					this.outputIndex, this.contentIndex, this.currentAccumulator.toString());
 			this.isContentPartOpen = false;
 		}
-		this.completedItems.add(OpenAIResponsesHelper.sendItemDone(writer, this.seq++, this.responseId, this.currentItemId,
-				this.outputIndex, this.currentItemType, this.currentAccumulator.toString(), this.currentToolName));
+		OpenAIResponsesHelper.sendItemDone(writer, this.seq++, this.responseId, this.currentItemId, this.outputIndex,
+				this.currentItemType, this.currentAccumulator.toString(), this.currentToolName);
 		this.outputIndex++;
 		this.currentAccumulator.setLength(0);
 		this.currentItemId = null;

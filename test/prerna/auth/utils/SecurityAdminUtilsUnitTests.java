@@ -47,15 +47,8 @@ import org.junit.jupiter.api.Test;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
-import prerna.auth.access.ModelUsageLimitRule;
-import prerna.auth.access.ModelUsageLimitRule.Counts;
-import prerna.auth.access.ModelUsageLimitRule.Metric;
-import prerna.auth.access.ModelUsageLimitRule.Window;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -105,13 +98,6 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	///
 	/// userIsAdmin (static)
 	///
-
-	private static void saveLimit(ModelUsageLimitKey key, ModelUsageLimit limit) throws Exception {
-		QueryExecutionUtility.write(SystemEngineRegistry.getSecurityDb(), connection -> {
-			SecurityModelUsageLimitUtils.setLimit(connection, key, limit, null);
-			return null;
-		});
-	}
 
 	@Test
 	void testUserIsAdmin_adminUser() {
@@ -215,27 +201,6 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		List<Map<String, Object>> users = instance.getAllUsers(null, 10, 1);
 		assertNotNull(users);
 		assertEquals(2, users.size()); // Skips first result
-	}
-
-	@Test
-	void testGetAllUsers_allModelsDefault() throws Exception {
-		UnitTestSecurityAuthUtils.createUser("limited", false);
-		saveLimit(ModelUsageLimitKey.allModels("limitedid", "NATIVE"), ModelUsageLimit
-				.of(List.of(new ModelUsageLimitRule(Metric.COMPUTE_TIME, 1500L, Window.MONTH, Counts.EACH_PERSON))));
-
-		List<Map<String, Object>> users = instance.getAllUsers("limited", 10, 0);
-		assertEquals(1, users.size());
-		Map<String, Object> row = users.getFirst();
-		ModelUsageLimit limit = (ModelUsageLimit) row.get("model_usage_limit");
-		assertEquals(1, limit.getRules().size());
-		assertEquals(Metric.COMPUTE_TIME, limit.getRules().get(0).getMetric());
-		assertEquals(1500L, limit.getRules().get(0).getAmount());
-		assertEquals(Window.MONTH, limit.getRules().get(0).getWindow());
-
-		// no limit defined
-		Map<String, Object> admin = instance.getAllUsers("admin", 10, 0).getFirst();
-		assertTrue(admin.containsKey("model_usage_limit"));
-		assertNull(admin.get("model_usage_limit"));
 	}
 
 	///
@@ -342,34 +307,6 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	}
 
 	@Test
-	void testEditUser_withoutRolesKeepsThem() {
-		User user = UnitTestSecurityAuthUtils.createUser("testuser", true);
-
-		Map<String, Object> userInfo = testUserInfo();
-		userInfo.put("name", "Updated Name");
-		assertTrue(instance.editUser(userInfo));
-		assertTrue(SecurityAdminUtils.userIsAdmin(user));
-	}
-
-	@Test
-	void testEditUser_changesOnlyTheRolesItNames() {
-		User user = UnitTestSecurityAuthUtils.createUser("testuser", true);
-
-		Map<String, Object> userInfo = testUserInfo();
-		userInfo.put("publisher", true);
-		instance.editUser(userInfo);
-		assertTrue(SecurityAdminUtils.userIsAdmin(user));
-		assertTrue(SecurityQueryUtils.userIsPublisher(user));
-		assertFalse(SecurityQueryUtils.userIsExporter(user));
-
-		userInfo.remove("publisher");
-		userInfo.put("admin", false);
-		instance.editUser(userInfo);
-		assertFalse(SecurityAdminUtils.userIsAdmin(user));
-		assertTrue(SecurityQueryUtils.userIsPublisher(user));
-	}
-
-	@Test
 	void testEditUser_makePublisher() {
 		User user = UnitTestSecurityAuthUtils.createUser("testuser", false);
 
@@ -385,155 +322,9 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		assertTrue(result);
 	}
 
-	@Test
-	void testEditUser_modelUsageLimitAsMap() {
-		UnitTestSecurityAuthUtils.createUser("testuser", false);
-
-		Map<String, Object> rule = new HashMap<>();
-		rule.put("metric", "TOKENS");
-		rule.put("amount", 1000.0);
-		rule.put("window", "MINUTE");
-		rule.put("counts", "EACH_PERSON");
-		Map<String, Object> limit = new HashMap<>();
-		limit.put("unlimited", false);
-		limit.put("rules", List.of(rule));
-		Map<String, Object> userInfo = testUserInfo();
-		userInfo.put("model_usage_limit", limit);
-		assertTrue(instance.editUser(userInfo));
-
-		ModelUsageLimit saved = SecurityModelUsageLimitUtils
-				.getLimit(ModelUsageLimitKey.allModels("testuserid", "NATIVE"));
-		assertNotNull(saved);
-		assertEquals(1, saved.getRules().size());
-		assertEquals(Metric.TOKENS, saved.getRules().get(0).getMetric());
-		assertEquals(1000L, saved.getRules().get(0).getAmount());
-		assertEquals(Window.MINUTE, saved.getRules().get(0).getWindow());
-	}
-
-	@Test
-	void testEditUser_modelUsageLimitAsJsonAndRemoved() {
-		UnitTestSecurityAuthUtils.createUser("testuser", false);
-
-		Map<String, Object> userInfo = testUserInfo();
-		userInfo.put("model_usage_limit", "{\"unlimited\": true, \"rules\": []}");
-		instance.editUser(userInfo);
-		assertTrue(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.allModels("testuserid", "NATIVE"))
-				.isUnlimited());
-
-		userInfo.put("model_usage_limit", null);
-		instance.editUser(userInfo);
-		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.allModels("testuserid", "NATIVE")));
-	}
-
-	@Test
-	void testEditUser_modelUsageLimitNotValid() {
-		UnitTestSecurityAuthUtils.createUser("testuser", false);
-
-		// a person's own limit has no shared rules
-		Map<String, Object> userInfo = testUserInfo();
-		userInfo.put("model_usage_limit",
-				"{\"rules\": [{\"metric\": \"TOKENS\", \"amount\": 10, \"window\": \"DAY\", \"counts\": \"SHARED\"}]}");
-		assertThrows(IllegalArgumentException.class, () -> instance.editUser(userInfo));
-		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.allModels("testuserid", "NATIVE")));
-	}
-
-	@Test
-	void testEditUser_withoutModelUsageLimitKeepsTheDefault() throws Exception {
-		UnitTestSecurityAuthUtils.createUser("testuser", false);
-		saveLimit(ModelUsageLimitKey.allModels("testuserid", "NATIVE"),
-				ModelUsageLimit
-						.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 1000L, Window.MINUTE, Counts.EACH_PERSON),
-								new ModelUsageLimitRule(Metric.TOKENS, 50000L, Window.DAY, Counts.EACH_PERSON))));
-
-		// without model_usage_limit, the default is kept
-		Map<String, Object> userInfo = testUserInfo();
-		userInfo.put("name", "Updated Name");
-		instance.editUser(userInfo);
-		assertEquals(2, SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.allModels("testuserid", "NATIVE"))
-				.getRules().size());
-	}
-
-	private static Map<String, Object> testUserInfo() {
-		Map<String, Object> userInfo = new HashMap<>();
-		userInfo.put("id", "testuserid");
-		userInfo.put("type", "NATIVE");
-		userInfo.put("name", "testusername");
-		userInfo.put("email", "testuser@test.com");
-		userInfo.put("username", "testuserid");
-		return userInfo;
-	}
-
 	///
 	/// deleteUser
 	///
-
-	@Test
-	void testDeleteUser_removesModelUsageLimits() throws Exception {
-		UnitTestSecurityAuthUtils.createUser("todelete", false);
-		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", IEngine.CATALOG_TYPE.MODEL, adminUser);
-		SecurityEngineUtils.addEngineUser(adminUser, "todeleteid", "engine1", "READ_ONLY", null, null);
-		ModelUsageLimit limit = ModelUsageLimit
-				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 100L, Window.DAY, Counts.EACH_PERSON)));
-		saveLimit(ModelUsageLimitKey.allModels("todeleteid", "NATIVE"), limit);
-		saveLimit(ModelUsageLimitKey.direct("engine1", "todeleteid", null), limit);
-
-		instance.deleteUser("todeleteid", "NATIVE");
-
-		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.allModels("todeleteid", "NATIVE")));
-		assertNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct("engine1", "todeleteid", null)));
-	}
-
-	@Test
-	void testDeleteUser_requiresTheLoginType() {
-		UnitTestSecurityAuthUtils.createUser("todelete", false);
-
-		assertThrows(IllegalArgumentException.class, () -> instance.deleteUser("todeleteid", null));
-		assertThrows(IllegalArgumentException.class, () -> instance.deleteUser("todeleteid", " "));
-		assertEquals(1, instance.getAllUsers("todelete", 10, 0).size());
-	}
-
-	@Test
-	void testDeleteUser_keepsThePermissionsAnotherLoginWithTheIdShares() throws Exception {
-		UnitTestSecurityAuthUtils.createUser("shared", false);
-		registerMicrosoftLogin("sharedid");
-		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
-		SecurityEngineUtils.addEngineUser(adminUser, "sharedid", "engine1", "EDIT", null, null);
-
-		instance.deleteUser("sharedid", "NATIVE");
-
-		List<Map<String, Object>> remaining = instance.getAllUsers("shared", 10, 0);
-		assertEquals(1, remaining.size());
-		assertEquals("MICROSOFT", remaining.get(0).get("type"));
-		assertEquals(AccessPermissionEnum.EDIT.getId(), SecurityEngineUtils.getUserEnginePermission("sharedid",
-				"engine1"));
-
-		instance.deleteUser("sharedid", "MICROSOFT");
-
-		assertTrue(instance.getAllUsers("shared", 10, 0).isEmpty());
-		assertNull(SecurityEngineUtils.getUserEnginePermission("sharedid", "engine1"));
-	}
-
-	/**
-	 * Adds a Microsoft login for an id that already has a native login. The
-	 * register methods check whether a user exists by the id alone, so the row is
-	 * inserted directly.
-	 */
-	private void registerMicrosoftLogin(String id) throws Exception {
-		QueryExecutionUtility.executeUpdate(securityDb,
-				"INSERT INTO SMSS_USER (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PUBLISHER, EXPORTER, LOCKED) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-				ps -> {
-					ps.setString(1, id);
-					ps.setString(2, "Shared Person");
-					ps.setString(3, id);
-					ps.setString(4, "shared@corp.example");
-					ps.setString(5, AuthProvider.MICROSOFT.getLabel());
-					ps.setBoolean(6, false);
-					ps.setBoolean(7, false);
-					ps.setBoolean(8, false);
-					ps.setBoolean(9, false);
-				});
-	}
 
 	@Test
 	void testDeleteUser() {
@@ -556,7 +347,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testSetUserPublisher_enable() {
 		User user = UnitTestSecurityAuthUtils.createUser("testuser", false);
 
-		instance.setUserPublisher("testuserid", "NATIVE", true);
+		instance.setUserPublisher("testuserid", true);
 		// Verify by getting user info
 		List<Map<String, Object>> users = instance.getAllUsers("testuser", 10, 0);
 		assertEquals(1, users.size());
@@ -566,26 +357,12 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	@Test
 	void testSetUserPublisher_disable() {
 		User user = UnitTestSecurityAuthUtils.createUser("testuser", false);
-		instance.setUserPublisher("testuserid", "NATIVE", true);
-		instance.setUserPublisher("testuserid", "NATIVE", false);
+		instance.setUserPublisher("testuserid", true);
+		instance.setUserPublisher("testuserid", false);
 
 		List<Map<String, Object>> users = instance.getAllUsers("testuser", 10, 0);
 		assertEquals(1, users.size());
 		assertFalse((Boolean) users.get(0).get("publisher"));
-	}
-
-	@Test
-	void testSetUserPublisher_changesOnlyTheLoginItNames() throws Exception {
-		UnitTestSecurityAuthUtils.createUser("shared", false);
-		registerMicrosoftLogin("sharedid");
-
-		instance.setUserPublisher("sharedid", "MICROSOFT", true);
-
-		Map<String, Boolean> publisherByType = new HashMap<>();
-		for (Map<String, Object> row : instance.getAllUsers("shared", 10, 0)) {
-			publisherByType.put((String) row.get("type"), (Boolean) row.get("publisher"));
-		}
-		assertEquals(Map.of("NATIVE", false, "MICROSOFT", true), publisherByType);
 	}
 
 	///
@@ -593,25 +370,11 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	///
 
 	@Test
-	void testSetUserExporter_changesOnlyTheLoginItNames() throws Exception {
-		UnitTestSecurityAuthUtils.createUser("shared", false);
-		registerMicrosoftLogin("sharedid");
-
-		instance.setUserExporter("sharedid", "MICROSOFT", true);
-
-		Map<String, Boolean> exporterByType = new HashMap<>();
-		for (Map<String, Object> row : instance.getAllUsers("shared", 10, 0)) {
-			exporterByType.put((String) row.get("type"), (Boolean) row.get("exporter"));
-		}
-		assertEquals(Map.of("NATIVE", false, "MICROSOFT", true), exporterByType);
-	}
-
-	@Test
 	void testSetUserExporter_enable() {
 		User user = UnitTestSecurityAuthUtils.createUser("testuser", false);
 
 		// Just verify no exception is thrown
-		instance.setUserExporter("testuserid", "NATIVE", true);
+		instance.setUserExporter("testuserid", true);
 
 		List<Map<String, Object>> users = instance.getAllUsers("testuser", 10, 0);
 		assertEquals(1, users.size());
@@ -757,7 +520,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testGetEngineUsers_multipleUsers() throws IllegalAccessException {
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null);
+		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
 		List<Map<String, Object>> users = instance.getEngineUsers("engine1", null, null, 10, 0);
 		assertNotNull(users);
@@ -772,7 +535,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testGetEngineUsersCount() throws IllegalAccessException {
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null);
+		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
 		long count = instance.getEngineUsersCount("engine1", null, null);
 		assertEquals(2, count);
@@ -814,7 +577,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
 
-		instance.addEngineUser("user2id", "engine1", "READ_ONLY", adminUser, null, null);
+		instance.addEngineUser("user2id", "engine1", "READ_ONLY", adminUser, null, null, null, 0, 0.0);
 
 		assertTrue(SecurityEngineUtils.userCanViewEngine(user2, "engine1"));
 	}
@@ -824,7 +587,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
 
-		instance.addEngineUser("user2id", "engine1", "OWNER", adminUser, null, null);
+		instance.addEngineUser("user2id", "engine1", "OWNER", adminUser, null, null, null, 0, 0.0);
 
 		Integer permission = SecurityEngineUtils.getUserEnginePermission("user2id", "engine1");
 		assertEquals(AccessPermissionEnum.OWNER.getId(), permission);
@@ -852,9 +615,9 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testEditEngineUserPermission() throws IllegalAccessException {
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null);
+		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
-		instance.editEngineUserPermission("user2id", "engine1", "EDIT", adminUser, null);
+		instance.editEngineUserPermission("user2id", "engine1", "EDIT", adminUser, null, null, null, 0, 0.0);
 
 		assertTrue(SecurityEngineUtils.userCanEditEngine(user2, "engine1"));
 	}
@@ -882,7 +645,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testRemoveEngineUser() throws IllegalAccessException {
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null);
+		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 		assertTrue(SecurityEngineUtils.userCanViewEngine(user2, "engine1"));
 
 		instance.removeEngineUser("user2id", "engine1");
@@ -915,8 +678,8 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
 		User user3 = UnitTestSecurityAuthUtils.createUser("user3", false);
-		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null);
-		SecurityEngineUtils.addEngineUser(adminUser, "user3id", "engine1", "READ_ONLY", null, null);
+		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
+		SecurityEngineUtils.addEngineUser(adminUser, "user3id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
 		instance.removeEngineUsers(List.of("user2id", "user3id"), "engine1");
 
@@ -1093,7 +856,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testGetEnginesUserHasExplicitAccess_hasAccess() throws IllegalAccessException {
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
-		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null);
+		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
 		List<String> engines = instance.getEnginesUserHasExplicitAccess("user2id", null);
 		assertNotNull(engines);
@@ -1197,23 +960,6 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		assertEquals(1, settings.size());
 	}
 
-	@Test
-	void testGetAllEngineSettings_sortsByDisplayName() throws Exception {
-		UnitTestSecurityAuthUtils.createEngine("engine1", "alpha", adminUser);
-		UnitTestSecurityAuthUtils.createEngine("engine2", "beta", adminUser);
-		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE ENGINE SET ENGINEDISPLAYNAME=? WHERE ENGINEID=?",
-				ps -> {
-					ps.setString(1, "Zulu");
-					ps.setString(2, "engine1");
-				});
-
-		// Map.of throws on the null key check the engine sort runs
-		Map<String, String> sortFields = new HashMap<>(Map.of("ENGINENAME", "ASC"));
-		List<Map<String, Object>> settings = instance.getAllEngineSettings(null, null, null, null, null, null,
-				sortFields);
-		assertEquals(List.of("engine2", "engine1"), settings.stream().map(s -> s.get("engine_id")).toList());
-	}
-
 	///
 	/// getAllProjectSettings
 	///
@@ -1232,21 +978,6 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		List<Map<String, Object>> settings = instance.getAllProjectSettings(null, null, null, null, null, null);
 		assertNotNull(settings);
 		assertEquals(1, settings.size());
-	}
-
-	@Test
-	void testGetAllProjectSettings_sortsByDisplayName() throws Exception {
-		UnitTestSecurityAuthUtils.createProject("project1", "alpha", adminUser);
-		UnitTestSecurityAuthUtils.createProject("project2", "beta", adminUser);
-		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET PROJECTDISPLAYNAME=? WHERE PROJECTID=?",
-				ps -> {
-					ps.setString(1, "Zulu");
-					ps.setString(2, "project1");
-				});
-
-		List<Map<String, Object>> settings = instance.getAllProjectSettings(null, null, null, null, null, null,
-				Map.of("PROJECTNAME", "ASC"));
-		assertEquals(List.of("project2", "project1"), settings.stream().map(s -> s.get("project_id")).toList());
 	}
 
 	///
@@ -1411,7 +1142,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testEditEngineUserPermissions_batch() throws IllegalAccessException {
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null);
+		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
 		List<Map<String, Object>> permissions = new ArrayList<>();
 		Map<String, Object> perm1 = new HashMap<>();
@@ -1543,7 +1274,7 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	void testUpdateEngineUserPermissions() throws IllegalAccessException {
 		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
 		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null);
+		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
 
 		instance.updateEngineUserPermissions("engine1", "EDIT", adminUser, null);
 

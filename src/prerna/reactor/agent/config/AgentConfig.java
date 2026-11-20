@@ -83,14 +83,6 @@ public final class AgentConfig {
 
 	// Filesystem
 	private final String workingDir;
-	private final String agentFilesDir;
-
-	// A Digital Twin, the display name of the person it answers about, whether that person is the one running it,
-	// and their persona as a section of its prompt
-	private final boolean digitalTwin;
-	private final String digitalTwinOwner;
-	private final boolean digitalTwinOwnChat;
-	private final String digitalTwinPersona;
 
 	// MCP tool projects (union of WORKSPACE_RESOURCE + room.options.mcp[])
 	private final List<Map<String, String>> mcps;
@@ -144,12 +136,7 @@ public final class AgentConfig {
 		this.disabledDefaultTools = b.disabledDefaultTools != null ? Set.copyOf(b.disabledDefaultTools)
 				: Collections.emptySet();
 		this.workingDir = b.workingDir;
-		this.agentFilesDir = b.agentFilesDir;
-		this.digitalTwin = b.digitalTwin;
-		this.digitalTwinOwner = b.digitalTwinOwner;
-		this.digitalTwinOwnChat = b.digitalTwinOwnChat;
-		this.digitalTwinPersona = b.digitalTwinPersona;
-		this.mcps =b.mcps != null ? Collections.unmodifiableList(new ArrayList<>(b.mcps)) : Collections.emptyList();
+		this.mcps = b.mcps != null ? Collections.unmodifiableList(new ArrayList<>(b.mcps)) : Collections.emptyList();
 		this.skills = b.skills != null ? Collections.unmodifiableList(new ArrayList<>(b.skills))
 				: Collections.emptyList();
 		this.budgets = b.budgets != null ? b.budgets : Budgets.defaults();
@@ -333,50 +320,6 @@ public final class AgentConfig {
 		return workingDir;
 	}
 
-	/**
-	 * The folder holding the agent's own files: the public assets folder of its
-	 * project, which everyone who can use the agent can already read. A run reads
-	 * it in place and never writes it. {@code null} when the run has no stored
-	 * agent or the agent has no such folder.
-	 */
-	public String getAgentFilesDir() {
-		return agentFilesDir;
-	}
-
-	/**
-	 * Whether the agent is a Digital Twin: an agent that answers about one person
-	 * from the copies that person put into its files, for the people they named.
-	 */
-	public boolean isDigitalTwin() {
-		return digitalTwin;
-	}
-
-	/**
-	 * The display name of the person a Digital Twin answers about, its creator.
-	 * {@code null} for any other agent, and for a twin whose creator is not on
-	 * record.
-	 */
-	public String getDigitalTwinOwner() {
-		return digitalTwinOwner;
-	}
-
-	/**
-	 * Whether the person running a Digital Twin is the person it answers about,
-	 * its creator: their own chat with their own twin. False for any other agent.
-	 */
-	public boolean isDigitalTwinOwnChat() {
-		return digitalTwinOwnChat;
-	}
-
-	/**
-	 * The persona of the person a Digital Twin answers about, as the section of
-	 * its prompt that goes before its rules. {@code null} for any other agent, for
-	 * a twin whose owner has no persona, and for one they switched it off for.
-	 */
-	public String getDigitalTwinPersona() {
-		return digitalTwinPersona;
-	}
-
 	// MCP tool projects
 	/**
 	 * Resolved MCP project refs for this run.
@@ -465,11 +408,6 @@ public final class AgentConfig {
 		private int finishingTurns;
 		private Map<String, Object> pptxWorkflow;
 		private String workingDir;
-		private String agentFilesDir;
-		private boolean digitalTwin;
-		private String digitalTwinOwner;
-		private boolean digitalTwinOwnChat;
-		private String digitalTwinPersona;
 		private List<Map<String, String>> mcps;
 		private List<Map<String, String>> skills;
 		private Budgets budgets;
@@ -570,31 +508,6 @@ public final class AgentConfig {
 
 		public Builder workingDir(String v) {
 			this.workingDir = v;
-			return this;
-		}
-
-		public Builder agentFilesDir(String v) {
-			this.agentFilesDir = v;
-			return this;
-		}
-
-		public Builder digitalTwin(boolean v) {
-			this.digitalTwin = v;
-			return this;
-		}
-
-		public Builder digitalTwinOwner(String v) {
-			this.digitalTwinOwner = v;
-			return this;
-		}
-
-		public Builder digitalTwinOwnChat(boolean v) {
-			this.digitalTwinOwnChat = v;
-			return this;
-		}
-
-		public Builder digitalTwinPersona(String v) {
-			this.digitalTwinPersona = v;
 			return this;
 		}
 

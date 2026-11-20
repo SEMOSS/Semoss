@@ -115,7 +115,7 @@ public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 			// make sure the new value can be properly casted to a number
 			if (newValue.isEmpty() || newValue.equalsIgnoreCase("null") || newValue.equalsIgnoreCase("na")
 					|| newValue.equalsIgnoreCase("nan")) {
-				newValue = "np.nan";
+				newValue = "np.NaN";
 			} else if (!NUMERIC_PATTERN.matcher(newValue).matches()) {
 				throw new IllegalArgumentException("Cannot update a numeric field with string value = " + newValue);
 			}
@@ -134,9 +134,8 @@ public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 				}
 				newValue = newD.getFormatted("yyyy-MM-dd");
 			}
-			// np.datetime64 has no format argument; the value is already yyyy-MM-dd (or NaT)
 			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '" + column
-					+ "'] = pd.to_datetime(" + QUOTE + newValue + QUOTE + ")";
+					+ "'] = np.datetime64(" + QUOTE + newValue + QUOTE + ", format='%Y-%m-%d')";
 
 		} else if (sType == SemossDataType.TIMESTAMP) {
 			// make sure the new value can be properly casted to a timestamp
@@ -153,17 +152,14 @@ public class UpdateRowValuesReactor extends AbstractPyFrameReactor {
 				}
 				newValue = newD.getFormatted("yyyy-MM-dd HH:mm:ss");
 			}
-			// np.datetime64 has no format argument; the value is already yyyy-MM-dd HH:mm:ss (or NaT)
 			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '" + column
-					+ "'] = pd.to_datetime(" + QUOTE + newValue + QUOTE + ")";
+					+ "'] = np.datetime64(" + QUOTE + newValue + QUOTE + ", format='%Y-%m-%d %H:%M:%S')";
 
 		} else if (sType == SemossDataType.STRING) {
 			// escape and update
-			String escapedNewValue = newValue.replace("\\", "\\\\").replace("\"", "\\\"");
+			String escapedNewValue = newValue.replace("\"", "\\\"");
 			script = wrapperFrameName + ".cache['data'].loc[" + pyFilterBuilder.toString() + ", '" + column + "'] = "
 					+ QUOTE + escapedNewValue + QUOTE;
-		} else {
-			throw new IllegalArgumentException("Updating values is not supported for " + sType + " column '" + column + "'");
 		}
 
 		// execute the script

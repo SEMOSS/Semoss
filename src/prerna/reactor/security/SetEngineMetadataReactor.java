@@ -34,13 +34,9 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IEngine;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 
@@ -68,14 +64,10 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
 
-		SecurityEngineUtils.updateEngineMetadata(this.insight.getUser(), engineId, metadata);
+		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
 		if (capabilityUpdates != null && !capabilityUpdates.isEmpty()) {
 			SecurityModelMetadataUtils.updateModelMetadata(engineId, capabilityUpdates);
 		}
-		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
-		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_METADATA_UPDATE,
-				AuditTargetType.ofEngine(engineType), engineId, SecurityEngineUtils.getEngineDisplayNameForId(engineId),
-				Map.of("field", "metadata", "metadataKeys", List.copyOf(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));
@@ -83,13 +75,18 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Defines metadata on an engine, including model capabilities when supplied")
-				.key(META,
-						"Map containing engine metadata values. Model engines may also include editable capability, modality, token, and built-in tool values in a capabilities map.")
-				.key(ReactorKeysEnum.JSON_CLEANUP,
-						"Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.");
+	public String getReactorDescription() {
+		return "Defines metadata on an engine, including model capabilities when supplied";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(META)) {
+			return "Map containing engine metadata values. Model engines may also include editable capability, modality, token, and built-in tool values in a capabilities map.";
+		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
+			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 	private Map<String, Object> getCapabilityUpdates(String engineId, Map<String, Object> metadata) {

@@ -36,7 +36,6 @@ import prerna.cluster.sync.IClusterSynchronizer;
 import prerna.cluster.sync.impl.ClusterSynchronizerFactory;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -79,12 +78,11 @@ public class AdminGetSystemInfoReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("""
-					Admin Only: Returns a map with properties about the instance including:
-					hostname, ipaddress, isCluster, storageProvider, isClusterScheduler, clusterContainerIp,
-					isClusterSync
-				""").noKeys();
+	public String getReactorDescription() {
+		return """
+					Admin only reactor returning a map with properties about the instance including:
+					hostname, ipaddress, isCluster, storageProvider, isClusterScheduler, isClusterZK
+				""";
 	}
 
 }

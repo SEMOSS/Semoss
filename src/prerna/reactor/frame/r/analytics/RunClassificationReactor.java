@@ -43,7 +43,6 @@ import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -315,11 +314,12 @@ public class RunClassificationReactor extends AbstractRFrameReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Builds a decision tree on the R frame that predicts the classify column from the attribute columns, using only the filtered rows when the frame has filters. Returns the tree as a dendrogram visualization for the panel, with its accuracy and the relevant predictors.")
-				.key(ReactorKeysEnum.ATTRIBUTES, key -> key.list(String.class))
-				.key(CLASSIFICATION_COLUMN, "The classification column");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(CLASSIFICATION_COLUMN)) {
+			return "The classification column";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

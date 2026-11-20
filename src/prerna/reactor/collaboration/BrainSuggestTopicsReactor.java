@@ -28,34 +28,33 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicSuggest;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSuggestTopics(dryRun=[true]) previews the standard onboarding proposals;
-// BrainSuggestTopics(fresh=[true]) looks for new topics in recent mail no topic holds.
+// BrainSuggestTopics(dryRun=[true]); previews the standard onboarding proposals.
 public class BrainSuggestTopicsReactor extends AbstractCollaborationReactor {
 
 	public BrainSuggestTopicsReactor() {
-		this.keysToGet = new String[] { "dryRun", "fresh" };
+		this.keysToGet = new String[] { "dryRun" };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		boolean dryRun = Boolean.TRUE.equals(getBoolean("dryRun"));
-		return mapResult(Boolean.TRUE.equals(getBoolean("fresh")) ? BrainTopicSuggest.fresh(getUser(), dryRun)
-				: BrainTopicSuggest.topics(getUser(), dryRun));
+		return mapResult(BrainTopicSuggest.topics(getUser(), Boolean.TRUE.equals(getBoolean("dryRun"))));
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Onboarding topic proposals from imported headers using structure clustering and three complete model votes. "
-						+ "Sorted mail uses the wider pool; otherwise proposals require engagement. dryRun returns proposals without "
-						+ "writing topics. A successful write replaces undecided brain suggestions; owner-accepted topics remain. "
-						+ "Accept by saving with status active. Model or header failure returns modelError")
-				.key("dryRun", "true to preview without replacing or writing topics; default false")
-				.key("fresh", key -> key.type(Boolean.class).description("true to look only at recent conversations no "
-						+ "topic holds, for a new project or event: a group the owner takes part in is saved as a suggested "
-						+ "topic with a new_topic review, and existing suggestions stay; default false"));
+	public String getReactorDescription() {
+		return "Onboarding topic proposals from imported headers using structure clustering and three complete model votes. "
+				+ "Sorted mail uses the wider pool; otherwise proposals require engagement. dryRun returns proposals without "
+				+ "writing topics. A successful write replaces undecided brain suggestions; owner-accepted topics remain. "
+				+ "Accept by saving with status active. Model or header failure returns modelError";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		return switch (key) {
+		case "dryRun" -> "true to preview without replacing or writing topics; default false";
+		default -> super.getDescriptionForKey(key);
+		};
 	}
 }

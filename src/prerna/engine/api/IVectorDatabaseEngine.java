@@ -30,16 +30,13 @@ package prerna.engine.api;
 import java.io.File;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.engine.impl.vector.FileEmbeddingStatus;
 import prerna.engine.impl.vector.VectorDatabaseCSVTable;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.om.Insight;
-import prerna.util.Constants;
 
 public interface IVectorDatabaseEngine extends IEngine {
 
@@ -54,30 +51,7 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @return the type of the database
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	VectorDatabaseTypeEnum getVectorDatabaseType();
-
-	/**
-	 * The id of the model the vector database makes its embeddings with, its
-	 * {@link Constants#EMBEDDER_ENGINE_ID} setting or the older ENCODER_ID.
-	 *
-	 * @return the embedding model's id, or null when the vector database names none
-	 */
-	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
-	default String getEmbedderEngineId() {
-		Properties smssProp = getSmssProp();
-		if (smssProp == null) {
-			return null;
-		}
-		for (String key : new String[] { Constants.EMBEDDER_ENGINE_ID, "ENCODER_ID" }) {
-			String embedderEngineId = smssProp.getProperty(key);
-			if (embedderEngineId != null && !(embedderEngineId = embedderEngineId.trim()).isEmpty()) {
-				return embedderEngineId;
-			}
-		}
-		return null;
-	}
 
 	/**
 	 * This method is used to add documents to a vector database. The engine itself
@@ -89,7 +63,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 *                   the documents e.g. an insight object
 	 * @return
 	 */
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	List<FileEmbeddingStatus> addDocument(List<String> filePaths, Map<String, Object> parameters) throws Exception;
 
 	/**
@@ -100,7 +73,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @return
 	 * @throws Exception
 	 */
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	List<FileEmbeddingStatus> addEmbeddings(List<String> vectorCsvFiles, Insight insight,
 			Map<String, Object> parameters) throws Exception;
 
@@ -111,7 +83,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters
 	 * @throws Exception
 	 */
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	List<FileEmbeddingStatus> addEmbeddings(String vectorCsvFilePath, Insight insight, Map<String, Object> parameters)
 			throws Exception;
 
@@ -123,7 +94,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @return
 	 * @throws Exception
 	 */
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	List<FileEmbeddingStatus> addEmbeddingFiles(List<File> vectorCsvFiles, Insight insight,
 			Map<String, Object> parameters) throws Exception;
 
@@ -134,7 +104,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters
 	 * @throws Exception
 	 */
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	List<FileEmbeddingStatus> addEmbeddingFile(File vectorCsvFile, Insight insight, Map<String, Object> parameters)
 			throws Exception;
 
@@ -146,7 +115,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @return
 	 * @throws Exception
 	 */
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	List<FileEmbeddingStatus> addEmbeddings(VectorDatabaseCSVTable vectorCsvTable, Insight insight,
 			Map<String, Object> parameters) throws Exception;
 
@@ -163,7 +131,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param additionalMetadata
 	 * @throws Exception
 	 */
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void addEmbedding(List<? extends Number> embedding, String source, String modality, String divider, String part,
 			int tokens, String content, Map<String, Object> additionalMetadata) throws Exception;
 
@@ -175,14 +142,12 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 *                   vector database has more than one collection or index
 	 *                   class.
 	 */
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws Exception;
 
 	/**
 	 * 
 	 * @param metadataTable
 	 */
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void addMetadata(VectorDatabaseMetadataCSVTable metadataTable) throws Exception;
 
 	/**
@@ -196,7 +161,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters
 	 * @return
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<Map<String, Object>> nearestNeighbor(Insight insight, String searchStatement, Number limit,
 			Map<String, Object> parameters);
 
@@ -208,7 +172,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters
 	 * @return
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<Map<String, Object>> listDocuments(Map<String, Object> parameters);
 
 	/**
@@ -217,7 +180,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @param parameters
 	 * @return
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<Map<String, Object>> listAllRecords(Map<String, Object> parameters);
 
 	/**
@@ -226,7 +188,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getIndexFilesPath(String indexClass);
 
 	/**
@@ -235,7 +196,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getDocumentsFilesPath(String indexClass);
 
 	/**
@@ -243,7 +203,6 @@ public interface IVectorDatabaseEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean userCanAccessEmbeddingModels(User user);
 
 }

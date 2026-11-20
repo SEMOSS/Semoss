@@ -34,33 +34,38 @@ import org.json.JSONObject;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
-import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 public class CopyEngineAssetReactor extends AbstractReactor {
 
+	private static final String OVERRIDE = ReactorKeysEnum.OVERRIDE.getKey();
+
 	public CopyEngineAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.NEW_VALUE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(),
-				ReactorKeysEnum.OVERRIDE.getKey() };
+				ReactorKeysEnum.NEW_VALUE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(), OVERRIDE };
 		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
 		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
@@ -88,18 +93,17 @@ public class CopyEngineAssetReactor extends AbstractReactor {
 				engine.getEngineName());
 		String assetFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-
-		boolean override = getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false);
-		SavedAsset savedAsset = FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
-
 		String comment = this.keyValue.get(this.keysToGet[3]);
 		if (comment == null) {
-			comment = "copy: Copying " + sourceFileName + " to " + savedAsset.savedPath();
+			comment = "copy: Copying " + sourceFileName + " to " + destFileName;
 		}
+
+		boolean override = getBoolean(OVERRIDE, false);
+		FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
 
 		// handle pushing to git and the cloud
 		List<String> toAdd = new ArrayList<>();
-		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + savedAsset.savedPath());
+		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + destFileName);
 
 		GitRepoUtils.addSpecificFiles(gitFolder, toAdd);
 
@@ -113,30 +117,44 @@ public class CopyEngineAssetReactor extends AbstractReactor {
 		// handle synchronization to the cloud
 		ClusterUtil.pushEngineFolder(engine, assetFolder);
 
-		return FileSystemUtil.savedAssetsAsNounMetadata(List.of(savedAsset));
+		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
+		return retNoun;
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Copy (clone) a file or directory in the engine assets folder to a new path")
-				.key(ReactorKeysEnum.ENGINE, "The unique id for the engine")
-				.key(ReactorKeysEnum.FILE_PATH,
-						"The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
-				.key(ReactorKeysEnum.NEW_VALUE,
-						"The destination path for the copy, with the same character restrictions you would expect on a typical file system. When something already exists there, override decides whether it is replaced or the copy is written beside it under the next copy number.")
-				.key(ReactorKeysEnum.COMMENT_KEY,
-						"Comment to add while saving the files within the git repository for the engine")
-				.key(ReactorKeysEnum.OVERRIDE,
-						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_KEEP_DESCRIPTION))
-				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
+	public String getReactorDescription() {
+		return "Copy (clone) a file or directory in the engine assets folder to a new path";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The unique id for the engine";
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The source file or directory to copy. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
+		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
+			return "The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.";
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while saving the files within the git repository for the engine";
+		} else if (key.equals(OVERRIDE)) {
+			return "Whether to delete an existing file or directory at the destination before copying. Defaults to false.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 	@Override
 	public JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
+		properties.getJSONObject(OVERRIDE).put("default", false);
 		return properties;
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(OVERRIDE)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 }

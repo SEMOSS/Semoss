@@ -182,7 +182,7 @@ public class AdminSqlQueryReactorUnitTests {
 
 	@Test
 	void testGetReactorDescription() {
-		assertNotNull(reactor.getReactorDefinition().getDescription());
+		assertNotNull(reactor.getReactorDescription());
 	}
 
 	@Test

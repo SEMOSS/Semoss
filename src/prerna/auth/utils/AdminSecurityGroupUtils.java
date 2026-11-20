@@ -43,8 +43,6 @@ import org.javatuples.Pair;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
@@ -61,8 +59,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -85,13 +82,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	private static final String[] CUSTOM_GROUP_ROW_DELETES = { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?",
 			"DELETE FROM GROUPMANAGERS WHERE GROUPID=?" };
 
-	/**
-	 * Moves a team's model usage limits, on models and its total, to a new id: new
-	 * id, then old id and type
-	 */
-	private static final String MOVE_TEAM_LIMITS = "UPDATE MODELUSAGELIMIT SET SUBJECTID=? WHERE SUBJECTID=? "
-			+ "AND SUBJECTTYPE=? AND LIMITTYPE='" + ModelUsageLimitKey.Type.TEAM.name() + "'";
-
 	private AdminSecurityGroupUtils() {
 
 	}
@@ -100,7 +90,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * The group utilities without an admin check, for callers in this package that
 	 * check the user's permissions themselves, such as
 	 * {@link SecurityGroupManagerUtils} for a group's managers.
-	 *
+	 * 
 	 * @return the group utilities
 	 */
 	static AdminSecurityGroupUtils getUncheckedInstance() {
@@ -211,8 +201,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 				return null;
 			});
-			UserAuditTrailUtils.recordGroupAdmin(user, true, AuditEventType.GROUP_CREATE, groupId, groupType, null,
-					null, null, description == null ? null : Map.of("description", description), null);
 		} catch (Exception e) {
 			classLogger.error("Unable to add group.", e);
 			throw e;
@@ -220,8 +208,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Delete a new group and its references across the tables, including its model
-	 * usage limits: its limits on models and its total
+	 * Delete a new group and its references across the tables
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -264,17 +251,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						}
 					}
 				}
-				SecurityModelUsageLimitUtils.deleteTeamLimits(conn, groupId, groupType);
 				return null;
 			});
-			UserAuditTrailUtils.recordGroupAdmin(null, true, AuditEventType.GROUP_DELETE, groupId, groupType, null,
-					null, null, null, null);
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
 		}
-		// the team's grants and limits are gone, so the cached limits are read again
-		SecurityModelUsageLimitUtils.markChanged();
 	}
 
 	/**
@@ -305,7 +287,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, DESCRIPTION=? WHERE ID=? AND TYPE=?";
 		String[] propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPPROJECTPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
-				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?", MOVE_TEAM_LIMITS };
+				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?" };
 
 		try {
 			QueryExecutionUtility.write(securityDb, conn -> {
@@ -350,12 +332,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 				return null;
 			});
-			SecurityModelUsageLimitUtils.markChanged();
-			Map<String, Object> newDetails = new HashMap<>();
-			newDetails.put("groupId", newGroupId);
-			newDetails.put("description", newDescription);
-			UserAuditTrailUtils.recordGroupAdmin(user, true, AuditEventType.GROUP_UPDATE, newGroupId, curGroupType,
-					null, null, Map.of("groupId", curGroupId), newDetails, null);
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
@@ -401,11 +377,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						action, PermissionSubject.ofUser(userId, userType), new PermissionGrant(null, endDate))),
 				PermissionBatchOptions.adminMode(),
 				new PermissionErrorRules(endDate)
-						.illegalArgument(PermissionProblem.ErrorCode.INVALID_TARGET,
-								"Group " + groupId + " does not exist")
-						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.Code.INVALID_TARGET, "Group " + groupId + " does not exist")
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"User " + userId + " already has access to group " + groupId)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"User " + userId + " does not have access to group " + groupId));
 	}
 
@@ -446,7 +421,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param groups rows with {@code id} and {@code type}, as the group lists
 	 *               return them
 	 */
-	static void addMemberCounts(List<Map<String, Object>> groups) {
+	public static void addMemberCounts(List<Map<String, Object>> groups) {
 		List<String> customIds = new ArrayList<>();
 		for (Map<String, Object> group : groups) {
 			if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(group.get("type")) && group.get("id") != null) {
@@ -668,14 +643,14 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
 				PermissionBatchOptions.adminMode().keepingTeamType(),
 				new PermissionErrorRules(endDate)
-						.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING,
+						.illegalArgument(PermissionProblem.Code.SUBJECT_MISSING,
 								"Group " + groupId + " with type " + groupType + " does not exist")
-						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								() -> "Group " + groupId + " already has access to project " + projectId
 										+ " with permission = "
 										+ AccessPermissionEnum.getPermissionValueById(
 												groupProjectPermission(groupId, groupType, projectId)))
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"Error occurred adding the group permission"));
 	}
 
@@ -697,15 +672,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
 				PermissionBatchOptions.adminMode().keepingTeamType().rejectingSameLevel(),
 				new PermissionErrorRules(endDate)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Group " + groupId + " does not currently have access to project " + projectId
 										+ " to edit")
-						.illegalArgument(PermissionProblem.ErrorCode.SAME_LEVEL,
+						.illegalArgument(PermissionProblem.Code.SAME_LEVEL,
 								() -> "Group " + groupId + " already has permission level "
 										+ AccessPermissionEnum.getPermissionValueById(
 												groupProjectPermission(groupId, groupType, projectId))
 										+ " to project " + projectId)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"Error occurred editing the group permission"));
 	}
 
@@ -718,33 +693,26 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param projectId the project
 	 */
 	public void removeGroupProjectPermission(User user, String groupId, String groupType, String projectId) {
-		PermissionBatchUtils
-				.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
-						List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
-						PermissionBatchOptions.adminMode().keepingTeamType(),
-						new PermissionErrorRules()
-								.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
-										"Group " + groupId + " does not currently have access to project " + projectId
-												+ " to remove")
-								.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
-										"Error occurred deleting the group permission"));
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
+				PermissionBatchOptions.adminMode().keepingTeamType(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Group " + groupId + " does not currently have access to project " + projectId + " to remove")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"Error occurred deleting the group permission"));
 	}
 
 	/**
-	 * Lists the projects the team holds a grant on, with the grant's level and end
-	 * date and the project's details, sorted by name, one page at a time. The
-	 * search matches project id or name.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
-	 * @param projectTypes keep only the projects of these types; null or empty for
-	 *                     every type
+	 * @param onlyApps
 	 * @return
 	 */
 	public List<Map<String, Object>> getProjectsForGroup(String groupId, String groupType, String searchTerm,
-			long limit, long offset, List<String> projectTypes) {
+			long limit, long offset, boolean onlyApps) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
@@ -796,8 +764,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
-		if (projectTypes != null && !projectTypes.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
+
+		if (onlyApps) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
+					PixelDataType.BOOLEAN));
 		}
 
 		// join
@@ -816,16 +786,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Counts the projects the team holds a grant on, with the same search as
-	 * getProjectsForGroup, for paging that list.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
-	 * @param projectTypes keep only the projects of these types; null or empty for
-	 *                     every type
 	 * @return
 	 */
-	public Long getNumProjectsForGroup(String groupId, String groupType, String searchTerm, List<String> projectTypes) {
+	public Long getNumProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
@@ -841,9 +807,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", groupType));
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
-		boolean hasProjectTypes = projectTypes != null && !projectTypes.isEmpty();
 
-		if (hasSearchTerm || hasProjectTypes) {
+		if (hasSearchTerm || onlyApps) {
 			qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
 		}
 
@@ -855,28 +820,27 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
-		if (hasProjectTypes) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
+
+		if (onlyApps) {
+			qs.addRelation(groupProjectPermission + "PROJECTID", projectPrefix + "PROJECTID", "inner.join");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
+					PixelDataType.BOOLEAN));
 		}
 
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 
 	/**
-	 * Lists the projects the team holds no grant on yet, so an admin can pick ones
-	 * to add, sorted by name, one page at a time. The search matches project id or
-	 * name.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
-	 * @param projectTypes keep only the projects of these types; null or empty for
-	 *                     every type
+	 * @param onlyApps
 	 * @return
 	 */
 	public List<Map<String, Object>> getAvailableProjectsForGroup(String groupId, String groupType, String searchTerm,
-			long limit, long offset, List<String> projectTypes) {
+			long limit, long offset, boolean onlyApps) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
@@ -919,9 +883,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
 			qs.addExplicitFilter(searchFilter);
 		}
-		if (projectTypes != null && !projectTypes.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
-		}
 
 		// filter out projects that are already added
 		{
@@ -933,6 +894,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", groupType));
 			// filter out from engine list
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
+		}
+
+		if (onlyApps) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
+					PixelDataType.BOOLEAN));
 		}
 
 		// add the sort
@@ -959,39 +925,20 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission,
 			String endDate) {
-		addGroupEnginePermission(user, groupId, groupType, engineId, permission, endDate, null);
-	}
-
-	/**
-	 * Gives a team access to an engine in admin mode, as a permission batch, with a
-	 * usage limit on a model.
-	 *
-	 * @param user       the admin
-	 * @param groupId    the team
-	 * @param groupType  the team's type
-	 * @param engineId   the engine
-	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
-	 * @param endDate    when the access ends, or null
-	 * @param usageLimit the team's limit on the model, or null for no limit defined
-	 */
-	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission,
-			String endDate, ModelUsageLimit usageLimit) {
-		PermissionBatchUtils
-				.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
-						List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
-								new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate)
-										.withUsageLimit(usageLimit))),
-						PermissionBatchOptions.adminMode().keepingTeamType(),
-						new PermissionErrorRules(endDate)
-								.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING,
-										"Group " + groupId + " with type " + groupType + " does not exist")
-								.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
-										() -> "Group " + groupId + " already has access to engine " + engineId
-												+ " with permission = "
-												+ AccessPermissionEnum.getPermissionValueById(
-														groupEnginePermission(groupId, groupType, engineId)))
-								.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
-										"Error occurred adding the group permission"));
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
+				PermissionBatchOptions.adminMode().keepingTeamType(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.Code.SUBJECT_MISSING,
+								"Group " + groupId + " with type " + groupType + " does not exist")
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								() -> "Group " + groupId + " already has access to engine " + engineId
+										+ " with permission = "
+										+ AccessPermissionEnum.getPermissionValueById(
+												groupEnginePermission(groupId, groupType, engineId)))
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"Error occurred adding the group permission"));
 	}
 
 	/**
@@ -1010,17 +957,17 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
 				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
 						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
-				PermissionBatchOptions.adminMode().keepingTeamType().rejectingSameLevel().keepingModelLimits(),
+				PermissionBatchOptions.adminMode().keepingTeamType().rejectingSameLevel(),
 				new PermissionErrorRules(endDate)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Group " + groupId + " does not currently have access to engine " + engineId
 										+ " to edit")
-						.illegalArgument(PermissionProblem.ErrorCode.SAME_LEVEL,
+						.illegalArgument(PermissionProblem.Code.SAME_LEVEL,
 								() -> "Group " + groupId + " already has permission level "
 										+ AccessPermissionEnum.getPermissionValueById(
 												groupEnginePermission(groupId, groupType, engineId))
 										+ " to engine " + engineId)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"Error occurred editing the group permission"));
 	}
 
@@ -1033,27 +980,22 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 * @param engineId  the engine
 	 */
 	public void removeGroupEnginePermission(User user, String groupId, String groupType, String engineId) {
-		PermissionBatchUtils
-				.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
-						List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
-						PermissionBatchOptions.adminMode().keepingTeamType(),
-						new PermissionErrorRules()
-								.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
-										"Group " + groupId + " does not currently have access to engine " + engineId
-												+ " to remove")
-								.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
-										"Error occurred deleting the group permission"));
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
+				PermissionBatchOptions.adminMode().keepingTeamType(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Group " + groupId + " does not currently have access to engine " + engineId + " to remove")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"Error occurred deleting the group permission"));
 	}
 
 	/**
-	 * Lists the engines the team holds a grant on, with the grant's level and end
-	 * date and the engine's details, sorted by name, one page at a time. The search
-	 * matches engine id or name.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
+	 * @param onlyApps
 	 * @return
 	 */
 	public List<Map<String, Object>> getEnginesForGroup(String groupId, String groupType, String searchTerm, long limit,
@@ -1117,8 +1059,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Counts the engines the team holds a grant on, with the same search as
-	 * getEnginesForGroup, for paging that list.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
@@ -1153,14 +1093,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Lists the engines the team holds no grant on yet, so an admin can pick ones
-	 * to add, sorted by name, one page at a time. The search matches engine id or
-	 * name.
 	 * 
 	 * @param groupId
 	 * @param searchTerm
 	 * @param limit
 	 * @param offset
+	 * @param onlyApps
 	 * @return
 	 */
 	public List<Map<String, Object>> getAvailableEnginesForGroup(String groupId, String groupType, String searchTerm,
@@ -1225,8 +1163,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Lists the ids of the custom teams the login belongs to, leaving out
-	 * memberships that have ended.
 	 * 
 	 * @param accessToken
 	 * @return
@@ -1261,8 +1197,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
-	 * Whether the login with this id and type is assigned to the custom team,
-	 * whatever the assignment's end date.
 	 * 
 	 * @param groupId
 	 * @param userId
@@ -1277,18 +1211,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__TYPE", "==", userType));
 
-		boolean inGroup = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			inGroup = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user belongs to the custom group.", e);
 		}
 
-		return inGroup;
+		return false;
 	}
 
 	/**
-	 * Whether a team with this id and type exists.
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -1301,18 +1235,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", groupType));
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the group exists.", e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	/**
-	 * Whether a custom team with this id exists.
 	 * 
 	 * @param groupId
 	 * @return
@@ -1326,18 +1260,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__TYPE", "==", "CUSTOM"));
 
-		boolean customGroup = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			customGroup = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the group is custom.", e);
 		}
 
-		return customGroup;
+		return false;
 	}
 
 	/**
-	 * Whether a user with this id and login type exists.
 	 * 
 	 * @param userId
 	 * @param userType
@@ -1350,19 +1284,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", userType));
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user exists.", e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	/**
-	 * The level id of the team's grant on the project, whatever its end date, or -1
-	 * when the team has no grant there.
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -1377,21 +1310,18 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", groupType));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
-		int permission = -1;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				permission = ((Number) wrapper.next().getValues()[0]).intValue();
+				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the group permission for the project.", e);
 		}
 
-		return permission;
+		return -1;
 	}
 
 	/**
-	 * The level id of the team's grant on the engine, whatever its end date, or -1
-	 * when the team has no grant there.
 	 * 
 	 * @param groupId
 	 * @param groupType
@@ -1405,16 +1335,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", groupType));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
-		int permission = -1;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
-				permission = ((Number) wrapper.next().getValues()[0]).intValue();
+				return ((Number) wrapper.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the group permission for the engine.", e);
 		}
 
-		return permission;
+		return -1;
 	}
 
 }

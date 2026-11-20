@@ -44,6 +44,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ObjectInputStream;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.zookeeper.data.Stat;
@@ -181,13 +182,14 @@ class ZKClusterSynchronizerUnitTests {
 			instance.publishEngineChange("eng1", ClusterSyncMethod.PULL_OWL, "p1");
 			assertNotNull(captured[0]);
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(captured[0]));
-			ClusterSyncEvent syncEvent = (ClusterSyncEvent) ois.readObject();
+			@SuppressWarnings("unchecked")
+			Map<String, Object> dataMap = (Map<String, Object>) ois.readObject();
 			// nodeId is sourced from the shared CONTAINER_IP resolved by
 			// AppCloudClientProperties
-			assertEquals(IClusterSynchronizer.CONTAINER_IP, syncEvent.getNodeId());
-			assertEquals("/sync/engine/eng1", syncEvent.getPath());
-			assertEquals("pullOwl", syncEvent.getMethodName());
-			List<Object> params = syncEvent.getParams();
+			assertEquals(IClusterSynchronizer.CONTAINER_IP, dataMap.get("nodeId"));
+			assertEquals("pullOwl", dataMap.get("methodName"));
+			@SuppressWarnings("unchecked")
+			List<Object> params = (List<Object>) dataMap.get("params");
 			assertEquals(1, params.size());
 			assertEquals("p1", params.get(0));
 		}
@@ -203,11 +205,12 @@ class ZKClusterSynchronizerUnitTests {
 			instance.publishProjectChange("proj1", ClusterSyncMethod.PULL_INSIGHTS_DB, "x", "y");
 			assertNotNull(captured[0]);
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(captured[0]));
-			ClusterSyncEvent syncEvent = (ClusterSyncEvent) ois.readObject();
-			assertEquals(IClusterSynchronizer.CONTAINER_IP, syncEvent.getNodeId());
-			assertEquals("/sync/project/proj1", syncEvent.getPath());
-			assertEquals("pullInsightsDB", syncEvent.getMethodName());
-			List<Object> params = syncEvent.getParams();
+			@SuppressWarnings("unchecked")
+			Map<String, Object> dataMap = (Map<String, Object>) ois.readObject();
+			assertEquals(IClusterSynchronizer.CONTAINER_IP, dataMap.get("nodeId"));
+			assertEquals("pullInsightsDB", dataMap.get("methodName"));
+			@SuppressWarnings("unchecked")
+			List<Object> params = (List<Object>) dataMap.get("params");
 			assertEquals(2, params.size());
 			assertEquals("x", params.get(0));
 			assertEquals("y", params.get(1));
@@ -223,8 +226,11 @@ class ZKClusterSynchronizerUnitTests {
 			});
 			instance.publishEngineChange("eng1", ClusterSyncMethod.PULL_OWL);
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(captured[0]));
-			ClusterSyncEvent syncEvent = (ClusterSyncEvent) ois.readObject();
-			assertTrue(syncEvent.getParams().isEmpty());
+			@SuppressWarnings("unchecked")
+			Map<String, Object> dataMap = (Map<String, Object>) ois.readObject();
+			@SuppressWarnings("unchecked")
+			List<Object> params = (List<Object>) dataMap.get("params");
+			assertTrue(params.isEmpty());
 		}
 	}
 }

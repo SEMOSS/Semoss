@@ -27,24 +27,20 @@
  *******************************************************************************/
 package prerna.reactor.insights.fs;
 
-import java.util.List;
-
-import org.json.JSONObject;
-
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.FileSystemUtil;
-import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 
 public class NewInsightAssetsDirectoryReactor extends AbstractReactor {
 
 	public NewInsightAssetsDirectoryReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keyRequired = new int[] { 1 };
 
 //		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
 //		this.keyRequired = new int[] { 1, 0 };
@@ -53,6 +49,12 @@ public class NewInsightAssetsDirectoryReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		String assetFolder = this.insight.getInsightFolder();
 
@@ -65,8 +67,7 @@ public class NewInsightAssetsDirectoryReactor extends AbstractReactor {
 //			comment = "add: creating new directory";
 //		}
 
-		SavedAsset savedAsset = FileSystemUtil.createNewAssetDirectory(assetFolder, filePath,
-				getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false));
+		FileSystemUtil.createNewAssetDirectory(assetFolder, filePath);
 
 //		List<String> gitRelativeFilePaths = new ArrayList<>();
 //		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);
@@ -87,23 +88,23 @@ public class NewInsightAssetsDirectoryReactor extends AbstractReactor {
 			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
-		return FileSystemUtil.savedAssetsAsNounMetadata(List.of(savedAsset));
+		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
+		return retNoun;
 	}
 
 	@Override
-	public JSONObject getMcpProperties() {
-		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
-		return properties;
+	public String getReactorDescription() {
+		return "Create a new empty directory in the insight folder";
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Create a new empty directory in the insight folder")
-				.key(ReactorKeysEnum.FILE_PATH, "Names of the file to create.")
-				.key(ReactorKeysEnum.OVERRIDE,
-						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_DIRECTORY_DESCRIPTION))
-				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "Names of the file to create.";
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while creating and saving the new file within the git repository for the insight";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

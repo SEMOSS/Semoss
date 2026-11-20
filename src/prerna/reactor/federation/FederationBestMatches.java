@@ -28,6 +28,7 @@
 package prerna.reactor.federation;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,7 +43,6 @@ import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -127,7 +127,7 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 		qs.addSelector(selector);
 
 		// get the info to write this data to a tsv
-		Map<String, SemossDataType> typesMap = new HashMap<>();
+		Map typesMap = new HashMap<String, SemossDataType>();
 		SemossDataType semossType = SemossDataType.convertStringToDataType(conceptDataType);
 		typesMap.put(newCol, semossType);
 		String newFileLoc = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR) + "/" + Utility.getRandomString(6)
@@ -135,11 +135,21 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 
 		// exec query
 		File newFile = null;
-		try (IRawSelectWrapper it2 = WrapperManager.getInstance().getRawWrapper(newColDatabase, qs)) {
+		IRawSelectWrapper it2 = null;
+		try {
+			it2 = WrapperManager.getInstance().getRawWrapper(newColDatabase, qs);
 			// write to file
 			newFile = Utility.writeResultToFile(newFileLoc, it2, typesMap, "\t");
 		} catch (Exception e) {
-			classLogger.error("Could not write the values of {} to {}", newCol, newFileLoc, e);
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (it2 != null) {
+				try {
+					it2.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		if (newFile != null) {
@@ -194,12 +204,16 @@ public class FederationBestMatches extends AbstractRFrameReactor {
 
 	///////////////////////// KEYS /////////////////////////////////////
 
+	@Deprecated
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Compares the values of a column of the current R frame with the values of a database column and returns a new R frame pairing each distinct frame value with each distinct database value and their string distance, where 0 is an exact match. It also returns the number of exact matches.")
-				.key(FRAME_COLUMN, "The column from the existing frame to join on")
-				.key(OUTPUT_FRAME_NAME, "Specify the output frame name");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(FRAME_COLUMN)) {
+			return "The column from the existing frame to join on";
+		} else if (key.equals(OUTPUT_FRAME_NAME)) {
+			return "Specify the output frame name";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 	private String getMatchesName() {

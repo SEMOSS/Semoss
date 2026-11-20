@@ -47,9 +47,8 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
  *
  * <p>
  * Required delegated Microsoft Graph scope: {@code Mail.Send}. Graph accepts
- * about 4MB on a single send, counted on the whole encoded request; a larger
- * one goes out as a draft with its files uploaded, which needs
- * {@code Mail.ReadWrite} and always keeps a copy in Sent Items.
+ * about 4MB on a single send, counted on the whole encoded request rather than
+ * on any one file.
  * </p>
  */
 public class MicrosoftOutlookSendMailReactor extends AbstractSendMailReactor {

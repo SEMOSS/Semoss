@@ -132,6 +132,6 @@ public class StreamRESTFunctionEngineUnitTests {
 	
 	@Test
 	void testGetCatalogSubType() {
-		assertEquals("STREAM_REST", engine.getCatalogSubType(null));
+		assertEquals("REST", engine.getCatalogSubType(null));
 	}
 }

@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.StaticBuiltinToolsCatalog;
@@ -45,9 +44,9 @@ public class ListStaticModelCatalogReactor extends AbstractReactor {
 	static final String SERVING_PROVIDER_KEY = "servingProvider";
 
 	/**
-	 * Serving hosts the Add Model page has an import form for, in normalized form.
-	 * Azure is deliberately absent - the catalog's pricing never lists it as a host
-	 * and Azure imports are deployment-name based anyway.
+	 * Serving hosts the Add Model page has an import form for, in normalized
+	 * form. Azure is deliberately absent - the catalog's pricing never lists it
+	 * as a host and Azure imports are deployment-name based anyway.
 	 */
 	private static final Set<String> DEFAULT_SERVING_PROVIDERS = new LinkedHashSet<>(
 			List.of("openai", "anthropic", "google", "bedrock", "nvidia", "perplexity"));
@@ -81,11 +80,16 @@ public class ListStaticModelCatalogReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Lists the meta/model.json catalog models importable through each connectable serving provider, "
-						+ "keyed by normalized provider (openai, anthropic, google, bedrock, nvidia, perplexity)")
-				.key(SERVING_PROVIDER_KEY,
-						"Optional serving provider to list models for; omit to list all connectable providers");
+	public String getReactorDescription() {
+		return "Lists the meta/model.json catalog models importable through each connectable serving provider, "
+				+ "keyed by normalized provider (openai, anthropic, google, bedrock, nvidia, perplexity)";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(SERVING_PROVIDER_KEY)) {
+			return "Optional serving provider to list models for; omit to list all connectable providers";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

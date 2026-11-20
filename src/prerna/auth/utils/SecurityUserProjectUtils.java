@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -40,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -83,27 +85,28 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static String getActualUserProjectPermission(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		// String userFilters = getUserFilters(user);
+		// String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM
+		// ENGINEPERMISSION "
+		// + "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters;
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		String userPermission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null) {
 					int permission = ((Number) val).intValue();
-					userPermission = AccessPermissionEnum.getPermissionValueById(permission);
-					break;
+					return AccessPermissionEnum.getPermissionValueById(permission);
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the user's effective project permission.", e);
-		}
-		if (userPermission != null) {
-			return userPermission;
 		}
 
 		// see if project is public
@@ -175,24 +178,28 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static Integer getUserProjectPermission(String singleUserId, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		// String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM
+		// ENGINEPERMISSION "
+		// + "WHERE ENGINEID='" + engineId + "' AND USERID='" + singleUserId + "'";
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", singleUserId));
-		Integer permission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					permission = ((Number) val).intValue();
+					return ((Number) val).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user project permission.", e);
 		}
 
-		return permission;
+		return null;
 	}
 
 	/**
@@ -210,19 +217,18 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		// TODO: account for different logins with different levels of access
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		Integer permission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					permission = ((Number) val).intValue();
+					return ((Number) val).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user project permission.", e);
 		}
 
-		return permission;
+		return null;
 	}
 
 	/**
@@ -233,6 +239,17 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static boolean userIsOwner(User user, String projectId) {
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to verify whether the user has owner-level access.", e);
+		}
+
 		return userIsOwner(getUserFiltersQs(user), projectId);
 	}
 
@@ -242,24 +259,22 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-		boolean isOwner = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					break;
+					return false;
 				}
 				int permission = ((Number) val).intValue();
 				if (AccessPermissionEnum.isOwner(permission)) {
-					isOwner = true;
-					break;
+					return true;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user has owner-level access.", e);
 		}
 
-		return isOwner;
+		return false;
 	}
 
 	/**
@@ -271,6 +286,17 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanViewProject(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to verify whether the user can view project.", e);
+		}
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -284,14 +310,15 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(orFilter);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-		boolean canView = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			// if you are here, you can view
-			canView = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				// if you are here, you can view
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user can view project.", e);
 		}
-		return canView;
+		return false;
 	}
 
 	/**
@@ -303,28 +330,37 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userCanEditProject(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = projectPermissionIsExpired(User.getSingleLogginName(user), projectId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(User.getSingleLogginName(user), projectId);
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to verify whether the user can edit project.", e);
+		}
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
-		boolean canEdit = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val == null) {
-					break;
+					return false;
 				}
 				int permission = ((Number) val).intValue();
 				if (AccessPermissionEnum.isEditor(permission)) {
-					canEdit = true;
-					break;
+					return true;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user can edit project.", e);
 		}
-		return canEdit;
+		return false;
 	}
 
 	/**
@@ -351,18 +387,19 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addOrderBy(new QueryColumnOrderBySelector("PROJECTPERMISSION__PERMISSION"));
-		int maxPermission = AccessPermissionEnum.READ_ONLY.getId();
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
-				if (val != null) {
-					maxPermission = ((Number) val).intValue();
+				if (val == null) {
+					return AccessPermissionEnum.READ_ONLY.getId();
 				}
+				int permission = ((Number) val).intValue();
+				return permission;
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the user's highest project permission.", e);
 		}
-		return maxPermission;
+		return AccessPermissionEnum.READ_ONLY.getId();
 	}
 
 	/**
@@ -375,6 +412,16 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean checkUserHasAccessToProject(String projectId, String userId) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		// Check to see if permission has expired
+		try {
+			boolean isExpired = projectPermissionIsExpired(userId, projectId);
+			// If permission is expired remove permission
+			if (isExpired) {
+				SecurityProjectUtils.removeExpiredProjectUser(userId, projectId);
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to verify whether the user has access to the project.", e);
+		}
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
@@ -442,4 +489,34 @@ class SecurityUserProjectUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
+	/**
+	 * Check if permission to project has expired
+	 * 
+	 * @param engineId
+	 * @param userId
+	 */
+	public static boolean projectPermissionIsExpired(String userId, String projectId) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		LocalDateTime currentTime = LocalDateTime.now();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__ENDDATE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userId));
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
+				SemossDate endDate = (SemossDate) wrapper.next().getValues()[0];
+				if (endDate == null) {
+					return false;
+				}
+				LocalDateTime formattedEndDate = endDate.getLocalDateTime();
+				return formattedEndDate.isBefore(currentTime);
+			} else {
+				return false;
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to determine whether the project permission has expired.", e);
+			throw e;
+		}
+	}
 }

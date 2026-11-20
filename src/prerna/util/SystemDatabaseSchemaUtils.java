@@ -82,9 +82,6 @@ public class SystemDatabaseSchemaUtils {
 		}
 
 		IRDBMSEngine engine = SystemEngineRegistry.getSystemEngine(databaseId);
-		if (engine == null) {
-			throw new IllegalStateException("System database '" + databaseId + "' is not loaded");
-		}
 		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
 
 		AbstractOwlCreator owlCreator = switch (databaseId) {

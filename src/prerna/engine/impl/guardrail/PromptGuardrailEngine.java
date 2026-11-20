@@ -64,14 +64,14 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 	public static final String MODEL_ENGINE_ID_KEY = "MODEL_ENGINE_ID";
 	public static final String SYSTEM_PROMPT_KEY = "SYSTEM_PROMPT";
 	public static final String BLOCKED_MESSAGE_KEY = "BLOCKED_MESSAGE";
-	public static final String JUDGE_ERROR_VERDICT_KEY = "JUDGE_ERROR_VERDICT";
+	public static final String FAIL_OPEN_KEY = "FAIL_OPEN";
 
 	protected static final String PROMPT_PARAM = "prompt";
 
 	private String modelEngineId;
 	private String systemPrompt;
 	private String blockedMessage;
-	private GuardrailVerdict judgeErrorVerdict;
+	private boolean failOpen;
 
 	protected PromptGuardrailEngine(String... additionalParameters) {
 		this.keysToGet = new String[additionalParameters.length + 1];
@@ -87,7 +87,7 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 		configurePromptGuardrail();
 		this.systemPrompt = getPropertyOrDefault(SYSTEM_PROMPT_KEY, getDefaultSystemPrompt());
 		this.blockedMessage = getPropertyOrDefault(BLOCKED_MESSAGE_KEY, getDefaultBlockedMessage());
-		this.judgeErrorVerdict = getVerdictProperty(JUDGE_ERROR_VERDICT_KEY, getDefaultJudgeErrorVerdict());
+		this.failOpen = getBooleanProperty(FAIL_OPEN_KEY, isFailOpenByDefault());
 
 		this.functionDescription = getPromptGuardrailDescription();
 		this.parameters = new ArrayList<>(getPromptGuardrailParameters());
@@ -109,27 +109,21 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 		try {
 			classification = classify(textToJudge, resolveSystemPrompt(keyValue));
 		} catch (Exception e) {
-			classLogger.error("{}: judge call failed, verdict {}: {}", getClass().getSimpleName(),
-					this.judgeErrorVerdict, e.getMessage(), e);
+			classLogger.error("{}: judge call failed, failing {}: {}", getClass().getSimpleName(),
+					this.failOpen ? "open" : "closed", e.getMessage(), e);
 			Map<String, Object> details = new HashMap<>();
-			details.put("classification", "ERROR");
-			details.put("judgeErrorVerdict", this.judgeErrorVerdict.name());
+			details.put("classification", this.failOpen ? "ERROR_FAIL_OPEN" : "ERROR_FAIL_CLOSED");
 			details.put("error", e.getMessage());
 			details.put("modelEngineId", this.modelEngineId);
-			return new GuardrailNounMetadata(this.judgeErrorVerdict.passes(), textToJudge, details);
+			return new GuardrailNounMetadata(this.failOpen, textToJudge, details);
 		}
 
-		String verdict = classification.toUpperCase();
-		boolean namesVerdict = verdict.contains("SAFE");
-		boolean pass = namesVerdict ? !verdict.contains("UNSAFE") : this.judgeErrorVerdict.passes();
+		boolean pass = !classification.toUpperCase().contains("UNSAFE");
 		classLogger.info("{}: classification='{}', pass={}", getClass().getSimpleName(), classification, pass);
 
 		Map<String, Object> details = new HashMap<>();
 		details.put("classification", classification);
 		details.put("modelEngineId", this.modelEngineId);
-		if (!namesVerdict) {
-			details.put("judgeErrorVerdict", this.judgeErrorVerdict.name());
-		}
 
 		String returnPrompt = pass || this.blockedMessage == null ? textToJudge : this.blockedMessage;
 		return new GuardrailNounMetadata(pass, returnPrompt, details);
@@ -145,14 +139,8 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 		return null;
 	}
 
-	/**
-	 * The verdict when the judge call fails, or its answer names neither SAFE nor
-	 * UNSAFE, and the SMSS sets no {@code JUDGE_ERROR_VERDICT}.
-	 *
-	 * @return BLOCK, unless a guardrail lets calls through by default
-	 */
-	protected GuardrailVerdict getDefaultJudgeErrorVerdict() {
-		return GuardrailVerdict.BLOCK;
+	protected boolean isFailOpenByDefault() {
+		return false;
 	}
 
 	protected abstract String getPromptGuardrailDescription();
@@ -216,9 +204,9 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 		return value != null && !(value = value.trim()).isEmpty() ? value : defaultValue;
 	}
 
-	private GuardrailVerdict getVerdictProperty(String key, GuardrailVerdict defaultValue) {
+	private boolean getBooleanProperty(String key, boolean defaultValue) {
 		String value = this.smssProp.getProperty(key);
-		return value != null && !value.trim().isEmpty() ? GuardrailVerdict.parse(value, key) : defaultValue;
+		return value != null && !(value = value.trim()).isEmpty() ? Boolean.parseBoolean(value) : defaultValue;
 	}
 
 	@SuppressWarnings("unchecked")

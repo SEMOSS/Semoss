@@ -46,7 +46,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.util.DIHelper;
 import prerna.util.gson.GsonUtility;
 
 public class ApiSemossTestUtils {
@@ -70,7 +70,7 @@ public class ApiSemossTestUtils {
 			return USING_DOCKER;
 		}
 		
-		Boolean docker = Boolean.valueOf(Utility.getDIHelperProperty("USE_DOCKER"));
+		Boolean docker = Boolean.valueOf(DIHelper.getInstance().getProperty("USE_DOCKER"));
 		
 		if (docker == null) {
 			docker = false;

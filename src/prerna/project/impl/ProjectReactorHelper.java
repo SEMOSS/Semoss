@@ -68,7 +68,6 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.SemossClassLoader;
 import prerna.util.SemossJarClassLoader;
-import prerna.util.SemossProjectJarClassLoader;
 import prerna.util.Settings;
 import prerna.util.Utility;
 import prerna.util.git.GitAssetUtils;
@@ -133,13 +132,15 @@ public class ProjectReactorHelper {
 	 */
 	// loads classes through this specific class loader for the insight
 	public Map<String, Class<IReactor>> loadReactors(String folder, String outputFolder) {
-		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader(),
-				this.project.getProjectId());
+		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader());
 
 		Map<String, Class<IReactor>> reactorMap = new HashMap<>();
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
-			classLogger.debug("Project specific reactors are disabled");
-			return reactorMap;
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
+				classLogger.debug("Project specific reactors are disabled");
+				return reactorMap;
+			}
 		}
 		try {
 			// the main folder to add here is
@@ -162,7 +163,7 @@ public class ProjectReactorHelper {
 				}
 
 				ScanResult sr = new ClassGraph().overrideClasspath((new File(classesFolder).toURI().toURL()))
-						.enableClassInfo().acceptPackages(packages).scan();
+						.enableClassInfo().whitelistPackages(packages).scan();
 
 				// find everything implementing IReactor
 				// get implementing classes doesn't seem to work when overriding the classpath
@@ -210,9 +211,12 @@ public class ProjectReactorHelper {
 	// loads classes through this specific class loader for the insight
 	public Map<String, Class<IReactor>> loadReactorsFromPom(String folder, String outputFolder) {
 		Map<String, Class<IReactor>> reactors = new HashMap<>();
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
-			classLogger.debug("Project specific reactors are disabled");
-			return reactors;
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
+				classLogger.debug("Project specific reactors are disabled");
+				return reactors;
+			}
 		}
 
 		try {
@@ -228,7 +232,7 @@ public class ProjectReactorHelper {
 			// change it to something else if we want
 			String classesFolder = folder + "/" + outputFolder;
 
-			classesFolder = classesFolder.replace("\\", "/");
+			classesFolder = classesFolder.replace("\\\\", "/");
 			this.mvnClassLoader.add(classesFolder);
 
 			File file = new File(classesFolder);
@@ -248,7 +252,7 @@ public class ProjectReactorHelper {
 				}
 
 				ScanResult sr = new ClassGraph().overrideClasspath((new File(classesFolder).toURI().toURL()))
-						.acceptPackages(packages).scan();
+						.whitelistPackages(packages).scan();
 
 				String[] subclassSearch = new String[] { AbstractReactor.class.getName(),
 						prerna.sablecc2.reactor.AbstractReactor.class.getName(), };
@@ -296,9 +300,12 @@ public class ProjectReactorHelper {
 	 */
 	public Map<String, Class<IReactor>> loadReactorsFromJars(URL[] urls) {
 		Map<String, Class<IReactor>> reactorsMap = new HashMap<>();
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
-			classLogger.debug("Project specific reactors are disabled");
-			return reactorsMap;
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
+				classLogger.debug("Project specific reactors are disabled");
+				return reactorsMap;
+			}
 		}
 
 		if (urlClassLoader != null) {
@@ -310,9 +317,8 @@ public class ProjectReactorHelper {
 			}
 		}
 
-		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader(),
-				this.project.getProjectId());
-		urlClassLoader = new SemossProjectJarClassLoader(urls, this.projectClassLoader);
+		projectClassLoader = new SemossClassLoader(ProjectReactorHelper.class.getClassLoader());
+		urlClassLoader = new URLClassLoader(urls, this.projectClassLoader);
 		try {
 			// scan all abstract reactors
 			ScanResult sr = new ClassGraph().overrideClasspath((Object[]) urls).enableClassInfo().scan();
@@ -373,7 +379,7 @@ public class ProjectReactorHelper {
 			// add the jars
 			// locate all the reactors
 			// and keep access to it
-			mvnClassLoader = new SemossJarClassLoader(Map.of(), this.project.getProjectId());
+			mvnClassLoader = new SemossJarClassLoader(Map.of());
 
 			// classes are in
 			// appRoot / classes
@@ -408,24 +414,25 @@ public class ProjectReactorHelper {
 					built = true;
 				} else {
 					InvocationRequest request = new DefaultInvocationRequest();
+					// request.
 					request.setPomFile(pomFile);
 					request.setMavenOpts("-DoutputType=graphml -DoutputFile=\"" + outputFile.getAbsolutePath()
 							+ "\" -DincludeScope=runtime ");
-					request.addArgs(Collections.singletonList("dependency:list"));
-					request.setBaseDirectory(pomFile.getParentFile());
+					request.setGoals(Collections.singletonList("dependency:list"));
 
 					Invoker invoker = new DefaultInvoker();
+					invoker.setWorkingDirectory(pomFile.getParentFile());
 					invoker.setMavenHome(new File(Utility.normalizePath(mvnHome)));
 					InvocationResult result = invoker.execute(request);
 
 					if (result.getExitCode() != 0) {
 						built = false;
+						// throw new IllegalStateException( "Build failed." );
 					}
 				}
 			}
 
-			if (!built) {
-				// may be maven is not set but mvn as a executor is available
+			if (!built) { // may be maven is not set but mvn as a executor is available
 				// need to make the modification to this
 				CmdExecUtil ceu = new CmdExecUtil(null,
 						SmssUtilities.getUniqueName(project.getProjectName(), project.getProjectId()),

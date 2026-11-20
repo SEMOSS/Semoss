@@ -29,8 +29,6 @@ package prerna.util.sql;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.impl.CaseInsensitiveProperties;
@@ -43,15 +41,11 @@ public class BigQueryQueryUtil extends AnsiSqlQueryUtil {
 	private String oauthType;
 
 	private String oauthServiceAcctEmail = null;
-	@JsonIgnore
-	private transient String oauthPrivateKeyPath = null;
-	@JsonIgnore
-	private transient String oauthAccessToken = null;
-	@JsonIgnore
-	private transient String oauthRefreshToken = null;
+	private String oauthPrivateKeyPath = null;
+	private String oauthAccessToken = null;
+	private String oauthRefreshToken = null;
 	private String oauthClientId = null;
-	@JsonIgnore
-	private transient String oauthClientSecret = null;
+	private String oauthClientSecret = null;
 
 	@Override
 	public void initTypeConverstionMap() {

@@ -30,18 +30,15 @@ package prerna.auth.utils;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -57,7 +54,6 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
@@ -86,20 +82,17 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
-import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.parser.ParserException;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
-import prerna.util.InternalUtility;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -113,25 +106,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	private static final String INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this project's permissions.";
 	private static final String NOT_HIGH_ENOUGH = "The user doesn't have the high enough permissions to modify this users project permission.";
-	private static final String INSERT_PROJECT = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, "
-			+ "DISCOVERABLE, IS_TEMPLATE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, PROJECTDISPLAYNAME) "
-			+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
-	private static final String UPDATE_PROJECT = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=? "
-			+ "WHERE PROJECTID=?";
-	private static final String SELECT_STORED_INSIGHTS = "SELECT INSIGHTID, INSIGHTNAME, LAYOUT, GLOBAL, CACHEABLE, "
-			+ "CACHEMINUTES, CACHECRON, CACHEDON, CACHEENCRYPT, RECIPE, SCHEMANAME FROM INSIGHT WHERE PROJECTID=?";
-	private static final String SELECT_STORED_INSIGHT_META = "SELECT INSIGHTID, METAKEY, METAVALUE, METAORDER "
-			+ "FROM INSIGHTMETA WHERE PROJECTID=?";
-
-	/**
-	 * Marks a project as a Digital Twin: an agent that holds copies of its owner's
-	 * emails, chats and files, so it is shared with named people only. Only
-	 * {@link #markDigitalTwin} writes it; {@link #updateProjectMetadata} never sets
-	 * or clears it.
-	 */
-	public static final String DIGITAL_TWIN_METAKEY = "digital_twin";
-	/** Why sharing a Digital Twin beyond named people is refused. */
-	public static final String DIGITAL_TWIN_PEOPLE_ONLY = "A Digital Twin can only be shared with named people";
 
 	/**
 	 * Add an entire project into the security db - Expectation is not to call this
@@ -150,65 +124,32 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Registers a project in the security database from its smss file, with the
-	 * insights of its insights database. A project that is registered already is
-	 * left as it is, unless its smss file sets RELOAD_INSIGHTS.
-	 *
-	 * <p>
-	 * The project's files and its insights database cannot be part of a security
-	 * database transaction, so the work runs in this order:
-	 * </p>
-	 * <ol>
-	 * <li>The insights database is opened: the loaded project's, or else the one
-	 * its smss file names. A failure to open it is thrown, and nothing is written.
-	 * A project whose type does not hold insights has none, so step 3 is
-	 * skipped.</li>
-	 * <li>A first security database transaction registers the project, or updates
-	 * its name, type, cost and global flag when it is registered already. It
-	 * commits before the insights are copied, so the project is registered even
-	 * when its insights cannot be.</li>
-	 * <li>A second security database transaction replaces the project's INSIGHT and
-	 * INSIGHTMETA rows with the rows of the insights database and, on a reload,
-	 * removes the user permissions and preferences of the insights that no longer
-	 * exist. Either all of it is saved or none of it is.</li>
-	 * <li>The insights database is closed unless it is the loaded project's, and on
-	 * a reload the smss file's RELOAD_INSIGHTS is set to false.</li>
-	 * </ol>
-	 *
-	 * <p>
-	 * A failure of either security database transaction is logged, not thrown, and
-	 * rolled back. When the project's row is not saved, the insights are not
-	 * copied. When the insights are not saved, the project keeps the insight rows
-	 * it had: none, for a new project. Step 4 still runs.
-	 * </p>
-	 *
-	 * @param projectId the project
-	 * @param global    whether the project is public, for a project not yet
-	 *                  registered or reloaded
-	 * @param user      the signed in user, recorded as the creator of a project not
-	 *                  yet registered: creating one needs the creation rules, and
-	 *                  reloading one needs the user to be able to edit it; or null
-	 *                  when the platform registers the project from its smss, which
-	 *                  gives no one access to it
-	 * @throws IllegalArgumentException when the user may not create or reload the
-	 *                                  project
-	 * @throws Exception                when the insights database cannot be opened
+	 * Add an entire project into the security db
+	 * 
+	 * @param appId
+	 * @throws Exception
 	 */
 	public static void addProject(String projectId, boolean global, User user) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String smssFile = InternalUtility.getProjectSmssPath(projectId) + "";
+		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 		boolean isTemplate = Boolean.parseBoolean(prop.getProperty(Constants.IS_TEMPLATE, "false"));
 
-		String alias = prop.getProperty(Constants.PROJECT_ALIAS);
-		String projectName = alias == null ? projectId : alias;
+		String projectName = prop.getProperty(Constants.PROJECT_ALIAS);
+		if (projectName == null) {
+			projectName = projectId;
+		}
 
-		String smssDisplayName = prop.getProperty(Constants.PROJECT_DISPLAY_NAME);
-		String displayName = smssDisplayName == null || smssDisplayName.trim().isEmpty() ? projectName
-				: smssDisplayName;
+		String displayName = prop.getProperty(Constants.PROJECT_DISPLAY_NAME);
+		if (displayName == null || displayName.trim().isEmpty()) {
+			displayName = projectName;
+		}
 
-		boolean reloadInsights = prop.containsKey(Constants.RELOAD_INSIGHTS)
-				&& Boolean.parseBoolean(prop.get(Constants.RELOAD_INSIGHTS).toString());
+		boolean reloadInsights = false;
+		if (prop.containsKey(Constants.RELOAD_INSIGHTS)) {
+			String booleanStr = prop.get(Constants.RELOAD_INSIGHTS).toString();
+			reloadInsights = Boolean.parseBoolean(booleanStr);
+		}
 
 		// TODO: we do not need cost for project
 		String[] typeAndCost = new String[] { prop.getOrDefault(Constants.PROJECT_ENUM_TYPE, "") + "", "" };
@@ -217,11 +158,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			classLogger.info("Security database already contains project with unique id = {}",
 					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
-		}
-		if (user != null && projectExists) {
-			ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
-		} else if (user != null) {
-			ResourceWriteAccess.requireProjectCreation(user, IProject.PROJECT_TYPE.fromSmss(prop), global);
+		} else if (!projectExists) {
+			addProject(projectId, projectName, displayName, typeAndCost[0], typeAndCost[1], global, isTemplate, user);
+		} else if (projectExists) {
+			// update project properties anyway ... in case global was shifted for example
+			updateProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global);
 		}
 
 		classLogger.info("Security database going to add project with alias = {}", Utility.cleanLogString(projectName));
@@ -232,11 +173,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine rne;
 		if (Utility.projectLoaded(projectId)) {
 			rne = Utility.getProject(projectId).getInsightDatabase();
-			projectLoaded = true;
-		} else if (IProject.PROJECT_TYPE.fromSmss(prop).holdsInsights()) {
-			rne = ProjectHelper.loadInsightsEngine(prop, classLogger);
 		} else {
-			rne = null;
+			rne = ProjectHelper.loadInsightsEngine(prop, classLogger);
+		}
+
+		// if we are doing a reload
+		// we will want to remove unnecessary insights
+		// from the insight permissions
+		Set<String> insightPermissionIds = new HashSet<>();
+		if (reloadInsights) {
+			// need to flush out the current insights w/ permissions
+			// will keep the same permissions
+			// and perform a delta
+			classLogger.info("Reloading app. Retrieving existing insights with permissions");
+			SelectQueryStruct permissionsQs = new SelectQueryStruct();
+			permissionsQs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID"));
+			permissionsQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", projectId));
+			insightPermissionIds.addAll(QueryExecutionUtility.flushToSetString(securityDb, permissionsQs, false));
 		}
 
 		AbstractSqlQueryUtil securityQueryUtil = securityDb.getQueryUtil();
@@ -279,79 +233,30 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		metaQs.addSelector(new QueryColumnSelector("INSIGHTMETA__METAORDER"));
 
 		final int INSIGHT_BATCH_SIZE = 5000;
-		// the project's row is committed on its own first, so the project is
-		// registered even when its insights cannot be copied
-		boolean projectSaved = false;
+		// replace the project's insights and their metadata in one transaction,
+		// so a failure leaves the rows that were there
+		boolean insightsSaved = false;
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
-				if (QueryExecutionUtility.queryOne(connection, "SELECT PROJECTID FROM PROJECT WHERE PROJECTID=?",
-						statement -> statement.setString(1, projectId), rs -> rs.getString(1)) == null) {
-					insertProject(connection, securityQueryUtil, projectId, projectName, displayName, typeAndCost[0],
-							typeAndCost[1], global, isTemplate, user);
-				} else {
-					// update project properties anyway ... in case global was shifted for example
-					updateProject(connection, securityQueryUtil, projectId, projectName, typeAndCost[0], typeAndCost[1],
-							global);
-				}
+				QueryExecutionUtility.executeUpdate(connection, "DELETE FROM INSIGHT WHERE PROJECTID=?",
+						statement -> statement.setString(1, projectId));
+				int insights = QueryExecutionUtility.executeBatchFromQuery(connection, insertInsight, rne, insightsQs,
+						INSIGHT_BATCH_SIZE, (statement, row) -> {
+							String insightId = bindInsight(statement, row, projectId, timeStamp, securityQueryUtil);
+							// an insight that still exists keeps its permissions
+							insightPermissionIds.remove(insightId);
+						});
+				QueryExecutionUtility.executeUpdate(connection, "DELETE FROM INSIGHTMETA WHERE PROJECTID=?",
+						statement -> statement.setString(1, projectId));
+				int metaRows = QueryExecutionUtility.executeBatchFromQuery(connection, insertInsightMeta, rne, metaQs,
+						INSIGHT_BATCH_SIZE,
+						(statement, row) -> bindInsightMeta(statement, row, projectId, securityQueryUtil));
+				classLogger.info("Saved {} insights and {} insight metadata rows", insights, metaRows);
 				return null;
 			});
-			projectSaved = true;
+			insightsSaved = true;
 		} catch (Exception e) {
-			classLogger.error("Failed to save the project row of project {}", Utility.cleanLogString(projectId), e);
-		}
-
-		// the project's insights and their metadata, and on a reload the permissions
-		// of insights that no longer exist, in a second transaction, so a failure
-		// leaves the insight rows that were there
-		if (projectSaved && rne != null) {
-			try {
-				QueryExecutionUtility.write(securityDb, connection -> {
-					// on a reload, the insights with permissions now; an insight that still
-					// exists keeps its permissions, and the others' are removed below
-					Set<String> insightPermissionIds = new HashSet<>();
-					if (reloadInsights) {
-						classLogger.info("Reloading app. Retrieving existing insights with permissions");
-						insightPermissionIds.addAll(QueryExecutionUtility.queryList(connection,
-								"SELECT INSIGHTID FROM USERINSIGHTPERMISSION WHERE PROJECTID=?",
-								statement -> statement.setString(1, projectId), rs -> rs.getString(1)));
-					}
-
-					QueryExecutionUtility.executeUpdate(connection, "DELETE FROM INSIGHT WHERE PROJECTID=?",
-							statement -> statement.setString(1, projectId));
-					int insights = QueryExecutionUtility.executeBatchFromQuery(connection, insertInsight, rne,
-							insightsQs, INSIGHT_BATCH_SIZE, (statement, row) -> {
-								String insightId = bindInsight(statement, row, projectId, timeStamp, securityQueryUtil);
-								// an insight that still exists keeps its permissions
-								insightPermissionIds.remove(insightId);
-							});
-					QueryExecutionUtility.executeUpdate(connection, "DELETE FROM INSIGHTMETA WHERE PROJECTID=?",
-							statement -> statement.setString(1, projectId));
-					int metaRows = QueryExecutionUtility.executeBatchFromQuery(connection, insertInsightMeta, rne,
-							metaQs, INSIGHT_BATCH_SIZE,
-							(statement, row) -> bindInsightMeta(statement, row, projectId, securityQueryUtil));
-					classLogger.info("Saved {} insights and {} insight metadata rows", insights, metaRows);
-
-					// need to remove existing insights w/ permissions that do not exist anymore
-					if (!insightPermissionIds.isEmpty()) {
-						classLogger.info("Removing insights with permissions that no longer exist");
-						QueryExecutionUtility.executeBatch(connection,
-								"DELETE FROM USERINSIGHTPERMISSION WHERE PROJECTID=? AND INSIGHTID=?",
-								insightPermissionIds, (statement, deleteId) -> {
-									statement.setString(1, projectId);
-									statement.setString(2, deleteId);
-								});
-						QueryExecutionUtility.executeBatch(connection,
-								"DELETE FROM USERINSIGHTPREFERENCE WHERE PROJECTID=? AND INSIGHTID=?",
-								insightPermissionIds, (statement, deleteId) -> {
-									statement.setString(1, projectId);
-									statement.setString(2, deleteId);
-								});
-					}
-					return null;
-				});
-			} catch (Exception e) {
-				classLogger.error("Failed to save the insights of project {}", Utility.cleanLogString(projectId), e);
-			}
+			classLogger.error("Failed to create the project and initialize project security records", e);
 		}
 
 		// close the connection to the insights
@@ -364,10 +269,32 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (reloadInsights) {
 			classLogger.info("Modifying force reload to false");
 			try {
-				InternalUtility.changePropertiesFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");
+				Utility.changePropertiesFileValue(smssFile, Constants.RELOAD_INSIGHTS, "false");
 			} catch (IOException e) {
-				classLogger.error("Failed to set RELOAD_INSIGHTS to false in the smss file of project {}",
-						Utility.cleanLogString(projectId), e);
+				classLogger.error("Failed to create the project and initialize project security records", e);
+			}
+
+			// need to remove existing insights w/ permissions that do not exist anymore
+			if (insightsSaved && !insightPermissionIds.isEmpty()) {
+				classLogger.info("Removing insights with permissions that no longer exist");
+				try {
+					QueryExecutionUtility.executeBatch(securityDb,
+							"DELETE FROM USERINSIGHTPERMISSION WHERE PROJECTID=? AND INSIGHTID=?", insightPermissionIds,
+							(statement, deleteId) -> {
+								statement.setString(1, projectId);
+								statement.setString(2, deleteId);
+							});
+					QueryExecutionUtility.executeBatch(securityDb,
+							"DELETE FROM USERINSIGHTPREFERENCE WHERE PROJECTID=? AND INSIGHTID=?", insightPermissionIds,
+							(statement, deleteId) -> {
+								statement.setString(1, projectId);
+								statement.setString(2, deleteId);
+							});
+				} catch (RuntimeException e) {
+					throw e;
+				} catch (Exception e) {
+					classLogger.error("Failed to create the project and initialize project security records", e);
+				}
 			}
 		}
 
@@ -449,9 +376,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Adds a project to the security database with its name as its display name.
-	 * The project is not discoverable and not a template, and the user, when given,
-	 * is recorded as its creator.
 	 * 
 	 * @param projectId
 	 * @param projectName
@@ -471,36 +395,38 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		addProject(projectId, projectName, projectDisplayName, projectType, projectCost, global, false, user);
 	}
 
-	/**
-	 * Adds a new project to the security database. The project is not discoverable,
-	 * and the user, when given, is recorded as its creator.
-	 *
-	 * <p>
-	 * A user needs the creation rules: the publisher rule, the admin only rule for
-	 * the project's type, and for a public project the admin only rule for making
-	 * one public. With no user, the platform registers the project, which gives no
-	 * one access to it.
-	 *
-	 * @param projectId          the new project's id
-	 * @param projectName        its name
-	 * @param projectDisplayName its display name, or blank for its name
-	 * @param projectType        its type, as a {@link IProject.PROJECT_TYPE} name
-	 * @param projectCost        its cost
-	 * @param global             whether it is public
-	 * @param isTemplate         whether it is a template
-	 * @param user               the signed in user who creates it, or null when the
-	 *                           platform registers it
-	 * @throws IllegalArgumentException when the user may not create the project
-	 */
 	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
 			String projectCost, boolean global, boolean isTemplate, User user) {
-		ResourceWriteAccess.requireProjectCreation(user, projectTypeOf(projectType), global);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, IS_TEMPLATE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, PROJECTDISPLAYNAME) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				insertProject(connection, securityDb.getQueryUtil(), projectId, projectName, projectDisplayName,
-						projectType, projectCost, global, isTemplate, user);
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, projectName);
+				ps.setString(parameterIndex++, projectType);
+				ps.setString(parameterIndex++, projectCost);
+				ps.setBoolean(parameterIndex++, global);
+				ps.setBoolean(parameterIndex++, false);
+				ps.setBoolean(parameterIndex++, isTemplate);
+				if (user != null) {
+					AuthProvider ap = user.getPrimaryLogin();
+					AccessToken token = user.getAccessToken(ap);
+					ps.setString(parameterIndex++, token.getId());
+					ps.setString(parameterIndex++, ap.toString());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				}
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				if (projectDisplayName == null || projectDisplayName.trim().isEmpty()) {
+					ps.setString(parameterIndex++, projectName);
+				} else {
+					ps.setString(parameterIndex++, projectDisplayName);
+				}
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -509,144 +435,46 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	/**
-	 * Inserts a project's PROJECT row on the caller's connection, in its
-	 * transaction. The project is not discoverable, it was created and last edited
-	 * now, and the user, when given, is recorded as its creator. A blank display
-	 * name gives the project's name as its display name.
-	 *
-	 * @param connection the security database connection, in the caller's
-	 *                   transaction
-	 * @param queryUtil  the security database's query util, for its binders
-	 */
-	private static void insertProject(Connection connection, AbstractSqlQueryUtil queryUtil, String projectId,
-			String projectName, String projectDisplayName, String projectType, String projectCost, boolean global,
-			boolean isTemplate, User user) throws Exception {
-		QueryExecutionUtility.executeUpdate(connection, INSERT_PROJECT, ps -> {
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, projectId);
-			queryUtil.setNullableString(ps, parameterIndex++, projectName);
-			queryUtil.setNullableString(ps, parameterIndex++, projectType);
-			queryUtil.setNullableString(ps, parameterIndex++, projectCost);
-			ps.setBoolean(parameterIndex++, global);
-			ps.setBoolean(parameterIndex++, false);
-			ps.setBoolean(parameterIndex++, isTemplate);
-			if (user != null) {
-				AuthProvider ap = user.getPrimaryLogin();
-				AccessToken token = user.getAccessToken(ap);
-				ps.setString(parameterIndex++, token.getId());
-				ps.setString(parameterIndex++, ap.toString());
-			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			}
-			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-			if (projectDisplayName == null || projectDisplayName.trim().isEmpty()) {
-				queryUtil.setNullableString(ps, parameterIndex++, projectName);
-			} else {
-				ps.setString(parameterIndex++, projectDisplayName);
-			}
-		});
-	}
-
-	/**
-	 * The project type a type name stands for: a blank name is an INSIGHTS project,
-	 * as in an smss, and a name that is no type is none.
-	 *
-	 * @param projectType the type name, or null
-	 * @return the type, or null when the name is no project type
-	 */
-	private static IProject.PROJECT_TYPE projectTypeOf(String projectType) {
-		if (projectType == null || projectType.isBlank()) {
-			return IProject.PROJECT_TYPE.INSIGHTS;
-		}
-		try {
-			return IProject.PROJECT_TYPE.valueOf(projectType.trim());
-		} catch (IllegalArgumentException e) {
-			return null;
-		}
-	}
-
-	/**
-	 * Makes the user who created a new project its owner, with an OWNER row for
-	 * each of their logins that records them as the person who gave it. The project
-	 * must be new: created by this user, with no one given access to it yet. In an
-	 * admin operation, or the platform's own work, the user is made the owner of
-	 * any project.
-	 *
-	 * @param user      the signed in user who created the project
-	 * @param projectId the project
-	 * @throws IllegalArgumentException when there is no user, the project already
-	 *                                  has access given out, or the user did not
-	 *                                  create it
-	 */
-	public static void addProjectOwner(User user, String projectId) {
-		if (user == null) {
-			throw new IllegalArgumentException("A signed in user is needed to own project " + projectId);
-		}
-		ResourceWriteAccess.requireNewOwner(user, PermissionTargetResource.project(projectId));
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-		Set<String> userIds = new LinkedHashSet<>();
-		for (AuthProvider login : user.getLogins()) {
-			userIds.add(user.getAccessToken(login).getId());
-		}
+	public static void addProjectOwner(User user, String projectId, String userId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+
 		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?)";
-		for (String userId : userIds) {
-			try {
-				QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				});
-			} catch (RuntimeException e) {
-				throw e;
-			} catch (Exception e) {
-				classLogger.error("Failed to add project owner", e);
-			}
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userId);
+				ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to add project owner", e);
 		}
-		SecurityModelUsageLimitUtils.markChanged();
 	}
 
-	static void updateProject(String projectID, String projectName, String projectType, String projectCost,
+	public static void updateProject(String projectID, String projectName, String projectType, String projectCost,
 			boolean global) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=? WHERE PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				updateProject(connection, securityDb.getQueryUtil(), projectID, projectName, projectType, projectCost,
-						global);
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectName);
+				ps.setString(parameterIndex++, projectType);
+				ps.setString(parameterIndex++, projectCost);
+				ps.setBoolean(parameterIndex++, global);
+				ps.setString(parameterIndex++, projectID);
 			});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to update project properties in the security database", e);
 		}
-	}
-
-	/**
-	 * Updates a project's name, type, cost and global flag on the caller's
-	 * connection, in its transaction.
-	 *
-	 * @param connection the security database connection, in the caller's
-	 *                   transaction
-	 * @param queryUtil  the security database's query util, for its binders
-	 */
-	private static void updateProject(Connection connection, AbstractSqlQueryUtil queryUtil, String projectId,
-			String projectName, String projectType, String projectCost, boolean global) throws Exception {
-		QueryExecutionUtility.executeUpdate(connection, UPDATE_PROJECT, ps -> {
-			int parameterIndex = 1;
-			queryUtil.setNullableString(ps, parameterIndex++, projectName);
-			queryUtil.setNullableString(ps, parameterIndex++, projectType);
-			queryUtil.setNullableString(ps, parameterIndex++, projectCost);
-			ps.setBoolean(parameterIndex++, global);
-			ps.setString(parameterIndex++, projectId);
-		});
 	}
 
 	/**
@@ -671,33 +499,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Builds a new insights database for the project in the given folder from the
-	 * insights and insight metadata stored in the security database, and returns
-	 * its file once the database is closed.
-	 *
-	 * <p>
-	 * The new insights database is a separate engine, so it cannot share a
-	 * transaction with the security database. It is created first; then the
-	 * project's insights and their metadata are read from the security database
-	 * together, in one read transaction, before anything is written to it. When
-	 * that read fails, or an insight cannot be written, the new database is closed,
-	 * its file is deleted, and an {@link IllegalArgumentException} is thrown. An
-	 * insight with no recipe is skipped. When the metadata cannot be written, the
-	 * failure is logged and the file is returned without it.
-	 * </p>
-	 *
-	 * @param user       the signed in user, who needs to be able to edit the
-	 *                   project, or null for the platform's own work
-	 * @param projectId  the project
-	 * @param folderPath the folder the new insights database is made in
-	 * @return the new insights database's file
-	 * @throws IllegalArgumentException when the user cannot edit the project
-	 * @throws Exception                when the new insights database cannot be
-	 *                                  made
+	 * Delete just the insights for a project
+	 * 
+	 * @param appId
 	 */
-	public static File createInsightsDatabase(User user, String projectId, String folderPath) throws Exception {
-		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
+	public static void deleteInsightsFromProjectForRecreation(String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String deleteQuery = "DELETE FROM INSIGHT WHERE PROJECTID=?";
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectId);
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to delete project insights before recreation", e);
+			throw new IllegalArgumentException("An error occurred deleting the insights for project " + projectId);
+		}
+	}
+
+	/**
+	 * 
+	 * @param projectId
+	 * @return
+	 * @throws Exception
+	 */
+	public static File createInsightsDatabase(String projectId, String folderPath) throws Exception {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+
+		// TODO: potentially take into consideration playsheet legacy insights
 
 		IProject project = Utility.getProject(projectId);
 		RdbmsTypeEnum insightType = project.getInsightDatabase().getQueryUtil().getDbType();
@@ -707,19 +536,51 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		InsightsRDBMSUtils.runInsightCreateTableQueries(newInsightDatabase);
 
 		InsightAdministrator admin = new InsightAdministrator(newInsightDatabase);
-		StoredProjectInsights stored = null;
 		{
 			boolean error = false;
 			PreparedStatement insertPs = null;
-			try {
-				// the insights and their metadata are read together, before anything is
-				// written to the new database
-				stored = QueryExecutionUtility.read(securityDb,
-						connection -> readStoredInsights(connection, securityDb.getDatabaseZoneId(), projectId));
 
+			String iprefix = "INSIGHT__";
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector(iprefix + "INSIGHTID"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "INSIGHTNAME"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "LAYOUT"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "CREATEDON"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "LASTMODIFIEDON"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "GLOBAL"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "CACHEABLE"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "CACHEMINUTES"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "CACHECRON"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "CACHEDON"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "CACHEENCRYPT"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "RECIPE"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "SCHEMANAME"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(iprefix + "PROJECTID", "==", projectId));
+
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 				insertPs = admin.getAddInsightPreparedStatement();
-				for (StoredInsight insight : stored.insights()) {
-					String pixelRecipe = insight.recipe();
+				while (wrapper.hasNext()) {
+					Object[] row = wrapper.next().getValues();
+
+					int index = 0;
+					String insightId = (String) row[index++];
+					String insightName = (String) row[index++];
+					String insightLayout = (String) row[index++];
+					SemossDate createdOn = (SemossDate) row[index++];
+					SemossDate lastModifiedOn = (SemossDate) row[index++];
+					Boolean global = (Boolean) row[index++];
+					Boolean cacheable = (Boolean) row[index++];
+					int cacheMinutes = ((Number) row[index++]).intValue();
+					String cacheCron = (String) row[index++];
+					SemossDate sdCachedOn = (SemossDate) row[index++];
+					LocalDateTime cachedOn = null;
+					if (sdCachedOn != null) {
+						cachedOn = sdCachedOn.getLocalDateTime();
+					}
+					boolean cacheEncrypt = (Boolean) row[index++];
+					String pixelRecipe = (String) row[index++];
+					String schemaName = (String) row[index++];
+
 					List<String> pixelList = null;
 
 					if (pixelRecipe != null && !pixelRecipe.isEmpty() && !pixelRecipe.equals("null")) {
@@ -738,13 +599,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 							}
 						}
 					} else {
-						classLogger.warn("Cannot write insight id '{}' with no pixel recipe", insight.insightId());
+						classLogger.warn("Cannot write insight id '{}' with no pixel recipe", insightId);
 						continue;
 					}
 
-					admin.batchInsight(insertPs, insight.insightId(), insight.insightName(), insight.layout(),
-							pixelList, insight.global(), insight.cacheable(), insight.cacheMinutes(),
-							insight.cacheCron(), insight.cachedOn(), insight.cacheEncrypt(), insight.schemaName());
+					admin.batchInsight(insertPs, insightId, insightName, insightLayout, pixelList, global, cacheable,
+							cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
 				}
 
 				insertPs.executeBatch();
@@ -756,7 +616,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				classLogger.error("Failed to create or initialize the project insights database", e);
 				throw new IllegalArgumentException("Error occured creating the insights database");
 			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(newInsightDatabase, insertPs);
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 				if (error) {
 					try {
 						newInsightDatabase.close();
@@ -774,11 +634,27 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		{
 			PreparedStatement insertPs = null;
-			try {
+
+			String iprefix = "INSIGHTMETA__";
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector(iprefix + "INSIGHTID"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "METAKEY"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "METAVALUE"));
+			qs.addSelector(new QueryColumnSelector(iprefix + "METAORDER"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(iprefix + "PROJECTID", "==", projectId));
+
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 				insertPs = admin.getAddInsightMetaPreparedStatement();
-				for (StoredInsightMeta meta : stored.metadata()) {
-					admin.batchInsightMetadata(insertPs, meta.insightId(), meta.metaKey(), meta.metaValue(),
-							meta.metaOrder());
+				while (wrapper.hasNext()) {
+					Object[] row = wrapper.next().getValues();
+
+					int index = 0;
+					String insightId = (String) row[index++];
+					String metaKey = (String) row[index++];
+					String metaValue = (String) row[index++];
+					int metaOrder = ((Number) row[index++]).intValue();
+
+					admin.batchInsightMetadata(insertPs, insightId, metaKey, metaValue, metaOrder);
 				}
 
 				insertPs.executeBatch();
@@ -789,7 +665,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				// insight metadata is not as important, log the error
 				classLogger.error("Failed to create or initialize the project insights database", e);
 			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(newInsightDatabase, insertPs);
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 			}
 		}
 
@@ -802,65 +678,23 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Reads a project's insights and their metadata on the caller's connection, in
-	 * its transaction, with each value converted as a query of the security
-	 * database converts it.
-	 *
-	 * @param connection     the security database connection
-	 * @param databaseZoneId the security database's time zone, for when an insight
-	 *                       was cached
-	 * @return the project's insights and their metadata
-	 */
-	private static StoredProjectInsights readStoredInsights(Connection connection, ZoneId databaseZoneId,
-			String projectId) throws Exception {
-		List<StoredInsight> insights = QueryExecutionUtility.queryList(connection, SELECT_STORED_INSIGHTS,
-				ps -> ps.setString(1, projectId), rs -> {
-					Timestamp cachedOn = rs.getTimestamp(8);
-					return new StoredInsight(rs.getString(1), rs.getString(2), rs.getString(3), rs.getBoolean(4),
-							rs.getBoolean(5), rs.getInt(6), rs.getString(7),
-							cachedOn == null ? null
-									: new SemossDate(cachedOn, databaseZoneId, "yyyy-MM-dd HH:mm:ss")
-											.getLocalDateTime(),
-							rs.getBoolean(9), rs.getString(10), rs.getString(11));
-				});
-		List<StoredInsightMeta> metadata = QueryExecutionUtility.queryList(connection, SELECT_STORED_INSIGHT_META,
-				ps -> ps.setString(1, projectId),
-				rs -> new StoredInsightMeta(rs.getString(1), rs.getString(2), rs.getString(3), rs.getInt(4)));
-		return new StoredProjectInsights(insights, metadata);
-	}
-
-	/**
-	 * A project's insights and their metadata as the security database keeps them,
-	 * read together for its insights database.
-	 */
-	private record StoredProjectInsights(List<StoredInsight> insights, List<StoredInsightMeta> metadata) {
-	}
-
-	/**
-	 * One of a project's insights as the security database keeps it.
-	 */
-	private record StoredInsight(String insightId, String insightName, String layout, boolean global, boolean cacheable,
-			int cacheMinutes, String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt, String recipe,
-			String schemaName) {
-	}
-
-	/**
-	 * One metadata value of one of a project's insights as the security database
-	 * keeps it.
-	 */
-	private record StoredInsightMeta(String insightId, String metaKey, String metaValue, int metaOrder) {
-	}
-
-	/**
-	 * This method is deprecated. Please do not use and expect an projectId for
-	 * input in your method.
+	 * Try to reconcile and get the engine id
 	 * 
 	 * @return
 	 */
-	@Deprecated
 	public static String testUserProjectIdForAlias(User user, String potentialId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> ids = new ArrayList<String>();
+
+		// String userFilters = getUserFilters(user);
+		// String query = "SELECT DISTINCT PROJECTPERMISSION.PROJECTID "
+		// + "FROM PROJECTPERMISSION INNER JOIN PROJECT ON
+		// PROJECT.PROJECTID=PROJECTPERMISSION.PROJECTID "
+		// + "WHERE PROJECT.PROJECTNAME='" + potentialId + "' AND
+		// PROJECTPERMISSION.USERID IN " + userFilters;
+		//
+		// IRawSelectWrapper wrapper =
+		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
@@ -995,8 +829,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred updating the project display name");
 		}
 
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE, projectId,
-				newDisplayName, Map.of("field", "displayName", "displayName", newDisplayName));
 		return true;
 	}
 
@@ -1054,8 +886,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Reads the project's portal details: whether the project is published, and the
-	 * URL of its portal folder.
 	 * 
 	 * @param projectId
 	 * @return
@@ -1123,7 +953,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Integer> getUserProjectPermissions(List<String> userIds, String projectId) {
 		Map<String, Integer> retMap = new HashMap<String, Integer>();
-		try (IRawSelectWrapper wrapper = getUserProjectPermissionsWrapper(userIds, projectId)) {
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = getUserProjectPermissionsWrapper(userIds, projectId);
 			while (wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String userId = (String) data[0];
@@ -1132,6 +964,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve user project permissions", e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error("Failed to retrieve user project permissions", e);
+				}
+			}
 		}
 		return retMap;
 	}
@@ -1165,13 +1005,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to check whether project exists", e);
 		}
-		return exists;
+		return false;
 	}
 
 	/**
@@ -1191,13 +1032,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		boolean isGlobal = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			isGlobal = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to determine whether project is global", e);
 		}
-		return isGlobal;
+		return false;
 	}
 
 	/**
@@ -1213,26 +1055,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECT__IS_TEMPLATE", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		boolean isTemplate = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			isTemplate = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Failed to determine whether project is enabled as a template", e);
+			return false;
 		}
-		return isTemplate;
 	}
 
 	/**
-	 * Determine whether a user may clone a project. The project's owners can always
-	 * clone it; anyone else must be able to view the project, and its owner must
-	 * have enabled it as a template.
+	 * Determine whether a user may clone a project. The user must be able to view
+	 * the project and the owner must have explicitly enabled it as a template.
 	 *
 	 * @param user      current user
 	 * @param projectId project identifier
 	 * @return whether the user may clone the project
 	 */
 	public static boolean userCanCloneProject(User user, String projectId) {
-		return userIsOwner(user, projectId) || (userCanViewProject(user, projectId) && projectIsTemplate(projectId));
+		return userCanViewProject(user, projectId) && projectIsTemplate(projectId);
 	}
 
 	/**
@@ -1331,13 +1171,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * write go through ProjectPortalsHelper, which owns when a change counts as
 	 * one.
 	 *
-	 * @param user      user performing the write, who needs to be able to edit the
-	 *                  project
+	 * @param user      user performing the write
 	 * @param projectId project that was written to
-	 * @throws IllegalArgumentException when the user cannot edit the project
 	 */
 	public static void setPortalPublish(User user, String projectId) {
-		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String updateQ = "UPDATE PROJECT SET DATELASTEDITED=?, PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
@@ -1369,15 +1206,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Records that the project's reactors were compiled now, by the user's primary
-	 * login. The user needs to be able to edit the project.
-	 *
-	 * @param user      the signed in user
-	 * @param projectId the project
-	 * @throws IllegalArgumentException when the user cannot edit the project
+	 * 
+	 * @param user
+	 * @param projectId
 	 */
 	public static void setReactorCompilation(User user, String projectId) {
-		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String updateQ = "UPDATE PROJECT SET REACTORSCOMPILED=?, REACTORSCOMPILEDUSER=?, REACTORSCOMPILEDTYPE=? WHERE PROJECTID=?";
@@ -1395,9 +1228,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Whether the user is an owner of the project, which the UI calls Author.
-	 * Grants that have ended do not count.
-	 *
 	 * @return whether the user is an owner of the project now, directly or through
 	 *         a team; see {@link CurrentPermissionLevel}
 	 */
@@ -1418,36 +1248,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * The user's access level on the project now, for a request that checks several
-	 * things against one reading of it. It is the highest level among the grants in
-	 * effect, given to the user directly or to a team they are in, as
-	 * {@link #userCanEditProject} reads it, or read-only on a public project they
-	 * have no grant on, as {@link #userCanViewProject} allows. A grant that has
-	 * ended does not count, and is not removed.
-	 *
-	 * @param user      the user
-	 * @param projectId the project
-	 * @return the level, or null when the user has no access to the project
-	 */
-	public static AccessPermissionEnum getCurrentUserProjectLevel(User user, String projectId) {
-		if (user == null) {
-			return null;
-		}
-		Integer levelId = CurrentPermissionLevel.ofOrNull(user, PermissionTargetResource.project(projectId));
-		if (levelId != null) {
-			for (AccessPermissionEnum level : AccessPermissionEnum.values()) {
-				if (level.getId() == levelId) {
-					return level;
-				}
-			}
-		}
-		return projectIsGlobal(projectId) ? AccessPermissionEnum.READ_ONLY : null;
-	}
-
-	/**
-	 * Whether the user can edit the project, as an editor or an owner. Grants that
-	 * have ended do not count.
-	 *
 	 * @return whether the user is an editor or an owner of the project now,
 	 *         directly or through a team; see {@link CurrentPermissionLevel}
 	 */
@@ -1490,18 +1290,19 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
 		qs.addOrderBy(new QueryColumnOrderBySelector("PROJECTPERMISSION__PERMISSION"));
-		int maxPermission = AccessPermissionEnum.READ_ONLY.getId();
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
-				if (val != null) {
-					maxPermission = ((Number) val).intValue();
+				if (val == null) {
+					return AccessPermissionEnum.READ_ONLY.getId();
 				}
+				int permission = ((Number) val).intValue();
+				return permission;
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve project permission from user access request", e);
 		}
-		return maxPermission;
+		return AccessPermissionEnum.READ_ONLY.getId();
 	}
 
 	/**
@@ -1518,27 +1319,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getProjectUsers(User user, String projectId, String searchParam,
 			String permission, long limit, long offset) throws IllegalAccessException {
-		if (!userCanSeeProjectPeople(user, projectId)) {
+		if (!userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 		return SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission, limit, offset);
 	}
 
-	/**
-	 * Whether a user may see who a project is shared with, and who it is not:
-	 * anyone who can view it, except on a Digital Twin, whose people are for those
-	 * who can change it. Someone a twin is only shared with is not told who else
-	 * has it, and gets the answer they would get for a project they cannot view.
-	 */
-	private static boolean userCanSeeProjectPeople(User user, String projectId) {
-		return userCanViewProject(user, projectId)
-				&& (!isDigitalTwin(projectId) || userCanEditProject(user, projectId));
-	}
-
 	public static long getProjectUsersCount(User user, String projectId, String searchParam, String permission)
 			throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!userCanSeeProjectPeople(user, projectId)) {
+		if (!userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 		boolean hasSearchParam = searchParam != null && !(searchParam = searchParam.trim()).isEmpty();
@@ -1585,12 +1375,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.userMode(),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"This user already has access to this project. Please edit the existing permission level.")
-						.illegalAccess(PermissionProblem.ErrorCode.GIVES_AUTHOR,
+						.illegalAccess(PermissionProblem.Code.GIVES_AUTHOR,
 								"Cannot give owner level access to this project since you are not currently an owner.")
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred adding user permissions for this project"));
 	}
 
@@ -1615,13 +1405,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						new PermissionGrant(newPermission, endDate))),
 				PermissionBatchOptions.userMode().notifying(false, true),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalAccess(PermissionProblem.ErrorCode.NO_ACCESS,
+						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalAccess(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify project permission for a user who does not currently have access to the project")
-						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalAccess(PermissionProblem.ErrorCode.GIVES_AUTHOR,
+						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalAccess(PermissionProblem.Code.GIVES_AUTHOR,
 								"Cannot give owner level access to this project since you are not currently an owner.")
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred updating the user permissions for this project"));
 	}
 
@@ -1642,31 +1432,23 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.CHANGE, requests, endDate),
 				PermissionBatchOptions.userMode().notifying(false, true),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
+						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify user permission for the following users who do not currently have access to the project: ")
-						.illegalArgument(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
+						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
 								"As a non-owner, you cannot edit access of an owner.")
-						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
 								"As a non-owner, you cannot give a user access as an owner.")
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred updating the user permissions for this project"));
 	}
 
 	/**
-	 * Deletes a project's rows from the security database: the project, its
-	 * insights, who can use it, preferences, metadata, asset engines, access
-	 * requests, dependencies, the engines it was given and its usage limits. The
-	 * user needs to own the project; the user who created it can also delete it
-	 * before anyone is given access to it, which is how a failed creation is
-	 * cleaned up.
-	 *
-	 * @param user      the signed in user, or null for the platform's own work
-	 * @param projectId the project
-	 * @throws IllegalArgumentException when the user may not delete the project
+	 * Delete all values
+	 * 
+	 * @param projectId
 	 */
-	public static void deleteProject(User user, String projectId) {
-		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.OWNER);
+	public static void deleteProject(String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM PROJECT WHERE PROJECTID=?");
@@ -1678,8 +1460,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTACCESSREQUEST WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?");
-		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE GRANTEEENGINEID=? AND GRANTEEENGINETYPE='"
-				+ PermissionSubject.PROJECT_TYPE + "'");
 		for (String deleteQuery : deletes) {
 			try {
 				QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> ps.setString(1, projectId));
@@ -1688,19 +1468,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			} catch (Exception e) {
 				classLogger.error("Failed to delete project", e);
 			}
-		}
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				SecurityModelUsageLimitUtils.deleteGranteeLimits(connection, projectId,
-						PermissionSubject.PROJECT_TYPE);
-				return null;
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to delete the project's model usage limits", e);
-		} finally {
-			SecurityModelUsageLimitUtils.markChanged();
 		}
 	}
 
@@ -1719,13 +1486,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
 				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
 				PermissionBatchOptions.userMode().allowingSelfRemoval().removingInsightPermissions(),
-				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify user permission for a user who does not currently have access to the project")
-						.illegalAccess(PermissionProblem.ErrorCode.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred removing the user permissions for the project and insights of this project"));
+	}
+
+	/**
+	 * 
+	 * @param userId
+	 * @param projectId
+	 * @return
+	 */
+	public static void removeExpiredProjectUser(String userId, String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String deleteQuery = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, projectId);
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IllegalArgumentException("An error occurred removing the user permissions for this project");
+		}
 	}
 
 	/**
@@ -1743,17 +1531,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set this project as global. Only the owner or an admin can perform this action.");
 		}
-		if (global) {
-			requireNotDigitalTwin(projectId);
-		}
 
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?", ps -> {
 				ps.setBoolean(1, global);
 				ps.setString(2, projectId);
 			});
-			UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_GLOBAL_UPDATE, projectId, null,
-					Map.of("field", "global", "global", global));
 		} catch (Exception e) {
 			classLogger.error("Failed to update project global visibility setting", e);
 		}
@@ -1775,14 +1558,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException(
 					"The user doesn't have permission to set this project as a template. Only the owner or an admin can perform this action.");
 		}
-		if (isTemplate) {
-			// a template can be cloned by anyone who can view it
-			requireNotDigitalTwin(projectId);
-		}
-		boolean updated = setProjectTemplate(projectId, isTemplate);
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_TEMPLATE_UPDATE, projectId, null,
-				Map.of("field", "template", "template", isTemplate));
-		return updated;
+		return setProjectTemplate(projectId, isTemplate);
 	}
 
 	/**
@@ -1821,15 +1597,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Makes a project and all its insights public. Only the platform's own work
-	 * does, inside a platform operation, such as seeding the platform's own
-	 * projects.
-	 *
-	 * @param projectId the project
-	 * @throws IllegalArgumentException when the call is not the platform's own work
+	 * Set a project and all its insights to be global
+	 * 
+	 * @param projectId
 	 */
 	public static void setProjectCompletelyGlobal(String projectId) {
-		ResourceWriteAccess.requirePlatform("make project " + projectId + " and its insights public");
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -1879,9 +1651,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to set this project as discoverable. Only the owner or an admin can perform this action.");
 		}
-		if (discoverable) {
-			requireNotDigitalTwin(projectId);
-		}
 
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET DISCOVERABLE=? WHERE PROJECTID=?",
@@ -1889,8 +1658,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						ps.setBoolean(1, discoverable);
 						ps.setString(2, projectId);
 					});
-			UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_DISCOVERABLE_UPDATE, projectId,
-					null, Map.of("field", "discoverable", "discoverable", discoverable));
 		} catch (Exception e) {
 			classLogger.error("Failed to update project discoverability setting", e);
 		}
@@ -1926,8 +1693,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project name", e);
 			throw new IllegalArgumentException("An error occurred updating the project name");
 		}
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_RENAME, projectId, newProjectName,
-				Map.of("field", "name", "name", newProjectName));
 		return true;
 	}
 
@@ -1946,7 +1711,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	@Deprecated
 	public static void updateProjectDependenciesWithoutType(User user, String projectId,
 			Collection<String> dependentEngineIds) {
-		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		List<Map<String, Object>> depEngines = new ArrayList<>();
 		for (String depEngineId : dependentEngineIds) {
 			Map<String, Object> depEngine = new HashMap<>();
@@ -1977,7 +1741,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateProjectDependencies(User user, String projectId,
 			List<Map<String, Object>> dependentEngines) {
-		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -2720,79 +2483,26 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Gives a person the requested access to the engines and projects a project
-	 * depends on, or asks their owners for it. On a model, a person added gets no
-	 * usage limit, and a person whose access changes keeps theirs.
-	 *
-	 * @param requester           the user asking
-	 * @param projectId           the project
-	 * @param newUserId           the person
-	 * @param newUserType         the person's login type
-	 * @param requestedPermission the level, by name
-	 * @param endDate             when the access ends, or null
-	 * @return the engines and projects by what was done for each
+	 * 
+	 * @param requester
+	 * @param projectId
+	 * @param newUserId
+	 * @param newUserType
+	 * @param requestedPermission
+	 * @param endDate
+	 * @param usageRestriction
+	 * @param usageFrequency
+	 * @param maxTokens
+	 * @param maxResponseTime
+	 * @return
 	 */
 	public static Map<String, Object> propagateProjectPermission(User requester, String projectId, String newUserId,
-			String newUserType, String requestedPermission, String endDate) {
-		return propagate(requester, projectId, newUserId, newUserType, requestedPermission, endDate, null);
-	}
-
-	/**
-	 * Gives a person the requested access to the engines and projects a project
-	 * depends on, or asks their owners for it. Only a model's owners set a limit
-	 * that differs from the current one.
-	 *
-	 * @param requester           the user asking
-	 * @param projectId           the project
-	 * @param newUserId           the person
-	 * @param newUserType         the person's login type
-	 * @param requestedPermission the level, by name
-	 * @param endDate             when the access ends, or null
-	 * @param usageLimit          the person's model usage limit on each model given
-	 *                            or changed, or null for no limit defined
-	 * @return the engines and projects by what was done for each
-	 */
-	public static Map<String, Object> propagateProjectPermission(User requester, String projectId, String newUserId,
-			String newUserType, String requestedPermission, String endDate, ModelUsageLimit usageLimit) {
-		return propagate(requester, projectId, newUserId, newUserType, requestedPermission, endDate,
-				new PermissionGrant().withUsageLimit(usageLimit));
-	}
-
-	/**
-	 * Whether only admins can give people access to an engine or project a project
-	 * depends on. A dependency whose setting cannot be read counts as admin-only.
-	 *
-	 * @param isEngine whether the dependency is an engine rather than a project
-	 * @param id       the dependency's id
-	 * @return whether its admin-only add setting is on
-	 */
-	private static boolean dependencyAddsAreAdminOnly(boolean isEngine, String id) {
-		try {
-			return isEngine ? adminOnlyEngineAddAccess(id) : adminOnlyProjectAddAccess(id);
-		} catch (IllegalArgumentException e) {
-			classLogger.warn("Could not read the admin-only add setting of {}", id, e);
-			return true;
-		}
-	}
-
-	/**
-	 * Does the work of both propagateProjectPermission methods: for each engine and
-	 * project the project depends on, it gives the person the requested level, or
-	 * files an access request for its owners when the requester is Read-Only or has
-	 * no access there.
-	 *
-	 * @param limit the person's model usage limit on the models: a grant that gives
-	 *              {@code usageLimit}
-	 *              ({@link PermissionGrant#isUsageLimitGiven()}), or null for none,
-	 *              so a person whose access changes keeps theirs
-	 */
-	private static Map<String, Object> propagate(User requester, String projectId, String newUserId, String newUserType,
-			String requestedPermission, String endDate, PermissionGrant limit) {
+			String newUserType, String requestedPermission, String endDate, String usageRestriction,
+			String usageFrequency, int maxTokens, double maxResponseTime) {
 		Map<String, Object> ret = new HashMap<String, Object>();
 
 		// get the requested permission as a numeric -- it was passed as a string
 		Integer requestedPermissionNumeric = AccessPermissionEnum.getIdByPermission(requestedPermission);
-		boolean requesterIsAdmin = SecurityAdminUtils.userIsAdmin(requester);
 
 		List<String> alreadyHaveAccess = new ArrayList<>();
 		List<String> requestAlreadyExists = new ArrayList<>();
@@ -2812,8 +2522,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			Integer requesterEnginePermission;
 			Integer currentNewUserPermission;
 			boolean isEngine = false;
-			// only a model has usage limits
-			PermissionGrant engineLimit = IEngine.CATALOG_TYPE.MODEL.name().equals(dependentEngineType) ? limit : null;
 
 			if (dependentEngineType == null
 					|| IEngine.CATALOG_TYPE.valueOf(dependentEngineType) != IEngine.CATALOG_TYPE.PROJECT) {
@@ -2863,16 +2571,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 				// if the newUser has permissions on the engine but not to the level requested,
 				// edit the existing record
-			} else if (!requesterIsAdmin && dependencyAddsAreAdminOnly(isEngine, dependentEngineId)) {
-				// these grants skip the endpoints, so each dependency's own setting is checked
-				couldNotAddRequest.add(dependentEngineId);
-				classLogger.info("Only admins can give {} access to {}", newUserId, dependentEngineId);
 			} else if (requesterEnginePermission < 3 && currentNewUserPermission != null
 					&& currentNewUserPermission > requestedPermissionNumeric) {
 				try {
 					if (isEngine) {
-						editDependentEngineUser(requester, newUserId, newUserType, dependentEngineId,
-								requestedPermission, endDate, engineLimit);
+						SecurityEngineUtils.editEngineUserPermission(requester, newUserId, newUserType,
+								dependentEngineId, requestedPermission, endDate, usageRestriction, usageFrequency,
+								maxTokens, maxResponseTime);
 					} else {
 						SecurityProjectUtils.editProjectUserPermission(requester, newUserId, newUserType,
 								dependentEngineId, requestedPermission, endDate);
@@ -2880,7 +2585,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 					accessGranted.add(dependentEngineId);
 					classLogger.info("User has updated permission for {} to {}", newUserId, dependentEngineId);
-				} catch (IllegalAccessException | IllegalArgumentException e) {
+				} catch (IllegalAccessException e) {
 					couldNotAddRequest.add(dependentEngineId);
 					classLogger.error("Failed to propagate project permissions to related artifacts", e);
 				}
@@ -2889,8 +2594,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			} else if (requesterEnginePermission < 3 && currentNewUserPermission == null) {
 				try {
 					if (isEngine) {
-						addDependentEngineUser(requester, newUserId, dependentEngineId, requestedPermission, endDate,
-								engineLimit);
+						SecurityEngineUtils.addEngineUser(requester, newUserId, dependentEngineId, requestedPermission,
+								endDate, usageRestriction, usageFrequency, maxTokens, maxResponseTime);
 					} else {
 						SecurityProjectUtils.addProjectUser(requester, newUserId, dependentEngineId,
 								requestedPermission, endDate);
@@ -2918,63 +2623,25 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		return ret;
 	}
 
-	/**
-	 * Gives a person access to an engine a project depends on, with the usage limit
-	 * given, or none.
-	 *
-	 * @param limit on a model, the limit the propagation gives; null for none
-	 */
-	private static void addDependentEngineUser(User requester, String newUserId, String engineId, String level,
-			String endDate, PermissionGrant limit) throws IllegalAccessException {
-		SecurityEngineUtils.addEngineUser(requester, newUserId, engineId, level, endDate,
-				limit == null ? null : limit.getUsageLimit());
-	}
-
-	/**
-	 * Changes a person's access to an engine a project depends on. Their usage
-	 * limit is kept unless one is given.
-	 *
-	 * @param limit on a model, the limit the propagation gives; null for none
-	 */
-	private static void editDependentEngineUser(User requester, String newUserId, String newUserType, String engineId,
-			String level, String endDate, PermissionGrant limit) throws IllegalAccessException {
-		if (limit != null && limit.isUsageLimitGiven()) {
-			SecurityEngineUtils.editEngineUserPermission(requester, newUserId, newUserType, engineId, level, endDate,
-					limit.getUsageLimit());
-		} else {
-			SecurityEngineUtils.editEngineUserPermission(requester, newUserId, newUserType, engineId, level, endDate);
-		}
-	}
-
 	/*
 	 * Project Metadata
 	 */
 
 	/**
 	 * Update the project metadata Will delete existing values and then perform a
-	 * bulk insert. The Digital Twin mark is left as it is, whatever the metadata
-	 * says about it.
-	 *
-	 * The user needs to be able to edit the project.
-	 *
-	 * @param user      the signed in user, or null for the platform's own work
-	 * @param projectId the project
-	 * @param metadata  the values by metadata key
-	 * @throws IllegalArgumentException when the user cannot edit the project
+	 * bulk insert
+	 * 
+	 * @param projectId
+	 * @param metadata
 	 */
-	public static void updateProjectMetadata(User user, String projectId, Map<String, Object> metadata) {
-		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
+	public static void updateProjectMetadata(String projectId, Map<String, Object> metadata) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// the mark is not metadata: nothing that sets a project's metadata, an
-		// uploaded project's metadata file included, may set or clear it
-		Map<String, Object> writable = new HashMap<>(metadata);
-		writable.remove(DIGITAL_TWIN_METAKEY);
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				// first do a delete
 				String deleteQ = "DELETE FROM PROJECTMETA WHERE METAKEY=? AND PROJECTID=?";
 
-				QueryExecutionUtility.executeBatch(connection, deleteQ, writable.keySet(), (deletePs, field) -> {
+				QueryExecutionUtility.executeBatch(connection, deleteQ, metadata.keySet(), (deletePs, field) -> {
 					int parameterIndex = 1;
 					deletePs.setString(parameterIndex++, field);
 					deletePs.setString(parameterIndex++, projectId);
@@ -2985,8 +2652,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" });
 
 				QueryExecutionUtility.executeBatch(connection, query, ps -> {
-					for (String field : writable.keySet()) {
-						Object val = writable.get(field);
+					for (String field : metadata.keySet()) {
+						Object val = metadata.get(field);
 						List<Object> values = new ArrayList<>();
 						if (val instanceof List) {
 							values = (List<Object>) val;
@@ -3012,7 +2679,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project metadata", e);
-			throw new IllegalStateException("Unable to update project metadata", e);
 		}
 	}
 
@@ -3053,167 +2719,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Ids of the projects with a metadata value, such as every project tagged
-	 * {@code collaboration}. METAVALUE is a CLOB, which not every database compares
-	 * with =, so the values are matched here.
-	 */
-	public static List<String> getProjectIdsWithMetaValue(String metaKey, String metaValue) {
-		try {
-			List<String[]> rows = QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
-					"SELECT PROJECTID, METAVALUE FROM PROJECTMETA WHERE METAKEY = ?", ps -> ps.setString(1, metaKey),
-					rs -> new String[] { rs.getString(1), rs.getString(2) });
-			Set<String> ids = new LinkedHashSet<>();
-			for (String[] row : rows) {
-				if (row[1] != null && metaValue.equals(row[1].trim())) {
-					ids.add(row[0]);
-				}
-			}
-			return new ArrayList<>(ids);
-		} catch (Exception e) {
-			classLogger.error("Failed to read projects by metadata value", e);
-			throw new IllegalStateException("Unable to read project metadata", e);
-		}
-	}
-
-	/**
-	 * Whether a project is a Digital Twin, by the presence of its mark. Only the
-	 * key is matched, since METAVALUE is a CLOB.
-	 *
-	 * @throws IllegalStateException when the mark cannot be read, so a check that
-	 *                               depends on it never passes by mistake
-	 */
-	public static boolean isDigitalTwin(String projectId) {
-		try {
-			return !QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
-					"SELECT PROJECTID FROM PROJECTMETA WHERE METAKEY = ? AND PROJECTID = ?", ps -> {
-						ps.setString(1, DIGITAL_TWIN_METAKEY);
-						ps.setString(2, projectId);
-					}, rs -> rs.getString(1)).isEmpty();
-		} catch (Exception e) {
-			classLogger.error("Failed to read whether a project is a Digital Twin", e);
-			throw new IllegalStateException("Unable to read project metadata", e);
-		}
-	}
-
-	/**
-	 * The display name of the person who created a project, such as the person a
-	 * Digital Twin answers about. A user is an id and a login type, so both are
-	 * matched; a project stored without its creator's login type matches the id
-	 * alone.
-	 *
-	 * @return the name, or null when the project has no creator on record, the
-	 *         creator has no name, or the lookup fails
-	 */
-	public static String getProjectCreatorName(String projectId) {
-		try {
-			List<String> names = QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
-					"SELECT SMSS_USER.NAME FROM PROJECT INNER JOIN SMSS_USER ON SMSS_USER.ID = PROJECT.CREATEDBY "
-							+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR SMSS_USER.TYPE = PROJECT.CREATEDBYTYPE) "
-							+ "WHERE PROJECT.PROJECTID = ?",
-					ps -> ps.setString(1, projectId), rs -> rs.getString(1));
-			for (String name : names) {
-				if (name != null && !name.isBlank()) {
-					return name.trim();
-				}
-			}
-			return null;
-		} catch (Exception e) {
-			// the name only words a prompt, so a failed lookup is not an error
-			classLogger.warn("Could not read who created project {}", projectId, e);
-			return null;
-		}
-	}
-
-	/**
-	 * Whether a user created a project, such as whether they are the person a
-	 * Digital Twin answers about. A user is an id and a login type, so both are
-	 * matched against any of the user's logins; a project stored without its
-	 * creator's login type matches the id alone.
-	 *
-	 * @return false as well when the project has no creator on record or the
-	 *         lookup fails, so what is kept for a creator is never given by mistake
-	 */
-	public static boolean isProjectCreator(User user, String projectId) {
-		Pair<String, String> creator = user == null ? null : getProjectCreator(projectId);
-		if (creator == null) {
-			return false;
-		}
-		for (Pair<String, String> login : User.getUserIdAndType(user)) {
-			if (login.getValue0().equals(creator.getValue0())
-					&& (creator.getValue1() == null || login.getValue1().equals(creator.getValue1()))) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * Who created a project, as the id and login type on its row.
-	 *
-	 * @return the id with its login type, which is null where the project was
-	 *         stored without one; null when the project has no creator on record
-	 *         or the lookup fails
-	 */
-	public static Pair<String, String> getProjectCreator(String projectId) {
-		if (projectId == null) {
-			return null;
-		}
-		try {
-			List<String[]> creators = QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
-					"SELECT CREATEDBY, CREATEDBYTYPE FROM PROJECT WHERE PROJECTID = ?",
-					ps -> ps.setString(1, projectId), rs -> new String[] { rs.getString(1), rs.getString(2) });
-			for (String[] creator : creators) {
-				if (creator[0] != null && !creator[0].isBlank()) {
-					return Pair.with(creator[0], creator[1]);
-				}
-			}
-			return null;
-		} catch (Exception e) {
-			classLogger.warn("Could not read who created project {}", projectId, e);
-			return null;
-		}
-	}
-
-	/**
-	 * Refuses a way of sharing a Digital Twin beyond named people, such as making
-	 * it public, discoverable or a template, or giving a team or everyone access.
-	 *
-	 * @throws IllegalArgumentException when the project is a Digital Twin
-	 */
-	public static void requireNotDigitalTwin(String projectId) {
-		if (isDigitalTwin(projectId)) {
-			throw new IllegalArgumentException(DIGITAL_TWIN_PEOPLE_ONLY);
-		}
-	}
-
-	/**
-	 * Marks a new project as a Digital Twin. Nothing takes the mark off; it goes
-	 * when the project is deleted. The user needs to own the project.
-	 *
-	 * @param user      the signed in user
-	 * @param projectId the project
-	 * @throws IllegalArgumentException when the user does not own the project
-	 */
-	public static void markDigitalTwin(User user, String projectId) {
-		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.OWNER);
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTMETA",
-							new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" }),
-					ps -> {
-						ps.setString(1, projectId);
-						ps.setString(2, DIGITAL_TWIN_METAKEY);
-						ps.setString(3, "true");
-						ps.setInt(4, 0);
-					});
-		} catch (Exception e) {
-			classLogger.error("Failed to mark a project as a Digital Twin", e);
-			throw new IllegalStateException("Unable to mark the project as a Digital Twin", e);
-		}
-	}
-
-	/**
 	 * Get the metadata for a specific project
 	 * 
 	 * @param projectId
@@ -3226,7 +2731,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		List<String> projectIds = new ArrayList<>();
 		projectIds.add(projectId);
 
-		try (IRawSelectWrapper wrapper = getProjectMetadataWrapper(projectIds, metaKeys, ignoreMarkdown)) {
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = getProjectMetadataWrapper(projectIds, metaKeys, ignoreMarkdown);
 			while (wrapper.hasNext()) {
 				Object[] data = wrapper.next().getValues();
 				String metaKey = (String) data[1];
@@ -3250,6 +2757,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to aggregate project metadata values", e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error("Failed to aggregate project metadata values", e);
+				}
+			}
 		}
 
 		return retMap;
@@ -3265,6 +2780,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean checkUserHasAccessToProject(String projectId, String userId) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			boolean isExpired = SecurityUserProjectUtils.projectPermissionIsExpired(userId, projectId);
+			if (isExpired) {
+				removeExpiredProjectUser(userId, projectId);
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to verify user access to the project", e);
+			throw e;
+		}
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__USERID"));
@@ -3293,10 +2818,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			long limit, long offset) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
-		 * Security check to make sure that the user can view the application provided,
-		 * and its people: who is not on a Digital Twin's list says who is.
+		 * Security check to make sure that the user can view the application provided.
 		 */
-		if (!userCanSeeProjectPeople(user, projectId)) {
+		if (!userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 
@@ -3447,13 +2971,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
-		if (projectMetadataFilter != null && projectMetadataFilter.containsKey(DIGITAL_TWIN_METAKEY)) {
-			// A legacy untyped creator id may identify people on more than one provider.
-			qs1.addSelector(new QueryOpaqueSelector("(SELECT CASE WHEN COUNT(*) = 1 THEN MIN(creator.NAME) END "
-					+ "FROM SMSS_USER creator WHERE creator.ID = PROJECT.CREATEDBY "
-					+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR creator.TYPE = PROJECT.CREATEDBYTYPE))",
-					"digital_twin_owner_name"));
-		}
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DATECREATED", "project_date_created"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DATELASTEDITED", "project_date_last_edited"));
 
@@ -3895,14 +3412,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		boolean isDiscoverable = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			// if you are here, you can request
-			isDiscoverable = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				// if you are here, you can request
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to determine whether project is discoverable", e);
 		}
-		return isDiscoverable;
+		return false;
 	}
 
 	/**
@@ -4183,14 +3701,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("PROJECT__DISCOVERABLE", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		boolean canRequest = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			// if you are here, you can request
-			canRequest = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				// if you are here, you can request
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to determine whether the user can request project access", e);
 		}
-		return canRequest;
+		return false;
 	}
 
 	/**
@@ -4216,7 +3735,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Lists every metadata key defined for projects.
 	 * 
 	 * @return
 	 */
@@ -4229,9 +3747,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Reads the settings of the project metadata keys: whether each takes one value
-	 * or many, its display order and options, and its default values. Reads only
-	 * the given key when one is passed, or every key otherwise.
 	 * 
 	 * @param metakey
 	 * @return
@@ -4251,9 +3766,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Replaces every project metadata key definition with the given ones, each with
-	 * its key, single or multi setting, display order and display options, in one
-	 * write.
 	 * 
 	 * @param metaoptions
 	 * @return
@@ -4265,7 +3777,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.write(securityDb, connection -> {
 				// first truncate table clean
 				String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
-				QueryExecutionUtility.executeUpdate(connection, truncateSql, QueryExecutionUtility.NO_PARAMETERS);
+				QueryExecutionUtility.executeUpdate(connection, truncateSql, deletePs -> {
+				});
 				try (PreparedStatement insertPs = connection.prepareStatement(securityDb.getQueryUtil()
 						.createInsertPreparedStatementString(tableName, new String[] { Constants.METAKEY,
 								Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS }))) {
@@ -4393,9 +3906,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * The level the user asked for in their pending access request on the project,
-	 * from their primary login's newest request that is not approved, denied or
-	 * old, or -1 when there is none.
 	 * 
 	 * @param user
 	 * @param projectId
@@ -4415,22 +3925,20 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				requesterDetails.getValue1()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTACCESSREQUEST__PROJECTID", "==", projectId));
 		qs.addOrderBy("PROJECTACCESSREQUEST__REQUEST_TIMESTAMP", "desc");
-		int requestedPermission = -1;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				String mostRecentAction = (String) values[0];
 				if (!mostRecentAction.equals("APPROVED") && !mostRecentAction.equals("DENIED")
 						&& !mostRecentAction.equals("OLD")) {
-					requestedPermission = ((Number) values[1]).intValue();
-					break;
+					return ((Number) values[1]).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to retrieve pending user access requests", e);
 		}
 
-		return requestedPermission;
+		return -1;
 	}
 
 	/**
@@ -4465,45 +3973,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * The signed in user's own access request on a project that waits for a
-	 * decision, made with any of their logins. Asking again replaces it, so there
-	 * is at most one.
-	 *
-	 * @param user      the signed in user
-	 * @param projectId the project
-	 * @return the request: {@code id}, {@code permission} (the level asked for),
-	 *         {@code comment} and {@code requestedAt} (UTC, ISO 8601); null when
-	 *         the user has none waiting
-	 */
-	public static Map<String, Object> getUserWaitingAccessRequest(User user, String projectId) {
-		return OwnAccessRequests.waiting(OwnAccessRequests.PROJECT, projectId, user);
-	}
-
-	/**
-	 * Withdraws the signed in user's own access request on a project that waits for
-	 * a decision. The request is kept, marked withdrawn by the user.
-	 *
-	 * @param user      the signed in user
-	 * @param projectId the project
-	 * @return true when a waiting request was withdrawn, false when the user had
-	 *         none
-	 */
-	public static boolean withdrawUserAccessRequest(User user, String projectId) {
-		return OwnAccessRequests.withdraw(OwnAccessRequests.PROJECT, projectId, user);
-	}
-
-	/**
 	 * Approves access requests, as a permission batch: each person gets the level
-	 * they asked for, and the project's own requests are marked approved in the
-	 * same transaction, so either the access and the approvals are all saved or
-	 * none of them is. The project's editors can; only its owners give or change
-	 * Author access.
-	 *
-	 * <p>
-	 * Once the save has committed, each requester is sent a notification and an
-	 * email. Each is sent on its own, and a failure is logged and does not undo the
-	 * save; nothing is sent when the save fails.
-	 * </p>
+	 * they asked for, and the requests are marked approved in the same save. The
+	 * project's editors can; only its owners give or change Author access.
 	 *
 	 * @param user      the user approving
 	 * @param projectId the project
@@ -4518,7 +3990,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		PermissionTargetResource target = PermissionTargetResource.project(projectId);
 		PermissionBatchUtils.saveChanges(user, target, PermissionBatchUtils.approvalChanges(target, requests, endDate),
 				PermissionBatchOptions.userMode().approving(target, requests),
-				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION,
+				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION,
 						"Insufficient privileges to modify this project's permissions."));
 
 		// notifications and emails go out after the save, and a failure does not
@@ -4541,16 +4013,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Denies access requests to a project: each of the project's own requests is
-	 * marked denied, by the user, and its requester is read back, in one
-	 * transaction. Only the project's owners can, directly or through a team.
-	 *
-	 * <p>
-	 * Once the denials have committed, each requester is sent a notification, from
-	 * the requesters read in that transaction. Each is sent on its own, and a
-	 * failure is logged and does not undo the denials; nothing is sent when the
-	 * denials fail.
-	 * </p>
+	 * Denies access requests to a project: each is marked denied, by the user, and
+	 * each requester is told. Only the project's owners can, directly or through a
+	 * team.
 	 *
 	 * @param user          the user denying
 	 * @param projectId     the project
@@ -4560,33 +4025,28 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static void denyProjectUserAccessRequests(User user, String projectId, List<String> requestIdList)
 			throws IllegalAccessException {
-		List<Map<String, Object>> denied = PermissionBatchUtils.denyRequests(user,
-				PermissionTargetResource.project(projectId), requestIdList, PermissionBatchOptions.userMode(),
-				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalAccess(PermissionProblem.ErrorCode.OWNERS_ONLY,
+		PermissionBatchUtils.denyRequests(user, PermissionTargetResource.project(projectId), requestIdList,
+				PermissionBatchOptions.userMode(),
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalAccess(PermissionProblem.Code.OWNERS_ONLY,
 								"Insufficient privileges to deny user access requests.")
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred while updating user access request"));
 
 		// notifications go out after the save, and a failure does not undo it
 		if (Utility.isNotificationDatabaseEnabled()) {
-			for (Map<String, Object> request : denied) {
-				Integer permission = (Integer) request.get("permission");
-				if (permission == null) {
-					// the notification names the level asked for, so a request with none
-					// gets no notification
-					continue;
-				}
+			for (String requestId : requestIdList) {
 				try {
-					NotificationDbUtils.createNotification(user, (String) request.get("userId"),
-							(String) request.get("type"), projectId, NotificationConstants.Type.REQUEST_DENIAL,
-							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
-							AccessPermissionEnum.getPermissionValueById(permission),
-							NotificationConstants.DisplaySurface.BELL);
+					for (Map<String, Object> request : getUserDetailsFromProjectAccessRequest(requestId)) {
+						NotificationDbUtils.createNotification(user, (String) request.get("userId"),
+								(String) request.get("type"), projectId, NotificationConstants.Type.REQUEST_DENIAL,
+								NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+								AccessPermissionEnum.getPermissionValueById((Integer) request.get("permission")),
+								NotificationConstants.DisplaySurface.BELL);
+					}
 				} catch (Exception e) {
 					classLogger.warn("Could not tell the requester that request {} for project {} was denied",
-							request.get("requestId"), projectId, e);
+							requestId, projectId, e);
 				}
 			}
 		}
@@ -4609,12 +4069,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				PermissionBatchUtils.peopleChanges(PermissionChange.Action.ADD, permission, endDate),
 				PermissionBatchOptions.userMode().notifying(true, false),
 				new PermissionErrorRules(endDate)
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"The following users already have access to this project. Please edit the existing permission level: ")
-						.illegalArgument(PermissionProblem.ErrorCode.GIVES_AUTHOR,
+						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
 								"As a non-owner, you cannot add owner user access.")
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred adding user permissions for this project"));
 	}
 
@@ -4632,13 +4092,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
 				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
 				PermissionBatchOptions.userMode(),
-				new PermissionErrorRules()
-						.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-						.illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify user permission for the following users who do not currently have access to the project: ")
-						.illegalArgument(PermissionProblem.ErrorCode.CHANGES_AUTHOR,
+						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
 								"As a non-owner, you cannot remove access of an owner.")
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED,
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
 								"An error occurred removing the users from this project"));
 	}
 
@@ -4679,8 +4138,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Maps each of the given project ids to its project name. Ids with no project
-	 * are left out, and no ids give an empty map.
 	 * 
 	 * @param projectIds
 	 * @return

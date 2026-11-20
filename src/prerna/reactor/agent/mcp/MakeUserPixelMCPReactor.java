@@ -37,10 +37,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -86,6 +86,9 @@ public class MakeUserPixelMCPReactor extends AbstractReactor {
 		organizeKeys();
 
 		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 		IProject project = user.getAssetProject();
 		if (project == null) {
 			throw new IllegalArgumentException("Unable to find user asset app");
@@ -110,7 +113,7 @@ public class MakeUserPixelMCPReactor extends AbstractReactor {
 		JSONArray mergedTools = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(assetFolder + "/" + filePath),
 				toolsArray, generatorId, true);
 		JSONObject mcpJson = PixelMCPToolBuilder.wrapMcpJson(mergedTools);
-		FileSystemUtil.saveAssetFiles(assetFolder, List.of(filePath), List.of(mcpJson.toString(4)), true);
+		FileSystemUtil.saveAssetFiles(assetFolder, List.of(filePath), List.of(mcpJson.toString(4)));
 
 		// recorded and synchronized the way saving any user asset is
 		String gitFolder = AssetUtility.getUserAssetVersionFolder(project.getProjectName(), project.getProjectId());
@@ -144,18 +147,25 @@ public class MakeUserPixelMCPReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("""
+	public String getReactorDescription() {
+		return """
 				Generates an MCP definition file in the user's own asset folder from the reactors named, \
 				merging them with the tools other generators wrote to that file. Clients keep a set of \
 				tools for the user this way and copy it into the user's rooms.\
-				""").key(ReactorKeysEnum.FILE_PATH,
-				"The .json file to write, relative to the user's asset folder, such as mcp/playground_connector_mcp.json")
-				.key(ReactorKeysEnum.REACTOR,
-						"The reactors to turn into mcp tools. Naming none removes the tools this generator wrote before.")
-				.key(GENERATOR,
-						"The generator the tools are stamped with as SMSS_MCP_GENERATOR. A run replaces only that "
-								+ "generator's tools. Defaults to " + DEFAULT_GENERATOR_ID + ".");
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The .json file to write, relative to the user's asset folder, such as mcp/playground_connector_mcp.json";
+		} else if (key.equals(ReactorKeysEnum.REACTOR.getKey())) {
+			return "The reactors to turn into mcp tools. Naming none removes the tools this generator wrote before.";
+		} else if (key.equals(GENERATOR)) {
+			return "The generator the tools are stamped with as SMSS_MCP_GENERATOR. A run replaces only that "
+					+ "generator's tools. Defaults to " + DEFAULT_GENERATOR_ID + ".";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

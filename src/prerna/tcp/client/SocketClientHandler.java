@@ -34,7 +34,6 @@ import java.nio.ByteBuffer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.om.ThreadStore;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.FstUtil;
@@ -113,7 +112,6 @@ public class SocketClientHandler implements Runnable {
 								} else if (ps.operation == PayloadStruct.OPERATION.ENGINE) {
 									// a reverse request from the server - run it and send the result back
 									NativePyEngineWorker ew = new NativePyEngineWorker(socketClient.getUser(), ps);
-									ThreadStore.setUser(socketClient.getUser());
 									ew.run();
 									socketClient.executeCommand(ew.getOutput());
 
@@ -148,21 +146,18 @@ public class SocketClientHandler implements Runnable {
 					}
 					int bytesRead = in.read(lenBytes, lenBytesReadSoFar, (lenBytes.length - lenBytesReadSoFar)); // blocking
 																													// read
-					if (bytesRead < 0) {
-						readBytes = bytesRead;
-					} else {
-						lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
-					}
+					lenBytesReadSoFar = lenBytesReadSoFar + bytesRead;
 				}
 
 				if (readBytes < 0) // stream is closed - kill this thread
 				{
 					done = true;
-					this.socketClient.connectionEnded(null);
+					this.socketClient.crash();
 				}
 			} catch (IOException e) {
+				classLogger.error("IO error reading from socket; crashing the client", e);
 				done = true;
-				this.socketClient.connectionEnded(e);
+				this.socketClient.crash();
 			}
 		}
 	}

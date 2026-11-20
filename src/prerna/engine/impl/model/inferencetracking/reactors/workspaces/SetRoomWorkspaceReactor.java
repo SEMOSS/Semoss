@@ -43,6 +43,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SetRoomWorkspaceReactor extends AbstractReactor {
 
+	@SuppressWarnings("unused")
 	private static final Logger classLogger = LogManager.getLogger(SetRoomWorkspaceReactor.class);
 
 	public SetRoomWorkspaceReactor() {
@@ -53,7 +54,10 @@ public class SetRoomWorkspaceReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = requireUser();
+		User user = this.insight.getUser();
+		if (user == null) {
+			throw new IllegalArgumentException("You are not properly logged in");
+		}
 
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 

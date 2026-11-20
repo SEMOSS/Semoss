@@ -55,12 +55,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
-import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -99,7 +98,11 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
 		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		String projectId = normalizeProjectId(user, this.keyValue.get(PROJECT_ID));
 
@@ -169,8 +172,8 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			String absoluteAsset = findAbsoluteAssetUrl(portalsDir);
 			if (absoluteAsset != null) {
 				classLogger.warn(
-						"BuildAndPublishApp: absolute asset url '{}' in {}/{} for project {}; skipping publish",
-						absoluteAsset, Constants.PORTALS_FOLDER, INDEX_HTML, projectId);
+						"BuildAndPublishApp: absolute asset url '" + absoluteAsset + "' in " + Constants.PORTALS_FOLDER
+								+ "/" + INDEX_HTML + " for project " + projectId + "; skipping publish");
 				return getWarning("""
 						Build completed but was not published: it produced absolute asset urls. \
 						%s/%s references "%s", and a portal is served from a project-scoped path, \
@@ -180,8 +183,8 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 						""".formatted(Constants.PORTALS_FOLDER, INDEX_HTML, absoluteAsset, projectId));
 			}
 
-			// 5 - Re-publish and release the portal so every container refreshes it.
-			ProjectPortalsHelper.releasePortal(this.insight.getUser(), project);
+			// 5 - Re-publish and release the project so the public portal is refreshed.
+			this.insight.runPixel("PublishProject(project='" + projectId + "', release=true);");
 
 			// 6 - Push project to central storage so other pods see the changes
 			try {
@@ -306,6 +309,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		if (projectId.isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		return projectId;
 	}
 
@@ -349,15 +353,21 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 				return matcher.group(1);
 			}
 		} catch (IOException e) {
-			classLogger.warn("BuildAndPublishApp: could not read {} to check asset urls", indexHtml, e);
+			classLogger.warn("BuildAndPublishApp: could not read " + indexHtml + " to check asset urls", e);
 		}
 		return null;
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Build the app from assets/client using the configured builder service, write output to assets/portals, and publish the project. Output that could not be served, such as absolute asset urls from a missing base setting, is reported instead of published.")
-				.key(PROJECT_ID, "The unique id of the project to build and publish.");
+	public String getReactorDescription() {
+		return "Build the app from assets/client using the configured builder service, write output to assets/portals, and publish the project. Output that could not be served, such as absolute asset urls from a missing base setting, is reported instead of published.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (PROJECT_ID.equals(key)) {
+			return "The unique id (or alias) of the project to build and publish.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

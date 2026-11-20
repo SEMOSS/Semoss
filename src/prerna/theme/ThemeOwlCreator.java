@@ -51,21 +51,12 @@ public class ThemeOwlCreator extends AbstractOwlCreator {
 		this.allSchemas = new ArrayList<>();
 
 		// @formatter:off
-		// a theme an admin saved for the platform's UI: THEME_NAME and THEME_MAP, the theme's
-		// settings as JSON, which also hold the playground settings PlaygroundThemeUtils reads,
-		// such as playground.globalSystemPrompt. IS_ACTIVE marks the one theme in use, and with
-		// none active the UI shows its base theme
 		addTable("ADMIN_THEME", Arrays.asList(
 				Pair.with("ID", VARCHAR_255),
 				Pair.with("THEME_NAME", VARCHAR_255),
 				Pair.with("THEME_MAP", CLOB_DATATYPE_NAME),
 				Pair.with("IS_ACTIVE", BOOLEAN_DATATYPE_NAME)));
 
-		// a block in the blocks library: its NAME, the SECTION of the library that lists it (upper
-		// case), its HOVER_TEXT and BLOCK_JSON, the block's definition, with when and by whom it
-		// was added. Admins add blocks (AdminAddBlockReactor) and delete them
-		// (AdminDeleteBlockReactor), which keeps the row and sets IS_LATEST false unless asked for
-		// a hard delete, and GetClientBlocksReactor lists them
 		addTable("BLOCKS_TABLE", Arrays.asList(
 				Pair.with("ID", VARCHAR_255),
 				Pair.with("NAME", VARCHAR_255),

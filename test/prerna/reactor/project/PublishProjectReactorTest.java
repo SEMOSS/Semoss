@@ -52,15 +52,14 @@ import org.mockito.MockedStatic;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 class PublishProjectReactorTest {
@@ -79,7 +78,7 @@ class PublishProjectReactorTest {
 	private PublishProjectReactor reactor;
 
 	private MockedStatic<Utility> utilityMock;
-	private MockedStatic<EngineUtility> engineUtilityMock;
+	private MockedStatic<AssetUtility> assetUtilityMock;
 	private MockedStatic<SecurityProjectUtils> securityMock;
 	private MockedStatic<ClusterUtil> clusterUtilMock;
 
@@ -87,19 +86,18 @@ class PublishProjectReactorTest {
 	void setUp() {
 		project = mock(IProject.class);
 		when(project.getProjectName()).thenReturn(PROJECT_NAME);
-		when(project.getProjectId()).thenReturn(PROJECT_ID);
 
 		utilityMock = mockStatic(Utility.class);
 		utilityMock.when(() -> Utility.getProject(PROJECT_ID)).thenReturn(project);
 		utilityMock.when(() -> Utility.getApplicationUrl()).thenReturn(APPLICATION_URL);
 		utilityMock.when(() -> Utility.getPublicHomeFolder()).thenReturn(PUBLIC_HOME);
 
-		engineUtilityMock = mockStatic(EngineUtility.class);
-		engineUtilityMock.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
-				PROJECT_ID, PROJECT_NAME)).thenReturn(tempDir.toString());
+		assetUtilityMock = mockStatic(AssetUtility.class);
+		assetUtilityMock.when(() -> AssetUtility.getProjectVersionFolder(PROJECT_NAME, PROJECT_ID))
+				.thenReturn(tempDir.toString());
 
 		securityMock = mockStatic(SecurityProjectUtils.class);
-		securityMock.when(() -> SecurityProjectUtils.userCanEditProject(any(), eq(PROJECT_ID))).thenReturn(true);
+		securityMock.when(() -> SecurityProjectUtils.userIsOwner(any(), eq(PROJECT_ID))).thenReturn(true);
 
 		clusterUtilMock = mockStatic(ClusterUtil.class);
 
@@ -115,7 +113,7 @@ class PublishProjectReactorTest {
 	@AfterEach
 	void tearDown() {
 		utilityMock.close();
-		engineUtilityMock.close();
+		assetUtilityMock.close();
 		securityMock.close();
 		clusterUtilMock.close();
 	}
@@ -170,8 +168,8 @@ class PublishProjectReactorTest {
 	}
 
 	@Test
-	void noEditAccess_throwsBeforeTouchingTheProject() {
-		securityMock.when(() -> SecurityProjectUtils.userCanEditProject(any(), eq(PROJECT_ID))).thenReturn(false);
+	void notOwner_throwsBeforeTouchingTheProject() {
+		securityMock.when(() -> SecurityProjectUtils.userIsOwner(any(), eq(PROJECT_ID))).thenReturn(false);
 		setKeys(true);
 
 		assertThrows(IllegalArgumentException.class, () -> reactor.execute());

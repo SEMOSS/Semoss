@@ -1,6 +1,6 @@
 ---
 name: app-bootstrap
-description: Use when scaffolding a platform app from scratch in any flavor - plain HTML, vanilla TS, or React - or when an existing app's plumbing is wrong - blank screen on load, "module is required", "No response" from a pixel, a login screen that never clears, or pixels that succeed in isolation but fail against the project. Covers the Insight lifecycle (new Insight / initialize / destroy), how the base insight is created with LoadApp so requests are valid, gating on isInitialized/isAuthorized/isReady, the runPixel response envelope and error handling, Env and the semoss-env tag for dev vs published builds, auth, uploads, websockets, and embed auth, plus async job control (terminate/status/error endpoints for Stop buttons and failure detail) and session rehydration after a reload (/api/session/insights, GetCurrentInsightId). React bindings are one optional layer on top, not a requirement. Do not use for what a specific pixel returns - see the database, model, vector, room, agent-run, and file-uploads skills.
+description: Use when scaffolding a platform app from scratch in any flavor - plain HTML, vanilla TS, or React - or when an existing app's plumbing is wrong - blank screen on load, "module is required", "No response" from a pixel, a login screen that never clears, or pixels that succeed in isolation but fail against the project. Covers the Insight lifecycle (new Insight / initialize / destroy), how the base insight is created with SetContext so requests are valid, gating on isInitialized/isAuthorized/isReady, the runPixel response envelope and error handling, Env and the semoss-env tag for dev vs published builds, auth, uploads, websockets, and embed auth, plus async job control (terminate/status/error endpoints for Stop buttons and failure detail) and session rehydration after a reload (/api/session/insights, GetCurrentInsightId). React bindings are one optional layer on top, not a requirement. Do not use for what a specific pixel returns - see the database, model, vector, room, agent-run, and file-uploads skills.
 ---
 
 # Platform SDK: app bootstrap
@@ -102,17 +102,17 @@ app dead in a different way, so know what they are:
    stops here: `isAuthorized` stays false, no insight is created, and `initialize()` returns
    `null`.
 5. **Create the insight.** Runs a setup pixel and stores the returned `insightID`:
-   - `LoadApp("<appId>");` when an app id is known, otherwise the no-op `META | init`
+   - `SetContext("<appId>");` when an app id is known, otherwise the no-op `META | init`
    - plus `WriteObjectToFile(...) ; LoadPyFromFile(...)` when a `python` option was passed
    - then `SetRoomForInsight(roomId=...)` when the app is running as an MCP tool in a room
    Finally `isReady` becomes true and `initialize()` resolves to `{ tool }`.
 
-**`LoadApp` is what makes requests valid.** It binds the fresh insight to the project so the
+**`SetContext` is what makes requests valid.** It binds the fresh insight to the project so the
 project's reactors, asset folder, working directory, and MCP tools resolve. An insight created
 without it still runs generic pixels such as `1 + 1` or `MyEngines(...)`, which is exactly why
 this bug hides: the smoke test passes and everything project-scoped fails.
 
-The app id reaches `LoadApp` from `Env.APP`, which comes from the `semoss-env` tag in
+The app id reaches `SetContext` from `Env.APP`, which comes from the `semoss-env` tag in
 production and from `.env.local` in dev. If neither is set, the insight is created contextless.
 
 ### Bootstrap, no framework
@@ -537,7 +537,7 @@ it when they finish.
 | `Failed to resolve module specifier "@semoss/sdk"` in a no-build app | the page has not been published yet, so the import map is not in it, or the page carries its own import map and publish left it alone |
 | `Error("No response")` from `actions.run` | the session died; `UnauthorizedError` was swallowed and `isAuthorized` is now false |
 | Login page never clears after a correct password | logged in with the bare `login()` instead of `actions.login()`, so no insight was created |
-| Generic pixels work, project pixels do not | insight created without `LoadApp`: `Env.APP` was empty, or the call ran with no `insightId` |
+| Generic pixels work, project pixels do not | insight created without `SetContext`: `Env.APP` was empty, or the call ran with no `insightId` |
 | Every call is slow and state never persists | `runPixel` called without `insightId`, so each call creates a throwaway insight |
 | `uploaded.map is not a function` | `uploadInsight`/`uploadApp`/`uploadEngine`/`uploadUser` return `{ response, data }`, not the array |
 | `path=[object File]` in an upload request | argument order: `upload(files, path)` vs `uploadInsight(path, files)` |

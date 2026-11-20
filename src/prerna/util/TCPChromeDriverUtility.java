@@ -46,11 +46,12 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import prerna.om.ThreadStore;
 import prerna.security.HttpHelperUtility;
+import prerna.util.insight.InsightUtility;
 
 public class TCPChromeDriverUtility {
 
 	protected static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
-	protected static final Logger classLogger = LogManager.getLogger(TCPChromeDriverUtility.class.getName());
+	protected static final Logger classLogger = LogManager.getLogger(InsightUtility.class.getName());
 
 	protected static String contextPath = null;
 	protected static String sessionCookie = null;
@@ -235,7 +236,7 @@ public class TCPChromeDriverUtility {
 		while (cooki2.hasNext()) {
 			Cookie cook3 = cooki2.next();
 			String name2 = cook3.getName();
-			classLogger.info("##CHROME DRIVER: INIT CHECK found cookie with Name = {}", cook3.getName());
+			classLogger.info("##CHROME DRIVER: INIT CHECK found cookie{}", cook3.toJson());
 		}
 
 		Iterator<Cookie> cooki = driver.manage().getCookies().iterator();
@@ -257,8 +258,10 @@ public class TCPChromeDriverUtility {
 		}
 
 		if (cookieFound) {
-			classLogger.info("##CHROME DRIVER: found cookie - Name {} domain: {} path: {} isHttpOnly: {} isSecure: {}",
-					cook.getName(), cook.getDomain(), cook.getPath(), cook.isHttpOnly(), cook.isSecure());
+			classLogger.info(
+					"##CHROME DRIVER: found cookie - Name {} domain: {} path: {} isHttpOnly: {} isSecure: {} value: {}",
+					cook.getName(), cook.getDomain(), cook.getPath(), cook.isHttpOnly(), cook.isSecure(),
+					cook.getValue());
 			String safeName = cook.getName().replace("\r", "").replace("\n", "").replace("\0", "");
 			String safeDomain = cook.getDomain() == null ? null
 					: cook.getDomain().replace("\r", "").replace("\n", "").replace("\0", "");
@@ -273,8 +276,10 @@ public class TCPChromeDriverUtility {
 			driver.manage().deleteCookie(cook);
 			classLogger.info("##CHROME DRIVER: deleted cookie with Name = {}", cookieName);
 
-			classLogger.info("##CHROME DRIVER: Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {}",
-					name.getName(), name.getDomain(), name.getPath(), name.isHttpOnly(), name.isSecure());
+			classLogger.info(
+					"##CHROME DRIVER: Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {} value: {}",
+					name.getName(), name.getDomain(), name.getPath(), name.isHttpOnly(), name.isSecure(),
+					name.getValue());
 			// works - but doesnt login
 			driver.manage().addCookie(name);
 		} else {
@@ -296,9 +301,9 @@ public class TCPChromeDriverUtility {
 			// true,
 			// true);
 			classLogger.info(
-					"##CHROME DRIVER: BASE ADD Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {} age: {}",
+					"##CHROME DRIVER: BASE ADD Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {} value: {} age: {} json: {}",
 					name.getName(), name.getDomain(), name.getPath(), name.isHttpOnly(), name.isSecure(),
-					name.getExpiry());
+					name.getValue(), name.getExpiry(), name.toJson());
 			// works - but doesnt login
 			driver.manage().addCookie(name);
 		}

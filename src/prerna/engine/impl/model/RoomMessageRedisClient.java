@@ -64,30 +64,16 @@ public final class RoomMessageRedisClient {
 		return withJedis(jedis -> jedis.get(messagesKey(roomId)));
 	}
 
-	void setMessages(String roomId, String value, long ttlSeconds) {
-		withJedis(jedis -> jedis.set(messagesKey(roomId), value, SetParams.setParams().ex(ttlSeconds)));
-	}
-
-	// NX so a warm from an older DB read never overwrites a newer projection
-	boolean setMessagesIfAbsent(String roomId, String value, long ttlSeconds) {
-		return withJedis(jedis -> "OK".equals(
-				jedis.set(messagesKey(roomId), value, SetParams.setParams().nx().ex(ttlSeconds))));
+	void setMessages(String roomId, String value) {
+		withJedis(jedis -> jedis.set(messagesKey(roomId), value));
 	}
 
 	void deleteMessages(String roomId) {
 		withJedis(jedis -> jedis.del(messagesKey(roomId)));
 	}
 
-	// drops the cached projection and version; lock and active_run keep their own TTLs
-	void evictRoom(String roomId) {
-		withJedis(jedis -> jedis.del(messagesKey(roomId), versionKey(roomId)));
-	}
-
-	void incrementVersion(String roomId, long ttlSeconds) {
-		withJedis(jedis -> {
-			jedis.incr(versionKey(roomId));
-			return jedis.expire(versionKey(roomId), ttlSeconds);
-		});
+	void incrementVersion(String roomId) {
+		withJedis(jedis -> jedis.incr(versionKey(roomId)));
 	}
 
 	public boolean tryClaimActiveRun(String roomId, String runId, String token, long ttlMs) {

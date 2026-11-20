@@ -30,9 +30,9 @@ package prerna.reactor.masterdatabase;
 import java.util.List;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -60,6 +60,7 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the engine filter");
 		}
 		String engineId = engineFilterGrs.get(0).toString();
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 		List<String> dbFilters = SecurityEngineUtils.getFullUserEngineIds(this.insight.getUser());
 		if (!dbFilters.contains(engineId)) {
 			throw new IllegalArgumentException(
@@ -72,11 +73,19 @@ public class GetSpecificConceptPropertiesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Returns the properties/columns for a specific concept/table within a database")
-				.key(ReactorKeysEnum.CONCEPT, "The concept/table name to get properties for")
-				.key(ReactorKeysEnum.DATABASE, "The database id");
+	public String getReactorDescription() {
+		return "Returns the properties/columns for a specific concept/table within a database";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CONCEPT.getKey())) {
+			return "The concept/table name to get properties for";
+		} else if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

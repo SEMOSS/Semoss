@@ -43,7 +43,6 @@ import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentMeta;
-import prerna.security.SecretRedactor;
 
 /**
  * Runs one agent run to completion and records how it ended.
@@ -124,18 +123,14 @@ final class AgentRunExecutor {
 				throw new AgentCancelledException();
 			}
 			String completionError = result == null ? null : result.getCompletionError();
-			String finalText = result == null ? null : result.getFinalText();
-			boolean recorded = completionError == null ? AgentRunStore.markCompleted(runId, jobId, finalText)
-					: AgentRunStore.markIncomplete(runId, jobId, finalText, completionError);
-			AgentRunStreamService.get().markTerminal(runId);
-			if (recorded) {
-				publishSubagentTerminal(parentRunId, record, runId,
-						completionError == null ? AgentRunStatus.COMPLETED : AgentRunStatus.FAILED, finalText,
-						completionError);
+			if (completionError == null) {
+				AgentRunStore.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
 			} else {
-				AgentRunStore.recordFinalOutputAfterCancel(runId, finalText);
-				publishCancelledMeanwhile(parentRunId, record, runId);
+				AgentRunStore.markIncomplete(runId, jobId, result.getFinalText(), completionError);
 			}
+			AgentRunStreamService.get().markTerminal(runId);
+			publishSubagentTerminal(parentRunId, record, runId, completionError == null ? AgentRunStatus.COMPLETED : AgentRunStatus.FAILED,
+					result != null ? result.getFinalText() : null, completionError);
 			queueChildCompletion(parentRunId, record, runId);
 		} catch (Exception e) {
 			// A cancel reaches this thread as an interrupt and the flag is still set.
@@ -147,9 +142,7 @@ final class AgentRunExecutor {
 			boolean interrupted = Thread.interrupted();
 			jobId = firstNonBlank(ThreadStore.getJobId(), jobId);
 			if (isCancelled(e, interrupted)) {
-				// A stop, a cascade or an admin closing the room records why, and when, as it
-				// cancels the run; keep that over the exception the interrupt surfaced as.
-				AgentRunStore.markCancelledIfNotTerminal(runId, jobId, boundedError(e));
+				AgentRunStore.markCancelled(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
 				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.CANCELLED, null, boundedError(e));
 				queueChildCompletion(parentRunId, record, runId);
@@ -161,13 +154,9 @@ final class AgentRunExecutor {
 				publishSubagentPatch(parentRunId, runId, AgentRunStatus.INPUT_REQUIRED);
 				logger.info("AgentRunExecutor: runId={} paused for user input", runId);
 			} else {
-				boolean recorded = AgentRunStore.markFailed(runId, jobId, boundedError(e));
+				AgentRunStore.markFailed(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
-				if (recorded) {
-					publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.FAILED, null, boundedError(e));
-				} else {
-					publishCancelledMeanwhile(parentRunId, record, runId);
-				}
+				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.FAILED, null, boundedError(e));
 				queueChildCompletion(parentRunId, record, runId);
 				logger.warn("AgentRunExecutor: runId={} failed: {}", runId, e.getMessage(), e);
 			}
@@ -190,23 +179,6 @@ final class AgentRunExecutor {
 		Map<String, Object> patch = new HashMap<>();
 		patch.put("status", status.name());
 		AgentRunStreamService.get().publishSubagentUpdated(parentRunId, childRunId, patch);
-	}
-
-	/**
-	 * Reports a run that was cancelled while it ran, such as by a room closed from
-	 * another server, as the cancel its row keeps rather than the outcome this
-	 * thread reached, so the parent's live view and the database agree.
-	 *
-	 * @param parentRunId the run that spawned it, or null
-	 * @param record      the run
-	 * @param runId       the run's id
-	 */
-	private static void publishCancelledMeanwhile(String parentRunId, AgentRunRecord record, String runId) {
-		logger.info("AgentRunExecutor: runId={} was cancelled before it finished; it stays cancelled", runId);
-		if (parentRunId != null && !parentRunId.isBlank()) {
-			publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.CANCELLED, null,
-					AgentRunStore.getErrorMessage(runId));
-		}
 	}
 
 	private static void publishSubagentTerminal(String parentRunId, AgentRunRecord record, String runId,
@@ -263,7 +235,6 @@ final class AgentRunExecutor {
 		if (message == null || message.trim().isEmpty()) {
 			message = t == null ? "Unknown agent run failure" : t.getClass().getName();
 		}
-		message = SecretRedactor.redactError(message);
 		if (message.length() <= MAX_ERROR_LENGTH) {
 			return message;
 		}

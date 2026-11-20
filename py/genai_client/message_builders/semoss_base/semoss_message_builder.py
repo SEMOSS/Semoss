@@ -53,7 +53,6 @@ class SEMOSSMessageBuilder:
                 # loop through the parts
                 # and for each one add in the correct message type
                 semoss_message = SEMOSSMessage(
-                    google_interactions=message.get("google_interactions"),
                     type=message_type,
                     param_map=updated_param_map,
                     tokens=message.get("tokens", 0),
@@ -82,13 +81,6 @@ class SEMOSSMessageBuilder:
                             process_parts.append(
                                 SEMOSSMediaMessagePart(media_info=media_part)
                             )
-
-                    elif (
-                        p.get("type") == "THINKING"
-                        and p.get("source") in {"reasoning_content", "reasoning"}
-                        and model_settings.preserve_reasoning_content
-                    ):
-                        process_parts.append(SEMOSSThinkingMessagePart.model_validate(p))
 
                     elif p.get("type") == "TOOL_CALL":
                         tc = p.get("toolCall") or p.get("tool_call")
@@ -145,7 +137,6 @@ class SEMOSSMessageBuilder:
                     )
 
             semoss_message = SEMOSSMessage(
-                google_interactions=message.get("google_interactions"),
                 type=SEMOSSMessageType(message_type),
                 content=content,
                 param_map=updated_param_map,

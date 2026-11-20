@@ -34,7 +34,6 @@ import java.util.List;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -61,7 +60,7 @@ public class GetFunctionsInMCPDriverReactor extends AbstractReactor {
 		if (engine == null) {
 			engine = Utility.getProject(engineId);
 		}
-		User user = requireUser();
+		User user = this.insight.getUser();
 		checkEngineEditSecurity(engine, user);
 
 		String assetsDir = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
@@ -83,9 +82,8 @@ public class GetFunctionsInMCPDriverReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"List all the existing functions (at the root level) in the mcp_driver.py file of the engine");
+	public String getReactorDescription() {
+		return "List all the existing functions (at the root level) in the mcp_driver.py file of the engine";
 	}
 
 }

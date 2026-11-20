@@ -28,7 +28,6 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicSuggest;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSuggestAccounts();
@@ -44,10 +43,8 @@ public class BrainSuggestAccountsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Onboarding: outside organisations (by email domain) worth an account; writes nothing, save with "
-						+ "BrainSaveAccount")
-				.noKeys();
+	public String getReactorDescription() {
+		return "Onboarding: outside organisations (by email domain) worth an account; writes nothing, save with "
+				+ "BrainSaveAccount";
 	}
 }

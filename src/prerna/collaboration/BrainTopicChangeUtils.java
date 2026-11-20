@@ -73,12 +73,6 @@ public final class BrainTopicChangeUtils {
 	private static final String THREAD_TOPIC = "BRAIN_THREAD_TOPIC";
 	// chats on the topics; in a snapshot only when there are some, so older snapshots still compare
 	private static final String ROOM_TOPIC = "BRAIN_TOPIC_ROOM";
-	// Outlook folders linked to the topics; likewise only when there are some
-	private static final String FOLDER_TOPIC = "BRAIN_TOPIC_FOLDER";
-	// OneDrive and Teams files linked to the topics; likewise only when there are some
-	private static final String FILE_TOPIC = "BRAIN_TOPIC_FILE";
-	// work items linked to the topics; likewise only when there are some
-	private static final String TASK_TOPIC = "WORK_TASK_TOPIC";
 	// memories linked to the topics, keyed by memory: the rows and every link they have
 	private static final String MEMORY = "BRAIN_MEMORY";
 	private static final String MEMORY_LINK = "BRAIN_MEMORY_LINK";
@@ -255,12 +249,10 @@ public final class BrainTopicChangeUtils {
 								+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
 						params(ownerId, ownerType, topicIds));
 			}
-			for (String table : List.of(ROOM_TOPIC, FOLDER_TOPIC, TASK_TOPIC, FILE_TOPIC)) {
-				CollaborationDbUtils.update(conn,
-						"DELETE FROM " + table + OWNED + " AND TOPIC_ID IN ("
-								+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
-						params(ownerId, ownerType, topicIds));
-			}
+			CollaborationDbUtils.update(conn,
+					"DELETE FROM " + ROOM_TOPIC + OWNED + " AND TOPIC_ID IN ("
+							+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
+					params(ownerId, ownerType, topicIds));
 			if (!threadIds.isEmpty()) {
 				CollaborationDbUtils.update(conn,
 						"DELETE FROM " + THREAD_TOPIC + OWNED + " AND THREAD_ID IN ("
@@ -337,24 +329,6 @@ public final class BrainTopicChangeUtils {
 		if (!chats.isEmpty()) {
 			rows.put(ROOM_TOPIC, chats);
 		}
-		List<Map<String, Object>> folders = readRows(conn, "SELECT * FROM " + FOLDER_TOPIC + OWNED
-				+ " AND TOPIC_ID IN (" + CollaborationDbUtils.placeholders(topicIds.size()) + ") ORDER BY TOPIC_ID, "
-				+ "FOLDER_ID", params(ownerId, ownerType, topicIds));
-		if (!folders.isEmpty()) {
-			rows.put(FOLDER_TOPIC, folders);
-		}
-		List<Map<String, Object>> tasks = readRows(conn, "SELECT * FROM " + TASK_TOPIC + OWNED + " AND TOPIC_ID IN ("
-				+ CollaborationDbUtils.placeholders(topicIds.size()) + ") ORDER BY TOPIC_ID, TASK_ID",
-				params(ownerId, ownerType, topicIds));
-		if (!tasks.isEmpty()) {
-			rows.put(TASK_TOPIC, tasks);
-		}
-		List<Map<String, Object>> files = readRows(conn, "SELECT * FROM " + FILE_TOPIC + OWNED + " AND TOPIC_ID IN ("
-				+ CollaborationDbUtils.placeholders(topicIds.size()) + ") ORDER BY TOPIC_ID, ITEM_ID",
-				params(ownerId, ownerType, topicIds));
-		if (!files.isEmpty()) {
-			rows.put(FILE_TOPIC, files);
-		}
 		if (!memoryIds.isEmpty()) {
 			String inMemories = " AND MEMORY_ID IN (" + CollaborationDbUtils.placeholders(memoryIds.size()) + ")";
 			rows.put(MEMORY, readRows(conn, "SELECT * FROM " + MEMORY + OWNED + inMemories + " ORDER BY MEMORY_ID",
@@ -411,10 +385,8 @@ public final class BrainTopicChangeUtils {
 		for (Map<String, Object> row : rows) {
 			List<String> columns = new ArrayList<>(row.keySet());
 			columns.retainAll(types.keySet());
-			// H2 2.x reserves column names such as BRAIN_RULE's VALUE
-			try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table + " ("
-					+ String.join(", ", columns.stream().map(CollaborationDbUtils::column).toList()) + ") VALUES ("
-					+ CollaborationDbUtils.placeholders(columns.size()) + ")")) {
+			try (PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table + " (" + String.join(", ", columns)
+					+ ") VALUES (" + CollaborationDbUtils.placeholders(columns.size()) + ")")) {
 				for (int i = 0; i < columns.size(); i++) {
 					int type = types.get(columns.get(i));
 					Object value = row.get(columns.get(i));

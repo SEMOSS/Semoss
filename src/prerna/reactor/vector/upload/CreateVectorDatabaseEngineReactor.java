@@ -36,6 +36,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -53,10 +54,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -65,17 +64,29 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateVectorDatabaseEngineReactor.class);
 
-	private static final String CATALOG_NAME_KEYS = ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.DATABASE.getKey();
-
 	public CreateVectorDatabaseEngineReactor() {
-		this.keysToGet = new String[] { CATALOG_NAME_KEYS, ReactorKeysEnum.CONNECTION_DETAILS.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONNECTION_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = requireUser();
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata(
+					"User must be signed into an account in order to create a model engine", PixelDataType.CONST_STRING,
+					PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
+
+		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
+			if (this.insight.getUser().isAnonymous()) {
+				throwAnonymousUserError();
+			}
+		}
 
 		// throw error is user doesn't have rights to publish new databases
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
@@ -134,7 +145,7 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			if (embeddingModel == null) {
 				throw new IllegalArgumentException("EMBEDDER_ENGINE_ID " + embeddingModel + " could not be found");
 			}
-			String embeddingModelAlias = embeddingModel.getEngineName();
+			String embeddingModelAlias = embeddingModel.getSmssProp().getProperty(Constants.ENGINE_ALIAS);
 			vectorDbDetails.put(Constants.EMBEDDER_ENGINE_NAME, embeddingModelAlias);
 		}
 
@@ -200,14 +211,14 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 			UploadUtilities.addEngineToDIHelper(vectorDbId, vectorDbName, vectorDb, smssFile);
 			SecurityEngineUtils.addEngine(vectorDbId, global, user);
 
-			SecurityEngineUtils.addEngineOwner(user, vectorDbId);
+			List<AuthProvider> logins = user.getLogins();
+			for (AuthProvider ap : logins) {
+				SecurityEngineUtils.addEngineOwner(vectorDbId, user.getAccessToken(ap).getId());
+			}
 
 			ClusterUtil.pushEngine(vectorDbId);
-			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.VECTOR_CREATE, AuditTargetType.VECTOR,
-					vectorDbId, vectorDbName,
-					Map.of("global", global, "vectorType", vectorDbType.getVectorDatabaseName()));
 		} catch (Exception e) {
-			classLogger.error("Failed to create vector database engine {} ({})", vectorDbName, vectorDbId, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			UploadUtilities.cleanUpCreateNewError(vectorDb, vectorDbId, tempSmss, smssFile, specificEngineFolder);
 			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
@@ -226,12 +237,15 @@ public class CreateVectorDatabaseEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getVectorDatabaseName() {
-		List<String> strValues = getListStringForAliasedKey(CATALOG_NAME_KEYS);
-		if (!strValues.isEmpty()) {
-			return strValues.get(0).trim();
+		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey());
+		if (grs != null && !grs.isEmpty()) {
+			List<String> strValues = grs.getAllStrValues();
+			if (strValues != null && !strValues.isEmpty()) {
+				return strValues.get(0).trim();
+			}
 		}
 
-		strValues = this.curRow.getAllStrValues();
+		List<String> strValues = this.curRow.getAllStrValues();
 		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}

@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,15 +39,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import prerna.SemossUnitTest;
-import prerna.auth.User;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -57,13 +53,10 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 class ListPlaywrightScriptsReactorTest extends SemossUnitTest {
 
-	private static final String PROJECT_ID = "test-project";
-
 	private ListPlaywrightScriptsReactor reactor;
 	private Map<String, String> keyValues;
 	private NounStore nounStore;
 	private Insight insight;
-	private MockedStatic<SecurityProjectUtils> projectSecurity;
 
 	@BeforeEach
 	void setUp() throws IOException {
@@ -78,16 +71,6 @@ class ListPlaywrightScriptsReactorTest extends SemossUnitTest {
 
 		reactor.setNounStore(nounStore);
 		reactor.setInsight(insight);
-
-		User user = mock(User.class);
-		when(insight.getUser()).thenReturn(user);
-		projectSecurity = Mockito.mockStatic(SecurityProjectUtils.class);
-		projectSecurity.when(() -> SecurityProjectUtils.userCanViewProject(user, PROJECT_ID)).thenReturn(true);
-	}
-
-	@AfterEach
-	void closeProjectSecurity() {
-		projectSecurity.close();
 	}
 
 	@Test

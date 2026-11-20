@@ -42,6 +42,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.SmssUtilities;
+import prerna.project.api.IProject;
 import prerna.project.impl.Project;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -49,9 +50,10 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.InternalUtility;
+import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
 
 public class UserAssetUtils extends AbstractSecurityUtils {
 
@@ -63,6 +65,10 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	UserAssetUtils() {
 		super();
 	}
+
+	//////////////////////////////////////////////////////////////////////
+	// Creating asset metadata
+	//////////////////////////////////////////////////////////////////////
 
 	/**
 	 * Create the user asset project for the provided user and auth token
@@ -99,8 +105,16 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 		// Add database into DIHelper so that the web watcher doesn't try to load as
 		// well
 		File tempSmss = SmssUtilities.createTemporaryAssetSmss(projectId, projectName, null);
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
+
+		// Create the project
 		Project project = new Project();
-		InternalUtility.registerNewProject(projectId, project, tempSmss.getAbsolutePath());
+
+		// Only at end do we add to DIHelper
+		DIHelper.getInstance().setProjectProperty(projectId, project);
+		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
+		projects = projects + ";" + projectId;
+		DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
 
 		// Rename .temp to .smss
 		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -114,7 +128,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 			ClusterUtil.pushUserAsset(projectId);
 		}
 
-		InternalUtility.setProjectSmssPath(projectId, smssFile.getAbsolutePath());
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 		return projectId;
 	}
 
@@ -125,7 +139,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @throws SQLException
 	 */
-	static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
+	public static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb,
@@ -151,7 +165,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @throws SQLException
 	 */
-	static void registerUserAssetProject(User user, AuthProvider provider, String projectId)
+	public static void registerUserAssetProject(User user, AuthProvider provider, String projectId)
 			throws SQLException {
 		registerUserAssetProject(user.getAccessToken(provider), projectId);
 	}
@@ -171,19 +185,19 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ASSETENGINE__TYPE", "==", token.getProvider().name()));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__USERID", "==", token.getId()));
-		String projectId = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object rs = wrapper.next().getValues()[0];
-				if (rs != null) {
-					projectId = rs.toString();
+				if (rs == null) {
+					return null;
 				}
+				return rs.toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve user asset project.", e);
 		}
 
-		return projectId;
+		return null;
 	}
 
 	/**
@@ -209,14 +223,31 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ASSETENGINE__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ASSETENGINE__PROJECTID", "==", projectId));
-		boolean isAsset = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			isAsset = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to determine whether the project is an asset project.", e);
 		}
 
-		return isAsset;
+		return false;
+	}
+
+	//////////////////////////////////////////////////////////////////////
+	// Asset folder locations
+	//////////////////////////////////////////////////////////////////////
+
+	public static String getUserAssetRootDirectory(User user, AuthProvider provider) {
+		String assetProjectId = user.getAssetProjectId(provider);
+		if (assetProjectId != null) {
+			IProject assetProject = Utility.getProject(assetProjectId);
+			if (assetProject != null) {
+				String assetProjectName = assetProject.getProjectName();
+				if (assetProjectName != null) {
+					return AssetUtility.getProjectVersionFolder(assetProjectName, assetProjectId);
+				}
+			}
+		}
+		return null;
 	}
 
 }

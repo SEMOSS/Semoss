@@ -28,7 +28,6 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainProfileUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainGetProfile();
@@ -44,8 +43,7 @@ public class BrainGetProfileReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("The signed-in user's Brain profile (role, working hours, VIPs, writing style)").noKeys();
+	public String getReactorDescription() {
+		return "The signed-in user's Brain profile (role, working hours, VIPs, writing style)";
 	}
 }

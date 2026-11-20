@@ -40,7 +40,7 @@ import prerna.util.Constants;
 
 public class TextFileProcessor extends AbstractFileProcessor {
 	
-	private static final Logger classLogger = LogManager.getLogger(TextFileProcessor.class);
+	private static final Logger classLogger = LogManager.getLogger(PPTProcessor.class);
 
 	public TextFileProcessor(String filePath, VectorDatabaseCSVWriter writer) {
 		super(filePath, writer);

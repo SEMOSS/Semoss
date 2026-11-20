@@ -136,12 +136,10 @@ public final class ChildRunCompletionService {
 		return childRunIds;
 	}
 
-	// A request the owner withdrew needs no follow-up run, and a closed room takes
-	// none.
+	// A request the owner withdrew needs no follow-up run.
 	private static boolean continues(Delivery delivery) {
 		return delivery.mode() == SubAgentRunCompletionMode.POST_AND_CONTINUE
-				&& !(delivery.humanExecutorLabel() != null && delivery.status() == AgentRunStatus.CANCELLED)
-				&& !ModelInferenceLogsUtils.isRoomInActive(delivery.userId(), delivery.parentRoomId());
+				&& !(delivery.humanExecutorLabel() != null && delivery.status() == AgentRunStatus.CANCELLED);
 	}
 
 	private static boolean continuationMissing(Delivery delivery) {

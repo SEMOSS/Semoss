@@ -21,7 +21,7 @@ An engine is a configured resource with identity, lifecycle, and an implementati
 
 A resource's `.smss` file identifies its implementation and connection/configuration properties. Do not assume every catalog type uses the same property names. Use the relevant creation reactor and a matching example rather than manually copying unrelated connection fields.
 
-`Utility` and runtime registries resolve engines and projects as needed. `DIHelper` holds shared configuration and runtime lookup state; code outside `prerna.util` reads a setting with `Utility.getDIHelperProperty` and reaches the rest through `InternalUtility`. Loading an engine is separate from authorizing its use: reactors and service methods must perform the access checks required by their operation.
+`Utility` and runtime registries resolve engines and projects as needed. `DIHelper` holds shared configuration and runtime lookup state. Loading an engine is separate from authorizing its use: reactors and service methods must perform the access checks required by their operation.
 
 ## Security and metadata
 

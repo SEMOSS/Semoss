@@ -47,6 +47,7 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.NounStore;
@@ -104,10 +105,13 @@ public class AdminGetEngineUsagePerUserReactorUnitTests {
 		reactor.keyValue.put(ReactorKeysEnum.ENGINE.getKey(), "eng123");
 
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+				MockedStatic<SecurityQueryUtils> squ = Mockito.mockStatic(SecurityQueryUtils.class);
 				MockedStatic<ModelInferenceLogsUtils> mil = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+			squ.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(any(User.class), eq("eng123")))
+					.thenReturn("eng123");
 
 			List<Map<String, Object>> usageList = new ArrayList<>();
 			mil.when(() -> ModelInferenceLogsUtils.getUserUsagePerEngine(

@@ -29,7 +29,6 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkRoomUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkListOpenRooms();
@@ -45,8 +44,7 @@ public class WorkListOpenRoomsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Lists the thread workspaces the signed-in user has open")
-				.noKeys();
+	public String getReactorDescription() {
+		return "Lists the thread workspaces the signed-in user has open";
 	}
 }

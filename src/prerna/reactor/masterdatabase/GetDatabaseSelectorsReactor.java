@@ -31,7 +31,6 @@ import java.util.Collection;
 
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -63,8 +62,8 @@ public class GetDatabaseSelectorsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("""
+	public String getReactorDescription() {
+		return """
 				Returns the collection of selectors available for pixel operations within a database.
 
 				Selector formats by database type:
@@ -73,7 +72,16 @@ public class GetDatabaseSelectorsReactor extends AbstractReactor {
 				  - Graph (node property): NODE__PROPERTY
 
 				The double underscore (__) acts as a delimiter between components.
-				""").key(ReactorKeysEnum.DATABASE, "The database id");
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
+			return "The database id";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

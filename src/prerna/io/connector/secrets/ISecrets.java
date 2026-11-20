@@ -46,7 +46,6 @@ public interface ISecrets {
 
 	String AZURE_KEYVAULT = "AZURE_KEYVAULT";
 	String HASHICORP_VAULT = "HASHICORP_VAULT";
-	String AWS_SECRETS_MANAGER = "AWS_SECRETS_MANAGER";
 	String IV = "iv";
 	String SECRET = "secret";
 	String SALT = "salt";

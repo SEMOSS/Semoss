@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityUserUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -62,9 +61,16 @@ public class SetUserMetadataReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Define metadata on a user").key(META,
-				"Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the user. The list of values will determine the order that is defined for field");
+	public String getReactorDescription() {
+		return "Define metadata on a user";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(META)) {
+			return "Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the user. The list of values will determine the order that is defined for field";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 	protected Map<String, Collection<String>> getMetadata() {

@@ -47,13 +47,9 @@ public class GoogleFileRetriever implements IConnectorIOp {
 
 	@Override
 	public Object execute(User user, Map<String, Object> params) {
-		String fileName = params == null ? null : (String) params.remove("target");
-		if (fileName == null || fileName.isBlank()) {
-			throw new IllegalArgumentException("Requires a target file path to write the spreadsheet to");
-		}
+		String fileName = (String) params.remove("target");
 		String url = "https://docs.google.com/spreadsheets/export";
-		try (BufferedReader br = HttpHelperUtility.getRequestReader(HttpHelperUtility.getSystemClient(),
-				HttpHelperUtility.withQueryParameters(url, params), null)) {
+		try (BufferedReader br = HttpHelperUtility.getHttpStream(url, null, params, false)) {
 			// create a file
 			File outputFile = new File(fileName);
 			try (BufferedWriter target = new BufferedWriter(new FileWriter(outputFile))) {

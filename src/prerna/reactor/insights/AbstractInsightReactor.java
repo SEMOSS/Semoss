@@ -50,6 +50,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.io.connector.couch.CouchException;
 import prerna.io.connector.couch.CouchUtil;
@@ -62,6 +63,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
@@ -103,7 +105,10 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			}
 		}
 
-		// LEGACY CHECK
+		// LEGACY
+		// LEGACY
+		// LEGACY
+		// LEGACY
 		if (projectId == null) {
 			genericEngineGrs = this.store.getGenRowStruct("app");
 			if (genericEngineGrs != null && !genericEngineGrs.isEmpty()) {
@@ -116,6 +121,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the project where the insight currently exists");
 		}
 
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		return projectId;
 	}
 
@@ -401,8 +407,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				selectors.put(CouchUtil.PROJECT, projectId);
 				CouchUtil.upload(CouchUtil.INSIGHT, selectors, saveImageFile);
 			} catch (CouchException e) {
-				classLogger.error("Failed to upload the image of insight {} in project {} to CouchDB", insightId,
-						projectId, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -421,7 +426,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				Files.copy(newImage, saveImageFile);
 				newImage.delete();
 			} catch (IOException e) {
-				classLogger.error("Failed to save {} as the image of insight {}", saveImageFileAs, insightId, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 	}
@@ -446,9 +451,9 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 		try (OutputStream stream = new FileOutputStream(imagePath)) {
 			stream.write(data);
 		} catch (FileNotFoundException e) {
-			classLogger.error("Failed to create the image file {} for insight {}", imagePath, insightId, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		} catch (IOException e) {
-			classLogger.error("Failed to write the image of insight {} to {}", insightId, imagePath, e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -559,8 +564,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 									origF.delete();
 								}
 							} catch (IOException e) {
-								classLogger.error("Failed to copy {} into the data folder of insight {}", fileLoc,
-										newInsightId, e);
+								classLogger.error(Constants.STACKTRACE, e);
 							}
 						}
 					}
@@ -615,7 +619,7 @@ public abstract class AbstractInsightReactor extends AbstractReactor {
 				try {
 					writer.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close the pipeline file {}", f.getAbsolutePath(), e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

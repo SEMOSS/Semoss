@@ -39,7 +39,9 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteEngineRunner;
 import prerna.engine.api.IEngine;
@@ -51,9 +53,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
@@ -72,20 +71,27 @@ public class DeleteEngineReactor extends AbstractReactor {
 		List<String> engineIds = getEngineIds();
 		// first validate all the inputs
 		User user = this.insight.getUser();
-		for (String engineId : engineIds) {
-			if (AbstractSecurityUtils.adminOnlyEngineDelete(engineId)) {
-				throwFunctionalityOnlyExposedForAdminsError();
-			}
+		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+		if (!isAdmin) {
+			for (String engineId : engineIds) {
+				if (AbstractSecurityUtils.adminOnlyEngineDelete(engineId)) {
+					throwFunctionalityOnlyExposedForAdminsError();
+				}
 
-			boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
-			if (!isOwner) {
-				throw new IllegalArgumentException("Engine " + engineId
-						+ " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
+				// we may have the alias
+				engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+				boolean isOwner = SecurityEngineUtils.userIsOwner(user, engineId);
+				if (!isOwner) {
+					throw new IllegalArgumentException("Engine " + engineId
+							+ " does not exist or user does not have permissions to delete the engine. User must be the owner to perform this function.");
+				}
 			}
 		}
 
 		// once all are good, we can delete
 		for (String engineId : engineIds) {
+			// we may have the alias
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
 			IEngine engine = Utility.getEngine(engineId, false);
 			String engineName = null;
 			IEngine.CATALOG_TYPE engineType = null;
@@ -99,8 +105,6 @@ public class DeleteEngineReactor extends AbstractReactor {
 			}
 
 			deleteEngines(engine, engineId, engineName, engineType);
-			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_DELETE,
-					AuditTargetType.ofEngine(engineType), engineId, engineName, null);
 			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
 				Thread.ofVirtual().start(new DeleteEngineRunner(engineId, engineType));
@@ -122,7 +126,7 @@ public class DeleteEngineReactor extends AbstractReactor {
 			remover.deleteEngineRDBMS(engineId);
 		}
 		// remove from security
-		SecurityEngineUtils.deleteEngine(this.insight.getUser(), engineId);
+		SecurityEngineUtils.deleteEngine(engineId);
 		// remove from user tracking
 		UserTrackingUtils.deleteEngine(engineId);
 		// remove the cache

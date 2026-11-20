@@ -34,7 +34,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -69,11 +68,16 @@ public class SalesforceSoqlQueryReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Executes a SOQL query against Salesforce and returns the query result payload.")
-				.key(SOQL_QUERY,
-						"Required SOQL query string to execute (for example, SELECT Id, Name FROM Account LIMIT 10).");
+	public String getReactorDescription() {
+		return "Executes a SOQL query against Salesforce and returns the query result payload.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (SOQL_QUERY.equals(key)) {
+			return "Required SOQL query string to execute (for example, SELECT Id, Name FROM Account LIMIT 10).";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

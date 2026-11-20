@@ -40,14 +40,10 @@ import prerna.cluster.util.DeleteProjectRunner;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.AuditTargetType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -60,26 +56,32 @@ import prerna.util.Utility;
  * creation reactors.
  *
  * <p>
- * Pixel: {@code CreateAutomation(catalogName=["My Claims Intake"])}
+ * Pixel: {@code CreateAutomation(projectName=["My Claims Intake"])}
  */
 public class CreateAutomationReactor extends AbstractReactor {
 
-	private static final String CLASS_NAME = CreateAutomationReactor.class.getName();
 	private static final Logger classLogger = LogManager.getLogger(CreateAutomationReactor.class);
 
+	private static final String PROJECT_NAME_KEY = "projectName";
+
 	public CreateAutomationReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + ",projectName" };
+		this.keysToGet = new String[] { PROJECT_NAME_KEY };
 		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		Logger logger = getLogger(CLASS_NAME);
-
 		organizeKeys();
-		User user = requireUser();
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a project",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException error = new SemossPixelException(noun);
+			error.setContinueThreadOfExecution(false);
+			throw error;
+		}
 
-		String projectName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
+		String projectName = this.keyValue.get(PROJECT_NAME_KEY);
 		if (projectName == null || !Utility.validateName(projectName.trim())) {
 			throw new IllegalArgumentException("Invalid Name: It must start with a letter and can only contain "
 					+ "letters, numbers, spaces, underscores, and hyphens.");
@@ -89,14 +91,14 @@ public class CreateAutomationReactor extends AbstractReactor {
 		classLogger.info("Creating automation project '{}'", projectName);
 
 		IProject project = ProjectHelper.generateNewProject(projectName, IProject.PROJECT_TYPE.AUTOMATION, false, null,
-				null, user, logger);
+				null, user, classLogger);
 		String projectId = project.getProjectId();
 		try {
 			AutomationProjectService.createStarterDefinition(project, user);
 		} catch (RuntimeException e) {
 			classLogger.error("Failed to scaffold automation project '{}' (id {})", projectName, projectId, e);
 			try {
-				cleanupFailedProject(user, project);
+				cleanupFailedProject(project);
 			} catch (RuntimeException cleanupFailure) {
 				e.addSuppressed(cleanupFailure);
 				classLogger.error("Failed to fully clean incomplete automation project '{}'.", projectId,
@@ -106,18 +108,15 @@ public class CreateAutomationReactor extends AbstractReactor {
 		}
 
 		classLogger.info("Created automation project '{}' with id {}", projectName, projectId);
-		UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(AuditEventType.AUTOMATION_CREATE)
-				.actorUser(user).target(AuditTargetType.AUTOMATION, projectId, projectName)
-				.context(projectId, null, null, null));
 
 		Map<String, Object> result = UploadUtilities.getProjectReturnData(user, projectId);
 		return new NounMetadata(result, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
-	private static void cleanupFailedProject(User user, IProject project) {
+	private static void cleanupFailedProject(IProject project) {
 		String projectId = project.getProjectId();
 		UploadUtilities.removeProjectFromDIHelper(projectId);
-		SecurityProjectUtils.deleteProject(user, projectId);
+		SecurityProjectUtils.deleteProject(projectId);
 		UserTrackingUtils.deleteProject(projectId);
 		try {
 			project.delete();
@@ -130,10 +129,16 @@ public class CreateAutomationReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Creates a new blank automation project and returns the standard project creation result.")
-				.key(ReactorKeysEnum.CATALOG_NAME, "Display name for the new automation project. "
-						+ "Must follow the standard SEMOSS project naming rules.");
+	public String getReactorDescription() {
+		return "Creates a new blank automation project and returns the standard project creation result.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (PROJECT_NAME_KEY.equals(key)) {
+			return "Display name for the new automation project. "
+					+ "Must follow the standard SEMOSS project naming rules.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

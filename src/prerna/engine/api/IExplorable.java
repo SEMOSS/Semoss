@@ -33,7 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -42,44 +41,35 @@ public interface IExplorable {
 
 	// gets the from neighborhood for a given node
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Vector<String> getFromNeighbors(String nodeType, int neighborHood);
 
 	// gets the to nodes
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Vector<String> getToNeighbors(String nodeType, int neighborHood);
 
 	// gets the from and to nodes
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Vector<String> getNeighbors(String nodeType, int neighborHood);
 
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getOwlFilePath();
 
 	// sets the owl
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setOwlFilePath(String owlFilePath);
 
 	// get the position file used to paint the metamodel
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	File getOwlPositionFile();
 
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean isBasic();
 
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setBasic(boolean isBasic);
 
 	// gets the owl definitions
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getOWLDefinition();
 
 	/**
@@ -88,7 +78,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.EDIT)
 	RDFFileSesameEngine getBaseDataEngine();
 
 	/**
@@ -97,25 +86,21 @@ public interface IExplorable {
 	 * @param baseDataEngine
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
 	void setBaseDataEngine(RDFFileSesameEngine baseDataEngine);
 
 	/**
 	 * Commit the owl engine and write to disk
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void commitOWL();
 
 	// adds property to be associated with explorable
 	// REFAC: Check
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.OWNER)
 	void addProperty(String key, String value);
 
 	// get property
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.OWNER)
 	String getProperty(String key);
 
 	/**
@@ -124,18 +109,15 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	IQueryInterpreter getQueryInterpreter();
 
 	// executes a query on the ontology engine
 	// REFAC: Change this to engine
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Object execOntoSelectQuery(String query);
 
 	// WHAT IS THIS ?
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Vector<String> executeInsightQuery(String sparqlQuery, boolean isDbQuery);
 
 	/**
@@ -143,7 +125,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getNodeBaseUri();
 
 	/**
@@ -154,7 +135,6 @@ public interface IExplorable {
 	 */
 	// REFAC: Change this to engine - this should be local master
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getDataTypes(String uri);
 
 	/**
@@ -166,7 +146,6 @@ public interface IExplorable {
 	 */
 	// REFAC: Change this to engine - this should be local master
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Map<String, String> getDataTypes(String... uris);
 
 	/**
@@ -175,7 +154,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getAdtlDataTypes(String uri);
 
 	/**
@@ -184,12 +162,10 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Map<String, String> getAdtlDataTypes(String... uris);
 
 	// REFAC: Change this to engine - this should be local master
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Map<String, Object[]> getMetamodel();
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
@@ -206,7 +182,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<String> getPixelConcepts();
 
 	/**
@@ -219,7 +194,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<String> getPixelSelectors(String conceptPixelName);
 
 	/**
@@ -231,7 +205,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<String> getPropertyPixelSelectors(String conceptPixelName);
 
 	/**
@@ -240,7 +213,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<String> getPhysicalConcepts();
 
 	/**
@@ -249,7 +221,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<String[]> getPhysicalRelationships();
 
 	/**
@@ -259,7 +230,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<String> getPropertyUris4PhysicalUri(String physicalUri);
 
 	/**
@@ -270,7 +240,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getPhysicalUriFromPixelSelector(String pixelSelector);
 
 	/**
@@ -288,7 +257,6 @@ public interface IExplorable {
 	 */
 	@Deprecated
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getPixelUriFromPhysicalUri(String physicalUri);
 
 	/**
@@ -298,7 +266,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getConceptPixelUriFromPhysicalUri(String conceptPhysicalUri);
 
 	/**
@@ -309,7 +276,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getPropertyPixelUriFromPhysicalUri(String conceptPhysicalUri, String propertyPhysicalUri);
 
 	/**
@@ -318,7 +284,6 @@ public interface IExplorable {
 	 * @param physicalUri
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getPixelSelectorFromPhysicalUri(String physicalUri);
 
 	/**
@@ -328,7 +293,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getConceptualName(String physicalUri);
 
 	/**
@@ -338,7 +302,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Set<String> getLogicalNames(String physicalUri);
 
 	/**
@@ -348,7 +311,6 @@ public interface IExplorable {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getDescription(String physicalUri);
 
 	/**
@@ -360,7 +322,6 @@ public interface IExplorable {
 	 */
 	@Deprecated
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getLegacyPrimKey4Table(String physicalUri);
 
 }

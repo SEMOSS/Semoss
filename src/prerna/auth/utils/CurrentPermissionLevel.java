@@ -67,9 +67,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Whether the user's current level on the target, from {@link #of}, is at least
-	 * editor, as the {@code userCanEdit*} checks read it.
-	 *
 	 * @return whether the user is an editor or an owner of the target now; false
 	 *         when the rows cannot be read
 	 */
@@ -79,9 +76,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Whether the user's current level on the target, from {@link #of}, is owner,
-	 * as the {@code userIsOwner} checks read it.
-	 *
 	 * @return whether the user is an owner of the target now; false when the rows
 	 *         cannot be read
 	 */
@@ -91,12 +85,9 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Reads the user's current level on the target, treating a failed read as no
-	 * access.
-	 *
 	 * @return {@link #of}, or null when the rows cannot be read, which is logged
 	 */
-	static Integer ofOrNull(User user, PermissionTargetResource target) {
+	private static Integer ofOrNull(User user, PermissionTargetResource target) {
 		try {
 			return of(user, target);
 		} catch (IllegalArgumentException e) {
@@ -120,7 +111,7 @@ final class CurrentPermissionLevel {
 		}
 		String userTable;
 		String groupTable;
-		switch (target.getResourceType()) {
+		switch (target.getKind()) {
 		case PROJECT:
 			userTable = "PROJECTPERMISSION";
 			groupTable = "GROUPPROJECTPERMISSION";
@@ -159,9 +150,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Builds a query for the {@code PERMISSION} column of the target's rows in a
-	 * user or group permission table.
-	 *
 	 * @return a query for the levels on the target in a permission table, leaving
 	 *         out rows with no level and grants that have ended
 	 */
@@ -180,9 +168,9 @@ final class CurrentPermissionLevel {
 	 * engine, or the insight in its project.
 	 */
 	static void filterToTarget(SelectQueryStruct qs, String table, PermissionTargetResource target) {
-		if (target.getResourceType() == PermissionTargetResource.TargetResourceType.ENGINE) {
+		if (target.getKind() == PermissionTargetResource.Kind.ENGINE) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(table + "__ENGINEID", "==", target.getId()));
-		} else if (target.getResourceType() == PermissionTargetResource.TargetResourceType.INSIGHT) {
+		} else if (target.getKind() == PermissionTargetResource.Kind.INSIGHT) {
 			qs.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter(table + "__PROJECTID", "==", target.getProjectId()));
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(table + "__INSIGHTID", "==", target.getId()));
@@ -192,10 +180,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Builds a filter on a group permission table for the user's teams, matching
-	 * each login's groups by that login's group type, and the user's custom teams
-	 * by the custom group type.
-	 *
 	 * @return a filter for the rows of the teams the user is in now: the groups
 	 *         their logins carry, and the custom teams whose membership has not
 	 *         ended; or null when they are in none
@@ -228,104 +212,6 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
-	 * Whether the user can open at least one insight of a project now: a public
-	 * insight, or one given to them directly or to a login provider group or custom
-	 * team they are in. A grant, or a membership of a custom team, that has ended
-	 * does not count, and neither does a row with no level.
-	 *
-	 * @param user      the user
-	 * @param projectId the project
-	 * @return whether the project has an insight the user can open
-	 * @throws IllegalArgumentException when the rows cannot be read
-	 */
-	static boolean canOpenAnInsightOf(User user, String projectId) {
-		if (user == null) {
-			return false;
-		}
-		PermissionTargetResource project = PermissionTargetResource.project(projectId);
-		SelectQueryStruct publicInsights = new SelectQueryStruct();
-		publicInsights.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
-		publicInsights.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
-		publicInsights.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-		if (hasRow(publicInsights, project)) {
-			return true;
-		}
-
-		SelectQueryStruct ownInsights = insightGrantsQuery("USERINSIGHTPERMISSION", projectId);
-		ownInsights.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==",
-				AbstractSecurityUtils.getUserFiltersQs(user)));
-		if (hasRow(ownInsights, project)) {
-			return true;
-		}
-
-		IQueryFilter teams = currentTeamsFilter(user, "GROUPINSIGHTPERMISSION");
-		if (teams == null) {
-			return false;
-		}
-		SelectQueryStruct teamInsights = insightGrantsQuery("GROUPINSIGHTPERMISSION", projectId);
-		teamInsights.addExplicitFilter(teams);
-		return hasRow(teamInsights, project);
-	}
-
-	/**
-	 * Builds a query for the insight grants in effect on any insight of a project,
-	 * in a user or group insight permission table.
-	 *
-	 * @return a query for the grants, leaving out rows with no level and grants
-	 *         that have ended
-	 */
-	private static SelectQueryStruct insightGrantsQuery(String table, String projectId) {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(table + "__INSIGHTID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(table + "__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter(table + "__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
-		qs.addExplicitFilter(AbstractSecurityUtils.getUnexpiredFilter(table + "__ENDDATE"));
-		return qs;
-	}
-
-	/**
-	 * Whether anyone has been given access to the target: a row of any level in its
-	 * user or team permission table, ended or not. A project, an engine or an
-	 * insight that was just created has none until its creator is made its owner.
-	 *
-	 * @param target the project, engine or insight
-	 * @return whether the target has any permission row
-	 * @throws IllegalArgumentException when the rows cannot be read
-	 */
-	static boolean hasAnyGrant(PermissionTargetResource target) {
-		List<String> tables = switch (target.getResourceType()) {
-		case PROJECT -> List.of("PROJECTPERMISSION", "GROUPPROJECTPERMISSION");
-		case ENGINE -> List.of("ENGINEPERMISSION", "GROUPENGINEPERMISSION");
-		case INSIGHT -> List.of("USERINSIGHTPERMISSION", "GROUPINSIGHTPERMISSION");
-		default -> List.of();
-		};
-		for (String table : tables) {
-			SelectQueryStruct qs = new SelectQueryStruct();
-			qs.addSelector(new QueryColumnSelector(table + "__PERMISSION"));
-			filterToTarget(qs, table, target);
-			if (hasRow(qs, target)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private static boolean hasRow(SelectQueryStruct qs, PermissionTargetResource target) {
-		qs.setLimit(1);
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
-				.getRawWrapper(SystemEngineRegistry.getSecurityDb(), qs)) {
-			return wrapper.hasNext();
-		} catch (Exception e) {
-			classLogger.error("Could not read the user's access to {}", target.describe(), e);
-			throw new IllegalArgumentException("Could not read your access to " + target.describe());
-		}
-	}
-
-	/**
-	 * Runs the query on the security database and keeps the highest level it reads.
-	 *
 	 * @return the highest level the query reads, where a lower id is a higher
 	 *         level, or null when it reads none
 	 * @throws IllegalArgumentException when the rows cannot be read

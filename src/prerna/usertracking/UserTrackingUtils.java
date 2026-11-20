@@ -40,7 +40,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.AbstractOwlCreator;
-import prerna.security.SessionIds;
 import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -78,14 +77,12 @@ public class UserTrackingUtils {
 		if (!Utility.isUserTrackingEnabled()) {
 			return;
 		}
-		EngineUsageUtils.update(queriedDatabaseIds, insightId, projectId);
+		EngineUsageUtils.update(queriedDatabaseIds, insightId, insightId);
 	}
 
 	/**
 	 * Removes all user-tracking rows for an engine (usage, views, and votes). No-op
-	 * when user tracking is disabled. The three tables are cleared in one write on
-	 * the shared executor, so the rows are removed from all of them or from none; a
-	 * failure is logged and not thrown.
+	 * when user tracking is disabled.
 	 *
 	 * @param engineId the id of the engine being deleted
 	 */
@@ -93,21 +90,11 @@ public class UserTrackingUtils {
 		if (!Utility.isUserTrackingEnabled()) {
 			return;
 		}
-		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		String[] queries = { "DELETE FROM ENGINE_USES where ENGINEID = ?",
 				"DELETE FROM ENGINE_VIEWS where ENGINEID = ?", "DELETE FROM USER_CATALOG_VOTES WHERE ENGINEID = ?" };
-		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				for (String query : queries) {
-					QueryExecutionUtility.executeUpdate(connection, query, ps -> {
-						int index = 1;
-						ps.setString(index++, engineId);
-					});
-				}
-				return null;
-			});
-		} catch (Exception e) {
-			classLogger.error("Failed to delete user-tracking rows for engine {}", engineId, e);
+
+		for (String query : queries) {
+			doDeleteEngine(query, engineId);
 		}
 	}
 
@@ -240,6 +227,25 @@ public class UserTrackingUtils {
 	}
 
 	/**
+	 * Executes a single engine-scoped delete statement, binding the engine id as
+	 * the sole parameter.
+	 *
+	 * @param query    the parameterized delete statement to run
+	 * @param engineId the engine id to bind
+	 */
+	private static void doDeleteEngine(String query, String engineId) {
+		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
+		try {
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, engineId);
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to delete user-tracking rows for engine {} [query: {}]", engineId, query, e);
+		}
+	}
+
+	/**
 	 * Records a single query execution against a database, including its timing and
 	 * whether it failed. No-op when user tracking is disabled.
 	 *
@@ -300,10 +306,8 @@ public class UserTrackingUtils {
 	}
 
 	/**
-	 * Registers a user login/session with the configured user tracker, which keeps
-	 * the session's hash ({@link SessionIds#hash(String)}), never the session id.
-	 * No-op when user tracking is disabled; logs and skips if no tracker is
-	 * available.
+	 * Registers a user login/session with the configured user tracker. No-op when
+	 * user tracking is disabled; logs and skips if no tracker is available.
 	 *
 	 * @param sessionId the HTTP session id
 	 * @param ip        the originating client IP
@@ -320,11 +324,10 @@ public class UserTrackingUtils {
 		if (ut == null) {
 			classLogger.error("Could not find user tracker. User Session/IP Data will not be saved.");
 		} else {
-			String sessionHash = SessionIds.hash(sessionId);
 			try {
-				ut.registerLogin(sessionHash, ip, user, ap);
+				ut.registerLogin(sessionId, ip, user, ap);
 			} catch (Exception e) {
-				classLogger.error("Failed to register login user tracking for session {}", sessionHash, e);
+				classLogger.error("Failed to register login user tracking for session {}", sessionId, e);
 			}
 		}
 
@@ -333,9 +336,8 @@ public class UserTrackingUtils {
 	}
 
 	/**
-	 * Marks the given session as ended with the configured user tracker, found by
-	 * the session's hash, as it was registered. No-op when user tracking is
-	 * disabled.
+	 * Marks the given session as ended with the configured user tracker. No-op when
+	 * user tracking is disabled.
 	 *
 	 * @param sessionId the HTTP session id that ended
 	 */
@@ -347,7 +349,7 @@ public class UserTrackingUtils {
 		if (ut == null) {
 			throw new IllegalArgumentException("Could not find user tracker.");
 		}
-		ut.registerLogout(SessionIds.hash(sessionId));
+		ut.registerLogout(sessionId);
 	}
 
 	// End of User tracking methods
@@ -374,36 +376,6 @@ public class UserTrackingUtils {
 			AbstractOwlCreator.syncSchema(userTrackingDb, conn, utoc.getDBSchema());
 			if (!conn.getAutoCommit()) {
 				conn.commit();
-			}
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, conn, null, null);
-		}
-		syncAuditIndexes(userTrackingDb);
-		AuditChainStore.initialize(userTrackingDb);
-	}
-
-	/**
-	 * Creates the audit trail indexes in their own transaction. Indexes only speed
-	 * up the admin audit query, so a failure is logged and never blocks startup.
-	 *
-	 * @param userTrackingDb the user tracking database
-	 */
-	private static void syncAuditIndexes(IRDBMSEngine userTrackingDb) {
-		Connection conn = null;
-		try {
-			conn = userTrackingDb.getConnection();
-			AbstractOwlCreator.syncIndexes(userTrackingDb, conn, UserTrackingOwlCreator.getIndexes());
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-		} catch (Exception e) {
-			classLogger.warn("Unable to create the audit trail indexes", e);
-			try {
-				if (conn != null && !conn.getAutoCommit()) {
-					conn.rollback();
-				}
-			} catch (Exception rollbackException) {
-				classLogger.warn("Unable to roll back the audit trail index creation", rollbackException);
 			}
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, conn, null, null);

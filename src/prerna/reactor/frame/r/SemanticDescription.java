@@ -29,7 +29,6 @@ package prerna.reactor.frame.r;
 
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -92,15 +91,17 @@ public class SemanticDescription extends AbstractRFrameReactor {
 		}
 
 		RDataTable returnTable = createNewFrameFromVariable(rFrame);
-		this.insight.setCurrentFrame(returnTable);
+		this.insight.setDataMaker(returnTable);
 		return new NounMetadata(returnTable, PixelDataType.FRAME);
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Searches Wikidata for items that match the input text and returns a new R frame of each match's URL and description, set as the insight's current frame.")
-				.key(this.keysToGet[0], "The input to look up description.");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(this.keysToGet[0])) {
+			return "The input to look up description.";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

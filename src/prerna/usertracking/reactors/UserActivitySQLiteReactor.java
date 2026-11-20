@@ -32,7 +32,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 
 public class UserActivitySQLiteReactor extends AbstractQueryStructReactor {
@@ -71,9 +70,7 @@ public class UserActivitySQLiteReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Builds a query struct returning user login counts by day from the SQLite user tracking database.")
-				.noKeys();
+	public String getReactorDescription() {
+		return "Builds a query struct returning user login counts by day from the SQLite user tracking database.";
 	}
 }

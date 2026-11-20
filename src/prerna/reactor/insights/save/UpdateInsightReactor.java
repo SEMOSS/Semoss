@@ -61,6 +61,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitPushUtils;
@@ -90,6 +91,11 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String existingId = getRdbmsId();
 
 		User user = this.insight.getUser();
+		// security
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
+
 		if (!SecurityInsightUtils.userCanEditInsight(user, projectId, existingId)) {
 			throw new IllegalArgumentException("User does not have permission to edit this insight");
 		}
@@ -153,10 +159,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
-		if (!project.getProjectType().holdsInsights()) {
-			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
-					+ " project, which does not hold insights");
-		}
 
 		// WE DO NOT NEED TO SAVE THE FILES
 		// THEY SHOULD ALREADY BE LOADED INTO THE INSIGHT SPACE
@@ -256,7 +258,7 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 					recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, description, tags,
 					schemaName, true);
 		} catch (IOException e) {
-			classLogger.error("Failed to write the mosfet file of insight {} in project {}", existingId, projectId, e);
+			classLogger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to save recipe file...");
 		}
 		logger.info(stepCounter + ") Done...");
@@ -350,19 +352,19 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			ZonedDateTime cachedOn, boolean cacheEncrypt, List<String> recipe, String description, List<String> tags,
 			Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds, String schemaName) {
 		String projectId = project.getProjectId();
-		SecurityInsightUtils.updateInsight(this.insight.getUser(), projectId, existingRdbmsId, insightName, global, layout, cacheable,
+		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, global, layout, cacheable,
 				cacheableMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if (description != null) {
 			admin.updateInsightDescription(existingRdbmsId, description);
-			SecurityInsightUtils.updateInsightDescription(this.insight.getUser(), projectId, existingRdbmsId, description);
+			SecurityInsightUtils.updateInsightDescription(projectId, existingRdbmsId, description);
 		}
 		if (tags != null) {
 			admin.updateInsightTags(existingRdbmsId, tags);
-			SecurityInsightUtils.updateInsightTags(this.insight.getUser(), projectId, existingRdbmsId, tags);
+			SecurityInsightUtils.updateInsightTags(projectId, existingRdbmsId, tags);
 		}
 		if (insightFrames != null && !insightFrames.isEmpty()) {
-			SecurityInsightUtils.updateInsightFrames(this.insight.getUser(), projectId, existingRdbmsId, insightFrames);
+			SecurityInsightUtils.updateInsightFrames(projectId, existingRdbmsId, insightFrames);
 		}
 		UserTrackingUtils.updateEngineUsage(queriedDatabaseIds, existingRdbmsId, projectId);
 	}

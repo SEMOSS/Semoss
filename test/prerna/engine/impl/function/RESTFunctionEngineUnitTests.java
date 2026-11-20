@@ -32,13 +32,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
-import java.nio.file.Path;
 import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -60,9 +58,9 @@ public class RESTFunctionEngineUnitTests {
 		engine = new RESTFunctionEngine();
 		insight = mock(Insight.class);
 	}
-
+	
 	@Test
-	void testOpen(@TempDir Path baseFolder) throws Exception {
+	void testOpen() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -77,9 +75,8 @@ public class RESTFunctionEngineUnitTests {
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
 		testProps.setProperty("HTTP_METHOD", httpMethod);
 		testProps.setProperty("URL", url);
-
+		
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
-			u.when(Utility::getBaseFolder).thenReturn(baseFolder.toString());
 			engine.open(testProps);
 			Properties engineProps = engine.getSmssProp();
 			for (Entry<Object, Object> testProp : testProps.entrySet()) {
@@ -88,9 +85,9 @@ public class RESTFunctionEngineUnitTests {
 			}
 		}
 	}
-
+	
 	@Test
-	void testOpenNoHTTPMethod(@TempDir Path baseFolder) throws Exception {
+	void testOpenNoHTTPMethod() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -105,16 +102,15 @@ public class RESTFunctionEngineUnitTests {
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
 //		testProps.setProperty("HTTP_METHOD", httpMethod);
 		testProps.setProperty("URL", url);
-
-		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class, Mockito.CALLS_REAL_METHODS)) {
-			u.when(Utility::getBaseFolder).thenReturn(baseFolder.toString());
-			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.open(testProps));
-			assertEquals("RESTFunctionEngine only supports GET, HEAD, POST, or PUT requests", e.getMessage());
-		}
+		
+		IllegalArgumentException e = assertThrows(
+				IllegalArgumentException.class,
+				()->engine.open(testProps));
+		assertEquals("RESTFunctionEngine only supports GET, HEAD, POST, or PUT requests", e.getMessage());
 	}
-
+	
 	@Test
-	void testOpenNoURL(@TempDir Path baseFolder) throws Exception {
+	void testOpenNoURL() throws Exception {
 		Properties testProps = new Properties();
 		String testEngine = "asdf-1234";
 		String testEngineName = "engine_name";
@@ -129,14 +125,13 @@ public class RESTFunctionEngineUnitTests {
 		testProps.setProperty(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
 		testProps.setProperty("HTTP_METHOD", httpMethod);
 //		testProps.setProperty("URL", url);
-
-		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class, Mockito.CALLS_REAL_METHODS)) {
-			u.when(Utility::getBaseFolder).thenReturn(baseFolder.toString());
-			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> engine.open(testProps));
-			assertEquals("Must provide a URL", e.getMessage());
-		}
+		
+		IllegalArgumentException e = assertThrows(
+				IllegalArgumentException.class,
+				()->engine.open(testProps));
+		assertEquals("Must provide a URL", e.getMessage());
 	}
-
+	
 	@Test
 	void testGetCatalogSubType() {
 		assertEquals("REST", engine.getCatalogSubType(null));

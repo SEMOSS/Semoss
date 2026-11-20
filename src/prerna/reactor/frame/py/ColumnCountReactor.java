@@ -30,7 +30,6 @@ package prerna.reactor.frame.py;
 import java.util.List;
 
 import prerna.ds.py.PandasFrame;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.task.constant.ConstantTaskCreationHelper;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -122,11 +121,12 @@ public class ColumnCountReactor extends AbstractPyFrameReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Counts how often each distinct value appears in a column of the current Python frame and returns the counts as bar chart data for a panel.")
-				.key(TOP, key -> key.type(Boolean.class)
-						.description("Indicates if a column should be sorted by descending frequency"));
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(TOP)) {
+			return "Indicates if a column should be sorted by descending frequency";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

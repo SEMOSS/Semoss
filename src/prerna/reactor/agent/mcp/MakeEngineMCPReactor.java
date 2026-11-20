@@ -46,6 +46,7 @@ import org.json.JSONObject;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -54,7 +55,6 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRDFDatabase;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -129,7 +129,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = requireUser();
+
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
@@ -183,7 +188,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				}
 			} else {
 				thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
-						this.insight.getCurrentFrame());
+						this.insight.getCurFrame());
 				reactorTool = thisReactor.asMcpTool();
 			}
 			try {
@@ -318,12 +323,15 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 
 		// add tags
-		MCPUtility.addMCPTag(user, engine);
+		MCPUtility.addMCPTag(engine);
 		boolean mcpEnabled = engine.isMCPEnabled();
 		if (!mcpEnabled) {
+			String smssFilePath = engine.getSmssFilePath();
+			Map<String, String> mcpEnabledMap = new HashMap<>();
+			mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
 			try {
-				engine.updateSetting(Constants.MCP_ENABLED, "true");
-				engine.reload();
+				Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
+				engine.open(smssFilePath);
 			} catch (Exception e) {
 				throw new IllegalArgumentException("Error enabling mcp in smss");
 			}
@@ -356,12 +364,20 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Generates a mcp/pixel_mcp.json file from a set of reactors")
-				.key(ReactorKeysEnum.ENGINE, "The engine to add MCP tools from")
-				.key(ReactorKeysEnum.REACTOR, "The list of reactors to turn into mcp tools in the pixel_mcp.json")
-				.key(ReactorKeysEnum.COMMENT_KEY,
-						"Comment to add while saving the files within the git repository for the engine");
+	public String getReactorDescription() {
+		return "Generates a mcp/pixel_mcp.json file from a set of reactors";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The engine to add MCP tools from";
+		} else if (key.equals(ReactorKeysEnum.REACTOR.getKey())) {
+			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while saving the files within the git repository for the engine";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

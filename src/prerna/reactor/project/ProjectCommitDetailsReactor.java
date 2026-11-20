@@ -49,7 +49,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -238,12 +237,20 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("This reactor returns the details of all the commits in a project")
-				.key(ReactorKeysEnum.PROJECT, "The project id")
-				.key(ReactorKeysEnum.LIMIT, "Maximum number of commits to return")
-				.key(ReactorKeysEnum.OFFSET, "Number of commits to skip for pagination");
+	public String getReactorDescription() {
+		return "This reactor returns the details of all the commits in a project";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The project id";
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Maximum number of commits to return";
+		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
+			return "Number of commits to skip for pagination";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

@@ -36,7 +36,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminExternalConnectorsUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -87,13 +86,23 @@ public class AdminServiceNowInsertConnectionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Admin Only: Creates and stores a ServiceNow connection entry (instance url, client id, client secret, user profile url and alias).")
-				.key(INSTANCE_URL, "Required ServiceNow connected-app instance url.")
-				.key(CLIENT_ID, "Required ServiceNow connected-app client id.")
-				.key(CLIENT_SECRET, "Required ServiceNow connected-app client secret.")
-				.key(USER_PROFILE_URL, "Required ServiceNow connected-app user profile url.")
-				.key(ALIAS, "Required unique alias used to identify this saved ServiceNow connection.");
+	public String getReactorDescription() {
+		return "Creates and stores a ServiceNow connection entry (instance url, client id, client secret, user profile url and alias).";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(INSTANCE_URL)) {
+			return "Required ServiceNow connected-app instance url.";
+		} else if (key.equals(CLIENT_ID)) {
+			return "Required ServiceNow connected-app client id.";
+		} else if (key.equals(CLIENT_SECRET)) {
+			return "Required ServiceNow connected-app client secret.";
+		} else if (key.equals(USER_PROFILE_URL)) {
+			return "Required ServiceNow connected-app user profile url.";
+		} else if (key.equals(ALIAS)) {
+			return "Required unique alias used to identify this saved ServiceNow connection.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

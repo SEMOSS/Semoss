@@ -57,14 +57,11 @@ public final class InsightsRDBMSUtils {
 	}
 
 	/**
-	 * Create and open an empty insights database in the project folder, using the
-	 * DEFAULT_INSIGHTS_RDBMS type, or H2 when it is not set.
-	 *
-	 * @param projectId   the project id
-	 * @param projectName the project name
-	 * @return the opened insights database
-	 * @throws Exception if the database cannot be opened or DEFAULT_INSIGHTS_RDBMS
-	 *                   is not a database type
+	 * Generate an empty insight database
+	 * 
+	 * @param appName
+	 * @return
+	 * @throws Exception
 	 */
 	public static IRDBMSEngine generateInsightsDatabase(String projectId, String projectName) throws Exception {
 		String rdbmsTypeStr = DIHelper.getInstance().getProperty(Constants.DEFAULT_INSIGHTS_RDBMS);
@@ -72,7 +69,7 @@ public final class InsightsRDBMSUtils {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";
 		}
-		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 
 		Properties insightSmssProp = new Properties();
 		/*
@@ -89,10 +86,9 @@ public final class InsightsRDBMSUtils {
 	}
 
 	/**
-	 * Create any missing insight tables (QUESTION_ID, INSIGHTMETA, PARAMETER_ID and
-	 * UI), then commit. A failure is logged rather than thrown.
-	 *
-	 * @param insightEngine the insights database
+	 * Run the create table queries for the insights database
+	 * 
+	 * @param insightEngine
 	 */
 	public static void runInsightCreateTableQueries(IRDBMSEngine insightEngine) {
 		// CREATE TABLE QUESTION_ID (ID VARCHAR(50), QUESTION_NAME VARCHAR(255),
@@ -108,8 +104,8 @@ public final class InsightsRDBMSUtils {
 		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
 
 		try {
-			if (!queryUtil.tableExists(insightEngine, InsightAdministrator.TABLE_NAME, insightEngine.getDatabase(),
-					insightEngine.getSchema())) {
+			if (!queryUtil.tableExists(insightEngine.getConnection(), InsightAdministrator.TABLE_NAME,
+					insightEngine.getDatabase(), insightEngine.getSchema())) {
 				columns = new String[] { InsightAdministrator.QUESTION_ID_COL, InsightAdministrator.QUESTION_NAME_COL,
 						"QUESTION_PERSPECTIVE", "QUESTION_LAYOUT", "QUESTION_ORDER", "QUESTION_DATA_MAKER",
 						"QUESTION_MAKEUP", "DATA_TABLE_ALIGN", InsightAdministrator.HIDDEN_INSIGHT_COL,
@@ -119,8 +115,7 @@ public final class InsightsRDBMSUtils {
 						InsightAdministrator.SCHEMA_NAME_COL };
 				types = new String[] { "VARCHAR(50)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "INT",
 						"VARCHAR(255)", CLOB_DATATYPE, "VARCHAR(500)", BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, "INT",
-						"VARCHAR(25)", TIMESTAMP_DATATYPE, BOOLEAN_DATATYPE, "VARCHAR ARRAY", "VARCHAR(255)" };
-				// H2 2.x needs a typed array; matches what migrated 1.4 files get
+						"VARCHAR(25)", TIMESTAMP_DATATYPE, BOOLEAN_DATATYPE, "ARRAY", "VARCHAR(255)" };
 				// this is annoying
 				// need to adjust if the engine allows array data types
 				if (!queryUtil.allowArrayDatatype()) {
@@ -131,7 +126,7 @@ public final class InsightsRDBMSUtils {
 			}
 
 			// adding new insight metadata
-			if (!queryUtil.tableExists(insightEngine, "INSIGHTMETA", insightEngine.getDatabase(),
+			if (!queryUtil.tableExists(insightEngine.getConnection(), "INSIGHTMETA", insightEngine.getDatabase(),
 					insightEngine.getSchema())) {
 				columns = new String[] { "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" };
 				types = new String[] { "VARCHAR(255)", "VARCHAR(255)", CLOB_DATATYPE, "INT" };
@@ -139,8 +134,7 @@ public final class InsightsRDBMSUtils {
 			}
 
 		} catch (Exception e) {
-			classLogger.error("Failed to create the QUESTION_ID or INSIGHTMETA table for insights database {}: {}",
-					insightEngine.getEngineId(), e.getMessage(), e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		/*
@@ -161,7 +155,7 @@ public final class InsightsRDBMSUtils {
 			// QUESTION_ID_FK INT)
 
 			try {
-				if (!queryUtil.tableExists(insightEngine, "PARAMETER_ID", insightEngine.getDatabase(),
+				if (!queryUtil.tableExists(insightEngine.getConnection(), "PARAMETER_ID", insightEngine.getDatabase(),
 						insightEngine.getSchema())) {
 					columns = new String[] { "PARAMETER_ID", "PARAMETER_LABEL", "PARAMETER_TYPE",
 							"PARAMETER_DEPENDENCY", "PARAMETER_QUERY", "PARAMETER_OPTIONS", "PARAMETER_IS_DB_QUERY",
@@ -173,20 +167,18 @@ public final class InsightsRDBMSUtils {
 					insightEngine.insertData(queryUtil.createTable("PARAMETER_ID", columns, types));
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to create the PARAMETER_ID table for insights database {}: {}",
-						insightEngine.getEngineId(), e.getMessage(), e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 			try {
-				if (!queryUtil.tableExists(insightEngine, "UI", insightEngine.getDatabase(),
+				if (!queryUtil.tableExists(insightEngine.getConnection(), "UI", insightEngine.getDatabase(),
 						insightEngine.getSchema())) {
 					columns = new String[] { "QUESTION_ID_FK", "UI_DATA" };
 					types = new String[] { "INT", CLOB_DATATYPE };
 					insightEngine.insertData(queryUtil.createTable("UI", columns, types));
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to create the UI table for insights database {}: {}",
-						insightEngine.getEngineId(), e.getMessage(), e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -194,13 +186,13 @@ public final class InsightsRDBMSUtils {
 	}
 
 	/**
-	 * Build the connection properties for a new insights database in the project
-	 * folder. SQLITE gets a SQLite file, and any other type gets an H2 file.
-	 *
-	 * @param rdbmsType   the insights database type
-	 * @param projectId   the project id
-	 * @param projectName the project name
-	 * @return the driver, type, credentials, hostname and full connection URL
+	 * Get the default connection url for the insights database NOTE : ONLY ALLOWING
+	 * FOR H2 OR SQLITE STORAGE OPTIONS AT THE MOMENT NOTE : THIS IS THE ACTUAL FULL
+	 * CONNECITON URL TODO: expand how we store this information to be able to keep
+	 * in another database option / shared database
+	 * 
+	 * @param appName
+	 * @return
 	 */
 	public static final Map<String, Object> getNewInsightDatabaseConnectionPropValues(RdbmsTypeEnum rdbmsType,
 			String projectId, String projectName) {
@@ -233,7 +225,7 @@ public final class InsightsRDBMSUtils {
 			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
 			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
 			retMap.put(AbstractSqlQueryUtil.ADDITIONAL,
-					"query_timeout=180000;cache_size=32768");
+					"query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
 		}
 
 		// regardless of OS, connection url is always /
@@ -247,15 +239,11 @@ public final class InsightsRDBMSUtils {
 	}
 
 	/**
-	 * Create and open an empty insights database in a given folder.
-	 *
-	 * @param projectId      the project id, used for the engine id
-	 * @param rdbmsType      the database type, or null for the
-	 *                       DEFAULT_INSIGHTS_RDBMS type, or H2 when that is not set
-	 * @param folderLocation the folder to hold the database file
-	 * @return the opened insights database
-	 * @throws Exception if the database cannot be opened or DEFAULT_INSIGHTS_RDBMS
-	 *                   is not a database type
+	 * Generate an empty insight database
+	 * 
+	 * @param appName
+	 * @return
+	 * @throws Exception
 	 */
 	public static RDBMSNativeEngine generateInsightsDatabase(String projectId, RdbmsTypeEnum rdbmsType,
 			String folderLocation) throws Exception {
@@ -265,7 +253,7 @@ public final class InsightsRDBMSUtils {
 				// default will be h2
 				rdbmsTypeStr = "H2_DB";
 			}
-			rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
+			rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
 		}
 
 		Properties insightSmssProp = new Properties();
@@ -283,12 +271,10 @@ public final class InsightsRDBMSUtils {
 	}
 
 	/**
-	 * Build the connection properties for a new insights database in a given
-	 * folder. SQLITE gets a SQLite file, and any other type gets an H2 file.
-	 *
-	 * @param rdbmsType      the insights database type
-	 * @param folderLocation the folder to hold the database file
-	 * @return the driver, type, credentials, hostname and full connection URL
+	 * 
+	 * @param rdbmsType
+	 * @param folderLocation
+	 * @return
 	 */
 	public static final Map<String, Object> getNewInsightDatabaseConnectionPropValues(RdbmsTypeEnum rdbmsType,
 			String folderLocation) {
@@ -314,7 +300,7 @@ public final class InsightsRDBMSUtils {
 			retMap.put(AbstractSqlQueryUtil.PASSWORD, "");
 			retMap.put(AbstractSqlQueryUtil.FORCE_FILE, true);
 			retMap.put(AbstractSqlQueryUtil.ADDITIONAL,
-					"query_timeout=180000;cache_size=32768");
+					"query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
 		}
 
 		// regardless of OS, connection url is always /

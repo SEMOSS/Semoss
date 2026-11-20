@@ -68,18 +68,17 @@ public class ImputeNullValuesReactor extends AbstractPyFrameReactor {
 		// iterate through all passed columns
 		for (String column : columnNames) {
 			SemossDataType columnDataType = SemossDataType.convertStringToDataType(getColumnType(frame, column));
-			// assign back instead of df['col'].fillna(..., inplace=True): that is chained assignment, a no-op under pandas 3
-			String colRef = wrapperDataIndexed + "['" + column + "']";
 			if (columnDataType == SemossDataType.INT || columnDataType == SemossDataType.DOUBLE) {
 				scripts.add(wrapperDataIndexed + "['" + column + "'] = " + wrapperDataIndexed + "['" + column
 						+ "'].fillna(" + wrapperDataIndexed + "['" + column + "'].mean(skipna=True))");
 			} else if (columnDataType == SemossDataType.DATE || columnDataType == SemossDataType.TIMESTAMP) {
-				scripts.add(colRef + " = " + colRef + ".fillna(value=pd.to_datetime(" + colRef + ").ffill())");
+				scripts.add(wrapperDataIndexed + "['" + column + "'].fillna(value=pd.to_datetime(" + wrapperDataIndexed
+						+ "['" + column + "']).ffill(),inplace=True)");
 			} else if (columnDataType == SemossDataType.STRING) {
 				String modeconditional = "'Unknown' if " + wrapperDataIndexed + "['" + column
 						+ "'].mode(dropna=True).empty else " + wrapperDataIndexed + "['" + column
-						+ "'].mode(dropna=True).iloc[0]";
-				scripts.add(colRef + " = " + colRef + ".fillna(" + modeconditional + ")");
+						+ "'].mode(dropna=True)";
+				scripts.add(wrapperDataIndexed + "['" + column + "'].fillna(" + modeconditional + ", inplace=True)");
 			}
 		}
 

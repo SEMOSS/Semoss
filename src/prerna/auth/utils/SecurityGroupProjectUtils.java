@@ -44,6 +44,7 @@ import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionProblem;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
+import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -96,6 +97,9 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ENDDATE"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PERMISSION", "!=", null,
@@ -142,6 +146,14 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				Object val = values[0];
+				SemossDate endDate = (SemossDate) values[1];
+				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
+					// Need to delete expired permission here
+					String groupId = (String) values[2];
+					String groupType = (String) values[3];
+					removeExpiredProjectGroupPermission(groupId, groupType, projectId);
+					continue;
+				}
 				if (val != null) {
 					// actually do not care what the value is - we have a record so that means we
 					// can at least view
@@ -167,6 +179,9 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ENDDATE"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__TYPE"));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -212,6 +227,14 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				Object val = values[0];
+				SemossDate endDate = (SemossDate) values[1];
+				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
+					// Need to delete expired permission here
+					String groupId = (String) values[2];
+					String groupType = (String) values[3];
+					removeExpiredProjectGroupPermission(groupId, groupType, projectId);
+					continue;
+				}
 				if (val != null) {
 					bestGroupDatabasePermission = ((Number) val).intValue();
 				}
@@ -397,8 +420,8 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
 						new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.userMode().withoutTeamExistsCheck().keepingTeamType(),
-				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"This group already has access to this project. Please edit the existing permission level."));
 	}
 
@@ -418,19 +441,18 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__TYPE", "==", groupType));
-		Integer permission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					permission = ((Number) val).intValue();
+					return ((Number) val).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the group-based project permission.", e);
 		}
 
-		return permission;
+		return null;
 	}
 
 	/**
@@ -452,8 +474,8 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
 						new PermissionGrant(newPermission, endDate))),
 				PermissionBatchOptions.userMode().keepingTeamType(),
-				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify group project permission for a group who does not currently have access to the project"));
 	}
 
@@ -473,9 +495,46 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
 				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
 				PermissionBatchOptions.userMode().keepingTeamType(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify group permission for a user who does not currently have access to the project"));
+	}
+
+	/**
+	 * Delete a group project permission Note: Does not check to see if group
+	 * permission is expired
+	 * 
+	 * @param groupId
+	 * @param groupType
+	 * @param projectId
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static void removeExpiredProjectGroupPermission(String groupId, String groupType, String projectId)
+			throws IllegalAccessException {
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+
+		// make sure we are trying to edit a permission that exists
+		Integer existingGroupPermission = getGroupProjectPermission(groupId, groupType, projectId);
+		if (existingGroupPermission == null) {
+			throw new IllegalArgumentException(
+					"Attempting to modify group permission for a user who does not currently have access to the project");
+		}
+
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=?", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+					});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Unable to retrieve the group-based project permission.", e);
+		}
 	}
 
 	/**

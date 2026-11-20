@@ -86,7 +86,7 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 				classLogger.debug("Engine {}<>{} is already loaded...", folderToWatch, newFile);
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
-				InternalUtility.catalogEngineByType(filePath, prop, engineId);
+				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to load engine from SMSS file {} in {}", newFile, folderToWatch, e);
@@ -115,7 +115,7 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 				classLogger.debug("Engine {}<>{} is already loaded...", folderToWatch, newFile);
 			} else {
 				String filePath = folderToWatch + "/" + newFile;
-				InternalUtility.catalogEngineByType(filePath, prop, engineId);
+				Utility.catalogEngineByType(filePath, prop, engineId);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to catalog engine from SMSS file {} in {}", newFile, folderToWatch, e);
@@ -171,7 +171,7 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 					if (!engineIds.contains(engine)) {
 						classLogger.info("Deleting the engine {} of type {} from security",
 								Utility.cleanLogString(engine), engineType);
-						SecurityEngineUtils.deleteEngine(null, engine);
+						SecurityEngineUtils.deleteEngine(engine);
 					}
 				}
 			}

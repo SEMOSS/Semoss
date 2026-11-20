@@ -88,7 +88,6 @@ class TypeSafeReactorUnitTests {
 		when(engine.getEngineId()).thenReturn("model-id");
 		when(engine.getEngineName()).thenReturn("Jev");
 		when(engine.getCatalogSubType(any())).thenReturn("TYPESAFE");
-		when(engine.getCatalogSubType()).thenReturn("TYPESAFE");
 		Logger logger = mock(Logger.class);
 		when(engine.getEngineLogger("EngineLogger")).thenReturn(logger);
 		IModelEngine guarded = EngineProxyFactory.createGuardedModelEngine(engine);

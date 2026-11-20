@@ -44,7 +44,6 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
-import prerna.security.SecretRedactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -88,7 +87,6 @@ public class RemoteModelEngine implements IModelEngine {
 	public void open(Properties smssProp) throws Exception {
 		// TODO Auto-generated method stub
 		this.smssProp = smssProp;
-		SecretRedactor.recordSecrets(smssProp.getProperty(Constants.ENGINE), smssProp);
 
 	}
 

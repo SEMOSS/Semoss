@@ -51,13 +51,10 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectPortalsHelper;
 import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -90,11 +87,15 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
+
 		if (projectId == null || projectId.isEmpty()) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 
+		// make sure valid id for user
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			// you dont have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
@@ -140,8 +141,6 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		engineDependencyIds.remove(INotebookHelper.UNDEFINED_VALUE);
 		SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, engineDependencyIds);
 		SecurityProjectUtils.updateProjectLastEditedDate(projectId);
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_BLOCKS_UPDATE, projectId,
-				project.getProjectName(), Map.of("changedFields", List.of("blocks", "dependencies")));
 
 		return new NounMetadata(true, PixelDataType.MAP);
 	}
@@ -173,12 +172,11 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Saves the blocks JSON of an app the user can edit, commits it to the app's version history with the given comment, and updates the app's engine dependencies.")
-				.key(ReactorKeysEnum.COMMENT_KEY, "The commit message for this save in the app's version history.")
-				.key(ReactorKeysEnum.JSON,
-						key -> key.type(Map.class).description("The JSON that represents the blocks for the app"));
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.JSON.getKey())) {
+			return "The JSON that represents the blocks for the app";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

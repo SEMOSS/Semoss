@@ -37,7 +37,6 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -77,6 +76,7 @@ public class SkipStepReactor extends AbstractReactor {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException(
 					"Project does not exist or user does not have access to view the project");
@@ -226,13 +226,19 @@ public class SkipStepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Skips the current step in the Playwright session, advancing the step and page indices.")
-				.key("tabId", "The id of the browser tab whose current step is skipped.")
-				.key("sessionId",
-						"Playwright session ID that stores information about the history of actions done during that session")
-				.key("fileName", "File name containing the steps to be replayed");
+	public String getReactorDescription() {
+		return "Skips the current step in the Playwright session, advancing the step and page indices.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("sessionId")) {
+			return "Playwright session ID that stores information about the history of actions done during that session";
+		} else if (key.equals("fileName")) {
+			return "File name containing the steps to be replayed";
+		}
+
+		return super.getDescriptionForKey(key);
 	}
 
 }

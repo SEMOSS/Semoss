@@ -29,7 +29,6 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkRoomUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkCloseRoom(threadId=["..."]);
@@ -53,9 +52,15 @@ public class WorkCloseRoomReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Removes a thread workspace from the open list; the room itself stays")
-				.key(THREAD_ID, "Thread id");
+	public String getReactorDescription() {
+		return "Removes a thread workspace from the open list; the room itself stays";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

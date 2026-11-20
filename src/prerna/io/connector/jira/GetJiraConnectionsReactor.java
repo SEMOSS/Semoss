@@ -32,7 +32,6 @@ import java.util.Map;
 
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -45,8 +44,8 @@ public class GetJiraConnectionsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Returns all configured Jira OAuth connections.").noKeys();
+	public String getReactorDescription() {
+		return "Returns all configured Jira OAuth connections.";
 	}
 
 }

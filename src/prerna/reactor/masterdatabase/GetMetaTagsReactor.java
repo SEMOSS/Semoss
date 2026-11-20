@@ -30,6 +30,7 @@ package prerna.reactor.masterdatabase;
 import java.util.ArrayList;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -39,21 +40,24 @@ import prerna.util.Constants;
 
 public class GetMetaTagsReactor extends AbstractMetaDBReactor {
 	/**
-	 * This reactor gets the tags from the concept metadata table The inputs to the
-	 * reactor are: 1) the engine 2) the the concept
+	 * This reactor gets the tags from the concept metadata table
+	 * The inputs to the reactor are: 
+	 * 1) the engine
+	 * 2) the the concept
 	 */
-
+	
 	public GetMetaTagsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey() };
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.CONCEPT.getKey()};
 	}
 
 	@Override
 	public NounMetadata execute() {
 		String engineId = getEngineId();
-		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
+		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), engineId)) {
 			throw new IllegalArgumentException("App does not exist or user does not have access to edit database");
 		}
-
+		
 		String concept = getConcept();
 		String tagList = MasterDatabaseUtility.getMetadataValue(engineId, concept, Constants.TAG);
 		ArrayList<String> list = new ArrayList<String>();

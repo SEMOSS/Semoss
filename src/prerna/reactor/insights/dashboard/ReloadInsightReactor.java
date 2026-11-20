@@ -38,7 +38,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.cache.InsightCacheUtility;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.om.ThreadStore;
 import prerna.reactor.insights.OpenInsightReactor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.PixelUtility;
@@ -128,7 +127,7 @@ public class ReloadInsightReactor extends OpenInsightReactor {
 				// add the insight to the insight store
 				this.insight = cachedInsight;
 				InsightStore.getInstance().put(this.insight);
-				InsightStore.getInstance().addToSessionHash(ThreadStore.getSessionId(), this.insight.getInsightId());
+				InsightStore.getInstance().addToSessionHash(getSessionId(), this.insight.getInsightId());
 				this.insight.setUser(this.insight.getUser());
 			}
 		}

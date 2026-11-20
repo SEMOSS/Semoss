@@ -45,9 +45,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
-import prerna.auth.access.ModelUsageLimitRule;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
@@ -200,73 +197,32 @@ class PermissionBatchUtilsSaveChangesUnitTests extends AbstractSecurityUtilsUnit
 	}
 
 	///
-	/// model usage limits
+	/// model limits
 	///
 
 	@Test
-	void theEngineMethodsStoreLimitsOfZeroAsNoLimitDefined() throws Exception {
-		UnitTestSecurityAuthUtils.createEngine(ENGINE_ID, "saved engine", IEngine.CATALOG_TYPE.MODEL, admin);
+	void theSingleEngineMethodsStoreLimitsOfZeroAsNoLimit() throws Exception {
+		UnitTestSecurityAuthUtils.createEngine(ENGINE_ID, "saved engine", admin);
 
-		SecurityEngineUtils.addEngineUser(admin, "strangerid", ENGINE_ID, "READ_ONLY", null, tokensADay(0));
+		SecurityEngineUtils.addEngineUser(admin, "strangerid", ENGINE_ID, "READ_ONLY", null, "TOKENS", "DAILY", 0, 0.0);
 		SecurityEngineUtils.addEngineUserPermissions(admin, ENGINE_ID,
-				List.of(Map.of("userid", "readerid", "permission", "READ_ONLY", "usageLimit",
-						"{\"rules\": [{\"metric\": \"TOKENS\", \"amount\": 0, \"window\": \"DAY\", "
-								+ "\"counts\": \"EACH_PERSON\"}]}")));
+				List.of(Map.of("userid", "readerid", "permission", "READ_ONLY", "maxTokens", 0)));
 
-		assertNull(usageLimit("strangerid"));
-		assertNull(usageLimit("readerid"));
+		assertNull(maxTokens("strangerid"));
+		assertEquals(0, ((Number) maxTokens("readerid")).intValue());
 	}
 
 	@Test
 	void changingEveryoneOnAnEngineKeepsTheirLimits() throws Exception {
-		UnitTestSecurityAuthUtils.createEngine(ENGINE_ID, "saved engine", IEngine.CATALOG_TYPE.MODEL, admin);
-		SecurityEngineUtils.addEngineUser(admin, "strangerid", ENGINE_ID, "READ_ONLY", null, tokensADay(500));
+		UnitTestSecurityAuthUtils.createEngine(ENGINE_ID, "saved engine", admin);
+		SecurityEngineUtils.addEngineUser(admin, "strangerid", ENGINE_ID, "READ_ONLY", null, "TOKENS", "DAILY", 500,
+				0.0);
 
 		SecurityAdminUtils.getInstance(admin).updateEngineUserPermissions(ENGINE_ID, "EDIT", admin, null);
 
 		assertEquals(2,
 				SecurityUserEngineUtils.getUserEnginePermissions(List.of("strangerid"), ENGINE_ID).get("strangerid"));
-		assertEquals(500L, usageLimit("strangerid").getRules().get(0).getAmount());
-	}
-
-	@Test
-	void approvingARequestKeepsTheLimit() throws Exception {
-		UnitTestSecurityAuthUtils.createEngine(ENGINE_ID, "saved engine", IEngine.CATALOG_TYPE.MODEL, admin);
-		SecurityEngineUtils.addEngineUser(admin, "strangerid", ENGINE_ID, "READ_ONLY", null, tokensADay(500));
-
-		SecurityEngineUtils.approveEngineUserAccessRequests(admin, ENGINE_ID,
-				List.of(Map.of("requestid", "request", "userid", "strangerid", "type", "NATIVE", "permission", "EDIT")),
-				null);
-
-		assertEquals(2,
-				SecurityUserEngineUtils.getUserEnginePermissions(List.of("strangerid"), ENGINE_ID).get("strangerid"));
-		assertEquals(500L, usageLimit("strangerid").getRules().get(0).getAmount());
-	}
-
-	@Test
-	void anEditorCannotChangeALimit() throws Exception {
-		UnitTestSecurityAuthUtils.createEngine(ENGINE_ID, "saved engine", IEngine.CATALOG_TYPE.MODEL, admin);
-		User editor = UnitTestSecurityAuthUtils.createUser("modeleditor", false);
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(admin, "modeleditorid", ENGINE_ID, "EDIT");
-		SecurityEngineUtils.addEngineUser(admin, "editorid", ENGINE_ID, "EDIT", null, tokensADay(500));
-		SecurityEngineUtils.addEngineUser(admin, "readerid", ENGINE_ID, "READ_ONLY", null, tokensADay(500));
-
-		IllegalAccessException refused = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils
-				.editEngineUserPermission(editor, "editorid", "NATIVE", ENGINE_ID, "EDIT", null, tokensADay(900)));
-		assertEquals("Only owners can set usage limits", refused.getMessage());
-		// a Read-Only person's limit too
-		assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils.editEngineUserPermission(editor,
-				"readerid", "NATIVE", ENGINE_ID, "READ_ONLY", null, tokensADay(900)));
-		assertEquals(500L, usageLimit("editorid").getRules().get(0).getAmount());
-		assertEquals(500L, usageLimit("readerid").getRules().get(0).getAmount());
-		// the limit sent back as it was read, or a change of level only, leaves it as
-		// it is
-		SecurityEngineUtils.editEngineUserPermission(editor, "editorid", "NATIVE", ENGINE_ID, "READ_ONLY", null,
-				tokensADay(500));
-		SecurityEngineUtils.editEngineUserPermission(editor, "readerid", "NATIVE", ENGINE_ID, "EDIT", null);
-
-		assertEquals(500L, usageLimit("editorid").getRules().get(0).getAmount());
-		assertEquals(500L, usageLimit("readerid").getRules().get(0).getAmount());
+		assertEquals(500, ((Number) maxTokens("strangerid")).intValue());
 	}
 
 	///
@@ -316,12 +272,8 @@ class PermissionBatchUtilsSaveChangesUnitTests extends AbstractSecurityUtilsUnit
 		}
 	}
 
-	private static ModelUsageLimit usageLimit(String userId) {
-		return SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.direct(ENGINE_ID, userId, null));
-	}
-
-	private static ModelUsageLimit tokensADay(long amount) {
-		return ModelUsageLimit.of(List.of(new ModelUsageLimitRule(ModelUsageLimitRule.Metric.TOKENS, amount,
-				ModelUsageLimitRule.Window.DAY, ModelUsageLimitRule.Counts.EACH_PERSON)));
+	private Object maxTokens(String userId) throws Exception {
+		return UnitTestGroupTables.queryValue(securityDb,
+				"SELECT MAXTOKENS FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?", userId, ENGINE_ID);
 	}
 }

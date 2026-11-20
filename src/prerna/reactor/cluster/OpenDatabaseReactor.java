@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -68,6 +69,7 @@ public class OpenDatabaseReactor extends AbstractReactor {
 		}
 
 		// make sure valid id for user
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
 		if (!(SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)
 				|| SecurityEngineUtils.engineIsDiscoverable(databaseId))) {
 			// you dont have access
@@ -82,9 +84,10 @@ public class OpenDatabaseReactor extends AbstractReactor {
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("database_name", engine.getEngineName());
 		returnMap.put("database_id", engine.getEngineId());
-		returnMap.put("database_type", engine.getCatalogType().toString());
-		returnMap.put("database_subtype", engine.getCatalogSubType());
-		returnMap.put("database_cost", "$");
+		Object[] typeAndCost = SecurityEngineUtils.getEngineTypeAndSubTypeAndCost(engine.getSmssProp());
+		returnMap.put("database_type", typeAndCost[0].toString());
+		returnMap.put("database_subtype", typeAndCost[1]);
+		returnMap.put("database_cost", typeAndCost[2]);
 
 		return new NounMetadata(returnMap, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPEN_DATABASE);
 	}

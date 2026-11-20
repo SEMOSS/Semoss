@@ -61,8 +61,10 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.Insight;
@@ -491,18 +493,6 @@ public abstract class AbstractReactor implements IReactor {
 		return this.reactorName;
 	}
 
-	/**
-	 * The name a pixel calls this reactor by: its class name without the
-	 * {@code Reactor} suffix, such as {@code ExportEngine}. A subclass gets its own
-	 * name, not its parent's.
-	 *
-	 * @return the pixel name of this reactor
-	 */
-	protected String getPixelName() {
-		String name = this.getClass().getSimpleName();
-		return name.endsWith("Reactor") ? name.substring(0, name.length() - "Reactor".length()) : name;
-	}
-
 	@Override
 	public void setPixelPlanner(PixelPlanner planner) {
 		this.planner = planner;
@@ -565,120 +555,22 @@ public abstract class AbstractReactor implements IReactor {
 
 	@Override
 	public void modifySignature(String stringToFind, String stringReplacement) {
-		classLogger.debug("Original signature value = {}", this.signature);
+		classLogger.debug("Original signature value = " + this.signature);
 		this.signature = Strings.CS.replaceOnce(this.signature, stringToFind, stringReplacement);
-		classLogger.debug("New signature value = {}", this.signature);
+		classLogger.debug("New signature value = " + this.signature);
 	}
 
-	/**
-	 * The description a reactor sets by overriding this method, or null. A reactor
-	 * that declares its description in {@link #getReactorDefinition()} returns null
-	 * here.
-	 *
-	 * @deprecated Declare the description in {@link #getReactorDefinition()}, and
-	 *             read it with {@code getReactorDefinition().getDescription()}. To
-	 *             migrate an override, move its text into the definition and delete
-	 *             the method:
-	 *
-	 *             <pre>{@code
-	 * // before
-	 * &#64;Override
-	 * public String getReactorDescription() {
-	 * 	return "Stop the current execution of a pixel job";
-	 * }
-	 *
-	 * // after
-	 *             @Override
-	 *             public ReactorDefinition getReactorDefinition() {
-	 *             return super.getReactorDefinition().description("Stop the current execution of a pixel job");
-	 *             }
-	 * }
-	 *             </pre>
-	 *
-	 *             An override is still read through the definition, so a reactor
-	 *             that has not migrated keeps its description.
-	 */
-	@Deprecated
+	@Override
 	public String getReactorDescription() {
 		return null;
 	}
 
 	/**
-	 * The description a reactor sets for a key by overriding this method, or the
-	 * shared {@link ReactorKeysEnum} one. A key described in
-	 * {@link #getReactorDefinition()} is not seen here.
-	 *
-	 * @param key the canonical key
-	 * @return its description, or null when there is none
-	 * @deprecated Describe the key in {@link #getReactorDefinition()}, and read it
-	 *             with {@code getReactorDefinition().getKey(key).getDescription()}.
-	 *             To migrate an override, turn each branch into a {@code key(...)}
-	 *             call and delete the method; {@code super.getReactorDefinition()}
-	 *             already gives every other key its shared description:
-	 *
-	 *             <pre>
-	 *             {@code
-	 * // before
-	 * &#64;Override
-	 * protected String getDescriptionForKey(String key) {
-	 * 	if (key.equals(ReactorKeysEnum.ID.getKey())) {
-	 * 		return "The id for the job";
-	 * 	}
-	 * 	return super.getDescriptionForKey(key);
-	 * }
-	 *
-	 * // after
-	 * @Override
-	 * public ReactorDefinition getReactorDefinition() {
-	 * 	return super.getReactorDefinition().key(ReactorKeysEnum.ID, "The id for the job");
-	 * }
-	 * }
-	 *             </pre>
-	 *
-	 *             An override is still read through the definition, so a reactor
-	 *             that has not migrated keeps its descriptions.
+	 * Override in child reactors to define the output schema. Returns null by
+	 * default, meaning no output schema is defined.
 	 */
-	@Deprecated
-	protected String getDescriptionForKey(String key) {
-		return ReactorKeysEnum.getDescriptionFromKey(key);
-	}
-
-	/**
-	 * Describes this reactor for its MCP tool, its help text and the SDKs. It
-	 * starts from {@code keysToGet} and {@code keyRequired}, with the shared
-	 * {@link ReactorKeysEnum} descriptions, and reads the deprecated methods a
-	 * reactor still overrides. Override it, call super, and add to what it returns;
-	 * a reactor that does not take its parent's keys starts from
-	 * {@link #startDefinition()} instead.
-	 *
-	 * @return a new definition on every call
-	 */
-	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return startDefinition();
-	}
-
-	/**
-	 * The definition every reactor starts from: its keys from {@code keysToGet} and
-	 * {@code keyRequired}, with the shared {@link ReactorKeysEnum} descriptions,
-	 * and whatever it still declares through the deprecated methods. A reactor that
-	 * does not take its parent's keys starts its {@link #getReactorDefinition()}
-	 * from this instead of {@code super}, so the parent's descriptions do not apply
-	 * to it.
-	 *
-	 * @return a new definition on every call
-	 */
-	protected final ReactorDefinition startDefinition() {
-		ReactorDefinition definition = new ReactorDefinition(getClass(), this.keysToGet, this.keyRequired);
-		definition.description(getReactorDescription());
-		for (ReactorDefinition.Key key : definition.getKeys()) {
-			key.description(getDescriptionForKey(key.getName()));
-			MCP_KEY_TYPE type = getKeyTypeForMCP(key.getName());
-			if (type != null && type != defaultKeyType(key.getName())) {
-				key.type(ReactorDefinition.javaType(type));
-			}
-		}
-		return definition;
+	public JSONObject getResponseSchema() {
+		return null;
 	}
 
 	@Override
@@ -686,9 +578,8 @@ public abstract class AbstractReactor implements IReactor {
 		if (keysToGet == null) {
 			return "No help text created for this reactor";
 		}
-		ReactorDefinition definition = getReactorDefinition();
 		StringBuilder help = new StringBuilder();
-		String overallDescription = definition.getDescription();
+		String overallDescription = getReactorDescription();
 		if (overallDescription == null) {
 			overallDescription = "No description present";
 		}
@@ -700,8 +591,7 @@ public abstract class AbstractReactor implements IReactor {
 			String canonicalKey = keyDefinition.split(",")[0];
 			String helpKeyName = keyDefinition.replace(",", "/");
 			help.append("\tinput ").append(i).append(":\t").append(helpKeyName);
-			ReactorDefinition.Key key = definition.getKey(canonicalKey.trim());
-			String description = key == null ? null : key.getDescription();
+			String description = getDescriptionForKey(canonicalKey);
 			if (description == null) {
 				description = "No description present";
 			}
@@ -711,12 +601,25 @@ public abstract class AbstractReactor implements IReactor {
 		help.append("\nMCP Schema:\n");
 		help.append(this.asMcpTool().toString(4));
 
-		if (definition.getOutput() != null) {
+		JSONObject responseSchema = getResponseSchema();
+		if (responseSchema != null) {
 			help.append("\nResponse Schema:\n");
-			help.append(definition.getOutput().toJsonSchema().toString(4));
+			help.append(responseSchema.toString(4));
 		}
 
 		return help.toString();
+	}
+
+	/**
+	 * Default is to grab keys from our standardized set But users can override this
+	 * method to append their own descriptions for keys when they are not-standard /
+	 * are extremely unique for their function
+	 * 
+	 * @param key
+	 * @return
+	 */
+	protected String getDescriptionForKey(String key) {
+		return ReactorKeysEnum.getDescriptionFromKey(key);
 	}
 
 	@Override
@@ -737,6 +640,15 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Get the session id set in the job
+	 * 
+	 * @return
+	 */
+	protected String getSessionId() {
+		return ThreadStore.getSessionId();
+	}
+
+	/**
 	 * Get the session id for the insight
 	 * 
 	 * @return
@@ -754,20 +666,22 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return
 	 */
 	protected String testDatabaseId(String databaseId, boolean edit) {
+		String testId = databaseId;
+		testId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), testId);
 		if (edit) {
 			// need edit permission
-			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), databaseId)) {
+			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), testId)) {
 				throw new IllegalArgumentException(
 						"Database " + databaseId + " does not exist or user does not have access to the database");
 			}
 		} else {
 			// just need read access
-			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), testId)) {
 				throw new IllegalArgumentException(
 						"Database " + databaseId + " does not exist or user does not have access to the database");
 			}
 		}
-		return databaseId;
+		return testId;
 	}
 
 	/**
@@ -854,6 +768,9 @@ public abstract class AbstractReactor implements IReactor {
 	protected void checkEngineEditSecurity(IEngine engine, User user) {
 		if (engine == null) {
 			throw new NullPointerException("Engine/Project is null");
+		}
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
 		}
 
 		if (engine instanceof IProject) {
@@ -965,12 +882,14 @@ public abstract class AbstractReactor implements IReactor {
 
 	@Override
 	public JSONObject asMcpTool() {
-		ReactorDefinition definition = getReactorDefinition();
 		JSONObject tool = new JSONObject();
-		String name = getPixelName();
+		String name = this.getClass().getSimpleName();
+		if (name.endsWith("Reactor")) {
+			name = name.substring(0, name.length() - "Reactor".length());
+		}
 		tool.put("name", name);
 		tool.put("title", MCPUtility.formatToTitleCase(name));
-		String overallDescription = definition.getDescription();
+		String overallDescription = getReactorDescription();
 		if (overallDescription == null) {
 			overallDescription = "No description present";
 		}
@@ -978,20 +897,22 @@ public abstract class AbstractReactor implements IReactor {
 		JSONObject inputSchema = new JSONObject();
 		inputSchema.put("properties", getMcpProperties());
 		JSONArray required = new JSONArray();
-		for (ReactorDefinition.Key key : definition.getKeys()) {
-			// with no keyRequired and nothing set in the definition, MCP treats the key as
-			// required
-			if (key.getRequired() == null || key.getRequired()) {
-				required.put(key.getName());
+		if (this.keyRequired == null) {
+			// assume everything is required ...
+			for (String keyToGet : this.keysToGet) {
+				required.put(keyToGet);
+			}
+		} else {
+			for (int i = 0; i < this.keyRequired.length; i++) {
+				if (this.keyRequired[i] == 1) {
+					required.put(this.keysToGet[i]);
+				}
 			}
 		}
 		inputSchema.put("required", required);
 		inputSchema.put("type", "object");
 		inputSchema.put("title", name + "_Arguments");
 		tool.put("inputSchema", inputSchema);
-		if (definition.getOutput() != null) {
-			tool.put("outputSchema", definition.getOutput().toMcpOutputSchema());
-		}
 
 		// Read MCP tool metadata if present and populate _meta
 		Map<String, String> mcpMeta = getMcpToolMetadata();
@@ -1057,75 +978,48 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
-	 * The MCP input properties, one per key in the reactor's definition.
-	 *
-	 * @return the properties by canonical key
+	 * Get the reactor parameters and properties to display in the MCP JSON.
+	 * 
+	 * @return
 	 */
 	public JSONObject getMcpProperties() {
 		JSONObject properties = new JSONObject();
-		for (ReactorDefinition.Key key : getReactorDefinition().getKeys()) {
+		for (String keyDefinition : this.keysToGet) {
+			String[] aliases = keyDefinition.split(",");
+			String canonicalKey = aliases[0];
+
 			JSONObject paramMap = new JSONObject();
-			paramMap.put("title", key.getName());
-			MCP_KEY_TYPE type = key.getType() == null ? null : ReactorDefinition.mcpType(key.getType());
-			paramMap.put("type", (type == null ? defaultKeyType(key.getName()) : type).getValue());
-			if (type == MCP_KEY_TYPE.ARRAY && key.getItems() != Void.class) {
-				paramMap.put("items", ReactorDefinition.schemaOf(key.getItems()));
+			paramMap.put("title", canonicalKey);
+			paramMap.put("type", getKeyTypeForMCP(canonicalKey).getValue());
+
+			String description = getDescriptionForKey(canonicalKey);
+			if (description == null) {
+				description = "No description present";
 			}
-			String description = key.getDescription();
-			paramMap.put("description", description == null ? "No description present" : description);
-			properties.put(key.getName(), paramMap);
+
+//			// Optionally, add aliases to the description
+//			if (aliases.length > 1) {
+//				description += " (aliases: " + String.join(", ", Arrays.copyOfRange(aliases, 1, aliases.length)) + ")";
+//			}
+
+			paramMap.put("description", description);
+			properties.put(canonicalKey, paramMap);
 		}
 		return properties;
 	}
 
 	/**
-	 * The type a reactor sets for a key by overriding this method, or the default
-	 * type. A key typed in {@link #getReactorDefinition()} is not seen here.
-	 *
-	 * @param key the canonical key
-	 * @return its type
-	 * @deprecated Type the key in {@link #getReactorDefinition()}, and read it with
-	 *             {@code getReactorDefinition().getKey(key).getType()}. To migrate
-	 *             an override, give each key its Java type and delete the method.
-	 *             {@code ARRAY} is {@code key.list(ItemType.class)}, or
-	 *             {@code key.type(List.class)} when the item type is not known;
-	 *             {@code OBJECT} is {@code Map.class}; {@code INTEGER} is
-	 *             {@code Integer.class}; {@code NUMBER} is {@code Double.class};
-	 *             {@code BOOLEAN} is {@code Boolean.class}; {@code STRING} is
-	 *             {@code String.class}.
-	 *
-	 *             <pre>
-	 *             {@code
-	 * // before @Override protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-	 * 	if (key.equals(OVERRIDE)) {
-	 * 		return MCP_KEY_TYPE.BOOLEAN;
-	 * 	}
-	 * 	return super.getKeyTypeForMCP(key);
-	 * }
-	 *
-	 * // after
-	 * &#64;Override
-	 * public ReactorDefinition getReactorDefinition() {
-	 * 	return super.getReactorDefinition()
-	 * 			.key(OVERRIDE, key -> key.type(Boolean.class));
-	 * }
-	 * }
-	 *             </pre>
-	 *
-	 *             An override is still read through the definition, so a reactor
-	 *             that has not migrated keeps its types.
+	 * Represents the specific type for a given key that the reactor is expecting
+	 * for MCPs. Reactors should override this to provide more specific information
+	 * about types.
+	 * 
+	 * Default is string, accepted values are: array, boolean, number, integer,
+	 * string, object
+	 * 
+	 * @param key
+	 * @return
 	 */
-	@Deprecated
 	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		return defaultKeyType(key);
-	}
-
-	/**
-	 * The type a key has when the reactor does not declare one: an object for the
-	 * map and metadata keys, an integer for limit and offset, and a string for the
-	 * rest.
-	 */
-	static MCP_KEY_TYPE defaultKeyType(String key) {
 		if (key.equals(ReactorKeysEnum.MAP.getKey()) || key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())
 				|| key.equals(ReactorKeysEnum.METADATA.getKey())) {
 			return MCP_KEY_TYPE.OBJECT;
@@ -1139,6 +1033,16 @@ public abstract class AbstractReactor implements IReactor {
 	/*
 	 * Throwing common errors
 	 */
+
+	/**
+	 * Throw error since anonymous user
+	 */
+	public static void throwAnonymousUserError() {
+		SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(
+				"Must be logged in to perform this operation", PixelOperationType.ANONYMOUS_USER_ERROR));
+		exception.setContinueThreadOfExecution(false);
+		throw exception;
+	}
 
 	/**
 	 * Throw error since user doesn't have access to publish
@@ -1168,24 +1072,6 @@ public abstract class AbstractReactor implements IReactor {
 				NounMetadata.getErrorNounMessage("User does not have access to export data"));
 		exception.setContinueThreadOfExecution(false);
 		throw exception;
-	}
-
-	/**
-	 * Requires a signed in user before reactor work starts. Requests reach a
-	 * reactor only with a signed in session, so this guards runs whose insight has
-	 * no user.
-	 *
-	 * @return the insight's user
-	 */
-	protected User requireUser() {
-		User user = this.insight == null ? null : this.insight.getUser();
-		if (user == null) {
-			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(
-					"Must be logged in to perform this operation", PixelOperationType.LOGGIN_REQUIRED_ERROR));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-		return user;
 	}
 
 	/**

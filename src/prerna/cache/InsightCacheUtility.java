@@ -92,6 +92,8 @@ public class InsightCacheUtility {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
+	private static byte[] buffer = new byte[2048];
+
 	public static final String INSIGHT_ZIP = "InsightZip.zip";
 	public static final String MAIN_INSIGHT_JSON = "InsightCache.json";
 	public static final String VIEW_JSON = "ViewData.json";
@@ -270,8 +272,15 @@ public class InsightCacheUtility {
 		ZipEntry zipEntry = new ZipEntry(file.getName());
 		zos.putNextEntry(zipEntry);
 
-		try (FileInputStream fis = new FileInputStream(file)) {
-			fis.transferTo(zos);
+		FileInputStream fis = null;
+		try {
+			int length;
+			fis = new FileInputStream(file);
+			while ((length = fis.read(buffer)) >= 0) {
+				zos.write(buffer, 0, length);
+			}
+		} finally {
+			closeStream(fis);
 		}
 	}
 

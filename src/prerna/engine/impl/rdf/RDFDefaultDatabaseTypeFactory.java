@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
+import java.lang.reflect.InvocationTargetException;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -43,25 +45,36 @@ public final class RDFDefaultDatabaseTypeFactory {
 
 	}
 
-	/**
-	 * Creates the RDF database new RDF uploads use: the DEFAULT_RDF_ENGINE class
-	 * from RDF_Map.prop when it is set to an RDF database class, otherwise a
-	 * {@link RDFJenaTDBEngine}.
-	 *
-	 * @return a new RDF database
-	 */
 	public static IRDFDatabase getDefaultRdfEngine() {
+		IRDFDatabase engine = null;
+
 		String className = Utility.getDIHelperProperty(DEFAULT_RDF_ENGINE);
 		if (className != null && !(className = className.trim()).isEmpty()) {
 			try {
-				return (IRDFDatabase) Class.forName(className).getDeclaredConstructor().newInstance();
-			} catch (ReflectiveOperationException | ClassCastException | IllegalArgumentException | SecurityException
-					| LinkageError e) {
-				classLogger.error("Unable to create the {} class {}, using {} instead", DEFAULT_RDF_ENGINE,
-						Utility.cleanLogString(className), RDFJenaTDBEngine.class.getName(), e);
+				engine = (IRDFDatabase) Class.forName(className).getDeclaredConstructor().newInstance();
+			} catch (ClassNotFoundException cnfe) {
+				classLogger.error("No such class: {}", Utility.cleanLogString(className), cnfe);
+			} catch (InstantiationException ie) {
+				classLogger.error("Failed instantiation: {}", Utility.cleanLogString(className), ie);
+			} catch (IllegalAccessException iae) {
+				classLogger.error("Illegal access: {}", Utility.cleanLogString(className), iae);
+			} catch (IllegalArgumentException iare) {
+				classLogger.error("Illegal argument: {}", Utility.cleanLogString(className), iare);
+			} catch (InvocationTargetException ite) {
+				classLogger.error("Invocation exception: {}", Utility.cleanLogString(className), ite);
+			} catch (NoSuchMethodException nsme) {
+				classLogger.error("No constructor: {}", Utility.cleanLogString(className), nsme);
+			} catch (SecurityException se) {
+				classLogger.error("Security exception: {}", Utility.cleanLogString(className), se);
 			}
 		}
-		return new RDFJenaTDBEngine();
+
+		if (engine == null) {
+//			engine = new EclipseRDF4JFileEngine();
+			engine = new RDFJenaTDBEngine();
+		}
+
+		return engine;
 	}
 
 }

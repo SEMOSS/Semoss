@@ -44,12 +44,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
-import prerna.engine.impl.pipeline.PlatformOperation;
-import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -82,8 +79,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-		assertThrows(IllegalArgumentException.class,
-				() -> SecurityInsightUtils.getInsight("testProjectId", "nonExistentId"));
+		assertNull(SecurityInsightUtils.getInsight("testProjectId", "nonExistentId"));
 	}
 
 	///
@@ -526,7 +522,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		assertNull(SecurityInsightUtils.insightNameExists("testProjectId", "NewInsight"));
 
-		SecurityInsightUtils.addInsight(user, "testProjectId", "newInsightId", "NewInsight", false, "grid", false, 0, null,
+		SecurityInsightUtils.addInsight("testProjectId", "newInsightId", "NewInsight", false, "grid", false, 0, null,
 				null, false, null, null);
 
 		String insightId = SecurityInsightUtils.insightNameExists("testProjectId", "NewInsight");
@@ -570,7 +566,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		assertFalse(SecurityInsightUtils.insightIsGlobal("testProjectId", "testInsightId"));
 
 		// Update the insight name and make it global
-		SecurityInsightUtils.updateInsight(user, "testProjectId", "testInsightId", "UpdatedName", true, "grid", false, 0,
+		SecurityInsightUtils.updateInsight("testProjectId", "testInsightId", "UpdatedName", true, "grid", false, 0,
 				null, null, false, null, null);
 
 		assertNull(SecurityInsightUtils.insightNameExists("testProjectId", "OriginalName"));
@@ -590,7 +586,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		assertEquals("testInsightId", SecurityInsightUtils.insightNameExists("testProjectId", "OriginalName"));
 
-		SecurityInsightUtils.updateInsightName(user, "testProjectId", "testInsightId", "UpdatedName");
+		SecurityInsightUtils.updateInsightName("testProjectId", "testInsightId", "UpdatedName");
 
 		assertNull(SecurityInsightUtils.insightNameExists("testProjectId", "OriginalName"));
 		assertEquals("testInsightId", SecurityInsightUtils.insightNameExists("testProjectId", "UpdatedName"));
@@ -607,7 +603,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
 
 		// Update cache settings
-		SecurityInsightUtils.updateInsightCache(user, "testProjectId", "testInsightId", true, 60, null, null, false);
+		SecurityInsightUtils.updateInsightCache("testProjectId", "testInsightId", true, 60, null, null, false);
 
 		// Verify insight still exists
 		assertNotNull(SecurityInsightUtils.insightNameExists("testProjectId", "TestInsightName"));
@@ -643,7 +639,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		// Update metadata
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put("testKey", "testValue");
-		SecurityInsightUtils.updateInsightMetadata(user, "testProjectId", "testInsightId", metadata);
+		SecurityInsightUtils.updateInsightMetadata("testProjectId", "testInsightId", metadata);
 
 		// Verify insight still exists
 		assertNotNull(SecurityInsightUtils.insightNameExists("testProjectId", "TestInsightName"));
@@ -661,9 +657,27 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		assertNotNull(SecurityInsightUtils.insightNameExists("testProjectId", "TestInsightName"));
 
-		SecurityInsightUtils.deleteInsight(user, "testProjectId", "testInsightId");
+		SecurityInsightUtils.deleteInsight("testProjectId", "testInsightId");
 
 		assertNull(SecurityInsightUtils.insightNameExists("testProjectId", "TestInsightName"));
+	}
+
+	@Test
+	void testDeleteInsight_multiple() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "insightId1", "Insight1", "grid");
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "insightId2", "Insight2", "grid");
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "insightId3", "Insight3", "grid");
+
+		assertEquals(3, SecurityInsightUtils.getAllInsightIds().size());
+
+		SecurityInsightUtils.deleteInsight("testProjectId", "insightId1", "insightId2");
+
+		assertEquals(1, SecurityInsightUtils.getAllInsightIds().size());
+		assertNull(SecurityInsightUtils.insightNameExists("testProjectId", "Insight1"));
+		assertNull(SecurityInsightUtils.insightNameExists("testProjectId", "Insight2"));
+		assertNotNull(SecurityInsightUtils.insightNameExists("testProjectId", "Insight3"));
 	}
 
 	///
@@ -696,95 +710,6 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityInsightUtils.addInsightUser(user, "user2id", "testProjectId", "testInsightId", "READ_ONLY", null);
 
 		assertTrue(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
-	}
-
-	@Test
-	void testAddInsightUserWithProjectAccess_givesTheInsightAndReadOnlyProjectAccess() throws IllegalAccessException {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		createInsightOf(user);
-
-		SecurityInsightUtils.addInsightUserWithProjectAccess(user, "user2id", "testProjectId", "testInsightId", "EDIT",
-				null);
-
-		assertEquals(AccessPermissionEnum.READ_ONLY.getId(),
-				SecurityProjectUtils.getUserProjectPermission("user2id", "testProjectId"));
-		assertTrue(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "testInsightId"));
-	}
-
-	@Test
-	void testAddInsightUserWithProjectAccess_keepsTheProjectAccessAPersonHas() throws IllegalAccessException {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createUser("user2", false);
-		createInsightOf(user);
-		SecurityProjectUtils.addProjectUser(user, "user2id", "testProjectId", "EDIT", null);
-
-		SecurityInsightUtils.addInsightUserWithProjectAccess(user, "user2id", "testProjectId", "testInsightId",
-				"READ_ONLY", null);
-
-		assertEquals(AccessPermissionEnum.EDIT.getId(),
-				SecurityProjectUtils.getUserProjectPermission("user2id", "testProjectId"));
-	}
-
-	@Test
-	void testAddInsightUserWithProjectAccess_refusesWhenTheUserCannotGiveProjectAccess() throws IllegalAccessException {
-		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User insightOwner = UnitTestSecurityAuthUtils.createUser("reader", false);
-		UnitTestSecurityAuthUtils.createUser("user3", false);
-		createInsightOf(owner);
-		SecurityProjectUtils.addProjectUser(owner, "readerid", "testProjectId", "READ_ONLY", null);
-		try (PlatformOperation operation = PlatformOperation.begin("test setup")) {
-			SecurityInsightUtils.addUserInsightCreator(insightOwner, "testProjectId", "testInsightId");
-		}
-
-		IllegalAccessException e = assertThrows(IllegalAccessException.class,
-				() -> SecurityInsightUtils.addInsightUserWithProjectAccess(insightOwner, "user3id", "testProjectId",
-						"testInsightId", "READ_ONLY", null));
-		assertEquals("Insufficient privileges to modify this project's permissions.", e.getMessage());
-		assertNull(SecurityProjectUtils.getUserProjectPermission("user3id", "testProjectId"));
-		assertNull(SecurityInsightUtils.getUserInsightPermission("user3id", "testProjectId", "testInsightId"));
-	}
-
-	@Test
-	void testAddInsightUserWithProjectAccess_givesNeitherWhenTheInsightAddIsRefused() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createUser("user2", false);
-		createInsightOf(user);
-		// insight access without project access, so the insight add is refused after the project add is planned
-		SecurityInsightUtils.addInsightUser(user, "user2id", "testProjectId", "testInsightId", "READ_ONLY", null);
-
-		assertThrows(IllegalArgumentException.class, () -> SecurityInsightUtils.addInsightUserWithProjectAccess(user,
-				"user2id", "testProjectId", "testInsightId", "EDIT", null));
-		assertNull(SecurityProjectUtils.getUserProjectPermission("user2id", "testProjectId"));
-	}
-
-	@Test
-	void testAddUserInsightCreator_refusesAnInsightThatAlreadyHasOwners() throws IllegalAccessException {
-		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User editor = UnitTestSecurityAuthUtils.createUser("editor", false);
-		createInsightOf(owner);
-		SecurityProjectUtils.addProjectUser(owner, "editorid", "testProjectId", "EDIT", null);
-
-		assertThrows(IllegalArgumentException.class,
-				() -> SecurityInsightUtils.addUserInsightCreator(editor, "testProjectId", "testInsightId"));
-		assertFalse(SecurityInsightUtils.userIsInsightOwner(editor, "testProjectId", "testInsightId"));
-	}
-
-	@Test
-	void testUpdateInsightName_refusesAUserWhoCannotEditTheInsight() {
-		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User other = UnitTestSecurityAuthUtils.createUser("other", false);
-		createInsightOf(owner);
-
-		assertThrows(IllegalArgumentException.class,
-				() -> SecurityInsightUtils.updateInsightName(other, "testProjectId", "testInsightId", "Renamed"));
-		assertNotNull(SecurityInsightUtils.insightNameExists("testProjectId", "TestInsightName"));
-	}
-
-	private static void createInsightOf(User owner) {
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", owner);
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
-		SecurityInsightUtils.addUserInsightCreator(owner, "testProjectId", "testInsightId");
 	}
 
 	///
@@ -1148,7 +1073,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
 
-		SecurityInsightUtils.updateInsightDescription(user, "testProjectId", "testInsightId", "This is a test description");
+		SecurityInsightUtils.updateInsightDescription("testProjectId", "testInsightId", "This is a test description");
 
 		// Verify no exception was thrown
 		assertTrue(SecurityInsightUtils.userIsInsightOwner(user, "testProjectId", "testInsightId"));
@@ -1165,7 +1090,20 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
 
 		List<String> tags = List.of("tag1", "tag2", "tag3");
-		SecurityInsightUtils.updateInsightTags(user, "testProjectId", "testInsightId", tags);
+		SecurityInsightUtils.updateInsightTags("testProjectId", "testInsightId", tags);
+
+		// Verify no exception was thrown
+		assertTrue(SecurityInsightUtils.userIsInsightOwner(user, "testProjectId", "testInsightId"));
+	}
+
+	@Test
+	void testUpdateInsightTags_array() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
+
+		String[] tags = new String[] { "tag1", "tag2", "tag3" };
+		SecurityInsightUtils.updateInsightTags("testProjectId", "testInsightId", tags);
 
 		// Verify no exception was thrown
 		assertTrue(SecurityInsightUtils.userIsInsightOwner(user, "testProjectId", "testInsightId"));
@@ -1182,7 +1120,7 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
 
 		// Update with empty set of frames
-		SecurityInsightUtils.updateInsightFrames(user, "testProjectId", "testInsightId", new java.util.HashSet<>());
+		SecurityInsightUtils.updateInsightFrames("testProjectId", "testInsightId", new java.util.HashSet<>());
 
 		// Verify insight still exists
 		assertNotNull(SecurityInsightUtils.insightNameExists("testProjectId", "TestInsightName"));
@@ -1325,6 +1263,26 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		assertFalse(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
 		assertFalse(SecurityInsightUtils.userCanViewInsight(user3, "testProjectId", "testInsightId"));
+	}
+
+	///
+	/// removeExpiredInsightUser
+	///
+
+	@Test
+	void testRemoveExpiredInsightUser() throws IllegalAccessException {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
+		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "TestInsightName", "grid");
+		SecurityInsightUtils.addUserInsightCreator(user, "testProjectId", "testInsightId");
+		SecurityInsightUtils.addInsightUser(user, "user2id", "testProjectId", "testInsightId", "READ_ONLY", null);
+
+		assertTrue(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
+
+		SecurityInsightUtils.removeExpiredInsightUser("user2id", "testProjectId", "testInsightId");
+
+		assertFalse(SecurityInsightUtils.userCanViewInsight(user2, "testProjectId", "testInsightId"));
 	}
 
 	///
@@ -1781,88 +1739,6 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 				"testInsightId");
 		assertNotNull(requests);
 		assertEquals(1, requests.size());
-	}
-
-	///
-	/// approveInsightUserAccessRequests and denyInsightUserAccessRequests: one
-	/// transaction, for the insight's own requests
-	///
-
-	@Test
-	void testApproveInsightUserAccessRequests_aFailedApprovalSavesNothing() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User secondUser = UnitTestSecurityAuthUtils.createUser("second", false);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "testInsightName", "grid");
-		SecurityInsightUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", "testInsightId", 2,
-				secondUser);
-		String requestId = pendingRequestId("testInsightId");
-		List<Map<String, String>> requests = List
-				.of(Map.of("requestid", requestId, "userid", "secondid", "type", "NATIVE", "permission", "EDIT"));
-
-		// marking the request approved fails after the grant was written
-		addCheck("APPROVE_FAIL", "INSIGHTACCESSREQUEST", "APPROVER_DECISION <> 'APPROVED'");
-		try {
-			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> SecurityInsightUtils
-					.approveInsightUserAccessRequests(user, "testProjectId", "testInsightId", requests, null));
-			assertEquals("An error occurred while approving the access requests", e.getMessage());
-		} finally {
-			dropCheck("APPROVE_FAIL", "INSIGHTACCESSREQUEST");
-		}
-
-		assertTrue(SecurityInsightUtils.getUserInsightPermissions(List.of("secondid"), "testProjectId", "testInsightId")
-				.isEmpty());
-		assertEquals("NEW_REQUEST", requestDecision(requestId));
-	}
-
-	@Test
-	void testApproveAndDenyInsightUserAccessRequests_leaveAnotherInsightsRequestsAsTheyAre() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User secondUser = UnitTestSecurityAuthUtils.createUser("second", false);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "testInsightId", "testInsightName", "grid");
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "otherInsightId", "otherInsightName", "grid");
-		SecurityInsightUtils.setUserAccessRequest("secondid", "NATIVE", "testProjectId", "reason", "otherInsightId", 3,
-				secondUser);
-		String otherRequestId = pendingRequestId("otherInsightId");
-
-		SecurityInsightUtils.approveInsightUserAccessRequests(user, "testProjectId", "testInsightId", List.of(
-				Map.of("requestid", otherRequestId, "userid", "secondid", "type", "NATIVE", "permission", "READ_ONLY")),
-				null);
-		SecurityInsightUtils.denyInsightUserAccessRequests(user, "testProjectId", "testInsightId",
-				List.of(otherRequestId));
-
-		// the person gets the access the batch gives, but the other insight's request
-		// is neither approved nor denied
-		assertEquals(3, SecurityInsightUtils
-				.getUserInsightPermissions(List.of("secondid"), "testProjectId", "testInsightId").get("secondid"));
-		assertEquals("NEW_REQUEST", requestDecision(otherRequestId));
-	}
-
-	private String pendingRequestId(String insightId) throws SQLException {
-		return String.valueOf(UnitTestGroupTables.queryValue(securityDb,
-				"SELECT ID FROM INSIGHTACCESSREQUEST WHERE INSIGHTID = ? AND APPROVER_DECISION = 'NEW_REQUEST'",
-				insightId));
-	}
-
-	private Object requestDecision(String requestId) throws SQLException {
-		return UnitTestGroupTables.queryValue(securityDb,
-				"SELECT APPROVER_DECISION FROM INSIGHTACCESSREQUEST WHERE ID = ?", requestId);
-	}
-
-	/**
-	 * Adds a check to a security table, so a test can fail a later statement of a
-	 * save on purpose; {@link #dropCheck} takes it off again.
-	 */
-	private void addCheck(String name, String table, String condition) throws Exception {
-		QueryExecutionUtility.executeUpdate(securityDb,
-				"ALTER TABLE " + table + " ADD CONSTRAINT " + name + " CHECK (" + condition + ")",
-				QueryExecutionUtility.NO_PARAMETERS);
-	}
-
-	private void dropCheck(String name, String table) throws Exception {
-		QueryExecutionUtility.executeUpdate(securityDb, "ALTER TABLE " + table + " DROP CONSTRAINT " + name,
-				QueryExecutionUtility.NO_PARAMETERS);
 	}
 
 }

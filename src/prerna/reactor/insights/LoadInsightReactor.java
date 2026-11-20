@@ -31,7 +31,6 @@ import java.util.Map;
 
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.om.ThreadStore;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -60,7 +59,7 @@ public class LoadInsightReactor extends OpenInsightReactor {
 		Insight in = runner.getInsight();
 		// remove the current insight id from the insight store + session store
 		InsightStore.getInstance().remove(in.getInsightId());
-		InsightStore.getInstance().removeFromSessionHash(ThreadStore.getSessionId(), in.getInsightId());
+		InsightStore.getInstance().removeFromSessionHash(getSessionId(), in.getInsightId());
 		
 		// reset the insight id and put in store
 		in.setInsightId(this.insight.getInsightId());

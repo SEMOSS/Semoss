@@ -57,6 +57,7 @@ public class AdminGetProjectPortalDetailsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		Map<String, Object> portalDetails = SecurityProjectUtils.getProjectPortalDetailsMap(projectId);
 		return new NounMetadata(portalDetails, PixelDataType.MAP);
 	}

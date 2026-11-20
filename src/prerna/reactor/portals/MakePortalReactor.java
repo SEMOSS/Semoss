@@ -81,6 +81,7 @@ public class MakePortalReactor extends AbstractReactor {
 
 		User user = this.insight.getUser();
 		String projectId = keyValue.get(keysToGet[0]);
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
 			throw new IllegalArgumentException(
 					"Project does not exist or user does not have access to edit the project");
@@ -157,7 +158,7 @@ public class MakePortalReactor extends AbstractReactor {
 	private void convertAllTemplates(String projectFolder, Properties projectValues, String portalName)
 			throws Exception {
 		String portalFolder = projectFolder + "/" + portalName;
-		portalFolder = portalFolder.replace("\\", "/");
+		portalFolder = portalFolder.replace("\\\\", "/");
 
 		// main pom
 		String inputFile = "pom.xml";

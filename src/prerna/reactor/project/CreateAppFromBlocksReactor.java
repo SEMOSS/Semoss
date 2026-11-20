@@ -45,14 +45,11 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -71,8 +68,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 	 * template are also copied to the new project
 	 */
 	public CreateAppFromBlocksReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
-				ReactorKeysEnum.GLOBAL.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.GLOBAL.getKey(),
 				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.JSON.getKey() };
 	}
 
@@ -81,9 +77,9 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		organizeKeys();
-		int index = 1;
+		int index = 0;
 
-		String newProjectName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
+		String newProjectName = this.keyValue.get(this.keysToGet[index++]);
 		// if project name is not valid, throw error
 		if (!Utility.validateName(newProjectName)) {
 			// error and redirect to try again
@@ -135,8 +131,6 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				newProject.getProjectId());
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_CREATE, newProject.getProjectId(),
-				newProjectName, Map.of("projectType", "BLOCKS", "global", global, "creationMethod", "BLOCKS"));
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
@@ -163,16 +157,17 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Creates a new BLOCKS app with the given name from a blocks JSON, commits the JSON as the app's first version, and returns the new app's details.")
-				.key(ReactorKeysEnum.GLOBAL, key -> key.type(Boolean.class))
-				.key(ReactorKeysEnum.CATALOG_NAME,
-						"The name for this project. Note: the project ID is randomly generated and is not passed into this method")
-				.key(ReactorKeysEnum.PROVIDER,
-						"The GIT provider - user must be logged in with this provider for credentials")
-				.key(ReactorKeysEnum.URL, "The GIT repository URL to clone for this project").key(ReactorKeysEnum.JSON,
-						key -> key.type(Map.class).description("The JSON that represents the blocks for the app"));
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The name for this project. Note: the project ID is randomly generated and is not passed into this method";
+		} else if (key.equals(ReactorKeysEnum.PROVIDER.getKey())) {
+			return "The GIT provider - user must be logged in with this provider for credentials";
+		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return "The GIT repository URL to clone for this project";
+		} else if (key.equals(ReactorKeysEnum.JSON.getKey())) {
+			return "The JSON that represents the blocks for the app";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

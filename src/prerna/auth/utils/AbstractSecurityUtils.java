@@ -34,7 +34,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -80,8 +84,9 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.InternalUtility;
+import prerna.util.DIHelper;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.SystemEngineRegistry;
@@ -96,6 +101,8 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminSetPublisher = false;
 	static boolean adminSetExporter = false;
 	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
+	static boolean anonymousUsersEnabled = false;
+	static boolean anonymousUsersUploadData = false;
 
 	static boolean adminOnlyProjectAdd = false;
 	static boolean adminOnlyProjectDelete = false;
@@ -149,12 +156,6 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyGuardrailSetPublic = false;
 	static boolean adminOnlyGuardrailSetDiscoverable = false;
 
-	static boolean adminOnlyVenvAdd = false;
-	static boolean adminOnlyVenvDelete = false;
-	static boolean adminOnlyVenvAddAccess = false;
-	static boolean adminOnlyVenvSetPublic = false;
-	static boolean adminOnlyVenvSetDiscoverable = false;
-
 	static boolean adminOnlyInsightSetPublic = false;
 	static boolean adminOnlyInsightAddAccess = false;
 
@@ -192,7 +193,23 @@ public abstract class AbstractSecurityUtils {
 		// this is to update the bad naming in the security db for type values
 		updateUserTypeEnum();
 
-		Object adminSetsPublisher = InternalUtility.getLocalProperty(Constants.ADMIN_SET_PUBLISHER);
+		Object anonymousUsers = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_ALLOWED);
+		if (anonymousUsers == null) {
+			anonymousUsersEnabled = false;
+		} else {
+			anonymousUsersEnabled = (anonymousUsers instanceof Boolean && ((boolean) anonymousUsers))
+					|| (Boolean.parseBoolean(anonymousUsers.toString()));
+		}
+
+		Object anonymousUsersData = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_UPLOAD_DATA);
+		if (anonymousUsersData == null) {
+			anonymousUsersUploadData = false;
+		} else {
+			anonymousUsersUploadData = (anonymousUsersData instanceof Boolean && ((boolean) anonymousUsersData))
+					|| (Boolean.parseBoolean(anonymousUsersData.toString()));
+		}
+
+		Object adminSetsPublisher = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_PUBLISHER);
 		if (adminSetsPublisher == null) {
 			adminSetPublisher = false;
 		} else {
@@ -200,7 +217,7 @@ public abstract class AbstractSecurityUtils {
 					|| (Boolean.parseBoolean(adminSetsPublisher.toString()));
 		}
 
-		Object adminSetsExporter = InternalUtility.getLocalProperty(Constants.ADMIN_SET_EXPORTER);
+		Object adminSetsExporter = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_EXPORTER);
 		if (adminSetsExporter == null) {
 			adminSetExporter = false;
 		} else {
@@ -260,16 +277,18 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyGuardrailSetPublic = Utility.getApplicationAdminOnlyGuardrailSetPublic();
 		adminOnlyGuardrailSetDiscoverable = Utility.getApplicationAdminOnlyGuardrailSetDiscoverable();
 
-		adminOnlyVenvAdd = Utility.getApplicationAdminOnlyVenvAdd();
-		adminOnlyVenvDelete = Utility.getApplicationAdminOnlyVenvDelete();
-		adminOnlyVenvAddAccess = Utility.getApplicationAdminOnlyVenvAddAccess();
-		adminOnlyVenvSetPublic = Utility.getApplicationAdminOnlyVenvSetPublic();
-		adminOnlyVenvSetDiscoverable = Utility.getApplicationAdminOnlyVenvSetDiscoverable();
-
 		adminOnlyInsightSetPublic = Utility.getApplicationAdminOnlyInsightSetPublic();
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
 
 		adminOnlyInsightShare = Utility.getApplicationAdminOnlyInsightShare();
+	}
+
+	public static boolean anonymousUsersEnabled() {
+		return anonymousUsersEnabled;
+	}
+
+	public static boolean anonymousUserUploadData() {
+		return anonymousUsersEnabled() && anonymousUsersUploadData;
 	}
 
 	@Deprecated
@@ -536,26 +555,6 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyGuardrailSetDiscoverable;
 	}
 
-	public static boolean adminOnlyVenvAdd() {
-		return adminOnlyVenvAdd;
-	}
-
-	public static boolean adminOnlyVenvDelete() {
-		return adminOnlyVenvDelete;
-	}
-
-	public static boolean adminOnlyVenvAddAccess() {
-		return adminOnlyVenvAddAccess;
-	}
-
-	public static boolean adminOnlyVenvSetPublic() {
-		return adminOnlyVenvSetPublic;
-	}
-
-	public static boolean adminOnlyVenvSetDiscoverable() {
-		return adminOnlyVenvSetDiscoverable;
-	}
-
 	public static boolean adminOnlyInsightSetPublic() {
 		return adminOnlyInsightSetPublic;
 	}
@@ -585,8 +584,6 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionAdd;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailAdd;
-		} else if (IEngine.CATALOG_TYPE.VENV == type) {
-			return adminOnlyVenvAdd;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -609,8 +606,6 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionDelete;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailDelete;
-		} else if (IEngine.CATALOG_TYPE.VENV == type) {
-			return adminOnlyVenvDelete;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -633,8 +628,6 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionAddAccess;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailAddAccess;
-		} else if (IEngine.CATALOG_TYPE.VENV == type) {
-			return adminOnlyVenvAddAccess;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -657,8 +650,6 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionSetPublic;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailSetPublic;
-		} else if (IEngine.CATALOG_TYPE.VENV == type) {
-			return adminOnlyVenvSetPublic;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
@@ -681,26 +672,11 @@ public abstract class AbstractSecurityUtils {
 			return adminOnlyFunctionSetDiscoverable;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			return adminOnlyGuardrailSetDiscoverable;
-		} else if (IEngine.CATALOG_TYPE.VENV == type) {
-			return adminOnlyVenvSetDiscoverable;
 		}
 
 		throw new IllegalArgumentException("Admin only configuration must be defined for catalog type = " + type);
 	}
 
-	/**
-	 * Creates or updates the security database's tables and indexes at start up,
-	 * and fills the rows they need. Each schema statement (CREATE, ALTER, an index)
-	 * runs on its own, since databases such as MySQL and Oracle commit schema
-	 * changes as they run them. Each data stage, such as a backfill, a copy of rows
-	 * from an older table or a table's default rows, runs in its own transaction,
-	 * so it saves all of its rows or none of them.
-	 *
-	 * @throws Exception when a schema statement or a data stage fails; the stages
-	 *                   that add a table's default rows, copy rows from an older
-	 *                   table or fill the engine types of project dependencies log
-	 *                   their failure instead, and start up goes on
-	 */
 	public static void initialize() throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String database = securityDb.getDatabase();
@@ -721,7 +697,7 @@ public abstract class AbstractSecurityUtils {
 			final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
 			final String TIMESTAMP_DATATYPE_NAME = queryUtil.getDateWithTimeDataType();
 			final String INTEGER_DATATYPE_NAME = queryUtil.getIntegerDataTypeName();
-			final String VARCHAR_20 = "VARCHAR(20)";
+			final String DOBLE_DATATYPE_NAME = queryUtil.getDoubleDataTypeName();
 			final String VARCHAR_255 = "VARCHAR(255)";
 			final String VARCHAR_500 = "VARCHAR(500)";
 
@@ -796,9 +772,10 @@ public abstract class AbstractSecurityUtils {
 
 			// ENGINE
 			colNames = new String[] { "ENGINEID", "ENGINENAME", "ENGINEDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
-					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", };
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP", };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255 };
+					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255,
+					VARCHAR_255 };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -833,23 +810,12 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(dropTypeColumn);
 					}
 				}
-				if (allCols.stream().anyMatch("TOOL_APP"::equalsIgnoreCase)) {
-					String dropToolAppColumn = queryUtil.alterTableDropColumn("ENGINE", "TOOL_APP");
-					classLogger.info("Running sql {}", dropToolAppColumn);
-					securityDb.insertData(dropToolAppColumn);
-				}
 
-				// engines with no type are databases, and existing rows get their display name
-				// from their canonical name, in one transaction
-				QueryExecutionUtility.write(securityDb, connection -> {
-					QueryExecutionUtility.executeUpdate(connection,
-							"UPDATE ENGINE SET ENGINETYPE=? WHERE ENGINETYPE IS NULL",
-							ps -> ps.setString(1, IEngine.CATALOG_TYPE.DATABASE.toString()));
-					QueryExecutionUtility.executeUpdate(connection,
-							"UPDATE ENGINE SET ENGINEDISPLAYNAME = ENGINENAME WHERE ENGINEDISPLAYNAME IS NULL OR ENGINEDISPLAYNAME = ''",
-							QueryExecutionUtility.NO_PARAMETERS);
-					return null;
-				});
+				securityDb.insertData("UPDATE ENGINE SET ENGINETYPE='" + IEngine.CATALOG_TYPE.DATABASE.toString()
+						+ "' WHERE ENGINETYPE IS NULL");
+				// backfill display name from canonical name for existing rows
+				securityDb.insertData(
+						"UPDATE ENGINE SET ENGINEDISPLAYNAME = ENGINENAME WHERE ENGINEDISPLAYNAME IS NULL OR ENGINEDISPLAYNAME = ''");
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("ENGINE_GLOBAL_INDEX", "ENGINE", "GLOBAL");
@@ -999,108 +965,14 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(sql);
 			}
 
-			// MODELUSAGELIMIT
-			// one row for each source that has a model usage limit defined, with its rules
-			// in MODELUSAGELIMITRULE; made before ENGINEPERMISSION and SMSS_USER, whose old
-			// limit columns are copied into it
-			colNames = new String[] { "ID", "ENGINEID", "LIMITTYPE", "SUBJECTID", "SUBJECTTYPE", "UNLIMITED",
-					"DATEADDED", "ADDEDBYID", "ADDEDBYTYPE", "DATEMODIFIED", "MODIFIEDBYID", "MODIFIEDBYTYPE" };
-			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_20, VARCHAR_255, VARCHAR_255,
-					BOOLEAN_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255 };
-			{
-				Object[] constraints = new Object[colNames.length];
-				constraints[0] = "PRIMARY KEY";
-				if (allowIfExistsTable) {
-					String sql = queryUtil.createTableIfNotExistsWithCustomConstraints("MODELUSAGELIMIT", colNames,
-							types, constraints);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				} else if (!queryUtil.tableExists(conn, "MODELUSAGELIMIT", database, schema)) {
-					String sql = queryUtil.createTableWithCustomConstraints("MODELUSAGELIMIT", colNames, types,
-							constraints);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "MODELUSAGELIMIT", database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
-						String addColumnSql = queryUtil.alterTableAddColumn("MODELUSAGELIMIT", col, types[i]);
-						classLogger.info("Running sql {}", addColumnSql);
-						securityDb.insertData(addColumnSql);
-					}
-				}
-			}
-			{
-				// SUBJECTTYPE is left out, so the key fits the 3072 bytes MySQL allows an
-				// index with utf8mb4; the three columns find a key's rows already
-				List<String> indexColumns = List.of("ENGINEID", "LIMITTYPE", "SUBJECTID");
-				if (allowIfExistsIndexs) {
-					String sql = queryUtil.createIndexIfNotExists("MODELUSAGELIMIT_SUBJECT_INDEX", "MODELUSAGELIMIT",
-							indexColumns);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				} else if (!queryUtil.indexExists(securityDb, "MODELUSAGELIMIT_SUBJECT_INDEX", "MODELUSAGELIMIT",
-						database, schema)) {
-					String sql = queryUtil.createIndex("MODELUSAGELIMIT_SUBJECT_INDEX", "MODELUSAGELIMIT",
-							indexColumns);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-
-			// MODELUSAGELIMITRULE
-			// the rules of a model usage limit; LIMITWINDOW, since WINDOW is a reserved
-			// word
-			// in postgres; WINDOWLENGTH is how many minutes or hours a minute or hour
-			// window
-			// is, null for 1
-			colNames = new String[] { "LIMITID", "METRIC", "AMOUNT", "LIMITWINDOW", "WINDOWLENGTH", "COUNTS" };
-			types = new String[] { VARCHAR_255, VARCHAR_20, "BIGINT", VARCHAR_20, INTEGER_DATATYPE_NAME, VARCHAR_20 };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("MODELUSAGELIMITRULE", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else if (!queryUtil.tableExists(conn, "MODELUSAGELIMITRULE", database, schema)) {
-				String sql = queryUtil.createTable("MODELUSAGELIMITRULE", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			}
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "MODELUSAGELIMITRULE", database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
-						String addColumnSql = queryUtil.alterTableAddColumn("MODELUSAGELIMITRULE", col, types[i]);
-						classLogger.info("Running sql {}", addColumnSql);
-						securityDb.insertData(addColumnSql);
-					}
-				}
-			}
-			if (allowIfExistsIndexs) {
-				String sql = queryUtil.createIndexIfNotExists("MODELUSAGELIMITRULE_LIMITID_INDEX",
-						"MODELUSAGELIMITRULE", "LIMITID");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else if (!queryUtil.indexExists(securityDb, "MODELUSAGELIMITRULE_LIMITID_INDEX", "MODELUSAGELIMITRULE",
-					database, schema)) {
-				String sql = queryUtil.createIndex("MODELUSAGELIMITRULE_LIMITID_INDEX", "MODELUSAGELIMITRULE",
-						"LIMITID");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			}
-
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "PERMISSIONGRANTEDBY",
-					"PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE" };
+					"PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", "USAGERESTRICTION", "MAXTOKENS",
+					"MAXRESPONSETIME", "USAGEFREQUENCY" };
 			types = new String[] { VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255,
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
-			defaultValues = new Object[] { null, null, null, null, null, null, null };
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, INTEGER_DATATYPE_NAME,
+					DOBLE_DATATYPE_NAME, VARCHAR_255 };
+			defaultValues = new Object[] { null, null, null, null, null, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithDefaults("ENGINEPERMISSION", colNames, types,
 						defaultValues);
@@ -1132,7 +1004,7 @@ public abstract class AbstractSecurityUtils {
 				if (allCols.stream().anyMatch("VISIBILITY"::equalsIgnoreCase)) {
 					String deleteSql = "DELETE FROM ENGINEPERMISSION WHERE PERMISSION IS NULL";
 					classLogger.info("Running sql {}", deleteSql);
-					QueryExecutionUtility.executeUpdate(securityDb, deleteSql, QueryExecutionUtility.NO_PARAMETERS);
+					securityDb.removeData(deleteSql);
 				}
 				for (String obsoleteColumn : new String[] { "FAVORITE", "VISIBILITY" }) {
 					if (allCols.stream().anyMatch(obsoleteColumn::equalsIgnoreCase)) {
@@ -1151,10 +1023,6 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(dropColumnSql);
 					}
 				}
-				// a person's limits on models move from the four limit columns to
-				// MODELUSAGELIMIT
-				moveModelUsageLimitColumns(securityDb, conn, "ENGINEPERMISSION", allCols, allowIfExistsIndexs, database,
-						schema);
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("ENGINEPERMISSION_PERMISSION_INDEX", "ENGINEPERMISSION",
@@ -1295,17 +1163,15 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 
-				// existing rows get their display name from their canonical name, and rows with
-				// no template flag are not templates, in one transaction
-				QueryExecutionUtility.write(securityDb, connection -> {
-					QueryExecutionUtility.executeUpdate(connection,
-							"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''",
-							QueryExecutionUtility.NO_PARAMETERS);
-					QueryExecutionUtility.executeUpdate(connection,
-							"UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL",
-							ps -> ps.setBoolean(1, false));
-					return null;
-				});
+				// backfill display name from canonical name for existing rows
+				securityDb.insertData(
+						"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''");
+
+				try (PreparedStatement ps = conn
+						.prepareStatement("UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL")) {
+					ps.setBoolean(1, false);
+					ps.executeUpdate();
+				}
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL");
@@ -1361,27 +1227,18 @@ public abstract class AbstractSecurityUtils {
 
 			List<String> newProjectsAutoAdded = new ArrayList<>();
 			if (!projectExists) {
-				// every engine becomes a project with the same id, in one transaction
-				String[] projectColNames = colNames;
-				String[] projectTypes = types;
-				try {
-					newProjectsAutoAdded.addAll(QueryExecutionUtility.write(securityDb, connection -> {
-						List<Object[]> engines = QueryExecutionUtility.queryList(connection,
-								"select engineid, enginename, global, discoverable from engine",
-								QueryExecutionUtility.NO_PARAMETERS, rs -> new Object[] { rs.getObject(1),
-										rs.getObject(2), rs.getObject(3), rs.getObject(4) });
-						List<String> added = new ArrayList<>();
-						for (Object[] values : engines) {
-							// insert into project table
-							insertRows(connection, queryUtil, "PROJECT", projectColNames, projectTypes,
-									new Object[] { values[1], values[0], values[2], values[3], null, null });
+				try (IRawSelectWrapper wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select engineid, enginename, global, discoverable from engine")) {
+					while (wrapper2.hasNext()) {
+						Object[] values = wrapper2.next().getValues();
+						// insert into project table
+						securityDb.insertData(queryUtil.insertIntoTable("PROJECT", colNames, types,
+								new Object[] { values[1], values[0], values[2], values[3], null, null }));
 
-							// store this so we also move over permissions
-							// this is the engine id which is the same as the project id
-							added.add(values[0] + "");
-						}
-						return added;
-					}));
+						// store this so we also move over permissions
+						// this is the engine id which is the same as the project id
+						newProjectsAutoAdded.add(values[0] + "");
+					}
 				} catch (Exception e) {
 					classLogger.error("Error migrating ENGINE records into PROJECT.", e);
 				}
@@ -1458,7 +1315,7 @@ public abstract class AbstractSecurityUtils {
 				if (allCols.stream().anyMatch("VISIBILITY"::equalsIgnoreCase)) {
 					String deleteSql = "DELETE FROM PROJECTPERMISSION WHERE PERMISSION IS NULL";
 					classLogger.info("Running sql {}", deleteSql);
-					QueryExecutionUtility.executeUpdate(securityDb, deleteSql, QueryExecutionUtility.NO_PARAMETERS);
+					securityDb.removeData(deleteSql);
 				}
 				for (String obsoleteColumn : new String[] { "FAVORITE", "VISIBILITY" }) {
 					if (allCols.stream().anyMatch(obsoleteColumn::equalsIgnoreCase)) {
@@ -1479,26 +1336,18 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			} else {
-				// copy over engine permission to project permission for legacy installations,
-				// in one transaction
-				String[] permissionColNames = colNames;
-				String[] permissionTypes = types;
-				try {
-					QueryExecutionUtility.write(securityDb, connection -> {
-						List<Object[]> grants = QueryExecutionUtility.queryList(connection,
-								"select userid, permission, engineid from enginepermission",
-								QueryExecutionUtility.NO_PARAMETERS,
-								rs -> new Object[] { rs.getObject(1), rs.getObject(2), rs.getObject(3) });
-						for (Object[] values : grants) {
-							// if the project exists - we will insert it
-							if (newProjectsAutoAdded.contains(values[2])) {
-								// insert into project permission table
-								insertRows(connection, queryUtil, "PROJECTPERMISSION", permissionColNames,
-										permissionTypes, values);
-							}
+				// copy over engine permission to project permission for legacy installations
+				try (IRawSelectWrapper wrapper2 = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select userid, permission, engineid from enginepermission")) {
+					while (wrapper2.hasNext()) {
+						Object[] values = wrapper2.next().getValues();
+						// if the project exists - we will insert it
+						if (newProjectsAutoAdded.contains(values[2])) {
+							// insert into project permission table
+							securityDb.insertData(
+									queryUtil.insertIntoTable("PROJECTPERMISSION", colNames, types, values));
 						}
-						return null;
-					});
+					}
 				} catch (Exception e) {
 					classLogger.error("Error migrating ENGINEPERMISSION records into PROJECTPERMISSION.", e);
 				}
@@ -1629,7 +1478,7 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
-			performDependencyUpdate(securityDb);
+			performDependencyUpdate(securityDb, queryUtil, colNames, types, conn, database, schema, allowIfExistsTable);
 
 			/**
 			 * 
@@ -1816,7 +1665,7 @@ public abstract class AbstractSecurityUtils {
 				if (allCols.stream().anyMatch("FAVORITE"::equalsIgnoreCase)) {
 					String deleteSql = "DELETE FROM USERINSIGHTPERMISSION WHERE PERMISSION IS NULL";
 					classLogger.info("Running sql {}", deleteSql);
-					QueryExecutionUtility.executeUpdate(securityDb, deleteSql, QueryExecutionUtility.NO_PARAMETERS);
+					securityDb.removeData(deleteSql);
 					if (allowIfExistsIndexs) {
 						String dropIndexSql = queryUtil.dropIndexIfExists("USERINSIGHTPERMISSION_FAVORITE_INDEX",
 								"USERINSIGHTPERMISSION");
@@ -2048,11 +1897,13 @@ public abstract class AbstractSecurityUtils {
 			// SMSS_USER
 			colNames = new String[] { "NAME", "EMAIL", "TYPE", "ID", "PASSWORD", "SALT", "USERNAME", "ADMIN",
 					"PUBLISHER", "EXPORTER", "DATECREATED", "LASTLOGIN", "LASTPASSWORDRESET", "LOCKED", "PHONE",
-					"PHONEEXTENSION", "COUNTRYCODE" };
+					"PHONEEXTENSION", "COUNTRYCODE", "MODELUSAGERESTRICTION", "MODELMAXTOKENS", "MODELMAXRESPONSETIME",
+					"MODELUSAGEFREQUENCY" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
 					VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, VARCHAR_255 };
+					VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME,
+					VARCHAR_255 };
 			// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 			// but some rdbms types (postgres) does not allow it
 			// so i am going ahead and moving over user to smss_user
@@ -2088,15 +1939,7 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(addColumnSql);
 					}
 				}
-				// a person's all-models default moves from the four limit columns to
-				// MODELUSAGELIMIT, with their login type
-				moveModelUsageLimitColumns(securityDb, conn, "SMSS_USER", smssUserCols, allowIfExistsIndexs, database,
-						schema);
 			}
-			// a person's limit on a model is kept with their login type, though
-			// ENGINEPERMISSION keeps only the user id; the limits kept with none get it
-			// from SMSS_USER where the user id has one login
-			SecurityModelUsageLimitUtils.fillDirectLimitLoginTypes(securityDb);
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("SMSS_USER_ID_INDEX", "SMSS_USER", "ID");
 				classLogger.info("Running sql {}", sql);
@@ -2211,9 +2054,6 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
-			// every membership has a date, which orders the teams a person's model calls
-			// are billed to
-			setMissingDatesAdded(securityDb, "CUSTOMGROUPASSIGNMENT");
 
 			// GROUP MANAGERS TABLE
 			// the users who manage the members of a custom group
@@ -2280,39 +2120,6 @@ public abstract class AbstractSecurityUtils {
 						securityDb.insertData(addColumnSql);
 					}
 				}
-			}
-			// every team grant has a date, which orders the teams a person's model calls
-			// are
-			// billed to
-			setMissingDatesAdded(securityDb, "GROUPENGINEPERMISSION");
-
-			removeProjectEnginePermissionTable(securityDb, conn, queryUtil, database, schema);
-			colNames = new String[] { "ENGINEID", "ENGINETYPE", "GRANTEEENGINEID", "GRANTEEENGINETYPE", "PERMISSION",
-					"DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
-			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("ENGINE2ENGINEPERMISSION", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				if (!queryUtil.tableExists(conn, "ENGINE2ENGINEPERMISSION", database, schema)) {
-					String sql = queryUtil.createTable("ENGINE2ENGINEPERMISSION", colNames, types);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-			if (allowIfExistsIndexs || !queryUtil.indexExists(securityDb, "ENGINE2ENGINEPERMISSION_GRANTEE_UNIQUE",
-					"ENGINE2ENGINEPERMISSION", database, schema)) {
-				List<String> granteeColumns = List.of("ENGINEID", "GRANTEEENGINEID", "GRANTEEENGINETYPE");
-				String sql = allowIfExistsIndexs
-						? queryUtil.createIndexIfNotExists("ENGINE2ENGINEPERMISSION_GRANTEE_UNIQUE",
-								"ENGINE2ENGINEPERMISSION", granteeColumns)
-						: queryUtil.createIndex("ENGINE2ENGINEPERMISSION_GRANTEE_UNIQUE", "ENGINE2ENGINEPERMISSION",
-								granteeColumns);
-				sql = sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
 			}
 
 			// GROUP PROJECT PERMISSION
@@ -2503,6 +2310,46 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// TOKEN
+			colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255 };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("TOKEN", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "TOKEN", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("TOKEN", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			// MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "TOKEN", database, schema);
+				// this should return in all upper case
+				// ... but sometimes it is not -_- i.e. postgres always lowercases
+				if (!allCols.contains("CLIENTID") && !allCols.contains("clientid")) {
+					String addIdColumn = queryUtil.alterTableAddColumn("TOKEN", "CLIENTID", VARCHAR_255);
+					classLogger.info("Running sql {}", addIdColumn);
+					securityDb.insertData(addIdColumn);
+				}
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if index exists
+				if (!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", database, schema)) {
+					String sql = queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
 			// PERMISSION
 			colNames = new String[] { "ID", "NAME" };
 			types = new String[] { INTEGER_DATATYPE_NAME, VARCHAR_255 };
@@ -2539,25 +2386,27 @@ public abstract class AbstractSecurityUtils {
 			}
 
 			{
-				// the three levels are the table's only rows: an empty table gets them, and a
-				// table with more rows is emptied and gets them, in one transaction
-				String[] permissionColNames = colNames;
-				String[] permissionTypes = types;
-				try {
-					QueryExecutionUtility.write(securityDb, connection -> {
-						Long numrows = QueryExecutionUtility.queryOne(connection, "select count(*) from permission",
-								QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getLong(1));
-						if (numrows != null && (numrows > 3 || numrows == 0)) {
-							if (numrows > 3) {
-								QueryExecutionUtility.executeUpdate(connection, "DELETE FROM PERMISSION WHERE 1=1;",
-										QueryExecutionUtility.NO_PARAMETERS);
-							}
-							insertRows(connection, queryUtil, "PERMISSION", permissionColNames, permissionTypes,
-									new Object[] { 1, "OWNER" }, new Object[] { 2, "EDIT" },
-									new Object[] { 3, "READ_ONLY" });
+				try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select count(*) from permission")) {
+					if (wrapper.hasNext()) {
+						int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+						if (numrows > 3) {
+							securityDb.removeData("DELETE FROM PERMISSION WHERE 1=1;");
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types,
+									new Object[] { 1, "OWNER" }));
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types,
+									new Object[] { 2, "EDIT" }));
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types,
+									new Object[] { 3, "READ_ONLY" }));
+						} else if (numrows == 0) {
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types,
+									new Object[] { 1, "OWNER" }));
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types,
+									new Object[] { 2, "EDIT" }));
+							securityDb.insertData(queryUtil.insertIntoTable("PERMISSION", colNames, types,
+									new Object[] { 3, "READ_ONLY" }));
 						}
-						return null;
-					});
+					}
 				} catch (Exception e) {
 					classLogger.error("Error initializing default PERMISSION rows.", e);
 				}
@@ -2585,19 +2434,15 @@ public abstract class AbstractSecurityUtils {
 			}
 			// see if there are any default values
 			{
-				String[] passwordRulesColNames = colNames;
-				String[] passwordRulesTypes = types;
-				try {
-					QueryExecutionUtility.write(securityDb, connection -> {
-						Long numrows = QueryExecutionUtility.queryOne(connection, "select count(*) from password_rules",
-								QueryExecutionUtility.NO_PARAMETERS, rs -> rs.getLong(1));
-						if (numrows != null && numrows == 0) {
-							insertRows(connection, queryUtil, "PASSWORD_RULES", passwordRulesColNames,
-									passwordRulesTypes,
-									new Object[] { 8, true, true, true, true, 90, false, true, 10, 0, 14 });
+				try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select count(*) from password_rules")) {
+					if (wrapper.hasNext()) {
+						int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+						if (numrows == 0) {
+							securityDb.insertData(queryUtil.insertIntoTable("PASSWORD_RULES", colNames, types,
+									new Object[] { 8, true, true, true, true, 90, false, true, 10, 0, 14 }));
 						}
-						return null;
-					});
+					}
 				} catch (Exception e) {
 					classLogger.error("Error initializing default PASSWORD_RULES row.", e);
 				}
@@ -2746,32 +2591,31 @@ public abstract class AbstractSecurityUtils {
 						}
 					}
 				}
-				// see if there are any default values; a table with fewer than the defaults is
-				// emptied and gets them, in one transaction
+				// see if there are any default values
 				{
-					String[] metaKeyColNames = colNames;
-					String[] metaKeyTypes = types;
-					try {
-						QueryExecutionUtility.write(securityDb, connection -> {
-							Long numrows = QueryExecutionUtility.queryOne(connection,
-									"select count(*) from " + tableName, QueryExecutionUtility.NO_PARAMETERS,
-									rs -> rs.getLong(1));
-							if (numrows != null && numrows < 6) {
-								QueryExecutionUtility.executeUpdate(connection,
-										"DELETE FROM " + tableName + " WHERE 1=1", QueryExecutionUtility.NO_PARAMETERS);
+					try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
+							"select count(*) from " + tableName)) {
+						if (wrapper.hasNext()) {
+							int numrows = ((Number) wrapper.next().getValues()[0]).intValue();
+							if (numrows < 6) {
+								securityDb.removeData("DELETE FROM " + tableName + " WHERE 1=1");
 								int order = 0;
-								insertRows(connection, queryUtil, tableName, metaKeyColNames, metaKeyTypes,
-										new Object[] { "description", "single", order++, "textarea", null },
-										new Object[] { Constants.MARKDOWN, "single", order++, "markdown", null },
-										new Object[] { "tag", "multi", order++, "multi-typeahead", null },
-										new Object[] { "domain", "multi", order++, "multi-typeahead", null },
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
+										new Object[] { "description", "single", order++, "textarea", null }));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
+										new Object[] { Constants.MARKDOWN, "single", order++, "markdown", null }));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
+										new Object[] { "tag", "multi", order++, "multi-typeahead", null }));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
+										new Object[] { "domain", "multi", order++, "multi-typeahead", null }));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
 										new Object[] { "data classification", "multi", order++, "select-box",
-												"Confidential,FOUO,Internal Only,IP,PII,PHI,Public,Restricted" },
+												"Confidential,FOUO,Internal Only,IP,PII,PHI,Public,Restricted" }));
+								securityDb.insertData(queryUtil.insertIntoTable(tableName, colNames, types,
 										new Object[] { "data restrictions", "multi", order++, "select-box",
-												"Confidential Allowed,FOUO Allowed,Internal Allowed,IP Allowed,PII Allowed,PHI Allowed,Restricted Allowed" });
+												"Confidential Allowed,FOUO Allowed,Internal Allowed,IP Allowed,PII Allowed,PHI Allowed,Restricted Allowed" }));
 							}
-							return null;
-						});
+						}
 					} catch (Exception e) {
 						classLogger.error("Error initializing default rows for {}.", tableName, e);
 					}
@@ -2838,40 +2682,23 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// Insert the metakeys the platform defines into USERMETAKEYS, in one
-			// transaction. Each key is inserted only when it is missing, so a key added
-			// in a later release reaches a deployment whose table is already populated,
-			// and a key an admin has reconfigured is left as they set it.
-			{
-				String[] userMetaKeyColNames = colNames;
-				String[] userMetaKeyTypes = types;
-				String[] platformMetakeys = new String[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY,
-						Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, Constants.PLAYGROUND_DEFAULT_INPUT_TEXT_MODEL_KEY,
-						Constants.PLAYGROUND_DEFAULT_CHAT_MODE_KEY, Constants.PLAYGROUND_DEFAULT_CHAT_AGENT_KEY };
-				try {
-					QueryExecutionUtility.write(securityDb, connection -> {
-						List<String> existingKeys = QueryExecutionUtility.queryList(connection,
-								"select METAKEY from " + Constants.USER_METAKEYS, QueryExecutionUtility.NO_PARAMETERS,
-								rs -> rs.getString(1));
-						Integer maxOrder = QueryExecutionUtility.queryOne(connection,
-								"select max(DISPLAYORDER) from " + Constants.USER_METAKEYS,
-								QueryExecutionUtility.NO_PARAMETERS, rs -> {
-									int value = rs.getInt(1);
-									return rs.wasNull() ? null : value;
-								});
-						int order = maxOrder == null ? 0 : maxOrder + 1;
-						for (String metakey : platformMetakeys) {
-							if (existingKeys.contains(metakey)) {
-								continue;
-							}
-							insertRows(connection, queryUtil, Constants.USER_METAKEYS, userMetaKeyColNames,
-									userMetaKeyTypes, new Object[] { metakey, "single", order++, "select-box", null });
-						}
-						return null;
-					});
-				} catch (Exception e) {
-					classLogger.error("Error initializing default USER_METAKEYS rows.", e);
+			// Insert default row for DEFAULTMODEL into USERMETAKEYS if not exists
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
+					"select count(*) from " + Constants.USER_METAKEYS)) {
+				if (wrapper.hasNext()) {
+					int count = ((Number) wrapper.next().getValues()[0]).intValue();
+					if (count == 0) {
+						int order = 0;
+						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
+								new Object[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "single", order++,
+										"select-box", null }));
+						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
+								new Object[] { Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "single", order++,
+										"select-box", null }));
+					}
 				}
+			} catch (Exception e) {
+				classLogger.error("Error initializing default USER_METAKEYS rows.", e);
 			}
 
 			// JIRA_CONNECTIONS
@@ -3045,8 +2872,8 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 			}
-			if (allowIfExistsIndexs || !queryUtil.indexExists(securityDb, "IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL",
-					database, schema)) {
+			if (allowIfExistsIndexs
+					|| !queryUtil.indexExists(securityDb, "IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", database, schema)) {
 				String sql = allowIfExistsIndexs
 						? queryUtil.createIndexIfNotExists("IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", "USER_ID")
 						: queryUtil.createIndex("IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", "USER_ID");
@@ -3110,93 +2937,6 @@ public abstract class AbstractSecurityUtils {
 		}
 	}
 
-	/**
-	 * Moves the model usage limits a security database from before MODELUSAGELIMIT
-	 * keeps in a table's four limit columns, through the deprecated
-	 * {@link ModelUsageLimitColumnMigration}, which is safe when several servers
-	 * start at the same time.
-	 *
-	 * @param table ENGINEPERMISSION or SMSS_USER
-	 */
-	@SuppressWarnings("deprecation")
-	private static void moveModelUsageLimitColumns(IRDBMSEngine securityDb, Connection conn, String table,
-			List<String> columns, boolean allowIfExistsIndexs, String database, String schema) throws Exception {
-		ModelUsageLimitColumnMigration.move(securityDb, conn, table, columns, allowIfExistsIndexs, database, schema);
-	}
-
-	/**
-	 * Removes the table that kept the permissions engines gave apps before
-	 * {@code ENGINE2ENGINEPERMISSION} kept them with the permissions engines give
-	 * other engines, together with the App Limits on those permissions. Their
-	 * owners give them again. The limits go first, so a start up that stops between
-	 * the two removes them again on the next start.
-	 *
-	 * @param securityDb the security database
-	 * @param conn       a connection to it
-	 * @param queryUtil  its query utility
-	 * @param database   its database name
-	 * @param schema     its schema
-	 */
-	static void removeProjectEnginePermissionTable(IRDBMSEngine securityDb, Connection conn,
-			AbstractSqlQueryUtil queryUtil, String database, String schema) throws Exception {
-		if (!queryUtil.tableExists(conn, "PROJECTENGINEPERMISSION", database, schema)) {
-			return;
-		}
-		SecurityModelUsageLimitUtils.deleteLimitsOfType(conn, "PROJECT");
-		if (!conn.getAutoCommit()) {
-			conn.commit();
-		}
-		String sql = queryUtil.dropTable("PROJECTENGINEPERMISSION");
-		classLogger.info("Running sql {}", sql);
-		securityDb.removeData(sql);
-	}
-
-	/**
-	 * Gives the rows of a team table with no DATEADDED the current UTC time, so
-	 * every team grant and membership has a place in the order a person's model
-	 * calls are billed to their teams.
-	 *
-	 * @param securityDb the security database
-	 * @param table      GROUPENGINEPERMISSION or CUSTOMGROUPASSIGNMENT
-	 */
-	private static void setMissingDatesAdded(IRDBMSEngine securityDb, String table) throws Exception {
-		Timestamp now = Utility.getCurrentSqlTimestampUTC();
-		int updated = QueryExecutionUtility.executeUpdate(securityDb,
-				"UPDATE " + table + " SET DATEADDED = ? WHERE DATEADDED IS NULL", ps -> ps.setTimestamp(1, now));
-		if (updated > 0) {
-			classLogger.info("Set DATEADDED on {} rows of {} that had none", updated, table);
-		}
-	}
-
-	/**
-	 * Inserts rows on the connection of a startup stage's transaction, one
-	 * statement for each row, as {@link AbstractSqlQueryUtil#insertIntoTable}
-	 * builds it. The stages that add a table's default rows, or copy rows between
-	 * tables, use it.
-	 *
-	 * @param connection the connection of the stage's transaction
-	 * @param queryUtil  the security database's query utility
-	 * @param table      the table
-	 * @param colNames   the table's columns
-	 * @param types      the columns' types
-	 * @param rows       the values of each row, in column order
-	 * @throws Exception when a row cannot be inserted
-	 */
-	private static void insertRows(Connection connection, AbstractSqlQueryUtil queryUtil, String table,
-			String[] colNames, String[] types, Object[]... rows) throws Exception {
-		for (Object[] row : rows) {
-			QueryExecutionUtility.executeUpdate(connection, queryUtil.insertIntoTable(table, colNames, types, row),
-					QueryExecutionUtility.NO_PARAMETERS);
-		}
-	}
-
-	/**
-	 * Changes the login types stored in another case, or under a provider's alias,
-	 * to the provider's label, such as {@code Native} to {@code NATIVE} and
-	 * {@code ms} to {@code MICROSOFT}. Each table and column is changed in its own
-	 * transaction: one that fails is logged and keeps its values, and the others
-	 * are still changed.
-	 */
 	private static void updateUserTypeEnum() {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Map<String, String[]> allValues = new HashMap<>();
@@ -3207,7 +2947,6 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPENGINEPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPMANAGERS", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
-		allValues.put("ENGINE2ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPINSIGHTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPPROJECTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("INSIGHTACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });
@@ -3231,31 +2970,36 @@ public abstract class AbstractSecurityUtils {
 			// repeat for all columns
 			String[] columns = allValues.get(tableName);
 			for (String columnName : columns) {
-				// update every table -> column pair, in its own transaction
-				String query = "UPDATE " + tableName + " SET " + columnName + "=? WHERE LOWER(" + columnName
-						+ ")=? AND " + columnName + "<>?";
+				// update every table -> column pair
+				Connection conn = null;
+				PreparedStatement ps = null;
 				try {
-					QueryExecutionUtility.executeBatch(securityDb, query, providersByKey.entrySet(), (ps, entry) -> {
+					conn = securityDb.getConnection();
+					StringBuilder query = new StringBuilder();
+					query.append("UPDATE ").append(tableName).append(" SET ").append(columnName).append("=? WHERE ")
+							.append("LOWER(").append(columnName).append(")=? AND ").append(columnName).append("<>?");
+					ps = conn.prepareStatement(query.toString());
+
+					for (Map.Entry<String, AuthProvider> entry : providersByKey.entrySet()) {
 						String label = entry.getValue().getLabel();
 						ps.setString(1, label);
 						ps.setString(2, entry.getKey());
 						ps.setString(3, label);
-					});
-				} catch (RuntimeException e) {
-					throw e;
-				} catch (Exception e) {
+						ps.addBatch();
+					}
+					ps.executeBatch();
+					if (!conn.getAutoCommit()) {
+						conn.commit();
+					}
+				} catch (SQLException e) {
 					classLogger.error("Error updating legacy auth provider label in {}.{}.", tableName, columnName, e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, ps, null);
 				}
 			}
 		}
 	}
 
-	/**
-	 * Moves the users of the USER table, a name some databases do not allow, to
-	 * SMSS_USER. The table is made, every row is copied in one transaction, and
-	 * USER is renamed to OLD_USER_TABLE once the copy is saved. A copy that fails
-	 * saves no row, leaves USER as it is, and is thrown.
-	 */
 	@Deprecated
 	private static void performSmssUserTemporaryUpdate(IRDBMSEngine securityDb, AbstractSqlQueryUtil queryUtil,
 			String[] colNames, String[] types, Connection conn, String database, String schema,
@@ -3271,32 +3015,20 @@ public abstract class AbstractSecurityUtils {
 			}
 		}
 		StringBuilder query = new StringBuilder("SELECT ");
-		StringBuilder insertQuery = new StringBuilder("INSERT INTO SMSS_USER (");
-		StringBuilder placeholders = new StringBuilder();
+		Object[] input = new Object[colNames.length + 1];
+		input[0] = "SMSS_USER";
 		for (int i = 0; i < colNames.length; i++) {
+			input[i + 1] = colNames[i];
 			if (i > 0) {
 				query.append(", ");
-				insertQuery.append(", ");
-				placeholders.append(", ");
 			}
 			query.append(colNames[i]);
-			insertQuery.append(
-					queryUtil.isSelectorKeyword(colNames[i]) ? queryUtil.getEscapeKeyword(colNames[i]) : colNames[i]);
-			placeholders.append("?");
 		}
 		query.append(" FROM USER");
-		insertQuery.append(") VALUES (").append(placeholders).append(")");
-		// every row of USER is copied in one transaction
-		QueryExecutionUtility.write(securityDb, connection -> {
-			List<Object[]> users = QueryExecutionUtility.queryList(connection, query.toString(),
-					QueryExecutionUtility.NO_PARAMETERS, rs -> {
-						Object[] values = new Object[colNames.length];
-						for (int i = 0; i < values.length; i++) {
-							values[i] = rs.getObject(i + 1);
-						}
-						return values;
-					});
-			QueryExecutionUtility.executeBatch(connection, insertQuery.toString(), users, (insertPs, values) -> {
+		PreparedStatement insertPs = securityDb.bulkInsertPreparedStatement(input);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query.toString())) {
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
 				int index = 0;
 				String name = (String) values[index++];
 				String email = (String) values[index++];
@@ -3309,32 +3041,61 @@ public abstract class AbstractSecurityUtils {
 				Boolean publisher = Boolean.parseBoolean(values[index++] + "");
 
 				index = 1;
-				queryUtil.setNullableString(insertPs, index++, name);
-				queryUtil.setNullableString(insertPs, index++, email);
-				queryUtil.setNullableString(insertPs, index++, type);
-				queryUtil.setNullableString(insertPs, index++, id);
-				queryUtil.setNullableString(insertPs, index++, password);
-				queryUtil.setNullableString(insertPs, index++, salt);
-				queryUtil.setNullableString(insertPs, index++, username);
+				if (name == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, name);
+				}
+				if (email == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, email);
+				}
+				if (type == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, type);
+				}
+				if (id == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, id);
+				}
+				if (password == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, password);
+				}
+				if (salt == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, salt);
+				}
+				if (username == null) {
+					insertPs.setNull(index++, java.sql.Types.VARCHAR);
+				} else {
+					insertPs.setString(index++, username);
+				}
 				insertPs.setBoolean(index++, admin);
 				insertPs.setBoolean(index++, publisher);
-			});
-			return null;
-		});
+				insertPs.addBatch();
+			}
+		}
+		insertPs.executeBatch();
+		if (!insertPs.getConnection().getAutoCommit()) {
+			insertPs.getConnection().commit();
+		}
+		if (securityDb.isConnectionPooling()) {
+			insertPs.getConnection().close();
+		}
 		// now delete the user table
 		securityDb.insertData(queryUtil.alterTableName("USER", "OLD_USER_TABLE"));
 	}
 
-	/**
-	 * Fills the engine type of the project dependencies that have none: the
-	 * engine's type for an engine, and PROJECT for a project. Engines and projects
-	 * are filled in a transaction each; one that fails is logged and saves nothing,
-	 * and the other is still filled.
-	 *
-	 * @param securityDb the security database
-	 */
 	@Deprecated
-	private static void performDependencyUpdate(IRDBMSEngine securityDb) {
+	private static void performDependencyUpdate(IRDBMSEngine securityDb, AbstractSqlQueryUtil queryUtil,
+			String[] colNames, String[] types, Connection conn, String database, String schema,
+			boolean allowIfExistsTable) throws Exception {
 		String[] queryArray = new String[] { """
 				SELECT PROJECTDEPENDENCIES.ENGINEID, ENGINE.ENGINETYPE FROM ENGINE \
 				INNER JOIN PROJECTDEPENDENCIES on PROJECTDEPENDENCIES.ENGINEID=ENGINE.ENGINEID \
@@ -3344,37 +3105,52 @@ public abstract class AbstractSecurityUtils {
 				INNER JOIN PROJECTDEPENDENCIES on PROJECTDEPENDENCIES.ENGINEID=PROJECT.PROJECTID \
 				WHERE PROJECTDEPENDENCIES.ENGINETYPE IS NULL
 				""" };
-		String updateQuery = "UPDATE PROJECTDEPENDENCIES SET ENGINETYPE=? WHERE ENGINEID=?";
 
 		for (String query : queryArray) {
+			Map<String, String> existing = new HashMap<>();
+
+			Connection newConn = null;
+			PreparedStatement newPs = null;
+			ResultSet rs = null;
 			try {
-				QueryExecutionUtility.write(securityDb, connection -> {
-					Map<String, String> existing = new HashMap<>();
-					for (String[] row : QueryExecutionUtility.queryList(connection, query,
-							QueryExecutionUtility.NO_PARAMETERS,
-							rs -> new String[] { rs.getString(1), rs.getString(2) })) {
-						existing.put(row[0], row[1]);
+				newConn = securityDb.getConnection();
+				newPs = newConn.prepareStatement(query);
+				rs = newPs.executeQuery();
+				while (rs.next()) {
+					existing.put(rs.getString(1), rs.getString(2));
+				}
+			} catch (SQLException e) {
+				classLogger.error("Error reading PROJECTDEPENDENCIES engine types using query: {}", query, e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, newConn, newPs, rs);
+			}
+
+			if (!existing.isEmpty()) {
+				String updateQuery = "UPDATE PROJECTDEPENDENCIES SET ENGINETYPE=? WHERE ENGINEID=?";
+				try {
+					newConn = securityDb.getConnection();
+					newPs = newConn.prepareStatement(updateQuery);
+					for (String engineId : existing.keySet()) {
+						String engineType = existing.get(engineId);
+						newPs.setString(1, engineType);
+						newPs.setString(2, engineId);
+						newPs.addBatch();
 					}
-					if (!existing.isEmpty()) {
-						QueryExecutionUtility.executeBatch(connection, updateQuery, existing.entrySet(),
-								(ps, entry) -> {
-									ps.setString(1, entry.getValue());
-									ps.setString(2, entry.getKey());
-								});
+					newPs.executeBatch();
+					if (!newPs.getConnection().getAutoCommit()) {
+						newPs.getConnection().commit();
 					}
-					return null;
-				});
-			} catch (RuntimeException e) {
-				throw e;
-			} catch (Exception e) {
-				classLogger.error("Error filling PROJECTDEPENDENCIES engine types using query: {}", query, e);
+				} catch (SQLException e) {
+					classLogger.error("Error updating PROJECTDEPENDENCIES engine types using query: {}", updateQuery,
+							e);
+				} finally {
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, newConn, newPs, null);
+				}
 			}
 		}
 	}
 
 	/**
-	 * Whether an engine with this name exists in the security database. Also true
-	 * when ignoreDatabase leaves the name out of security.
 	 * 
 	 * @param engineName
 	 * @return
@@ -3389,18 +3165,18 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINENAME", "==", engineName));
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Error checking if engine name exists: {}", engineName, e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	/**
-	 * Whether a project with this name exists in the security database.
 	 * 
 	 * @param projectName
 	 * @return
@@ -3410,14 +3186,15 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTNAME", "==", projectName));
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Error checking if project name exists: {}", projectName, e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	public static boolean containsEngineId(String databaseId) {
@@ -3430,14 +3207,15 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", databaseId));
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Error checking if engine id exists: {}", databaseId, e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	public static boolean containsProjectId(String projectId) {
@@ -3454,14 +3232,15 @@ public abstract class AbstractSecurityUtils {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			if (wrapper.hasNext()) {
+				return true;
+			}
 		} catch (Exception e) {
 			classLogger.error("Error checking if project id exists: {}", projectId, e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	public static boolean ignoreDatabase(String databaseId) {
@@ -3474,7 +3253,7 @@ public abstract class AbstractSecurityUtils {
 			return true;
 		}
 		// so that way all those Asset apps do not appear a bunch of times
-		String smssFile = InternalUtility.getEngineSmssPath(databaseId) + "";
+		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";
 		File smssF = new File(smssFile);
 		if (smssFile != null && smssF.exists() && smssF.isFile()) {
 			Properties prop = Utility.loadProperties(smssFile);
@@ -4002,9 +3781,6 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * The sanitized ids of the teams the user is in across all their logins: each
-	 * login's provider teams from its access token plus the custom teams it is
-	 * assigned to, for use as query filter values.
 	 * 
 	 * @param user
 	 * @return
@@ -4075,8 +3851,6 @@ public abstract class AbstractSecurityUtils {
 	////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Checks that the email is well formed and, for a new user, that no account
-	 * uses it yet. Throws IllegalArgumentException when a check fails.
 	 * 
 	 * @param email
 	 * @param isNewUser
@@ -4092,8 +3866,6 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Checks that the password is not empty, meets the password requirements, and
-	 * is not one of the user's recent passwords. Throws when a check fails.
 	 * 
 	 * @param userId
 	 * @param type
@@ -4111,9 +3883,6 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Checks a phone number and strips it to its digits. It may hold only digits,
-	 * spaces, dots, parentheses and dashes, and must have 8 to 12 digits; a null or
-	 * empty number comes back as is.
 	 * 
 	 * @param phone
 	 * @return
@@ -4134,7 +3903,6 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Checks that the username is not empty and is not taken yet.
 	 * 
 	 * @param username
 	 * @throws IllegalArgumentException
@@ -4267,6 +4035,20 @@ public abstract class AbstractSecurityUtils {
 		ZonedDateTime zdt = ZonedDateTime.parse(endDate);
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
+	}
+
+	/**
+	 * Check if permission end date has expired
+	 * 
+	 * @param endDate
+	 */
+	public static boolean endDateIsExpired(SemossDate endDate) throws Exception {
+		LocalDateTime currentTime = LocalDateTime.now();
+		if (endDate == null) {
+			return false;
+		}
+		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
+		return formattedEndDate.isBefore(currentTime);
 	}
 
 }

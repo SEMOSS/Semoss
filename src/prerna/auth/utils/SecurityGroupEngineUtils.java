@@ -38,13 +38,13 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionProblem;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
+import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -97,6 +97,9 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENDDATE"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__PERMISSION", "!=", null,
 				PixelDataType.CONST_INT));
@@ -142,6 +145,15 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				Object val = values[0];
+				// check if permission is expired
+				SemossDate endDate = (SemossDate) values[1];
+				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
+					// need to delete expired permission
+					String groupId = (String) values[2];
+					String groupType = (String) values[3];
+					removeExpiredEngineGroupPermission(groupId, groupType, engineId);
+					continue;
+				}
 				if (val != null) {
 					// actually do not care what the value is - we have a record so that means we
 					// can at least view
@@ -167,6 +179,9 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENDDATE"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
+		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
@@ -211,6 +226,14 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				Object val = values[0];
+				SemossDate endDate = (SemossDate) values[1];
+				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
+					// Need to delete expired permission here
+					String permissionId = (String) values[2];
+					String permissionType = (String) values[3];
+					removeExpiredEngineGroupPermission(permissionId, permissionType, engineId);
+					continue;
+				}
 				if (val != null) {
 					bestGroupDatabasePermission = ((Number) val).intValue();
 				}
@@ -376,8 +399,8 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Gives a team access to an engine, as a permission batch, with no team limit
-	 * defined on a model. Only the engine's owners can.
+	 * Gives a team access to an engine, as a permission batch. Only the engine's
+	 * owners can.
 	 *
 	 * @param user       the user giving access
 	 * @param groupId    the team
@@ -390,36 +413,12 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId,
 			String permission, String endDate) throws IllegalAccessException {
-		addEngineGroupPermission(user, groupId, groupType, engineId, permission, endDate, null);
-	}
-
-	/**
-	 * Gives a team access to an engine, as a permission batch, with a team limit on
-	 * a model. Only the engine's owners can, since only they set team limits. The
-	 * limit is checked as in a batch: it can be set only on a model, and cost rules
-	 * only on a model with known prices.
-	 *
-	 * @param user       the user giving access
-	 * @param groupId    the team
-	 * @param groupType  the team's type
-	 * @param engineId   the engine
-	 * @param permission the level, by name; anything else is Read-Only
-	 * @param endDate    when the access ends, or null
-	 * @param usageLimit the team limit, with shared rules and rules for each
-	 *                   member, or null for no limit defined
-	 * @throws IllegalAccessException   when the user is not one of the engine's
-	 *                                  owners
-	 * @throws IllegalArgumentException when the team has access already, or the
-	 *                                  limit cannot be defined there
-	 */
-	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId,
-			String permission, String endDate, ModelUsageLimit usageLimit) throws IllegalAccessException {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
 				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
-						new PermissionGrant(permission, endDate).withUsageLimit(usageLimit))),
+						new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.userMode().withoutTeamExistsCheck().keepingTeamType(),
-				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"This group already has access to this engine. Please edit the existing permission level."));
 	}
 
@@ -438,25 +437,23 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__TYPE", "==", groupType));
-		Integer permission = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			if (wrapper.hasNext()) {
 				Object val = wrapper.next().getValues()[0];
 				if (val != null && val instanceof Number) {
-					permission = ((Number) val).intValue();
+					return ((Number) val).intValue();
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the group-based engine permission.", e);
 		}
 
-		return permission;
+		return null;
 	}
 
 	/**
-	 * Changes a team's access to an engine, as a permission batch, keeping its team
-	 * limit on a model and the date it was first given access. Only the engine's
-	 * owners can.
+	 * Changes a team's access to an engine, as a permission batch. Only the
+	 * engine's owners can.
 	 *
 	 * @param user          the user changing the access
 	 * @param groupId       the team
@@ -472,9 +469,9 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
 				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
 						new PermissionGrant(newPermission, endDate))),
-				PermissionBatchOptions.userMode().keepingTeamType().keepingModelLimits(),
-				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+				PermissionBatchOptions.userMode().keepingTeamType(),
+				new PermissionErrorRules(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify database permission for a group who does not currently have access to the database"));
 	}
 
@@ -494,9 +491,46 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
 				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
 				PermissionBatchOptions.userMode().keepingTeamType(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, OWNERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"Attempting to modify group permission for a user who does not currently have access to the database"));
+	}
+
+	/**
+	 * Delete a group database permission
+	 * 
+	 * @param user
+	 * @param groupId
+	 * @param groupType
+	 * @param engineId
+	 * @return
+	 * @throws IllegalAccessException
+	 */
+	public static void removeExpiredEngineGroupPermission(String groupId, String groupType, String engineId)
+			throws IllegalAccessException {
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+
+		// make sure we are trying to edit a permission that exists
+		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
+		if (existingGroupPermission == null) {
+			throw new IllegalArgumentException(
+					"Attempting to modify group permission for a user who does not currently have access to the database");
+		}
+
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=? AND ENGINEID=?", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, engineId);
+					});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Unable to retrieve the group-based engine permission.", e);
+		}
 	}
 
 	/**

@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -112,13 +111,14 @@ public class FrameHeadersReactor extends AbstractFrameReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Returns a frame's name, type and column headers, with each header's details and whether it is filtered. Uses the insight's current frame when none is given.")
-				.key(HEADER_TYPES,
-						key -> key.list(String.class).description("Indicates header data types to be returned"))
-				.key(RESET, key -> key.type(Boolean.class)
-						.description("Boolean to tell the UI to reset the frame headers currently exposed"));
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(HEADER_TYPES)) {
+			return "Indicates header data types to be returned";
+		} else if (key.equals(RESET)) {
+			return "Boolean to tell the UI to reset the frame headers currently exposed";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

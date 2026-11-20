@@ -88,9 +88,8 @@ public class AdminMyEnginesReactorUnitTests {
 
 	@Test
 	void testKeysToGet() {
-		assertEquals(14, reactor.keysToGet.length);
+		assertEquals(10, reactor.keysToGet.length);
 		assertEquals(ReactorKeysEnum.FILTER_WORD.getKey(), reactor.keysToGet[0]);
-		assertEquals("createdByMe", reactor.keysToGet[13]);
 	}
 
 	@Test
@@ -109,7 +108,8 @@ public class AdminMyEnginesReactorUnitTests {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-			stubEngineSettings(s, new ArrayList<>());
+			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+					.thenReturn(new ArrayList<>());
 
 			NounMetadata result = reactor.execute();
 
@@ -120,7 +120,7 @@ public class AdminMyEnginesReactorUnitTests {
 
 	@Test
 	void testGetDescriptionForSortKey() {
-		String desc = reactor.getReactorDefinition().getKey(ReactorKeysEnum.SORT.getKey()).getDescription();
+		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.SORT.getKey());
 		assertNotNull(desc);
 		assertEquals(
 				"The sort is a map with key and direction. Supported keys are 'ENGINENAME' and 'DATECREATED'. Use values like 'ASC' or 'DESC'. 'ENGINENAME' sorting is case-insensitive.",
@@ -129,17 +129,19 @@ public class AdminMyEnginesReactorUnitTests {
 
 	@Test
 	void testGetDescriptionForEngineKey() {
-		String desc = reactor.getReactorDefinition().getKey(ReactorKeysEnum.ENGINE.getKey()).getDescription();
+		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.ENGINE.getKey());
 		assertEquals("This is an optional engine filter", desc);
 	}
 
 	@Test
 	void testGetDescriptionForOtherKey() {
-		// A key the reactor does not take has no entry
-		assertEquals(null, reactor.getReactorDefinition().getKey("unknownKey"));
+		// Unknown keys delegate to super, which returns null
+		String desc = reactor.getDescriptionForKey("unknownKey");
+		assertEquals(null, desc);
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void testSuccessWithNonEmptyResultsAndMetadata() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
@@ -152,7 +154,8 @@ public class AdminMyEnginesReactorUnitTests {
 			engine.put("database_id", "eng1");
 			results.add(engine);
 
-			stubEngineSettings(s, results);
+			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
 			when(wrapper.hasNext()).thenReturn(true, true, false);
@@ -167,15 +170,16 @@ public class AdminMyEnginesReactorUnitTests {
 
 			assertNotNull(result);
 			assertEquals(PixelDataType.CUSTOM_DATA_STRUCTURE, result.getNounType());
-			List<?> value = (List<?>) result.getValue();
+			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
 			assertEquals(1, value.size());
 			// Verify metadata was added - second value should create a list
-			Object desc = ((Map<?, ?>) value.get(0)).get("description");
+			Object desc = value.get(0).get("description");
 			assertNotNull(desc);
 		}
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void testSuccessWithNonEmptyResultsNullMetaValue() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
@@ -188,7 +192,8 @@ public class AdminMyEnginesReactorUnitTests {
 			engine.put("database_id", "eng1");
 			results.add(engine);
 
-			stubEngineSettings(s, results);
+			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
 			when(wrapper.hasNext()).thenReturn(true, false);
@@ -200,14 +205,15 @@ public class AdminMyEnginesReactorUnitTests {
 			NounMetadata result = reactor.execute();
 
 			assertNotNull(result);
-			List<?> value = (List<?>) result.getValue();
+			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
 			assertEquals(1, value.size());
 			// Null meta value should be skipped
-			assertEquals(false, ((Map<?, ?>) value.get(0)).containsKey("description"));
+			assertEquals(false, value.get(0).containsKey("description"));
 		}
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void testSuccessWithUserTracking() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);
@@ -222,7 +228,8 @@ public class AdminMyEnginesReactorUnitTests {
 			engine.put("database_id", "eng1");
 			results.add(engine);
 
-			stubEngineSettings(s, results);
+			when(s.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+					.thenReturn(results);
 
 			// noMeta=true (skip metadata), includeUserT=true (include user tracking)
 			reactor.keyValue.put(ReactorKeysEnum.NO_META.getKey(), "true");
@@ -243,19 +250,10 @@ public class AdminMyEnginesReactorUnitTests {
 			NounMetadata result = reactor.execute();
 
 			assertNotNull(result);
-			List<?> value = (List<?>) result.getValue();
+			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
 			assertEquals(1, value.size());
-			assertEquals(5, ((Map<?, ?>) value.get(0)).get("upvotes"));
-			assertEquals(true, ((Map<?, ?>) value.get(0)).get("hasUpvoted"));
+			assertEquals(5, value.get(0).get("upvotes"));
+			assertEquals(true, value.get(0).get("hasUpvoted"));
 		}
-	}
-
-	/**
-	 * Stubs the admin engine list to return the engines given when the reactor reads
-	 * it with no filters.
-	 */
-	private static void stubEngineSettings(SecurityAdminUtils adminUtils, List<Map<String, Object>> engines) {
-		when(adminUtils.getAllEngineSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
-				isNull(), isNull(), eq(List.of()))).thenReturn(engines);
 	}
 }

@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.io.connector.ms.outlook;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -66,14 +67,16 @@ public class MicrosoftOutlookDownloadAttachmentReactor extends AbstractDownloadA
 			throw new IllegalArgumentException("The attachment '" + chosen.get(NAME)
 					+ "' is not a file. An embedded message or a link to a file in a drive has no bytes to save.");
 		}
-		String name = String.valueOf(chosen.get(NAME));
-		if (chosen.get("size") instanceof Number size) {
-			MicrosoftOutlookMailHelper.checkDownloadSize(size.longValue(), name);
-		}
 		// only the one attachment is read with its bytes
-		byte[] bytes = helper.getAttachmentBytes(accessToken, null, id, String.valueOf(chosen.get("id")), name);
-		return new MailAttachmentContent(String.valueOf(chosen.get("id")), name,
-				chosen.get("contentType") == null ? null : chosen.get("contentType").toString(), bytes);
+		Map<String, Object> attachment = helper.getAttachment(accessToken, null, id, String.valueOf(chosen.get("id")));
+		Object contentBytes = attachment == null ? null : attachment.get("contentBytes");
+		if (contentBytes == null) {
+			throw new IllegalArgumentException(
+					"Microsoft Graph returned no content for the attachment: " + chosen.get(NAME));
+		}
+		return new MailAttachmentContent(String.valueOf(chosen.get("id")), String.valueOf(chosen.get(NAME)),
+				chosen.get("contentType") == null ? null : chosen.get("contentType").toString(),
+				Base64.getDecoder().decode(contentBytes.toString()));
 	}
 
 	/**

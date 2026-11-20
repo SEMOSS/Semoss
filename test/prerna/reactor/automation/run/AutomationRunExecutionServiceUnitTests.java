@@ -283,8 +283,8 @@ public class AutomationRunExecutionServiceUnitTests {
 	}
 
 	@Test
-	void retainsInteractiveRunInsightUnderTheThreadsSession() {
-		String sessionId = "session-on-the-thread";
+	void retainsInteractiveRunInsightUsingTheLoggedSessionContext() {
+		String sessionId = "session-from-log-context";
 		String projectId = "project-automation-test";
 		String runId = UUID.randomUUID().toString();
 		String executionInsightId = "automation-" + runId;
@@ -293,9 +293,9 @@ public class AutomationRunExecutionServiceUnitTests {
 		requestInsight.setSchedulerMode(false);
 
 		ThreadStore.remove();
-		ThreadStore.setSessionId(sessionId);
+		ThreadContext.put(SemossLogUtils.SESSION_ID, sessionId);
 		AutomationRunExecutionService service = new AutomationRunExecutionService(requestInsight, null);
-		ThreadStore.remove();
+		ThreadContext.remove(SemossLogUtils.SESSION_ID);
 		try (var utility = mockStatic(Utility.class)) {
 			utility.when(() -> Utility.getProject(projectId)).thenReturn(null);
 			AutomationRunExecutionService.ExecutionInsightLease lease =
@@ -305,33 +305,6 @@ public class AutomationRunExecutionServiceUnitTests {
 			assertTrue(InsightStore.getInstance().getInsightIDsForSession(sessionId).contains(executionInsightId));
 		} finally {
 			InsightStore.getInstance().removeFromSessionHash(sessionId, executionInsightId);
-			InsightStore.getInstance().remove(executionInsightId);
-			ThreadStore.remove();
-		}
-	}
-
-	@Test
-	void theSessionHashInTheLogContextIsNeverTakenAsTheSession() {
-		String sessionHash = "hash-in-the-log-context";
-		String projectId = "project-automation-test";
-		String runId = UUID.randomUUID().toString();
-		String executionInsightId = "automation-" + runId;
-		Insight requestInsight = new Insight();
-		requestInsight.setUser(mock(User.class));
-		requestInsight.setSchedulerMode(false);
-
-		ThreadStore.remove();
-		ThreadContext.put(SemossLogUtils.SESSION_ID, sessionHash);
-		AutomationRunExecutionService service = new AutomationRunExecutionService(requestInsight, null);
-		ThreadContext.remove(SemossLogUtils.SESSION_ID);
-		try (var utility = mockStatic(Utility.class)) {
-			utility.when(() -> Utility.getProject(projectId)).thenReturn(null);
-			AutomationRunExecutionService.ExecutionInsightLease lease =
-					service.openExecutionInsight(projectId, runId);
-
-			assertTrue(lease.cleanupOnCompletion());
-			assertNull(InsightStore.getInstance().getInsightIDsForSession(sessionHash));
-		} finally {
 			InsightStore.getInstance().remove(executionInsightId);
 			ThreadContext.remove(SemossLogUtils.SESSION_ID);
 			ThreadStore.remove();
@@ -493,15 +466,6 @@ public class AutomationRunExecutionServiceUnitTests {
 		} finally {
 			InsightStore.getInstance().remove(insightId);
 		}
-	}
-
-	@Test
-	void anAgentNodesToolsBecomeItsRoomsMcpOption() {
-		Map<String, Object> options = AutomationRunExecutionService.generatedAgentRoomOptions(Map.of(
-				AutomationConstants.CONFIG_MCPS, List.of(Map.of("id", " engine-1 ", "name", "Sales DB", "type", "DATABASE"),
-						Map.of("id", "", "name", "Blank", "type", "PROJECT"), "project-1")));
-		assertEquals(Map.of("mcp", List.of(Map.of("id", "engine-1", "name", "Sales DB", "type", "DATABASE"))), options);
-		assertNull(AutomationRunExecutionService.generatedAgentRoomOptions(Map.of(AutomationConstants.CONFIG_MCPS, List.of())));
 	}
 
 	@Test

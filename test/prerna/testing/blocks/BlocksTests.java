@@ -42,8 +42,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Test;
 
-import prerna.auth.utils.reactors.admin.AdminAddBlockReactor;
-import prerna.auth.utils.reactors.admin.AdminDeleteBlockReactor;
+import prerna.reactor.blocks.AddBlockReactor;
+import prerna.reactor.blocks.DeleteBlockReactor;
 import prerna.reactor.blocks.GetClientBlocksReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -73,7 +73,7 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 
 	private String validateAdd() {
 		Map<String, Object> inputMap = makeTestObject();
-		String pixel = ApiSemossTestUtils.buildPixelCall(AdminAddBlockReactor.class,
+		String pixel = ApiSemossTestUtils.buildPixelCall(AddBlockReactor.class,
 				ReactorKeysEnum.NAME.getKey(), inputMap.get("name"),
 				ReactorKeysEnum.SECTION.getKey(), inputMap.get("section"),
 				ReactorKeysEnum.JSON.getKey(), inputMap.get("block_json"));
@@ -127,7 +127,7 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 	@Test
 	public void checkSoftDelete() {
 		String outputId = validateAdd();
-		String pixel = ApiSemossTestUtils.buildPixelCall(AdminDeleteBlockReactor.class, "blockId", outputId);
+		String pixel = ApiSemossTestUtils.buildPixelCall(DeleteBlockReactor.class, "blockId", outputId);
 		System.out.println(pixel);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		assertEquals(true, nm.getValue());
@@ -149,7 +149,7 @@ public class BlocksTests extends AbstractBaseSemossApiTests {
 	@Test
 	public void checkHardDelete() {
 		String outputId = validateAdd();
-		String pixel = ApiSemossTestUtils.buildPixelCall(AdminDeleteBlockReactor.class, "blockId", outputId, "hardDelete", true);
+		String pixel = ApiSemossTestUtils.buildPixelCall(DeleteBlockReactor.class, "blockId", outputId, "hardDelete", true);
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 		assertEquals(true, nm.getValue());
 		

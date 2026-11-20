@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -91,10 +90,15 @@ public class MicrosoftOneDriveListDrivesReactor extends AbstractMicrosoftOneDriv
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"List the OneDrive drives the signed in user can reach: their own, and the drives holding the files shared with them.")
-				.key(ReactorKeysEnum.LIMIT,
-						"Optional maximum number of drives to return. All drives are returned when omitted.");
+	public String getReactorDescription() {
+		return "List the OneDrive drives the signed in user can reach: their own, and the drives holding the files shared with them.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Optional maximum number of drives to return. All drives are returned when omitted.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

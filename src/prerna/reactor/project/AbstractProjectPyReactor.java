@@ -35,7 +35,6 @@ import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -51,13 +50,19 @@ public abstract class AbstractProjectPyReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
-			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
+		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disable_terminal != null && !disable_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_terminal)) {
+				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
+			}
 		}
 
 		// check if py terminal is disabled
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_PY_TERMINAL))) {
-			throw new IllegalArgumentException("Python terminal has been disabled.");
+		String disable_py_terminal = Utility.getDIHelperProperty(Constants.DISABLE_PY_TERMINAL);
+		if (disable_py_terminal != null && !disable_py_terminal.isEmpty()) {
+			if (Boolean.parseBoolean(disable_py_terminal)) {
+				throw new IllegalArgumentException("Python terminal has been disabled.");
+			}
 		}
 
 		if (!PyUtils.pyEnabled()) {
@@ -66,13 +71,18 @@ public abstract class AbstractProjectPyReactor extends AbstractReactor {
 
 		organizeKeys();
 		String projectId = resolveContextEngineId(this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
+
+		String code = getDecodedCode();
+
+		// make sure valid id for user
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			// you don't have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
-		IProject project = Utility.getProject(projectId);
 
+		IProject project = Utility.getProject(projectId);
 		PyTranslator projectPyTranslator = project.getProjectPyTranslator();
-		String code = getDecodedCode();
 		Object output = projectPyTranslator.runScript(code);
 
 		List<NounMetadata> outputs = new ArrayList<>(1);
@@ -81,8 +91,8 @@ public abstract class AbstractProjectPyReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Run Python code in the project's dedicated python process");
+	public String getReactorDescription() {
+		return "Run Python code in the project's dedicated python process";
 	}
 
 	/**

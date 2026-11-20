@@ -40,7 +40,6 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.om.Insight;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.sablecc2.PixelRunner;
-import prerna.security.SecretRedactor;
 
 public final class PixelJobManager {
 
@@ -182,7 +181,7 @@ public final class PixelJobManager {
 		JobOutputHolder<String> holder = jobError.computeIfAbsent(jobId, k -> new JobOutputHolder<>());
 		holder.lock.lock();
 		try {
-			holder.outputList.add(SecretRedactor.redactError(stdErr));
+			holder.outputList.add(stdErr);
 		} finally {
 			holder.lock.unlock();
 		}

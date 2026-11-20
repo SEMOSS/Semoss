@@ -69,17 +69,6 @@ public abstract class AbstractMessage {
 	@SerializedName("parts")
 	protected List<MessagePart> parts = new ArrayList<>();
 
-	@SerializedName("google_interactions")
-	protected Map<String, Object> googleInteractions;
-
-	public Map<String, Object> getGoogleInteractions() {
-		return googleInteractions;
-	}
-
-	public void setGoogleInteractions(Object state) {
-		this.googleInteractions = GoogleInteractionsState.validate(state);
-	}
-
 	protected String modelId;
 	protected ModelTypeEnum modelType;
 	protected String messageId;
@@ -131,7 +120,6 @@ public abstract class AbstractMessage {
 	 * vice-versa).
 	 */
 	public void normalizeAfterLoad(Room room) {
-		GoogleInteractionsState.validate(googleInteractions);
 		if (room != null) {
 			setRoom(room);
 		}
@@ -142,7 +130,6 @@ public abstract class AbstractMessage {
 	 * format.
 	 */
 	public void normalizeForWrite() {
-		GoogleInteractionsState.validate(googleInteractions);
 		if (agentRun != null) {
 			agentRun.validate();
 		}

@@ -33,10 +33,10 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -57,7 +57,10 @@ public class FetchAppNotificationsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
 		organizeKeys();
-		User user = requireUser();
+		User user = this.insight.getUser();
+		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
+			throwAnonymousUserError();
+		}
 
 		String projectId = getInsightProjectId();
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
@@ -74,9 +77,8 @@ public class FetchAppNotificationsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Fetch notifications for the project bound to the current insight");
+	public String getReactorDescription() {
+		return "Fetch notifications for the project bound to the current insight";
 	}
 
 	private String getInsightProjectId() {

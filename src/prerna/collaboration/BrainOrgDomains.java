@@ -34,8 +34,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.text.similarity.LevenshteinDistance;
-
 import com.google.common.net.InternetDomainName;
 
 // the owner's own organisation: their domain and the Microsoft tenant's verified domains (read at import),
@@ -56,11 +54,6 @@ public final class BrainOrgDomains {
 
 		private Org(Set<String> domains) {
 			this.domains = domains;
-		}
-
-		/** The organisation's domains, as saved. */
-		public Set<String> domains() {
-			return Set.copyOf(domains);
 		}
 
 		/**
@@ -120,63 +113,6 @@ public final class BrainOrgDomains {
 					organization.get("name"), CollaborationDbUtils.toJson(domains), CollaborationDbUtils.now(), ownerId,
 					ownerType);
 		}
-	}
-
-	/**
-	 * The known organisation a sender's domain imitates, or null: the same name under another ending
-	 * (adatum.co for adatum.com), the name with a word added (adatum-payments.com), or the name one or two
-	 * letters off (adaturn.com). A domain that is one of the known organisations imitates nothing.
-	 */
-	static String lookalike(String domain, Collection<String> known) {
-		String org = registrable(domain);
-		if (org == null || known == null || known.contains(org)) {
-			return null;
-		}
-		String name = name(org);
-		for (String k : known) {
-			// a verified subdomain (partners.adatum.com) is the organisation, not a name of its own
-			String kOrg = registrable(k);
-			if (kOrg == null) {
-				continue;
-			}
-			if (kOrg.equals(org)) {
-				return null;
-			}
-			String other = name(kOrg);
-			// short names collide by chance: "acme" and "acne" are two companies
-			if (other.length() < 5 || name.length() < 5) {
-				continue;
-			}
-			if (name.equals(other) || name.startsWith(other + "-") || name.endsWith("-" + other)
-					|| other.startsWith(name + "-") || other.endsWith("-" + name)
-					|| LevenshteinDistance.getDefaultInstance().apply(name, other) <= (other.length() >= 9 ? 2 : 1)) {
-				return kOrg;
-			}
-		}
-		return null;
-	}
-
-	// org(), and for an ending the public suffix list does not know, the last two labels
-	private static String registrable(String domain) {
-		String org = org(domain);
-		if (org == null || org.endsWith(".gov") || org.endsWith(".mil")) {
-			return org;
-		}
-		String[] labels = org.split("\\.");
-		try {
-			if (labels.length > 2 && !InternetDomainName.from(org).isUnderPublicSuffix()) {
-				return labels[labels.length - 2] + "." + labels[labels.length - 1];
-			}
-		} catch (IllegalArgumentException | IllegalStateException e) {
-			return org;
-		}
-		return org;
-	}
-
-	// the organisation's own name in its domain: "adatum" for adatum.co.uk
-	private static String name(String org) {
-		int dot = org.indexOf('.');
-		return dot < 0 ? org : org.substring(0, dot);
 	}
 
 	// the organisation's domain: mail.adatum.example is adatum.example; .gov and

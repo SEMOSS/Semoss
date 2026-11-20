@@ -111,8 +111,6 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 		String endDate = ZonedDateTime.now().minusDays(2).toString();
 		SecurityGroupEngineUtils.addEngineGroupPermission(user, "groupId1", "CUSTOM", "eid1", "READ_ONLY", endDate);
 
-		ExpiredAccessRemoval.removeAllEndedAccess();
-
 		assertFalse(SecurityGroupEngineUtils.userGroupCanViewEngine(user, "eid1"));
 		assertNull(SecurityGroupEngineUtils.getGroupDatabasePermission("groupId1", "CUSTOM", "eid1"));
 	}
@@ -162,8 +160,6 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		String endDate = ZonedDateTime.now().minusDays(2).toString();
 		SecurityGroupEngineUtils.addEngineGroupPermission(user, "groupId1", "CUSTOM", "eid1", "EDIT", endDate);
-
-		ExpiredAccessRemoval.removeAllEndedAccess();
 
 		assertFalse(SecurityGroupEngineUtils.userGroupCanEditEngine(user, "eid1"));
 		assertNull(SecurityGroupEngineUtils.getGroupDatabasePermission("groupId1", "CUSTOM", "eid1"));
@@ -433,6 +429,35 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 		SecurityGroupEngineUtils.addEngineGroupPermission(user, "groupId1", "CUSTOM", "eid1", "EDIT", endDate);
 
 		SecurityGroupEngineUtils.removeDatabaseGroupPermission(user2, "groupId1", "CUSTOM", "eid1");
+
+		assertNull(SecurityGroupEngineUtils.getGroupDatabasePermission("groupId1", "CUSTOM", "eid1"));
+	}
+
+	@Test
+	void testRemoveExpiredEngineGroupPermission_NoPermission() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.createEngine("eid1", "ename1", user);
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> SecurityGroupEngineUtils.removeExpiredEngineGroupPermission("groupId1", "CUSTOM", "eid1"));
+		assertEquals(
+				"Attempting to modify group permission for a user who does not currently have access to the database",
+				e.getMessage());
+	}
+
+	@Test
+	void testRemoveExpiredEngineGroupPermission() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.createEngine("eid1", "ename1", user);
+
+		String endDate = ZonedDateTime.now().minusDays(2).toString();
+		SecurityGroupEngineUtils.addEngineGroupPermission(user, "groupId1", "CUSTOM", "eid1", "EDIT", endDate);
+
+		SecurityGroupEngineUtils.removeExpiredEngineGroupPermission("groupId1", "CUSTOM", "eid1");
 
 		assertNull(SecurityGroupEngineUtils.getGroupDatabasePermission("groupId1", "CUSTOM", "eid1"));
 	}

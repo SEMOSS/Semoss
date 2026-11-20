@@ -68,6 +68,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.MosfetSyncHelper;
 import prerna.util.Utility;
 import prerna.util.git.GitPushUtils;
@@ -97,6 +98,10 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		String projectId = getProject();
 
 		User user = this.insight.getUser();
+		// security
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
+			throwAnonymousUserError();
+		}
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException("User does not have permission to add insights in the project");
 		}
@@ -184,10 +189,6 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
-		if (!project.getProjectType().holdsInsights()) {
-			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
-					+ " project, which does not hold insights");
-		}
 
 		// pull the insights db again incase someone just saved something
 		ClusterUtil.pullProjectFolder(project,
@@ -222,8 +223,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				recipeToSave = PixelUtility.parameterizeRecipe(this.insight, recipeToSave, recipeIds, params,
 						insightName);
 			} catch (Exception e) {
-				classLogger.error("Failed to parameterize the recipe of insight {} in project {}", insightName,
-						projectId, e);
+				classLogger.error(Constants.STACKTRACE, e);
 				throw new IllegalArgumentException(
 						"An error occurred trying to parameterize the insight recipe. The source error message is: "
 								+ e.getMessage(),
@@ -263,8 +263,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 				FileUtils.copyDirectory(tempInsightFolder, newInsightFolder);
 				logger.info(stepCounter + ") Done...");
 			} catch (IOException e) {
-				SaveInsightReactor.classLogger.error("Failed to copy the assets of insight {} from {} to {}",
-						newInsightId, tempInsightFolder, newInsightFolder, e);
+				SaveInsightReactor.classLogger.error(Constants.STACKTRACE, e);
 				logger.info(stepCounter + ") Unable to move assets...");
 			}
 		} else {
@@ -283,8 +282,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 					layout, recipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
 					description, tags, schemaName, true);
 		} catch (IOException e) {
-			SaveInsightReactor.classLogger.error("Failed to write the mosfet file of insight {} in project {}",
-					newInsightId, projectId, e);
+			SaveInsightReactor.classLogger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to save recipe file...");
 		}
 		logger.info(stepCounter + ") Done...");
@@ -300,9 +298,11 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 
 		// adding insight files to git
-		try (Stream<Path> walk = Files.walk(Paths.get(newInsightFolder.toURI()))) {
+		Stream<Path> walk = null;
+		try {
 			String projectVersion = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 			// grab relative file paths
+			walk = Files.walk(Paths.get(newInsightFolder.toURI()));
 			List<String> files = walk
 					.map(x -> newInsightId + DIR_SEPARATOR
 							+ newInsightFolder.toURI().relativize(new File(x.toString()).toURI()).getPath().toString())
@@ -326,9 +326,12 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			}
 			logger.info(stepCounter + ") Done...");
 		} catch (Exception e) {
-			SaveInsightReactor.classLogger.error("Failed to add insight {} to the git history of project {}",
-					newInsightId, projectId, e);
+			SaveInsightReactor.classLogger.error(Constants.STACKTRACE, e);
 			logger.info(stepCounter + ") Unable to add insight to git...");
+		} finally {
+			if (walk != null) {
+				walk.close();
+			}
 		}
 		stepCounter++;
 
@@ -396,7 +399,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			boolean cacheEncrypt, List<String> recipe, String description, List<String> tags,
 			Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds, String schemaName) {
 		String projectId = project.getProjectId();
-		SecurityInsightUtils.addInsight(this.insight.getUser(), projectId, insightIdToSave, insightName, global, layout, cacheable,
+		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, global, layout, cacheable,
 				cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 		if (this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
@@ -404,14 +407,14 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if (description != null) {
 			admin.updateInsightDescription(insightIdToSave, description);
-			SecurityInsightUtils.updateInsightDescription(this.insight.getUser(), projectId, insightIdToSave, description);
+			SecurityInsightUtils.updateInsightDescription(projectId, insightIdToSave, description);
 		}
 		if (tags != null) {
 			admin.updateInsightTags(insightIdToSave, tags);
-			SecurityInsightUtils.updateInsightTags(this.insight.getUser(), projectId, insightIdToSave, tags);
+			SecurityInsightUtils.updateInsightTags(projectId, insightIdToSave, tags);
 		}
 		if (insightFrames != null && !insightFrames.isEmpty()) {
-			SecurityInsightUtils.updateInsightFrames(this.insight.getUser(), projectId, insightIdToSave, insightFrames);
+			SecurityInsightUtils.updateInsightFrames(projectId, insightIdToSave, insightFrames);
 		}
 		// keep track of any engines used
 		UserTrackingUtils.addEngineUsage(queriedDatabaseIds, insightIdToSave, projectId);

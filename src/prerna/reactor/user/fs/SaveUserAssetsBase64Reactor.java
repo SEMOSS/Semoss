@@ -29,10 +29,8 @@ package prerna.reactor.user.fs;
 
 import java.util.List;
 
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
-import prerna.util.FileSystemUtil.SavedAsset;
 
 public class SaveUserAssetsBase64Reactor extends AbstractSaveUserAssetsReactor {
 
@@ -40,28 +38,33 @@ public class SaveUserAssetsBase64Reactor extends AbstractSaveUserAssetsReactor {
 
 	public SaveUserAssetsBase64Reactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.CONTENT.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey(), DECODE, ReactorKeysEnum.OVERRIDE.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), DECODE };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
-	protected List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents,
-			boolean override) {
+	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
 		boolean decode = getBoolean(DECODE, true);
-		return FileSystemUtil.saveAssetFilesBase64(assetFolder, filePaths, contents, decode, override);
+		FileSystemUtil.saveAssetFilesBase64(assetFolder, filePaths, contents, decode);
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Save a single or multiple files in the user's assets folder. Content for each file is provided as base64 utf-8 encoded input.")
-				.key(ReactorKeysEnum.FILE_PATH,
-						"Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
-				.key(ReactorKeysEnum.CONTENT, "Contents of the file(s) to save. Content is base64 utf-8 string.")
-				.key(ReactorKeysEnum.COMMENT_KEY,
-						"Comment to add while saving the files within the git repository for the user's asset project")
-				.key(DECODE,
-						"Boolean to decode the base64 utf-8 content string before writing to the file. Default is true");
+	public String getReactorDescription() {
+		return "Save a single or multiple files in the user's assets folder. Content for each file is provided as base64 utf-8 encoded input.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
+		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
+			return "Contents of the file(s) to save. Content is base64 utf-8 string.";
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while saving the files within the git repository for the user's asset project";
+		} else if (key.equals(DECODE)) {
+			return "Boolean to decode the base64 utf-8 content string before writing to the file. Default is true";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

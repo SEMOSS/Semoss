@@ -30,10 +30,7 @@ package prerna.usertracking;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -41,9 +38,6 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.Test;
 
-import prerna.auth.AuthProvider;
-import prerna.auth.User;
-import prerna.security.SessionIds;
 import prerna.util.JdbcTestDatabase;
 import prerna.util.Utility;
 
@@ -81,7 +75,7 @@ class UserTrackingUtilsUnitTests {
 	}
 
 	@Test
-	void queryTrackingWithoutUserStoresExactSqlWithoutBorrowingExtraConnections() throws Exception {
+	void anonymousQueryTrackingStoresExactSqlWithoutBorrowingExtraConnections() throws Exception {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class, CALLS_REAL_METHODS)) {
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
 			db.execute(
@@ -114,53 +108,6 @@ class UserTrackingUtilsUnitTests {
 			assertEquals(1, db.count("ENGINE_USES"));
 			UserTrackingUtils.deleteEngine("engine");
 			assertEquals(0, db.count("ENGINE_USES"));
-		}
-	}
-
-	@Test
-	void engineDeletionClearsEveryTrackingTableTogether() throws Exception {
-		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class, CALLS_REAL_METHODS)) {
-			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			db.execute("CREATE TABLE ENGINE_USES (ENGINEID VARCHAR)", "CREATE TABLE ENGINE_VIEWS (ENGINEID VARCHAR)",
-					"CREATE TABLE USER_CATALOG_VOTES (ENGINEID VARCHAR PRIMARY KEY)",
-					"CREATE TABLE VOTE_GUARD (ENGINEID VARCHAR REFERENCES USER_CATALOG_VOTES(ENGINEID))",
-					"INSERT INTO ENGINE_USES VALUES ('engine')", "INSERT INTO ENGINE_VIEWS VALUES ('engine')",
-					"INSERT INTO USER_CATALOG_VOTES VALUES ('engine')", "INSERT INTO VOTE_GUARD VALUES ('engine')");
-			db.manual();
-			assertDoesNotThrow(() -> UserTrackingUtils.deleteEngine("engine"));
-			assertEquals(1, db.count("ENGINE_USES"));
-			assertEquals(1, db.count("ENGINE_VIEWS"));
-			assertEquals(1, db.count("USER_CATALOG_VOTES"));
-			verify(db.connection).rollback();
-			verify(db.connection, never()).commit();
-			db.execute("DELETE FROM VOTE_GUARD");
-			UserTrackingUtils.deleteEngine("engine");
-			assertEquals(0, db.count("ENGINE_USES"));
-			assertEquals(0, db.count("ENGINE_VIEWS"));
-			assertEquals(0, db.count("USER_CATALOG_VOTES"));
-			verify(db.connection, times(1)).commit();
-			verify(db.engine, times(2)).getConnection();
-		}
-	}
-
-	@Test
-	void aSessionIsTrackedByItsHashAndItsLogoutFindsTheSameRow() {
-		String sessionId = "3F2A9C1B7E6D5A4F8B0C1D2E3F4A5B6C";
-		IUserTracking tracker = mock(IUserTracking.class);
-		User user = mock(User.class);
-		try (var utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
-				var factory = mockStatic(UserTrackingFactory.class)) {
-			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
-			utility.when(() -> Utility.getDIHelperProperty(SessionIds.SALT_PROPERTY)).thenReturn("pepper");
-			factory.when(UserTrackingFactory::getUserTrackingConnector).thenReturn(tracker);
-			String sessionHash = SessionIds.hash(sessionId);
-
-			UserTrackingUtils.registerLogin(sessionId, "10.0.0.1", user, AuthProvider.NATIVE);
-			UserTrackingUtils.registerLogout(sessionId);
-
-			verify(tracker).registerLogin(sessionHash, "10.0.0.1", user, AuthProvider.NATIVE);
-			verify(tracker).registerLogout(sessionHash);
-			verify(tracker, never()).registerLogin(eq(sessionId), any(), any(), any());
 		}
 	}
 }

@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IStorageEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -96,11 +95,27 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Delete files or folders from storage")
-				.key(ReactorKeysEnum.STORAGE, "The storage engine instance or id")
-				.key(ReactorKeysEnum.STORAGE_PATH, "The storage path(s) to delete")
-				.key(LEAVE_FOLDER_STRUCTURE, key -> key.type(Boolean.class).description(
-						"Boolean value if the folder structure should still be maintained even when deleting the path. Default is false."));
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(LEAVE_FOLDER_STRUCTURE)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Delete files or folders from storage";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "The storage engine instance or id";
+		} else if (key.equals(ReactorKeysEnum.STORAGE_PATH.getKey())) {
+			return "The storage path(s) to delete";
+		} else if (key.equals(LEAVE_FOLDER_STRUCTURE)) {
+			return "Boolean value if the folder structure should still be maintained even when deleting the path. Default is false.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

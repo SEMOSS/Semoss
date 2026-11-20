@@ -47,7 +47,7 @@ treating `null` as "not logged in".
 
 `initialize` options:
 
-- `app` - project id to bind with `LoadApp`. Overridden by `Env.APP` when the `semoss-env`
+- `app` - project id to bind with `SetContext`. Overridden by `Env.APP` when the `semoss-env`
   tag is present, so in a published build this is redundant.
 - `python` - `{ type: "script", script, alias }` or `{ type: "file", path, alias }`, preloaded
   into the insight. Alias defaults to `smss` with a console warning if omitted.

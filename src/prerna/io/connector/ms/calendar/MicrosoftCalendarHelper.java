@@ -30,7 +30,6 @@ package prerna.io.connector.ms.calendar;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -43,8 +42,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
 import java.util.function.Predicate;
 
 import org.apache.hc.core5.http.ContentType;
@@ -67,7 +64,6 @@ import prerna.io.connector.calendar.Recurrence;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
-import prerna.security.HttpStatusException;
 import prerna.util.ValueUtils;
 
 /**
@@ -152,50 +148,6 @@ public class MicrosoftCalendarHelper {
 
 	/** How the free and busy view is sliced, in minutes, which Graph requires. */
 	private static final int AVAILABILITY_INTERVAL = 30;
-
-	/**
-	 * The delegated scope a meeting transcript is read with, beside
-	 * {@code OnlineMeetings.Read} to find the meeting. An administrator has to
-	 * consent to it, so a sign in asks for it only once its organization has.
-	 */
-	public static final String TRANSCRIPT_SCOPE = "OnlineMeetingTranscript.Read.All";
-
-	/**
-	 * How far outside an event's own time a transcript may start and still be that
-	 * sitting's. A meeting opens early or runs over, while the sittings of one
-	 * series are a day or more apart.
-	 */
-	private static final Duration SITTING_SLACK = Duration.ofHours(4);
-
-	/**
-	 * The most pages of a meeting's transcripts that are read. A series lists every
-	 * sitting's, in an order Graph does not promise, so the walk goes on well past
-	 * what a listing by subject reads; the cap only stops a walk that never ends.
-	 */
-	private static final int TRANSCRIPT_PAGES = 100;
-
-	/**
-	 * The most transcripts read for a one-off meeting that was not held at its own
-	 * time, the newest ones. Its link may be one people kept meeting on, and each
-	 * transcript is a request of its own.
-	 */
-	private static final int ONE_OFF_TRANSCRIPTS = 5;
-
-	private static final String NO_MEETING = "Microsoft Teams has no meeting for this event that the signed in user "
-			+ "can read. Only a meeting's organizer and the people invited can read its transcript, and only until "
-			+ "the meeting expires.";
-
-	/**
-	 * What was said in an event's Teams meeting.
-	 *
-	 * @param lines     the transcript, a line for each turn, each recording of it
-	 *                  under a line saying when it started; empty when the event's
-	 *                  own time has none
-	 * @param elsewhere when the meeting's transcripts started, oldest first, for an
-	 *                  event whose own time has none
-	 */
-	public record EventTranscript(List<String> lines, List<Instant> elsewhere) {
-	}
 
 	private MicrosoftCalendarHelper() {
 
@@ -470,135 +422,6 @@ public class MicrosoftCalendarHelper {
 			entries.add(MicrosoftCalendarEventMapper.toAvailability(entry));
 		}
 		return entries;
-	}
-
-	/**
-	 * Reads what was said in an event's Teams meeting.
-	 *
-	 * <p>
-	 * A transcript hangs off the Teams meeting rather than the event, and every
-	 * sitting of a series shares one meeting. So the meeting is found by the
-	 * event's join link, and the transcripts kept are the ones that started around
-	 * the event's own time. An event that does not repeat owns every transcript of
-	 * its meeting, so one held at another time than planned still returns them.
-	 * </p>
-	 *
-	 * <p>
-	 * Graph reads these out of the signed in user's own meetings whichever mailbox
-	 * the event came from, so only the organizer and the people invited get an
-	 * answer.
-	 * </p>
-	 *
-	 * @param accessToken Microsoft Graph access token for the user
-	 * @param event       the event, as {@link #getEvent} read it
-	 * @return the transcript
-	 * @throws IllegalArgumentException when the event has no Teams meeting, or
-	 *                                  Microsoft will not let its transcript be
-	 *                                  read
-	 */
-	public static EventTranscript getEventTranscript(String accessToken, CalendarEvent event) {
-		if (ValueUtils.isBlank(event.joinUrl())) {
-			throw new IllegalArgumentException("This event has no Teams meeting, so it has no transcript.");
-		}
-		try {
-			// the link is quoted inside the filter, and the whole filter is then encoded
-			String filter = "JoinWebUrl eq '" + event.joinUrl().replace("'", "''") + "'";
-			List<Map<String, Object>> meetings = readValues(
-					get(GRAPH_BASE + "/me/onlineMeetings?$filter=" + encode(filter), accessToken, false));
-			if (meetings.isEmpty() || meetings.get(0).get("id") == null) {
-				throw new IllegalArgumentException(NO_MEETING);
-			}
-			String transcripts = GRAPH_BASE + "/me/onlineMeetings/" + encode(meetings.get(0).get("id").toString())
-					+ "/transcripts";
-
-			// when each transcript of the meeting started, oldest first
-			NavigableMap<Instant, String> all = new TreeMap<>();
-			String url = transcripts;
-			for (int page = 0; url != null && page < TRANSCRIPT_PAGES; page++) {
-				Map<String, Object> response = readMap(get(url, accessToken, false));
-				for (Map<String, Object> transcript : values(response)) {
-					Instant started = ConnectorTimes
-							.parseProviderTime(ValueUtils.toStringOrNull(transcript.get("createdDateTime")));
-					if (started != null && transcript.get("id") != null) {
-						all.put(started, transcript.get("id").toString());
-					}
-				}
-				url = nextLink(response);
-			}
-
-			// shortcut: a sitting's transcripts are told apart by when they started, since
-			// Graph does not say which sitting one belongs to, so a sitting of a series held
-			// far from its own time is not found; upgrade if Graph ever links the two
-			EventTime last = event.end() == null ? event.start() : event.end();
-			NavigableMap<Instant, String> own = all.subMap(
-					event.start().localIn(ZoneOffset.UTC).toInstant(ZoneOffset.UTC).minus(SITTING_SLACK), true,
-					last.localIn(ZoneOffset.UTC).toInstant(ZoneOffset.UTC).plus(SITTING_SLACK), true);
-			if (own.isEmpty() && !event.isRecurring()) {
-				// a one-off held at another time than planned: its transcripts are still its own
-				own = all;
-				while (own.size() > ONE_OFF_TRANSCRIPTS) {
-					own.pollFirstEntry();
-				}
-			}
-
-			List<String> lines = new ArrayList<>();
-			for (Map.Entry<Instant, String> transcript : own.entrySet()) {
-				// transcription that was stopped and started again leaves several, in order
-				lines.add("[Transcript started " + ConnectorTimes.format(transcript.getKey()) + "]");
-				lines.addAll(MicrosoftCalendarEventMapper.transcriptLines(
-						transcriptContent(transcripts + "/" + encode(transcript.getValue()) + "/content", accessToken)));
-			}
-			return new EventTranscript(lines, own.isEmpty() ? List.copyOf(all.keySet()) : List.of());
-		} catch (HttpStatusException e) {
-			throw transcriptRefusal(e);
-		}
-	}
-
-	/**
-	 * Reads the words of one transcript: WebVTT with the speakers named, or the
-	 * same words without names where the organization keeps them out of Graph.
-	 *
-	 * @param url         the transcript's content
-	 * @param accessToken Microsoft Graph access token for the user
-	 * @return the transcript as Graph wrote it
-	 */
-	private static String transcriptContent(String url, String accessToken) {
-		Map<String, String> headers = MicrosoftLoginUtils.getAuthorizationHeader(accessToken);
-		try {
-			return HttpHelperUtility.getRequest(url + "?$format=text/vtt", headers, null, null, null);
-		} catch (HttpStatusException e) {
-			if (!String.valueOf(e.getMessage()).contains("SpeakerAttributionNotAllowed")) {
-				throw e;
-			}
-			// the format without names can only be asked for in a header
-			headers.put("Accept", "application/vnd.microsoft.graph.transcript+text");
-			return HttpHelperUtility.getRequest(url, headers, null, null, null);
-		}
-	}
-
-	/**
-	 * What to say when Graph will not let a transcript be read. Its own answer is a
-	 * status and a code, which tell an administrator what to change but not the
-	 * person asking.
-	 *
-	 * @param refused what Graph answered
-	 * @return the same refusal in words, or as it came when it is none of these
-	 */
-	private static IllegalArgumentException transcriptRefusal(HttpStatusException refused) {
-		if (String.valueOf(refused.getMessage()).contains("GraphAccessToTranscriptsDisabled")) {
-			return new IllegalArgumentException("This organization has turned off reading meeting transcripts "
-					+ "through Microsoft Graph. A Teams administrator can turn it back on in the meeting settings.");
-		}
-		if (refused.getStatusCode() == 403) {
-			return new IllegalArgumentException("Microsoft would not let this meeting's transcript be read. Either "
-					+ "the signed in user is neither its organizer nor invited to it, or the Microsoft sign in was "
-					+ "not granted OnlineMeetings.Read and " + TRANSCRIPT_SCOPE + ", which an administrator "
-					+ "consents to and which take effect the next time the user signs in to Microsoft.");
-		}
-		if (refused.getStatusCode() == 404) {
-			return new IllegalArgumentException(NO_MEETING);
-		}
-		return refused;
 	}
 
 	/**

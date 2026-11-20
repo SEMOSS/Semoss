@@ -32,11 +32,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.javatuples.Pair;
 
@@ -61,15 +59,8 @@ public final class BrainTopicRoomUtils {
 	private static final String LOCK = "topic-room";
 	private static final String OWNED_ROOM = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ROOM_ID = ?";
 
-	/**
-	 * The owner's own collaboration chat, the thread it was opened from (null for a plain chat), its options, and
-	 * its name when it was read with one.
-	 */
-	record Chat(String roomId, String threadId, Map<String, Object> options, String name) {
-
-		Chat(String roomId, String threadId, Map<String, Object> options) {
-			this(roomId, threadId, options, null);
-		}
+	/** The owner's own collaboration chat, the thread it was opened from (null for a plain chat), and its options. */
+	record Chat(String roomId, String threadId, Map<String, Object> options) {
 	}
 
 	private BrainTopicRoomUtils() {
@@ -104,8 +95,8 @@ public final class BrainTopicRoomUtils {
 	}
 
 	/**
-	 * The chat's topics that mail sent from it is filed under: the ones the owner set, not the ones Brain guessed.
-	 * Empty for any room that is not the owner's own assistant chat.
+	 * Topic ids that apply to this room: its linked topics. Empty for any room that is not the owner's own
+	 * assistant chat.
 	 */
 	public static List<String> topicsOf(User user, Room room) {
 		if (user == null || !CollaborationUtils.isAssistantRoom(room)) {
@@ -122,25 +113,9 @@ public final class BrainTopicRoomUtils {
 	private static List<String> linkedTopics(User user, Chat chat) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		seedFromThread(owner.getValue0(), owner.getValue1(), chat);
-		// only topics that still exist: sending from the chat links its email to each of them as the owner's own
-		// filing. A topic Brain guessed is left out (its background tag, or a thread topic the classifier filed), so
-		// a guess never turns into a link the owner made; the next sync files the sent mail like any other
-		return CollaborationDbUtils.query("SELECT r.TOPIC_ID FROM BRAIN_TOPIC_ROOM r JOIN BRAIN_TOPIC t "
-				+ "ON t.OWNER_ID = r.OWNER_ID AND t.OWNER_TYPE = r.OWNER_TYPE AND t.TOPIC_ID = r.TOPIC_ID "
-				+ "WHERE r.OWNER_ID = ? AND r.OWNER_TYPE = ? AND r.ROOM_ID = ? AND r.STATE = ? "
-				+ "AND (r.ORIGIN IS NULL OR r.ORIGIN NOT IN (?, ?) OR (r.ORIGIN = ? AND EXISTS (SELECT 1 FROM "
-				+ "BRAIN_THREAD_TOPIC l WHERE l.OWNER_ID = r.OWNER_ID AND l.OWNER_TYPE = r.OWNER_TYPE "
-				+ "AND l.THREAD_ID = ? AND l.TOPIC_ID = r.TOPIC_ID AND (l.SOURCE = ? OR l.CLASSIFIER_VERSION IN (?, ?))))) "
-				+ "ORDER BY r.TOPIC_ID", rs -> rs.getString("TOPIC_ID"), owner.getValue0(), owner.getValue1(),
-				chat.roomId(), LINKED, BrainChatTopics.BRAIN, THREAD, THREAD,
-				chat.threadId() == null ? "" : chat.threadId(), BrainProfileUtils.YOU, BrainTopicOnboarding.VERSION,
-				BrainMailFolders.FILED);
-	}
-
-	/** The topics the owner took off this chat; none is tagged or offered for it again. */
-	static Set<String> dismissed(String ownerId, String ownerType, String roomId) {
-		return new HashSet<>(CollaborationDbUtils.query("SELECT TOPIC_ID FROM BRAIN_TOPIC_ROOM" + OWNED_ROOM
-				+ " AND STATE = ?", rs -> rs.getString("TOPIC_ID"), ownerId, ownerType, roomId, DISMISSED));
+		return CollaborationDbUtils.query(
+				"SELECT TOPIC_ID FROM BRAIN_TOPIC_ROOM" + OWNED_ROOM + " AND STATE = ? ORDER BY TOPIC_ID",
+				rs -> rs.getString("TOPIC_ID"), owner.getValue0(), owner.getValue1(), chat.roomId(), LINKED);
 	}
 
 	/** A topic's linked chats, most recently active first; closed chats are left out. */
@@ -192,10 +167,10 @@ public final class BrainTopicRoomUtils {
 		String ownerType = owner.getValue1();
 		Chat chat = requireChat(user, roomId);
 		String topic = BrainThreadFinder.resolveTopic(ownerId, ownerType, topicId, topicName);
+		if (!remove) {
+			requireOpenTopic(ownerId, ownerType, topic);
+		}
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			if (!remove) {
-				requireOpenTopic(ownerId, ownerType, topic);
-			}
 			seedFromThread(ownerId, ownerType, chat);
 			put(ownerId, ownerType, chat.roomId(), topic, remove ? DISMISSED : LINKED, BrainProfileUtils.YOU);
 		}
@@ -215,9 +190,9 @@ public final class BrainTopicRoomUtils {
 			throw new IllegalArgumentException("Pass the topic's id or name");
 		}
 		String topic = BrainAgentEdits.topic(ownerId, ownerType, topicRef);
+		requireOpenTopic(ownerId, ownerType, topic);
 		String outcome;
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			requireOpenTopic(ownerId, ownerType, topic);
 			seedFromThread(ownerId, ownerType, chat);
 			String state = CollaborationDbUtils.queryOne(
 					"SELECT STATE FROM BRAIN_TOPIC_ROOM" + OWNED_ROOM + " AND TOPIC_ID = ?",
@@ -247,12 +222,6 @@ public final class BrainTopicRoomUtils {
 	 */
 	static String brainTag(String ownerId, String ownerType, Chat chat, String topicId, boolean confident) {
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			try {
-				requireOpenTopic(ownerId, ownerType, topicId);
-			} catch (IllegalArgumentException e) {
-				// deleted or archived while the chat was scored
-				return "none";
-			}
 			seedFromThread(ownerId, ownerType, chat);
 			String[] row = CollaborationDbUtils.queryOne(
 					"SELECT STATE, ORIGIN FROM BRAIN_TOPIC_ROOM" + OWNED_ROOM + " AND TOPIC_ID = ?",
@@ -335,7 +304,6 @@ public final class BrainTopicRoomUtils {
 		}
 	}
 
-	// checked under the lock, right before the write, so a topic deleted while the caller waited is not linked
 	private static void requireOpenTopic(String ownerId, String ownerType, String topicId) {
 		String status = BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
 		if (BrainTopicUtils.ARCHIVED.equals(status)) {
@@ -362,7 +330,7 @@ public final class BrainTopicRoomUtils {
 		if (delegation != null && !String.valueOf(delegation).isBlank()) {
 			throw new IllegalArgumentException("Chat not found");
 		}
-		return new Chat(roomId, CollaborationUtils.threadIdOf(options), options, (String) room.get("ROOM_NAME"));
+		return new Chat(roomId, CollaborationUtils.threadIdOf(options), options);
 	}
 
 	// the user's open rooms among roomIds: roomId, name, updatedAt

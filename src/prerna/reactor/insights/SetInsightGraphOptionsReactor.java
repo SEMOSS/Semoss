@@ -46,7 +46,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.ui.helpers.TypeColorShapeTable;
 import prerna.util.Constants;
-import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 public class SetInsightGraphOptionsReactor extends AbstractReactor {
@@ -103,7 +102,7 @@ public class SetInsightGraphOptionsReactor extends AbstractReactor {
 		Color retColor = null;
 		String nodeColor = userDefinedColor.toUpperCase();
 		// check if it is a predefined color
-		retColor = (Color) InternalUtility.getLocalProperty(nodeColor.toUpperCase());
+		retColor = (Color) Utility.getDIHelperLocalProperty(nodeColor.toUpperCase());
 
 		// if reColor is not null, then we have a match. Otherwise, need try other
 		// options
@@ -159,16 +158,16 @@ public class SetInsightGraphOptionsReactor extends AbstractReactor {
 	public Shape getShape(String type) {
 		Shape retShape = null;
 		String nodeShape = type.toUpperCase();
-		retShape = (Shape) InternalUtility.getLocalProperty(nodeShape);
+		retShape = (Shape) Utility.getDIHelperLocalProperty(nodeShape);
 		// first check the vertex name
 		if (Utility.getDIHelperProperty(type + "_SHAPE") != null) {
-			retShape = (Shape) InternalUtility.getLocalProperty(Utility.getDIHelperProperty(type + "_SHAPE"));
+			retShape = (Shape) Utility.getDIHelperLocalProperty(Utility.getDIHelperProperty(type + "_SHAPE"));
 		}
 		if (retShape == null) {
 			// if we couldnt find a shape, just grab a random color
 			String[] keys = TypeColorShapeTable.getInstance().getAllShapes();
 			String shapeString = keys[new Random().nextInt(keys.length)];
-			retShape = (Shape) InternalUtility.getLocalProperty(shapeString);
+			retShape = (Shape) Utility.getDIHelperLocalProperty(shapeString);
 		}
 		// logger.info("Shape for Type " type "[][]" retShape);
 		// shapeHash.put(type, retShape);

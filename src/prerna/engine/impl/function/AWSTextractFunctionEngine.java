@@ -48,6 +48,7 @@ import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.StorageTypeEnum;
+import prerna.engine.impl.storage.S3StorageEngine;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.util.Constants;
@@ -73,7 +74,7 @@ import software.amazon.awssdk.services.textract.model.StartDocumentTextDetection
 
 public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(AWSTextractFunctionEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AWSTextractCustomEmbeddingsFunctionEngine.class);
 
 	protected static final String DIR_SEPARATOR = "/";
 
@@ -136,10 +137,9 @@ public class AWSTextractFunctionEngine extends AbstractFunctionEngine {
 					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).build();
 
 			IStorageEngine storageEngine = Utility.getStorage(this.storageEngineId);
-			if (storageEngine.getStorageType() == StorageTypeEnum.S3
-					|| storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3
+			if (storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3
 					|| storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3_NATIVE) {
-				this.bucketName = storageEngine.getBucketName();
+				this.bucketName = storageEngine.getSmssProp().getProperty(S3StorageEngine.S3_BUCKET_KEY);
 			} else {
 				throw new IllegalArgumentException("Storage engine is not an Amazon S3 implementation.");
 			}

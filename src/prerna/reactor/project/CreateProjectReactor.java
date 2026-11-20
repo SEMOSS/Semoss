@@ -37,31 +37,28 @@ import prerna.auth.utils.SecurityAdminUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 /**
- * Creates a standard SEMOSS project after applying authentication, naming, and
- * project-type policy checks.
+ * Creates a standard SEMOSS project after applying authentication, naming, and project-type
+ * policy checks.
  *
  * <p>
- * Project types that require additional scaffolding are rejected and must be
- * created through their dedicated reactors.
+ * Project types that require additional scaffolding are rejected and must be created through
+ * their dedicated reactors.
  */
 public class CreateProjectReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateProjectReactor.class.getName();
 
 	public CreateProjectReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
-				ReactorKeysEnum.PROJECT_TYPE.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TYPE.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
 
@@ -72,11 +69,18 @@ public class CreateProjectReactor extends AbstractReactor {
 		this.organizeKeys();
 		IProject.PROJECT_TYPE projectType = null;
 
-		User user = requireUser();
+		User user = this.insight.getUser();
+		if (user == null) {
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a project",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			SemossPixelException err = new SemossPixelException(noun);
+			err.setContinueThreadOfExecution(false);
+			throw err;
+		}
 
-		int index = 1;
+		int index = 0;
 
-		String projectName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
+		String projectName = this.keyValue.get(this.keysToGet[index++]);
 		// if projectName is valid then set the name, else throw error
 		if (!Utility.validateName(projectName)) {
 			// error and redirect to try again
@@ -122,17 +126,17 @@ public class CreateProjectReactor extends AbstractReactor {
 			}
 			if (projectType == IProject.PROJECT_TYPE.SKILL) {
 				throw new IllegalArgumentException("CreateProject cannot create SKILL-type projects. "
-						+ "Use CreateSkill(...) instead; it performs the additional skill-metadata "
+						+ "Use CreateSkill(...) instead — it performs the additional skill-metadata "
 						+ "wiring that CreateProject skips.");
 			}
 			if (projectType == IProject.PROJECT_TYPE.NOTEBOOK) {
 				throw new IllegalArgumentException("CreateProject cannot create NOTEBOOK-type projects. "
-						+ "Use CreateNotebook(catalogName='...') instead; it scaffolds the sample .ipynb "
+						+ "Use CreateNotebook(project='...') instead — it scaffolds the sample .ipynb "
 						+ "file that CreateProject skips.");
 			}
 			if (projectType == IProject.PROJECT_TYPE.AUTOMATION) {
 				throw new IllegalArgumentException("CreateProject cannot create AUTOMATION-type projects. "
-						+ "Use CreateAutomation(catalogName='...') instead; it scaffolds the automation "
+						+ "Use CreateAutomation(projectName='...') instead — it scaffolds the automation "
 						+ "definition, configuration, and MCP tool metadata.");
 			}
 		}
@@ -144,8 +148,6 @@ public class CreateProjectReactor extends AbstractReactor {
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				project.getProjectId());
-		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_CREATE, project.getProjectId(),
-				projectName, Map.of("projectType", projectType.name(), "global", global));
 		NounMetadata retNoun = new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP,
 				PixelOperationType.MARKET_PLACE_ADDITION);
 		if (warning != null) {
@@ -155,15 +157,15 @@ public class CreateProjectReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Creates a new CODE, BLOCKS or INSIGHTS project with the given name and returns its details. The type defaults to INSIGHTS, and a public request from a non-admin is made private with a warning when only admins may make projects public.")
-				.key(ReactorKeysEnum.GLOBAL, key -> key.type(Boolean.class))
-				.key(ReactorKeysEnum.CATALOG_NAME,
-						"The name for this project. Note: the project ID is randomly generated and is not passed into this method")
-				.key(ReactorKeysEnum.PROVIDER,
-						"The GIT provider - user must be logged in with this provider for credentials")
-				.key(ReactorKeysEnum.URL, "The GIT repository URL to clone for this project");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The name for this project. Note: the project ID is randomly generated and is not passed into this method";
+		} else if (key.equals(ReactorKeysEnum.PROVIDER.getKey())) {
+			return "The GIT provider - user must be logged in with this provider for credentials";
+		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return "The GIT repository URL to clone for this project";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

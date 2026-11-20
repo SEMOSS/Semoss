@@ -31,7 +31,7 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
-import prerna.masterdatabase.utility.MetamodelVertex;
+import prerna.nameserver.utility.MetamodelVertex;
 
 public class MetamodelVertexTests {
 	

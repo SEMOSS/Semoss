@@ -63,7 +63,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.util.Constants;
-import prerna.util.InternalUtility;
+import prerna.util.DIHelper;
 import prerna.util.Utility;
 
 public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -309,7 +309,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 		projProps.setProperty(Constants.PASSWORD, "");
 		projProps.setProperty(Constants.CONNECTION_URL, "jdbc:h2:nio:@BaseFolder@/project/" + projectName + "__"
 				+ projectId
-				+ "/insights_database;query_timeout=180000;cache_size=32768");
+				+ "/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
 
 		Files.createDirectories(projectDir);
 		// save prop file
@@ -323,7 +323,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 		in.setRdbmsId(rdbmsId);
 		in.setProjectId(projectId);
 		in.setProjectName(projectName);
-		InternalUtility.setProjectSmssPath(projectId,
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
 				projSmss.getAbsolutePath());
 
 
@@ -395,7 +395,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 		projProps.setProperty(Constants.PASSWORD, "");
 		projProps.setProperty(Constants.CONNECTION_URL, "jdbc:h2:nio:@BaseFolder@/project/" + projectName + "__"
 				+ projectId
-				+ "/insights_database;query_timeout=180000;cache_size=32768");
+				+ "/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
 
 		Files.createDirectories(projectDir);
 		// save prop file
@@ -412,7 +412,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 		in.setRdbmsId(rdbmsId);
 		in.setProjectId(projectId);
 		in.setProjectName(projectName);
-		InternalUtility.setProjectSmssPath(projectId,
+		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
 				projSmss.getAbsolutePath());
 
 		// set up base folder

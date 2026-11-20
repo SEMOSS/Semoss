@@ -46,7 +46,6 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.convert.ConvertReactor;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.task.TaskBuilderReactor;
@@ -119,6 +118,7 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		// need to do a check to see if the frame is in R if not convert to R
 		SelectQueryStruct qs = ((BasicIteratorTask) task).getQueryStruct();
 		ITableDataFrame thisFrame = qs.getFrame();
+//		ITableDataFrame thisFrame = insight.getCurFrame();
 		String type = thisFrame.getFrameType().getTypeAsString();
 
 		// need to also check if it is already there
@@ -142,11 +142,9 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 
 			// we shouldn't be auto doing this
 			// use case is i have a python frame and i want to paint a ggplot
-			// insight.getVarStore().put("R_SYNCHRONIZED", new NounMetadata(true,
-			// PixelDataType.BOOLEAN));
-			// // need replace to the frame back
-			// insight.getVarStore().put(Insight.CUR_FRAME_KEY, new NounMetadata(thisFrame,
-			// PixelDataType.FRAME));
+//			insight.getVarStore().put("R_SYNCHRONIZED", new NounMetadata(true, PixelDataType.BOOLEAN));
+//			// need replace to the frame back
+//			insight.getVarStore().put(Insight.CUR_FRAME_KEY, new NounMetadata(thisFrame, PixelDataType.FRAME));
 		}
 
 		// I can avoid all this to make a selector
@@ -302,9 +300,15 @@ public class CollectGGPlotReactor extends TaskBuilderReactor {
 		return outputs;
 	}
 
+	///////////////////////// KEYS /////////////////////////////////////
+
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Draws a ggplot2 chart in R from the data of the incoming task and returns it as an embedded image. The ggplot expression refers to the data as plotterframe, and a + animate step makes an animated GIF with gganimate.");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "The number to collect";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
+
 }

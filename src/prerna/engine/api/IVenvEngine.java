@@ -30,38 +30,31 @@ package prerna.engine.api;
 import java.util.List;
 import java.util.Map;
 
-import prerna.auth.AccessPermissionEnum;
-
 public interface IVenvEngine extends IEngine {
 	
 	String VENV_TYPE = "VENV_TYPE";
 	
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	VenvTypeEnum getVenvType();
 	
 	/*
 	 * List all packages and the respective versions	
 	*/	
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<Map<String, String>> listPackages() throws Exception;
 
 	/*
 	 * Pull the requirements file from a remote repo using git
 	*/	
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void pullRequirementsFile();
 	
 	
 	/*
 	 * Instead of pulling a requirements file let it be uploaded
 	*/	
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void uploadRequirementsFile(String filePath);
 	
 	/*
 	 * The actual process implementation to create the virtual environment and install the relevant packages
 	*/	
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void createVirtualEnv() throws Exception;
 	
 
@@ -69,27 +62,23 @@ public interface IVenvEngine extends IEngine {
 	/*
 	 * The requirements file has been updated and needs to be re-pulled
 	*/	
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void updateVirtualEnv();
 	
 	
 	/*
 	 *  Add a package to the venv. Restricted for Admins only
 	*/	
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void addPackage(Map<String, Object> parameters) throws Exception;
 	
 	
 	/*
 	 *  Remove a package to the venv. Restricted for Admins only
 	*/	
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void removePackage(Map<String, Object> parameters) throws Exception;
 	
 	
 	/*
 	 *  Get the path to the venv executable
 	*/	
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String pathToExecutable();
 }

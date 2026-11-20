@@ -50,10 +50,6 @@ public class ProjectWatcher extends AbstractFileWatcher {
 
 	@Override
 	public void process(String fileName) {
-		// init() owns platform projects, including a web search folder RDF_Map left off
-		if (INIT_LIST.contains(fileName)) {
-			return;
-		}
 		catalogProject(fileName, folderToWatch);
 	}
 
@@ -122,11 +118,6 @@ public class ProjectWatcher extends AbstractFileWatcher {
 						+ "not be available", engineId, folderToWatch, fileName);
 			}
 		}
-		// the web search folder ships in every build; when RDF_Map leaves it off, mark it handled
-		// so loadFirst() does not catalog it as an ordinary project
-		if (!Utility.isWebSearchEnabled()) {
-			INIT_LIST.add("platform__" + Constants.MCP_WEB_SEARCH + this.extension);
-		}
 
 		// loading platform agents (immutable, global system workspaces)
 		List<String> defaultAgents = SystemDefaultEngines.getSystemAgents();
@@ -193,7 +184,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
 			for (String project : projects) {
 				if (!projectIds.contains(project) && !reservedProjects.contains(project)) {
-					SecurityProjectUtils.deleteProject(null, project);
+					SecurityProjectUtils.deleteProject(project);
 				}
 			}
 		}

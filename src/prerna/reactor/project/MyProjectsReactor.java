@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +44,6 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -108,8 +108,10 @@ public class MyProjectsReactor extends AbstractReactor {
 			}
 
 			if (!noMeta) {
-				try (IRawSelectWrapper wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(),
-						getListString(ReactorKeysEnum.META_KEYS.getKey()), true)) {
+				IRawSelectWrapper wrapper = null;
+				try {
+					wrapper = SecurityProjectUtils.getProjectMetadataWrapper(index.keySet(),
+							getListString(ReactorKeysEnum.META_KEYS.getKey()), true);
 					while (wrapper.hasNext()) {
 						Object[] data = wrapper.next().getValues();
 						String projectId = (String) data[0];
@@ -140,6 +142,15 @@ public class MyProjectsReactor extends AbstractReactor {
 					}
 				} catch (Exception e) {
 					classLogger.error("Failed to attach project metadata values to the project list response", e);
+				} finally {
+					if (wrapper != null) {
+						try {
+							wrapper.close();
+						} catch (IOException e) {
+							classLogger.error("Failed to close metadata wrapper while building project list response",
+									e);
+						}
+					}
 				}
 			}
 //			if(includeUserT) {
@@ -183,25 +194,33 @@ public class MyProjectsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Returns a list of projects that the user has access to.").key(
-				ReactorKeysEnum.SORT,
-				"The sort is a map with key and direction. Supported keys are 'PROJECTNAME', 'DATECREATED', and 'DATELASTEDITED' (or 'DATE_LAST_EDITED').")
-				.key(EFFECTIVE_PERMISSIONS,
-						"""
-								Keep only the resources whose effective permission is one of these levels: 1 (owner), 2 (edit), \
-								or 3 (read only). The effective permission is the better of the user's own grant and their \
-								groups' grant; a global resource without a grant counts as read only.""")
-				.key(CREATED_BY, """
-						Keep only the resources created by one of these creators. Each is a map with the creator's \
-						login "id" and login "type", such as {"id": "abc", "type": "MICROSOFT"}; both must match.""")
-				.key(CREATED_BY_ME,
-						"When true, keep only the resources the calling user created, under any login in their session.")
-				.outputSchema(responseSchema());
+	public String getReactorDescription() {
+		return "Returns a list of projects that the user has access to.";
 	}
 
-	/** The projects this reactor returns, as JSON Schema. */
-	private static JSONObject responseSchema() {
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.SORT.getKey())) {
+			return "The sort is a map with key and direction. Supported keys are 'PROJECTNAME', 'DATECREATED', and 'DATELASTEDITED' (or 'DATE_LAST_EDITED').";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "This is an optional project filter";
+		} else if (key.equals(EFFECTIVE_PERMISSIONS)) {
+			return """
+					Keep only the resources whose effective permission is one of these levels: 1 (owner), 2 (edit), \
+					or 3 (read only). The effective permission is the better of the user's own grant and their \
+					groups' grant; a global resource without a grant counts as read only.""";
+		} else if (key.equals(CREATED_BY)) {
+			return """
+					Keep only the resources created by one of these creators. Each is a map with the creator's \
+					login "id" and login "type", such as {"id": "abc", "type": "MICROSOFT"}; both must match.""";
+		} else if (key.equals(CREATED_BY_ME)) {
+			return "When true, keep only the resources the calling user created, under any login in their session.";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public JSONObject getResponseSchema() {
 		JSONObject schema = new JSONObject();
 		schema.put("type", "array");
 		schema.put("description", "List of project objects the user has access to");
@@ -228,9 +247,6 @@ public class MyProjectsReactor extends AbstractReactor {
 
 		itemProperties.put("project_created_by_type",
 				new JSONObject().put("type", "string").put("description", "Auth type of creator, e.g. NATIVE"));
-
-		itemProperties.put("digital_twin_owner_name", new JSONObject().put("type", new JSONArray().put("string").put("null"))
-				.put("description", "Display name of the person represented when filtering by digital_twin, if known."));
 
 		itemProperties.put("permission",
 				new JSONObject().put("type", "integer").put("enum", new JSONArray().put(1).put(2).put(3))

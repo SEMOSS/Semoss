@@ -31,7 +31,6 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainReviewUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainResolveReview(reviewId=["..."], action=["Accept"], paramValues=[{...}]);
@@ -59,10 +58,19 @@ public class BrainResolveReviewReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Records the answer to a Brain review question")
-				.key(REVIEW_ID, "Review id")
-				.key(ACTION, "One of the entry's actions, or accept, dismiss, both, choose, merge")
-				.key(PARAM_VALUES, "Map with what the answer needs, e.g. topicId");
+	public String getReactorDescription() {
+		return "Records the answer to a Brain review question";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (REVIEW_ID.equals(key)) {
+			return "Review id";
+		} else if (ACTION.equals(key)) {
+			return "One of the entry's actions, or accept, dismiss, both, choose, merge";
+		} else if (PARAM_VALUES.equals(key)) {
+			return "Map with what the answer needs, e.g. topicId";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

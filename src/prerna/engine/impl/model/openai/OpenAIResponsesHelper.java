@@ -118,7 +118,7 @@ public final class OpenAIResponsesHelper {
 		resp.put("id", respId);
 		resp.put("object", "response");
 		resp.put("model", model);
-		resp.put("created_at", ts);
+		resp.put("created_at", (double) ts);
 		resp.put("status", "in_progress");
 		event.put("response", resp);
 		return event;
@@ -152,13 +152,12 @@ public final class OpenAIResponsesHelper {
 		writeSSEEvent(event, w);
 	}
 
-	public static Map<String, Object> sendItemDone(Writer w, int seq, String respId, String itemId, int idx, String type,
+	public static void sendItemDone(Writer w, int seq, String respId, String itemId, int idx, String type,
 			String finalContent, String toolName) throws IOException {
 		Map<String, Object> event = new HashMap<>();
 		event.put("type", "response.output_item.done");
 		event.put("sequence_number", seq);
 		event.put("response_id", respId);
-		event.put("output_index", idx);
 
 		Map<String, Object> item = new HashMap<>();
 		item.put("id", itemId);
@@ -181,7 +180,6 @@ public final class OpenAIResponsesHelper {
 
 		event.put("item", item);
 		writeSSEEvent(event, w);
-		return item;
 	}
 
 	// --- 3. Content Part Events ---
@@ -334,11 +332,11 @@ public final class OpenAIResponsesHelper {
 		List<Map<String, Object>> messages = (List<Map<String, Object>>) input;
 		List<Map<String, Object>> normalizedMessages = new ArrayList<>();
 
+		// Buffer to collect consecutive function calls into one assistant message
+		List<Map<String, Object>> pendingToolCalls = new ArrayList<>();
+
 		for (Map<String, Object> message : messages) {
 			String type = (String) message.get("type");
-			if ("reasoning".equals(type)) {
-				continue;
-			}
 
 			if ("function_call".equals(type)) {
 				Map<String, Object> toolCall = new HashMap<>();
@@ -348,25 +346,20 @@ public final class OpenAIResponsesHelper {
 				Map<String, Object> function = new HashMap<>();
 				function.put("name", message.get("name"));
 				Object args = message.get("arguments");
-				function.put("arguments", args instanceof String ? args : GSON.toJson(args == null ? Map.of() : args));
+				function.put("arguments", args != null ? args.toString() : "{}");
 				toolCall.put("function", function);
 
-				// Responses splits one assistant turn into text and function-call items.
-				Map<String, Object> assistantMsg;
-				if (!normalizedMessages.isEmpty()
-						&& "assistant".equals(normalizedMessages.getLast().get("role"))) {
-					assistantMsg = normalizedMessages.getLast();
-				} else {
-					assistantMsg = new HashMap<>();
-					assistantMsg.put("role", "assistant");
-					normalizedMessages.add(assistantMsg);
-				}
-				List<Map<String, Object>> toolCalls = new ArrayList<>(
-						(List<Map<String, Object>>) assistantMsg.getOrDefault("tool_calls", List.of()));
-				toolCalls.add(toolCall);
-				assistantMsg.put("tool_calls", toolCalls);
+				pendingToolCalls.add(toolCall);
 
 			} else if ("function_call_output".equals(type)) {
+				if (!pendingToolCalls.isEmpty()) {
+					Map<String, Object> assistantMsg = new HashMap<>();
+					assistantMsg.put("role", "assistant");
+					assistantMsg.put("tool_calls", new ArrayList<>(pendingToolCalls));
+					normalizedMessages.add(assistantMsg);
+					pendingToolCalls.clear();
+				}
+
 				Map<String, Object> toolMsg = new HashMap<>();
 				toolMsg.put("role", "tool");
 				toolMsg.put("tool_call_id", message.get("call_id"));
@@ -374,6 +367,14 @@ public final class OpenAIResponsesHelper {
 				normalizedMessages.add(toolMsg);
 
 			} else {
+				if (!pendingToolCalls.isEmpty()) {
+					Map<String, Object> assistantMsg = new HashMap<>();
+					assistantMsg.put("role", "assistant");
+					assistantMsg.put("tool_calls", new ArrayList<>(pendingToolCalls));
+					normalizedMessages.add(assistantMsg);
+					pendingToolCalls.clear();
+				}
+
 				Map<String, Object> normalizedMsg = new HashMap<>(message);
 
 				normalizedMsg.remove("type");
@@ -390,10 +391,7 @@ public final class OpenAIResponsesHelper {
 							flattenedText.append(part.get("text").toString());
 						}
 					}
-					// Keep multimodal blocks for MessageUtils to turn into attachments.
-					if (contentList.stream().allMatch(part -> part.containsKey("text"))) {
-						normalizedMsg.put("content", flattenedText.toString());
-					}
+					normalizedMsg.put("content", flattenedText.toString());
 				}
 
 				if (!normalizedMsg.containsKey("role")) {
@@ -406,6 +404,13 @@ public final class OpenAIResponsesHelper {
 
 				normalizedMessages.add(normalizedMsg);
 			}
+		}
+
+		if (!pendingToolCalls.isEmpty()) {
+			Map<String, Object> assistantMsg = new HashMap<>();
+			assistantMsg.put("role", "assistant");
+			assistantMsg.put("tool_calls", new ArrayList<>(pendingToolCalls));
+			normalizedMessages.add(assistantMsg);
 		}
 
 		return normalizedMessages;
@@ -433,9 +438,17 @@ public final class OpenAIResponsesHelper {
 		long unixTimestamp = Instant.now().getEpochSecond();
 		responsesMap.put("created_at", unixTimestamp);
 
-		responsesMap.put("usage", new HashMap<>());
-		attachUsage(Map.of("response", responsesMap), promptTokens, responseTokens,
-				llmResponse.getNumberOfCacheReadTokens(), llmResponse.getNumberOfThinkingTokens());
+		Map<String, Object> usage = new HashMap<>();
+		if (promptTokens != null) {
+			usage.put("input_tokens", promptTokens);
+		}
+		if (responseTokens != null) {
+			usage.put("output_tokens", responseTokens);
+		}
+		if (promptTokens != null && responseTokens != null) {
+			usage.put("total_tokens", promptTokens + responseTokens);
+		}
+		responsesMap.put("usage", usage);
 
 		List<Map<String, Object>> output = new ArrayList<>();
 
@@ -564,7 +577,18 @@ public final class OpenAIResponsesHelper {
 	public static void streamJobToWriter(String engineId, String responseId, long creationTimestamp, String jobId,
 			Writer writer) throws IOException {
 		OpenAIResponsesStream stream = new OpenAIResponsesStream(engineId, responseId, creationTimestamp, jobId);
-		stream.streamToWriter(writer);
+		try {
+			while (!stream.drain(writer)) {
+				try {
+					Thread.sleep(ModelPixelInvoker.STREAM_POLL_INTERVAL_MS);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		} finally {
+			stream.close();
+		}
 	}
 
 	private OpenAIResponsesHelper() {

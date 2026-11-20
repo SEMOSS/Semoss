@@ -694,9 +694,6 @@ public class Room implements Serializable {
 				ToolExecutionContext context = findToolExecutionContext(
 						resolveToolContinuationMessageId(toolCallMessageId));
 				InputMessage original = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
-				if (context.toolResponse.getGoogleInteractions() != null) {
-					return 0;
-				}
 				if (original == null) {
 					return 0;
 				}
@@ -783,10 +780,7 @@ public class Room implements Serializable {
 					toolResultsMessage.setParts(parts);
 					toolResultsMessage.normalizeForWrite();
 				}
-				// A provider tool the model called beside ours is still waiting: the provider runs
-				// it only when the message carrying our results holds nothing else.
 				if (runtimeContext != null && !runtimeContext.isBlank()
-						&& !hasPendingProviderToolCall(context.toolResponse)
 						&& toolResultsMessage.getParts().stream().noneMatch(part -> part instanceof TextMessagePart text
 								&& runtimeContext.equals(text.getText()))) {
 					// TEXT must follow every TOOL_RESULT: provider adapters emit it as trailing
@@ -1012,31 +1006,6 @@ public class Room implements Serializable {
 		}
 	}
 
-	/**
-	 * Whether the provider has yet to run one of its own tools from this response,
-	 * such as a web search the model called together with our tools. The provider
-	 * returns that call unanswered, and its result arrives in a later response.
-	 */
-	private boolean hasPendingProviderToolCall(ResponseMessage toolResponse) {
-		Set<String> pendingIds = new HashSet<>();
-		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
-			if (MessageUtils.isServerToolCall(tc)) {
-				pendingIds.add(String.valueOf(tc.get("id")));
-			}
-		}
-		for (AbstractMessage m : messages) {
-			if (pendingIds.isEmpty()) {
-				break;
-			}
-			for (MessagePart p : m.getParts()) {
-				if (p instanceof ToolResultMessagePart && ((ToolResultMessagePart) p).getToolResult() != null) {
-					pendingIds.remove(((ToolResultMessagePart) p).getToolResult().getToolCallId());
-				}
-			}
-		}
-		return !pendingIds.isEmpty();
-	}
-
 	private boolean allToolCallsAnswered(ResponseMessage toolResponse, int toolResponseIdx, String newToolCallId) {
 		Set<String> allIds = new HashSet<>();
 		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
@@ -1200,16 +1169,6 @@ public class Room implements Serializable {
 	private ResponseMessage buildAssistantResponseFromModelResponse(AskModelEngineResponse llmResponse,
 			IModelEngine modelEngine, AbstractMessage parentMessage) {
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
-		if (!modelEngine.keepsConversationHistory()) {
-			response.setGoogleInteractions(null);
-		}
-		boolean compatibilityReplay = parentMessage instanceof InputMessage input
-				&& Boolean.TRUE.equals(input.getParamMap().get("google_interactions_replay_available"));
-		if (!compatibilityReplay && llmResponse.getMetadata() != null) {
-			Map<String, Object> publicMetadata = new HashMap<>(llmResponse.getMetadata());
-			publicMetadata.remove("google_interactions");
-			llmResponse.setMetadata(publicMetadata);
-		}
 		String llmMessageId = llmResponse.getMessageId();
 		if (llmMessageId != null && !llmMessageId.isEmpty()) {
 			response.setMessageId(llmMessageId);
@@ -1394,8 +1353,7 @@ public class Room implements Serializable {
 							throw new IllegalArgumentException("Tool map must contain an id");
 						}
 					} catch (Exception e) {
-						Object id = mcpMap != null ? mcpMap.get("id") : null;
-						classLogger.error("Skipping room mcp " + Utility.cleanLogString(String.valueOf(id)), e);
+						classLogger.error("Unable to add tool map from room mcp", e);
 					}
 				}
 			} catch (ClassCastException e) {
@@ -1414,22 +1372,11 @@ public class Room implements Serializable {
 						List<Map<String, Object>> tools = ModelInferenceLogsUtils.getWorkspaceResourcesIgnoringType(
 								workspaceId, Arrays.asList(AbstractWorkspaceReactor.PROMPT_RESOURCE_TYPE,
 										AbstractWorkspaceReactor.SKILL_RESOURCE_TYPE));
-						for (Map<String, Object> tool : tools != null ? tools : List.<Map<String, Object>>of()) {
+						for (Map<String, Object> tool : tools) {
 							String toolId = (String) tool.get("resource_id");
-							if (toolId == null) {
-								classLogger.warn("Skipping workspace mcp with no resource_id for workspaceId={}",
-										workspaceId);
-							}
-							// marked seen even on failure so CONFIG_JSON.mcps doesn't retry it
-							if (toolId != null && ensureUnique.add(toolId)) {
-								// one resource that can't produce tools (e.g. a knowledge base without
-								// MCP enabled) must not drop the workspace's remaining tools
-								try {
-									aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
-								} catch (Exception e) {
-									classLogger.warn("Skipping workspace mcp {} for workspaceId={}: {}", toolId,
-											workspaceId, e.getMessage());
-								}
+							if (!ensureUnique.contains(toolId)) {
+								aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
+								ensureUnique.add(toolId);
 							}
 						}
 					} catch (Exception e) {
@@ -1444,23 +1391,12 @@ public class Room implements Serializable {
 							for (int i = 0; i < arr.length(); i++) {
 								JSONObject mcp = arr.optJSONObject(i);
 								if (mcp == null) {
-									classLogger.warn("Skipping CONFIG_JSON mcps[{}] (not an object) for workspaceId={}",
-											i, workspaceId);
 									continue;
 								}
 								String toolId = mcp.optString("id", null);
-								if (toolId == null || toolId.isEmpty()) {
-									classLogger.warn("Skipping CONFIG_JSON mcps[{}] with no id for workspaceId={}", i,
-											workspaceId);
-								}
-								if (toolId != null && !toolId.isEmpty() && ensureUnique.add(toolId)) {
-									try {
-										aggregated.addAll(
-												getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
-									} catch (Exception e) {
-										classLogger.warn("Skipping CONFIG_JSON mcp {} for workspaceId={}: {}", toolId,
-												workspaceId, e.getMessage());
-									}
+								if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
+									aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
+									ensureUnique.add(toolId);
 								}
 							}
 						}
@@ -1655,7 +1591,6 @@ public class Room implements Serializable {
 		}
 
 		// Fallback: always return an empty list if nothing found
-		classLogger.warn("Skipping mcp {}: it returned no tools", Utility.cleanLogString(engineId));
 		return Collections.emptyList();
 	}
 

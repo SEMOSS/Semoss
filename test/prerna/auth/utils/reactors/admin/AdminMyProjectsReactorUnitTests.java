@@ -87,9 +87,8 @@ public class AdminMyProjectsReactorUnitTests {
 
 	@Test
 	void testKeysToGet() {
-		assertEquals(14, reactor.keysToGet.length);
+		assertEquals(10, reactor.keysToGet.length);
 		assertEquals(ReactorKeysEnum.FILTER_WORD.getKey(), reactor.keysToGet[0]);
-		assertEquals("createdByMe", reactor.keysToGet[13]);
 	}
 
 	@Test
@@ -108,7 +107,8 @@ public class AdminMyProjectsReactorUnitTests {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
-			stubProjectSettings(s, new ArrayList<>());
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+					.thenReturn(new ArrayList<>());
 
 			NounMetadata result = reactor.execute();
 
@@ -119,7 +119,7 @@ public class AdminMyProjectsReactorUnitTests {
 
 	@Test
 	void testGetDescriptionForSortKey() {
-		String desc = reactor.getReactorDefinition().getKey(ReactorKeysEnum.SORT.getKey()).getDescription();
+		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.SORT.getKey());
 		assertEquals(
 				"The sort is a map with key and direction. Supported keys are 'PROJECTNAME', 'DATECREATED', and 'DATELASTEDITED' (or 'DATE_LAST_EDITED').",
 				desc);
@@ -127,11 +127,12 @@ public class AdminMyProjectsReactorUnitTests {
 
 	@Test
 	void testGetDescriptionForProjectKey() {
-		String desc = reactor.getReactorDefinition().getKey(ReactorKeysEnum.PROJECT.getKey()).getDescription();
+		String desc = reactor.getDescriptionForKey(ReactorKeysEnum.PROJECT.getKey());
 		assertEquals("This is an optional project filter", desc);
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void testSuccessWithNonEmptyResultsAndMetadata() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class)) {
@@ -144,7 +145,8 @@ public class AdminMyProjectsReactorUnitTests {
 			project.put("project_id", "proj1");
 			results.add(project);
 
-			stubProjectSettings(s, results);
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
 			when(wrapper.hasNext()).thenReturn(true, true, false);
@@ -160,14 +162,15 @@ public class AdminMyProjectsReactorUnitTests {
 
 			assertNotNull(result);
 			assertEquals(PixelDataType.CUSTOM_DATA_STRUCTURE, result.getNounType());
-			List<?> value = (List<?>) result.getValue();
+			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
 			assertEquals(1, value.size());
-			Object desc = ((Map<?, ?>) value.get(0)).get("description");
+			Object desc = value.get(0).get("description");
 			assertNotNull(desc);
 		}
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void testSuccessWithNonEmptyResultsNullMetaValue() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class)) {
@@ -180,7 +183,8 @@ public class AdminMyProjectsReactorUnitTests {
 			project.put("project_id", "proj1");
 			results.add(project);
 
-			stubProjectSettings(s, results);
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+					.thenReturn(results);
 
 			IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
 			when(wrapper.hasNext()).thenReturn(true, false);
@@ -193,13 +197,14 @@ public class AdminMyProjectsReactorUnitTests {
 			NounMetadata result = reactor.execute();
 
 			assertNotNull(result);
-			List<?> value = (List<?>) result.getValue();
+			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
 			assertEquals(1, value.size());
-			assertEquals(false, ((Map<?, ?>) value.get(0)).containsKey("description"));
+			assertEquals(false, value.get(0).containsKey("description"));
 		}
 	}
 
 	@Test
+	@SuppressWarnings("unchecked")
 	void testSuccessWithNoMetaTrue() {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
 
@@ -211,7 +216,8 @@ public class AdminMyProjectsReactorUnitTests {
 			project.put("project_id", "proj1");
 			results.add(project);
 
-			stubProjectSettings(s, results);
+			when(s.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+					.thenReturn(results);
 
 			// noMeta=true and includeUserT=false -> skip metadata and usertracking blocks
 			reactor.keyValue.put(ReactorKeysEnum.NO_META.getKey(), "true");
@@ -220,17 +226,8 @@ public class AdminMyProjectsReactorUnitTests {
 
 			assertNotNull(result);
 			assertEquals(PixelDataType.CUSTOM_DATA_STRUCTURE, result.getNounType());
-			List<?> value = (List<?>) result.getValue();
+			List<Map<String, Object>> value = (List<Map<String, Object>>) result.getValue();
 			assertEquals(1, value.size());
 		}
-	}
-
-	/**
-	 * Stubs the admin project list to return the projects given when the reactor reads
-	 * it with no filters.
-	 */
-	private static void stubProjectSettings(SecurityAdminUtils adminUtils, List<Map<String, Object>> projects) {
-		when(adminUtils.getAllProjectSettings(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
-				isNull(), isNull(), eq(List.of()))).thenReturn(projects);
 	}
 }

@@ -30,6 +30,7 @@ package prerna.reactor.task.lambda.map.function;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
@@ -37,14 +38,13 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import prerna.engine.api.IHeadersDataRow;
 import prerna.io.connector.google.GoogleLatLongGetter;
 import prerna.om.GeoLocation;
 import prerna.reactor.task.lambda.map.AbstractMapLambda;
-import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class GoogleLatLongLambda extends AbstractMapLambda {
@@ -64,10 +64,10 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 		if (f.exists()) {
 			Map<String, List<Double>> mapData = null;
 			try {
-				mapData = new ObjectMapper().readValue(f, new TypeReference<Map<String, List<Double>>>() {
-				});
+				mapData = new ObjectMapper().readValue(f, Map.class);
 			} catch (IOException e) {
-				classLogger.error("Failed to read the lat long cache from {}", cache_file_loc, e);
+				classLogger.error(Constants.STACKTRACE, e);
+				// do noting
 			}
 
 			if (mapData != null) {
@@ -95,7 +95,7 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 			newValues[0] = cacheValues.get(0);
 			newValues[1] = cacheValues.get(1);
 		} else {
-			Map<String, Object> params = new HashMap<>();
+			Hashtable params = new Hashtable();
 			params.put("address", address);
 
 			// add new values
@@ -104,19 +104,32 @@ public class GoogleLatLongLambda extends AbstractMapLambda {
 				// geo location object flushes the JSON return into something for getters and
 				// setters
 				GeoLocation location = (GeoLocation) goog.execute(this.user, params);
-				newValues[0] = location.latitude();
-				newValues[1] = location.longitude();
+				newValues[0] = location.getLatitude();
+				newValues[1] = location.getLongitude();
 
 				// cache it
 				List<Double> cacheV = new Vector<Double>();
-				cacheV.add((double) location.latitude());
-				cacheV.add((double) location.longitude());
+				cacheV.add((double) location.getLatitude());
+				cacheV.add((double) location.getLongitude());
 				localcache.put(address, cacheV);
 
-			} catch (SemossPixelException e) {
-				throw e;
+//				File f = new File(cache_file_loc);
+//				if(!f.getParentFile().exists()) {
+//					f.getParentFile().mkdirs();
+//				}
+//				if(f.exists()) {
+//					f.delete();
+//				}
+//				try {
+//					Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//					// write json to file
+//					FileUtils.writeStringToFile(f, gson.toJson(localcache));
+//				} catch (IOException e1) {
+//					classLogger.error(Constants.STACKTRACE, e1);
+//				}
+
 			} catch (Exception e) {
-				classLogger.error("Failed to geocode the row address", e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 

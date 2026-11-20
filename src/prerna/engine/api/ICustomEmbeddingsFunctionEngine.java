@@ -30,8 +30,6 @@ package prerna.engine.api;
 import java.io.File;
 import java.util.Map;
 
-import prerna.auth.AccessPermissionEnum;
-
 public interface ICustomEmbeddingsFunctionEngine extends IFunctionEngine {
 
 	/**
@@ -39,7 +37,6 @@ public interface ICustomEmbeddingsFunctionEngine extends IFunctionEngine {
 	 * @param fileToProcess
 	 * @return
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean canProcessDocument(File fileToProcess);
 	
 	/**
@@ -49,7 +46,6 @@ public interface ICustomEmbeddingsFunctionEngine extends IFunctionEngine {
 	 * @param parameters
 	 * @return	The number of rows added to the outputCsvFilePath
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	int processDocument(String outputCsvFilePath, File fileToProcess, Map<String, Object> parameters);
 
 }

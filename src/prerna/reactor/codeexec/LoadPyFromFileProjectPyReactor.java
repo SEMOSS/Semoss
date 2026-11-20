@@ -30,11 +30,10 @@ package prerna.reactor.codeexec;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.ds.py.PyUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -46,7 +45,7 @@ import prerna.util.Utility;
 
 public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(LoadPyFromFileProjectPyReactor.class);
+	private static final Logger classLogger = LogManager.getLogger(LoadPyFromFileReactor.class);
 
 	public LoadPyFromFileProjectPyReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.ALIAS.getKey(),
@@ -63,6 +62,7 @@ public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 
 		if (space != null && !space.isEmpty() && !space.equals(AssetUtility.INSIGHT_SPACE_KEY)
 				&& !space.equals(AssetUtility.USER_SPACE_KEY)) {
+			space = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), space);
 			if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), space)) {
 				throw new IllegalArgumentException(
 						"Project does not exist or user does not have access to view the project");
@@ -87,15 +87,21 @@ public class LoadPyFromFileProjectPyReactor extends AbstractReactor {
 			project.getProjectPyTranslator().runScript(script);
 			return new NounMetadata("Variable set " + alias, PixelDataType.CONST_STRING);
 		} catch (Exception e) {
-			classLogger.error("Unable to load python file {} as module {} in project {}", filePath, alias, space, e);
+			classLogger.error("Unable to load python file as module. Error: " + e.getMessage(), e);
 			throw new SemossPixelException("Unable to load python file as module. Error: " + e.getMessage(), e);
 		}
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Load a python file as a variable (alias input) to reference as a class object into the project's python process")
-				.key(ReactorKeysEnum.ALIAS, "A valid string input for a python variable name");
+	public String getReactorDescription() {
+		return "Load a python file as a variable (alias input) to reference as a class object into the project's python process";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ALIAS.getKey())) {
+			return "A valid string input for a python variable name";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

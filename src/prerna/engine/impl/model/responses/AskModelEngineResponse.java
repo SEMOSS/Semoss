@@ -233,11 +233,6 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 
 			AskErrorModelEngineResponse errorResponse = new AskErrorModelEngineResponse(message, errorType, code,
 					client, model, traceback);
-			errorResponse.setNumberOfTokensInPrompt(tokensInPrompt);
-			errorResponse.setNumberOfTokensInResponse(tokensInResponse);
-			errorResponse.setNumberOfCacheReadTokens(cacheReadTokens);
-			errorResponse.setNumberOfCacheCreationTokens(cacheCreationTokens);
-			errorResponse.setNumberOfThinkingTokens(thinkingTokens);
 			errorResponse.setReason(safeString(modelResponse.get(AskErrorModelEngineResponse.REASON)));
 			errorResponse.setReasonDetail(safeString(modelResponse.get(AskErrorModelEngineResponse.REASON_DETAIL)));
 			if (schemaVersion != null) {
@@ -348,7 +343,6 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		if (thinkingTokens != null) {
 			askResponse.setNumberOfThinkingTokens(thinkingTokens);
 		}
-		askResponse.setUsageCapped(isTrue(modelResponse.get(USAGE_CAPPED_KEY)));
 
 		return askResponse;
 	}
@@ -360,10 +354,6 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 		}
 		Map<String, Object> modelResponse = (Map<String, Object>) responseObject;
 		return fromMap(modelResponse);
-	}
-
-	private static boolean isTrue(Object value) {
-		return value instanceof Boolean ? (Boolean) value : value != null && "true".equalsIgnoreCase(value.toString());
 	}
 
 	@SuppressWarnings("unchecked")

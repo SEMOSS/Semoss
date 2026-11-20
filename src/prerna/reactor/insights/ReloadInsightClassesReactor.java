@@ -36,7 +36,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -105,68 +104,58 @@ public class ReloadInsightClassesReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Clears and recompiles a project's reactors, and pushes the compiled reactors
-	 * to the cluster when they are released.
-	 *
-	 * @param project the project whose reactors to recompile
-	 * @param release true to push the compiled reactors and record the compilation
+	 * 
+	 * @param project
 	 */
 	private void clearProjectAssets(IProject project, boolean release) {
-		User user = this.insight.getUser();
-		String projectId = project.getProjectId();
-		// checked before compiling, so a release the user cannot make leaves no build
-		// behind that only this container has
-		if (release && !SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalArgumentException(
-					"Project '" + projectId + "' does not exist or user does not have edit access to the project.");
-		}
-
 		project.clearClassCache();
 		project.compileReactors();
 		if (release) {
+			User user = this.insight.getUser();
+			String projectId = project.getProjectId();
 			String projectName = project.getProjectName();
-			String projectVersionFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-			String projectAssetFolder = projectVersionFolder + "/" + Constants.ASSETS_FOLDER;
-
-			// a project without a java folder has no reactors to release, and pushing
-			// the missing folder fails in a cluster
-			File javaFolder = new File(projectAssetFolder + DIR_SEPARATOR + "java");
-			if (javaFolder.isDirectory()) {
-				// push the compiled code
-				ClusterUtil.pushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
-
-				// might need to also push the classes folder
-				File compiledClasses = new File(projectAssetFolder + DIR_SEPARATOR + "classes");
-				if (compiledClasses.exists() && compiledClasses.isDirectory()) {
-					ClusterUtil.pushProjectFolder(project, projectVersionFolder,
-							Constants.ASSETS_FOLDER + "/" + "classes");
-				}
-
-				SecurityProjectUtils.setReactorCompilation(user, projectId);
+			if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
+				throw new IllegalArgumentException("Project '" + project.getProjectId()
+						+ "' does not exist or user is not an owner of the project.");
 			}
+
+			// push the compiled code
+			String projectVersionFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
+			ClusterUtil.pushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "java");
+
+			// might need to also push the classes folder
+			String projectAssetFolder = AssetUtility.getProjectVersionFolder(projectName, projectId) + "/"
+					+ Constants.ASSETS_FOLDER;
+			File compiledClasses = new File(projectAssetFolder + DIR_SEPARATOR + "classes");
+			if (compiledClasses.exists() && compiledClasses.isDirectory()) {
+				ClusterUtil.pushProjectFolder(project, projectVersionFolder, Constants.ASSETS_FOLDER + "/" + "classes");
+			}
+
+			SecurityProjectUtils.setReactorCompilation(user, projectId);
 		}
 
 		// if we are doing reactors on socket side
-		boolean executeOnSocket = "SOCKET"
-				.equalsIgnoreCase(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION));
+		boolean executeOnSocket = false;
+		if (Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
+			executeOnSocket = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) + "");
+		}
 
 		if (executeOnSocket && this.insight.getUser() != null
-				&& this.insight.getUser().getJavaSocketClient(false) != null) {
+				&& this.insight.getUser().getPythonSocketClient(false) != null) {
 			PayloadStruct ps = new PayloadStruct();
 			ps.operation = PayloadStruct.OPERATION.PROJECT;
 			ps.projectId = insight.getContextProjectId();
 			ps.methodName = "clearClassCache";
 			ps.hasReturn = false;
 
-			this.insight.getUser().getJavaSocketClient(false).executeCommand(ps);
+			this.insight.getUser().getPythonSocketClient(false).executeCommand(ps);
 		}
 	}
 
 	@Deprecated
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"This reactor is deprecated. Please use CompileAppReactors(project='', release='') instead");
+	public String getReactorDescription() {
+		return "This reactor is deprecated. Please use CompileAppReactors(project='', release='') instead";
 	}
 
 }

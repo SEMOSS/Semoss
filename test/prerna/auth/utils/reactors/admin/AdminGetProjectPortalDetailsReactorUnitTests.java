@@ -111,16 +111,19 @@ public class AdminGetProjectPortalDetailsReactorUnitTests {
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
 
+			spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectId)).thenReturn("testy");
+
 			Map<String, Object> portalDetails = new HashMap<>();
 			portalDetails.put("foo", "bar");
 
-			spu.when(() -> SecurityProjectUtils.getProjectPortalDetailsMap(projectId)).thenReturn(portalDetails);
+			spu.when(() -> SecurityProjectUtils.getProjectPortalDetailsMap("testy")).thenReturn(portalDetails);
 			NounMetadata nm = reactor.execute();
 			Map<String, Object> resultMap = (Map<String, Object>) nm.getValue();
 			assertEquals("bar", resultMap.get("foo"));
 			assertEquals(PixelDataType.MAP, nm.getNounType());
 
-			spu.verify(() -> SecurityProjectUtils.getProjectPortalDetailsMap(projectId), times(1));
+			spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "test"), times(1));
+			spu.verify(() -> SecurityProjectUtils.getProjectPortalDetailsMap("testy"), times(1));
 		}
 	}
 

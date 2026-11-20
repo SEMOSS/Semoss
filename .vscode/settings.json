@@ -1,11 +1,5 @@
 {
   "java.format.settings.url": ".vscode/eclipse-java-formatter.xml",
   "java.format.settings.profile": "Eclipse [built-in]",
-  "editor.formatOnSave": true,
-  "[java]": {
-    "editor.defaultFormatter": "redhat.java",
-    "editor.detectIndentation": false,
-    "editor.insertSpaces": false,
-    "editor.tabSize": 4
-  }
+  "editor.formatOnSave": true
 }

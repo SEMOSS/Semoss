@@ -61,8 +61,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	private static final Logger classLogger = LogManager.getLogger(SecurityQueryUtils.class);
 
 	/**
-	 * This method is deprecated. Please do not use and expect an engineId for input
-	 * in your method.
+	 * Try to reconcile and get the engine id
 	 * 
 	 * @return
 	 */
@@ -70,6 +69,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	public static String testUserEngineIdForAlias(User user, String potentialId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> ids = new ArrayList<String>();
+
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT DISTINCT ENGINEPERMISSION.ENGINEID "
+//				+ "FROM ENGINEPERMISSION INNER JOIN ENGINE ON ENGINE.ENGINEID=ENGINEPERMISSION.ENGINEID "
+//				+ "WHERE ENGINE.ENGINENAME='" + potentialId + "' AND ENGINEPERMISSION.USERID IN " + userFilters;
+//		
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
@@ -84,6 +90,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 
 		ids = QueryExecutionUtility.flushToListString(securityDb, qs);
 		if (ids.isEmpty()) {
+//			query = "SELECT DISTINCT ENGINE.ENGINEID FROM ENGINE WHERE ENGINE.ENGINENAME='" + potentialId + "' AND ENGINE.GLOBAL=TRUE";
+
 			qs = new SelectQueryStruct();
 			qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 			OrQueryFilter nameOrDisplayFilter2 = new OrQueryFilter();
@@ -126,13 +134,20 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return results.get(0);
 	}
 
-	/**
-	 * 
-	 * @param projectId
-	 * @return
-	 */
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////
+
 	public static SemossDate getLastModifiedDateForInsightInProject(String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+//		String query = "SELECT DISTINCT INSIGHT.LASTMODIFIEDON "
+//				+ "FROM INSIGHT "
+//				+ "WHERE INSIGHT.PROJECTID='" + projectId + "'"
+//				+ "ORDER BY INSIGHT.LASTMODIFIEDON DESC LIMIT 1"
+//				;
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
+
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("INSIGHT__LASTMODIFIEDON"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
@@ -156,6 +171,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return date;
 	}
 
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////
+
 	/*
 	 * Querying user data
 	 */
@@ -169,6 +188,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static Map<String, Map<String, Object>> getUserInfo(List<String> userIds) throws IllegalArgumentException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+//		String query = "SELECT DISTINCT ID, NAME, USERNAME, EMAIL, TYPE, ADMIN FROM SMSS_USER ";
+//		String userFilter = createFilter(userIds);
+//		query += " WHERE ID " + userFilter + ";";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
@@ -238,6 +261,12 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return userCount;
 	}
 
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * Determine if the user has publisher rights
 	 * 
@@ -246,19 +275,21 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean userIsPublisher(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+//		String userFilters = getUserFilters(user);
+//		String query = "SELECT * FROM SMSS_USER WHERE PUBLISHER=TRUE AND ID IN " + userFilters + " LIMIT 1;";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__PUBLISHER", "==", "TRUE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
-		boolean publisher = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			publisher = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user has publisher access.", e);
 		}
 
-		return publisher;
+		return false;
 	}
 
 	/**
@@ -275,14 +306,13 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 				SimpleQueryFilter.makeColToValFilter("SMSS_USER__EXPORTER", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
 
-		boolean exporter = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exporter = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user has exporter access.", e);
 		}
 
-		return exporter;
+		return false;
 	}
 
 	/**
@@ -327,18 +357,19 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean checkUserExist(String userId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+//		String query = "SELECT * FROM SMSS_USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user exists.", e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	/**
@@ -350,20 +381,22 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean checkUserExist(String username, String email) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+//		String query = "SELECT * FROM SMSS_USER WHERE USERNAME='" + RdbmsQueryBuilder.escapeForSQLStatement(username) + 
+//				"' OR EMAIL='" + RdbmsQueryBuilder.escapeForSQLStatement(email) + "'";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", username));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", email));
 
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user exists.", e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	/**
@@ -414,25 +447,19 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return found;
 	}
 
-	/**
-	 * 
-	 * @param email
-	 * @return
-	 */
 	public static boolean checkUserEmailExist(String email) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", email));
 
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user email exists.", e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	/**
@@ -462,10 +489,6 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return rows.isEmpty() ? null : rows.getFirst();
 	}
 
-	/**
-	 * 
-	 * @return
-	 */
 	private static SelectQueryStruct unlockedUserQuery() {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
@@ -480,25 +503,19 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return qs;
 	}
 
-	/**
-	 * 
-	 * @param username
-	 * @return
-	 */
 	public static boolean checkUsernameExist(String username) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "==", username));
 
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the username exists.", e);
 		}
 
-		return exists;
+		return false;
 	}
 
 	/**
@@ -509,6 +526,8 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static Boolean isUserType(String userId, AuthProvider type) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+//		String query = "SELECT NAME FROM SMSS_USER WHERE ID='" + RdbmsQueryBuilder.escapeForSQLStatement(userId) + "' AND TYPE = '"+ type + "';";
+//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));

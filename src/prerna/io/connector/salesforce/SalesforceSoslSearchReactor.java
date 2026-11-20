@@ -34,7 +34,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -69,10 +68,16 @@ public class SalesforceSoslSearchReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Executes a SOSL search query in Salesforce and returns matching records.").key(SOSL_QUERY,
-						"Required SOSL query string to execute (for example, FIND {Acme} IN ALL FIELDS RETURNING Account(Id, Name)).");
+	public String getReactorDescription() {
+		return "Executes a SOSL search query in Salesforce and returns matching records.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (SOSL_QUERY.equals(key)) {
+			return "Required SOSL query string to execute (for example, FIND {Acme} IN ALL FIELDS RETURNING Account(Id, Name)).";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

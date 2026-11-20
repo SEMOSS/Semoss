@@ -34,15 +34,14 @@ package prerna.auth.access;
 public class PermissionTargetResource {
 
 	/**
-	 * The types of target resource: {@code TEAM} is a custom group's members and
+	 * The kinds of target: {@code TEAM} is a custom group's members and
 	 * {@code TEAM_MANAGERS} its managers, each with the group's name as the id
 	 */
-	public enum TargetResourceType {
+	public enum Kind {
 		PROJECT, ENGINE, INSIGHT, TEAM, TEAM_MANAGERS
 	}
 
-	/** What the target is */
-	private TargetResourceType resourceType;
+	private Kind kind;
 	private String id;
 	/** For an insight, the project it belongs to */
 	private String projectId;
@@ -52,72 +51,53 @@ public class PermissionTargetResource {
 	}
 
 	/**
-	 * Creates a target from its resource type, its id and, for an insight, its
-	 * project.
-	 *
-	 * @param resourceType what the target is
-	 * @param id           the project, engine, insight or group id
-	 * @param projectId    for an insight, the project it belongs to, otherwise null
+	 * @param kind      the kind of target
+	 * @param id        the project, engine, insight or group id
+	 * @param projectId for an insight, the project it belongs to, otherwise null
 	 */
-	public PermissionTargetResource(TargetResourceType resourceType, String id, String projectId) {
-		this.resourceType = resourceType;
+	public PermissionTargetResource(Kind kind, String id, String projectId) {
+		this.kind = kind;
 		this.id = id;
 		this.projectId = projectId;
 	}
 
 	/**
-	 * Builds the target for changing who can use a project.
-	 *
 	 * @return who can use the project
 	 */
 	public static PermissionTargetResource project(String projectId) {
-		return new PermissionTargetResource(TargetResourceType.PROJECT, projectId, null);
+		return new PermissionTargetResource(Kind.PROJECT, projectId, null);
 	}
 
 	/**
-	 * Builds the target for changing who can use an engine.
-	 *
 	 * @return who can use the engine
 	 */
 	public static PermissionTargetResource engine(String engineId) {
-		return new PermissionTargetResource(TargetResourceType.ENGINE, engineId, null);
+		return new PermissionTargetResource(Kind.ENGINE, engineId, null);
 	}
 
 	/**
-	 * Builds the target for changing who can use an insight in the given project.
-	 *
 	 * @return who can use the insight
 	 */
 	public static PermissionTargetResource insight(String projectId, String insightId) {
-		return new PermissionTargetResource(TargetResourceType.INSIGHT, insightId, projectId);
+		return new PermissionTargetResource(Kind.INSIGHT, insightId, projectId);
 	}
 
 	/**
-	 * Builds the target for changing who is a member of a custom group.
-	 *
 	 * @return who is in the custom group
 	 */
 	public static PermissionTargetResource team(String groupId) {
-		return new PermissionTargetResource(TargetResourceType.TEAM, groupId, null);
+		return new PermissionTargetResource(Kind.TEAM, groupId, null);
 	}
 
 	/**
-	 * Builds the target for changing who manages a custom group.
-	 *
 	 * @return who manages the custom group
 	 */
 	public static PermissionTargetResource teamManagers(String groupId) {
-		return new PermissionTargetResource(TargetResourceType.TEAM_MANAGERS, groupId, null);
+		return new PermissionTargetResource(Kind.TEAM_MANAGERS, groupId, null);
 	}
 
-	/**
-	 * What the target is: a project, an engine, an insight, or a custom group's
-	 * members or managers.
-	 *
-	 * @return the target's resource type
-	 */
-	public TargetResourceType getResourceType() {
-		return resourceType;
+	public Kind getKind() {
+		return kind;
 	}
 
 	public String getId() {
@@ -129,17 +109,13 @@ public class PermissionTargetResource {
 	}
 
 	/**
-	 * Describes the target as its type and id, or as the managers of a team for
-	 * {@code TEAM_MANAGERS}.
-	 *
 	 * @return the target in words, for messages and logs, such as "project abc"
 	 */
 	public String describe() {
-		if (resourceType == TargetResourceType.TEAM_MANAGERS) {
+		if (kind == Kind.TEAM_MANAGERS) {
 			return "the managers of team " + id;
 		}
-		String noun = resourceType == null ? "target"
-				: resourceType == TargetResourceType.TEAM ? "team" : resourceType.name().toLowerCase();
+		String noun = kind == null ? "target" : kind == Kind.TEAM ? "team" : kind.name().toLowerCase();
 		return noun + " " + id;
 	}
 }

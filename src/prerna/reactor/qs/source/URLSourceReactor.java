@@ -36,7 +36,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.Constants;
-import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 public class URLSourceReactor extends AbstractQueryStructReactor {
@@ -63,7 +62,7 @@ public class URLSourceReactor extends AbstractQueryStructReactor {
 				+ Utility.getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
 		filePath += "\\" + Utility.getRandomString(10) + ".csv";
 		filePath = filePath.replace("\\", "/");
-		InternalUtility.copyURLtoFile(urlInput, filePath);
+		Utility.copyURLtoFile(urlInput, filePath);
 
 		// get datatypes
 		CSVFileHelper helper = new CSVFileHelper();

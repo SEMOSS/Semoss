@@ -29,30 +29,33 @@ package prerna.reactor.insights.fs;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 
-import org.json.JSONObject;
-
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.FileSystemUtil;
-import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
 public class UnzipInsightAssetFileReactor extends AbstractReactor {
 
 	public UnzipInsightAssetFileReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		String fileRelativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		if (fileRelativePath == null || fileRelativePath.isEmpty()) {
@@ -70,10 +73,8 @@ public class UnzipInsightAssetFileReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Cannot find zip file '" + fileRelativePath + "'");
 		}
 
-		Map<String, String> extractedNames;
 		try {
-			extractedNames = ZipUtils.unzip(zipFileLocation, zipFile.getParent(),
-					getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false));
+			ZipUtils.unzip(zipFileLocation, zipFile.getParent());
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to unzip file. Detailed error = " + e.getMessage());
 		}
@@ -83,24 +84,20 @@ public class UnzipInsightAssetFileReactor extends AbstractReactor {
 			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
-		return FileSystemUtil.savedAssetsAsNounMetadata(FileSystemUtil.unzippedAssets(fileRelativePath, extractedNames));
+		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
 	@Override
-	public JSONObject getMcpProperties() {
-		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
-		return properties;
+	public String getReactorDescription() {
+		return "Unzips a zip file located in the current insight folder";
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Unzips a zip file located in the current insight folder").key(
-				ReactorKeysEnum.FILE_PATH,
-				"The relative file path of the zip file within the current insight folder to extract")
-				.key(ReactorKeysEnum.OVERRIDE,
-						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_UNZIP_DESCRIPTION))
-				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The relative file path of the zip file within the current insight folder to extract";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

@@ -42,7 +42,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.pipeline.PlatformOperation;
 
 /**
  * Interface that provides a common protocol for objects that wish to execute
@@ -52,8 +51,6 @@ import prerna.engine.impl.pipeline.PlatformOperation;
 public abstract class AbstractFileWatcher implements Runnable, FilenameFilter {
 
 	protected static final Logger classLogger = LogManager.getLogger(AbstractFileWatcher.class);
-
-	private static final String CATALOG_OPERATION = "catalog engines and projects";
 
 	// processes the files with the given extension
 	protected String folderToWatch = null;
@@ -117,17 +114,13 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter {
 	}
 
 	/**
-	 * Starts the thread and processes new files from a given directory. Cataloging
-	 * the files it finds is a platform operation, the platform's own work for no
-	 * user.
+	 * Starts the thread and processes new files from a given directory.
 	 */
 	@Override
 	public void run() {
 		classLogger.info("Starting watcher thread for type {} with class {} and thread ID {}", this.engineType,
-				this.getClass().getName(), Thread.currentThread().threadId());
-		try (PlatformOperation operation = PlatformOperation.begin(CATALOG_OPERATION)) {
-			loadFirst();
-		}
+				this.getClass().getName(), Thread.currentThread().getId());
+		loadFirst();
 
 		WatchService watcher = null;
 		try {
@@ -174,7 +167,7 @@ public abstract class AbstractFileWatcher implements Runnable, FilenameFilter {
 									e);
 						}
 
-						try (PlatformOperation operation = PlatformOperation.begin(CATALOG_OPERATION)) {
+						try {
 							process(newFile);
 						} catch (RuntimeException e) {
 							classLogger.error("Failed to process new file {}", newFile, e);

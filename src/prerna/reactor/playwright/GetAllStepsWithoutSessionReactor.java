@@ -38,7 +38,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -219,11 +218,24 @@ public class GetAllStepsWithoutSessionReactor extends AbstractReactor {
 		return triggerMap;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Loads all recorded Playwright steps from a saved file without requiring an active Playwright session.")
-				.key(ReactorKeysEnum.PROJECT, "Project where the recording file exists.")
-				.key("fileName", "Recording file name to load, relative to the project's app asset folder.");
+	public String getReactorDescription() {
+		return "Loads all recorded Playwright steps from a saved file without requiring an active Playwright session.";
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "Project where the recording file exists.";
+		} else if ("fileName".equals(key)) {
+			return "Recording file name to load, relative to the project's app asset folder.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

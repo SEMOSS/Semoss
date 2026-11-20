@@ -32,7 +32,6 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.impl.MCPFactory;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -71,7 +70,7 @@ public class InitMCPReactor extends AbstractReactor {
 		if (engine == null) {
 			engine = Utility.getProject(engineId);
 		}
-		User user = requireUser();
+		User user = this.insight.getUser();
 		checkEngineEditSecurity(engine, user);
 
 		String protocolVersion = this.keyValue.get(PROTOCOL_VERSION);
@@ -81,11 +80,11 @@ public class InitMCPReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Starts an MCP session with an engine or project the user can view and returns its initialize result: the protocol version, server info and capabilities.")
-				.key(PROTOCOL_VERSION,
-						"The protocol version that was specified in the Initialization phase from the client");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(PROTOCOL_VERSION)) {
+			return "The protocol version that was specified in the Initialization phase from the client";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

@@ -80,4 +80,9 @@ public class SalesforceTokenFiller extends AbstractOAuthTokenFiller {
 		return false;
 	}
 
+	@Override
+	protected boolean includeState() {
+		return false;
+	}
+
 }

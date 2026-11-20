@@ -30,7 +30,6 @@ package prerna.reactor.project;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
@@ -53,9 +52,12 @@ public class ProjectPyBase64Reactor extends AbstractProjectPyReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().key(ReactorKeysEnum.CODE,
-				"The python code to execute. The python code should be passed in as a base64-encoded utf-8 string")
-				.key(ReactorKeysEnum.PROJECT, "The project id");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
+			return "The python code to execute. The python code should be passed in as a base64-encoded utf-8 string";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The project id";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

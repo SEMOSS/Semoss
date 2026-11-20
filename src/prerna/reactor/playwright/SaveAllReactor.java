@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -63,6 +62,7 @@ public class SaveAllReactor extends AbstractReactor {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException(
 					"Project does not exist or user does not have access to edit the project");
@@ -110,13 +110,23 @@ public class SaveAllReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description(
-						"Reactor that replays step that is in order to run by given , sesionId, tabId, and fileName")
-				.key("sessionId", "The id of the current session of the playwright")
-				.key("name", "the name of the recorded file").key("title", "The title of the recorded file")
-				.key("description", "The description of the recorded file")
-				.key("intent", "The intention or the purpose of the recorded file");
+	public String getReactorDescription() {
+		return "Reactor that replays step that is in order to run by given , sesionId, tabId, and fileName";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("sessionId")) {
+			return "The id of the current session of the playwright";
+		} else if (key.equals("name")) {
+			return "the name of the recorded file";
+		} else if (key.equals("description")) {
+			return "The description of the recorded file";
+		} else if (key.equals("title")) {
+			return "The title of the recorded file";
+		} else if (key.equals("intent")) {
+			return "The intention or the purpose of the recorded file";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

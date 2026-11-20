@@ -29,7 +29,6 @@ package prerna.reactor.codeexec;
 
 import org.json.JSONObject;
 
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 public class PixelReactor extends AbstractPixelReactor {
@@ -40,12 +39,15 @@ public class PixelReactor extends AbstractPixelReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().key(ReactorKeysEnum.CODE, """
-				The pixel code to execute. \
-				For convenience, instead of escaping quotes or backslashes you can wrap \
-				the input within "<encode>your_text</encode>" and the system will encode it for you.
-				""");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
+			return """
+					The pixel code to execute. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 	@Override

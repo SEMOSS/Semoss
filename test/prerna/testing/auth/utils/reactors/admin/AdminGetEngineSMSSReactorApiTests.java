@@ -33,13 +33,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
 import prerna.auth.utils.reactors.admin.AdminGetEngineSMSSReactor;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.SmssEditCopy;
 import prerna.engine.impl.SmssUtilities;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -64,10 +62,8 @@ public class AdminGetEngineSMSSReactorApiTests extends AbstractBaseSemossApiTest
 		NounMetadata nm = ApiSemossTestUtils.processPixel(pixel);
 
 		assertNotNull(nm);
-		assertEquals(PixelDataType.MAP, nm.getNounType());
-		Map<?, ?> copy = (Map<?, ?>) nm.getValue();
-		assertEquals(expected, copy.get(SmssEditCopy.SMSS));
-		assertEquals(SmssEditCopy.read(engine).getSmssHash(), copy.get(SmssEditCopy.SMSS_HASH));
+		assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
+		assertEquals(expected, nm.getValue().toString());
 	}
 
 }

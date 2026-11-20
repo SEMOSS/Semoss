@@ -29,7 +29,6 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkRoomUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkOpenRoom(threadId=["..."], roomId=["..."]);
@@ -54,8 +53,17 @@ public class WorkOpenRoomReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Adds a thread workspace to the open list, or marks it active")
-				.key(THREAD_ID, "Thread id").key(ROOM_ID, "The thread's room, once it exists");
+	public String getReactorDescription() {
+		return "Adds a thread workspace to the open list, or marks it active";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		} else if (ROOM_ID.equals(key)) {
+			return "The thread's room, once it exists";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

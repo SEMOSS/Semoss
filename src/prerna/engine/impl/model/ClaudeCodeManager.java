@@ -34,6 +34,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import org.apache.commons.text.StringSubstitutor;
@@ -69,7 +70,8 @@ public class ClaudeCodeManager {
 
 	protected PyTranslator pyTranslator = null;
 	protected File cacheFolder;
-	private final ClientProcessWrapper cpw = new ClientProcessWrapper();
+	private ClientProcessWrapper cpw = null;
+	private final ReentrantLock startServerLock = new ReentrantLock();
 
 	protected String varName = null;
 	protected Map<String, String> vars = new HashMap<>();
@@ -231,7 +233,7 @@ public class ClaudeCodeManager {
 		// register this CLI sidecar socket for the current jobId so stop($JOB_ID) can
 		// route the interrupt opcode here
 		String jobId = ThreadStore.getJobId();
-		AgentCliSocketRegistry.register(jobId, cpw.getSocketClient());
+		AgentCliSocketRegistry.register(jobId, cpw != null ? cpw.getSocketClient() : null);
 		try {
 			Object output = pyTranslator.runDirectPyNoCancelTrace(insight, queryScript);
 			return String.valueOf(output);
@@ -241,67 +243,93 @@ public class ClaudeCodeManager {
 	}
 
 	/**
-	 * Starts the python sidecar for the Claude Code agent, runs the init script and
-	 * sends it the process prefix. Called through
-	 * {@link ClientProcessWrapper#getOrStartSocketClient(Runnable)}, which holds
-	 * the wrapper's create lock, when the process is not running.
+	 * This method is responsible for starting the python process that is linked to
+	 * this model engine.
 	 * 
-	 * @param port       The port number to use when creating the server/client
-	 *                   connection.
-	 * @param initScript the python commands that set up the sidecar
+	 * @param port The port number to use when creating the server/client
+	 *             connection.
 	 */
 	protected void startServer(int port, String initScript) {
-		if (this.workingDirectoryBasePath == null) {
-			this.createCacheFolder();
-		}
+		this.startServerLock.lock();
+		try {
+			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+				return;
+			}
+			if (this.workingDirectoryBasePath == null) {
+				this.createCacheFolder();
+			}
 
-		String timeout = "30";
+			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+			if (this.cpw != null) {
+				this.cpw.shutdown(false);
+			}
 
-		boolean debug = false;
+			String timeout = "30";
 
-		String forcePort = null; // Not sure where I'd keep this; possibly as reactor param
-		String loggerLevel = null;
+			if (cpwToInit.getSocketClient() == null) {
+				boolean debug = false;
 
-		if (port < 0) {
-			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+				String forcePort = null; // Not sure where I'd keep this; possibly as reactor param
+				String customClassPath = null;
+				String loggerLevel = null;
+
+				if (port < 0) {
+					if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+						try {
+							port = Integer.parseInt(forcePort);
+							debug = true;
+						} catch (NumberFormatException e) {
+							classLogger.warn("Claude Code has an invalid FORCE_PORT value");
+						}
+					}
+				}
+
+				String serverDirectory = this.cacheFolder.getAbsolutePath();
+
 				try {
-					port = Integer.parseInt(forcePort);
-					debug = true;
-				} catch (NumberFormatException e) {
-					classLogger.warn("Claude Code has an invalid FORCE_PORT value");
+					cpwToInit.createProcessAndClient(true, null, port, null, serverDirectory, customClassPath, debug,
+							timeout, "INFO");
+				} catch (Exception e) {
+					classLogger.error("Failed to create python process for Claude Code agent", e);
+					throw new IllegalArgumentException("Unable to connect to server for python Claude Code Agent.");
+				}
+			} else if (!cpwToInit.getSocketClient().isConnected()) {
+				cpwToInit.shutdown(false);
+				try {
+					cpwToInit.reconnect();
+				} catch (Exception e) {
+					classLogger.error("Failed to reconnect python process for Claude Code agent", e);
+					throw new IllegalArgumentException("Failed to start TCP Server for Claude Code Agent: {}", e);
 				}
 			}
-		}
 
-		String serverDirectory = this.cacheFolder.getAbsolutePath();
+			// create the py translator
+			Insight processInsight = new Insight();
+			InsightStore.getInstance().put(processInsight);
+			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 
-		try {
-			this.cpw.createProcessAndClient(true, null, port, null, serverDirectory, debug, timeout, "INFO");
-		} catch (Exception e) {
-			classLogger.error("Failed to create python process for Claude Code agent", e);
-			throw new IllegalArgumentException("Unable to connect to server for python Claude Code Agent.");
-		}
+			try {
+				String initCommands = initScript;
+				String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+					commands[commandIndex] = fillVars(commands[commandIndex]);
+				}
+				this.pyTranslator.runEmptyPyNoCancelTrace(commands);
+				classLogger.info("Initializing Claude Code python process with commands >>> {}",
+						String.join("\n", commands));
+				setPrefix(cpwToInit);
 
-		// create the py translator
-		Insight processInsight = new Insight();
-		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(this.cpw.getSocketClient(), processInsight);
-
-		try {
-			String initCommands = initScript;
-			String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-				commands[commandIndex] = fillVars(commands[commandIndex]);
+				this.cpw = cpwToInit;
+			} catch (Exception e) {
+				classLogger.error("Failed to initialize Claude Code python process with startup commands", e);
+				if (cpwToInit != null) {
+					classLogger.warn("Able to start the python process for Claude Code but the start script failed");
+					cpwToInit.shutdown(false);
+				}
+				throw e;
 			}
-			this.pyTranslator.runEmptyPyNoCancelTrace(commands);
-			classLogger.info("Initializing Claude Code python process with commands >>> {}",
-					String.join("\n", commands));
-			setPrefix();
-		} catch (Exception e) {
-			classLogger.error("Failed to initialize Claude Code python process with startup commands", e);
-			classLogger.warn("Able to start the python process for Claude Code but the start script failed");
-			this.cpw.shutdown(false);
-			throw e;
+		} finally {
+			this.startServerLock.unlock();
 		}
 	}
 
@@ -309,18 +337,20 @@ public class ClaudeCodeManager {
 	 * This method checks whether the socket client is instantiated and connected.
 	 */
 	protected void checkSocketStatus(String initScript) {
-		this.cpw.getOrStartSocketClient(() -> startServer(-1, initScript));
+		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			this.startServer(-1, initScript);
+		}
 	}
 
 	/**
 	 * 
 	 */
-	private void setPrefix() {
-		this.prefix = this.cpw.getPrefix();
+	private void setPrefix(ClientProcessWrapper cpwToInit) {
+		this.prefix = cpwToInit.getPrefix();
 		PayloadStruct prefixPayload = new PayloadStruct();
 		prefixPayload.payload = new String[] { "prefix", this.prefix };
 		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
-		this.cpw.getSocketClient().executeCommand(prefixPayload);
+		cpwToInit.getSocketClient().executeCommand(prefixPayload);
 	}
 
 	/**

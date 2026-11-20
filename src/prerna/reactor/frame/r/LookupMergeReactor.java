@@ -36,6 +36,8 @@ import java.util.StringJoiner;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.SemossDataType;
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
@@ -60,6 +62,11 @@ public class LookupMergeReactor extends AbstractRFrameReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		// initialize the reactor
 		init();
@@ -83,7 +90,7 @@ public class LookupMergeReactor extends AbstractRFrameReactor {
 		HashMap matches = getMatches();
 		StringJoiner request = new StringJoiner(",", "c(", ")");
 		StringJoiner match = new StringJoiner(",", "c(", ")");
-
+				
 		for (Object instance : matches.keySet()) {
 			List<String> group = (List<String>) matches.get(instance);
 
@@ -115,8 +122,8 @@ public class LookupMergeReactor extends AbstractRFrameReactor {
 		script.append(RSyntaxHelper.getMergeSyntax(frameName, frameName, matchFrame, "inner.join", joinsList) + ";");
 		script.append("rm(" + matchFrame + ");gc();");
 		script.append("print(\"hello\")");
-
-		// message out
+		
+		//message out
 		logger.info("Running script to merge lookup table.");
 
 		// run it

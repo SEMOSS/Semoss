@@ -82,6 +82,7 @@ import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.ReadOnlyOWLEngine;
 import prerna.engine.impl.owl.WriteOWLEngine;
+import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
@@ -91,9 +92,8 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
-import prerna.util.DIHelperTestUtils;
+import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
-import prerna.util.InternalUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -229,13 +229,17 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 	/// Close
 	@Test
 	void closeDBsNotNull() throws IOException {
-		try (MockedConstruction<OWLEngineFactory> factoryMock = mockConstruction(OWLEngineFactory.class)) {
+		try (MockedConstruction<OWLEngineFactory> factoryMock = mockConstruction(OWLEngineFactory.class);
+				MockedConstruction<AuditDatabase> auditMock = mockConstruction(AuditDatabase.class)) {
 			RDFFileSesameEngine rdf = mock(RDFFileSesameEngine.class);
 			engine.setBaseDataEngine(rdf);
+			engine.generateAudit();
 
 			engine.close();
 
 			verify(rdf, times(1)).close();
+			AuditDatabase auditDatabase = auditMock.constructed().get(0);
+			verify(auditDatabase, times(1)).close();
 		}
 	}
 
@@ -312,13 +316,6 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 	}
 
 	@Test
-	void testKeepInputOutputIgnoresTheSmssValue() {
-		// the value AbstractEngine.open reads from KEEP_INPUT_OUTPUT=false
-		engine.keepInputOutput = false;
-		assertTrue(engine.keepInputOutput());
-	}
-
-	@Test
 	void testSetEngineId() {
 		engine.setEngineId("Test");
 		assertEquals("Test", engine.getEngineId());
@@ -386,7 +383,7 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 			try (OutputStream os = Files.newOutputStream(rdf)) {
 				prop.store(os, null);
 			}
-			InternalUtility.loadCoreProp(rdf.toAbsolutePath().toString());
+			DIHelper.getInstance().loadCoreProp(rdf.toAbsolutePath().toString());
 
 			// OWL File
 			File generatedOwlPath = tempPath.resolve("generated.owl").toFile();
@@ -443,26 +440,6 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 			assertEquals("testEngine", engine.getEngineId());
 			assertEquals("testEngineAlias", engine.getEngineName());
 			assertNull(engine.getDatabaseZoneId());
-		}
-
-		@Test
-		void testOpenSmssPropKeepInputOutputFalse() throws Exception {
-			Properties p = new Properties();
-			p.put(Constants.ENGINE, "testEngine");
-			p.put(Constants.ENGINE_ALIAS, "testEngineAlias");
-			p.put(Constants.DATABASE_ZONEID, "");
-			p.put(Constants.KEEP_INPUT_OUTPUT, "false");
-			try (OutputStream os = Files.newOutputStream(testProps)) {
-				p.store(os, null);
-			}
-
-			engine.setBasic(true);
-
-			engine.open(testPropsPath);
-
-			// a database does not follow KEEP_INPUT_OUTPUT, so the SQL of its calls is
-			// always in the audit logs
-			assertTrue(engine.keepInputOutput());
 		}
 
 		@Test
@@ -552,7 +529,7 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 			Files.createDirectories(base);
 			Properties rdf = new Properties();
 			rdf.put(Constants.BASE_FOLDER, tempDir.toAbsolutePath().toString());
-			InternalUtility.setCoreProp(rdf);
+			DIHelper.getInstance().setCoreProp(rdf);
 
 			RepositoryConnection mockRC = mock(RepositoryConnection.class);
 			try (MockedConstruction<OWLEngineFactory> mockedOwlEngineFactory = mockConstruction(OWLEngineFactory.class);
@@ -620,7 +597,7 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 		Files.createDirectories(base);
 		Properties rdf = new Properties();
 		rdf.put(Constants.BASE_FOLDER, tempDir.toAbsolutePath().toString());
-		InternalUtility.setCoreProp(rdf);
+		DIHelper.getInstance().setCoreProp(rdf);
 
 		RepositoryConnection mockRC = mock(RepositoryConnection.class);
 		try (MockedConstruction<OWLEngineFactory> ignored = mockConstruction(OWLEngineFactory.class);
@@ -814,10 +791,11 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 
 			Properties rdf = new Properties();
 			rdf.put(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
-			InternalUtility.setCoreProp(rdf);
-			InternalUtility.setEngineIds("testId;");
-			InternalUtility.setEngineSmssPath("testId", "value");
-			DIHelperTestUtils.setLoadedEngine("testId", engine);
+			DIHelper.getInstance().setCoreProp(rdf);
+			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, "testId;");
+			DIHelper.getInstance().setEngineProperty("testId_" + Constants.OWL, "value");
+			DIHelper.getInstance().setEngineProperty("testId_" + Constants.STORE, "value");
+			DIHelper.getInstance().setEngineProperty("testId", "value");
 
 			Path engineFolder = engineDir.resolve(engineNameAndId);
 			Path engineAssetFolder = engineFolder.resolve("assets");
@@ -858,9 +836,10 @@ public class AbstractDatabaseEngineUnitTests extends SemossUnitTest {
 				assertTrue(Files.notExists(owlPath));
 				assertTrue(Files.notExists(engineSMSS));
 				assertTrue(Files.notExists(testEngine));
-				assertEquals("", InternalUtility.getEngineIds());
-				assertNull(InternalUtility.getLoadedEngine("testId"));
-				assertNull(InternalUtility.getEngineSmssPath("testId"));
+				assertEquals("", DIHelper.getInstance().getEngineProperty(Constants.ENGINES));
+				assertNull(DIHelper.getInstance().getEngineProperty("testId"));
+				assertNull(DIHelper.getInstance().getEngineProperty("testId_" + Constants.OWL));
+				assertNull(DIHelper.getInstance().getEngineProperty("testId_" + Constants.STORE));
 			}
 		}
 	}

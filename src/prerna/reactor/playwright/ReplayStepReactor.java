@@ -44,7 +44,6 @@ import com.microsoft.playwright.options.LoadState;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -86,6 +85,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException(
 					"Project does not exist or user does not have access to view the project");
@@ -556,13 +556,21 @@ public class ReplayStepReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description(
-						"Reactor that replays step that is in order to run by given , sesionId, tabId, and fileName")
-				.key("sessionId", "The id of the current session of the playwright")
-				.key("fileName", "the name of the recorder file")
-				.key("executeAll", "Boolean that decide if you need to  execute all the remaining steps")
-				.key("tabId", "The id of the current tab of the playwright");
+	public String getReactorDescription() {
+		return "Reactor that replays step that is in order to run by given , sesionId, tabId, and fileName";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("sessionId")) {
+			return "The id of the current session of the playwright";
+		} else if (key.equals("fileName")) {
+			return "the name of the recorder file";
+		} else if (key.equals("executeAll")) {
+			return "Boolean that decide if you need to  execute all the remaining steps";
+		} else if (key.equals("tabId")) {
+			return "The id of the current tab of the playwright";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

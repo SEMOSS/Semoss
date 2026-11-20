@@ -64,7 +64,8 @@ public class MicrosoftOutlookListMailReactor extends AbstractListMailReactor {
 		// named is looked up; a thread is read from every folder
 		query.folder = request.conversationId() == null ? helper.resolveDestination(accessToken, null, request.folder())
 				: request.folder();
-		query.terms = request.terms();
+		query.subject = request.subject();
+		query.from = request.from();
 		query.unreadOnly = request.unreadOnly();
 		query.since = request.since() == null ? null : Date.from(request.since());
 		query.includeBody = request.includeBody();
@@ -82,14 +83,10 @@ public class MicrosoftOutlookListMailReactor extends AbstractListMailReactor {
 
 		// a null mailbox addresses /me, so the signed in user is the only mailbox
 		// this reactor is able to read
-		ConnectorPage<Map<String, Object>> found = helper.listMessagePage(accessToken, null, query);
-		List<MailMessage> messages = found.items().stream()
+		List<Map<String, Object>> found = helper.listMessages(accessToken, null, query);
+		List<MailMessage> messages = found.stream()
 				.map(message -> MicrosoftOutlookMessageMapper.toMailMessage(message, null, null, null)).toList();
-		if (serverSkips) {
-			return ConnectorPage.ofWindow(messages, request.limit());
-		}
-		ConnectorPage<MailMessage> page = ConnectorPage.of(messages, request.offset(), request.limit());
-		// a search narrowed in memory can stop with Graph's later pages unread
-		return new ConnectorPage<>(page.items(), page.hasMore() || found.hasMore());
+		return serverSkips ? ConnectorPage.ofWindow(messages, request.limit())
+				: ConnectorPage.of(messages, request.offset(), request.limit());
 	}
 }

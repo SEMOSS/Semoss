@@ -46,7 +46,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.AbstractReactorFunctionEngine;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
-import prerna.security.SecretRedactor;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -111,7 +110,6 @@ public abstract class AbstractGuardrailReactorFunctionEngine extends AbstractRea
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
-		SecretRedactor.recordSecrets(this.engineId, this.smssProp);
 
 		IEngine.CATALOG_TYPE eType = getCatalogType();
 		this.engineBaseFolder = EngineUtility.getSpecificEngineBaseFolder(eType, engineIdAndName);

@@ -132,25 +132,8 @@ class PandasFrameUnitTests {
 		}
 
 		@Test
-		void pyS_pandas3StrMapsToString() {
-			assertEquals(SemossDataType.STRING, PandasFrame.pyS.get("str"));
-		}
-
-		@Test
-		void pyS_stringDtypeMapsToString() {
-			assertEquals(SemossDataType.STRING, PandasFrame.pyS.get("string"));
-		}
-
-		@Test
-		void pyS_datetimeResolutionsMapToTimestamp() {
-			for (String unit : new String[] { "s", "ms", "us", "ns" }) {
-				assertEquals(SemossDataType.TIMESTAMP, PandasFrame.pyS.get("datetime64[" + unit + "]"), unit);
-			}
-		}
-
-		@Test
-		void pyS_hasTwelveEntries() {
-			assertEquals(12, PandasFrame.pyS.size());
+		void pyS_hasSixEntries() {
+			assertEquals(6, PandasFrame.pyS.size());
 		}
 
 		@Test
@@ -268,23 +251,28 @@ class PandasFrameUnitTests {
 	class ConstantsTests {
 
 		@Test
+		void dataMakerNameConstant() {
+			assertEquals("PandasFrame", PandasFrame.DATA_MAKER_NAME);
+		}
+
+		@Test
 		void pandasImportVarConstant() {
-			assertEquals("pd", PandasFrame.PANDAS_IMPORT_VAR);
+			assertEquals("pandas_import_var", PandasFrame.PANDAS_IMPORT_VAR);
 		}
 
 		@Test
 		void pandasImportStringConstant() {
-			assertEquals("import pandas as pd", PandasFrame.PANDAS_IMPORT_STRING);
+			assertEquals("import pandas as pandas_import_var", PandasFrame.PANDAS_IMPORT_STRING);
 		}
 
 		@Test
 		void numpyImportVarConstant() {
-			assertEquals("np", PandasFrame.NUMPY_IMPORT_VAR);
+			assertEquals("np_import_var", PandasFrame.NUMPY_IMPORT_VAR);
 		}
 
 		@Test
 		void numpyImportStringConstant() {
-			assertEquals("import numpy as np", PandasFrame.NUMPY_IMPORT_STRING);
+			assertEquals("import numpy as np_import_var", PandasFrame.NUMPY_IMPORT_STRING);
 		}
 
 		@Test
@@ -617,6 +605,22 @@ class PandasFrameUnitTests {
 		void getFrameType_isNotNull() {
 			PandasFrame frame = new PandasFrame("test", mockTranslator);
 			assertNotNull(frame.getFrameType());
+		}
+	}
+
+	@Nested
+	class GetDataMakerNameTests {
+
+		@Test
+		void getDataMakerName_returnsPandasFrame() {
+			PandasFrame frame = new PandasFrame("test", mockTranslator);
+			assertEquals("PandasFrame", frame.getDataMakerName());
+		}
+
+		@Test
+		void getDataMakerName_matchesConstant() {
+			PandasFrame frame = new PandasFrame("test", mockTranslator);
+			assertEquals(PandasFrame.DATA_MAKER_NAME, frame.getDataMakerName());
 		}
 	}
 
@@ -1091,6 +1095,18 @@ class PandasFrameUnitTests {
 			verifyNoInteractions(mockTranslator);
 		}
 
+		@Test
+		void processDataMakerComponent_doesNotThrow() {
+			PandasFrame frame = new PandasFrame("test", mockTranslator);
+			assertDoesNotThrow(() -> frame.processDataMakerComponent(null));
+		}
+
+		@Test
+		void processDataMakerComponent_doesNotInteractWithTranslator() {
+			PandasFrame frame = new PandasFrame("test", mockTranslator);
+			frame.processDataMakerComponent(null);
+			verifyNoInteractions(mockTranslator);
+		}
 	}
 
 	@Nested

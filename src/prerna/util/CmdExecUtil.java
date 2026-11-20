@@ -27,39 +27,46 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.io.input.NullInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.util.sandbox.ExecResult;
-import prerna.util.sandbox.ISandbox;
-import prerna.util.sandbox.SandboxFactory;
-import prerna.util.sandbox.SandboxSettings;
 
 public class CmdExecUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(CmdExecUtil.class);
-	private static final int EXEC_TIMEOUT_SECONDS = 20;
+	private static final String DEFAULT_CHROOT_PATH = String.join(File.pathSeparator, "/usr/local/sbin",
+			"/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin");
 
 	private String insightId = null;
 	private String chrootFolderPath = null;
 	private String workingDir = null;
 	private String contextDir = null;
-	/** Where commands run: the host, or the user's sandbox. */
-	private ISandbox sandbox = SandboxFactory.host();
+	private String commandAppender = "cmd";
 
 	/**
 	 * Constructor
 	 */
 	public CmdExecUtil(User user, String insightId, String contextDir) {
-		if (user != null && SandboxSettings.chrootEnabled()) {
+		if (user != null && Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			SymlinkHelper chrootHelper = user.getUserSymlinkHelper();
 			this.chrootFolderPath = chrootHelper.getUserChrootFolder();
-			this.sandbox = SandboxFactory.of(chrootHelper, user);
 		}
+		getCommandAppender();
 		this.insightId = insightId;
 		if (contextDir == null) {
 			contextDir = "/";
@@ -131,15 +138,6 @@ public class CmdExecUtil {
 	 * Execute command with proper path handling
 	 */
 	public String executeCommand(String command) {
-		if (this.sandbox.capabilities().ownsShellState()) {
-			// The sandbox is the boundary and tracks the working directory itself, so it gets
-			// the whole line, including cd/pwd/reset, rather than the host-path logic below.
-			ExecResult result = this.sandbox.exec(this.workingDir, command, EXEC_TIMEOUT_SECONDS);
-			if (result.workingDir() != null) {
-				this.workingDir = result.workingDir();
-			}
-			return result.output();
-		}
 		String output = null;
 		try {
 			if (command.equalsIgnoreCase("reset")) {
@@ -188,6 +186,21 @@ public class CmdExecUtil {
 		return output;
 	}
 
+	private void getCommandAppender() {
+		String osName = System.getProperty("os.name").toLowerCase();
+		if (osName.indexOf("win") >= 0) {
+			String terminalMode = Utility.getDefaultTerminalMode();
+			if (terminalMode.equals("cmd")) {
+				this.commandAppender = "cmd";
+			} else {
+				// if not cmd, then we are powershell
+				this.commandAppender = "powershell.exe";
+			}
+		} else {
+			this.commandAppender = "/bin/bash";
+		}
+	}
+
 	private String removeQuotes(String input) {
 		if (input == null || input.length() < 2) {
 			return input;
@@ -223,11 +236,189 @@ public class CmdExecUtil {
 	}
 
 	private String[] runCommand(String command) {
-		ExecResult result = this.sandbox.exec(this.workingDir, command, EXEC_TIMEOUT_SECONDS);
-		if (result.workingDir() != null) {
-			this.workingDir = result.workingDir();
+		Map<String, String> environment = null;
+		String[] foutput = new String[2];
+		boolean success = true;
+
+//	    // Prepend safe.directory if this is a git command
+//	    // This is because the clone sets the directory ownership as root
+//	    // Even when we run with --userspec
+//	    if (command.startsWith("git")) {
+//	        command = command.replaceFirst("git", "git -c safe.directory='" + this.workingDir+"'");
+//	    }
+
+		org.apache.commons.exec.ExecuteWatchdog.Builder executeWatchdogBuilder = ExecuteWatchdog.builder();
+		executeWatchdogBuilder.setTimeout(Duration.ofSeconds(20));
+
+		org.apache.commons.exec.DefaultExecutor.Builder<?> executorBuilder = DefaultExecutor.builder();
+
+		// For chroot, we need to set working directory to the chroot base, not the
+		// target directory
+		File workingDirectory;
+		if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
+			workingDirectory = new File(this.chrootFolderPath);
+		} else {
+			workingDirectory = new File(Utility.normalizePath(workingDir));
 		}
-		return new String[] { String.valueOf(result.success()), result.output() };
+		executorBuilder.setWorkingDirectory(workingDirectory);
+
+		CommandLine cmdLine = null;
+
+		// Check if we need to use chroot
+		if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
+			environment = createChrootEnvironment();
+			// Validate chroot setup
+			File chrootDir = new File(this.chrootFolderPath);
+			if (!chrootDir.exists()) {
+				classLogger.error("Chroot directory does not exist: " + this.chrootFolderPath);
+				foutput[0] = "false";
+				foutput[1] = "Chroot directory does not exist: " + this.chrootFolderPath;
+				return foutput;
+			}
+
+			File bashInChroot = new File(chrootDir, "bin/bash");
+			if (!bashInChroot.exists()) {
+				classLogger.error("Bash does not exist in chroot: " + bashInChroot.getAbsolutePath());
+				foutput[0] = "false";
+				foutput[1] = "Bash does not exist in chroot: " + bashInChroot.getAbsolutePath();
+				return foutput;
+			}
+
+			// Build the complete command as a single string argument
+			String escapedWorkingDir = workingDir.replace("'", "'\"'\"'"); // Proper shell escaping
+			cmdLine = new CommandLine("fakechroot");
+			cmdLine.addArgument("fakeroot");
+			cmdLine.addArgument("chroot");
+			cmdLine.addArgument("--userspec=1001:1001");
+			cmdLine.addArgument(this.chrootFolderPath);
+			cmdLine.addArgument(commandAppender);
+			cmdLine.addArgument("-c");
+			cmdLine.addArgument("cd '" + escapedWorkingDir + "' && " + command, false);
+		} else {
+			// non-chroot execution
+			environment = createEnvironmentWithConfiguredPythonPath();
+			cmdLine = new CommandLine(commandAppender);
+			if (commandAppender.equalsIgnoreCase("/bin/bash")) {
+				cmdLine.addArgument("-c");
+			} else {
+				cmdLine.addArgument("/C");
+			}
+			cmdLine.addArgument(command, false);
+		}
+
+		classLogger.info("Running command executable: " + cmdLine.getExecutable());
+		classLogger.info("Complete command: " + cmdLine);
+
+		try (ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+				ByteArrayOutputStream stderr = new ByteArrayOutputStream()) {
+			DefaultExecutor executor = executorBuilder.get();
+
+			PumpStreamHandler streamHandler = new PumpStreamHandler(stdout, stderr, NullInputStream.nullInputStream());
+			executor.setStreamHandler(streamHandler);
+
+			ExecuteWatchdog watchdog = executeWatchdogBuilder.get();
+			executor.setWatchdog(watchdog);
+
+			int exitValue = -1;
+			try {
+				if (environment == null) {
+					exitValue = executor.execute(cmdLine);
+				} else {
+					exitValue = executor.execute(cmdLine, environment);
+				}
+				classLogger.debug("Command executed successfully with exit code: " + exitValue);
+			} catch (Exception ex) {
+				success = false;
+				classLogger.error("Command execution failed with exit code: " + exitValue, ex);
+			}
+
+			// Combine stdout and stderr
+			String stdoutStr = stdout.toString();
+			String stderrStr = stderr.toString();
+			String output = stdoutStr + stderrStr;
+			output = output.trim().replace("\\", "/");
+
+			// Log the output for debugging
+			if (!stdoutStr.isEmpty()) {
+				classLogger.debug("Command stdout: " + stdoutStr);
+			}
+			if (!stderrStr.isEmpty()) {
+				classLogger.debug("Command stderr: " + stderrStr);
+			}
+
+			// If command failed but we don't have error output, add exit code info
+			if (!success && output.isEmpty()) {
+				output = "Command failed with exit code: " + exitValue;
+			}
+
+			foutput[0] = String.valueOf(success);
+			foutput[1] = output;
+
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			success = false;
+			foutput[0] = String.valueOf(success);
+			foutput[1] = "IO Exception occurred: " + e.getMessage();
+		}
+
+		return foutput;
+	}
+
+	private Map<String, String> createEnvironmentWithConfiguredPythonPath() {
+		String pythonHome = System.getenv(Settings.PYTHONHOME);
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			pythonHome = Utility.getDIHelperProperty(Settings.PYTHONHOME);
+		}
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			pythonHome = System.getenv(Settings.PY_HOME);
+		}
+		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+			pythonHome = Utility.getDIHelperProperty(Settings.PY_HOME);
+		}
+		String sandboxPath = getConfiguredSandboxPath();
+		if ((pythonHome == null || pythonHome.trim().isEmpty()) && sandboxPath.isEmpty()) {
+			return null;
+		}
+
+		Map<String, String> environment = new HashMap<>(System.getenv());
+		String path = prependPath(sandboxPath, environment.get("PATH"));
+		if (pythonHome != null && !pythonHome.trim().isEmpty()) {
+			String pythonBin = new File(pythonHome.trim(), "bin").getAbsolutePath();
+			path = prependPath(pythonBin, path);
+		}
+		environment.put("PATH", path);
+		return environment;
+	}
+
+	private Map<String, String> createChrootEnvironment() {
+		Map<String, String> environment = new HashMap<>();
+		environment.put("HOME", "/home/default");
+		environment.put("PATH", prependPath(getConfiguredSandboxPath(), DEFAULT_CHROOT_PATH));
+		return environment;
+	}
+
+	private static String getConfiguredSandboxPath() {
+		String sandboxPath = Utility.getDIHelperProperty(Constants.SANDBOX_PATH);
+		return sandboxPath == null ? "" : sandboxPath.trim();
+	}
+
+	private static String prependPath(String prefix, String existingPath) {
+		Set<String> entries = new LinkedHashSet<>();
+		addPathEntries(entries, prefix);
+		addPathEntries(entries, existingPath);
+		return String.join(File.pathSeparator, entries);
+	}
+
+	private static void addPathEntries(Set<String> entries, String path) {
+		if (path == null || path.trim().isEmpty()) {
+			return;
+		}
+		for (String entry : path.split(File.pathSeparator)) {
+			String trimmed = entry.trim();
+			if (!trimmed.isEmpty()) {
+				entries.add(trimmed);
+			}
+		}
 	}
 
 	/**

@@ -33,7 +33,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryConstantSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.qs.AbstractQueryStructReactor;
 import prerna.util.Constants;
 
@@ -80,10 +79,7 @@ public class UserActivityReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description(
-						"Builds a query struct returning a daily count of user logins from the user tracking database.")
-				.noKeys();
+	public String getReactorDescription() {
+		return "Builds a query struct returning a daily count of user logins from the user tracking database.";
 	}
 }

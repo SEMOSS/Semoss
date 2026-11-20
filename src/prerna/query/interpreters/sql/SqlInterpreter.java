@@ -515,14 +515,13 @@ public class SqlInterpreter extends AbstractQueryInterpreter {
 		IQuerySelector leftSelector = selector.getLeftSelector();
 		IQuerySelector rightSelector = selector.getRightSelector();
 		String mathExpr = selector.getMathExpr();
-		String castType = this.queryUtil.getArithmeticDataTypeName();
 
 		if (mathExpr.equals("/")) {
-			return "( CAST(" + processSelector(leftSelector, false) + " AS " + castType + ") " + mathExpr
-					+ " CAST(NULLIF(" + processSelector(rightSelector, false) + ",0) AS " + castType + ") )";
+			return "( CAST(" + processSelector(leftSelector, false) + " AS DECIMAL) " + mathExpr + " CAST(NULLIF("
+					+ processSelector(rightSelector, false) + ",0) AS DECIMAL) )";
 		} else {
-			return "( CAST(" + processSelector(leftSelector, false) + "  AS " + castType + ") " + mathExpr + " CAST("
-					+ processSelector(rightSelector, false) + " AS " + castType + ") )";
+			return "( CAST(" + processSelector(leftSelector, false) + "  AS DECIMAL) " + mathExpr + " CAST("
+					+ processSelector(rightSelector, false) + " AS DECIMAL) )";
 		}
 	}
 

@@ -81,7 +81,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName,
 				additionalDataTypes, sources, complexSelectors);
 		if (override) {
-			this.insight.setCurrentFrame(newFrame);
+			this.insight.setDataMaker(newFrame);
 		}
 		// update varStore
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME);
@@ -119,10 +119,6 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		String columnType = PandasSyntaxHelper.getColumnType(wrapperName + ".cache['data']", column);
 		String pythonDt = (String) insight.getPyTranslator().runScript(columnType);
 		SemossDataType smssDT = this.insight.getPyTranslator().convertDataType(pythonDt);
-		if (smssDT == null) {
-			throw new IllegalArgumentException(
-					"Column '" + column + "' has python type '" + pythonDt + "', which is not supported here");
-		}
 		return smssDT.toString();
 	}
 
@@ -130,16 +126,16 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		// at this point try to see if something has changed and if so
 		// trigger smart sync
 		boolean frameChanged = false;
-		if (this.insight.getCurrentFrame() != null && this.insight.getCurrentFrame() instanceof PandasFrame) {
+		if (this.insight.getCurFrame() != null && this.insight.getCurFrame() instanceof PandasFrame) {
 			StringBuffer script = new StringBuffer();
 			// source the script
-			script.append(this.insight.getCurrentFrame().getName() + "w.hasFrameChanged()");
+			script.append(this.insight.getCurFrame().getName() + "w.hasFrameChanged()");
 			String sync = pyt.runScript(script.toString()) + "";
 			frameChanged = sync.equalsIgnoreCase("true");
 			// changing this to always on
 			// frameChanged = true;
 			if (frameChanged) {
-				recreateMetadata((PandasFrame) insight.getCurrentFrame(), true);
+				recreateMetadata((PandasFrame) insight.getCurFrame(), true);
 			}
 		}
 		return frameChanged;

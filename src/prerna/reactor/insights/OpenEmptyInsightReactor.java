@@ -34,7 +34,6 @@ import java.util.Map;
 
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.om.ThreadStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -54,7 +53,7 @@ public class OpenEmptyInsightReactor extends AbstractInsightReactor {
 		Insight newInsight = new Insight();
 		InsightUtility.transferDefaultVars(this.insight, newInsight);
 		InsightStore.getInstance().put(newInsight);
-		InsightStore.getInstance().addToSessionHash(ThreadStore.getSessionId(), newInsight.getInsightId());
+		InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
 		// set the user in the insight
 		newInsight.setUser(this.insight.getUser());
 

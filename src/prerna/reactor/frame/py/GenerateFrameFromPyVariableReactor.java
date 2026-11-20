@@ -32,7 +32,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
 import prerna.ds.py.PyTranslator;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -79,7 +78,7 @@ public class GenerateFrameFromPyVariableReactor extends AbstractPyFrameReactor {
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 		if (getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true)) {
-			this.insight.setCurrentFrame(frame);
+			this.insight.setDataMaker(frame);
 		}
 		// add the alias as a noun by default
 		if (varName != null && !varName.isEmpty()) {
@@ -90,13 +89,12 @@ public class GenerateFrameFromPyVariableReactor extends AbstractPyFrameReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Turns a pandas DataFrame variable in the Python session into a frame of the insight, cleaning its column names, and stores it under the variable's name. By default it also becomes the insight's current frame.")
-				.key(ReactorKeysEnum.OVERRIDE,
-						key -> key.type(Boolean.class).description(
-								"Whether the new frame becomes the insight's current frame (default true)."))
-				.key(ReactorKeysEnum.VARIABLE, "Name of the py variable");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.VARIABLE.getKey())) {
+			return "Name of the py variable";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

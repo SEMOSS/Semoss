@@ -40,7 +40,6 @@ import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -247,12 +246,21 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Generates Playwright steps (CLICK and TYPE actions) using an LLM based on extracted webpage elements and a user goal")
-				.key(ReactorKeysEnum.ENGINE, "The id of the model engine")
-				.key("sessionId", "The id of the current session of the playwright").key(ReactorKeysEnum.ROOM_ID,
-						"The id of the room to call the model prompt with the context of the room for generating steps");
+	public String getReactorDescription() {
+		return "Generates Playwright steps (CLICK and TYPE actions) using an LLM based on extracted webpage elements and a user goal";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The id of the model engine";
+		} else if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
+			return "The id of the room to call the model prompt with the context of the room for generating steps";
+		} else if (key.equals("sessionId")) {
+			return "The id of the current session of the playwright";
+		}
+
+		return super.getDescriptionForKey(key);
 	}
 
 }

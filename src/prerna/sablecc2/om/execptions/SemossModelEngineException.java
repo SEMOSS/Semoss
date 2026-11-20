@@ -31,71 +31,32 @@ import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 
 public class SemossModelEngineException extends RuntimeException {
+    
+    private final AskModelEngineResponse<?> errorResponse;
 
-	private final AskModelEngineResponse<?> errorResponse;
+    public SemossModelEngineException(AskModelEngineResponse<?> errorResponse) {
+        super(errorResponse.getStringResponse());
+        this.errorResponse = errorResponse;
+    }
 
-	/**
-	 * An error the model provider returned. The message is what the user sees; the
-	 * provider's own text stays on the error response.
-	 *
-	 * @param errorResponse the provider's error, with its text and status code
-	 * @param message       the message for the user
-	 */
-	public SemossModelEngineException(AskModelEngineResponse<?> errorResponse, String message) {
-		super(message);
-		this.errorResponse = errorResponse;
-	}
+    public AskModelEngineResponse<?> getErrorResponse() {
+        return errorResponse;
+    }
 
-	public AskModelEngineResponse<?> getErrorResponse() {
-		return errorResponse;
-	}
+    // true when this exception (or a cause) is a model error with reason CONTEXT_OVERFLOW
+    public static boolean isContextOverflow(Throwable error) {
+        return contextOverflowError(error) != null;
+    }
 
-	/**
-	 * The message a user sees for a provider error: the status code, what it means,
-	 * and the reference the full error was logged under. The provider's text is
-	 * left out, because it can name accounts, users, resources and the policies
-	 * that refused the call.
-	 *
-	 * @param code      the provider's HTTP status code, or 0 when there is none
-	 * @param reason    the reason the client found, such as
-	 *                  {@link AskErrorModelEngineResponse#REASON_CONTEXT_OVERFLOW},
-	 *                  or null
-	 * @param reference the id the full error was logged under
-	 * @return the message for the user
-	 */
-	public static String providerErrorMessage(int code, String reason, String reference) {
-		String codePrefix = code > 0 ? "Error code: " + code + ". " : "";
-		if (AskErrorModelEngineResponse.REASON_CONTEXT_OVERFLOW.equals(reason)) {
-			return codePrefix + "The request is longer than the model can take. Reference: " + reference;
-		}
-		String meaning = switch (code) {
-		case 400 -> "The model provider rejected the request.";
-		case 401, 403 -> "The model provider denied access.";
-		case 404 -> "The model provider could not find the model.";
-		case 408, 504 -> "The model provider timed out. Try again in a moment.";
-		case 413 -> "The request is too large for the model provider.";
-		case 429 -> "The model provider is over its rate limit. Try again in a moment.";
-		default -> code >= 500 && code < 600 ? "The model provider failed. Try again in a moment."
-				: "The model provider returned an error.";
-		};
-		return codePrefix + meaning + " Reference: " + reference;
-	}
-
-	// true when this exception (or a cause) is a model error with reason
-	// CONTEXT_OVERFLOW
-	public static boolean isContextOverflow(Throwable error) {
-		return contextOverflowError(error) != null;
-	}
-
-	// the CONTEXT_OVERFLOW error details in this exception or its causes, else null
-	public static AskErrorModelEngineResponse contextOverflowError(Throwable error) {
-		for (Throwable t = error; t != null; t = t.getCause() == t ? null : t.getCause()) {
-			if (t instanceof SemossModelEngineException e
-					&& e.getErrorResponse() instanceof AskErrorModelEngineResponse details
-					&& details.isContextOverflow()) {
-				return details;
-			}
-		}
-		return null;
-	}
+    // the CONTEXT_OVERFLOW error details in this exception or its causes, else null
+    public static AskErrorModelEngineResponse contextOverflowError(Throwable error) {
+        for (Throwable t = error; t != null; t = t.getCause() == t ? null : t.getCause()) {
+            if (t instanceof SemossModelEngineException e
+                    && e.getErrorResponse() instanceof AskErrorModelEngineResponse details
+                    && details.isContextOverflow()) {
+                return details;
+            }
+        }
+        return null;
+    }
 }

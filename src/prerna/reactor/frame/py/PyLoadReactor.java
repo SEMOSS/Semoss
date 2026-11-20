@@ -58,9 +58,7 @@ public class PyLoadReactor extends AbstractReactor {
 
 		File file = new File(path);
 		String name = file.getName();
-		if (name.endsWith(".py")) {
-			name = name.substring(0, name.length() - ".py".length());
-		}
+		name = name.replaceAll(".py", "");
 
 		String assetOutput = assetFolder + "/" + name + ".output";
 

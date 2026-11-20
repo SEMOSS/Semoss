@@ -28,13 +28,9 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainTopicReviewUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/**
- * Read the signed-in owner's saved topic review without generating or applying
- * topics.
- */
+/** Read the signed-in owner's saved topic review without generating or applying topics. */
 public class BrainGetTopicReviewReactor extends AbstractCollaborationReactor {
 	public BrainGetTopicReviewReactor() {
 		this.keysToGet = new String[] {};
@@ -46,9 +42,7 @@ public class BrainGetTopicReviewReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Reads the owner's resumable topic-review draft, revision, apply receipt and exact filing job; review is null before setup")
-				.noKeys();
+	public String getReactorDescription() {
+		return "Reads the owner's resumable topic-review draft, revision, apply receipt and exact filing job; review is null before setup";
 	}
 }

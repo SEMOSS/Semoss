@@ -127,13 +127,12 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GROUPMANAGERS__GROUPID"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__GROUPID", "==", groupId));
 		qs.addExplicitFilter(loginFilter);
-		boolean isManager = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			isManager = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user manages the group.", e);
 		}
-		return isManager;
+		return false;
 	}
 
 	/**
@@ -416,13 +415,12 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__GROUPID", "==", groupId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPMANAGERS__TYPE", "==", userType));
-		boolean exists = false;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			exists = wrapper.hasNext();
+			return wrapper.hasNext();
 		} catch (Exception e) {
 			classLogger.error("Unable to verify whether the user manages the group.", e);
 		}
-		return exists;
+		return false;
 	}
 
 	/**
@@ -468,12 +466,12 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.teamManagers(groupId),
 				List.of(new PermissionChange(action, PermissionSubject.ofUser(userId, type), null)),
 				asAdmin ? PermissionBatchOptions.adminMode() : PermissionBatchOptions.userMode(),
-				new PermissionErrorRules().illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, MANAGERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.INVALID_TARGET,
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, MANAGERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.INVALID_TARGET,
 								"Group " + groupId + " is not a custom group")
-						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"User " + userId + " already manages group " + groupId)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"User " + userId + " does not manage group " + groupId));
 	}
 
@@ -603,35 +601,29 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 	 * The projects a custom group has access to, so its managers know what the
 	 * people they add can use.
 	 *
-	 * @param limit        page size, at most {@link #MAX_PAGE_SIZE}; 0 or less
-	 *                     reads that many
-	 * @param projectTypes keep only the projects of these types; null or empty for
-	 *                     every type
+	 * @param limit page size, at most {@link #MAX_PAGE_SIZE}; 0 or less reads that
+	 *              many
 	 * @see AdminSecurityGroupUtils#getProjectsForGroup(String, String, String,
-	 *      long, long, List)
+	 *      long, long, boolean)
 	 * @throws IllegalAccessException when the user cannot manage the group
 	 */
 	public static List<Map<String, Object>> getProjectsForGroup(User user, String groupId, String searchTerm,
-			long limit, long offset, List<String> projectTypes) throws IllegalAccessException {
+			long limit, long offset, boolean onlyApps) throws IllegalAccessException {
 		checkCanManageGroup(user, groupId);
 		return AdminSecurityGroupUtils.getUncheckedInstance().getProjectsForGroup(groupId, CUSTOM_GROUP_TYPE,
-				searchTerm, clampPageSize(limit), offset, projectTypes);
+				searchTerm, clampPageSize(limit), offset, onlyApps);
 	}
 
 	/**
-	 * Counts the projects a custom group has access to, for paging that list.
-	 *
-	 * @param projectTypes keep only the projects of these types; null or empty for
-	 *                     every type
 	 * @see AdminSecurityGroupUtils#getNumProjectsForGroup(String, String, String,
-	 *      List)
+	 *      boolean)
 	 * @throws IllegalAccessException when the user cannot manage the group
 	 */
-	public static Long getNumProjectsForGroup(User user, String groupId, String searchTerm, List<String> projectTypes)
+	public static Long getNumProjectsForGroup(User user, String groupId, String searchTerm, boolean onlyApps)
 			throws IllegalAccessException {
 		checkCanManageGroup(user, groupId);
 		return AdminSecurityGroupUtils.getUncheckedInstance().getNumProjectsForGroup(groupId, CUSTOM_GROUP_TYPE,
-				searchTerm, projectTypes);
+				searchTerm, onlyApps);
 	}
 
 	/**
@@ -714,12 +706,12 @@ public class SecurityGroupManagerUtils extends AbstractSecurityUtils {
 				List.of(new PermissionChange(action, PermissionSubject.ofUser(userId, type),
 						new PermissionGrant(null, end))),
 				asAdmin ? PermissionBatchOptions.adminMode() : PermissionBatchOptions.userMode(),
-				new PermissionErrorRules(end).illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, MANAGERS_ONLY)
-						.illegalArgument(PermissionProblem.ErrorCode.INVALID_TARGET,
+				new PermissionErrorRules(end).illegalAccess(PermissionProblem.Code.NO_PERMISSION, MANAGERS_ONLY)
+						.illegalArgument(PermissionProblem.Code.INVALID_TARGET,
 								"Group " + groupId + " is not a custom group")
-						.illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
 								"User " + userId + " already has access to group " + groupId)
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
 								"User " + userId + " does not have access to group " + groupId));
 	}
 

@@ -29,7 +29,6 @@ package prerna.engine.api;
 
 import java.util.Map;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.om.Insight;
 
@@ -40,18 +39,6 @@ import prerna.om.Insight;
 public interface ITypeSafeEngine extends IModelEngine {
 
 	/** Evaluate named typed questions against shared state without chat messages. */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
-	default TypeSafeModelEngineResponse evaluate(Object state, Map<String, Object> questions, Insight insight,
-			Map<String, Object> parameters) {
-		return evaluate(state, questions, null, insight, parameters);
-	}
-
-	/**
-	 * Evaluate with images: base64 image bytes keyed by the alias the state or
-	 * questions refer to them by, delimited so it cannot match ordinary text (for
-	 * example "&lt;image_1&gt;").
-	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
-	TypeSafeModelEngineResponse evaluate(Object state, Map<String, Object> questions, Map<String, String> images,
-			Insight insight, Map<String, Object> parameters);
+	TypeSafeModelEngineResponse evaluate(Object state, Map<String, Object> questions, Insight insight,
+			Map<String, Object> parameters);
 }

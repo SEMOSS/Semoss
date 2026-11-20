@@ -227,7 +227,11 @@ class AutomationPixelExpressionRendererUnitTests {
 	}
 
 	@Test
-	void rejectsMissingVisionMedia() {
+	void rejectsModelErrorAndMissingVisionMedia() {
+		assertThrows(IllegalStateException.class,
+				() -> AutomationPixelExpressionRenderer.modelResult(
+						prerna.reactor.automation.AutomationConstants.NODE_MODEL_NER,
+						Map.of("response", Map.of("status", "error", "message", "failed")), "ner"));
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationPixelExpressionRenderer.model(
 						prerna.reactor.automation.AutomationConstants.NODE_MODEL_VISION,

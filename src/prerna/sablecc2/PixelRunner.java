@@ -62,7 +62,6 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.Parser;
 import prerna.sablecc2.parser.ParserException;
-import prerna.security.SecretRedactor;
 import prerna.util.Constants;
 import prerna.util.SandboxedJavaExecution;
 import prerna.util.Utility;
@@ -82,6 +81,7 @@ public class PixelRunner {
 		errorOpTypes.add(PixelOperationType.FRAME_SIZE_LIMIT_EXCEEDED);
 		errorOpTypes.add(PixelOperationType.USER_INPUT_REQUIRED);
 		errorOpTypes.add(PixelOperationType.LOGGIN_REQUIRED_ERROR);
+		errorOpTypes.add(PixelOperationType.ANONYMOUS_USER_ERROR);
 		errorOpTypes.add(PixelOperationType.INVALID_SYNTAX);
 	}
 
@@ -240,7 +240,6 @@ public class PixelRunner {
 	 * @param isMeta
 	 */
 	public void addResult(String pixelExpression, NounMetadata result, boolean isMeta) {
-		result = withoutSecrets(result);
 		String origExpression = PixelUtility.recreateOriginalPixelExpression(pixelExpression, this.encodingList,
 				this.encodedTextToOriginal);
 		this.results.add(result);
@@ -306,47 +305,7 @@ public class PixelRunner {
 			pixel.setTimeToRun(this.translation.getPixelObj().getTimeToRun());
 		}
 		this.returnPixelList.add(pixel);
-		this.results.add(withoutSecrets(result));
-	}
-
-	/**
-	 * The result with secrets removed from its error or warning text, by
-	 * {@link SecretRedactor#redactErrorValue(Object)}, so no error or warning a
-	 * pixel returns, on any transport or in the recipe, carries them. The same goes
-	 * for the errors and warnings among its additional returns. Any other result,
-	 * or one with nothing to remove, is returned as is.
-	 *
-	 * @param result the pixel result
-	 * @return the result to keep and send
-	 */
-	private static NounMetadata withoutSecrets(NounMetadata result) {
-		if (result == null) {
-			return null;
-		}
-		Object value = result.getValue();
-		List<PixelOperationType> opTypes = result.getOpType();
-		Object redacted = opTypes.contains(PixelOperationType.ERROR) || opTypes.contains(PixelOperationType.WARNING)
-				? SecretRedactor.redactErrorValue(value)
-				: value;
-		List<NounMetadata> additionalReturns = result.getAdditionalReturn();
-		List<NounMetadata> redactedReturns = new ArrayList<>();
-		boolean additionalChanged = false;
-		if (additionalReturns != null) {
-			synchronized (additionalReturns) {
-				for (NounMetadata additionalReturn : additionalReturns) {
-					NounMetadata redactedReturn = withoutSecrets(additionalReturn);
-					additionalChanged |= redactedReturn != additionalReturn;
-					redactedReturns.add(redactedReturn);
-				}
-			}
-		}
-		if (redacted == value && !additionalChanged) {
-			return result;
-		}
-		NounMetadata copy = new NounMetadata(redacted, result.getNounType(), result.getOpType());
-		copy.setExplanation(result.getExplanation());
-		copy.addAllAdditionalReturn(redactedReturns);
-		return copy;
+		this.results.add(result);
 	}
 
 	private void determineErrorOrWarning(Pixel pixel, NounMetadata result) {

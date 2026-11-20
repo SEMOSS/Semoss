@@ -30,20 +30,16 @@ package prerna.reactor.user.fs;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.json.JSONObject;
-
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
-import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -52,7 +48,12 @@ public abstract class AbstractSaveUserAssetsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
 		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		IProject project = user.getAssetProject();
 		if (project == null) {
@@ -74,24 +75,24 @@ public abstract class AbstractSaveUserAssetsReactor extends AbstractReactor {
 		String gitFolder = AssetUtility.getUserAssetVersionFolder(project.getProjectName(), project.getProjectId());
 		String assetFolder = AssetUtility.getUserAssetFolder(project.getProjectName(), project.getProjectId());
 
+		String comment = this.keyValue.get(this.keysToGet[2]);
+		if (comment == null) {
+			comment = "add: saved " + String.join(", ", filePaths);
+		}
+
 		// Check strict script source settings once
 		boolean strictScriptSource = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.STRICT_SCRIPT_SOURCE));
 		FileSystemUtil.validateAssetFiles(filePaths, strictScriptSource);
-		List<SavedAsset> savedAssets = saveAssetFiles(assetFolder, filePaths, contents,
-				getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true));
+		saveAssetFiles(assetFolder, filePaths, contents);
 
 		// add file to git
-		List<String> savedPaths = new ArrayList<>();
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		for (SavedAsset savedAsset : savedAssets) {
-			savedPaths.add(savedAsset.savedPath());
+		for (String fileName : filePaths) {
+			while (fileName.startsWith("/")) {
+				fileName = fileName.substring(1);
+			}
 			// for git, we need to add the assets folder which is assumed in the path
-			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + savedAsset.savedPath());
-		}
-
-		String comment = this.keyValue.get(this.keysToGet[2]);
-		if (comment == null) {
-			comment = "add: saved " + String.join(", ", savedPaths);
+			gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + fileName);
 		}
 
 		// Get the user's email
@@ -105,33 +106,16 @@ public abstract class AbstractSaveUserAssetsReactor extends AbstractReactor {
 		// handle synchronization to the cloud
 		ClusterUtil.pushUserAsset(project.getProjectId());
 
-		return FileSystemUtil.savedAssetsAsNounMetadata(savedAssets);
+		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
+		return retNoun;
 	}
 
 	/**
-	 * Writes the files into the asset folder.
 	 *
-	 * @param assetFolder the user's assets folder
-	 * @param filePaths   the normalized file paths
-	 * @param contents    the content for each path
-	 * @param override    whether an existing file at a path is replaced
-	 * @return where each file was saved
+	 * @param assetFolder
+	 * @param filePaths
+	 * @param contents
 	 */
-	protected abstract List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths,
-			List<String> contents, boolean override);
-
-	@Override
-	public JSONObject getMcpProperties() {
-		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", true);
-		return properties;
-	}
-
-	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().key(ReactorKeysEnum.OVERRIDE,
-				key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_SAVE_DESCRIPTION))
-				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
-	}
+	protected abstract void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents);
 
 }

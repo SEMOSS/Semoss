@@ -447,6 +447,43 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 	}
 
 	///
+	/// removeExpiredInsightGroupPermission
+	///
+
+	@Test
+	void testRemoveExpiredInsightGroupPermission_NoPermission() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> SecurityGroupInsightsUtils
+				.removeExpiredInsightGroupPermission("groupId1", "CUSTOM", "pid1", "iid1"));
+		assertEquals(
+				"Attempting to modify group permission for a user who does not currently have access to the insight",
+				e.getMessage());
+	}
+
+	@Test
+	void testRemoveExpiredInsightGroupPermission() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+
+		// Use a past date for expiration
+		String endDate = ZonedDateTime.now().minusDays(2).toString();
+		SecurityGroupInsightsUtils.addInsightGroupPermission(user, "groupId1", "CUSTOM", "pid1", "iid1", "EDIT",
+				endDate);
+
+		SecurityGroupInsightsUtils.removeExpiredInsightGroupPermission("groupId1", "CUSTOM", "pid1", "iid1");
+
+		assertNull(SecurityGroupInsightsUtils.getGroupInsightPermission("groupId1", "CUSTOM", "pid1", "iid1"));
+	}
+
+	///
 	/// getGroupsWithAccessToInsight and getAvailableGroupsForInsight
 	///
 

@@ -36,7 +36,6 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -99,7 +98,7 @@ public class ScreenshotReactor extends AbstractReactor {
 	 *         viewport dimensions, and device pixel ratio.
 	 */
 	public static ScreenshotResponse screenshot(PlaywrightSession playwrightSession, String tabId) {
-		playwrightSession.getOperationLock().lock();
+        playwrightSession.getOperationLock().lock();
 
 		try {
 			Page page = requireOpenPage(playwrightSession, tabId);
@@ -134,7 +133,8 @@ public class ScreenshotReactor extends AbstractReactor {
 	 */
 	public static ScreenshotResponse croppedScreenshot(PlaywrightSession playwrightSession, String tabId, int startX,
 			int startY, int endX, int endY) {
-		playwrightSession.getOperationLock().lock();
+        playwrightSession.getOperationLock().lock();
+
 
 		try {
 			Page page = requireOpenPage(playwrightSession, tabId);
@@ -158,7 +158,8 @@ public class ScreenshotReactor extends AbstractReactor {
 	private static Page requireOpenPage(PlaywrightSession playwrightSession, String tabId) {
 		Page page = playwrightSession.getPage(tabId);
 		if (page == null || page.isClosed()) {
-			throw new IllegalStateException("Recorded tab " + tabId + " is not bound to an open browser page");
+			throw new IllegalStateException(
+					"Recorded tab " + tabId + " is not bound to an open browser page");
 		}
 		return page;
 	}
@@ -184,10 +185,18 @@ public class ScreenshotReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Reactor that that return a fresh screenshot for a session")
-				.key("sessionId", "The id of the current session of the playwright")
-				.key("tabId", "The id of the current tab of the playwright");
+	public String getReactorDescription() {
+		return "Reactor that that return a fresh screenshot for a session";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("sessionId")) {
+			return "The id of the current session of the playwright";
+		} else if (key.equals("tabId")) {
+			return "The id of the current tab of the playwright";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

@@ -28,7 +28,6 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkInboxRoutine;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkGetInboxRoutineReactor extends AbstractCollaborationReactor {
@@ -43,8 +42,7 @@ public class WorkGetInboxRoutineReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Returns the signed-in user's inbox routine settings and latest brief").noKeys();
+	public String getReactorDescription() {
+		return "Returns the signed-in user's inbox routine settings and latest brief";
 	}
 }

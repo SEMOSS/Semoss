@@ -27,38 +27,54 @@
  *******************************************************************************/
 package prerna.util;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLConnection;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.SecureRandom;
-import java.sql.Timestamp;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.Normalizer;
 import java.text.Normalizer.Form;
+import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
@@ -68,10 +84,23 @@ import java.util.Vector;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import javax.swing.JFrame;
+import javax.swing.JList;
+import javax.swing.JOptionPane;
+import javax.tools.Diagnostic;
+import javax.tools.DiagnosticCollector;
+import javax.tools.JavaCompiler;
+import javax.tools.JavaFileObject;
+import javax.tools.StandardJavaFileManager;
+import javax.tools.StandardLocation;
+import javax.tools.ToolProvider;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -85,11 +114,15 @@ import org.owasp.html.PolicyFactory;
 import org.owasp.html.Sanitizers;
 import org.quartz.CronExpression;
 
+import com.google.common.net.InternetDomainName;
+
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.cluster.util.ZKClient;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
@@ -99,18 +132,29 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.IReactorFunctionEngine;
+import prerna.engine.api.ISelectStatement;
+import prerna.engine.api.ISelectWrapper;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.IVenvEngine;
+import prerna.engine.impl.CaseInsensitiveProperties;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.pipeline.EngineProxyFactory;
+import prerna.masterdatabase.AddToMasterDB;
+import prerna.masterdatabase.DeleteFromMasterDB;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.IStringExportProcessor;
 import prerna.project.api.IProject;
-import prerna.project.impl.ProjectHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
-import prerna.security.UrlAccessRules;
+import prerna.tcp.PayloadStruct;
+import prerna.tcp.SocketServerHandler;
+import prerna.tcp.workers.EngineSocketWrapper;
+import prerna.ui.components.api.IPlaySheet;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSAction;
+import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented
@@ -220,6 +264,13 @@ public final class Utility {
 			return null;
 		}
 		return DIHelper.getInstance().getProperty(prop);
+	}
+
+	public static Object getDIHelperLocalProperty(String prop) {
+		if (DIHelper.getInstance() == null) {
+			return null;
+		}
+		return DIHelper.getInstance().getLocalProp(prop);
 	}
 
 	/**
@@ -334,6 +385,122 @@ public final class Utility {
 	}
 
 	/**
+	 * Go through all URIs in list, splits them into tokens based on "/", and uses
+	 * logic to return the instance names.
+	 * 
+	 * @param Vector<String> List of URIs to be tokenized.
+	 * 
+	 * @return Hashtable with instance name as the keys mapped to the tokens as
+	 *         values
+	 */
+	public static Hashtable<String, String> getInstanceNameViaQuery(Vector<String> uri) {
+		if (uri.isEmpty()) {
+			return new Hashtable<>();
+		}
+
+		Hashtable<String, String> retHash = new Hashtable<>();
+
+		/*
+		 * JList list = (JList)DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		 * 
+		 * // get the selected repository Object [] repos = (Object
+		 * [])list.getSelectedValues(); IDatabase engine =
+		 * (IDatabase)DIHelper.getInstance().getLocalProp(repos[0]+""); // loads all of
+		 * the labels // http://www.w3.org/2000/01/rdf-schema#label String labelQuery =
+		 * "";
+		 * 
+		 * //fill all uri for binding string StringBuffer bindingStr = new
+		 * StringBuffer(""); for (int i = 0; i<uri.size();i++) {
+		 * if(engine.getEngineType() == IDatabase.DATABASE_TYPE.SESAME) bindingStr =
+		 * bindingStr.append("(<").append(uri.get(i)).append(">)"); else bindingStr =
+		 * bindingStr.append("<").append(uri.get(i)).append(">"); } Hashtable paramHash
+		 * = new Hashtable(); paramHash.put("FILTER_VALUES", bindingStr.toString());
+		 * if(engine.getEngineType() == IDatabase.DATABASE_TYPE.SESAME) { labelQuery =
+		 * "SELECT DISTINCT ?Entity ?Label WHERE " +
+		 * "{{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" + "}"
+		 * +"BINDINGS ?Entity {@FILTER_VALUES@}"; } else if(engine.getEngineType() ==
+		 * IDatabase.DATABASE_TYPE.JENA) { labelQuery =
+		 * "SELECT DISTINCT ?Entity ?Label WHERE " +
+		 * "{{VALUES ?Entity {@FILTER_VALUES@}"+
+		 * "{?Entity <http://www.w3.org/2000/01/rdf-schema#label> ?Label}" + "}"; }
+		 * labelQuery = Utility.fillParam(labelQuery, paramHash);
+		 * 
+		 * SesameJenaSelectWrapper sjsw = new SesameJenaSelectWrapper();
+		 * sjsw.setEngine(engine); sjsw.setQuery(labelQuery);
+		 * System.out.println(labelQuery); sjsw.executeQuery(); sjsw.getVariables();
+		 * while(sjsw.hasNext()) { SesameJenaSelectStatement st = sjsw.next(); String
+		 * label = st.getVar("Label")+""; label = label.substring(1,label.length()-1);
+		 * String uriValue = st.getRawVar("Entity")+ ""; uri.removeElement(uriValue);
+		 * retHash.put(label, uriValue); }
+		 */
+
+		for (int i = 0; i < uri.size(); i++) {
+			String uriValue = uri.get(i);
+			StringTokenizer tokens = new StringTokenizer(uriValue + "", "/");
+			int totalTok = tokens.countTokens();
+			String instanceName = null;
+
+			for (int tokIndex = 0; tokIndex <= totalTok && tokens.hasMoreElements(); tokIndex++) {
+				if (tokIndex + 2 == totalTok) {
+					tokens.nextToken();
+				} else if (tokIndex + 1 == totalTok) {
+					instanceName = tokens.nextToken();
+				} else {
+					tokens.nextToken();
+				}
+
+			}
+			retHash.put(instanceName, uriValue);
+		}
+		return retHash;
+	}
+
+	/**
+	 * Executes a query on a specific engine, iterates through variables from the
+	 * sesame wrapper, and uses logic to obtain the concept URI.
+	 * 
+	 * @param Specified engine.
+	 * @param Subject   URI.
+	 * 
+	 * @return Concept URI.
+	 */
+	public static String getConceptType(IDatabaseEngine engine, String subjectURI) {
+		if (!subjectURI.startsWith("http://")) {
+			return "";
+		}
+
+		String query = Utility.getDIHelperProperty(Constants.SUBJECT_TYPE_QUERY);
+		Map<String, List<Object>> paramHash = new Hashtable<>();
+		List<Object> values = new ArrayList<>();
+		values.add(subjectURI);
+		paramHash.put("ENTITY", values);
+		query = Utility.fillParam(query, paramHash);
+
+		ISelectWrapper sjw = WrapperManager.getInstance().getSWrapper(engine, query);
+
+		/*
+		 * SesameJenaSelectWrapper sjw = new SesameJenaSelectWrapper();
+		 * sjw.setEngine(engine); sjw.setEngineType(engine.getEngineType());
+		 * sjw.setQuery(query); sjw.executeQuery();
+		 */
+		String[] vars = sjw.getVariables();
+		String returnType = null;
+		while (sjw.hasNext()) {
+			ISelectStatement stmt = sjw.next();
+			String objURI = stmt.getRawVar(vars[0]) + "";
+			if (!objURI.equals(Utility.getDIHelperProperty(Constants.SEMOSS_URI) + "/Concept")) {
+				returnType = objURI;
+			}
+
+		}
+		if (returnType == null) {
+			returnType = Utility.getDIHelperProperty(Constants.SEMOSS_URI) + "/Concept";
+		}
+
+		return returnType;
+	}
+
+	/**
 	 * Splits up a URI into tokens based on "/" delimiter and uses logic to return
 	 * the class name.
 	 * 
@@ -405,6 +572,300 @@ public final class Utility {
 		}
 
 		return qualUri;
+	}
+
+	/**
+	 * Checks to see if a string contains a particular pattern. Used when adding
+	 * relations.
+	 * 
+	 * @param Pattern
+	 * @param String  to compare to the pattern
+	 * 
+	 * @return True if the next token is greater than or equal to zero.
+	 */
+	public static boolean checkPatternInString(String pattern, String string) {
+		// ok.. before you think that this is so stupid why wont you use the regular
+		// java.lang methods.. consider the fact that this could be a ; delimited
+		// pattern
+		boolean matched = false;
+		StringTokenizer tokens = new StringTokenizer(pattern, ";");
+		while (tokens.hasMoreTokens() && !matched) {
+			matched = string.indexOf(tokens.nextToken()) >= 0;
+		}
+
+		return matched;
+	}
+
+	/**
+	 * Runs a check to see if calculations have already been performed.
+	 * 
+	 * @param Query (calculation) to be run on a specific engine.
+	 * 
+	 * @return True if calculations have been performed.
+	 */
+	public static boolean runCheck(String query) {
+		boolean check = true;
+
+		JList list = (JList) DIHelper.getInstance().getLocalProp(Constants.REPO_LIST);
+		// get the selected repository
+		List<String> repos = list.getSelectedValuesList();
+
+		ISelectWrapper selectWrapper = null;// WrapperManager.getInstance().getSWrapper(engine, queries.get(tabName));
+
+		// SesameJenaSelectWrapper selectWrapper = null;
+		for (String s : repos) {
+			IDatabaseEngine engine = (IDatabaseEngine) DIHelper.getInstance().getLocalProp(s);
+			selectWrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+
+			/*
+			 * selectWrapper = new SesameJenaSelectWrapper();
+			 * selectWrapper.setEngine(engine); selectWrapper.setQuery(query);
+			 * selectWrapper.executeQuery();
+			 */
+		}
+
+		// if the wrapper is not empty, calculations have already been performed.
+		if (selectWrapper != null && !selectWrapper.hasNext()) {
+			check = false;
+		}
+
+		return check;
+	}
+
+	/**
+	 * Displays error message.
+	 * 
+	 * @param Text to be displayed.
+	 */
+	public static void showError(String text) {
+		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+		JOptionPane.showMessageDialog(playPane, text, "Error", JOptionPane.ERROR_MESSAGE);
+	}
+
+	/**
+	 * Displays a message on the screen.
+	 * 
+	 * @param Text to be displayed.
+	 */
+	public static void showMessage(String text) {
+		JFrame playPane = (JFrame) DIHelper.getInstance().getLocalProp(Constants.MAIN_FRAME);
+		JOptionPane.showMessageDialog(playPane, text);
+
+	}
+
+	/**
+	 * Method round.
+	 * 
+	 * @param valueToRound          double
+	 * @param numberOfDecimalPlaces int
+	 * 
+	 * @return double
+	 */
+	public static double round(double valueToRound, int numberOfDecimalPlaces) {
+		return BigDecimal.valueOf(valueToRound).setScale(numberOfDecimalPlaces, RoundingMode.HALF_EVEN).doubleValue();
+	}
+
+	/**
+	 * Used to round a value to a specific number of decimal places.
+	 * 
+	 * @param Value  to round.
+	 * @param Number of decimal places to round to.
+	 * 
+	 * @return Rounded value.
+	 */
+	public static String sciToDollar(double valueToRound) {
+		double roundedValue = Math.round(valueToRound);
+		DecimalFormat df = new DecimalFormat("#0");
+		NumberFormat formatter = NumberFormat.getCurrencyInstance();
+		df.format(roundedValue);
+
+		return formatter.format(roundedValue);
+	}
+
+	/**
+	 * Changes a value within the properties file for a given key
+	 * 
+	 * @param filePath
+	 * @param keyToAlter
+	 * @param valueToProvide
+	 * @throws IOException
+	 */
+	public static void changePropertiesFileValue(String filePath, String keyToAlter, String valueToProvide)
+			throws IOException {
+		changePropertiesFileValue(filePath, keyToAlter, valueToProvide, false);
+	}
+
+	/**
+	 * 
+	 * @param filePath
+	 * @param keyToAlter
+	 * @param valueToProvide
+	 * @param contains
+	 * @throws IOException
+	 */
+	public static void changePropertiesFileValue(String filePath, String keyToAlter, String valueToProvide,
+			boolean contains) throws IOException {
+		Map<String, String> keyToNewValue = new HashMap<>();
+		keyToNewValue.put(keyToAlter, valueToProvide);
+		changePropertiesFileValue(filePath, keyToNewValue, contains);
+	}
+
+	/**
+	 * 
+	 * @param filePath
+	 * @param keyToNewValue
+	 * @param contains
+	 * @throws IOException
+	 */
+	public static void changePropertiesFileValue(String filePath, Map<String, String> keyToNewValue, boolean contains)
+			throws IOException {
+		File file = new File(filePath);
+
+		/*
+		 * 1) Loop through the smss file and add each line as a list of strings 2) For
+		 * each line, see if it starts with the key to alter 3) if yes, write out the
+		 * key with the new value passed in 4) if no, just write out the line as is
+		 * 
+		 */
+		List<String> content = new ArrayList<>();
+		Set<String> updatedKeys = new HashSet<>();
+		try (FileReader fr = new FileReader(file); BufferedReader reader = new BufferedReader(fr);) {
+			String line;
+			// 1) add each line as a different string in list
+			while ((line = reader.readLine()) != null) {
+				content.add(line);
+			}
+		} catch (IOException ioe) {
+			classLogger.error("Failed to update properties file values: {}", ioe.getMessage(), ioe);
+			throw ioe;
+		}
+
+		try (FileOutputStream fileOut = new FileOutputStream(file);) {
+			byte[] lineBreak = "\n".getBytes();
+			// 2) iterate through each line if the smss file
+			for (int i = 0; i < content.size(); i++) {
+
+				// separate out logic for contains vs exact match
+				if (contains) {
+					boolean updated = false;
+					// 3) if this line starts with the key to alter
+					FOUND_LOOP: for (String keyToAlter : keyToNewValue.keySet()) {
+						if (content.get(i).contains(keyToAlter)) {
+							// create new line to write using the key and the new value
+							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
+							fileOut.write(newKeyValue.getBytes());
+							updated = true;
+							updatedKeys.add(keyToAlter);
+							break FOUND_LOOP;
+						}
+					}
+
+					// 4) if it doesn't, just write the next line as is
+					if (!updated) {
+						byte[] contentInBytes = content.get(i).getBytes();
+						fileOut.write(contentInBytes);
+					}
+					// after each line, write a line break into the file
+					fileOut.write(lineBreak);
+				} else {
+					boolean updated = false;
+					for (String keyToAlter : keyToNewValue.keySet()) {
+						FOUND_LOOP: if (content.get(i).startsWith(keyToAlter + "\t")
+								|| content.get(i).startsWith(keyToAlter + " ")) {
+							// create new line to write using the key and the new value
+							String newKeyValue = keyToAlter + "\t" + keyToNewValue.get(keyToAlter);
+							fileOut.write(newKeyValue.getBytes());
+							updated = true;
+							updatedKeys.add(keyToAlter);
+							break FOUND_LOOP;
+						}
+					}
+
+					// 4) if it doesn't, just write the next line as is
+					if (!updated) {
+						byte[] contentInBytes = content.get(i).getBytes();
+						fileOut.write(contentInBytes);
+					}
+					// after each line, write a line break into the file
+					fileOut.write(lineBreak);
+				}
+			}
+
+			// if we have not updated the key
+			// we will append at the end
+			for (String key : keyToNewValue.keySet()) {
+				if (!updatedKeys.contains(key)) {
+					String newKeyValue = key + "\t" + keyToNewValue.get(key);
+					fileOut.write(newKeyValue.getBytes());
+					fileOut.write(lineBreak);
+				}
+			}
+		} catch (IOException ioe) {
+			classLogger.error("Failed to update properties file values: {}", ioe.getMessage(), ioe);
+			throw ioe;
+		}
+	}
+
+	/**
+	 * Adds a new key-value pair into a properties file
+	 * 
+	 * @param propertiesFile
+	 * @param locInFile
+	 * @param mods
+	 * @throws IOException
+	 */
+	public static void addKeysAtLocationIntoPropertiesFile(String propertiesFile, String locInFile,
+			Map<String, String> mods) throws IOException {
+		File file = new File(propertiesFile);
+
+		/*
+		 * 1) Loop through the properties file and add each line as a list of strings 2)
+		 * iterate through the list of strings and write out each line 3) if the current
+		 * line being printed starts with locInFile then the new key-value pair will be
+		 * written right after it 4) if locInFile was never found, print at end of file
+		 */
+
+		List<String> content = new ArrayList<>();
+		try (FileReader fr = new FileReader(file);
+				BufferedReader reader = new BufferedReader(fr);
+				FileOutputStream fileOut = new FileOutputStream(file);) {
+			String line;
+			// 1) add each line as a different string in list
+			while ((line = reader.readLine()) != null) {
+				content.add(line);
+			}
+
+			boolean found = false;
+			for (int i = 0; i < content.size(); i++) {
+				// 2) write out each line into the file
+				byte[] contentInBytes = content.get(i).getBytes();
+				fileOut.write(contentInBytes);
+				fileOut.write("\n".getBytes());
+
+				// 3) if the last line printed matches that in locInFile, then write the new
+				// key-value pair after
+				if (content.get(i).startsWith(locInFile + "\t") || content.get(i).startsWith(locInFile + " ")) {
+					found = true;
+					for (String keyToAdd : mods.keySet()) {
+						String newProp = keyToAdd + "\t" + mods.get(keyToAdd);
+						fileOut.write(newProp.getBytes());
+						fileOut.write("\n".getBytes());
+					}
+				}
+			}
+
+			if (!found) {
+				fileOut.write("\n".getBytes());
+				for (String keyToAdd : mods.keySet()) {
+					String newProp = keyToAdd + "\t" + mods.get(keyToAdd);
+					fileOut.write(newProp.getBytes());
+					fileOut.write("\n".getBytes());
+				}
+			}
+		} catch (IOException ioe) {
+			classLogger.error("Failed to update properties file values: {}", ioe.getMessage(), ioe);
+			throw ioe;
+		}
 	}
 
 	/**
@@ -538,12 +999,28 @@ public final class Utility {
 			}
 		}
 
-		try (FileOutputStream newExcelFile = new FileOutputStream(fileLocation)) {
+		FileOutputStream newExcelFile = null;
+		try {
+			newExcelFile = new FileOutputStream(fileLocation);
 			wb.write(newExcelFile);
 			newExcelFile.flush();
 		} catch (IOException ioe) {
 			classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
+		} finally {
+			try {
+				if (newExcelFile != null) {
+					newExcelFile.close();
+				}
+			} catch (IOException ioe) {
+				classLogger.error("Failed to write workbook to disk: {}", ioe.getMessage(), ioe);
+			}
 		}
+	}
+
+	public static ISelectWrapper processQuery(IDatabaseEngine engine, String query) {
+		classLogger.debug("PROCESSING QUERY: {}", query);
+		ISelectWrapper wrapper = WrapperManager.getInstance().getSWrapper(engine, query);
+		return wrapper;
 	}
 
 	/**
@@ -556,7 +1033,9 @@ public final class Utility {
 	 */
 	public static Vector<String> getVectorOfReturn(String query, IDatabaseEngine engine, Boolean raw) {
 		Vector<String> retArray = new Vector<>();
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query)) {
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
 			while (wrapper.hasNext()) {
 				Object[] values = null;
 				if (raw) {
@@ -573,6 +1052,14 @@ public final class Utility {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error("Failed to build vector query results: {}", e.getMessage(), e);
+				}
+			}
 		}
 
 		return retArray;
@@ -588,7 +1075,9 @@ public final class Utility {
 	 */
 	public static Vector<String[]> getVectorArrayOfReturn(String query, IDatabaseEngine engine, Boolean raw) {
 		Vector<String[]> retArray = new Vector<>();
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, query)) {
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(engine, query);
 			while (wrapper.hasNext()) {
 				Object[] values = null;
 				if (raw) {
@@ -607,9 +1096,154 @@ public final class Utility {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error("Failed to build vector array query results: {}", e.getMessage(), e);
+				}
+			}
 		}
 
 		return retArray;
+	}
+
+	public static Map<String, List<Object>> cleanParamsForRDBMS(Map<String, List<Object>> paramHash) {
+		// TODO Auto-generated method stub
+		// really simple, I am running the keys and then I will have strip the instance
+		// values out
+		Iterator<String> keys = paramHash.keySet().iterator();
+		while (keys.hasNext()) {
+			String singleKey = keys.next();
+			List<Object> valueList = paramHash.get(singleKey);
+			List<Object> newValuesList = new Vector<>();
+			for (int i = 0; i < valueList.size(); i++) {
+				String value = valueList.get(i) + "";
+				if (value.startsWith("http:") || value.contains(":")) {
+					value = getInstanceName(value);
+				}
+				newValuesList.add(value);
+			}
+			paramHash.put(singleKey, newValuesList);
+		}
+
+		return paramHash;
+	}
+
+	public static IPlaySheet getPlaySheet(IDatabaseEngine engine, String psName) {
+		classLogger.info("Trying to get playsheet for {}", Utility.cleanLogString(psName));
+		String psClassName = null;
+		if (engine != null) {
+			psClassName = engine.getProperty(psName);
+		}
+		if (psClassName == null) {
+			psClassName = (String) DIHelper.getInstance().getLocalProp(psName);
+		}
+		if (psClassName == null) {
+			psClassName = Utility.getDIHelperProperty(psName);
+		}
+		if (psClassName == null) {
+			psClassName = PlaySheetRDFMapBasedEnum.getClassFromName(psName);
+		}
+		if (psClassName == null || psClassName.isEmpty()) {
+			psClassName = psName;
+		}
+
+		IPlaySheet playSheet = (IPlaySheet) getClassFromString(psClassName);
+
+		return playSheet;
+	}
+
+	public static IDataMaker getDataMaker(IDatabaseEngine engine, String dataMakerName) {
+		classLogger.info("Trying to get data maker for {}", Utility.cleanLogString(dataMakerName));
+		String dmClassName = null;
+		if (engine != null) {
+			dmClassName = engine.getProperty(dataMakerName);
+		}
+		if (dmClassName == null) {
+			dmClassName = (String) DIHelper.getInstance().getLocalProp(dataMakerName);
+		}
+		if (dmClassName == null) {
+			dmClassName = Utility.getDIHelperProperty(dataMakerName);
+		}
+		if (dmClassName == null) {
+			dmClassName = PlaySheetRDFMapBasedEnum.getClassFromName(dataMakerName);
+		}
+		if (dmClassName == null || dmClassName.isEmpty()) {
+			dmClassName = dataMakerName;
+		}
+
+		IDataMaker dm = (IDataMaker) getClassFromString(dmClassName);
+
+		return dm;
+	}
+
+	public static ISEMOSSTransformation getTransformation(IDatabaseEngine engine, String transName) {
+		classLogger.info("Trying to get transformation for {}", Utility.cleanLogString(transName));
+		String transClassName = (String) DIHelper.getInstance().getLocalProp(transName);
+		if (transClassName == null) {
+			transClassName = Utility.getDIHelperProperty(transName);
+		}
+		if (transClassName == null || transClassName.isEmpty()) {
+			transClassName = transName;
+		}
+
+		ISEMOSSTransformation transformation = (ISEMOSSTransformation) getClassFromString(transClassName);
+		return transformation;
+	}
+
+	public static ISEMOSSAction getAction(IDatabaseEngine engine, String actionName) {
+		classLogger.info("Trying to get action for {}", Utility.cleanLogString(actionName));
+		String actionClassName = (String) DIHelper.getInstance().getLocalProp(actionName);
+		if (actionClassName == null) {
+			actionClassName = Utility.getDIHelperProperty(actionName);
+		}
+		if (actionClassName == null || actionClassName.isEmpty()) {
+			actionClassName = actionName;
+		}
+
+		ISEMOSSAction action = (ISEMOSSAction) getClassFromString(actionClassName);
+		return action;
+	}
+
+	public static Object getClassFromString(String className) {
+		Object obj = null;
+		try {
+			classLogger.debug("Dataframe name is {}", Utility.cleanLogString(className));
+			obj = Class.forName(className).getDeclaredConstructor().newInstance();
+		} catch (ClassNotFoundException cnfe) {
+			classLogger.error("Failed to instantiate class from name: {}", cnfe.getMessage(), cnfe);
+			classLogger.fatal("No such class: " + Utility.cleanLogString(className));
+		} catch (InstantiationException ie) {
+			classLogger.error("Failed to instantiate class from name: {}", ie.getMessage(), ie);
+			classLogger.fatal("Failed instantiation: " + Utility.cleanLogString(className));
+		} catch (IllegalAccessException iae) {
+			classLogger.error("Failed to instantiate class from name: {}", iae.getMessage(), iae);
+			classLogger.fatal("Illegal Access: " + Utility.cleanLogString(className));
+		} catch (IllegalArgumentException iare) {
+			classLogger.error("Failed to instantiate class from name: {}", iare.getMessage(), iare);
+			classLogger.fatal("Illegal argument: " + Utility.cleanLogString(className));
+		} catch (InvocationTargetException ite) {
+			classLogger.error("Failed to instantiate class from name: {}", ite.getMessage(), ite);
+			classLogger.fatal("Invocation exception: " + Utility.cleanLogString(className));
+		} catch (NoSuchMethodException nsme) {
+			classLogger.error("Failed to instantiate class from name: {}", nsme.getMessage(), nsme);
+			classLogger.fatal("No constructor: " + Utility.cleanLogString(className));
+		} catch (SecurityException se) {
+			classLogger.error("Failed to instantiate class from name: {}", se.getMessage(), se);
+			classLogger.fatal("Security exception: " + Utility.cleanLogString(className));
+		}
+		return obj;
+	}
+
+	public static String getKeyFromValue(Map<String, String> hm, String value) {
+		for (String o : hm.keySet()) {
+			if (hm.get(o).equals(value)) {
+				return o;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -892,6 +1526,324 @@ public final class Utility {
 		return fileName + ext;
 	}
 
+	/**
+	 * 
+	 * @param prop
+	 * @param filePath
+	 * @param engineId
+	 */
+	public static void catalogEngineByType(String smssFilePath, Properties smssProp, String engineId) {
+		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
+
+		boolean syncToLocalMaster = false;
+
+		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
+		IEngine.CATALOG_TYPE engineType = null;
+		String rawType = smssProp.get(Constants.ENGINE_TYPE).toString();
+		try {
+			IEngine emptyClass = (IEngine) Class.forName(rawType).getDeclaredConstructor().newInstance();
+			engineType = emptyClass.getCatalogType();
+			// FOR NOW
+			// PGVECTOR IS A DATABASE ENGINE
+			// BUT NO OWL
+			if (emptyClass instanceof IDatabaseEngine && !(emptyClass instanceof IVectorDatabaseEngine)) {
+				syncToLocalMaster = true;
+			}
+		} catch (Exception e) {
+			classLogger.error("Unknown class name '{}' in smss file '{}': {}", rawType, smssFilePath, e.getMessage(),
+					e);
+		}
+		if (engineType == null) {
+			return;
+		}
+
+		DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.TYPE, engineType);
+		String engineNames = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
+		if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+				|| engines.endsWith(";" + engineId))) {
+			engineNames = engineNames + ";" + engineId;
+			DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engineNames);
+		}
+
+		classLogger.info("Loading engine {} of type = {}", engineId, engineType);
+		if (syncToLocalMaster) {
+			// sync up the engine metadata now
+			Utility.synchronizeEngineMetadata(engineId);
+		}
+		SecurityEngineUtils.addEngine(engineId, null);
+	}
+
+	/**
+	 * Loads an engine and opens it
+	 * 
+	 * @param smssFilePath
+	 * @param smssProp
+	 * @return
+	 */
+	private static IEngine loadEngine(String smssFilePath, Properties smssProp) {
+		String engineId = smssProp.getProperty(Constants.ENGINE);
+		if (SystemEngineRegistry.isSystemEngine(engineId)) {
+			classLogger.error("Blocked attempt to load system engine '{}' through Utility.loadEngine(). "
+					+ "Use SystemEngineRegistry.loadSystemEngine() instead.", engineId);
+			return null;
+		}
+
+		// trim all the values the SMSS file
+		for (String name : smssProp.stringPropertyNames()) {
+			String value = smssProp.getProperty(name);
+			if (value != null) {
+				smssProp.setProperty(name, value.trim());
+			}
+		}
+
+		IEngine engine = null;
+		try {
+			String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
+			engineId = smssProp.getProperty(Constants.ENGINE);
+			String engineName = smssProp.getProperty(Constants.ENGINE_ALIAS);
+			String engineClass = smssProp.getProperty(Constants.ENGINE_TYPE);
+
+			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId)) {
+				classLogger.debug("Engine {} is already loaded...", engineId);
+				// engines are by default loaded so that we can keep track on the front end of
+				// engine/all call
+				// so even though it is added here there is a good possibility it is not loaded
+				// so check to see this
+				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IEngine) {
+					return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
+				}
+			}
+
+			// we store the smss location in DIHelper
+			if (smssFilePath != null) {
+				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFilePath);
+			}
+
+			// create and open the class
+			engine = (IEngine) Class.forName(engineClass).getDeclaredConstructor().newInstance();
+			engine.setEngineId(engineId);
+
+			// before we open, let us see if we have the assets folder
+			File engineAssets = new File(
+					EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engineId, engineName));
+			boolean hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
+			classLogger.info("Engine assets directory for {} exists = {}",
+					SmssUtilities.getUniqueName(engineName, engineId), hasAssetsFolder);
+
+			if (smssFilePath == null) {
+				engine.open(smssProp);
+			} else {
+				engine.open(smssFilePath);
+			}
+			// set the engine in DIHelper
+			DIHelper.getInstance().setEngineProperty(engineId, engine);
+
+			// Append the engine name to engines if not already present
+			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId))) {
+				engines = engines + ";" + engineId;
+				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, engines);
+			}
+
+			if (DIHelper.getInstance().getLocalProp("core") == null
+					|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core") + "")) {
+				// for database, load into local master as well
+				if (engine.getCatalogType() == IEngine.CATALOG_TYPE.DATABASE) {
+					if (!SystemDefaultEngines.getDatabaseIgnoreLocalMaster().contains(engineId)) {
+						synchronizeEngineMetadata(engineId);
+					}
+				}
+
+				// always load into security
+				SecurityEngineUtils.addEngine(engineId, null);
+			}
+
+			if (!hasAssetsFolder) {
+				// we didn't have the assets directory when we started, do we have it now?
+				hasAssetsFolder = engineAssets.exists() && engineAssets.isDirectory();
+				if (hasAssetsFolder) {
+					classLogger.info(
+							"After loading engine {} assets directory exists. Sync to cloud storage if enabled",
+							SmssUtilities.getUniqueName(engineName, engineId));
+					ClusterUtil.pushEngine(engineId);
+				} else {
+					classLogger.info("After loading engine {} assets directory still does not exist",
+							SmssUtilities.getUniqueName(engineName, engineId));
+				}
+			}
+		} catch (Exception e) {
+			// null out the engine
+			engine = null;
+			classLogger.error("Failed to load engine from SMSS metadata: {}", e.getMessage(), e);
+		}
+		return engine;
+	}
+
+	/**
+	 * 
+	 * @param smssFilePath
+	 * @param smssProp
+	 * @return
+	 */
+	public static IProject loadProject(String smssFilePath, Properties smssProp) {
+		// trim all the values the SMSS file
+		for (String name : smssProp.stringPropertyNames()) {
+			String value = smssProp.getProperty(name);
+			if (value != null) {
+				smssProp.setProperty(name, value.trim());
+			}
+		}
+
+		IProject project = null;
+		try {
+			String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
+			String projectId = smssProp.getProperty(Constants.PROJECT);
+			String projectClass = smssProp.getProperty(Constants.PROJECT_TYPE);
+
+			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+					|| projects.endsWith(";" + projectId)) {
+				classLogger.debug("Project {} is already loaded...", projectId);
+				// engines are by default loaded so that we can keep track on the front end of
+				// engine/all call
+				// so even though it is added here there is a good possibility it is not loaded
+				// so check to see this
+				if (DIHelper.getInstance().getProjectProperty(projectId) instanceof IProject) {
+					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+				}
+			}
+
+			// we store the smss location in DIHelper
+			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFilePath);
+
+			// create and open the class
+			project = (IProject) Class.forName(projectClass).getDeclaredConstructor().newInstance();
+			project.setProjectId(projectId);
+			project.open(smssFilePath);
+
+			// set the engine in DIHelper
+			DIHelper.getInstance().setProjectProperty(projectId, project);
+
+			// Append the engine name to engines if not already present
+			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+					|| projects.endsWith(";" + projectId))) {
+				projects = projects + ";" + projectId;
+				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
+			}
+
+			// add the project if not an asset
+			if (!project.isAsset()) {
+				SecurityProjectUtils.addProject(projectId, null);
+			}
+		} catch (InstantiationException ie) {
+			classLogger.error("Failed to load project from SMSS metadata: {}", ie.getMessage(), ie);
+		} catch (IllegalAccessException iae) {
+			classLogger.error("Failed to load project from SMSS metadata: {}", iae.getMessage(), iae);
+		} catch (ClassNotFoundException cnfe) {
+			classLogger.error("Failed to load project from SMSS metadata: {}", cnfe.getMessage(), cnfe);
+		} catch (Exception e) {
+			classLogger.error("Failed to load project from SMSS metadata: {}", e.getMessage(), e);
+		}
+
+		return project;
+	}
+
+	public static void synchronizeEngineMetadata(String engineId) {
+		/*
+		 * This determines when it is necessary to add an engine into the local master
+		 * database
+		 * 
+		 * Logical Flow
+		 * 
+		 * 1) Get timestamp of the engine within local master -> call this time_local 2)
+		 * Get timestamp of last engine update, stored on engine's OWL file -> call this
+		 * time_engine 3) If time_local is equal to time_engine, local master is up to
+		 * date 4) In all other conditions, add the engine to the local master -> all
+		 * other conditions means if either time_local or time_engine are null or if
+		 * they do not equal
+		 * 
+		 * Note: that after the local master has the engine added, the timestamp in the
+		 * local master is set to be equal to that in the engine's OWL file (if the
+		 * engine's OWL file time stamp is null, it is set to the time when this routine
+		 * started running)
+		 */
+
+		// generate the appropriate query to execute on the local master engine to get
+		// the time stamp
+		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
+
+		// this has all the details
+		// the engine file is primarily the SMSS that is going to be utilized for the
+		// purposes of retrieving all the data
+		Properties prop = Utility.loadProperties(smssFile);
+
+		String rawType = prop.get(Constants.ENGINE_TYPE).toString();
+		if (rawType.contains("AppEngine")) {
+			// this engine has no data! it is just a collection of insights
+			// nothing to synchronize into local master
+			return;
+		}
+
+		// TODO: NEED TO STILL BUILD THIS OUT!
+		if (rawType.contains("RemoteSemossEngine")) {
+			return;
+		}
+
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+		Date rdbmsDate = MasterDatabaseUtility.getEngineDate(engineId);
+		File owlFile = SmssUtilities.getOwlFile(smssFile, prop);
+		if (owlFile == null) {
+			classLogger.warn("Engine {} does not have an OWL file", SmssUtilities.getUniqueName(prop));
+			return;
+		}
+		// block for removal in future version
+		// required for assets in engine
+		// since we might not have the engine loaded yet
+		{
+			if (!owlFile.exists()) {
+				// try the old location
+				String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
+				String engineBaseFolder = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE,
+						engineId, engineName);
+				String legacyLocation = engineBaseFolder + "/" + owlFile.getName();
+				File legacyOwlFile = new File(legacyLocation);
+				if (legacyOwlFile.exists() && legacyOwlFile.isFile()) {
+					owlFile = legacyOwlFile;
+				}
+			}
+		}
+		String engineDbTime = df.format(new Date(owlFile.lastModified()));
+
+		// 4) perform the necessary additions if the time stamps do not equal
+		// this is broken out into 2 separate parts
+		// 4.1) the local master doesn't have a time stamp which means the engine is not
+		// present
+		// -> i.e. we do not need to remove the engine and re-add it
+		// 4.2) the time is present and we need to remove anything relating the engine
+		// that was in the engine and then re-add it
+		String engineRdbmsDbTime = "Dummy";
+		if (rdbmsDate != null) {
+			engineRdbmsDbTime = df.format(rdbmsDate);
+		}
+
+		if (rdbmsDate == null) {
+			AddToMasterDB adder = new AddToMasterDB();
+			// logic to register the engine into the local master
+			adder.registerEngineLocal(smssFile, prop);
+		} else if (!engineRdbmsDbTime.equalsIgnoreCase(engineDbTime)) {
+			// if it has a time stamp, it means it was previously in local master
+			// logic to delete an engine from the local master
+			DeleteFromMasterDB remover = new DeleteFromMasterDB();
+			remover.deleteEngineRDBMS(engineId);
+			// logic to add the engine into the local master
+			AddToMasterDB adder = new AddToMasterDB();
+			adder.registerEngineLocal(smssFile, prop);
+		}
+
+		// clear the caching of engine metadata
+		EngineSyncUtility.clearEngineCache(engineId);
+	}
+
 	public static String getRandomString(int len) {
 		String alpha = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789";
 
@@ -949,8 +1901,7 @@ public final class Utility {
 					// so if a different thread was waiting for the project to load,
 					// it doesn't go through this process again
 					if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
-						return EngineProxyFactory
-								.createGuardedProject((IProject) DIHelper.getInstance().getProjectProperty(projectId));
+						return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 					}
 
 					// If in a clustered environment, then pull the project first
@@ -965,16 +1916,7 @@ public final class Utility {
 					// Start up the project using the details in the smss
 					if (smssFile != null) {
 						// actual load engine process
-						project = InternalUtility.loadProject(smssFile, Utility.loadProperties(smssFile));
-						// a legacy insights db was recreated on load; replace the 1.x copy in storage
-						if (project != null && ProjectHelper.consumeRecreatedLegacyInsights(projectId)) {
-							try {
-								ClusterUtil.pushInsightDB(projectId);
-							} catch (Exception e) {
-								classLogger.warn("Unable to push the recreated insights database for project {}",
-										Utility.cleanLogString(projectId), e);
-							}
-						}
+						project = Utility.loadProject(smssFile, Utility.loadProperties(smssFile));
 					} else {
 						classLogger.debug("There is no SMSS File for the project {}...", projectId);
 					}
@@ -1032,8 +1974,7 @@ public final class Utility {
 				// Start up the project using the details in the smss
 				if (smssFile != null && new File(Utility.normalizePath(smssFile)).exists()) {
 					// actual load project process
-					project = InternalUtility.loadProject(smssFile,
-							Utility.loadProperties(Utility.normalizePath(smssFile)));
+					project = Utility.loadProject(smssFile, Utility.loadProperties(Utility.normalizePath(smssFile)));
 				} else {
 					classLogger.debug("There is no SMSS File for the user asset project {}...", projectId);
 				}
@@ -1095,6 +2036,128 @@ public final class Utility {
 
 	/**
 	 * 
+	 * @param engineId
+	 * @param pullIfNeeded
+	 * @return
+	 */
+	private static IEngine baseGetEngine(String engineId, boolean pullIfNeeded) {
+		IEngine engine = null;
+
+		String smssFile = null;
+		boolean reloadDB = false;
+		Properties prop = null;
+
+		boolean runningInCore = DIHelper.getInstance().getLocalProp("core") == null
+				|| Boolean.parseBoolean(DIHelper.getInstance().getLocalProp("core") + "");
+
+		if (runningInCore) {
+			// not sure why we need this after the first time but hey
+			smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+		} else {
+			// on the socket side
+			// it will pull the smss
+			// and reload the engine
+			// once reloaded it will be present in the DI Helper
+			// check DI Helper to see if this is needed
+			// if not try to figure if reload is required
+			if (DIHelper.getInstance().getEngineProperty(engineId) == null) // if already loaded.. no need to load again
+			{
+				prop = getEngineDetails(engineId);
+				if (prop != null) {
+					reloadDB = true;
+				}
+			} else {
+				// this is already a loaded engine
+				// engine socket wrapper is not persisted in the cache so we are all set here
+				reloadDB = true;
+			}
+		}
+
+		if (runningInCore || reloadDB) {
+			// If the engine has already been loaded, then return it
+			// Don't acquire the lock here, because that would slow things down
+			if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
+				engine = (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
+			} else {
+				// Acquire the lock on the engine, don't want several calls to try and load the
+				// engine at the same time
+				classLogger.info("Applying lock for engine {} to pull", Utility.cleanLogString(engineId));
+				ReentrantLock lock = null;
+				try {
+					lock = EngineSyncUtility.getEngineLock(engineId);
+					lock.lock();
+					classLogger.info("Engine {} is locked", Utility.cleanLogString(engineId));
+
+					// Need to do a double check here,
+					// so if a different thread was waiting for the engine to load,
+					// it doesn't go through this process again
+					if (DIHelper.getInstance().getEngineProperty(engineId) != null) {
+						return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
+					}
+
+					if (pullIfNeeded && ClusterUtil.IS_CLUSTER) {
+						ClusterUtil.pullEngine(engineId);
+					}
+
+					// Now that the engine has been pulled, grab the smss file
+					smssFile = (String) DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+
+					// Start up the engine using the details in the smss
+					if (smssFile != null) {
+						// actual load engine process
+						engine = Utility.loadEngine(smssFile, Utility.loadProperties(smssFile));
+					} else if (prop != null) {
+						engine = Utility.loadEngine(null, prop);
+					} else {
+						classLogger.info("There is no SMSS File for the engine {}...",
+								Utility.cleanLogString(engineId));
+					}
+
+					// add start with check because the insights RDBMS has the id
+					// security_InsightsRDBMS
+					if (!SystemDefaultEngines.valueStartsWith(engineId,
+							SystemDefaultEngines.getDatabaseIgnoreSecurity())) {
+						Map<String, String> envMap = System.getenv();
+						if (envMap.containsKey(ZKClient.ZK_SERVER)
+								|| envMap.containsKey(ZKClient.ZK_SERVER.toUpperCase())) {
+							if (ClusterUtil.LOAD_ENGINES_LOCALLY) {
+								// Only publish if actually loading on this box
+								// TODO >>>timb: this logic only works insofar as we are assuming a user-based
+								// docker layer in addition to the app containers
+								String host = "unknown";
+
+								if (envMap.containsKey(ZKClient.HOST)) {
+									host = envMap.get(ZKClient.HOST);
+								}
+
+								if (envMap.containsKey(ZKClient.HOST.toUpperCase())) {
+									host = envMap.get(ZKClient.HOST.toUpperCase());
+								}
+
+								// we are in business
+								ZKClient client = ZKClient.getInstance();
+								client.publishDB(engineId + "@" + host);
+							}
+						}
+					}
+				} finally {
+					if (lock != null) {
+						lock.unlock();
+						classLogger.info("Engine {} is unlocked", Utility.cleanLogString(engineId));
+					}
+				}
+			}
+		} else {
+			// send the information of engine to the smssfile to the socket
+			// this is happening on the socket side
+			engine = new EngineSocketWrapper(engineId,
+					(SocketServerHandler) DIHelper.getInstance().getLocalProp("SSH"));
+		}
+		return engine;
+	}
+
+	/**
+	 * 
 	 * @param engineId - engine to get
 	 * @return Use this method to get the engine when the engine hasn't been loaded
 	 */
@@ -1109,7 +2172,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static IDatabaseEngine getDatabase(String engineId, boolean pullIfNeeded) {
-		IEngine engine = InternalUtility.baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedDatabaseEngine((IDatabaseEngine) engine);
 		return (IDatabaseEngine) engine;
@@ -1131,7 +2194,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static IStorageEngine getStorage(String engineId, boolean pullIfNeeded) {
-		IEngine engine = InternalUtility.baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedStorageEngine((IStorageEngine) engine);
 		return (IStorageEngine) engine;
@@ -1153,7 +2216,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static IModelEngine getModel(String engineId, boolean pullIfNeeded) {
-		IEngine engine = InternalUtility.baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedModelEngine((IModelEngine) engine);
 		return (IModelEngine) engine;
@@ -1175,7 +2238,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static IVectorDatabaseEngine getVectorDatabase(String engineId, boolean pullIfNeeded) {
-		IEngine engine = InternalUtility.baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedVectorEngine((IVectorDatabaseEngine) engine);
 		return (IVectorDatabaseEngine) engine;
@@ -1197,7 +2260,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static IReactorFunctionEngine getReactorEngine(String engineId, boolean pullIfNeeded) {
-		IEngine engine = InternalUtility.baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedFunctionEngine((IReactorFunctionEngine) engine);
 		return (IReactorFunctionEngine) engine;
@@ -1219,7 +2282,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static IFunctionEngine getFunctionEngine(String engineId, boolean pullIfNeeded) {
-		IEngine engine = InternalUtility.baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
 		return (IFunctionEngine) engine;
@@ -1241,7 +2304,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static IGuardrailReactorFunctionEngine getGuardrailEngine(String engineId, boolean pullIfNeeded) {
-		IEngine engine = InternalUtility.baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedFunctionEngine((IFunctionEngine) engine);
 		return (IGuardrailReactorFunctionEngine) engine;
@@ -1263,7 +2326,7 @@ public final class Utility {
 	 * @return
 	 */
 	public static IVenvEngine getVenvEngine(String engineId, boolean pullIfNeeded) {
-		IEngine engine = InternalUtility.baseGetEngine(engineId, pullIfNeeded);
+		IEngine engine = baseGetEngine(engineId, pullIfNeeded);
 		// get the pipeline
 		engine = EngineProxyFactory.createGuardedVenvEngine((IVenvEngine) engine);
 		return (IVenvEngine) engine;
@@ -1276,6 +2339,84 @@ public final class Utility {
 	 */
 	public static boolean isEngineLoaded(String engineId) {
 		return DIHelper.getInstance().getEngineProperty(engineId) != null;
+	}
+
+	/**
+	 * 
+	 * @param engineId
+	 * @return
+	 */
+	public static Properties getEngineDetails(String engineId) {
+		// get the engine properties file
+		// get the engine owl file
+		// set the owl file location and start up
+
+		CaseInsensitiveProperties prop = null;
+		try {
+			SocketServerHandler ssh = (SocketServerHandler) DIHelper.getInstance().getLocalProp("SSH");
+			PayloadStruct ps = new PayloadStruct();
+			ps.epoc = "t1";
+			ps.operation = ps.operation.ENGINE;
+			ps.objId = engineId;
+			ps.methodName = "getOrigProp";
+			ps.longRunning = true;
+			ps.response = false;
+			ps.payloadClasses = new Class[] {};
+
+			PayloadStruct response = ssh.writeResponse(ps);
+			prop = (CaseInsensitiveProperties) response.payload[0];
+
+			// get the owl file and replace into properties
+			ps = new PayloadStruct();
+			ps.epoc = "t2";
+			ps.operation = ps.operation.ENGINE;
+			ps.objId = engineId;
+			ps.methodName = "getOwl";
+			ps.longRunning = true;
+			ps.response = false;
+			ps.payloadClasses = new Class[] {};
+
+			response = ssh.writeResponse(ps);
+			String owl = response.payload[0] + "";
+
+			// find if the properties has a reload db on it
+			boolean reload = false;
+			if (prop.containsKey(Settings.LOAD_DB_ON_SOCKET)) {
+				reload = prop.getProperty(Settings.LOAD_DB_ON_SOCKET).equalsIgnoreCase("True");
+			}
+			if (reload) {
+				// write the owl file
+				// replace it in the properties
+				// write the properties file or not
+				// return the properties
+				String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
+				File engineDir = new File(
+						Utility.normalizeParam(baseFolder) + File.separator + "engines" + File.separator + engineId);
+				if (!engineDir.exists()) {
+					engineDir.mkdirs();
+				}
+
+				File owlFile = new File(engineDir.getAbsolutePath() + File.separator + engineId + ".owl");
+				// engine owlFileName
+				FileUtils.writeStringToFile(owlFile, owl);
+				prop.replace(Constants.OWL, owlFile.getAbsolutePath());
+
+				// give the properties back
+				// write the properties file as well
+				// File propFile = new File(engineDir.getAbsolutePath() + File.separator +
+				// engineId + ".smss");
+				// write the propfile also into it
+				// prop.put("PROP_FILE_LOCATION", propFile.getAbsolutePath());
+				// FileWriter fw = new FileWriter(propFile);
+//				prop.list(new PrintWriter(fw));
+//				fw.flush();
+//				fw.close();
+			}
+		} catch (Exception ex) {
+			classLogger.error("Failed to read engine metadata from SMSS file: {}", ex.getMessage(), ex);
+		}
+
+		return prop;
 	}
 
 	/**
@@ -1328,9 +2469,14 @@ public final class Utility {
 			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
 		}
 
-		try (FileOutputStream fos = new FileOutputStream(f);
-				OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-				BufferedWriter bufferedWriter = new BufferedWriter(osw)) {
+		FileOutputStream fos = null;
+		OutputStreamWriter osw = null;
+		BufferedWriter bufferedWriter = null;
+
+		try {
+			fos = new FileOutputStream(f);
+			osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+			bufferedWriter = new BufferedWriter(osw);
 
 			// store some variables and just reset
 			// should be faster than creating new ones each time
@@ -1470,6 +2616,28 @@ public final class Utility {
 
 		} catch (IOException ioe) {
 			classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+			} catch (IOException ioe) {
+				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
+			}
+			try {
+				if (osw != null) {
+					osw.close();
+				}
+			} catch (IOException ioe) {
+				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
+			}
+			try {
+				if (fos != null) {
+					fos.close();
+				}
+			} catch (IOException ioe) {
+				classLogger.error("Failed to write result rows to output file: {}", ioe.getMessage(), ioe);
+			}
 		}
 
 		long end = System.currentTimeMillis();
@@ -1513,9 +2681,14 @@ public final class Utility {
 			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
 		}
 
-		try (FileOutputStream fos = new FileOutputStream(f);
-				OutputStreamWriter osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
-				BufferedWriter bufferedWriter = new BufferedWriter(osw)) {
+		FileOutputStream fos = null;
+		OutputStreamWriter osw = null;
+		BufferedWriter bufferedWriter = null;
+
+		try {
+			fos = new FileOutputStream(f);
+			osw = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
+			bufferedWriter = new BufferedWriter(osw);
 			bufferedWriter.write("[");
 			// store some variables and just reset
 			// should be faster than creating new ones each time
@@ -1632,6 +2805,28 @@ public final class Utility {
 
 		} catch (IOException ioe) {
 			classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
+		} finally {
+			try {
+				if (bufferedWriter != null) {
+					bufferedWriter.close();
+				}
+			} catch (IOException ioe) {
+				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
+			}
+			try {
+				if (osw != null) {
+					osw.close();
+				}
+			} catch (IOException ioe) {
+				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
+			}
+			try {
+				if (fos != null) {
+					fos.close();
+				}
+			} catch (IOException ioe) {
+				classLogger.error("Failed to write result rows to JSON file: {}", ioe.getMessage(), ioe);
+			}
 		}
 
 		long end = System.currentTimeMillis();
@@ -2544,85 +3739,6 @@ public final class Utility {
 	}
 
 	/**
-	 * Determine if for this instance only the admin can add a virtual environment
-	 * 
-	 * @return true if only an admin can add a virtual environment
-	 */
-	public static boolean getApplicationAdminOnlyVenvAdd() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_ADD);
-		if (boolString == null) {
-			// default false
-			return false;
-		}
-
-		return Boolean.parseBoolean(boolString);
-	}
-
-	/**
-	 * Determine if for this instance only the admin can delete a virtual
-	 * environment
-	 * 
-	 * @return true if only an admin can delete a virtual environment
-	 */
-	public static boolean getApplicationAdminOnlyVenvDelete() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_DELETE);
-		if (boolString == null) {
-			// default false
-			return false;
-		}
-
-		return Boolean.parseBoolean(boolString);
-	}
-
-	/**
-	 * Determine if for this instance only the admin can add/set virtual environment
-	 * access
-	 * 
-	 * @return true if only an admin can add/set virtual environment access
-	 */
-	public static boolean getApplicationAdminOnlyVenvAddAccess() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_ADD_ACCESS);
-		if (boolString == null) {
-			// default false
-			return false;
-		}
-
-		return Boolean.parseBoolean(boolString);
-	}
-
-	/**
-	 * Determine if for this instance only the admin can set a virtual environment
-	 * public
-	 * 
-	 * @return true if only an admin can set a virtual environment public
-	 */
-	public static boolean getApplicationAdminOnlyVenvSetPublic() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_SET_PUBLIC);
-		if (boolString == null) {
-			// default false
-			return false;
-		}
-
-		return Boolean.parseBoolean(boolString);
-	}
-
-	/**
-	 * Determine if for this instance only the admin can set a virtual environment
-	 * discoverable
-	 * 
-	 * @return true if only an admin can set a virtual environment discoverable
-	 */
-	public static boolean getApplicationAdminOnlyVenvSetDiscoverable() {
-		String boolString = Utility.getDIHelperProperty(Constants.ADMIN_ONLY_VENV_SET_DISCOVERABLE);
-		if (boolString == null) {
-			// default false
-			return false;
-		}
-
-		return Boolean.parseBoolean(boolString);
-	}
-
-	/**
 	 * Get a comma separated list of widget ids to filter on
 	 * 
 	 * @return
@@ -3093,6 +4209,219 @@ public final class Utility {
 	}
 
 	/**
+	 * 
+	 * @param urlString
+	 * @param filePath
+	 */
+	public static void copyURLtoFile(String urlString, String filePath) {
+		try (PrintWriter out = new PrintWriter(filePath)) {
+			URL url = new URL(urlString);
+			URLConnection conn = url.openConnection();
+			BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+			String inputLine;
+
+			// write file
+			while ((inputLine = in.readLine()) != null) {
+				out.write(inputLine + System.getProperty("line.separator"));
+			}
+			out.close();
+			in.close();
+		} catch (MalformedURLException mue) {
+			classLogger.error("Failed to copy URL content to file: {}", mue.getMessage(), mue);
+		} catch (IOException ioe) {
+			classLogger.error("Failed to copy URL content to file: {}", ioe.getMessage(), ioe);
+		}
+	}
+
+	public static String getCP(String specificJars, String insightFolder) {
+		StringBuffer envClassPath = new StringBuffer();
+		String osName = System.getProperty("os.name").toLowerCase();
+		boolean win = osName.indexOf("win") >= 0;
+
+		try {
+			StringBuffer retClassPath = new StringBuffer("");
+			Class utilClass = Class.forName("prerna.util.Utility");
+			ClassLoader cl = utilClass.getClassLoader();
+
+			URL[] urls = ((URLClassLoader) cl).getURLs();
+
+			String webinfLib = null;
+			boolean webinfTagged = false;
+
+			for (URL url : urls) {
+				String jarName = Paths.get(url.getPath()).getFileName().toString();
+				String thisURL = URLDecoder.decode(url.getFile().replaceFirst("/", ""), StandardCharsets.UTF_8);
+
+				String separator = ";";
+				if (!win) {
+					thisURL = "/" + thisURL;
+					separator = ":";
+				}
+
+				if (thisURL.endsWith(".jar") && thisURL.contains("WEB-INF/lib") && webinfLib == null) {
+					String thisJarName = getInstanceName(thisURL);
+					thisURL = thisURL.replace("/" + thisJarName, "");
+					webinfLib = thisURL + "/*";
+					if (!webinfTagged) {
+						retClassPath.append(webinfLib).append(separator);
+						webinfTagged = true;
+					}
+
+				}
+
+				// add the folder
+				else if (!thisURL.endsWith(".jar") && specificJars.contains(jarName)
+						&& !thisURL.contains("WEB-INF/lib")) {
+					if (thisURL.endsWith("/")) {
+						thisURL = thisURL.substring(0, thisURL.length() - 1);
+					}
+					retClassPath.append(thisURL).append(separator);
+				}
+				// address the issue when you are running outside of semoss
+				else if (thisURL.endsWith(".jar") && specificJars.contains(jarName)
+						&& !thisURL.contains("WEB-INF/lib")) {
+					if (thisURL.endsWith("/")) {
+						thisURL = thisURL.substring(0, thisURL.length() - 1);
+					}
+					retClassPath.append(thisURL).append(separator);
+				}
+
+			}
+			// remove the last one
+			String cp = retClassPath.toString();
+			String curPath = insightFolder + ";";
+			if (!win) {
+				curPath = insightFolder + ":";
+			}
+
+			envClassPath = new StringBuffer("\"" + curPath + cp.substring(0, cp.length() - 1) + "\"");
+		} catch (ClassNotFoundException cnfe) {
+			classLogger.error("Failed to build runtime classpath: {}", cnfe.getMessage(), cnfe);
+		}
+
+		return envClassPath.toString();
+	}
+
+	private static boolean fileInRelativeHiddenDirectory(Path file, Path folder) {
+		do {
+			file = file.getParent();
+
+			if (file == null) {
+				break;
+			}
+
+			// this is not applicable to windows, but is the current behavior in
+			// GitAssetUtils.listAssets(String, String, String, List<String>, List<String>)
+			if (file.getFileName().toString().startsWith(".")) {
+				return true;
+			}
+
+		} while (!file.equals(folder));
+
+		return false;
+	}
+
+	private static boolean isJavaFile(Path path) {
+		return FilenameUtils.getExtension(path.toString()).equals("java");
+	}
+
+	public static int compileJava(String folder, String classpath) {
+		int status = -1;
+
+		String javaFolder = folder + "/java";
+		Path path = Paths.get(Utility.normalizePath(javaFolder));
+
+		if (Files.isDirectory(path)) {
+			classLogger.info("Compiling Java in Folder {}", javaFolder);
+			try (Stream<Path> p = Files.walk(path, FileVisitOption.FOLLOW_LINKS)) {
+				List<File> files = p.filter(Files::isRegularFile).map(Path::toAbsolutePath).filter(Utility::isJavaFile)
+						.filter(s -> !Utility.fileInRelativeHiddenDirectory(s, path)).map(Path::toFile)
+						.collect(Collectors.toList());
+
+				if (files.size() > 0) {
+					status = compileJava(files, folder, classpath);
+				}
+			} catch (IOException e) {
+				classLogger.error("Failed to compile Java source files: {}", e.getMessage(), e);
+			}
+			classLogger.info("Done compiling Java in Folder {}", javaFolder);
+		}
+
+		return status;
+	}
+
+	private static int compileJava(List<File> files, String folder, String classpath) throws IOException {
+		String outputFolder = folder + "/classes";
+		Files.createDirectories(Paths.get(Utility.normalizePath(outputFolder)));
+
+		List<String> options = new ArrayList<>();
+		options.add("-d");
+		options.add(outputFolder);
+		options.add("-proc:none");
+		options.add("-g:source,lines,vars");
+		options.add("-Xlint:all");
+
+		DiagnosticCollector<JavaFileObject> diagnostics = new DiagnosticCollector<>();
+		JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+		if (compiler == null) {
+			throw new NullPointerException("Could not find the java compiler");
+		}
+
+		StandardJavaFileManager fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+		// add the clss path to the file manager
+		String cp = classpath;
+		// remove quotes if they exist
+		if (cp.startsWith("\"") && cp.endsWith("\"")) {
+			cp = cp.substring(1, cp.length() - 1);
+		}
+		List<File> classpathFiles = Arrays.stream(cp.split(File.pathSeparator)).map(File::new).filter(File::exists)
+				.collect(Collectors.toList());
+		try {
+			fileManager.setLocation(StandardLocation.CLASS_PATH, classpathFiles);
+		} catch (IOException e) {
+			throw new RuntimeException("Failed to set classpath", e);
+		}
+
+		Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(files);
+
+		Path error = Paths.get(Utility.normalizePath(outputFolder), "compileerror.out");
+		Files.deleteIfExists(error);
+
+		try (OutputStream os = Files.newOutputStream(error)) {
+			return compileJava(os, compiler, fileManager, diagnostics, options, compilationUnits);
+		}
+	}
+
+	private static int compileJava(OutputStream os, JavaCompiler compiler, StandardJavaFileManager fileManager,
+			DiagnosticCollector<JavaFileObject> diagnostics, List<String> options,
+			Iterable<? extends JavaFileObject> compilationUnits) throws IOException {
+
+		try (PrintWriter pw = new PrintWriter(new BufferedWriter(new OutputStreamWriter(os, StandardCharsets.UTF_8)))) {
+			boolean hold = compiler.getTask(pw, fileManager, diagnostics, options, null, compilationUnits).call();
+
+			pw.flush();
+			logDiagnostics(diagnostics.getDiagnostics(), pw);
+
+			return hold ? 0 : -1;
+		} finally {
+			fileManager.close();
+		}
+	}
+
+	private static void logDiagnostics(List<Diagnostic<? extends JavaFileObject>> diagnostics, PrintWriter pw) {
+		for (Diagnostic<? extends JavaFileObject> x : diagnostics) {
+			if (x.getSource() != null) {
+				pw.println("[" + x.getKind().toString() + "] " + x.getSource().toUri() + ":" + x.getLineNumber() + " - "
+						+ x.getMessage(Locale.getDefault()));
+			} else {
+				pw.println("[" + x.getKind().toString() + "] 'NO-SOURCE-MESSAGE':" + x.getLineNumber() + " - "
+						+ x.getMessage(Locale.getDefault()));
+			}
+			pw.flush();
+		}
+	}
+
+	/**
 	 * Checks each object value is null(for all types) or NaN (for double type)
 	 * 
 	 * @param obj
@@ -3103,16 +4432,50 @@ public final class Utility {
 	}
 
 	/**
-	 * Checks a URL against the blacklist ({@link Constants#BLACK_LIST_DOMAINS}) and
-	 * the whitelist ({@link Constants#WHITE_LIST_DOMAINS}) of
-	 * {@link UrlAccessRules}. With neither list configured every URL passes.
+	 * Validates that the given URL's domain is within the configured whitelist
+	 * ({@link Constants#WHITE_LIST_DOMAINS}). When no whitelist is configured all
+	 * domains are permitted.
 	 *
-	 * @param urlString the URL whose host should be validated
-	 * @throws IllegalArgumentException when the URL is malformed, has no host, or
-	 *                                  the lists do not allow its host
+	 * @param urlString the URL whose domain should be validated
+	 * @throws IllegalArgumentException when the URL is malformed, has no resolvable
+	 *                                  host/domain, or its domain is not
+	 *                                  whitelisted
 	 */
 	public static void checkIfValidDomain(String urlString) {
-		UrlAccessRules.checkUrl(urlString);
+		String whiteListDomains = Utility.getDIHelperProperty(Constants.WHITE_LIST_DOMAINS);
+		if (whiteListDomains == null || (whiteListDomains = whiteListDomains.trim()).isEmpty()) {
+			return;
+		}
+
+		List<String> domainList = Arrays.stream(whiteListDomains.split(",")).map(String::trim).filter(d -> !d.isEmpty())
+				.collect(Collectors.toList());
+
+		// URI is used instead of the deprecated java.net.URL constructor (deprecated
+		// since Java 20)
+		final String host;
+		try {
+			host = new URI(urlString).getHost();
+		} catch (URISyntaxException e) {
+			classLogger.error("Failed to validate domain URL: {}", e.getMessage(), e);
+			throw new IllegalArgumentException("Invalid URL: " + urlString + ". Detailed message: " + e.getMessage());
+		}
+
+		if (host == null || host.isBlank()) {
+			throw new IllegalArgumentException("Invalid URL: " + urlString + ". Unable to determine the host.");
+		}
+
+		final String topPrivateDomain;
+		try {
+			topPrivateDomain = InternetDomainName.from(host).topPrivateDomain().toString();
+		} catch (IllegalStateException | IllegalArgumentException e) {
+			// host is a raw IP or is not under a recognized public suffix (e.g. an internal
+			// hostname)
+			throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
+		}
+
+		if (!domainList.contains(topPrivateDomain)) {
+			throw new IllegalArgumentException("You are not allowed to make requests to the URL: " + urlString);
+		}
 	}
 
 	/**
@@ -3174,17 +4537,6 @@ public final class Utility {
 	}
 
 	/**
-	 * A timestamp that holds UTC time, as {@link #getCurrentSqlTimestampUTC()}
-	 * gives, as ISO text, such as 2026-10-29T18:30:00Z.
-	 *
-	 * @param timestamp the UTC timestamp
-	 * @return the ISO text, ending in Z
-	 */
-	public static String getSqlTimestampToString(Timestamp timestamp) {
-		return timestamp.toLocalDateTime().toInstant(ZoneOffset.UTC).toString();
-	}
-
-	/**
 	 * Get the current LocalDateTime
 	 * 
 	 * @return currentTimestamp
@@ -3215,6 +4567,52 @@ public final class Utility {
 	public static Boolean validateName(String name) {
 		String regex = "^[a-zA-Z][a-zA-Z0-9 _-]*$";
 		return name.matches(regex);
+	}
+
+	public static void setOwnerAndGroupPermissionsRecursively(File directory) throws IOException, InterruptedException {
+		String osName = System.getProperty("os.name").toLowerCase();
+		if (!osName.contains("nix") && !osName.contains("nux") && !osName.contains("mac")) {
+			return;
+		}
+
+		if (directory == null) {
+			throw new IllegalArgumentException("Directory cannot be null");
+		}
+
+		if (!directory.exists()) {
+			throw new IllegalArgumentException("Directory does not exist: " + directory.getAbsolutePath());
+		}
+
+		if (!directory.isDirectory()) {
+			throw new IllegalArgumentException("The specified file is not a directory: " + directory.getAbsolutePath());
+		}
+
+		// Construct the chmod command
+		String[] command = { "chmod", "-R", "770", directory.getAbsolutePath() };
+
+		// Use ProcessBuilder to execute the command
+		ProcessBuilder processBuilder = new ProcessBuilder(command);
+		processBuilder.redirectErrorStream(true); // Merge error stream with input stream
+
+		Process process = processBuilder.start();
+
+		// Capture and log the output
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				classLogger.info(line);
+			}
+		}
+
+		// Wait for the process to complete
+		int exitCode = process.waitFor();
+
+		if (exitCode != 0) {
+			throw new IOException("Failed to set permissions on " + directory.getAbsolutePath()
+					+ ", chmod command exited with code " + exitCode);
+		} else {
+			classLogger.info("Changed permissions on {} with exit code {}", directory.getAbsolutePath(), exitCode);
+		}
 	}
 
 	/**
@@ -3321,23 +4719,6 @@ public final class Utility {
 		}
 
 		return Boolean.parseBoolean(collaborationDb);
-	}
-
-	/**
-	 * Determine if the web search platform MCP is enabled. It needs a SearXNG
-	 * service that not every instance runs, so it stays off unless RDF_Map turns it
-	 * on.
-	 *
-	 * @return
-	 */
-	public static boolean isWebSearchEnabled() {
-		String webSearch = Utility.getDIHelperProperty(Constants.WEB_SEARCH_ENABLED);
-		if (webSearch == null) {
-			// default configuration is false
-			return false;
-		}
-
-		return Boolean.parseBoolean(webSearch.trim());
 	}
 
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {

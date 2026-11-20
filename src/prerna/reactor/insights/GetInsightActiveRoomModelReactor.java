@@ -35,17 +35,13 @@ import prerna.auth.User;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class GetInsightActiveRoomModelReactor extends AbstractReactor {
 
 	private static final String MODEL_ID_OPTION_KEY = "modelId";
-	/**
-	 * Older rooms stored the model under these option keys. Same keys AgentRunner
-	 * reads.
-	 */
+	/** Older rooms stored the model under these option keys. Same keys AgentRunner reads. */
 	private static final String[] LEGACY_MODEL_ID_OPTION_KEYS = { "engine", "model", "engineId" };
 
 	@Override
@@ -103,8 +99,7 @@ public class GetInsightActiveRoomModelReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Get the active model for the room set in the current insight")
-				.noKeys();
+	public String getReactorDescription() {
+		return "Get the active model for the room set in the current insight";
 	}
 }

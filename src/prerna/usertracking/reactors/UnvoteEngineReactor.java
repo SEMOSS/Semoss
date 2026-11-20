@@ -34,7 +34,6 @@ import org.javatuples.Pair;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -75,7 +74,7 @@ public class UnvoteEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Removes the current user's existing vote on an engine.");
+	public String getReactorDescription() {
+		return "Removes the current user's existing vote on an engine.";
 	}
 }

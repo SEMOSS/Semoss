@@ -48,14 +48,12 @@ import org.mockito.Mockito;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.om.Insight;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -106,20 +104,17 @@ public class UpdateFormUnitTests {
 		when(user.getAccessToken(AuthProvider.CAC)).thenReturn(at);
 
 		try (MockedStatic<Utility> ut = Mockito.mockStatic(Utility.class);
-				MockedStatic<FormFactory> ff = Mockito.mockStatic(FormFactory.class);
-				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
+				MockedStatic<FormFactory> ff = Mockito.mockStatic(FormFactory.class)) {
 			IDatabaseEngine engine = mock(IDatabaseEngine.class);
 			AbstractFormBuilder formBuilder = mock(AbstractFormBuilder.class);
 
 			ut.when(() -> Utility.getDatabase(anyString())).thenReturn(engine);
 			ff.when(() -> FormFactory.getFormBuilder(any(IDatabaseEngine.class))).thenReturn(formBuilder);
-			seu.when(() -> SecurityEngineUtils.userCanEditEngine(any(User.class), anyString())).thenReturn(true);
 
 			when(this.ns.getGenRowStruct(any(String.class))).thenReturn(grs);
 			DATABASE_TYPE dt = mock(DATABASE_TYPE.class);
 
 			assertEquals(reactor.execute().toString(), (new NounMetadata(true, PixelDataType.BOOLEAN)).toString());
-			seu.verify(() -> SecurityEngineUtils.userCanEditEngine(any(User.class), anyString()));
 		}
 	}
 
@@ -138,42 +133,17 @@ public class UpdateFormUnitTests {
 		when(user.getAccessToken(AuthProvider.SAML)).thenReturn(at);
 
 		try (MockedStatic<Utility> ut = Mockito.mockStatic(Utility.class);
-				MockedStatic<FormFactory> ff = Mockito.mockStatic(FormFactory.class);
-				MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class)) {
+				MockedStatic<FormFactory> ff = Mockito.mockStatic(FormFactory.class)) {
 			IDatabaseEngine engine = mock(IDatabaseEngine.class);
 			AbstractFormBuilder formBuilder = mock(AbstractFormBuilder.class);
 
 			ut.when(() -> Utility.getDatabase(anyString())).thenReturn(engine);
 			ff.when(() -> FormFactory.getFormBuilder(any(IDatabaseEngine.class))).thenReturn(formBuilder);
-			seu.when(() -> SecurityEngineUtils.userCanEditEngine(any(User.class), anyString())).thenReturn(true);
 
 			when(this.ns.getGenRowStruct(any(String.class))).thenReturn(grs);
 			DATABASE_TYPE dt = mock(DATABASE_TYPE.class);
 
 			assertEquals(reactor.execute().toString(), (new NounMetadata(true, PixelDataType.BOOLEAN)).toString());
-			seu.verify(() -> SecurityEngineUtils.userCanEditEngine(any(User.class), anyString()));
-		}
-	}
-
-	@Test
-	void testUserCannotEditDatabase() {
-		AccessToken at = new AccessToken();
-		at.setId("Testid");
-		at.setProvider(AuthProvider.CAC);
-		when(user.getAccessToken(AuthProvider.CAC)).thenReturn(at);
-
-		GenRowStruct databaseGrs = mock(GenRowStruct.class);
-		when(databaseGrs.get(0)).thenReturn("testdb");
-		when(ns.getGenRowStruct(any(String.class))).thenReturn(grs);
-		when(ns.getGenRowStruct(ReactorKeysEnum.DATABASE.getKey())).thenReturn(databaseGrs);
-
-		try (MockedStatic<SecurityEngineUtils> seu = Mockito.mockStatic(SecurityEngineUtils.class);
-				MockedStatic<FormFactory> ff = Mockito.mockStatic(FormFactory.class)) {
-			seu.when(() -> SecurityEngineUtils.userCanEditEngine(user, "testdb")).thenReturn(false);
-
-			IllegalArgumentException e = assertThrows(IllegalArgumentException.class, reactor::execute);
-			assertEquals("Database testdb does not exist or user does not have access to the database", e.getMessage());
-			ff.verifyNoInteractions();
 		}
 	}
 

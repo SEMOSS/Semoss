@@ -31,7 +31,6 @@ import java.util.Map;
 
 import org.json.JSONObject;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.om.Insight;
 
 /**
@@ -47,7 +46,6 @@ public interface IMCP {
 	 * @param protocolVersion The version of the protocol to use for initialization.
 	 * @return A JSONObject indicating the success or failure of the initialization.
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	public JSONObject initMCP(String protocolVersion);
 
 	/**
@@ -55,7 +53,6 @@ public interface IMCP {
 	 * 
 	 * @return A JSONObject containing the MCP resources.
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	public JSONObject getMCPResources();
 
 	/**
@@ -63,7 +60,6 @@ public interface IMCP {
 	 * 
 	 * @return A JSONObject containing the MCP resources templates.
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	public JSONObject getMCPResourcesTemplates();
 
 	/**
@@ -71,7 +67,6 @@ public interface IMCP {
 	 * 
 	 * @return A JSONObject containing the MCP prompts.
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	public JSONObject getMCPPrompts();
 
 	/**
@@ -79,7 +74,6 @@ public interface IMCP {
 	 * 
 	 * @return A JSONObject containing the MCP tools.
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	public JSONObject getMCPTools();
 
 	/**
@@ -90,7 +84,6 @@ public interface IMCP {
 	 * @param insight  The insight executing the tool
 	 * @return The object returned by the MCP tool function.
 	 */
-	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	public Object callTool(String toolName, Map<String, Object> params, Insight insight);
 
 }

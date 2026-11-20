@@ -27,25 +27,20 @@
  *******************************************************************************/
 package prerna.reactor.insights.fs;
 
-import java.util.List;
-
-import org.json.JSONObject;
-
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.FileSystemUtil;
-import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 
 public class RenameInsightAssetReactor extends AbstractReactor {
 
 	public RenameInsightAssetReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey(),
-				ReactorKeysEnum.OVERRIDE.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey() };
+		this.keyRequired = new int[] { 1, 1 };
 
 //		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(),
 //				ReactorKeysEnum.NEW_VALUE.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
@@ -55,6 +50,12 @@ public class RenameInsightAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		String currentFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		String newFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
@@ -70,8 +71,7 @@ public class RenameInsightAssetReactor extends AbstractReactor {
 //			comment = "rename: Renaming " + currentFileName + " to " + newFileName;
 //		}
 
-		SavedAsset savedAsset = FileSystemUtil.renameAsset(assetFolder, currentFileName, newFileName,
-				getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false));
+		FileSystemUtil.renameAsset(assetFolder, currentFileName, newFileName);
 
 		// handle pushing to git and the cloud
 
@@ -98,26 +98,25 @@ public class RenameInsightAssetReactor extends AbstractReactor {
 			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
-		return FileSystemUtil.savedAssetsAsNounMetadata(List.of(savedAsset));
+		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
+		return retNoun;
 	}
 
 	@Override
-	public JSONObject getMcpProperties() {
-		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
-		return properties;
+	public String getReactorDescription() {
+		return "Rename a file or directory in the insight assets folder";
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Rename a file or directory in the insight assets folder").key(
-				ReactorKeysEnum.FILE_PATH,
-				"Names of the file(s) to save. This relative path should assume the prefix of the insight folder.")
-				.key(ReactorKeysEnum.NEW_VALUE,
-						"The new path for the file or directory, with the same character restrictions you would expect on a typical file system. When something already exists there, override decides whether it is replaced or the entry gets the next copy number.")
-				.key(ReactorKeysEnum.OVERRIDE,
-						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_KEEP_DESCRIPTION))
-				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "Names of the file(s) to save. This relative path should assume the prefix of the insight folder.";
+		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
+			return "The new name for the file or directory. This cannot be an name for an existing file or directory and has the same character restrictions you would expect on typical file system.";
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while saving the files within the git repository for the insight";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

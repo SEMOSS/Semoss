@@ -50,16 +50,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
-import prerna.security.SensitiveKeys;
 
 /**
- * DIHelper holds the RDF_Map settings, the smss paths and ids of the engines
- * and projects a server has registered, and the values the desktop tools keep
- * in memory. Only {@code prerna.util} reaches it directly; every other caller
- * goes through {@link Utility#getDIHelperProperty(String)} or
- * {@link InternalUtility}.
+ * DIHelper is used throughout SEMOSS to obtain property names from core
+ * propfiles and engine core propfiles.
  */
-final class DIHelper {
+public final class DIHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(DIHelper.class);
 
@@ -78,12 +74,6 @@ final class DIHelper {
 			"AZURE_TENANT_ID",
 			"VAULT_ADDR",
 			"VAULT_TOKEN",
-			"AWS_SECRETS_MANAGER_REGION",
-			"AWS_SECRETS_MANAGER_ENDPOINT",
-			"AWS_SECRETS_MANAGER_ACCESS_KEY",
-			"AWS_SECRETS_MANAGER_SECRET_KEY",
-			"AWS_SECRETS_MANAGER_SESSION_TOKEN",
-			"AWS_SECRETS_MANAGER_KMS_KEY_ID",
 			"PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD"
 		);
 	// @formatter:on
@@ -516,15 +506,28 @@ final class DIHelper {
 	 */
 	public void loadCoreProp(String fileName) {
 		this.rdfMapFileLocation = fileName;
-		coreProp = new Properties();
-		try (FileInputStream fileIn = new FileInputStream(Utility.normalizePath(fileName))) {
+		FileInputStream fileIn = null;
+		try {
+			coreProp = new Properties();
+			fileIn = new FileInputStream(Utility.normalizePath(fileName));
 			coreProp.load(fileIn);
 			coreProp.put(Constants.DIHELPER_PROP_FILE_LOCATION, fileName);
 		} catch (FileNotFoundException e) {
 			classLogger.error("Failed to load DIHelper core properties file '{}'. File was not found.", fileName, e);
 		} catch (IOException e) {
 			classLogger.error("Failed to read DIHelper core properties file '{}'.", fileName, e);
+		} finally {
+			try {
+				if (fileIn != null) {
+					fileIn.close();
+				}
+			} catch (IOException e) {
+				classLogger.error("Failed to close input stream for DIHelper core properties file '{}'.", fileName, e);
+			}
 		}
+
+		PlaySheetRDFMapBasedEnum.getInstance()
+				.setData(((String) coreProp.get(Constants.PLAYSHEETS_DEFINED) + "").split(";"), coreProp);
 	}
 
 	public void reload() {
@@ -601,13 +604,13 @@ final class DIHelper {
 	}
 
 	/**
-	 * Whether an RDF_Map value is hidden in the RDF_Map editor: the secret keys
-	 * every setting shares, plus the RDF_Map settings listed here.
-	 *
-	 * @param key the RDF_Map key
-	 * @return true when the value is masked
+	 * 
+	 * @param key
+	 * @return
 	 */
-	static boolean containsSensitiveKey(String key) {
-		return SENSITIVE_KEYWORDS.contains(key.toUpperCase()) || SensitiveKeys.isSensitiveKey(key);
+	private static boolean containsSensitiveKey(String key) {
+		String upperKey = key.toUpperCase();
+		// Skip if it contains the excluded keyword
+		return SENSITIVE_KEYWORDS.contains(upperKey);
 	}
 }

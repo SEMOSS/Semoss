@@ -44,7 +44,6 @@ import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
-import prerna.security.SessionIds;
 import prerna.tcp.client.SocketClient;
 
 /**
@@ -153,7 +152,7 @@ public final class AgentCodeExecutionContext {
 	}
 
 	private static String toInsightId(String sessionId, String roomId) {
-		return ROOM_PREFIX + SessionIds.hash(sessionId) + ":" + roomId.trim();
+		return ROOM_PREFIX + sessionId + ":" + roomId.trim();
 	}
 
 	private static ReentrantLock getLock(Insight insight) {

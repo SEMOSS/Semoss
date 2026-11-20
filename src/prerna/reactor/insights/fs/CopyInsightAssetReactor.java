@@ -27,30 +27,36 @@
  *******************************************************************************/
 package prerna.reactor.insights.fs;
 
-import java.util.List;
-
 import org.json.JSONObject;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.FileSystemUtil;
-import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 
 public class CopyInsightAssetReactor extends AbstractReactor {
 
+	private static final String OVERRIDE = ReactorKeysEnum.OVERRIDE.getKey();
+
 	public CopyInsightAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey(),
-				ReactorKeysEnum.OVERRIDE.getKey() };
+				OVERRIDE };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+
+		User user = this.insight.getUser();
+		// check if user is logged in
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		String sourceFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
 		String destFileName = Utility.normalizePath(this.keyValue.get(this.keysToGet[1]));
@@ -62,35 +68,48 @@ public class CopyInsightAssetReactor extends AbstractReactor {
 
 		String assetFolder = this.insight.getInsightFolder();
 
-		boolean override = getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false);
-		SavedAsset savedAsset = FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
+		boolean override = getBoolean(OVERRIDE, false);
+		FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
 
 		// push room to cloud storage
 		if (this.insight.getRoomId() != null) {
 			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
-		return FileSystemUtil.savedAssetsAsNounMetadata(List.of(savedAsset));
+		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
+		return retNoun;
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Copy (clone) a file or directory in the insight assets folder to a new path")
-				.key(ReactorKeysEnum.FILE_PATH,
-						"The source file or directory to copy. This relative path should assume the prefix of the insight folder.")
-				.key(ReactorKeysEnum.NEW_VALUE,
-						"The destination path for the copy, with the same character restrictions you would expect on a typical file system. When something already exists there, override decides whether it is replaced or the copy is written beside it under the next copy number.")
-				.key(ReactorKeysEnum.OVERRIDE,
-						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_KEEP_DESCRIPTION))
-				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
+	public String getReactorDescription() {
+		return "Copy (clone) a file or directory in the insight assets folder to a new path";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "The source file or directory to copy. This relative path should assume the prefix of the insight folder.";
+		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
+			return "The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.";
+		} else if (key.equals(OVERRIDE)) {
+			return "Whether to delete an existing file or directory at the destination before copying. Defaults to false.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 	@Override
 	public JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
+		properties.getJSONObject(OVERRIDE).put("default", false);
 		return properties;
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (key.equals(OVERRIDE)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 }

@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -93,11 +92,19 @@ public class ServiceNowCreateRecordReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Creates a new record in a ServiceNow table via OAuth authentication.")
-				.key(ReactorKeysEnum.TABLE, "Required ServiceNow table name where the record will be created.")
-				.key(INSTANCE_URL, "Required URL of the ServiceNow user's instance.").key(ReactorKeysEnum.MAP,
-						"Required map of field-value pairs representing the record to create in the table.");
+	public String getReactorDescription() {
+		return "Creates a new record in a ServiceNow table via OAuth authentication.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.TABLE.getKey())) {
+			return "Required ServiceNow table name where the record will be created.";
+		} else if (key.equals(INSTANCE_URL)) {
+			return "Required URL of the ServiceNow user's instance.";
+		} else if (key.equals(ReactorKeysEnum.MAP.getKey())) {
+			return "Required map of field-value pairs representing the record to create in the table.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

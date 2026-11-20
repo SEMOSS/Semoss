@@ -40,14 +40,15 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.ModelServingProvider;
+import prerna.util.DIHelper;
 import prerna.util.StaticBuiltinToolsCatalog;
 import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.Utility;
@@ -69,6 +70,12 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 	 * Digits end the qualifiers so version dots ("gpt-5.4") are left alone.
 	 */
 	private static final Pattern QUALIFIER_PREFIX_PATTERN = Pattern.compile("^([a-z][a-z-]*)\\.(?=.)");
+
+	/**
+	 * The SMSS variable some engines use to name who actually hosts the model, as
+	 * in the Anthropic-on-Vertex engines. There is no shared constant for it.
+	 */
+	private static final String SMSS_PROVIDER = "PROVIDER";
 
 	static final String SERVING_PROVIDER_KEY = "servingProvider";
 	static final String MODEL_PROVIDER_KEY = "modelProvider";
@@ -94,6 +101,7 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 		Properties smssProp = null;
 		if (engineId != null) {
 			User user = this.insight.getUser();
+			engineId = SecurityQueryUtils.testUserEngineIdForAlias(user, engineId);
 			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
 				throw new IllegalArgumentException(
 						"Model engine does not exist or user does not have access to view it");
@@ -102,7 +110,7 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 				throw new IllegalArgumentException("Engine is not a model engine");
 			}
 			metadata = SecurityModelMetadataUtils.getModelMetadata(engineId);
-			smssProp = ModelServingProvider.loadSmssProperties(engineId);
+			smssProp = loadSmssProperties(engineId);
 		} else if (servingProviderInput == null && modelProviderInput == null && modelIdInput == null) {
 			throw new IllegalArgumentException(
 					"Must input a model engine id, or a serving provider, model provider, or model id");
@@ -111,7 +119,7 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 		String modelId = modelIdInput != null ? modelIdInput : resolveModelId(metadata, smssProp);
 		String servingProvider = servingProviderInput != null
 				? StaticBuiltinToolsCatalog.normalizeProviderKey(servingProviderInput)
-				: ModelServingProvider.resolve(metadata, smssProp);
+				: resolveServingProvider(metadata, smssProp);
 		String modelProvider = modelProviderInput != null
 				? StaticBuiltinToolsCatalog.normalizeProviderKey(modelProviderInput)
 				: resolveModelProvider(metadata, modelId);
@@ -143,6 +151,26 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 			modelId = ValueUtils.trimToNull(smssProp.getProperty(Constants.MODEL));
 		}
 		return modelId;
+	}
+
+	/**
+	 * Who hosts the model, as a lowercase catalog key. The saved metadata wins when
+	 * set; otherwise the smss PROVIDER variable, then the engine's smss MODEL_TYPE,
+	 * which names the client implementation and so tracks the host.
+	 */
+	private static String resolveServingProvider(Map<String, Object> metadata, Properties smssProp) {
+		String servingProvider = metadata == null ? null
+				: StaticBuiltinToolsCatalog
+						.normalizeProviderKey(ValueUtils.trimToNull(metadata.get("servingProvider")));
+		if (servingProvider == null && smssProp != null) {
+			servingProvider = StaticBuiltinToolsCatalog
+					.normalizeProviderKey(ValueUtils.trimToNull(smssProp.getProperty(SMSS_PROVIDER)));
+		}
+		if (servingProvider == null && smssProp != null) {
+			servingProvider = StaticBuiltinToolsCatalog
+					.normalizeProviderKey(ValueUtils.trimToNull(smssProp.getProperty(IModelEngine.MODEL_TYPE)));
+		}
+		return servingProvider;
 	}
 
 	/**
@@ -193,17 +221,42 @@ public class GetModelBuiltinToolsReactor extends AbstractReactor {
 		return qualifier;
 	}
 
+	/**
+	 * The engine's smss properties, or null when they cannot be read - the saved
+	 * metadata row still drives the lookup in that case.
+	 */
+	private static Properties loadSmssProperties(String engineId) {
+		Object smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+		if (smssFile == null) {
+			return null;
+		}
+		try {
+			return Utility.loadProperties(smssFile.toString());
+		} catch (Exception e) {
+			classLogger.warn("Unable to read the smss file for engine {}", engineId, e);
+			return null;
+		}
+	}
+
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Returns the provider-hosted built-in tools available to a model from meta/builtin-tools.json, resolved by serving provider and model provider. Pass an existing engine to resolve both from it (alongside its saved tool selection), or pass the providers and model id directly when the engine does not exist yet")
-				.key(ReactorKeysEnum.ENGINE,
-						"The id or name of an existing model engine; optional when the providers are passed directly")
-				.key(SERVING_PROVIDER_KEY,
-						"Who hosts the model (openai, anthropic, google, bedrock, azure); the SMSS MODEL_TYPE values are also accepted")
-				.key(MODEL_PROVIDER_KEY,
-						"Who made the model (openai, anthropic, google); inferred from the model id when omitted")
-				.key(MODEL_ID_KEY,
-						"The provider model id, used to infer the model provider and evaluate per-tool model constraints");
+	public String getReactorDescription() {
+		return "Returns the provider-hosted built-in tools available to a model from meta/builtin-tools.json, resolved by serving provider and model provider. Pass an existing engine to resolve both from it (alongside its saved tool selection), or pass the providers and model id directly when the engine does not exist yet";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The id or name of an existing model engine; optional when the providers are passed directly";
+		}
+		if (key.equals(SERVING_PROVIDER_KEY)) {
+			return "Who hosts the model (openai, anthropic, google, bedrock, azure); the SMSS MODEL_TYPE values are also accepted";
+		}
+		if (key.equals(MODEL_PROVIDER_KEY)) {
+			return "Who made the model (openai, anthropic, google); inferred from the model id when omitted";
+		}
+		if (key.equals(MODEL_ID_KEY)) {
+			return "The provider model id, used to infer the model provider and evaluate per-tool model constraints";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

@@ -38,8 +38,7 @@ import prerna.util.sql.RdbmsTypeEnum;
 public class CreateNewRdbmsExternalDatabaseReactor extends CreateNewRdbmsDatabaseReactor {
 
 	public CreateNewRdbmsExternalDatabaseReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_DETAILS.getKey(),
-				UploadInputUtility.CATALOG_NAME + "," + UploadInputUtility.DATABASE,
+		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_DETAILS.getKey(), UploadInputUtility.DATABASE,
 				UploadInputUtility.METAMODEL_ADDITIONS };
 	}
 

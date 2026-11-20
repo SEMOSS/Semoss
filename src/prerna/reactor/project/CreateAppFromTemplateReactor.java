@@ -52,13 +52,10 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -80,8 +77,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 	 */
 
 	public CreateAppFromTemplateReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.PROJECT.getKey(),
-				ReactorKeysEnum.PROJECT_TEMPLATE.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TEMPLATE.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
 
@@ -90,8 +86,8 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		Logger logger = getLogger(CLASS_NAME);
 
 		organizeKeys();
-		int index = 1;
-		String newProjectName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
+		int index = 0;
+		String newProjectName = this.keyValue.get(this.keysToGet[index++]);
 		String projectTemplateId = this.keyValue.get(this.keysToGet[index++]);
 		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]) + "");
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
@@ -109,11 +105,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 		// Use the template to populate the parameters needed to create the new project
 		IProject.PROJECT_TYPE projectEnumType = templateProject.getProjectType();
 		if (!SecurityProjectUtils.userCanCloneProject(this.insight.getUser(), projectTemplateId)) {
-			throw new IllegalArgumentException("This project is not a template, so only its owners can clone it.");
-		}
-		if (SecurityProjectUtils.isDigitalTwin(projectTemplateId)) {
-			// the clone would be an ordinary project holding every file of the twin
-			throw new IllegalArgumentException("A Digital Twin cannot be cloned.");
+			throw new IllegalArgumentException("This project is not enabled as a template and cannot be cloned.");
 		}
 
 		// Create new project
@@ -223,7 +215,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 				if (!clonedTags.isEmpty()) {
 					Map<String, Object> tagUpdate = new HashMap<>();
 					tagUpdate.put("tag", clonedTags);
-					SecurityProjectUtils.updateProjectMetadata(user, newProjectId, tagUpdate);
+					SecurityProjectUtils.updateProjectMetadata(newProjectId, tagUpdate);
 				}
 			} catch (Exception e) {
 				classLogger.error(
@@ -242,23 +234,21 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				newProject.getProjectId());
-		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), AuditEventType.PROJECT_CREATE,
-				newProject.getProjectId(), newProjectName,
-				Map.of("projectType", projectEnumType.name(), "global", global, "creationMethod", "TEMPLATE"));
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Creates a new project with the given name as a copy of a template project the user can clone, copying its asset files and image and, for a workspace, its configuration, resources and tags. Returns the new project's details.")
-				.key(ReactorKeysEnum.GLOBAL, key -> key.type(Boolean.class))
-				.key(ReactorKeysEnum.CATALOG_NAME,
-						"The name for this project. Note: the project ID is randomly generated and is not passed into this method")
-				.key("projectTemplate", "The id of the existing project that is serving as the template for the copy")
-				.key(ReactorKeysEnum.PROVIDER,
-						"The GIT provider - user must be logged in with this provider for credentials")
-				.key(ReactorKeysEnum.URL, "The GIT repository URL to clone for this project");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The name for this project. Note: the project ID is randomly generated and is not passed into this method";
+		} else if (key.equals("projectTemplate")) {
+			return "The id of the existing project that is serving as the template for the copy";
+		} else if (key.equals(ReactorKeysEnum.PROVIDER.getKey())) {
+			return "The GIT provider - user must be logged in with this provider for credentials";
+		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
+			return "The GIT repository URL to clone for this project";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

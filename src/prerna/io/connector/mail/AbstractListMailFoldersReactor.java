@@ -95,8 +95,7 @@ public abstract class AbstractListMailFoldersReactor extends AbstractMailReactor
 	@Override
 	protected final String describe() {
 		return "List the folders the signed in user's own " + mailbox()
-				+ " files mail in, which in Gmail are its labels. Folders nested inside others are included, each"
-				+ " right after the one it sits in, with its parentId, its path from the top of the mailbox, and its depth.";
+				+ " files mail in, which in Gmail are its labels.";
 	}
 
 	@Override

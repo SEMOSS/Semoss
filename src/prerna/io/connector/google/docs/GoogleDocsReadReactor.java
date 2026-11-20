@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -73,9 +72,16 @@ public class GoogleDocsReadReactor extends AbstractGoogleReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Read a Google Docs document by ID.").key(ReactorKeysEnum.ID,
-				"Unique identifier of the Google Docs document to read (" + ReactorKeysEnum.ID.getKey() + ").");
+	public String getReactorDescription() {
+		return "Read a Google Docs document by ID.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ID.getKey())) {
+			return "Unique identifier of the Google Docs document to read (" + ReactorKeysEnum.ID.getKey() + ").";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

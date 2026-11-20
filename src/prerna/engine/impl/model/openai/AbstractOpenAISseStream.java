@@ -32,7 +32,6 @@ import java.io.Writer;
 import java.util.List;
 import java.util.Map;
 
-import prerna.engine.impl.model.ModelPixelInvoker;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.sablecc2.comm.PixelJobStatus;
@@ -69,22 +68,6 @@ public abstract class AbstractOpenAISseStream implements IOpenAISseStream {
 		this.engineId = engineId;
 		this.jobId = jobId;
 		this.creationTimestamp = creationTimestamp;
-	}
-
-	/** Drain this stream for an HTTP caller, releasing the job even on disconnect. */
-	public void streamToWriter(Writer writer) throws IOException {
-		try {
-			while (!drain(writer)) {
-				try {
-					Thread.sleep(ModelPixelInvoker.STREAM_POLL_INTERVAL_MS);
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					break;
-				}
-			}
-		} finally {
-			close();
-		}
 	}
 
 	@Override

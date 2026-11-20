@@ -43,7 +43,6 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -190,9 +189,8 @@ public class GeneratePlaywrightAutomationGoalReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Generates one editable browser-automation goal from up to 20 recent visible Playground messages before "
-						+ "any browser actions are executed.");
+	public String getReactorDescription() {
+		return "Generates one editable browser-automation goal from up to 20 recent visible Playground messages before "
+				+ "any browser actions are executed.";
 	}
 }

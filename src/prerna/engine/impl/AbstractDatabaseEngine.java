@@ -52,6 +52,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.owl.OWLEngineFactory;
+import prerna.engine.impl.rdbms.AuditDatabase;
 import prerna.engine.impl.rdf.RDFFileSesameEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.SparqlInterpreter;
@@ -62,7 +63,6 @@ import prerna.ui.components.RDFEngineHelper;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
-import prerna.util.InternalUtility;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -104,6 +104,11 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 
 	private Hashtable<String, String> baseDataHash;
 
+	/**
+	 * This is used for tracking audit modifications
+	 */
+	private AuditDatabase auditDatabase = null;
+
 	protected ZoneId databaseZoneId;
 
 	/**
@@ -125,14 +130,6 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		// the field holds the SMSS value of KEEP_INPUT_OUTPUT, which a database does
-		// not follow (see keepInputOutput)
-		if (!this.keepInputOutput && keepInputOutput()) {
-			classLogger.warn(
-					"Database {} sets KEEP_INPUT_OUTPUT to false, which only models and vector databases "
-							+ "follow. Its calls keep their SQL in the audit logs.",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId));
-		}
 		// basic would be an insights database for example
 		if (this.isBasic) {
 			// still try to set the db zone id...
@@ -180,7 +177,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			} else {
 				owlFile = owlF.getAbsolutePath();
 				// it exists, just set it
-				classLogger.info("Loading OWL: {}", Utility.cleanLogString(owlFile));
+				classLogger.info("Loading OWL: " + Utility.cleanLogString(owlFile));
 				setOwlFilePath(owlFile);
 			}
 		}
@@ -189,21 +186,21 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		// service
 		boolean externalDatabaseMetadata = Boolean
 				.parseBoolean(Utility.getDIHelperProperty(Constants.EXTERNAL_DATABASE_MANAGEMENT_ENABLED) + "");
-		if (externalDatabaseMetadata && !SystemDefaultEngines.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
+		if (externalDatabaseMetadata
+				&& !SystemDefaultEngines.getDatabasesWithGeneratedOwl().contains(this.engineId)) {
 			try {
 				// store in the OWL
 				// so that the local master can pick up the OWL
 				if (owlPropStr == null || (owlPropStr = owlPropStr.trim()).isEmpty()) {
 					Map<String, String> mods = new HashMap<>();
 					mods.put(Constants.OWL, new File(owlFile).getName());
-					InternalUtility.addKeysAtLocationIntoPropertiesFile(this.smssFilePath, null, mods);
+					Utility.addKeysAtLocationIntoPropertiesFile(this.smssFilePath, null, mods);
 				}
 				ExternalDatabaseMetadataHelper.parseJsonToOwl(this);
 			} catch (Exception e) {
-				classLogger.warn("Could not load metadata externally for {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				classLogger.error("Failed to load the external metadata into the OWL for engine {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				classLogger.warn("Could not load metadata externally for "
+						+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -223,16 +220,13 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			try {
 				this.databaseZoneId = ZoneId.of(dbZoneIdStr);
 			} catch (Exception e) {
-				classLogger.warn("Could not determine the database zone id from string input = {} for engine {}",
-						Utility.cleanLogString(dbZoneIdStr),
-						SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				classLogger.error("Failed to parse the database zone id {} for engine {}",
-						Utility.cleanLogString(dbZoneIdStr),
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				classLogger.warn("Could not determine the database zone id from string input = " + dbZoneIdStr
+						+ " for engine " + SmssUtilities.getUniqueName(this.engineName, this.engineId));
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		} else {
-			classLogger.warn("Please consider adding a default database zone id for engine {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			classLogger.warn("Please consider adding a default database zone id for engine "
+					+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
 		}
 	}
 
@@ -250,11 +244,9 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		maker.makeFlatOwl(getOWLEngineFactory().getWriteOWL(), dataFile, owlFile, getDatabaseType(), true);
 		if (owlFile.equals("REMAKE")) {
 			try {
-				InternalUtility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
+				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
 			} catch (IOException e) {
-				classLogger.error("Failed to save the OWL file name {} in the SMSS file for engine {}",
-						Utility.cleanLogString(owlFileName),
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 		return owlFile;
@@ -265,6 +257,10 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 		if (this.baseDataEngine != null) {
 			classLogger.debug("Closing the owl engine");
 			this.baseDataEngine.close();
+		}
+		if (auditDatabase != null) {
+			classLogger.debug("Closing the audit database engine");
+			auditDatabase.close();
 		}
 	}
 
@@ -340,7 +336,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	 * @param h Hashtable - The base data hash that this is being set to
 	 */
 	public void setBaseHash(Hashtable h) {
-		classLogger.debug("{} Set the Base Data Hash ", this.engineId);
+		classLogger.debug(this.engineId + " Set the Base Data Hash ");
 		this.baseDataHash = h;
 	}
 
@@ -364,8 +360,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			try {
 				this.baseDataEngine.close();
 			} catch (IOException e) {
-				classLogger.error("Failed to close the existing OWL engine for engine {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
 
@@ -388,18 +383,14 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			try {
 				baseHash.putAll(RDFEngineHelper.createBaseFilterHash(baseRelEngine.getRc()));
 			} catch (Exception e) {
-				classLogger.error("Failed to build the base filter hash from the OWL file {} for engine {}",
-						Utility.cleanLogString(this.owlFileLocation),
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 			setBaseHash(baseHash);
 			baseRelEngine.commit();
 			setBaseDataEngine(baseRelEngine);
 		} catch (Exception e) {
 			classLogger.warn("Error occurred loading the OWL file for the database");
-			classLogger.error("Failed to load the OWL file {} for engine {}",
-					Utility.cleanLogString(this.owlFileLocation),
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 	}
 
@@ -461,7 +452,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	 */
 	@Override
 	public void commitOWL() {
-		classLogger.debug("Committing base data engine of {}", this.engineId);
+		classLogger.debug("Committing base data engine of " + this.engineId);
 		this.baseDataEngine.commit();
 	}
 
@@ -477,8 +468,8 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	 */
 	@Override
 	public Object execOntoSelectQuery(String query) {
-		classLogger.debug("Running select query on base data engine of {}", this.engineId);
-		classLogger.debug("Query is {}", Utility.cleanLogString(query));
+		classLogger.debug("Running select query on base data engine of " + this.engineId);
+		classLogger.debug("Query is " + query);
 		return this.baseDataEngine.execQuery(query);
 	}
 
@@ -534,8 +525,7 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			ret = method.invoke(this, params);
 		} catch (SecurityException | NoSuchMethodException | IllegalArgumentException | IllegalAccessException
 				| InvocationTargetException e) {
-			classLogger.error("Failed to run the action {} through the method {} on engine {}", actionType, methodName,
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 		return ret;
 	}
@@ -553,22 +543,30 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	@Override
 	public String getNodeBaseUri() {
 		if (baseUri == null) {
-			try (IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine,
-					GET_BASE_URI_FROM_OWL)) {
+			IRawSelectWrapper wrap = null;
+			try {
+				wrap = WrapperManager.getInstance().getRawWrapper(this.baseDataEngine, GET_BASE_URI_FROM_OWL);
 				if (wrap.hasNext()) {
 					IHeadersDataRow data = wrap.next();
 					baseUri = data.getRawValues()[0] + "";
-					classLogger.info("Got base uri from owl {} for engine {} : {}",
-							Utility.cleanLogString(this.baseUri), getEngineId(), getEngineName());
+					classLogger.info("Got base uri from owl " + Utility.cleanLogString(this.baseUri) + " for engine "
+							+ getEngineId() + " : " + getEngineName());
 				}
 				if (baseUri == null) {
 					baseUri = Constants.CONCEPT_URI;
-					classLogger.info("couldn't get base uri from owl... defaulting to {} for engine {} : {}", baseUri,
-							getEngineId(), getEngineName());
+					classLogger.info("couldn't get base uri from owl... defaulting to " + baseUri + " for engine "
+							+ getEngineId() + " : " + getEngineName());
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to read the base URI from the OWL for engine {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				classLogger.error(Constants.STACKTRACE, e);
+			} finally {
+				if (wrap != null) {
+					try {
+						wrap.close();
+					} catch (IOException e) {
+						classLogger.error(Constants.STACKTRACE, e);
+					}
+				}
 			}
 		}
 
@@ -628,8 +626,9 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 				+ "}"; // END WHERE
 
 		// execute the query and loop through and add it into the QS
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine,
-				getSelectorsInformation)) {
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getSelectorsInformation);
 			// we will keep a set of the concepts such that we know when we need to append a
 			// PRIM_KEY_PLACEHOLDER
 			Set<String> conceptSet = new HashSet<String>();
@@ -655,8 +654,15 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			conceptSet.clear();
 			conceptSet = null;
 		} catch (Exception e) {
-			classLogger.error("Failed to read the concepts and properties from the OWL for engine {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		// query to get all the relationships
@@ -669,8 +675,8 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 				+ "{?toConcept <http://semoss.org/ontologies/Relation/Conceptual> ?toConceptualConcept }" + "}"; // END
 																													// WHERE
 
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine,
-				getRelationshipsInformation)) {
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, getRelationshipsInformation);
 			while (wrapper.hasNext()) {
 				IHeadersDataRow hrow = wrapper.next();
 				Object[] row = hrow.getValues();
@@ -680,8 +686,15 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 			}
 
 		} catch (Exception e) {
-			classLogger.error("Failed to read the relationships from the OWL for engine {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			classLogger.error(Constants.STACKTRACE, e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return qs;
@@ -735,6 +748,22 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	@Override
 	public CaseInsensitiveProperties getOrigSmssProp() {
 		return this.origSmssProp;
+	}
+
+	/**
+	 * Get an audit database for making modifications in a database
+	 */
+	@Override
+	public synchronized AuditDatabase generateAudit() {
+		if (this.auditDatabase == null) {
+			this.auditDatabase = new AuditDatabase();
+			try {
+				this.auditDatabase.init(this, this.engineId, this.engineName);
+			} catch (Exception e) {
+				classLogger.error(Constants.STACKTRACE, e);
+			}
+		}
+		return this.auditDatabase;
 	}
 
 	/*
@@ -878,21 +907,6 @@ public abstract class AbstractDatabaseEngine extends AbstractEngine implements I
 	@Override
 	public ZoneId getDatabaseZoneId() {
 		return this.databaseZoneId;
-	}
-
-	/**
-	 * A database always keeps the input and output of its calls, so the engine
-	 * call's row in the audit logs holds the SQL it ran and its DATABASE_WRITE
-	 * event holds the SQL's hash. KEEP_INPUT_OUTPUT in a database's SMSS is not
-	 * followed: it is for models and vector databases, whose calls carry prompts
-	 * and document text. A vector database built on a database engine overrides
-	 * this to follow it.
-	 *
-	 * @return true
-	 */
-	@Override
-	public boolean keepInputOutput() {
-		return true;
 	}
 
 	@Override

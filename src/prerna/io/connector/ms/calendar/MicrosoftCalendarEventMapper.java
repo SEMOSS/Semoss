@@ -37,8 +37,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.jsoup.Jsoup;
 
@@ -68,15 +66,6 @@ public class MicrosoftCalendarEventMapper {
 	private static final String EMAIL_ADDRESS = "emailAddress";
 	private static final String DISPLAY_NAME = "displayName";
 
-	/** The voice tag a transcript cue opens with, naming who spoke. */
-	private static final Pattern VOICE = Pattern.compile("^<v\\s+([^>]*)>");
-
-	/**
-	 * How long a speaker's turn grows before it carries on in a new line, so that
-	 * no one line is a whole talk and a transcript can be read a page at a time.
-	 */
-	private static final int TURN_CHARS = 1000;
-
 	private MicrosoftCalendarEventMapper() {
 
 	}
@@ -104,72 +93,7 @@ public class MicrosoftCalendarEventMapper {
 				reminder instanceof Number ? ((Number) reminder).intValue() : null, stringList(categories),
 				// a series master is the rule, and an occurrence or an exception is one
 				// sitting of it, so this says whether the event repeats at all
-				event.get("seriesMasterId") != null || "seriesMaster".equals(event.get("type")),
-				// every sitting names its master; the master is its own series
-				"seriesMaster".equals(event.get("type")) ? ValueUtils.toStringOrNull(event.get("id"))
-						: ValueUtils.toStringOrNull(event.get("seriesMasterId")),
-				bodyOf(event));
-	}
-
-	/**
-	 * Turn a meeting transcript into what was said, a line for each turn.
-	 *
-	 * <p>
-	 * Graph returns WebVTT: a cue every few seconds, with its timings and the
-	 * speaker in a voice tag. The timings and the tags are much of its length and
-	 * none of its meaning, so a turn is written as {@code Speaker: words}, and the
-	 * cues that follow from the same speaker carry on in the same line. A
-	 * transcript whose organization keeps the speakers' names back has no voice
-	 * tags, and its cues are written one to a line.
-	 * </p>
-	 *
-	 * @param content the transcript as Graph returned it
-	 * @return what was said, in order
-	 */
-	public static List<String> transcriptLines(String content) {
-		List<String> lines = new ArrayList<>();
-		if (content == null) {
-			return lines;
-		}
-		String speaker = null;
-		StringBuilder turn = null;
-		for (String cue : content.replace("\r", "").split("\n{2,}")) {
-			int timing = cue.indexOf("-->");
-			int words = timing < 0 ? -1 : cue.indexOf('\n', timing);
-			if (words < 0) {
-				// the WEBVTT header, a note, or a cue nobody spoke in
-				continue;
-			}
-			String text = cue.substring(words + 1).replace('\n', ' ').trim();
-			String name = null;
-			Matcher voice = VOICE.matcher(text);
-			if (voice.find()) {
-				name = voice.group(1).trim();
-				text = text.substring(voice.end());
-			}
-			text = text.replace("</v>", "").trim();
-			if (text.isEmpty()) {
-				continue;
-			}
-			if (name != null && name.equals(speaker) && turn.length() < TURN_CHARS) {
-				turn.append(' ').append(text);
-				continue;
-			}
-			if (turn != null) {
-				lines.add(turn.toString());
-			}
-			speaker = name;
-			turn = new StringBuilder(ValueUtils.isBlank(name) ? text : name + ": " + text);
-		}
-		if (turn != null) {
-			lines.add(turn.toString());
-		}
-		if (lines.isEmpty()) {
-			// not WebVTT after all: the words as they came are better than none
-			content.lines().map(String::trim).filter(line -> !line.isEmpty() && !line.startsWith("WEBVTT"))
-					.forEach(lines::add);
-		}
-		return lines;
+				event.get("seriesMasterId") != null || "seriesMaster".equals(event.get("type")), bodyOf(event));
 	}
 
 	/**

@@ -78,4 +78,9 @@ public class SurveyMonkeyTokenFiller extends AbstractOAuthTokenFiller {
 		return false;
 	}
 
+	@Override
+	protected boolean includeState() {
+		return false;
+	}
+
 }

@@ -33,13 +33,11 @@ import java.util.List;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ProjectRReactor extends AbstractReactor {
@@ -50,39 +48,25 @@ public class ProjectRReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
-			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-		}
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_R_TERMINAL))) {
-			throw new IllegalArgumentException("R terminal has been disabled.");
-		}
-		String useR = Utility.getDIHelperProperty(Constants.USE_R);
-		if (useR != null && !Boolean.parseBoolean(useR.trim())) {
-			throw new IllegalArgumentException("R is set to false for this instance");
-		}
-
 		organizeKeys();
 		String projectId = resolveContextEngineId(this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
+
+		String code = this.keyValue.get(ReactorKeysEnum.CODE.getKey());
+
+		// make sure valid id for user
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			// you don't have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
-		IProject project = Utility.getProject(projectId);
 
+		IProject project = Utility.getProject(projectId);
 		TCPRTranslator projectRTranslator = project.getProjectRTranslator();
-		String code = this.keyValue.get(ReactorKeysEnum.CODE.getKey());
 		String output = projectRTranslator.runRAndReturnOutput(code);
 
 		List<NounMetadata> outputs = new ArrayList<>(1);
 		outputs.add(new NounMetadata(output, PixelDataType.CONST_STRING));
 		return new NounMetadata(outputs, PixelDataType.CODE, PixelOperationType.CODE_EXECUTION);
-	}
-
-	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Run R code in the project's dedicated Java worker process")
-				.key(ReactorKeysEnum.CODE, "The R code to run").key(ReactorKeysEnum.PROJECT, "The project id")
-				.output(String.class, "The output of the R code");
 	}
 
 }

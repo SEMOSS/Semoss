@@ -35,7 +35,6 @@ import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -53,8 +52,7 @@ import prerna.util.Utility;
  * read, list, cancel, or resume it.
  *
  * <p>
- * Pixel:
- * {@code RunAutomationDefinition(json=["<json>"], nodeSources=["<json-map>"], inputs=[{...}])}
+ * Pixel: {@code RunAutomationDefinition(json=["<json>"], nodeSources=["<json-map>"], inputs=[{...}])}
  */
 public class RunAutomationDefinitionReactor extends AbstractReactor {
 
@@ -98,8 +96,7 @@ public class RunAutomationDefinitionReactor extends AbstractReactor {
 	 * @param insight      authenticated Insight whose user owns the run
 	 * @param runId        new durable run identifier
 	 * @param automationId logical automation stored in {@code AUTOMATION_ID}
-	 * @param files        definition from
-	 *                     {@link AutomationDefinitionService#fromInline}
+	 * @param files        definition from {@link AutomationDefinitionService#fromInline}
 	 * @param inputs       optional values overriding trigger globals
 	 * @param triggerType  MANUAL (default), PLAYGROUND, or SCHEDULED
 	 * @param streamJobId  live Pixel job that receives progress, or {@code null}
@@ -123,9 +120,7 @@ public class RunAutomationDefinitionReactor extends AbstractReactor {
 		AutomationRunRegistry.requestCancellation(runId);
 	}
 
-	/**
-	 * Applies the same global switches as {@code Py()} to caller-written Python.
-	 */
+	/** Applies the same global switches as {@code Py()} to caller-written Python. */
 	private static void requireUserPythonEnabled() {
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
 			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
@@ -154,16 +149,25 @@ public class RunAutomationDefinitionReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Runs inline automation definition JSON as the caller, without an Automation project.")
-				.key(ReactorKeysEnum.JSON, "Raw or Base64-encoded workflow graph JSON, such as a GetAutomation export.")
-				.key(NODE_SOURCES_KEY,
-						"Optional raw or Base64-encoded JSON object: { nodeId: Python source }. Only developer.python "
-								+ "nodes accept source; when omitted, the nodeSources embedded in json are used.")
-				.key(AutomationConstants.AUTOMATION_INPUTS_KEY,
-						"Optional values overriding trigger globals; date, triggered_at, and run_id are runtime-owned.")
-				.key(AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY,
-						"Optional trigger source: MANUAL (default), PLAYGROUND, or SCHEDULED.");
+	public String getReactorDescription() {
+		return "Runs inline automation definition JSON as the caller, without an Automation project.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.JSON.getKey().equals(key)) {
+			return "Raw or Base64-encoded workflow graph JSON, such as a GetAutomation export.";
+		}
+		if (NODE_SOURCES_KEY.equals(key)) {
+			return "Optional raw or Base64-encoded JSON object: { nodeId: Python source }. Only developer.python "
+					+ "nodes accept source; when omitted, the nodeSources embedded in json are used.";
+		}
+		if (AutomationConstants.AUTOMATION_INPUTS_KEY.equals(key)) {
+			return "Optional values overriding trigger globals; date, triggered_at, and run_id are runtime-owned.";
+		}
+		if (AutomationConstants.AUTOMATION_TRIGGER_TYPE_KEY.equals(key)) {
+			return "Optional trigger source: MANUAL (default), PLAYGROUND, or SCHEDULED.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

@@ -31,7 +31,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.ds.r.RDataTable;
 import prerna.ds.r.RSyntaxHelper;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -69,7 +68,7 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 		NounMetadata noun = new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE,
 				PixelOperationType.FRAME_HEADERS_CHANGE);
 		if (getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), true)) {
-			this.insight.setCurrentFrame(newTable);
+			this.insight.setDataMaker(newTable);
 		}
 		// add the alias as a noun by default
 		if (varName != null && !varName.isEmpty()) {
@@ -80,13 +79,12 @@ public class GenerateFrameFromRVariableReactor extends AbstractRFrameReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Turns an R variable into a frame of the insight: it converts the variable to a data.table, cleans its column names and stores the frame under the variable's name. By default it also becomes the insight's current frame.")
-				.key(ReactorKeysEnum.OVERRIDE,
-						key -> key.type(Boolean.class).description(
-								"Whether the new frame becomes the insight's current frame (default true)."))
-				.key(ReactorKeysEnum.VARIABLE, "Name of the r variable");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.VARIABLE.getKey())) {
+			return "Name of the r variable";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

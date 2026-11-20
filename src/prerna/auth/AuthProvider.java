@@ -48,6 +48,7 @@ import prerna.io.connector.jira.JiraTokenFiller;
 import prerna.io.connector.linkedin.LinkedInTokenFiller;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.okta.OktaTokenFiller;
+import prerna.io.connector.producthunt.ProductHuntTokenFiller;
 import prerna.io.connector.salesforce.SalesforceTokenFiller;
 import prerna.io.connector.servicenow.ServiceNowTokenFiller;
 import prerna.io.connector.siteminder.SiteminderTokenFiller;
@@ -90,6 +91,8 @@ public enum AuthProvider implements Serializable {
 	// these are not used as much ...
 	TWITTER("TWITTER", "Twitter", true, TwitterTokenFiller.class.getName()),
 	DROPBOX("DROPBOX", "Dropbox", true, DropboxTokenFiller.class.getName()),
+	// social.properties prefix / path is "producthunt" (not "product_hunt")
+	PRODUCT_HUNT("PRODUCT_HUNT", "Product Hunt", true, ProductHuntTokenFiller.class.getName(), "producthunt"),
 	LINKEDIN("LINKEDIN", "LinkedIn", true, LinkedInTokenFiller.class.getName()),
 
 	// catch all for other OAuth
@@ -126,7 +129,7 @@ public enum AuthProvider implements Serializable {
 	 * The canonical key used for this provider in the social.properties file (and
 	 * therefore the {@code {socialPrefix}_} property prefix). Usually the
 	 * lower-cased label, but overridden where the config key diverges (e.g.
-	 * Microsoft -&gt; {@code "ms"}).
+	 * Microsoft -&gt; {@code "ms"}, Product Hunt -&gt; {@code "producthunt"}).
 	 *
 	 * @return the social.properties prefix key (no trailing underscore)
 	 */
@@ -226,7 +229,7 @@ public enum AuthProvider implements Serializable {
 		Map<String, AuthProvider> vals = new HashMap<>();
 		for (AuthProvider auth : AuthProvider.values()) {
 			vals.put(auth.name().toLowerCase(Locale.ROOT), auth);
-			// Prefixes also register aliases such as "ms".
+			// Prefixes also register aliases such as "ms" and "producthunt".
 			vals.put(auth.getSocialPrefix(), auth);
 		}
 		return vals;

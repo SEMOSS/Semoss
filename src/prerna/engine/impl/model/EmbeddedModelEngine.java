@@ -35,9 +35,6 @@ import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelTypeEnum;
-import prerna.engine.impl.model.usage.ModelUsageReport;
-import prerna.engine.impl.model.usage.ModelUsageRequest;
-import prerna.engine.impl.model.usage.ModelUsageTicket;
 import prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
@@ -65,23 +62,9 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 	}
 
 	public List<String> keywordExtraction(Object input, Insight insight, Map<String, Object> parameters) {
-		// usage limits: the call reports no tokens, so it counts its compute time;
-		// the input is estimated only when a token or cost rule applies
-		ModelUsageTicket usageTicket = orNoLimits(
-				ModelUsageRestrictionUtility.admit(insight == null ? null : insight.getUser(), this,
-						usageRequestFor(ModelUsageRequest.embeddings(() -> ModelUsageRequest.estimateTokens(input)))));
 		ZonedDateTime inputTime = ZonedDateTime.now();
-		List<String> keywordExtractionResponse;
-		try {
-			keywordExtractionResponse = keywordExtractionCall(input, insight, parameters);
-		} catch (RuntimeException e) {
-			usageTicket.release();
-			throw e;
-		}
+		List<String> keywordExtractionResponse = keywordExtractionCall(input, insight, parameters);
 		ZonedDateTime outputTime = ZonedDateTime.now();
-		Long costMicros = usageTicket
-				.bill(new ModelUsageReport(0, 0, 0, 0, 0, ModelUsageReport.millisBetween(inputTime, outputTime))
-						.asEmbeddings());
 
 		// @formatter:off
 		if (inferenceLogsEnbaled) {
@@ -105,7 +88,7 @@ public class EmbeddedModelEngine extends AbstractPythonModelEngine {
 					/*response*/PyUtils.determineStringType(keywordExtractionResponse),
 					/*responseTokens*/null,
 					/*outputTime*/outputTime
-			).withBilling(usageTicket.billedTo(), costMicros));
+			));
 			inferenceRecorder.start();
 		}
 		// @formatter:on	

@@ -41,14 +41,12 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// A thread workspace's steps (WORK_THREAD_STEP); its goals are its topics' goals, and its facts are Brain memories
+// A thread workspace's steps (WORK_THREAD_STEP); the goal is on BRAIN_THREAD, and its facts are Brain memories
 // linked to the thread (BrainMemoryUtils)
 public final class WorkWorkspaceUtils {
 
 	public static final Set<String> STEP_KINDS = Set.of("reply", "task", "waiting_on", "errand", "approve");
-	// dropped closes a step the owner no longer needs
-	public static final Set<String> STEP_STATUSES = Set.of("open", "waiting", "done", "suggested", "draft_ready",
-			"dropped");
+	public static final Set<String> STEP_STATUSES = Set.of("open", "waiting", "done", "suggested", "draft_ready");
 	// a generated step the owner deleted: kept, unlisted, so a later summary does not add it again
 	static final String DISMISSED = "dismissed";
 	// a step changed in any of these is the owner's: thread insights no longer rewrite or drop it
@@ -203,7 +201,7 @@ public final class WorkWorkspaceUtils {
 		return workspaces.computeIfAbsent(threadId, id -> {
 			Map<String, Object> w = new LinkedHashMap<>();
 			w.put("threadId", id);
-			// always empty: a thread's goals are its topics' goals, and the client still reads the field
+			// thread goals are retired (topic goals replace them); kept empty until the client drops the field
 			w.put("goal", null);
 			w.put("steps", new ArrayList<>());
 			return w;

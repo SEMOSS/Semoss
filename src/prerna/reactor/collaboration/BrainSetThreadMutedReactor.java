@@ -29,7 +29,6 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSetThreadMuted(threadId=["..."], muted=[true]);
@@ -55,8 +54,17 @@ public class BrainSetThreadMutedReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Mutes or unmutes a Brain thread").key(THREAD_ID, "Thread id")
-				.key(MUTED, "true mutes the thread, false unmutes it");
+	public String getReactorDescription() {
+		return "Mutes or unmutes a Brain thread";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		} else if (MUTED.equals(key)) {
+			return "true mutes the thread, false unmutes it";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

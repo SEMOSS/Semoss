@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.engine.api;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.logging.IgnoreEngineLogging;
 
 public interface IEmbeddedRDBMSServerEngine {
@@ -37,6 +36,5 @@ public interface IEmbeddedRDBMSServerEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
 	String getServerUrl();
 }

@@ -42,6 +42,7 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.om.PixelDataType;
@@ -107,14 +108,19 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
 
     @Test
     void testExecuteNoReactorsReturned() {
+        String projectAlias = "test";
         String projectId = "testy";
-        keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
+        keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
         try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+                MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class);
              MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
              ) {
 
             SecurityAdminUtils s = mock(SecurityAdminUtils.class);
             sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+
+            spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
+                    .thenReturn(projectId);
 
             IProject project = mock(IProject.class);
             util.when(() -> Utility.getProject(projectId)).thenReturn(project);
@@ -128,19 +134,26 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
             assertEquals(emptyTreeSet.size(), retValue.size());
             assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
 
+            spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias), times(1));
             util.verify(() -> Utility.getProject(projectId), times(1));
         }
     }
 
     @Test
     void testExecuteOneReactorReturned() throws Exception {
+        String projectAlias = "test";
         String projectId = "testy";
-        keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectId);
+        keyValues.put(ReactorKeysEnum.PROJECT.getKey(), projectAlias);
         try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-             MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class)) {
+             MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
+             MockedStatic<SecurityProjectUtils> spu = Mockito.mockStatic(SecurityProjectUtils.class)) {
 
             SecurityAdminUtils s = mock(SecurityAdminUtils.class);
             sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
+
+
+            spu.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias))
+                    .thenReturn(projectId);
 
             IProject project = mock(IProject.class);
             util.when(() -> Utility.getProject(projectId)).thenReturn(project);
@@ -156,6 +169,7 @@ public class AdminGetProjectAvailableReactorsReactorUnitTests {
             assertEquals("reactor 1", retValue.first());
             assertEquals(PixelDataType.CONST_STRING, nm.getNounType());
 
+            spu.verify(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, projectAlias), times(1));
             util.verify(() -> Utility.getProject(projectId), times(1));
         }
     }

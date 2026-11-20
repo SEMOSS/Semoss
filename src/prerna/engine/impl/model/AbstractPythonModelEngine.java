@@ -29,13 +29,13 @@ package prerna.engine.impl.model;
 
 import java.io.File;
 import java.io.IOException;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -48,7 +48,6 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.SmssUtilities;
-import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
@@ -59,14 +58,9 @@ import prerna.engine.impl.model.responses.BatchStatusResponse;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.MultiModalEmbeddingsModelEngineResponse;
-import prerna.engine.impl.model.usage.ModelUsageLimitException;
-import prerna.engine.impl.model.usage.ModelUsageReport;
-import prerna.engine.impl.model.usage.ModelUsageRequest;
-import prerna.engine.impl.model.usage.ModelUsageTicket;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
-import prerna.om.ThreadStore;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
 import prerna.util.Settings;
@@ -90,7 +84,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	protected PyTranslator pyTranslator = null;
 	protected File cacheFolder;
-	private final ClientProcessWrapper cpw = new ClientProcessWrapper();
+	private ClientProcessWrapper cpw = null;
+	private final ReentrantLock startServerLock = new ReentrantLock();
 
 	protected String varName = null;
 
@@ -147,86 +142,116 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	/**
-	 * Starts the python process linked to this model engine, runs its init commands
-	 * and sends it the process prefix. Called through
-	 * {@link ClientProcessWrapper#getOrStartSocketClient(Runnable)}, which holds
-	 * the wrapper's create lock, when the process is not running.
+	 * This method is responsible for starting the python process that is linked to
+	 * this model engine.
 	 * 
 	 * @param port The port number to use when creating the server/client
 	 *             connection.
 	 */
 	protected void startServer(int port) {
-		if (this.workingDirectoryBasePath == null) {
-			this.createCacheFolder();
-		}
+		this.startServerLock.lock();
+		try {
+			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+				return;
+			}
+			if (this.workingDirectoryBasePath == null) {
+				this.createCacheFolder();
+			}
 
-		String timeout = "30";
-		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
-		boolean debug = false;
+			// check if we have already created a process wrapper
+			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+			if (this.cpw != null) {
+				this.cpw.shutdown(false);
+			}
 
-		// pull the relevant values from the smss
-		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
-		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+			String timeout = "30";
+			if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+				timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+			}
+			if (cpwToInit.getSocketClient() == null) {
+				boolean debug = false;
 
-		if (port < 0) {
-			// port has not been forced
-			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+				// pull the relevant values from the smss
+				String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+				String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+				String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
+				String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+				String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+
+				if (port < 0) {
+					// port has not been forced
+					if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+						try {
+							port = Integer.parseInt(forcePort);
+							debug = true;
+						} catch (NumberFormatException e) {
+							// ignore
+							classLogger.warn("Model {} has an invalid FORCE_PORT value",
+									SmssUtilities.getUniqueName(this.engineName, this.engineId));
+						}
+					}
+				}
+
+				String serverDirectory = this.cacheFolder.getAbsolutePath();
+				boolean nativePyServer = true;
 				try {
-					port = Integer.parseInt(forcePort);
-					debug = true;
-				} catch (NumberFormatException e) {
-					// ignore
-					classLogger.warn("Model {} has an invalid FORCE_PORT value",
-							SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					cpwToInit.setEngineOwned(true);
+					cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory,
+							customClassPath, debug, timeout, loggerLevel);
+				} catch (Exception e) {
+					classLogger.error("Failed to create the python process for engine: {}",
+							SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+					throw new IllegalArgumentException("Unable to connect to server for python model engine.");
+				}
+			} else if (!cpwToInit.getSocketClient().isConnected()) {
+				cpwToInit.shutdown(false);
+				try {
+					cpwToInit.reconnect();
+				} catch (Exception e) {
+					classLogger.error("Failed to reconnect to the python process for engine: {}",
+							SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+					throw new IllegalArgumentException("Failed to start TCP Server for Python Model Engine: "
+							+ SmssUtilities.getUniqueName(this.engineName, this.engineId));
 				}
 			}
-		}
 
-		String serverDirectory = this.cacheFolder.getAbsolutePath();
-		boolean nativePyServer = true;
-		try {
-			this.cpw.setEngineOwned(true);
-			this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, debug, timeout,
-					loggerLevel);
-		} catch (Exception e) {
-			classLogger.error("Failed to create the python process for engine: {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-			throw new IllegalArgumentException("Unable to connect to server for python model engine.");
-		}
+			// create the py translator
+			Insight processInsight = new Insight();
+			InsightStore.getInstance().put(processInsight);
+			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 
-		// create the py translator
-		Insight processInsight = new Insight();
-		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(this.cpw.getSocketClient(), processInsight);
+			try {
+				// execute all the basic commands
+				String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
+				// break the commands seperated by ;
+				String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
+				// replace the Vars
+				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+					commands[commandIndex] = fillVars(commands[commandIndex]);
+				}
+				this.pyTranslator.runEmptyPyNoCancelTrace(commands);
+				// for debugging...
+				classLogger.info("Initializing '{}' python process with commands >>> {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
 
-		try {
-			// execute all the basic commands
-			String initCommands = this.smssProp.getProperty(Constants.INIT_MODEL_ENGINE);
-			// break the commands seperated by ;
-			String[] commands = initCommands.split(PyUtils.PY_COMMAND_SEPARATOR);
-			// replace the Vars
-			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-				commands[commandIndex] = fillVars(commands[commandIndex]);
+				// run a prefix command
+				setPrefix(cpwToInit);
+
+				// finally set the cpw in the class
+				this.cpw = cpwToInit;
+			} catch (Exception e) {
+				classLogger.error("Failed to  to the python process for engine: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				if (cpwToInit != null) {
+					classLogger.warn(
+							"Able to start the python process for the python model engine {} but the start script failed",
+							SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					cpwToInit.shutdown(false);
+				}
+				throw e;
 			}
-			this.pyTranslator.runEmptyPyNoCancelTrace(commands);
-			// for debugging...
-			classLogger.info("Initializing '{}' python process with commands >>> {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
-
-			// run a prefix command
-			setPrefix();
-		} catch (Exception e) {
-			classLogger.error("Failed to initialize the python process for engine: {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-			classLogger.warn(
-					"Able to start the python process for the python model engine {} but the start script failed",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId));
-			this.cpw.shutdown(false);
-			throw e;
+		} finally {
+			this.startServerLock.unlock();
 		}
 	}
 
@@ -248,10 +273,10 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	/**
-	 * Documents can reach the Python client for text extraction even when the model
-	 * does not accept them natively. Python rejects unsupported formats or failed
-	 * conversions before calling the provider. FILE is treated as broad native
-	 * document support, including PDF. Other media keep their usual gate.
+	 * Documents can reach the Python client for text extraction even when the
+	 * model does not accept them natively. Python rejects unsupported formats or
+	 * failed conversions before calling the provider. FILE is treated as broad
+	 * native document support, including PDF. Other media keep their usual gate.
 	 */
 	@Override
 	protected void requireInputModalityAllowed(ModelModalityEnum modality) {
@@ -265,16 +290,17 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	/**
-	 * Carry the selected engine's capabilities to Python without persisting them in
-	 * conversation history or requiring an init-script argument. The shared message
-	 * builder consumes this internal parameter before building API params.
+	 * Carry the selected engine's capabilities to Python without persisting them
+	 * in conversation history or requiring an init-script argument. The shared
+	 * message builder consumes this internal parameter before building API params.
 	 * Caller-supplied values never override engine metadata (including in routers).
 	 */
 	private Map<String, Object> withInputModalities(Map<String, Object> parameters) {
 		Map<String, Object> prepared = parameters == null ? new HashMap<>() : new HashMap<>(parameters);
 		prepared.remove(INPUT_MODALITIES_PARAM);
 		if (supportsDocumentInputProcessing() && this.inputModalities != null) {
-			prepared.put(INPUT_MODALITIES_PARAM, this.inputModalities.stream().map(Enum::name).sorted().toList());
+			prepared.put(INPUT_MODALITIES_PARAM,
+					this.inputModalities.stream().map(Enum::name).sorted().toList());
 		}
 		return prepared;
 	}
@@ -283,18 +309,20 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	 * This method checks whether the socket client is instantiated and connected.
 	 */
 	protected void checkSocketStatus() {
-		this.cpw.getOrStartSocketClient(() -> startServer(-1));
+		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			this.startServer(-1);
+		}
 	}
 
 	/**
 	 * 
 	 */
-	private void setPrefix() {
-		this.prefix = this.cpw.getPrefix();
+	private void setPrefix(ClientProcessWrapper cpwToInit) {
+		this.prefix = cpwToInit.getPrefix();
 		PayloadStruct prefixPayload = new PayloadStruct();
 		prefixPayload.payload = new String[] { "prefix", this.prefix };
 		prefixPayload.operation = PayloadStruct.OPERATION.CMD;
-		this.cpw.getSocketClient().executeCommand(prefixPayload);
+		cpwToInit.getSocketClient().executeCommand(prefixPayload);
 	}
 
 	@Override
@@ -345,19 +373,14 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 		callMaker.append(")");
 
-		classLogger.debug("Running model ask for {}", this.engineId);
+		classLogger.debug("Running model command {}", callMaker.toString());
 
 		Object output = pyTranslator.runDirectPyNoCancelTrace(insight, callMaker.toString());
-		// the client refused the call before the provider saw it: it does not fit in
-		// what is left of the usage limit
-		if (ModelUsageTicket.callDoesNotFit(output)) {
-			throw ModelUsageLimitException.doesNotFit(ModelUsageTicket.doesNotFitMessage(output));
-		}
 		AskModelEngineResponse response = null;
 		try {
 			response = AskModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			classLogger.error("Could not create model response object", e);
+			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage());
 		}
 
@@ -396,11 +419,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		callMaker.append(")");
 
 		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-		// the client refused the call because what is embedded does not fit in what is
-		// left of the usage limit
-		if (ModelUsageTicket.callDoesNotFit(output)) {
-			throw ModelUsageLimitException.doesNotFit(ModelUsageTicket.doesNotFitMessage(output));
-		}
 		EmbeddingsModelEngineResponse response = null;
 		try {
 			response = EmbeddingsModelEngineResponse.fromObject(output);
@@ -433,84 +451,38 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 			requireInputModalityAllowed(ModelModalityEnum.VIDEO);
 		}
 
-		// usage limits: images and videos count as an image's worth of tokens each,
-		// and the call is fitted in its usage_ceiling like embeddings
-		List<String> texts = text;
-		long mediaCount = image.size() + video.size();
-		Map<String, Object> callParameters = parameters == null ? null : new HashMap<>(parameters);
-		Object passedOnCeiling = ModelUsageRestrictionUtility.takeUsageCeiling(callParameters);
-		ModelUsageTicket usageTicket = orNoLimits(ModelUsageRestrictionUtility
-				.admit(insight == null ? null : insight.getUser(), this, usageRequestFor(ModelUsageRequest.embeddings(
-						() -> ModelUsageRequest.estimateTokens(texts) + mediaCount * ModelUsageRequest.IMAGE_TOKENS))));
-		if (acceptsUsageCeiling()) {
-			callParameters = ModelUsageRestrictionUtility.withUsageCeiling(callParameters, usageTicket,
-					passedOnCeiling);
-		}
-
 		StringBuilder callMaker = new StringBuilder();
 		callMaker.append(varName).append(".multi_modal_embeddings(").append("text = ")
 				.append(PyUtils.determineStringType(text)).append(", image = ")
 				.append(PyUtils.determineStringType(image)).append(", video = ")
 				.append(PyUtils.determineStringType(video));
 
-		if (callParameters != null && !callParameters.isEmpty()) {
-			Iterator<String> paramKeys = callParameters.keySet().iterator();
+		if (parameters != null && !parameters.isEmpty()) {
+			Iterator<String> paramKeys = parameters.keySet().iterator();
 			while (paramKeys.hasNext()) {
 				String key = paramKeys.next();
-				Object value = callParameters.get(key);
+				Object value = parameters.get(key);
 				callMaker.append(",").append(key).append("=").append(PyUtils.determineStringType(value));
 			}
 		}
 
 		callMaker.append(")");
 
-		ZonedDateTime inputTime = ZonedDateTime.now();
-		Object output;
-		try {
-			output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-		} catch (RuntimeException e) {
-			usageTicket.release();
-			throw e;
-		}
-		ZonedDateTime outputTime = ZonedDateTime.now();
-		// the client refused the call because what is embedded does not fit in what is
-		// left of the usage limit
-		if (ModelUsageTicket.callDoesNotFit(output)) {
-			usageTicket.release();
-			throw usageTicket
-					.doesNotFit(ModelUsageLimitException.doesNotFit(ModelUsageTicket.doesNotFitMessage(output)));
-		}
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
 		MultiModalEmbeddingsModelEngineResponse response = null;
 		try {
 			response = MultiModalEmbeddingsModelEngineResponse.fromObject(output);
 		} catch (Exception e) {
-			usageTicket.release();
 			classLogger.error("Could not create response object from output: {}", output, e);
 			throw new IllegalArgumentException(e.getMessage(), e);
 		}
-		Integer promptTokens = response.getNumberOfTokensInPrompt();
-		usageTicket.bill(new ModelUsageReport(promptTokens == null ? 0 : promptTokens, 0, 0, 0, 0,
-				ModelUsageReport.millisBetween(inputTime, outputTime)).asEmbeddings());
 		return response;
-	}
-
-	/**
-	 * The Python clients fit each ask, embeddings and multi-modal embeddings call
-	 * inside its {@code usage_ceiling}.
-	 */
-	@Override
-	protected boolean acceptsUsageCeiling() {
-		return true;
 	}
 
 	// ------------------------------------------------------------------
 	// Batch model calls -- delegate to the Python client (same hop as askCall).
-	// Native batch is gated to OpenAI / Azure OpenAI / Anthropic model types,
-	// plus VERTEX (Anthropic-on-Vertex and Gemini-on-Vertex, both staged
-	// through a GCS storage engine -- see BatchLLMReactor's STORAGE key);
-	// other Python engines inherit these overrides but reject via
-	// supportsBatch(). A future non-batch-capable VERTEX provider would pass
-	// this gate but fail cleanly Python-side via NotImplementedError.
+	// Native batch is gated to OpenAI / Azure OpenAI / Anthropic model types;
+	// other Python engines inherit these overrides but reject via supportsBatch().
 	// ------------------------------------------------------------------
 
 	private static final Gson BATCH_GSON = new Gson();
@@ -518,8 +490,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	@Override
 	public boolean supportsBatch() {
 		ModelTypeEnum type = this.getModelType();
-		return type == ModelTypeEnum.OPEN_AI || type == ModelTypeEnum.AZURE_OPEN_AI || type == ModelTypeEnum.ANTHROPIC
-				|| type == ModelTypeEnum.VERTEX;
+		return type == ModelTypeEnum.OPEN_AI || type == ModelTypeEnum.AZURE_OPEN_AI || type == ModelTypeEnum.ANTHROPIC;
 	}
 
 	private void assertBatchSupported() {
@@ -550,32 +521,19 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	public BatchSubmissionResponse submitBatch(List<Map<String, Object>> requests, Map<String, Object> parameters) {
 		assertBatchSupported();
 		checkSocketStatus();
-		// usage limits: the whole batch's ceiling is reserved when it is submitted,
-		// with each request's output maximum capped so the batch fits in it
-		ModelBatchManager.BatchUsage batchUsage = ModelBatchManager.admitBatch(ThreadStore.getUser(), this, requests);
 		// SEMOSS histories use the same preparation as synchronous asks. Already
 		// assembled provider-native batch bodies retain their existing behavior.
-		List<Map<String, Object>> prepared = batchUsage.requests() == null ? null
-				: batchUsage.requests().stream()
-						.map(request -> request != null && request.containsKey("message_json")
-								? withInputModalities(request)
-								: request)
-						.toList();
+		List<Map<String, Object>> prepared = requests == null ? null : requests.stream()
+				.map(request -> request != null && request.containsKey("message_json")
+						? withInputModalities(request) : request)
+				.toList();
 		String requestsJson = BATCH_GSON.toJson(prepared);
 		StringBuilder callMaker = new StringBuilder(varName + ".submit_batch(");
 		callMaker.append("requests=").append(PyUtils.determineStringType(requestsJson));
 		appendKwargs(callMaker, parameters, true);
 		callMaker.append(")");
-		BatchSubmissionResponse response;
-		try {
-			Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-			response = BatchSubmissionResponse.fromObject(output);
-		} catch (RuntimeException e) {
-			batchUsage.ticket().release();
-			throw e;
-		}
-		ModelBatchManager.holdBatchUsage(this, response.getProviderBatchId(), batchUsage);
-		return response;
+		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
+		return BatchSubmissionResponse.fromObject(output);
 	}
 
 	@Override
@@ -587,10 +545,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		appendKwargs(callMaker, parameters, true);
 		callMaker.append(")");
 		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-		BatchStatusResponse response = BatchStatusResponse.fromObject(output);
-		// a batch that failed before any request ran has nothing to bill
-		ModelBatchManager.releaseFailedBatch(this, providerBatchId, response.getStatus());
-		return response;
+		return BatchStatusResponse.fromObject(output);
 	}
 
 	@Override
@@ -602,10 +557,7 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		appendKwargs(callMaker, parameters, true);
 		callMaker.append(")");
 		Object output = pyTranslator.runDirectPyNoCancelTrace(callMaker.toString());
-		BatchResultsResponse response = BatchResultsResponse.fromObject(output);
-		// a batch is billed as its results come in
-		ModelBatchManager.billBatchResults(ThreadStore.getUser(), this, providerBatchId, response);
-		return response;
+		return BatchResultsResponse.fromObject(output);
 	}
 
 	@Override
@@ -633,7 +585,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	@Override
 	public void close() throws IOException {
-		this.cpw.shutdown(true);
+		if (this.cpw != null) {
+			this.cpw.shutdown(true);
+		}
 	}
 
 	/**
@@ -657,8 +611,6 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	/**
-	 * Fills the {@code ${...}} placeholders in a command of the engine's init
-	 * script with the engine's smss properties.
 	 * 
 	 * @param input
 	 * @return

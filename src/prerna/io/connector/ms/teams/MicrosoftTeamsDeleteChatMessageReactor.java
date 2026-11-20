@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -112,10 +111,8 @@ public class MicrosoftTeamsDeleteChatMessageReactor extends AbstractMicrosoftTea
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Delete a message the signed in user sent in a Microsoft Teams chat.")
-				.key(CHAT_ID, CHAT_ID_DESCRIPTION).key(MESSAGE_ID, MESSAGE_ID_DESCRIPTION);
+	public String getReactorDescription() {
+		return "Delete a message the signed in user sent in a Microsoft Teams chat.";
 	}
 
 	@Override

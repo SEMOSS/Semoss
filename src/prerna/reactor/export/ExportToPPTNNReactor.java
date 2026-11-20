@@ -138,7 +138,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			shapeIndex = Integer.parseInt(keyValue.get(ReactorKeysEnum.SHAPE_INDEX.getKey()));
 		}
 
-		String template = Utility.getDIHelperProperty(EXPORT_TEMPLATE_KEY);
+		String template = insight.getProperty(EXPORT_TEMPLATE_KEY);
 		Map<String, InsightSheet> allSheets = insight.getInsightSheets();
 		Map<String, InsightPanel> allPanels = insight.getInsightPanels();
 

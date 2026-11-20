@@ -143,8 +143,6 @@ public final class BrainReviewUtils {
 		if (action == null || action.isBlank()) {
 			throw new IllegalArgumentException("Resolving a review needs an action");
 		}
-		Map<String, Object> resolved;
-		String status;
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
 			Map<String, Object> review = requireReview(ownerId, ownerType, reviewId);
 			if (!OPEN.equals(review.get("status"))) {
@@ -155,7 +153,8 @@ public final class BrainReviewUtils {
 			if (!actions.contains(action) && !DECISIONS.contains(action)) {
 				throw new IllegalArgumentException("Review action must be one of " + actions + " or " + DECISIONS);
 			}
-			status = DISMISS.equals(action) || action.equals(actions.get(actions.size() - 1)) ? DISMISSED : ACCEPTED;
+			String status = DISMISS.equals(action) || action.equals(actions.get(actions.size() - 1)) ? DISMISSED
+					: ACCEPTED;
 			Map<String, Object> resolution = new LinkedHashMap<>();
 			resolution.put("action", action);
 			if (paramValues != null && !paramValues.isEmpty()) {
@@ -166,15 +165,8 @@ public final class BrainReviewUtils {
 							+ "RESOLUTION_JSON = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?",
 					status, CollaborationDbUtils.now(), actor, CollaborationDbUtils.toJson(resolution), ownerId,
 					ownerType, reviewId);
-			resolved = findReview(ownerId, ownerType, reviewId);
+			return findReview(ownerId, ownerType, reviewId);
 		}
-		// a new topic found in incoming mail: the answer keeps the topic with its conversations, or removes it
-		if (NEW_TOPIC.equals(resolved.get("kind")) && resolved.get("data") instanceof Map<?, ?> data
-				&& data.get("threadIds") instanceof List<?> threads && data.get("candidate") != null) {
-			BrainTopicSuggest.settle(ownerId, ownerType, String.valueOf(data.get("candidate")),
-					threads.stream().map(String::valueOf).toList(), ACCEPTED.equals(status));
-		}
-		return resolved;
 	}
 
 	// undo: the entry goes back to open; the answer it had is returned as undone so

@@ -45,6 +45,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -59,6 +60,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitPushUtils;
@@ -76,6 +78,9 @@ public class DeleteInsightReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		organizeKeys();
 		GenRowStruct projectGrs = this.store.getGenRowStruct(this.keysToGet[0]);
@@ -83,6 +88,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must define the project to delete the insights from");
 		}
 		String projectId = projectGrs.get(0).toString();
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException(
 					"Project " + projectId + " does not exist or user does not have access to the project");
@@ -93,10 +99,6 @@ public class DeleteInsightReactor extends AbstractReactor {
 		String author = accessToken.getUsername();
 
 		IProject project = Utility.getProject(projectId);
-		if (!project.getProjectType().holdsInsights()) {
-			throw new IllegalArgumentException("Project " + projectId + " is a " + project.getProjectType()
-					+ " project, which does not hold insights");
-		}
 		String projectName = project.getProjectName();
 
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
@@ -115,8 +117,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			try {
 				admin.dropInsight(insightId);
 			} catch (RuntimeException e) {
-				classLogger.error("Failed to drop insight {} from the insights database of project {}", insightId,
-						projectId, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			}
 
 			// delete insight folder
@@ -146,19 +147,18 @@ public class DeleteInsightReactor extends AbstractReactor {
 					}
 				}
 			} catch (Exception e) {
-				classLogger.error("Failed to remove insight {} from the git history of project {}", insightId,
-						projectId, e);
+				classLogger.error(Constants.STACKTRACE, e);
 			} finally {
 				// delete folder
 				try {
 					FileUtils.deleteDirectory(insightFolder);
 				} catch (IOException e) {
-					classLogger.error("Failed to delete the folder {} of insight {}", insightFolderPath, insightId, e);
+					classLogger.error(Constants.STACKTRACE, e);
 				}
 			}
 
 			// now delete from security db
-			SecurityInsightUtils.deleteInsight(this.insight.getUser(), projectId, insightId);
+			SecurityInsightUtils.deleteInsight(projectId, insightId);
 
 			// now delete from user tracking db
 			UserTrackingUtils.deleteInsight(insightId, projectId);

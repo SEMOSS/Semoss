@@ -40,7 +40,6 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.r.RNativeEngine;
 import prerna.poi.main.helper.CSVFileHelper;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.util.UploadInputUtility;
@@ -58,10 +57,9 @@ public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Uploads a delimited file (CSV, TSV, etc.) to create a new database backed by an R native engine. "
-						+ "The data is loaded as a single flat table (one concept and its properties).");
+	public String getReactorDescription() {
+		return "Uploads a delimited file (CSV, TSV, etc.) to create a new database backed by an R native engine. "
+				+ "The data is loaded as a single flat table (one concept and its properties).";
 	}
 
 	@Override

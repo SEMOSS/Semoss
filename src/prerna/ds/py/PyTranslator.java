@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.ds.py;
 
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,19 +49,11 @@ public class PyTranslator {
 	static Map<String, SemossDataType> pyS = new HashMap<String, SemossDataType>();
 	static {
 		pyS.put("object", SemossDataType.STRING);
-		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA variant)
-		pyS.put("str", SemossDataType.STRING);
-		pyS.put("string", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
 		pyS.put("int64", SemossDataType.INT);
 		pyS.put("float64", SemossDataType.DOUBLE);
-		pyS.put("bool", SemossDataType.BOOLEAN);
 		pyS.put("datetime64", SemossDataType.DATE);
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
-		// pandas 3 keeps the parsed resolution instead of forcing ns ("us" for parsed strings)
-		pyS.put("datetime64[us]", SemossDataType.TIMESTAMP);
-		pyS.put("datetime64[ms]", SemossDataType.TIMESTAMP);
-		pyS.put("datetime64[s]", SemossDataType.TIMESTAMP);
 	}
 
 	public static String curEncoding = null;
@@ -227,7 +218,7 @@ public class PyTranslator {
 	 * @param script
 	 */
 	public void runEmptyPyNoCancelTrace(String... script) {
-		this.transportScript(null, convertArrayToString(script), false, true, null, null);
+		this.transportScript(null, convertArrayToString(script), false, true);
 	}
 
 	/**
@@ -249,7 +240,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runDirectPyNoCancelTrace(String... script) {
-		return this.transportScript(null, convertArrayToString(script), false, true, null, null);
+		return this.transportScript(null, convertArrayToString(script), false, true);
 	}
 
 	/**
@@ -281,27 +272,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runDirectPyNoCancelTrace(Insight executionInsight, String... script) {
-		return this.transportScript(executionInsight, convertArrayToString(script), false, true, null, null);
-	}
-
-	/**
-	 * Same as {@link #runDirectPyNoCancelTrace(Insight, String...)} but stops
-	 * waiting for python after {@code maxWait}, failing with
-	 * {@code maxWaitMessage} while python keeps running. Use this where a caller
-	 * must not wait for the socket client's maximum wait, such as a guardrail
-	 * screening a request.
-	 *
-	 * @param executionInsight the security-context insight; may be null
-	 * @param maxWait          how long to wait for python to answer
-	 * @param maxWaitMessage   the error the caller gets when python does not
-	 *                         answer in time
-	 * @param script           the python to run
-	 * @return what the script returned
-	 */
-	public Object runDirectPyNoCancelTrace(Insight executionInsight, Duration maxWait, String maxWaitMessage,
-			String... script) {
-		return this.transportScript(executionInsight, convertArrayToString(script), false, true, maxWait,
-				maxWaitMessage);
+		return this.transportScript(executionInsight, convertArrayToString(script), false, true);
 	}
 
 	/**
@@ -323,7 +294,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runScriptNoCancelTrace(String... script) {
-		return this.transportScript(null, convertArrayToString(script), true, true, null, null);
+		return this.transportScript(null, convertArrayToString(script), true, true);
 	}
 
 	/**
@@ -353,7 +324,7 @@ public class PyTranslator {
 	 * @return
 	 */
 	public Object runScriptNoCancelTrace(Insight executionInsight, String... script) {
-		return this.transportScript(executionInsight, convertArrayToString(script), false, true, null, null);
+		return this.transportScript(executionInsight, convertArrayToString(script), false, true);
 	}
 
 	/**
@@ -448,11 +419,11 @@ public class PyTranslator {
 	 * @return the deserialized result from the Python process
 	 */
 	private Object transportScript(Insight executionInsight, String script, boolean supportLegacyVars) {
-		return transportScript(executionInsight, script, supportLegacyVars, false, null, null);
+		return transportScript(executionInsight, script, supportLegacyVars, false);
 	}
 
 	private Object transportScript(Insight executionInsight, String script, boolean supportLegacyVars,
-			boolean disableCancelTrace, Duration maxWait, String maxWaitMessage) {
+			boolean disableCancelTrace) {
 		final String ROOT = this.globalStoreInsight.getInsightFolder().replace('\\', '/');
 		final String APP_ROOT = this.globalStoreInsight.getContextProjectId() != null ? EngineUtility
 				.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
@@ -487,7 +458,7 @@ public class PyTranslator {
 		}
 
 		Object output = transportScriptWithExplicitPaths(executionInsight, script, asset_paths, runtimeVars,
-				supportLegacyVars, disableCancelTrace, maxWait, maxWaitMessage);
+				supportLegacyVars, disableCancelTrace);
 		// try to perform some cleanup
 		if (output instanceof String) {
 			String strOutput = (String) output;
@@ -522,16 +493,14 @@ public class PyTranslator {
 	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
 			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars) {
 		return transportScriptWithExplicitPaths(executionInsight, script, explicitAssetPaths, runtimeVars,
-				supportLegacyVars, false, null, null);
+				supportLegacyVars, false);
 	}
 
 	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
 			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars,
-			boolean disableCancelTrace, Duration maxWait, String maxWaitMessage) {
+			boolean disableCancelTrace) {
 		PayloadStruct ps = new PayloadStruct();
 		ps.disableCancelTrace = disableCancelTrace;
-		ps.maxWait = maxWait;
-		ps.maxWaitMessage = maxWaitMessage;
 		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.methodName = new Object() {
 		}.getClass().getEnclosingMethod().getName();

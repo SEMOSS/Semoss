@@ -36,17 +36,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.javatuples.Pair;
-
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
-import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
-import prerna.auth.access.ModelUsageLimitPath;
-import prerna.auth.access.ModelUsageLimitPath.State;
-import prerna.auth.access.ModelUsageLimitPath.Step;
-import prerna.auth.access.ModelUsageLimitPath.StepLimitType;
-import prerna.auth.access.ModelUsageLimitRule;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -61,37 +52,14 @@ import prerna.util.ValueUtils;
  * date has passed are left out. Members of groups that mirror a login
  * provider's groups are not kept in the security database, so those groups are
  * listed apart.
- *
- * <p>
- * On a model, each person's row also says which usage limit their calls are
- * billed to, worked out by {@link ModelUsageLimitResolver#resolveStored} for
- * everyone at once, and the response adds the model's public use limit and its
- * total. How much of a limit is used is not read here.
- * </p>
  */
 public class EffectivePermissionUtils extends AbstractSecurityUtils {
 
 	private static final String CUSTOM = SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE;
 
 	/** Where a person's access comes from */
-	public enum AccessSource {
+	public enum SourceKind {
 		DIRECT, TEAM
-	}
-
-	/** Why a limit that is defined does not apply to a person */
-	public enum NotAppliedReason {
-		/** The person's own grant has a limit, which comes first */
-		DIRECT_WINS,
-		/** A team's limit comes first */
-		TEAM_WINS,
-		/** An Unlimited team comes first */
-		UNLIMITED_TEAM_WINS,
-		/** The public use limit comes first */
-		PUBLIC_WINS,
-		/** The person's all-models default comes first */
-		ALL_MODELS_WINS,
-		/** The public use limit applies only while the model is public */
-		NOT_PUBLIC
 	}
 
 	private EffectivePermissionUtils() {
@@ -106,25 +74,13 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 	 *               its groups; being an admin counts for nothing outside admin
 	 *               mode
 	 * @param target the project or engine
-	 * @return {@code people}: one row per person with {@code subject} (category,
-	 *         id, type, name, email), {@code level} (the most access any source
-	 *         gives) and {@code sources}, each with {@code sourceType} (DIRECT or
-	 *         TEAM), the group's {@code id} and {@code type}, {@code level} and
+	 * @return {@code people}: one row per person with {@code subject} (kind, id,
+	 *         type, name, email), {@code level} (the most access any source gives)
+	 *         and {@code sources}, each with {@code kind} (DIRECT or TEAM), the
+	 *         group's {@code id} and {@code type}, {@code level} and
 	 *         {@code endDate}, the most access first; {@code unlistedTeams}: the
 	 *         groups whose members come from a login provider, with {@code id},
-	 *         {@code type} and {@code level}. On a model, each person's row adds
-	 *         {@code usage}: {@code billedTo} (the source their calls are billed
-	 *         to, with {@code limitType}, {@code id} and {@code type}, or null for
-	 *         no limit), {@code unlimited} and {@code rules} (its limit),
-	 *         {@code nextTeams} (for a team, the teams calls move on to, in billing
-	 *         order, each with {@code id}, {@code type}, {@code unlimited} and
-	 *         {@code rules}) and {@code notApplied} (the limits defined that do not
-	 *         apply, each with {@code limitType}, {@code id}, {@code type} and a
-	 *         {@link NotAppliedReason}); each {@code unlistedTeams} row adds its
-	 *         {@code usageLimit}; and the response adds {@code publicUse}
-	 *         ({@code isPublic} and {@code usageLimit}) and {@code ceilings} (the
-	 *         model's total: {@code limitType} {@code MODEL_TOTAL} and
-	 *         {@code usageLimit})
+	 *         {@code type} and {@code level}
 	 * @throws IllegalAccessException when the user is not an editor or owner of the
 	 *                                target
 	 */
@@ -149,11 +105,11 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 
 	private static Map<String, Object> readEffectiveAccess(User user, PermissionTargetResource target, boolean asAdmin)
 			throws IllegalAccessException {
-		if (target == null || target.getResourceType() == null || ValueUtils.isBlank(target.getId())) {
+		if (target == null || target.getKind() == null || ValueUtils.isBlank(target.getId())) {
 			throw new IllegalArgumentException("Must define the project or engine");
 		}
-		boolean isProject = target.getResourceType() == PermissionTargetResource.TargetResourceType.PROJECT;
-		if (!isProject && target.getResourceType() != PermissionTargetResource.TargetResourceType.ENGINE) {
+		boolean isProject = target.getKind() == PermissionTargetResource.Kind.PROJECT;
+		if (!isProject && target.getKind() != PermissionTargetResource.Kind.ENGINE) {
 			throw new IllegalArgumentException("Only a project's or an engine's effective access can be read");
 		}
 		String id = target.getId().trim();
@@ -166,14 +122,14 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 		}
 
 		Map<String, Person> people = new LinkedHashMap<>();
-		PermissionTargetResource resource = new PermissionTargetResource(target.getResourceType(), id, null);
+		PermissionTargetResource resource = new PermissionTargetResource(target.getKind(), id, null);
 		List<Map<String, Object>> direct = PermissionBatchUtils.readPeople(user, resource, null, asAdmin);
 		for (Map<String, Object> row : direct) {
 			if (hasEnded(row.get("end_date"))) {
 				continue;
 			}
-			person(people, row.get("id"), row).sources.add(source(AccessSource.DIRECT, null, null,
-					String.valueOf(row.get("permission")), row.get("end_date")));
+			person(people, row.get("id"), row).sources.add(
+					source(SourceKind.DIRECT, null, null, String.valueOf(row.get("permission")), row.get("end_date")));
 		}
 
 		List<Map<String, Object>> groups = PermissionBatchUtils.readGroups(user, resource, asAdmin);
@@ -196,13 +152,8 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 			}
 			for (Map<String, Object> member : readCurrentMembers(groupId)) {
 				person(people, member.get("userid"), member).sources
-						.add(source(AccessSource.TEAM, groupId, groupType, level, group.get("ENDDATE")));
+						.add(source(SourceKind.TEAM, groupId, groupType, level, group.get("ENDDATE")));
 			}
-		}
-
-		Map<String, Object> modelLimits = new LinkedHashMap<>();
-		if (!isProject && PermissionBatchUtils.isModelEngine(id)) {
-			addUsageLimits(id, people, unlistedTeams, modelLimits);
 		}
 
 		List<Map<String, Object>> rows = new ArrayList<>();
@@ -212,165 +163,10 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("people", rows);
 		result.put("unlistedTeams", unlistedTeams);
-		result.putAll(modelLimits);
 		return result;
 	}
 
 	/**
-	 * Adds a model's usage limits to its effective access: each person's
-	 * {@code usage}, from one {@link ModelUsageLimitResolver#resolveStored} for
-	 * everyone; each login provider team's {@code usageLimit}; the public use
-	 * limit; and the model's total as its ceiling.
-	 *
-	 * @param engineId      the model
-	 * @param people        everyone listed, by id and login type
-	 * @param unlistedTeams the login provider teams with access
-	 * @param modelLimits   where {@code publicUse} and {@code ceilings} go
-	 */
-	private static void addUsageLimits(String engineId, Map<String, Person> people,
-			List<Map<String, Object>> unlistedTeams, Map<String, Object> modelLimits) {
-		List<Pair<String, String>> logins = new ArrayList<>();
-		for (Person person : people.values()) {
-			logins.add(person.login());
-		}
-		Map<Pair<String, String>, ModelUsageLimitPath> paths = ModelUsageLimitResolver.resolveStored(engineId, logins);
-		for (Person person : people.values()) {
-			ModelUsageLimitPath path = paths.get(person.login());
-			if (path != null) {
-				person.usage = usageOf(path);
-			}
-		}
-
-		Map<ModelUsageLimitKey, ModelUsageLimit> limits = SecurityModelUsageLimitUtils.getEngineLimits(engineId);
-		for (Map<String, Object> team : unlistedTeams) {
-			team.put("usageLimit", limits.get(ModelUsageLimitKey.team(engineId, String.valueOf(team.get("id")),
-					String.valueOf(team.get("type")))));
-		}
-		Map<String, Object> publicUse = new LinkedHashMap<>();
-		publicUse.put("isPublic", SecurityEngineUtils.engineIsGlobal(engineId));
-		publicUse.put("usageLimit", limits.get(ModelUsageLimitKey.publicUse(engineId)));
-		modelLimits.put("publicUse", publicUse);
-		Map<String, Object> modelTotal = new LinkedHashMap<>();
-		modelTotal.put("limitType", StepLimitType.MODEL_TOTAL.name());
-		modelTotal.put("usageLimit", limits.get(ModelUsageLimitKey.modelTotal(engineId)));
-		modelLimits.put("ceilings", List.of(modelTotal));
-	}
-
-	/**
-	 * Builds a person's usage on a model from their limit path: the first source in
-	 * the billing order is the one billed, the rest are the teams calls move on to,
-	 * and each other limit defined is listed as not applied when the billed source
-	 * comes first or the model is not public.
-	 *
-	 * @param path how limits apply to one person on the model
-	 * @return the person's {@code usage}: {@code billedTo}, {@code unlimited},
-	 *         {@code rules}, {@code nextTeams} and {@code notApplied}
-	 */
-	private static Map<String, Object> usageOf(ModelUsageLimitPath path) {
-		List<Step> order = path.getBillingOrder();
-		Step billed = order.isEmpty() ? null : order.get(0);
-		Map<String, Object> usage = new LinkedHashMap<>();
-		usage.put("billedTo", billed == null ? null : sourceOf(billed));
-		usage.put("unlimited", billed != null && billed.isUnlimited());
-		usage.put("rules", billed == null ? List.of() : ruleMaps(billed.getLimit()));
-
-		List<Map<String, Object>> nextTeams = new ArrayList<>();
-		for (Step team : order.subList(Math.min(1, order.size()), order.size())) {
-			Map<String, Object> next = new LinkedHashMap<>();
-			next.put("id", team.getKey().subjectId());
-			next.put("type", team.getKey().subjectType());
-			next.put("unlimited", team.isUnlimited());
-			next.put("rules", ruleMaps(team.getLimit()));
-			nextTeams.add(next);
-		}
-		usage.put("nextTeams", nextTeams);
-
-		List<Map<String, Object>> notApplied = new ArrayList<>();
-		for (Step step : path.getSteps()) {
-			if (!step.isDefined() || order.contains(step)) {
-				continue;
-			}
-			NotAppliedReason reason = step.getState() == State.SKIPPED ? NotAppliedReason.NOT_PUBLIC : winsOver(billed);
-			if (reason == null) {
-				continue;
-			}
-			Map<String, Object> source = sourceOf(step);
-			source.put("reason", reason.name());
-			notApplied.add(source);
-		}
-		usage.put("notApplied", notApplied);
-		return usage;
-	}
-
-	/**
-	 * Picks the reason, from the type of limit billed, that a limit defined outside
-	 * the billing order does not apply.
-	 *
-	 * @param billed the source billed, or null
-	 * @return why the sources after it do not apply, or null when nothing is billed
-	 */
-	private static NotAppliedReason winsOver(Step billed) {
-		if (billed == null) {
-			return null;
-		}
-		switch (billed.getLimitType()) {
-		case DIRECT:
-			return NotAppliedReason.DIRECT_WINS;
-		case TEAM:
-			return billed.isUnlimited() ? NotAppliedReason.UNLIMITED_TEAM_WINS : NotAppliedReason.TEAM_WINS;
-		case PUBLIC:
-			return NotAppliedReason.PUBLIC_WINS;
-		case ALL_MODELS:
-			return NotAppliedReason.ALL_MODELS_WINS;
-		default:
-			return null;
-		}
-	}
-
-	/**
-	 * Names the source a step of a limit path reads its limit from, for the
-	 * response.
-	 *
-	 * @return the source of a step: {@code limitType}, {@code id} and {@code type}
-	 */
-	private static Map<String, Object> sourceOf(Step step) {
-		Map<String, Object> source = new LinkedHashMap<>();
-		source.put("limitType", step.getLimitType().name());
-		source.put("id", step.getKey().subjectId());
-		source.put("type", step.getKey().subjectType());
-		return source;
-	}
-
-	/**
-	 * Turns a usage limit's rules into maps for the response, with an empty list
-	 * for no limit.
-	 *
-	 * @param limit a limit, or null
-	 * @return its rules, each with {@code metric}, {@code amount}, {@code window},
-	 *         {@code windowLength} (left out for 1) and {@code counts}
-	 */
-	private static List<Map<String, Object>> ruleMaps(ModelUsageLimit limit) {
-		List<Map<String, Object>> rules = new ArrayList<>();
-		if (limit == null) {
-			return rules;
-		}
-		for (ModelUsageLimitRule rule : limit.getRules()) {
-			Map<String, Object> map = new LinkedHashMap<>();
-			map.put("metric", rule.getMetric() == null ? null : rule.getMetric().name());
-			map.put("amount", rule.getAmount());
-			map.put("window", rule.getWindow() == null ? null : rule.getWindow().name());
-			map.put("windowLength", rule.getWindowLength() > 1 ? rule.getWindowLength() : null);
-			map.put("counts", rule.getCounts() == null ? null : rule.getCounts().name());
-			rules.add(map);
-		}
-		return rules;
-	}
-
-	/**
-	 * Reads a custom group's members from {@code CUSTOMGROUPASSIGNMENT}, joined to
-	 * {@code SMSS_USER} for their names and emails, leaving out memberships whose
-	 * end date has passed.
-	 *
 	 * @return the custom group's members whose membership has not ended, with the
 	 *         keys {@code userid}, {@code type}, {@code name} and {@code email}
 	 */
@@ -394,9 +190,6 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Whether an end date as stored is before the current time in UTC; a null end
-	 * date never passes.
-	 *
 	 * @param endDate an end date as stored, in UTC, or null
 	 * @return whether it has passed
 	 */
@@ -409,22 +202,9 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 	private static final class Person {
 		final Map<String, Object> subject = new LinkedHashMap<>();
 		final List<Map<String, Object>> sources = new ArrayList<>();
-		/** On a model, which usage limit the person's calls are billed to */
-		Map<String, Object> usage;
 
 		String key() {
 			return subject.get("id") + ":" + subject.get("type");
-		}
-
-		/**
-		 * The key the usage limit resolver reads and returns the person's limit path
-		 * by.
-		 *
-		 * @return the person's user id and login type
-		 */
-		Pair<String, String> login() {
-			Object type = subject.get("type");
-			return Pair.with(String.valueOf(subject.get("id")), ValueUtils.toStringOrNull(type));
 		}
 
 		String sortName() {
@@ -440,17 +220,11 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 			row.put("subject", subject);
 			row.put("level", sources.get(0).get("level"));
 			row.put("sources", sources);
-			if (usage != null) {
-				row.put("usage", usage);
-			}
 			return row;
 		}
 	}
 
 	/**
-	 * Finds the person in the map by id and login type, adding them with the row's
-	 * name and email the first time.
-	 *
 	 * @return the person for an id and login type, added the first time either is
 	 *         seen
 	 */
@@ -458,7 +232,7 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 		String key = id + ":" + row.get("type");
 		return people.computeIfAbsent(key, k -> {
 			Person person = new Person();
-			person.subject.put("category", PermissionSubject.SubjectCategory.USER.name());
+			person.subject.put("kind", PermissionSubject.Kind.USER.name());
 			person.subject.put("id", id);
 			person.subject.put("type", row.get("type"));
 			person.subject.put("name", row.get("name"));
@@ -467,10 +241,10 @@ public class EffectivePermissionUtils extends AbstractSecurityUtils {
 		});
 	}
 
-	private static Map<String, Object> source(AccessSource accessSource, String groupId, String groupType, String level,
+	private static Map<String, Object> source(SourceKind kind, String groupId, String groupType, String level,
 			Object endDate) {
 		Map<String, Object> source = new LinkedHashMap<>();
-		source.put("sourceType", accessSource.name());
+		source.put("kind", kind.name());
 		if (groupId != null) {
 			source.put("id", groupId);
 			source.put("type", groupType);

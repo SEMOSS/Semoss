@@ -31,7 +31,6 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainRuleUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSaveRule(rule=[{"kind": "never_domain", "value": "spam.example", "note": "..."}]);
@@ -55,9 +54,15 @@ public class BrainSaveRuleReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Adds a Brain rule, or edits an existing rule's value or note; owner only")
-				.key(KEY, "Partial rule: id (omit to create), kind, value, topicId, personId, channel, note");
+	public String getReactorDescription() {
+		return "Adds a Brain rule, or edits an existing rule's value or note; owner only";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (KEY.equals(key)) {
+			return "Partial rule: id (omit to create), kind, value, topicId, personId, channel, note";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

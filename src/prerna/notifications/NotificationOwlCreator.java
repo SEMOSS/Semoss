@@ -51,13 +51,6 @@ public class NotificationOwlCreator extends AbstractOwlCreator {
 		this.allSchemas = new ArrayList<>();
 
 		// @formatter:off
-		// one notification: its TYPE (such as ACCESS_REQUEST, ANNOUNCEMENT or DELEGATION_REQUEST),
-		// its scope (SCOPE_TYPE SYSTEM, or APP with the project id in SCOPE_ID), its audience
-		// (AUDIENCE_TYPE such as USER, with the user's id and login type, APP_MEMBERS of the scoped
-		// app, or GLOBAL), the TITLE, MESSAGE and PRIORITY shown, the DISPLAY_SURFACE (BELL, MODAL,
-		// TOAST or BANNER), who or what sent it (SOURCE_TYPE, SOURCE_ID), what it opens
-		// (TARGET_TYPE, such as ROUTE, APP or ROOM, with TARGET_ID), METADATA_JSON, and who made it
-		// and when. A user sees the notifications whose audience includes them, newest first
 		addTable("NOTIFICATION_EVENT", Arrays.asList(
 				Pair.with("NOTIFICATION_ID", "VARCHAR(50)"),
 				Pair.with("TYPE", "VARCHAR(50)"),
@@ -77,9 +70,6 @@ public class NotificationOwlCreator extends AbstractOwlCreator {
 				Pair.with("METADATA_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("CREATED_BY", VARCHAR_255),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
-		// one user's state of a notification: one row per NOTIFICATION_ID, USER_ID and USER_TYPE,
-		// added the first time the user reads or dismisses it, with when. A notification with no
-		// row here is unread, and a dismissed one leaves the user's inbox
 		addTable("NOTIFICATION_USER_STATE", Arrays.asList(
 				Pair.with("NOTIFICATION_ID", "VARCHAR(50)"),
 				Pair.with("USER_ID", VARCHAR_255),

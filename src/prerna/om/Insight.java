@@ -75,6 +75,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.tcp.client.SocketClient;
+import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.util.AssetUtility;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.CmdExecUtil;
@@ -113,6 +114,9 @@ public class Insight implements Serializable {
 	protected String cacheCron;
 	protected boolean cacheEncrypt = false;
 	private transient ZonedDateTime cachedDateTime = null;
+
+	// true when this insight was opened from the old (pre-pixel) format
+	protected boolean isOldInsight = false;
 
 	// room ID when this insight is associated with an agent room
 	protected String roomId;
@@ -255,7 +259,7 @@ public class Insight implements Serializable {
 		// put the pragmap
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE) + "")) {
 			if (this.user != null) {
-				this.user.getSandbox().grantFolder(getInsightFolder());
+				this.user.getUserSymlinkHelper().symlinkFolder(getInsightFolder());
 			}
 		}
 	}
@@ -512,7 +516,7 @@ public class Insight implements Serializable {
 			List<Map<String, Object>> currentPixelPositions = this.pixelList.getNonMetaPixelPositions();
 			// grab all the pixel recipes
 			List<String> currentRecipe = this.pixelList.getPixelRecipe();
-			// int counterVal = this.pixelList.getCounter();
+//			int counterVal = this.pixelList.getCounter();
 
 			// create a new pixelList
 			this.pixelList = new PixelList(currentRecipe.size());
@@ -553,7 +557,7 @@ public class Insight implements Serializable {
 			// and set the counter properly
 			// so that way the counter doesn't exponentially
 			// increase with every rerun
-			// this.pixelList.setCounter(counterVal);
+//			this.pixelList.setCounter(counterVal);
 
 			// set the mode back
 			setRunSavedInsightMode(false);
@@ -663,7 +667,7 @@ public class Insight implements Serializable {
 		if (user != null) {
 			// if we have a chroot, mount the project for that user.
 			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				user.getSandbox().grantProject(this.user, projectId);
+				user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
 			}
 
 			String appRootFolder = AssetUtility.getProjectAssetsFolder(resolvedName, projectId);
@@ -672,7 +676,7 @@ public class Insight implements Serializable {
 
 		// if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			this.user.getSandbox().grantProject(this.user, projectId);
+			this.user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
 		}
 
 		this.contextReinitialized = true;
@@ -906,13 +910,13 @@ public class Insight implements Serializable {
 	}
 
 	/**
-	 * Returns the user's ID using the primary login provider. Returns "-1" when
-	 * there is no user.
+	 * Returns the user's ID using the primary login provider. Returns "-1" for
+	 * anonymous or unset users.
 	 *
 	 * @return the user ID string
 	 */
 	public String getUserId() {
-		if (this.user == null) {
+		if (this.user == null || this.user.isAnonymous()) {
 			return "-1";
 		}
 		return user.getAccessToken(user.getLogins().get(0)).getId();
@@ -1041,6 +1045,20 @@ public class Insight implements Serializable {
 	////////////////////////////////////////////////////////////////
 
 	/**
+	 * Returns the currently active data frame ({@link #CUR_FRAME_KEY}), or null if
+	 * no frame has been set.
+	 *
+	 * @return the current ITableDataFrame, or null
+	 */
+	public ITableDataFrame getCurFrame() {
+		Object frame = getDataMaker();
+		if (frame != null) {
+			return (ITableDataFrame) frame;
+		}
+		return null;
+	}
+
+	/**
 	 * Returns the data frame stored under the given name in the VarStore.
 	 *
 	 * @param frameName the VarStore key for the frame
@@ -1051,25 +1069,24 @@ public class Insight implements Serializable {
 	}
 
 	/**
-	 * Stores the frame under the {@link #CUR_FRAME_KEY} slot in the VarStore,
-	 * marking it as the current frame.
+	 * Sets the active data maker (frame) under the {@link #CUR_FRAME_KEY} slot in
+	 * the VarStore, marking it as the current frame.
 	 *
-	 * @param frame the frame to set as current
+	 * @param datamaker the IDataMaker to set as current
 	 */
-	public void setCurrentFrame(ITableDataFrame frame) {
-		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(frame, PixelDataType.FRAME, PixelOperationType.FRAME));
+	public void setDataMaker(IDataMaker datamaker) {
+		this.varStore.put(CUR_FRAME_KEY, new NounMetadata(datamaker, PixelDataType.FRAME, PixelOperationType.FRAME));
 	}
 
 	/**
-	 * Returns the current frame ({@link #CUR_FRAME_KEY}) from the VarStore, or null
-	 * if no frame has been set.
+	 * Returns the active IDataMaker from the VarStore, or null if no frame is set.
 	 *
-	 * @return the current frame, or null
+	 * @return the IDataMaker
 	 */
-	public ITableDataFrame getCurrentFrame() {
+	public IDataMaker getDataMaker() {
 		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
 		if (curFrameNoun != null) {
-			return ((ITableDataFrame) curFrameNoun.getValue());
+			return ((IDataMaker) curFrameNoun.getValue());
 		}
 		return null;
 	}
@@ -1092,7 +1109,7 @@ public class Insight implements Serializable {
 			}
 			frame = (ITableDataFrame) noun.getValue();
 		} else {
-			frame = getCurrentFrame();
+			frame = getCurFrame();
 		}
 		return frame.querySQL(sql);
 	}
@@ -1114,7 +1131,7 @@ public class Insight implements Serializable {
 			}
 			frame = (ITableDataFrame) noun.getValue();
 		} else {
-			frame = getCurrentFrame();
+			frame = getCurFrame();
 		}
 		return frame.queryCSV(sql);
 	}
@@ -1136,7 +1153,7 @@ public class Insight implements Serializable {
 			}
 			frame = (ITableDataFrame) noun.getValue();
 		} else {
-			frame = getCurrentFrame();
+			frame = getCurFrame();
 		}
 		return frame.queryJSON(sql);
 	}
@@ -1507,10 +1524,7 @@ public class Insight implements Serializable {
 
 	/**
 	 * Returns the shared R translator for this insight, creating it on first access
-	 * using the provided logger. When a translator that runs R in the user's Java
-	 * worker has lost its connection, such as after the worker crashed, it is
-	 * connected to the worker {@link User#getJavaSocketClient(boolean)} returns,
-	 * which starts a new one, and its R environment is set up there.
+	 * using the provided logger.
 	 *
 	 * @param logger the logger to pass to the translator factory
 	 * @return the AbstractRJavaTranslator
@@ -1518,25 +1532,18 @@ public class Insight implements Serializable {
 	public AbstractRJavaTranslator getRJavaTranslator(Logger logger) {
 		if (this.rJavaTranslator == null) {
 			this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this, logger);
-			if (this.rJavaTranslator instanceof TCPRTranslator tcpTranslator) {
-				connectJavaWorker(tcpTranslator);
+
+			// set the netty client if the translator is TCP R translator
+			if (this.rJavaTranslator instanceof TCPRTranslator) {
+				// do this so that the netty client is initialized
+				// getPyTranslator();
+				// now set the netty client
+				((TCPRTranslator) this.rJavaTranslator).setClient(this.user.getPythonSocketClient(true));
+				this.rJavaTranslator.setInsight(this);
+				this.rJavaTranslator.startR();
 			}
-		} else if (this.rJavaTranslator instanceof TCPRTranslator tcpTranslator && !tcpTranslator.isConnected()) {
-			connectJavaWorker(tcpTranslator);
 		}
 		return this.rJavaTranslator;
-	}
-
-	/**
-	 * Points the R translator at the user's Java worker, starting the worker when
-	 * it is not running, and sets up this insight and its R environment there.
-	 *
-	 * @param translator the R translator to connect
-	 */
-	private void connectJavaWorker(TCPRTranslator translator) {
-		translator.setClient(this.user.getJavaSocketClient(true));
-		translator.setInsight(this);
-		translator.startR();
 	}
 
 	/**
@@ -1896,6 +1903,22 @@ public class Insight implements Serializable {
 	}
 
 	/**
+	 * Looks up a property by first checking the VarStore and then falling back to
+	 * the DIHelper server properties.
+	 *
+	 * @param propName the property name
+	 * @return the property value, or null if not found in either location
+	 */
+	public String getProperty(String propName) {
+		Object retObject = this.varStore.get(propName);
+		if (retObject != null) {
+			return ((NounMetadata) retObject).getValue().toString();
+		}
+
+		return Utility.getDIHelperProperty(propName);
+	}
+
+	/**
 	 * Sets the ornament map, which holds arbitrary key-value metadata for the
 	 * insight (e.g. UI hints or workflow annotations).
 	 *
@@ -2099,5 +2122,54 @@ public class Insight implements Serializable {
 		id2SQLMapper.put(id, sql);
 		this.sqlWrapperMap.put(sql, wrapper);
 		this.sqlWrapperMap.remove(origSql);
+	}
+
+	////////////////////////////////////////////////////////////////
+	// LEGACY (OldInsight support)
+	////////////////////////////////////////////////////////////////
+
+	/**
+	 * Marks this insight as using the pre-pixel (OldInsight / playsheet) format.
+	 * This flag gates certain backwards-compatible code paths.
+	 *
+	 * @param isOldInsight true if this is an old-format insight
+	 */
+	public void setIsOldInsight(boolean isOldInsight) {
+		this.isOldInsight = isOldInsight;
+	}
+
+	/**
+	 * Returns whether this insight uses the pre-pixel (OldInsight) format.
+	 *
+	 * @return true if this is an old-format insight
+	 */
+	public boolean isOldInsight() {
+		return this.isOldInsight;
+	}
+
+	/**
+	 * Returns the data maker name for old-format insights. Always returns "H2Frame"
+	 * when no frame is set.
+	 *
+	 * @return the data maker name
+	 * @deprecated Only exists to support OldInsight (playsheet) execution paths.
+	 */
+	@Deprecated
+	public String getDataMakerName() {
+		NounMetadata curFrameNoun = this.varStore.get(CUR_FRAME_KEY);
+		if (curFrameNoun != null) {
+			return ((IDataMaker) curFrameNoun.getValue()).getDataMakerName();
+		}
+		return "H2Frame";
+	}
+
+	/**
+	 * Hook for OldInsight (playsheet IDataMaker) subclasses to return web-rendered
+	 * output. Always returns null in the base Insight class.
+	 *
+	 * @return null (overridden in OldInsight subclass)
+	 */
+	public Map<String, Object> getWebData() {
+		return null;
 	}
 }

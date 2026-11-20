@@ -40,7 +40,6 @@ import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IModelRouterEngine;
-import prerna.engine.api.IOpenAIDecisionsEngine;
 import prerna.engine.api.IRCloneStorage;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRDFDatabase;
@@ -64,23 +63,6 @@ public class EngineProxyFactory {
 	 * @return
 	 */
 	public static IModelEngine createGuardedModelEngine(IModelEngine engine) {
-		return createGuardedModelEngine(engine, false);
-	}
-
-	/**
-	 * Wraps a model for the platform's own use: a feature that uses a model a
-	 * platform setting names, for every user of the feature. The model's pipeline
-	 * runs as on any proxy, and the access check lets the platform's own calls
-	 * through whoever the user is.
-	 *
-	 * @param engine the model, or null
-	 * @return the proxy, or null for no model
-	 */
-	public static IModelEngine createPlatformModelEngine(IModelEngine engine) {
-		return createGuardedModelEngine(engine, true);
-	}
-
-	private static IModelEngine createGuardedModelEngine(IModelEngine engine, boolean forPlatformUse) {
 		if (engine == null) {
 			return null;
 		}
@@ -89,11 +71,11 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = getJsonFile(engine, pipelineValue);
 			}
 		}
 
-		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile, forPlatformUse);
+		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);
 		List<Class<?>> classes = new ArrayList<>();
 		classes.add(IEngine.class);
 		classes.add(IModelEngine.class);
@@ -103,11 +85,8 @@ public class EngineProxyFactory {
 		if (engine instanceof ITypeSafeEngine) {
 			classes.add(ITypeSafeEngine.class);
 		}
-		if (engine instanceof IOpenAIDecisionsEngine) {
-			classes.add(IOpenAIDecisionsEngine.class);
-		}
-		return (IModelEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(), classes.toArray(new Class<?>[0]),
-				handler);
+		return (IModelEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(),
+				classes.toArray(new Class<?>[0]), handler);
 	}
 
 	/**
@@ -124,7 +103,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = getJsonFile(engine, pipelineValue);
 			}
 		}
 
@@ -157,7 +136,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = getJsonFile(engine, pipelineValue);
 			}
 		}
 
@@ -185,7 +164,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = getJsonFile(engine, pipelineValue);
 			}
 		}
 
@@ -221,7 +200,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = getJsonFile(engine, pipelineValue);
 			}
 		}
 
@@ -244,7 +223,7 @@ public class EngineProxyFactory {
 		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = getJsonFile(engine, pipelineValue);
 			}
 		}
 
@@ -267,7 +246,7 @@ public class EngineProxyFactory {
 		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = getJsonFile(engine, pipelineValue);
 			}
 		}
 
@@ -277,17 +256,18 @@ public class EngineProxyFactory {
 	}
 
 	/**
-	 * The pipeline file an engine's PIPELINE smss key names, in the engine's assets
-	 * folder.
-	 *
-	 * @param engine           the engine
-	 * @param pipelineFileName the file name the PIPELINE key holds
-	 * @return the file, which may not exist yet
+	 * 
+	 * @param engine
+	 * @param pipeline
+	 * @return
 	 */
-	public static File pipelineFile(IEngine engine, String pipelineFileName) {
+	private static File getJsonFile(IEngine engine, String pipeline) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		return new File((assetsFolder + "/" + pipelineFileName.trim()).replace("\\", "/"));
+		String pipelineFile = assetsFolder + "/" + pipeline.trim();
+		pipelineFile = pipelineFile.replace("\\", "/");
+		File jsonFile = new File(pipelineFile);
+		return jsonFile;
 	}
 
 }

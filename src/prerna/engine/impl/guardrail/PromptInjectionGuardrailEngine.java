@@ -44,13 +44,14 @@ import prerna.ds.py.PyUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.function.FunctionParameter;
+import prerna.engine.impl.model.AbstractPythonModelEngine;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
 
 public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReactorFunctionEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(PromptInjectionGuardrailEngine.class);
+	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
 
 	private static final String MODEL_NAME_KEY = "MODEL_NAME";
 	private static final String LABEL_DECISION_MAP_KEY = "LABEL_DECISION_MAP";
@@ -63,13 +64,12 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 
 	private static final double DEFAULT_THRESHOLD = 0.7;
 	private static final int DEFAULT_MAX_LENGTH = 512;
-	// an unmapped or missing label blocks unless the SMSS says otherwise
-	private static final GuardrailVerdict DEFAULT_DECISION_VERDICT = GuardrailVerdict.BLOCK;
+	private static final boolean DEFAULT_DECISION_ALLOW = false; // fail closed by default
 
 	private String modelName = null;
-	private Map<String, GuardrailVerdict> labelDecisionMap = Collections.emptyMap();
+	private Map<String, Boolean> labelDecisionMap = Collections.emptyMap();
 	private double defaultThreshold = DEFAULT_THRESHOLD;
-	private GuardrailVerdict defaultDecision = DEFAULT_DECISION_VERDICT;
+	private boolean defaultDecisionAllow = DEFAULT_DECISION_ALLOW;
 	private int defaultMaxLength = DEFAULT_MAX_LENGTH;
 	private boolean trustRemoteCode = false;
 	private Boolean useCuda = null;
@@ -114,7 +114,7 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 
 		String defaultDecisionStr = this.smssProp.getProperty(DEFAULT_DECISION_KEY);
 		if (defaultDecisionStr != null && !(defaultDecisionStr = defaultDecisionStr.trim()).isEmpty()) {
-			this.defaultDecision = GuardrailVerdict.parse(defaultDecisionStr, DEFAULT_DECISION_KEY);
+			this.defaultDecisionAllow = parseAllowDecision(defaultDecisionStr);
 		}
 
 		String trustRemoteCodeStr = this.smssProp.getProperty(TRUST_REMOTE_CODE_KEY);
@@ -170,11 +170,10 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 
 		String script = "classifier.classify(" + PyUtils.determineStringType(prompt) + ", max_length="
 				+ PyUtils.determineStringType(maxLength) + ")";
-		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(null,
-				this.timeout, this.timeoutMessage, script);
+		Map<String, Object> predictions = (Map<String, Object>) pyTranslator.runDirectPyNoCancelTrace(script);
 
 		Map<String, Double> scoresByLabel = extractScoresByLabel(predictions);
-		DecisionResult decision = evaluate(scoresByLabel, this.labelDecisionMap, threshold, this.defaultDecision);
+		DecisionResult decision = evaluate(scoresByLabel, this.labelDecisionMap, threshold, this.defaultDecisionAllow);
 
 		Map<String, Object> retValue = new HashMap<>();
 		retValue.put("modelName", this.modelName);
@@ -202,13 +201,13 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 		}
 	}
 
-	static DecisionResult evaluate(Map<String, Double> scoresByLabel, Map<String, GuardrailVerdict> labelDecisionMap,
-			double threshold, GuardrailVerdict defaultDecision) {
+	static DecisionResult evaluate(Map<String, Double> scoresByLabel, Map<String, Boolean> labelDecisionMap,
+			double threshold, boolean defaultDecisionAllow) {
 		if (scoresByLabel == null || scoresByLabel.isEmpty()) {
-			return new DecisionResult(defaultDecision.passes(), null, null);
+			return new DecisionResult(defaultDecisionAllow, null, null);
 		}
 		if (labelDecisionMap == null || labelDecisionMap.isEmpty()) {
-			return new DecisionResult(defaultDecision.passes(), null, null);
+			return new DecisionResult(defaultDecisionAllow, null, null);
 		}
 
 		boolean pass = true;
@@ -222,12 +221,12 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 				continue;
 			}
 
-			GuardrailVerdict verdict = getDecisionForLabel(labelDecisionMap, label);
-			if (verdict == null) {
-				verdict = defaultDecision;
+			Boolean allow = getDecisionForLabel(labelDecisionMap, label);
+			if (allow == null) {
+				allow = defaultDecisionAllow;
 			}
 
-			if (!verdict.passes() && score >= threshold) {
+			if (!allow && score >= threshold) {
 				if (blockScore == null || score > blockScore) {
 					blockScore = score;
 					blockLabel = label;
@@ -239,18 +238,18 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 		return new DecisionResult(pass, blockLabel, blockScore);
 	}
 
-	private static GuardrailVerdict getDecisionForLabel(Map<String, GuardrailVerdict> labelDecisionMap, String label) {
-		GuardrailVerdict direct = labelDecisionMap.get(label);
+	private static Boolean getDecisionForLabel(Map<String, Boolean> labelDecisionMap, String label) {
+		Boolean direct = labelDecisionMap.get(label);
 		if (direct != null) {
 			return direct;
 		}
 		return labelDecisionMap.get(label.toLowerCase(Locale.ROOT));
 	}
 
-	static Map<String, GuardrailVerdict> parseLabelDecisionMap(String labelDecisionMapStr) {
+	static Map<String, Boolean> parseLabelDecisionMap(String labelDecisionMapStr) {
 		if (labelDecisionMapStr == null || (labelDecisionMapStr = labelDecisionMapStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException(
-					"Must define " + LABEL_DECISION_MAP_KEY + " as a JSON object mapping label->BLOCK/PASS");
+					"Must define " + LABEL_DECISION_MAP_KEY + " as a JSON object mapping label->ALLOW/BLOCK");
 		}
 
 		Map<String, Object> raw = new Gson().fromJson(labelDecisionMapStr, Map.class);
@@ -258,17 +257,16 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 			throw new IllegalArgumentException("Invalid " + LABEL_DECISION_MAP_KEY + ": empty map");
 		}
 
-		Map<String, GuardrailVerdict> out = new HashMap<>();
+		Map<String, Boolean> out = new HashMap<>();
 		for (Map.Entry<String, Object> entry : raw.entrySet()) {
 			String key = entry.getKey();
 			Object value = entry.getValue();
 			if (key == null || (key = key.trim()).isEmpty()) {
 				continue;
 			}
-			GuardrailVerdict verdict = GuardrailVerdict.parse(value == null ? null : String.valueOf(value),
-					LABEL_DECISION_MAP_KEY + " label " + key);
-			out.put(key, verdict);
-			out.put(key.toLowerCase(Locale.ROOT), verdict);
+			boolean allow = parseAllowValue(value);
+			out.put(key, allow);
+			out.put(key.toLowerCase(Locale.ROOT), allow);
 		}
 
 		if (out.isEmpty()) {
@@ -276,6 +274,38 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 		}
 
 		return out;
+	}
+
+	private static boolean parseAllowValue(Object value) {
+		if (value == null) {
+			throw new IllegalArgumentException("Invalid label mapping value: null");
+		}
+		if (value instanceof Boolean) {
+			return ((Boolean) value).booleanValue();
+		}
+		String str = (value + "").trim();
+		if (str.equalsIgnoreCase("allow") || str.equalsIgnoreCase("allowed") || str.equalsIgnoreCase("safe")
+				|| str.equalsIgnoreCase("pass") || str.equalsIgnoreCase("true")) {
+			return true;
+		}
+		if (str.equalsIgnoreCase("block") || str.equalsIgnoreCase("blocked") || str.equalsIgnoreCase("injection")
+				|| str.equalsIgnoreCase("fail") || str.equalsIgnoreCase("false")) {
+			return false;
+		}
+		throw new IllegalArgumentException("Invalid label mapping value: " + value);
+	}
+
+	private static boolean parseAllowDecision(String defaultDecisionStr) {
+		String str = defaultDecisionStr.trim();
+		if (str.equalsIgnoreCase("allow") || str.equalsIgnoreCase("allowed") || str.equalsIgnoreCase("safe")
+				|| str.equalsIgnoreCase("pass") || str.equalsIgnoreCase("true")) {
+			return true;
+		}
+		if (str.equalsIgnoreCase("block") || str.equalsIgnoreCase("blocked") || str.equalsIgnoreCase("injection")
+				|| str.equalsIgnoreCase("fail") || str.equalsIgnoreCase("false")) {
+			return false;
+		}
+		throw new IllegalArgumentException("Invalid " + DEFAULT_DECISION_KEY + " value: " + defaultDecisionStr);
 	}
 
 	private static Map<String, Double> extractScoresByLabel(Map<String, Object> predictions) {
@@ -332,7 +362,7 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 
 				This guardrail runs a local Hugging Face text-classification model and evaluates its label scores using `LABEL_DECISION_MAP`. A label mapped to `BLOCK` fails when its score is at or above the threshold.
 
-				`MODEL_NAME` (the Hugging Face repository of the classifier to load) and `LABEL_DECISION_MAP` are required in the guardrail SMSS. Match the map keys to the exact labels produced by that model, for example `{"SAFE":"PASS","INJECTION":"BLOCK"}`. `DEFAULT_DECISION` (`BLOCK` or `PASS`) is used for unmapped or missing labels and defaults to `BLOCK`. Optional settings include `DEFAULT_THRESHOLD`, `DEFAULT_MAX_LENGTH`, `DEVICE`, `USE_CUDA`, and `TRUST_REMOTE_CODE`. Enable remote code only for a model repository you trust.
+				`MODEL_NAME` and `LABEL_DECISION_MAP` are required in the guardrail SMSS. Match the map keys to the exact labels produced by that model, for example `{"SAFE":"ALLOW","INJECTION":"BLOCK"}`. `DEFAULT_DECISION` is used for unmapped or missing labels and defaults to block. Optional settings include `DEFAULT_THRESHOLD`, `DEFAULT_MAX_LENGTH`, `DEVICE`, `USE_CUDA`, and `TRUST_REMOTE_CODE`. Enable remote code only for a model repository you trust.
 
 				## Example: block injection attempts before model inference
 

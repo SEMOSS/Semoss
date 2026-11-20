@@ -213,23 +213,49 @@ public class RdbmsFrameBuilderUnitTests {
     }
 
     @Test
-    void getNumRows_returnsTheRowCount() throws Exception {
+    void getNumRecordsTest() throws Exception {
         PreparedStatement stmt = mock(PreparedStatement.class);
         ResultSet rs = mock(ResultSet.class);
 
-        when(conn.prepareStatement("SELECT COUNT(*) FROM " + TABLE_NAME)).thenReturn(stmt);
+        when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
+		when(conn.prepareStatement("SELECT COUNT(*) * ? FROM " + TABLE_NAME)).thenReturn(stmt);
         when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
-        when(rs.getLong(1)).thenReturn(5L);
+        when(rs.getInt(1)).thenReturn(1);
+        doNothing().when(rs).close();
+        doNothing().when(stmt).close();
 
-        assertEquals(5L, reactor.getNumRows(TABLE_NAME));
+        int ans = reactor.getNumRecords(TABLE_NAME);
+
+        assertEquals(1, ans);
     }
 
     @Test
-    void getNumRows_isZeroWhenTheQueryFails() throws Exception {
+    void getNumRecordsExceptionTest() throws Exception {
+        when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
         when(conn.prepareStatement(anyString())).thenThrow(new SQLException());
 
-        assertEquals(0L, reactor.getNumRows(TABLE_NAME));
+        int ans = reactor.getNumRecords(TABLE_NAME);
+
+        assertEquals(0, ans);
+    }
+
+    @Test
+    void getNumRecordsTestCloseException() throws Exception {
+        PreparedStatement stmt = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+
+        when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
+		when(conn.prepareStatement("SELECT COUNT(*) * ? FROM " + TABLE_NAME)).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(true);
+        when(rs.getInt(1)).thenReturn(1);
+        doThrow(new SQLException()).when(rs).close();
+        doThrow(new SQLException()).when(stmt).close();
+
+        int ans = reactor.getNumRecords(TABLE_NAME);
+
+        assertEquals(1, ans);
     }
 
     @Test

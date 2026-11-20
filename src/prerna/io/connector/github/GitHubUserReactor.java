@@ -33,7 +33,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -94,10 +93,22 @@ public class GitHubUserReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Retrieves a GitHub user profile. When username is omitted, returns the authenticated user profile.")
-				.key(USERNAME, "Optional GitHub username. Leave blank to return the authenticated user's profile.");
+	public String getReactorDescription() {
+		return "Retrieves a GitHub user profile. When username is omitted, returns the authenticated user profile.";
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (USERNAME.equals(key)) {
+			return "Optional GitHub username. Leave blank to return the authenticated user's profile.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

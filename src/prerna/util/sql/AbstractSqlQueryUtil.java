@@ -60,7 +60,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -156,16 +155,16 @@ public abstract class AbstractSqlQueryUtil {
 	protected Properties properites;
 	protected Map<String, Object> conDetails;
 
-	protected transient String connectionUrl;
-	protected transient String username;
-	protected transient String password;
+	protected String connectionUrl;
+	protected String username;
+	protected String password;
 
 	// these should be replaced and use the properties / conDetails
 	protected String hostname;
 	protected String port;
 	protected String database;
 	protected String schema;
-	protected transient String additionalProps;
+	protected String additionalProps;
 
 	// reserved words
 	protected List<String> reservedWords = null;
@@ -259,10 +258,6 @@ public abstract class AbstractSqlQueryUtil {
 			throw new SQLException("Unable to find class: " + type.getDriver());
 		}
 
-		if (type == RdbmsTypeEnum.H2_DB) {
-			connectionUrl = H2QueryUtil.removeUnsupportedUrlSettings(connectionUrl);
-		}
-
 		// create the iterator
 		Connection conn;
 		try {
@@ -272,13 +267,6 @@ public abstract class AbstractSqlQueryUtil {
 				conn = DriverManager.getConnection(connectionUrl, userName, password);
 			}
 		} catch (SQLException e) {
-			// 90048 = file written by H2 1.x, which 2.x cannot open
-			if (type == RdbmsTypeEnum.H2_DB && e.getErrorCode() == 90048) {
-				String message = "H2 database at " + connectionUrl
-						+ " is in the old H2 1.x format. Run the SEMOSS h2-update-utility before starting this version.";
-				classLogger.error(message, e);
-				throw new SQLException(message, e);
-			}
 			classLogger.error("Failed to establish database connection to {}: {}", connectionUrl, e.getMessage(), e);
 			throw new SQLException("Could not get connection.");
 		}
@@ -380,7 +368,6 @@ public abstract class AbstractSqlQueryUtil {
 		this.schema = schema;
 	}
 
-	@JsonIgnore
 	public String getUsername() {
 		return username;
 	}
@@ -389,7 +376,6 @@ public abstract class AbstractSqlQueryUtil {
 		this.username = username;
 	}
 
-	@JsonIgnore
 	public String getPassword() {
 		return password;
 	}
@@ -398,7 +384,6 @@ public abstract class AbstractSqlQueryUtil {
 		this.password = password;
 	}
 
-	@JsonIgnore
 	public String getAdditionalProps() {
 		return additionalProps;
 	}
@@ -449,7 +434,6 @@ public abstract class AbstractSqlQueryUtil {
 		return connectionUrl + separator + props;
 	}
 
-	@JsonIgnore
 	public String getConnectionUrl() {
 		return connectionUrl;
 	}
@@ -1146,16 +1130,6 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract String getDoubleDataTypeName();
-
-	/**
-	 * Get the RDBMS type that arithmetic selectors cast both operands to, so the
-	 * result keeps the fractional digits of its inputs
-	 * 
-	 * @return the type name used in the CAST of each arithmetic operand
-	 */
-	public String getArithmeticDataTypeName() {
-		return "DECIMAL";
-	}
 
 	/**
 	 * Get the RDBMS type equivalent for image data type

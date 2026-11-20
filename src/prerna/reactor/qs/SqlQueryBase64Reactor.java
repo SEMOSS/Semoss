@@ -30,7 +30,6 @@ package prerna.reactor.qs;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
@@ -50,12 +49,10 @@ public class SqlQueryBase64Reactor extends AbstractSqlQueryReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().key("commit", key -> key.type(Boolean.class).description(
-				"When true, commits after each statement that changes data; defaults to false. It is not used with transaction=true, which commits the whole script once."))
-				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class))
-				.key("timeout", key -> key.type(Integer.class)).key("transaction", key -> key.type(Boolean.class))
-				.key(ReactorKeysEnum.QUERY_KEY,
-						"One or more SQL statements to execute, passed as a base64-encoded UTF-8 string");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
+			return "One or more SQL statements to execute, passed as a base64-encoded UTF-8 string";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

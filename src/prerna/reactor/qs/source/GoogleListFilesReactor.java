@@ -94,9 +94,7 @@ public class GoogleListFilesReactor extends AbstractGoogleReactor {
 		String[] beanProps = { "id", "name", "type" };
 		String jsonPattern = "files[].{id:id, name:name, type:mimeType}";
 
-		String output = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(),
-				HttpHelperUtility.withQueryParameters(url, params),
-				Map.of("Accept", "application/json"));
+		String output = HttpHelperUtility.makeGetCall(url, accessToken, params, false);
 
 		// loop through and aggregate results
 		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());

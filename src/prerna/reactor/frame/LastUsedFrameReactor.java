@@ -42,20 +42,19 @@ public class LastUsedFrameReactor extends AbstractReactor {
 		ITableDataFrame defaultFrame = null;
 		// get the last frame
 		SelectQueryStruct qs = this.insight.getLastQS(this.insight.getLastPanelId());
-		if (qs != null) {
+		if(qs != null) {
 			defaultFrame = qs.getFrame();
 		}
-		if (defaultFrame == null) {
+		if(defaultFrame == null) {
 			// default to the current frame
-			defaultFrame = this.insight.getCurrentFrame();
-			if (defaultFrame == null) {
-				SemossPixelException exception = new SemossPixelException(new NounMetadata("No frame currently exists",
-						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
+			defaultFrame = (ITableDataFrame) this.insight.getDataMaker();
+			if(defaultFrame == null) {
+				SemossPixelException exception = new SemossPixelException(new NounMetadata("No frame currently exists", PixelDataType.CONST_STRING, PixelOperationType.ERROR));
 				exception.setContinueThreadOfExecution(true);
 				throw exception;
 			}
 		}
-
+		
 		NounMetadata noun = new NounMetadata(defaultFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 		return noun;
 	}

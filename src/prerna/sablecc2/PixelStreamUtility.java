@@ -75,7 +75,6 @@ import prerna.sablecc2.om.task.AbstractTask;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
-import prerna.security.SecretRedactor;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
@@ -616,7 +615,7 @@ public class PixelStreamUtility {
 						classLogger.error("Failed to flush task {} data to stream", task.getId(), e);
 						// let us send back an error
 						ps.print("\"output\":");
-						ps.print(gson.toJson(SecretRedactor.redactError(e.getMessage())));
+						ps.print(gson.toJson(e.getMessage()));
 						ps.print(",\"operationType\":");
 						ps.print(gson.toJson(new PixelOperationType[] { PixelOperationType.ERROR }));
 						// close the map

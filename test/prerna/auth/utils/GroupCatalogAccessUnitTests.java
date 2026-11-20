@@ -43,7 +43,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -66,7 +65,6 @@ import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.om.Insight;
-import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.project.MyProjectsReactor;
@@ -77,8 +75,7 @@ import prerna.reactor.security.GetProjectMetaValuesReactor;
 import prerna.reactor.security.MyEnginesReactor;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.util.DIHelperTestUtils;
-import prerna.util.InternalUtility;
+import prerna.util.DIHelper;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.SystemEngineRegistry;
 
@@ -104,7 +101,7 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	@AfterEach
 	void cleanup() throws Exception {
 		for (String projectId : loadedProjects) {
-			DIHelperTestUtils.removeLoadedProject(projectId);
+			DIHelper.getInstance().removeProjectProperty(projectId);
 		}
 		tables = UnitTestSecurityAuthUtils.clearSecurityDB(securityDb, tables);
 	}
@@ -194,7 +191,6 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		assertTrue(resourceIds(kind, false, true).isEmpty());
 		assertTrue(details(kind, "shared").isEmpty());
 		assertTrue(groupPermissions(kind, "shared").isEmpty());
-		ExpiredAccessRemoval.removeAllEndedAccess();
 		assertThrows(IllegalArgumentException.class, () -> info(kind, "shared"));
 	}
 
@@ -307,14 +303,15 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
 	@ParameterizedTest
 	@MethodSource("membershipCases")
+	@SuppressWarnings("unchecked")
 	void metadataQueriesIncludeOnlyAccessibleGroupRows(String kind, String type) throws Exception {
 		joinGroup(type, "group");
 		for (String id : List.of("shared", "unshared")) {
 			createResource(kind, id);
 			if (kind.equals("engine")) {
-				SecurityEngineUtils.updateEngineMetadata(admin, id, Map.of("tag", id));
+				SecurityEngineUtils.updateEngineMetadata(id, Map.of("tag", id));
 			} else {
-				SecurityProjectUtils.updateProjectMetadata(admin, id, Map.of("tag", id));
+				SecurityProjectUtils.updateProjectMetadata(id, Map.of("tag", id));
 			}
 		}
 		grant(kind, "shared", "group", type, 3);
@@ -325,7 +322,7 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		AbstractReactor reactor = kind.equals("engine") ? new GetEngineMetaValuesReactor()
 				: new GetProjectMetaValuesReactor();
 		configure(reactor, Map.of("metaKeys", "tag"));
-		List<Map<String, Object>> values = rowsOf(reactor.execute().getValue());
+		List<Map<String, Object>> values = (List<Map<String, Object>>) reactor.execute().getValue();
 		assertEquals(1, values.size());
 		assertEquals("shared", values.getFirst().get("METAVALUE"));
 		assertEquals(1, ((Number) values.getFirst().get("count")).intValue());
@@ -360,7 +357,7 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 			when(project.getSmssProp()).thenReturn(new Properties());
 			when(project.getEngineId()).thenReturn(id);
 			when(project.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.PROJECT);
-			InternalUtility.setLoadedProject(id, project);
+			DIHelper.getInstance().setProjectProperty(id, project);
 			loadedProjects.add(id);
 		}
 	}
@@ -378,26 +375,14 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 				: SecurityUserProjectUtils.userCanViewProject(member, id));
 	}
 
+	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> list(String kind, Map<String, Object> arguments) {
 		AbstractReactor reactor = kind.equals("engine") ? new MyEnginesReactor() : new MyProjectsReactor();
 		configure(reactor, arguments);
-		return rowsOf(reactor.execute().getValue());
+		return (List<Map<String, Object>>) reactor.execute().getValue();
 	}
 
-	private static List<Map<String, Object>> rowsOf(Object value) {
-		List<Map<String, Object>> rows = new ArrayList<>();
-		for (Object row : (List<?>) value) {
-			rows.add(rowOf(row));
-		}
-		return rows;
-	}
-
-	private static Map<String, Object> rowOf(Object value) {
-		Map<String, Object> row = new LinkedHashMap<>();
-		((Map<?, ?>) value).forEach((key, cell) -> row.put((String) key, cell));
-		return row;
-	}
-
+	@SuppressWarnings("unchecked")
 	private Map<String, Object> info(String kind, String id) {
 		AbstractReactor reactor = kind.equals("engine") ? new EngineInfoReactor() : new ProjectInfoReactor();
 		configure(reactor, Map.of(kind, id));
@@ -407,10 +392,7 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 			SocialPropertiesUtil properties = mock(SocialPropertiesUtil.class);
 			when(properties.getProperty("redirect")).thenReturn("http://localhost:8080/Monolith/oauth");
 			social.when(SocialPropertiesUtil::getInstance).thenReturn(properties);
-			ThreadStore.setUser(member);
-			return rowOf(reactor.execute().getValue());
-		} finally {
-			ThreadStore.remove();
+			return (Map<String, Object>) reactor.execute().getValue();
 		}
 	}
 

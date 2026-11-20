@@ -47,7 +47,9 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.impl.r.IRUserConnection;
+import prerna.engine.impl.r.RUserConnectionDedicated;
 import prerna.engine.impl.r.RserveUtil;
+import prerna.util.Constants;
 
 public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
@@ -104,6 +106,12 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 			}
 			throw new IllegalArgumentException("Failed to start R: " + e.getMessage(), e);
 		}
+
+		// need to set the rprocess in the user
+		if (this.insight != null && this.insight.getUser() != null && rcon instanceof RUserConnectionDedicated) {
+			this.insight.getUser().setrProcess(rcon.getProcess());
+			this.insight.getUser().setrPort(((RUserConnectionDedicated) rcon).getPort());
+		}
 	}
 
 	private boolean userRconIsDefined() {
@@ -117,12 +125,16 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 	private String getUserInfo() {
 		String userInfo = null;
 		User user = this.insight.getUser();
-		AuthProvider primaryProvider = user.getPrimaryLogin();
-		AccessToken token = user.getAccessToken(primaryProvider);
-		if (token.getName() == null) {
-			userInfo = primaryProvider.name() + "___noname_" + UUID.randomUUID();
+		if (user.isAnonymous()) {
+			userInfo = "unk" + "___" + user.getAnonymousId();
 		} else {
-			userInfo = primaryProvider.name() + "___" + token.getName().replace(" ", "_");
+			AuthProvider primaryProvider = user.getPrimaryLogin();
+			AccessToken token = user.getAccessToken(primaryProvider);
+			if (token.getName() == null) {
+				userInfo = primaryProvider.name() + "___noname_" + UUID.randomUUID();
+			} else {
+				userInfo = primaryProvider.name() + "___" + token.getName().replace(" ", "_");
+			}
 		}
 		return userInfo;
 	}
@@ -258,7 +270,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 
 			return arr;
 		} catch (REXPMismatchException e) {
-			logger.error("Failed to read the column types of frame {}", frameName, e);
+			logger.error(Constants.STACKTRACE, e);
 		}
 		return null;
 	}
@@ -425,7 +437,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error("Failed to read column {} of frame {} as integers", colNames[i], framename, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				// in case values cannot be put into an array
 				// for an integer
@@ -437,7 +449,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error("Failed to read column {} of frame {} as an integer", colNames[i], framename, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 
 			} else {
@@ -453,7 +465,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					}
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error("Failed to read column {} of frame {} as strings", colNames[i], framename, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 				// for a string
 				try {
@@ -464,7 +476,7 @@ public class RJavaUserRserveTranslator extends AbstractRJavaTranslator {
 					dataMatrix.get(0)[i] = row;
 					continue;
 				} catch (REXPMismatchException e) {
-					logger.error("Failed to read column {} of frame {} as a string", colNames[i], framename, e);
+					logger.error(Constants.STACKTRACE, e);
 				}
 			}
 		}

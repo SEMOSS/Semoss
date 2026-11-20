@@ -31,7 +31,6 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkWorkspaceUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkSaveStep(threadId=["..."], step=[{"id": "...", "text": "..."}]);
@@ -60,10 +59,17 @@ public class WorkSaveStepReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Adds a step to a thread workspace, or changes the keys passed on an existing one")
-				.key(THREAD_ID, "Thread id")
-				.key(STEP, "Step map: id (omit to create), text, kind, status, ownerId, due, itemId, linkTopicId");
+	public String getReactorDescription() {
+		return "Adds a step to a thread workspace, or changes the keys passed on an existing one";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		} else if (STEP.equals(key)) {
+			return "Step map: id (omit to create), text, kind, status, ownerId, due, itemId, linkTopicId";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

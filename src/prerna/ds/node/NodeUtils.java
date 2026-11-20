@@ -77,7 +77,8 @@ public class NodeUtils {
 	 * @return true when the ExecuteNodeCode agent tool should be registered
 	 */
 	public static boolean isNodeToolEnabled() {
-		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
+		String disableTerminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
+		if (disableTerminal != null && Boolean.parseBoolean(disableTerminal.trim())) {
 			return false;
 		}
 		String enabled = System.getenv(AGENT_DEFAULT_TOOLS_ENABLE_NODE);

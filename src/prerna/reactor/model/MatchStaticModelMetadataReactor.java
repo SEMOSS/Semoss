@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.StaticModelMetadataCatalog;
@@ -130,12 +129,20 @@ public class MatchStaticModelMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Matches a model ID against meta/model.json, returning the exact catalog key when there is one, "
-						+ "the closest catalog entries, and every catalog key to choose from")
-				.key(MODEL_ID_KEY, "The model ID to match against the keys and provider IDs in meta/model.json")
-				.key(LIMIT_KEY, "How many suggested matches to return, defaulting to " + DEFAULT_LIMIT
-						+ " and capped at " + MAXIMUM_LIMIT);
+	public String getReactorDescription() {
+		return "Matches a model ID against meta/model.json, returning the exact catalog key when there is one, "
+				+ "the closest catalog entries, and every catalog key to choose from";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(MODEL_ID_KEY)) {
+			return "The model ID to match against the keys and provider IDs in meta/model.json";
+		}
+		if (key.equals(LIMIT_KEY)) {
+			return "How many suggested matches to return, defaulting to " + DEFAULT_LIMIT + " and capped at "
+					+ MAXIMUM_LIMIT;
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

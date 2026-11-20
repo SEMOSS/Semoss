@@ -28,133 +28,490 @@
 package prerna.engine.impl.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.DayOfWeek;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
-import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
-import prerna.engine.impl.model.usage.ModelUsageReport;
-import prerna.engine.impl.model.usage.ModelUsageTicket;
+import prerna.SemossUnitTest;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
-public class ModelUsageRestrictionUtilityUnitTests {
+public class ModelUsageRestrictionUtilityUnitTests extends SemossUnitTest {
+	User user;
+	AuthProvider auth;
+	AccessToken access;
 
-	@Test
-	void callsWithNoLimitGetNoCeiling() {
-		Map<String, Object> parameters = new HashMap<>();
-		parameters.put("max_tokens", 100);
-		assertSame(parameters,
-				ModelUsageRestrictionUtility.withUsageCeiling(parameters, ModelUsageTicket.none(), null));
-		assertFalse(parameters.containsKey(ModelUsageTicket.USAGE_CEILING));
+	@BeforeEach
+	void setup() throws Exception {
+		FileUtils.cleanDirectory(tempDir.toFile());
+
+		user = mock(User.class);
+		auth = mock(AuthProvider.class);
+		access = mock(AccessToken.class);
+	}
+
+	@AfterEach
+	void tearDown() throws Exception {
+		// Clean up if needed
 	}
 
 	@Test
-	void theCeilingIsAddedToACopyOfTheParameters() {
-		Map<String, Object> parameters = new HashMap<>();
-		parameters.put("temperature", 0.2);
-		ModelUsageTicket ticket = mock(ModelUsageTicket.class);
-		when(ticket.pythonCeiling()).thenReturn(ceiling(5000L, null));
+	void getModelUsageRestriction_NoPermissions() {
+		try (MockedStatic<SecurityEngineUtils> securityUtils = Mockito.mockStatic(SecurityEngineUtils.class)) {
+			securityUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMap(user, "engineId"))
+					.thenReturn(null);
 
-		Map<String, Object> withCeiling = ModelUsageRestrictionUtility.withUsageCeiling(parameters, ticket, null);
+			Map<String, Object> result = ModelUsageRestrictionUtility.getModelUsageRestriction(user, "engineId");
 
-		assertFalse(parameters.containsKey(ModelUsageTicket.USAGE_CEILING));
-		assertEquals(0.2, withCeiling.get("temperature"));
-		assertEquals(5000L, ((Map<?, ?>) withCeiling.get(ModelUsageTicket.USAGE_CEILING)).get("tokens"));
+			assertNotNull(result);
+			assertTrue(result.isEmpty());
+		}
 	}
 
 	@Test
-	void aRoutersCeilingIsMergedWithTheLesserOfEach() {
-		Map<String, Object> ours = ceiling(8000L, 2_000_000L);
-		ours.put("rates", Map.of("input", 2.5, "output", 10.0));
-		Map<String, Object> router = ceiling(5000L, null);
+	void getModelUsageRestriction_EmptyPermissions() {
+		try (MockedStatic<SecurityEngineUtils> securityUtils = Mockito.mockStatic(SecurityEngineUtils.class)) {
+			securityUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMap(user, "engineId"))
+					.thenReturn(new ArrayList<>());
 
-		Map<String, Object> merged = ModelUsageRestrictionUtility.mergeCeilings(ours, router);
+			Map<String, Object> result = ModelUsageRestrictionUtility.getModelUsageRestriction(user, "engineId");
 
-		assertEquals(5000L, merged.get("tokens"));
-		assertEquals(2_000_000L, merged.get("cost_micros"));
-		assertEquals(Map.of("input", 2.5, "output", 10.0), merged.get("rates"));
-		assertEquals(256L, merged.get("min_output_tokens"));
+			assertNotNull(result);
+			assertTrue(result.isEmpty());
+		}
 	}
 
 	@Test
-	void aCeilingPassedOnAsJsonIsRead() {
-		ModelUsageTicket ticket = ModelUsageTicket.none();
-		Map<String, Object> withCeiling = ModelUsageRestrictionUtility.withUsageCeiling(null, ticket,
-				"{\"tokens\": 3000, \"cost_micros\": null, \"min_output_tokens\": 256, \"margin\": 0.05}");
-		Map<?, ?> ceiling = (Map<?, ?>) withCeiling.get(ModelUsageTicket.USAGE_CEILING);
-		assertEquals(3000.0, ((Number) ceiling.get("tokens")).doubleValue());
+	void getModelUsageRestriction_EngineTokenRestriction_WithinLimit() {
+		try (MockedStatic<SecurityEngineUtils> securityUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<Utility> utilityStatic = Mockito.mockStatic(Utility.class);
+				MockedStatic<ModelInferenceLogsUtils> logsUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+
+			Map<String, Object> permissionMap = new HashMap<>();
+			permissionMap.put(Constants.ENGINE_USAGE_RESTRICTION_KEY, "token");
+			permissionMap.put(Constants.ENGINE_USAGE_FREQUENCY_KEY, "DAY");
+			permissionMap.put(Constants.ENGINE_MAX_TOKEN_KEY, 10000);
+
+			List<Map<String, Object>> permissions = new ArrayList<>();
+			permissions.add(permissionMap);
+
+			securityUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMap(user, "engineId"))
+					.thenReturn(permissions);
+			utilityStatic.when(() -> Utility.isModelInferenceLogsEnabled()).thenReturn(true);
+			utilityStatic.when(() -> Utility.getCurrentZonedDateTimeUTC())
+					.thenReturn(ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC));
+
+			logsUtils.when(() -> ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+					eq("token"), eq(user), eq("engineId"), any(ZonedDateTime.class), eq("DAY")))
+					.thenReturn(5000);
+
+			Map<String, Object> result = ModelUsageRestrictionUtility.getModelUsageRestriction(user, "engineId");
+
+			assertNotNull(result);
+			assertEquals("token", result.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE));
+			assertEquals(5000, result.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE));
+			assertEquals(10000, result.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE));
+		}
 	}
 
 	@Test
-	void takeUsageCeilingRemovesIt() {
-		Map<String, Object> parameters = new HashMap<>();
-		Map<String, Object> passedOn = ceiling(10L, null);
-		parameters.put(ModelUsageTicket.USAGE_CEILING, passedOn);
-		assertSame(passedOn, ModelUsageRestrictionUtility.takeUsageCeiling(parameters));
-		assertTrue(parameters.isEmpty());
-		assertNull(ModelUsageRestrictionUtility.takeUsageCeiling(null));
+	void getModelUsageRestriction_EngineTokenRestriction_ExceedsLimit() {
+		try (MockedStatic<SecurityEngineUtils> securityUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<Utility> utilityStatic = Mockito.mockStatic(Utility.class);
+				MockedStatic<ModelInferenceLogsUtils> logsUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+
+			Map<String, Object> permissionMap = new HashMap<>();
+			permissionMap.put(Constants.ENGINE_USAGE_RESTRICTION_KEY, "token");
+			permissionMap.put(Constants.ENGINE_USAGE_FREQUENCY_KEY, "MONTH");
+			permissionMap.put(Constants.ENGINE_MAX_TOKEN_KEY, 10000);
+
+			List<Map<String, Object>> permissions = new ArrayList<>();
+			permissions.add(permissionMap);
+
+			securityUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMap(user, "engineId"))
+					.thenReturn(permissions);
+			utilityStatic.when(() -> Utility.isModelInferenceLogsEnabled()).thenReturn(true);
+			utilityStatic.when(() -> Utility.getCurrentZonedDateTimeUTC())
+					.thenReturn(ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC));
+
+			logsUtils.when(() -> ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+					eq("token"), eq(user), eq("engineId"), any(ZonedDateTime.class), eq("MONTH")))
+					.thenReturn(15000);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> ModelUsageRestrictionUtility.getModelUsageRestriction(user, "engineId"));
+
+			assertTrue(e.getMessage().contains("15000"));
+			assertTrue(e.getMessage().contains("10000"));
+		}
 	}
 
 	@Test
-	void requestedMaxTokensReadsEveryAlias() {
-		assertEquals(500L, ModelUsageRestrictionUtility.requestedMaxTokens(Map.of("max_tokens", 500), 4096));
-		assertEquals(700L,
-				ModelUsageRestrictionUtility.requestedMaxTokens(Map.of("max_completion_tokens", "700"), 4096));
-		assertEquals(900L, ModelUsageRestrictionUtility.requestedMaxTokens(Map.of("max_output_tokens", 900L), 0));
-		assertEquals(4096L, ModelUsageRestrictionUtility.requestedMaxTokens(Map.of("max_tokens", 0), 4096));
-		assertEquals(4096L, ModelUsageRestrictionUtility.requestedMaxTokens(null, 4096));
-		assertNull(ModelUsageRestrictionUtility.requestedMaxTokens(Map.of(), 0));
+	void getModelUsageRestriction_EngineComputeRestriction_WithinLimit() {
+		try (MockedStatic<SecurityEngineUtils> securityUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<Utility> utilityStatic = Mockito.mockStatic(Utility.class);
+				MockedStatic<ModelInferenceLogsUtils> logsUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+
+			Map<String, Object> permissionMap = new HashMap<>();
+			permissionMap.put(Constants.ENGINE_USAGE_RESTRICTION_KEY, "compute");
+			permissionMap.put(Constants.ENGINE_USAGE_FREQUENCY_KEY, "WEEK");
+			permissionMap.put(Constants.ENGINE_MAX_RESPONSE_TIME_KEY, 50000.0);
+
+			List<Map<String, Object>> permissions = new ArrayList<>();
+			permissions.add(permissionMap);
+
+			securityUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMap(user, "engineId"))
+					.thenReturn(permissions);
+			utilityStatic.when(() -> Utility.isModelInferenceLogsEnabled()).thenReturn(true);
+			utilityStatic.when(() -> Utility.getCurrentZonedDateTimeUTC())
+					.thenReturn(ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC));
+
+			logsUtils.when(() -> ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+					eq("compute"), eq(user), eq("engineId"), any(ZonedDateTime.class), eq("WEEK")))
+					.thenReturn(25000.0);
+
+			Map<String, Object> result = ModelUsageRestrictionUtility.getModelUsageRestriction(user, "engineId");
+
+			assertNotNull(result);
+			assertEquals("compute", result.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE));
+			assertEquals(25000, result.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE));
+			assertEquals(50000, result.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE));
+		}
 	}
 
 	@Test
-	void billPutsTheUsageOnTheResponse() {
-		ModelUsageTicket ticket = mock(ModelUsageTicket.class);
-		Map<String, Object> restriction = Map.of("restrictedBy", "token", "currentValue", 120L, "maxValue", 1000L);
-		Map<String, Object> limits = Map.of("capped", true);
-		when(ticket.bill(any())).thenReturn(42L);
-		when(ticket.responseUsageRestriction()).thenReturn(restriction);
-		when(ticket.responseUsageLimits(true)).thenReturn(limits);
-		AskStringModelEngineResponse response = new AskStringModelEngineResponse("hi", 100, 20);
-		response.setUsageCapped(true);
-		ZonedDateTime start = ZonedDateTime.now();
+	void getModelUsageRestriction_EngineComputeRestriction_ExceedsLimit() {
+		try (MockedStatic<SecurityEngineUtils> securityUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<Utility> utilityStatic = Mockito.mockStatic(Utility.class);
+				MockedStatic<ModelInferenceLogsUtils> logsUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
 
-		Long cost = ModelUsageRestrictionUtility.bill(ticket, response, start, start.plusNanos(1_500_000_000L));
+			Map<String, Object> permissionMap = new HashMap<>();
+			permissionMap.put(Constants.ENGINE_USAGE_RESTRICTION_KEY, "compute");
+			permissionMap.put(Constants.ENGINE_USAGE_FREQUENCY_KEY, "YEAR");
+			permissionMap.put(Constants.ENGINE_MAX_RESPONSE_TIME_KEY, 100000.0);
 
-		assertEquals(42L, cost);
-		ArgumentCaptor<ModelUsageReport> report = ArgumentCaptor.forClass(ModelUsageReport.class);
-		verify(ticket).bill(report.capture());
-		assertEquals(120L, report.getValue().totalTokens());
-		assertEquals(1500L, report.getValue().getResponseTimeMillis());
-		assertSame(restriction, response.getUsageRestriction());
-		assertSame(limits, response.getUsageLimits());
-		assertSame(restriction, response.toMap().get("usageRestriction"));
-		assertSame(limits, response.toMap().get("usageLimits"));
+			List<Map<String, Object>> permissions = new ArrayList<>();
+			permissions.add(permissionMap);
+
+			securityUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMap(user, "engineId"))
+					.thenReturn(permissions);
+			utilityStatic.when(() -> Utility.isModelInferenceLogsEnabled()).thenReturn(true);
+			utilityStatic.when(() -> Utility.getCurrentZonedDateTimeUTC())
+					.thenReturn(ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC));
+
+			logsUtils.when(() -> ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+					eq("compute"), eq(user), eq("engineId"), any(ZonedDateTime.class), eq("YEAR")))
+					.thenReturn(150000.0);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> ModelUsageRestrictionUtility.getModelUsageRestriction(user, "engineId"));
+
+			assertTrue(e.getMessage().contains("150000"));
+			assertTrue(e.getMessage().contains("100000"));
+		}
 	}
 
 	@Test
-	void billWithNoTicketDoesNothing() {
-		assertNull(ModelUsageRestrictionUtility.bill(null, null, null, null));
+	void getModelUsageRestriction_UserTokenRestriction_WithinLimit() {
+		try (MockedStatic<SecurityEngineUtils> securityUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<Utility> utilityStatic = Mockito.mockStatic(Utility.class);
+				MockedStatic<ModelInferenceLogsUtils> logsUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+
+			Map<String, Object> permissionMap = new HashMap<>();
+			permissionMap.put(Constants.USER_USAGE_RESTRICTION_KEY, "token");
+			permissionMap.put(Constants.USER_MODEL_USAGE_FREQUENCY_KEY, "MONTH");
+			permissionMap.put(Constants.USER_MODEL_MAX_TOKEN_KEY, 20000);
+
+			List<Map<String, Object>> permissions = new ArrayList<>();
+			permissions.add(permissionMap);
+
+			securityUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMap(user, "engineId"))
+					.thenReturn(permissions);
+			utilityStatic.when(() -> Utility.isModelInferenceLogsEnabled()).thenReturn(true);
+			utilityStatic.when(() -> Utility.getCurrentZonedDateTimeUTC())
+					.thenReturn(ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC));
+
+			logsUtils.when(() -> ModelInferenceLogsUtils.getTotalUsageForUser(
+					eq("token"), eq(user), eq("engineId"), any(ZonedDateTime.class), eq("MONTH")))
+					.thenReturn(8000);
+
+			Map<String, Object> result = ModelUsageRestrictionUtility.getModelUsageRestriction(user, "engineId");
+
+			assertNotNull(result);
+			assertEquals("token", result.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE));
+			assertEquals(8000, result.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE));
+			assertEquals(20000, result.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE));
+		}
 	}
 
-	private static Map<String, Object> ceiling(Long tokens, Long costMicros) {
-		Map<String, Object> ceiling = new LinkedHashMap<>();
-		ceiling.put("tokens", tokens);
-		ceiling.put("cost_micros", costMicros);
-		ceiling.put("rates", null);
-		ceiling.put("min_output_tokens", 256L);
-		ceiling.put("margin", 0.05);
-		return ceiling;
+	@Test
+	void getModelUsageRestriction_UserTokenRestriction_ExceedsLimit() {
+		try (MockedStatic<SecurityEngineUtils> securityUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<Utility> utilityStatic = Mockito.mockStatic(Utility.class);
+				MockedStatic<ModelInferenceLogsUtils> logsUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class)) {
+
+			Map<String, Object> permissionMap = new HashMap<>();
+			permissionMap.put(Constants.USER_USAGE_RESTRICTION_KEY, "token");
+			permissionMap.put(Constants.USER_MODEL_USAGE_FREQUENCY_KEY, "ALL_TIME");
+			permissionMap.put(Constants.USER_MODEL_MAX_TOKEN_KEY, 5000);
+
+			List<Map<String, Object>> permissions = new ArrayList<>();
+			permissions.add(permissionMap);
+
+			securityUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMap(user, "engineId"))
+					.thenReturn(permissions);
+			utilityStatic.when(() -> Utility.isModelInferenceLogsEnabled()).thenReturn(true);
+			utilityStatic.when(() -> Utility.getCurrentZonedDateTimeUTC())
+					.thenReturn(ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC));
+
+			logsUtils.when(() -> ModelInferenceLogsUtils.getTotalUsageForUser(
+					eq("token"), eq(user), eq("engineId"), any(ZonedDateTime.class), eq("ALL_TIME")))
+					.thenReturn(7500);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> ModelUsageRestrictionUtility.getModelUsageRestriction(user, "engineId"));
+
+			assertTrue(e.getMessage().contains("7500"));
+			assertTrue(e.getMessage().contains("5000"));
+		}
 	}
+
+	@Test
+	void getModelUsageRestriction_InferenceLogsNotEnabled() {
+		try (MockedStatic<SecurityEngineUtils> securityUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<Utility> utilityStatic = Mockito.mockStatic(Utility.class)) {
+
+			Map<String, Object> permissionMap = new HashMap<>();
+			permissionMap.put(Constants.ENGINE_USAGE_RESTRICTION_KEY, "token");
+			permissionMap.put(Constants.ENGINE_USAGE_FREQUENCY_KEY, "DAY");
+			permissionMap.put(Constants.ENGINE_MAX_TOKEN_KEY, 10000);
+
+			List<Map<String, Object>> permissions = new ArrayList<>();
+			permissions.add(permissionMap);
+
+			securityUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMap(user, "engineId"))
+					.thenReturn(permissions);
+			utilityStatic.when(() -> Utility.isModelInferenceLogsEnabled()).thenReturn(false);
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> ModelUsageRestrictionUtility.getModelUsageRestriction(user, "engineId"));
+
+			assertTrue(e.getMessage().contains("not properly configured"));
+		}
+	}
+
+	@Test
+	void updateRestrictionMapCurrentUsage_TokenRestriction() {
+		@SuppressWarnings("unchecked")
+		AbstractModelEngineResponse<String> mockResponse = mock(AbstractModelEngineResponse.class);
+
+		Map<String, Object> restrictionMap = new HashMap<>();
+		restrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE, "token");
+		restrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, 1000);
+		restrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE, 10000);
+
+		when(mockResponse.getNumberOfTokensInPrompt()).thenReturn(50);
+		when(mockResponse.getNumberOfTokensInResponse()).thenReturn(100);
+
+		ZonedDateTime inputTime = ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC);
+		ZonedDateTime outputTime = ZonedDateTime.of(2025, 1, 15, 12, 0, 5, 0, ZoneOffset.UTC);
+
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(restrictionMap, mockResponse, inputTime, outputTime);
+
+		assertEquals(1150, restrictionMap.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE));
+		verify(mockResponse, times(1)).setUsageRestriction(restrictionMap);
+	}
+
+	@Test
+	void updateRestrictionMapCurrentUsage_ComputeRestriction() {
+		@SuppressWarnings("unchecked")
+		AbstractModelEngineResponse<String> mockResponse = mock(AbstractModelEngineResponse.class);
+
+		Map<String, Object> restrictionMap = new HashMap<>();
+		restrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE, "compute");
+		restrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, 5000.0);
+		restrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE, 50000.0);
+
+		ZonedDateTime inputTime = ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC);
+		ZonedDateTime outputTime = ZonedDateTime.of(2025, 1, 15, 12, 0, 3, 500000000, ZoneOffset.UTC); // 3.5 seconds
+
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(restrictionMap, mockResponse, inputTime, outputTime);
+
+		assertEquals(8500.0, restrictionMap.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE));
+		verify(mockResponse, times(1)).setUsageRestriction(restrictionMap);
+	}
+
+	@Test
+	void updateRestrictionMapCurrentUsage_NullMap() {
+		@SuppressWarnings("unchecked")
+		AbstractModelEngineResponse<String> mockResponse = mock(AbstractModelEngineResponse.class);
+
+		ZonedDateTime inputTime = ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC);
+		ZonedDateTime outputTime = ZonedDateTime.of(2025, 1, 15, 12, 0, 5, 0, ZoneOffset.UTC);
+
+		// Should not throw exception or call setUsageRestriction
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(null, mockResponse, inputTime, outputTime);
+
+		verify(mockResponse, times(0)).setUsageRestriction(any());
+	}
+
+	@Test
+	void updateRestrictionMapCurrentUsage_EmptyMap() {
+		@SuppressWarnings("unchecked")
+		AbstractModelEngineResponse<String> mockResponse = mock(AbstractModelEngineResponse.class);
+
+		Map<String, Object> emptyMap = new HashMap<>();
+
+		ZonedDateTime inputTime = ZonedDateTime.of(2025, 1, 15, 12, 0, 0, 0, ZoneOffset.UTC);
+		ZonedDateTime outputTime = ZonedDateTime.of(2025, 1, 15, 12, 0, 5, 0, ZoneOffset.UTC);
+
+		// Should not throw exception or call setUsageRestriction
+		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(emptyMap, mockResponse, inputTime, outputTime);
+
+		verify(mockResponse, times(0)).setUsageRestriction(any());
+	}
+
+	// ========== Date Range Tests ==========
+
+	@Test
+	void getDateRangeFromFrequency_DAY() {
+		ZonedDateTime testDate = ZonedDateTime.of(2025, 1, 15, 14, 30, 45, 0, ZoneOffset.UTC);
+
+		Map<String, ZonedDateTime> result = ModelUsageRestrictionUtility.getDateRangeFromFrequency("DAY", testDate);
+
+		assertNotNull(result);
+		assertEquals(ZonedDateTime.of(2025, 1, 15, 0, 0, 0, 0, ZoneOffset.UTC), result.get("start"));
+		assertEquals(ZonedDateTime.of(2025, 1, 15, 23, 59, 59, 999999999, ZoneOffset.UTC), result.get("end"));
+	}
+
+	@Test
+	void getDateRangeFromFrequency_WEEK() {
+		// Wednesday, January 15, 2025
+		ZonedDateTime testDate = ZonedDateTime.of(2025, 1, 15, 14, 30, 0, 0, ZoneOffset.UTC);
+
+		Map<String, ZonedDateTime> result = ModelUsageRestrictionUtility.getDateRangeFromFrequency("WEEK", testDate);
+
+		assertNotNull(result);
+		// Week should start on Sunday, Jan 12
+		assertEquals(DayOfWeek.SUNDAY, result.get("start").getDayOfWeek());
+		assertEquals(12, result.get("start").getDayOfMonth());
+		// Week should end on Saturday, Jan 18
+		assertEquals(DayOfWeek.SATURDAY, result.get("end").getDayOfWeek());
+		assertEquals(18, result.get("end").getDayOfMonth());
+	}
+
+	@Test
+	void getDateRangeFromFrequency_MONTH() {
+		ZonedDateTime testDate = ZonedDateTime.of(2025, 1, 15, 14, 30, 0, 0, ZoneOffset.UTC);
+
+		Map<String, ZonedDateTime> result = ModelUsageRestrictionUtility.getDateRangeFromFrequency("MONTH", testDate);
+
+		assertNotNull(result);
+		assertEquals(1, result.get("start").getDayOfMonth());
+		assertEquals(1, result.get("start").getMonthValue());
+		assertEquals(31, result.get("end").getDayOfMonth());
+		assertEquals(1, result.get("end").getMonthValue());
+	}
+
+	@Test
+	void getDateRangeFromFrequency_YEAR() {
+		ZonedDateTime testDate = ZonedDateTime.of(2025, 6, 15, 14, 30, 0, 0, ZoneOffset.UTC);
+
+		Map<String, ZonedDateTime> result = ModelUsageRestrictionUtility.getDateRangeFromFrequency("YEAR", testDate);
+
+		assertNotNull(result);
+		assertEquals(1, result.get("start").getDayOfYear());
+		assertEquals(2025, result.get("start").getYear());
+		assertEquals(365, result.get("end").getDayOfYear()); // 2025 is not a leap year
+		assertEquals(2025, result.get("end").getYear());
+	}
+
+	@Test
+	void getDateRangeFromFrequency_ALL_TIME() {
+		ZonedDateTime testDate = ZonedDateTime.of(2025, 1, 15, 14, 30, 0, 0, ZoneOffset.UTC);
+
+		Map<String, ZonedDateTime> result = ModelUsageRestrictionUtility.getDateRangeFromFrequency("ALL_TIME", testDate);
+
+		assertNotNull(result);
+		assertEquals(ZonedDateTime.of(1970, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC), result.get("start"));
+		assertEquals(testDate, result.get("end"));
+	}
+
+	@Test
+	void getDateRangeFromFrequency_NullFrequency() {
+		ZonedDateTime testDate = ZonedDateTime.of(2025, 1, 15, 14, 30, 0, 0, ZoneOffset.UTC);
+
+		Map<String, ZonedDateTime> result = ModelUsageRestrictionUtility.getDateRangeFromFrequency(null, testDate);
+
+		assertNotNull(result);
+		// Should default to DAY
+		assertEquals(ZonedDateTime.of(2025, 1, 15, 0, 0, 0, 0, ZoneOffset.UTC), result.get("start"));
+		assertEquals(ZonedDateTime.of(2025, 1, 15, 23, 59, 59, 999999999, ZoneOffset.UTC), result.get("end"));
+	}
+
+	@Test
+	void getDateRangeFromFrequency_EmptyFrequency() {
+		ZonedDateTime testDate = ZonedDateTime.of(2025, 1, 15, 14, 30, 0, 0, ZoneOffset.UTC);
+
+		Map<String, ZonedDateTime> result = ModelUsageRestrictionUtility.getDateRangeFromFrequency("", testDate);
+
+		assertNotNull(result);
+		// Should default to DAY
+		assertEquals(ZonedDateTime.of(2025, 1, 15, 0, 0, 0, 0, ZoneOffset.UTC), result.get("start"));
+		assertEquals(ZonedDateTime.of(2025, 1, 15, 23, 59, 59, 999999999, ZoneOffset.UTC), result.get("end"));
+	}
+
+	@Test
+	void getDateRangeFromFrequency_InvalidFrequency() {
+		ZonedDateTime testDate = ZonedDateTime.of(2025, 1, 15, 14, 30, 0, 0, ZoneOffset.UTC);
+
+		Map<String, ZonedDateTime> result = ModelUsageRestrictionUtility.getDateRangeFromFrequency("INVALID", testDate);
+
+		assertNotNull(result);
+		// Should default to DAY
+		assertEquals(ZonedDateTime.of(2025, 1, 15, 0, 0, 0, 0, ZoneOffset.UTC), result.get("start"));
+		assertEquals(ZonedDateTime.of(2025, 1, 15, 23, 59, 59, 999999999, ZoneOffset.UTC), result.get("end"));
+	}
+
+	@Test
+	void getDateRangeFromFrequency_CaseInsensitive() {
+		ZonedDateTime testDate = ZonedDateTime.of(2025, 1, 15, 14, 30, 0, 0, ZoneOffset.UTC);
+
+		Map<String, ZonedDateTime> result1 = ModelUsageRestrictionUtility.getDateRangeFromFrequency("week", testDate);
+		Map<String, ZonedDateTime> result2 = ModelUsageRestrictionUtility.getDateRangeFromFrequency("WEEK", testDate);
+		Map<String, ZonedDateTime> result3 = ModelUsageRestrictionUtility.getDateRangeFromFrequency("Week", testDate);
+
+		assertEquals(result1.get("start"), result2.get("start"));
+		assertEquals(result1.get("start"), result3.get("start"));
+		assertEquals(result1.get("end"), result2.get("end"));
+		assertEquals(result1.get("end"), result3.get("end"));
+	}
+
 }

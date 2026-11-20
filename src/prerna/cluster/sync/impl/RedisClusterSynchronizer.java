@@ -141,7 +141,7 @@ public class RedisClusterSynchronizer implements IClusterSynchronizer {
 														"Unrecognized cluster sync method '{}' for channel='{}', id='{}'. Skipping.",
 														methodToken, channel, message);
 											} else {
-												method.apply(params.toArray());
+												method.invoke(params.toArray());
 											}
 										} catch (Exception e) {
 											classLogger.error(

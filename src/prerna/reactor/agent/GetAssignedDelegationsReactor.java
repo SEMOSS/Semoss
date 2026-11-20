@@ -30,7 +30,6 @@ package prerna.reactor.agent;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -62,9 +61,15 @@ public class GetAssignedDelegationsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"List delegations assigned to the logged-in user, with each delegation's room, question, context, and status.")
-				.key(STATUS_KEY, "Optional status filter: PENDING, RESPONDED, DECLINED, or CANCELLED.");
+	public String getReactorDescription() {
+		return "List delegations assigned to the logged-in user, with each delegation's room, question, context, and status.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(STATUS_KEY)) {
+			return "Optional status filter: PENDING, RESPONDED, DECLINED, or CANCELLED.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

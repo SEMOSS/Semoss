@@ -509,4 +509,25 @@ public class SecurityUserProjectUtilsUnitTests extends AbstractSecurityUtilsUnit
 		assertEquals(2, users.size()); // 3 total, offset 1, so 2 remaining
 	}
 
+	///
+	/// projectPermissionIsExpired
+	///
+
+	@Test
+	void testProjectPermissionIsExpired_NotExpired() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
+
+		String userId = user.getAccessToken(AuthProvider.NATIVE).getId();
+		// Owner permission typically has no end date
+		assertFalse(SecurityUserProjectUtils.projectPermissionIsExpired(userId, "pid1"));
+	}
+
+	@Test
+	void testProjectPermissionIsExpired_NoPermission() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
+
+		assertFalse(SecurityUserProjectUtils.projectPermissionIsExpired("nonexistent", "pid1"));
+	}
 }

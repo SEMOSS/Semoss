@@ -51,8 +51,6 @@ public class PermissionChange {
 	}
 
 	/**
-	 * Creates a change from its action, its subject and the access after it.
-	 *
 	 * @param action  what the change does
 	 * @param subject whose access it changes
 	 * @param to      the access after an add or a change, or null for a removal
@@ -64,8 +62,6 @@ public class PermissionChange {
 	}
 
 	/**
-	 * Builds a change that gives a subject access.
-	 *
 	 * @param subject who gets access
 	 * @param to      the access they get
 	 * @return a change giving the subject access
@@ -75,8 +71,6 @@ public class PermissionChange {
 	}
 
 	/**
-	 * Builds a change that replaces a subject's access with the given grant.
-	 *
 	 * @param subject whose access changes
 	 * @param to      the whole access they have after it
 	 * @return a change to the subject's access
@@ -86,8 +80,6 @@ public class PermissionChange {
 	}
 
 	/**
-	 * Builds a change that takes a subject's access away.
-	 *
 	 * @param subject whose access is taken away
 	 * @return a change taking the subject's access away
 	 */
@@ -96,9 +88,6 @@ public class PermissionChange {
 	}
 
 	/**
-	 * Builds one change with the same action and grant for each person, each
-	 * subject given by user id with no login type.
-	 *
 	 * @param action  what each change does
 	 * @param userIds the people, by user id
 	 * @param to      the access each of them has after it; unused for a removal

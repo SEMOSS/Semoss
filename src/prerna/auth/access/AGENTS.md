@@ -3,12 +3,8 @@
 This package holds the permission batch model: the classes that describe
 changes to who can use a project, an engine or an insight, or to who is in or
 manages a custom team, the problems found when they cannot be made, and the
-rules that turn those problems into a permission method's own exceptions. On a
-model, the same changes carry usage limits (see
-[Usage limits on a model](#usage-limits-on-a-model)). On an engine, they also
-say which apps' custom reactors and which other engines can use it (see
-[An app's or engine's permission on an engine](#an-apps-or-engines-permission-on-an-engine)). It has
-no database code and no permission checks.
+rules that turn those problems into a permission method's own exceptions. It
+has no database code and no permission checks.
 
 The validating and saving live in `prerna.auth.utils.PermissionBatchUtils`,
 with the classes only it uses: `PermissionBatchOptions`,
@@ -31,14 +27,13 @@ What to change (the batches, also sent as JSON)
     target: PermissionTargetResource what changes: a project, engine, insight, or a team's members or managers
     changes: PermissionChange[]
       action                         ADD, CHANGE or REMOVE
-      subject: PermissionSubject     who: a USER or a TEAM, with an id and a type; a model's PUBLIC use or its MODEL total;
-                                     or, on an engine, an ENGINE: an app or another engine, by its id and catalog type
-      to: PermissionGrant            the access after an ADD or a CHANGE, with a model's usageLimit; unused for a REMOVE
+      subject: PermissionSubject     who: a USER or a TEAM, with an id and a type
+      to: PermissionGrant            the access after an ADD or a CHANGE; unused for a REMOVE
 
 What went wrong, and how a permission method reports it
   PermissionProblem                  why one change, or a whole batch, cannot be made: a code and a message
   PermissionBatchException           thrown when batches cannot be saved, with every PermissionProblem found
-  PermissionErrorRules               the exception and message a permission method throws for each type of problem
+  PermissionErrorRules               the exception and message a permission method throws for each kind of problem
 
 In prerna.auth.utils (package-private, used only by PermissionBatchUtils)
 
@@ -59,21 +54,15 @@ What validating a batch finds (built while saving; saving works from these)
   `PermissionSubject.ofUser(id, type)` or `PermissionSubject.ofTeam(id, type)`.
   `type` is the person's login type (such as
   `NATIVE` or `MICROSOFT`, or null on a project, engine or insight, which keep
-  only the id) or the team's type. On a model, a subject of category `PUBLIC`
-  or `MODEL`, with no id or type, is its public use or its total, which have
-  only a usage limit. On an engine, `PermissionSubject.ofEngine(id, type)` is an
-  app, with the type `PROJECT`, whose custom reactors use the engine, or another
-  engine, with its catalog type, whose own code uses it.
+  only the id) or the team's type.
 - `PermissionGrant` is the whole access the subject ends up with: a level, an end
-  date, and on a model a usage limit (`usageLimit`, a `ModelUsageLimit`, or
-  null for no limit defined). Leaving the end date or the limit out clears it;
-  it is never merged with what the subject has now, unless the options keep the
-  limit.
+  date, and on a model engine the usage limits. Leaving the end date or a limit
+  out clears it; it is never merged with what the subject has now.
 - `PermissionChange` ties an action, a subject and a grant together:
   `PermissionChange.add(subject, grant)`, `change(subject, grant)`,
   `remove(subject)`, or `forPeople(action, userIds, grant)` for the same change
-  to many people. On a model, `new PermissionGrant(level, endDate)
-  .withUsageLimit(limit)` gives the usage limit.
+  to many people. On a model engine, `new PermissionGrant(level, endDate)
+  .withUsageLimits(...)` adds the usage limits.
 - `PermissionBatch` groups the changes to one target. A save can take many
   batches, and saves all of them in one transaction or none of them.
 - `PermissionBatchOptions` (package-private, in `prerna.auth.utils`) says how a
@@ -103,41 +92,21 @@ What validating a batch finds (built while saving; saving works from these)
 
 ## What each target takes
 
-| Target resource type | Id | Subjects | Grant | Table |
+| Target kind | Id | Subjects | Grant | Table |
 |---|---|---|---|---|
 | `PROJECT` | project id | people, teams | level and end date | `PROJECTPERMISSION`, `GROUPPROJECTPERMISSION` |
-| `ENGINE` | engine id | people, teams, apps and other engines; on a model also its public use and its total | level, end date, and on a model a usage limit for people, teams, apps and engines; only a usage limit for public use and the total; an app's or engine's level is `READ_ONLY` or `EDIT` | `ENGINEPERMISSION`, `GROUPENGINEPERMISSION`, `ENGINE2ENGINEPERMISSION`, and `MODELUSAGELIMIT` for the limits |
+| `ENGINE` | engine id | people, teams | level, end date, and model limits for people | `ENGINEPERMISSION`, `GROUPENGINEPERMISSION` |
 | `INSIGHT` | insight id, with `projectId` | people, teams | level and end date | `USERINSIGHTPERMISSION`, `GROUPINSIGHTPERMISSION` |
 | `TEAM` | custom group id | people only | end date only | `CUSTOMGROUPASSIGNMENT` |
 | `TEAM_MANAGERS` | custom group id | people only | none | `GROUPMANAGERS` |
 
 - Levels are `OWNER`, `EDIT` and `READ_ONLY`. The UI calls `OWNER` Author.
-  An endpoint checks each level it is sent before it calls a single or bulk
-  permission method: `AccessPermissionEnum.require` for one level,
-  `requireEach` for the rows of a bulk request, and `requireById` for a team
-  level sent as 1 to 3. Each refuses a missing or unknown level with an
-  `IllegalArgumentException`, which the endpoint answers with 400.
-- End dates are ISO dates and times with a zone, stored in UTC, or null for never.
-  Access whose end date has passed is removed by `ExpiredAccessRemoval`, which
-  every server runs once a minute from a random start, from every table above,
-  with the usage limit on it. The audit trail records each
-  removal with SEMOSS as the actor and the action `PERMISSION_EXPIRED`: a
-  `PERMISSION_DELETE` for a grant, naming the person, team or app and the level,
-  and a `GROUP_MEMBER_REMOVE` for a place in a team.
+- End dates are ISO dates and times with a zone, or null for never.
 - A person needs a login type only on `TEAM` and `TEAM_MANAGERS`, since the
   other tables keep only the id. A type that is given must match an account.
 - A team subject always needs its type.
 - `TEAM` and `TEAM_MANAGERS` take only `ADD` and `REMOVE`; they have no level
   to change.
-- A model's `PUBLIC` use and `MODEL` total take only `CHANGE`, on an `ENGINE`
-  target that is a model, with `to: {"usageLimit": ...}` and no level or end
-  date. Making a model public is still `setEngineGlobal`.
-- A team's grant on an engine keeps its `DATEADDED` when its level changes,
-  since the order the teams are billed in depends on it.
-- An `ENGINE` subject is taken only on an `ENGINE` target. Its type is the
-  grantee's catalog type, `PROJECT` for an app. It takes `ADD`, `CHANGE` and
-  `REMOVE`, a level of `READ_ONLY` or `EDIT`, never `OWNER`, an end date, and on a
-  model a usage limit.
 
 ## Who can make a change
 
@@ -147,7 +116,6 @@ an admin:
 - editors of a project, engine or insight change people's access;
 - only owners give or change Author access, and only owners change which teams
   have access;
-- only owners of an engine change which apps and engines have access to it;
 - only a custom team's managers change its members and its managers;
 - anyone can leave a project or an engine when the method allows it.
 
@@ -166,10 +134,6 @@ Where those permissions come from, as
   Access Management.
 - A user who is not an owner cannot give themselves access or change their
   own, such as to move or drop its end date; they can only leave.
-- On a model, only owners set usage limits: anyone's, their own included, team
-  limits, the public use limit and the total. Editors still add people and
-  change Read-Only and Editor access; their adds give no limit and their changes
-  keep the limit as it is. See [Who may set a limit](#who-may-set-a-limit).
 - The permissions are read from the rows as they are before anything is
   saved. The changes in the batches being saved never give the user
   permissions, even one that adds them to a team that has access.
@@ -181,163 +145,6 @@ Where those permissions come from, as
 
 Admin mode allows every change the batch's shape and the current rows allow.
 
-## An app's or engine's permission on an engine
-
-An engine can give an app, which is a project, or another engine a permission.
-An app's custom reactors use it in place of the signed in user's own, so an app
-can insert into a database or add a file to a storage engine for people who
-have no access to that engine themselves. Another engine's own code uses it the
-same way: a vector database embeds with the model that gives it a permission, a
-guardrail asks the judge model that gives it one, and a model runs the guardrail
-on its pipeline that gives it one. `docs/platform_services/engine_access.md`
-describes the check that reads it.
-
-- The change is an `ENGINE` subject on an `ENGINE` target: the grantee's id and
-  its catalog type (`PermissionSubject.ofEngine(id, type)`, with
-  `PermissionSubject.PROJECT_TYPE` for an app), with a level of `READ_ONLY` or
-  `EDIT` and an optional end date. The type is read ignoring case and must be a
-  catalog type. A grantee is never an owner of an engine, so the engine's
-  settings stay with its owners, and an engine is never given a permission on
-  itself. The one exception is a proxy vector database, which opens a copy of
-  its target with the target's settings when the target gives it Editor
-  (`ProxyVectorDatabaseEngine.requireEditorOnTarget`).
-- On a model, the grant carries the grantee's limit in `usageLimit`, validated
-  and written with the grant like a team's limit
-  (`ModelUsageLimitKey.grantee(engineId, granteeEngineId, granteeEngineType)`,
-  `LIMITTYPE` `ENGINE`, `SUBJECTTYPE` the grantee's catalog type): the App Limit
-  for an app and the Engine Limit for an engine. Its shared rules are the
-  grantee's overall amount and its other rules the amount for each user. It
-  counts the calls the app's custom reactors, or the engine's own code, make to
-  the model for people whose only way to it is that grantee, those with no grant
-  of their own and none through a team: the engine proxy tells the model which
-  app or engine is making the call (`EngineCallPermission.granteeMakingTheCall`),
-  and `ModelUsageLimitResolver` adds the limit to that call's path after the team
-  steps and before public use, as an `APP` or an `ENGINE` step, skipped for
-  anyone with a grant. The single methods that take no limit keep the one the
-  grantee has (`keepingModelLimits()`). Removing the grant, or deleting the
-  grantee, removes the limit.
-- Only the engine's owners, directly or through a team, and admin mode make the
-  change (`PermissionAllowedChanges.canChangeEngines`). Where only admins give
-  access to the engine, only admin mode adds an app or engine.
-- An add needs an app, or an engine of the catalog type given, that exists and
-  has no permission on the engine yet; a change or a removal needs one that has.
-- The row is in `ENGINE2ENGINEPERMISSION` (`ENGINEID` and `ENGINETYPE`, the
-  engine giving it and its catalog type, and `GRANTEEENGINEID` and
-  `GRANTEEENGINETYPE`), one for each engine and grantee, kept unique by an
-  index, with who gave it and when. A change keeps the date it was first given.
-  Deleting the engine removes the rows it gave and was given; deleting a project
-  removes the rows it was given as an app.
-- The single methods are `SecurityEngineUtils.setEngineGranteePermission`,
-  `removeEngineGranteePermission` and `getEngineGranteePermissions`, with their
-  admin mode versions on `SecurityAdminUtils`. Monolith's
-  `/auth/engine` and `/auth/admin/engine` endpoints of the same names call
-  them, as its endpoints for people and teams call theirs.
-- `getPermissions` on an engine returns its apps and engines as `engines`, each
-  with its `subject` (`category` `ENGINE`, `id`, `type`, `name`, the display
-  name when it has one, and an engine's `subtype`) and `access` (`level`,
-  `endDate`, `usageLimit`), and `allowedPermissionChanges.canViewEngines` and
-  `canChangeEngines`. Only the engine's editors and owners, and admin mode, see
-  them (`PermissionBatchUtils.canViewEngines`); anyone else gets an empty list.
-- The engine proxy reads the permissions in effect through
-  `SecurityEngineAccessUtils.getGranteePermission`, which keeps them for 30
-  seconds and reads them again when `SecurityModelUsageLimitUtils.version()`
-  changes, as it does after every save.
-
-`test/prerna/auth/utils/EngineGranteePermissionUnitTests` covers these.
-
-## Digital Twins
-
-A Digital Twin is an agent that holds copies of its owner's emails, chats and
-files, so it is shared with named people only, by its owners and in admin mode
-alike. It is a project with the server-only metadata key
-`SecurityProjectUtils.DIGITAL_TWIN_METAKEY`, which `AddDigitalTwin` writes
-(`markDigitalTwin`) and `updateProjectMetadata` never sets or clears, whatever an
-uploaded project's metadata file or a metadata reactor sends.
-
-- **Teams.** `readPermissionAllowedChanges` reads `canChangeTeams` as false on a
-  twin, with the reason "A Digital Twin can only be shared with named people",
-  so every team change is refused and `getPermissions` tells the access screens
-  to leave teams out. The mark is read only for someone who could change teams,
-  so nobody else learns the project is a twin.
-- **Everyone.** `SecurityProjectUtils` and `SecurityAdminUtils` refuse to make a
-  twin public, discoverable or a template (`requireNotDigitalTwin`), and to give
-  everyone access to it (`grantNewUsersProjectAccess`, `addAllProjectUsers`);
-  `grantAllProjects` leaves twins out. `CreateAppFromTemplate` does not clone one.
-- **People.** People are added and removed as on any project, and an add can
-  carry an end date, after which `ExpiredAccessRemoval` takes the access away
-  on its next pass, a minute apart. Who a twin is shared with is its owner's
-  to know: `getProjectUsers`, `getProjectUsersCount` and
-  `getProjectUsersNoCredentials` need edit access on a twin, not view access
-  (`userCanSeeProjectPeople`), and someone it is only shared with gets the
-  refusal a project they cannot view would get.
-- **Its rules at chat time.** `AgentConfigLoader` reads the mark for every run
-  that has a user (`AgentConfig.isDigitalTwin`, with its creator's name from
-  `SecurityProjectUtils.getProjectCreatorName`), and the SEMOSS harness then
-  adds `CollaborationPrompts.twinPrompt` after the twin's own instructions:
-  it is an AI and not its owner, it answers about its owner only from its
-  files, and it names the files it used. The owner cannot write these away.
-  `isDigitalTwin` throws when the mark cannot be read, so the run fails
-  sooner than start without them.
-- **A guest in the chat of whoever asks it.** A twin's instructions, skills
-  and toolboxes are its owner's, so in a Collaboration chat the harness hands
-  it none of what the person chatting has: no Collaboration tools, no person
-  lookup and no sub-agent, which would be handed those tools in its place.
-  `HarnessToolExecutor.twinRefusal` refuses the same tools by name, since a
-  tool left off the list can still be called. It starts from the general
-  harness prompt, is told the name of the person chatting and nothing
-  Collaboration keeps for them (no profile, memories or routine preferences),
-  gets none of their assistant skills, and no after-run hook runs, so nothing
-  from the chat is learned or filed in their account. The one exception is
-  the file tools of its owner's own chat, below. Do not hand a twin a tool that
-  reads or acts for the person chatting.
-- **Its index.** `WorkIndexTwinFiles(project)` describes the twin's files for
-  its chats (`WorkTwinIndex`). It is refused for anyone who cannot edit the
-  project, and with the same answer for a project that is not a twin, so
-  only someone who can change a twin learns that it is one. Each pass first
-  takes out the `placeholder.txt` the file explorer left in any folder of the
-  twin's files that now holds a file (`WorkTwinFiles.tidy`).
-- **Its owner's own chat.** `AgentConfigLoader` also reads whether the person
-  running a twin created it (`SecurityProjectUtils.isProjectCreator`,
-  `AgentConfig.isDigitalTwinOwnChat`). The twin is then told it is talking to
-  the person it answers about. The root of their Collaboration chat can propose
-  `SaveToDigitalTwin` to copy a file from that room or `RemoveFromDigitalTwin`
-  to delete one exact shared document from that twin. Each action waits for
-  its owner's approval. Both reactors resolve the twin from the chat and
-  require its creator to retain edit access. The approval is bound to the room
-  and twin that requested it. Removing a copy leaves the source in place.
-- **Its owner's persona.** A person keeps one persona for their twins
-  (`WorkTwinPersona`, table `BRAIN_PERSONA`): how they sound, how they decide
-  and what a twin must leave to them. Only its owner reads or writes it
-  (`WorkGetTwinPersona`, `WorkSaveTwinPersona`, `WorkDeleteTwinPersona`); the
-  people a twin is shared with never get it from a reactor, though a twin can
-  be talked into quoting what it was told. `AgentConfigLoader` puts it on the
-  run (`AgentConfig.getDigitalTwinPersona`) and the harness adds it between
-  the twin's own instructions and its rules, which then let the twin write in
-  that voice and give its read of its owner's views
-  (`twinPrompt(..., hasPersona)`). It goes only to a twin whose creator is on
-  record with their login type, can still edit the twin, and has not switched
-  it off there (`WorkSetTwinPersona`, creator only). Any failure to read it
-  means a run without it, never a failed run. Do not put it into the twin's
-  own instructions: whoever is chatting can replace those through their room.
-  The same persona also reaches its owner's own assistant, and only theirs:
-  `GetWritingStyle` (`BrainGetWritingStyleReactor`) adds the sections a draft
-  reads (`WorkTwinPersona.forAssistant`) to its result for the signed-in
-  person, unless they switched that off (`WorkSetAssistantPersona`). A twin is
-  a guest and is never handed that tool, so the persona of whoever is chatting
-  cannot reach a twin.
-- **Avatars.** Where `COLLAB_AVATAR_GENERATION_ENABLED` is true,
-  `WorkGenerateTwinAvatar` makes avatar options with the image model in
-  `COLLAB_AVATAR_ENGINE_ID` for anyone in Collaboration, with no catalog check
-  on that model: it takes no engine key, so nobody chooses the model, and the
-  model's usage limits still apply. Do not add an engine key to it. The reactor
-  refuses when the setting is off; hiding the button is not the check.
-
-`test/prerna/auth/utils/DigitalTwinUnitTests` covers these, with
-`AgentPromptCompositionUnitTests` for the chat-time rules,
-`TwinGuestUnitTests` for the tools a twin is refused,
-`WorkIndexTwinFilesReactorUnitTests` for who may run the index and
-`WorkTwinFilesUnitTests` for the placeholders and the owner's own chat.
-
 ## Who can call it
 
 `PermissionBatchUtils` is package-private, so nothing outside
@@ -346,8 +153,7 @@ entry points:
 
 - `SecurityAccessPermissionBatchUtils`, Bulk Access Management's methods:
   `readBatches`, `validateBatches`, `saveBatches`, `getPermissions` and
-  `getPermissionsToCopy`, and on a model `getUsageLimitPath` and
-  `getMyUsageLimitPath`. Monolith's `PermissionBatchResource`
+  `getPermissionsToCopy`. Monolith's `PermissionBatchResource`
   (`/auth/permissionBatch`) and `AdminPermissionBatchResource`
   (`/auth/admin/permissionBatch`) call them, and the semoss-ui SDK mirrors these
   classes in `libs/sdk/src/api/access.ts`.
@@ -367,23 +173,7 @@ Denying access requests changes no one's access, so it is not a batch, but it
 goes through `PermissionBatchUtils.denyRequests` all the same: the same
 permissions (`readPermissionAllowedChanges`, so only owners, directly or through
 a team, can deny), the same `PermissionErrorRules`, and the request rows
-written in one transaction. That transaction also reads back the requesters of
-the requests it denied, which `denyRequests` returns; the project and engine
-methods notify them from those rows once it has committed.
-
-Approving and denying touch only the target's own access requests: a request
-id of another project, engine or insight is left as it is, and is not
-returned or recorded as denied.
-
-A user reads and withdraws their own waiting request on a project or an engine
-(`GetMyProjectAccessRequest`, `WithdrawMyProjectAccessRequest`,
-`GetMyEngineAccessRequest`, `WithdrawMyEngineAccessRequest`, through
-`SecurityProjectUtils` and `SecurityEngineUtils` `getUserWaitingAccessRequest`
-and `withdrawUserAccessRequest`). Withdrawing changes no one's access either, so
-it is not a batch: it marks the user's waiting request `WITHDRAWN`, matched on
-any of their logins by id and login type together, and keeps the row. Asking
-again marks the waiting request `OLD` and adds the new one, so a user has at
-most one waiting request on each project or engine.
+written in one transaction.
 
 Admin mode is proven only by holding `SecurityAdminUtils` or
 `AdminSecurityGroupUtils` from their `getInstance(user)`, which returns null
@@ -425,14 +215,8 @@ where Dana edits the project, Alice has Read-Only access and Bob has none.
    currently have access to the project: bob".
 
 When no change is blocked, `save` adds Microsoft directory accounts for anyone
-who needs one, validates again, writes every change in one transaction, and
-once it has committed records the audit trail (`PermissionBatchAudit`) and
-sends the notifications, and the error rules are never used. Each notification
-is written on its own, so one that fails is logged and does not undo the save,
-and a save that fails sends none. The audit trail gets one event per change of
-access, or a summary the caller records when the options say
-`withSummaryAudit()`, and one `USAGE_LIMIT_UPDATE` event per usage limit a
-change sets, changes or removes, summary or not. A database failure rolls the
+who needs one, validates again, writes every change in one transaction, sends the
+notifications, and the error rules are never used. A database failure rolls the
 transaction back, and `saveChanges` reports it as a `WRITE_FAILED` problem.
 
 Bulk Access Management takes the same path from step 3, through
@@ -444,9 +228,9 @@ callers get the `PermissionBatchException` with every problem, and
 Batches sent as JSON use these classes' field names:
 
 ```json
-[{"target": {"resourceType": "PROJECT", "id": "abc"},
+[{"target": {"kind": "PROJECT", "id": "abc"},
   "changes": [{"action": "ADD",
-               "subject": {"category": "USER", "id": "jdoe", "type": "NATIVE"},
+               "subject": {"kind": "USER", "id": "jdoe", "type": "NATIVE"},
                "to": {"level": "EDIT", "endDate": null}}]}]
 ```
 
@@ -468,188 +252,18 @@ The builders each keep one method's behavior:
 | Builder | What it turns on |
 |---|---|
 | `notifying(adds, changes)` | Notifications for adds, changes, or both |
-| `keepingModelLimits()` | A change on an engine whose grant does not give its usage limit keeps the limit of the person's or the team's grant |
+| `keepingModelLimits()` | A change on an engine keeps the person's model limits |
+| `zeroLimitsAsNone()` | A model limit of 0 is stored as no limit |
 | `allowingSelfRemoval()` | Anyone can take away their own access to a project or an engine |
 | `removingInsightPermissions()` | Taking someone off a project takes their insight permissions too |
 | `withoutTeamExistsCheck()` | A team need not be registered to be given access |
 | `keepingTeamType()` | A team's type is stored as given |
 | `rejectingSameLevel()` | Giving a team the level it has is refused |
 | `grantedBy(id, type)` | Who the rows say gave the access, when it is not the user |
-| `approving(target, requests)` | The target's own access requests are marked approved in the same transaction, and people who have access already keep their usage limit |
+| `approving(target, requests)` | The access requests are marked approved in the same transaction |
 
 `PermissionBatchUtils` reads them through the accessors, such as `isAdminMode()`
 and `notifiesAdds()`.
-
-## Usage limits on a model
-
-A model's usage limits are kept in `MODELUSAGELIMIT` and `MODELUSAGELIMITRULE`
-(`prerna.auth.utils.SecurityModelUsageLimitUtils`), apart from the permission
-tables. The limits on grants, and a model's public use limit and total, are
-part of permission batches: they are validated with the change and written in
-the batch's own transaction through `SecurityModelUsageLimitUtils.setLimit`.
-
-- A person's grant on a model is `ModelUsageLimitKey.direct(engineId,
-  userId, userType)`, a team's is `ModelUsageLimitKey.team(engineId, teamId,
-  teamType)`, an app's or engine's is `ModelUsageLimitKey.grantee(engineId,
-  granteeEngineId, granteeEngineType)`, and
-  the subjects `PUBLIC` and `MODEL` are
-  `ModelUsageLimitKey.publicUse(engineId)` and `modelTotal(engineId)`.
-- A person's grant keeps its limit with their login type, though
-  `ENGINEPERMISSION` keeps only the user id: the change's subject type, or else
-  the one login type `SMSS_USER` has for the user id. A limit whose login type
-  is not known is kept with none and applies to the user id on any login;
-  writing the limit with a login type replaces it, and start up gives it one
-  where the user id has one login (`fillDirectLimitLoginTypes`). Read a grant's
-  limit with `SecurityModelUsageLimitUtils.findDirectLimit`, which falls back
-  to the one kept with none.
-- Removing a grant removes its limit on every login type, since the grant was
-  the same for each. A change that leaves the limit as it is writes nothing.
-- A key has one `MODELUSAGELIMIT` row: `setLimit` deletes every row the
-  key has, its rules first, and writes one new row. Should two writes at the
-  same time leave two, reads use the one changed last.
-- Every write ends with `SecurityModelUsageLimitUtils.markChanged()`, called
-  after its transaction commits, never inside it, so the limits cached on the
-  server (`ModelUsageGuard`) are read again. That includes writes of grants,
-  team memberships and a model being public, which decide which limit applies.
-  `setLimit` and the deletes run in the caller's transaction and leave it to
-  the caller.
-- No limit defined (null) and Unlimited are different: no limit defined passes
-  the decision on to the next source, Unlimited ends it.
-
-### How a grant's limit is read when it is saved
-
-1. With `keepingModelLimits()`, a `CHANGE` whose grant does not give its
-   usage limit (`isUsageLimitGiven()` is false and `usageLimit` is null) keeps
-   the current limit. The engine user methods that take only a level and an end
-   date, which the endpoints call when a form has no `usageLimit`, use it, and
-   so do the bulk engine edit methods, whose rows without a `usageLimit` key
-   keep the person's limit.
-2. Otherwise the grant's `usageLimit`: the one a Java caller gave with
-   `withUsageLimit`, null included, or the one read from JSON; null is no limit
-   defined.
-
-The limit is then normalized (`SecurityModelUsageLimitUtils.normalize`): 0
-means no limit defined, so rules of 0 are dropped. In a batch read from JSON,
-`"usageLimit": null` is the same as leaving it out: no limit defined, since
-`usageLimitGiven` is not read from JSON. The bulk engine methods' rows give the
-limit as a `usageLimit` key, a map or JSON text; a key with null gives no limit
-defined, so on an edited row it removes the limit
-(`PermissionBatchUtils.engineGrant`). Token amounts are longs end to end.
-
-### Who may set a limit
-
-Only a model's owners, and admin mode, set usage limits.
-
-| Whose limit | Owners | Editors | Admin mode |
-|---|---|---|---|
-| A person's, at any level | Yes | No | Yes |
-| Their own | Yes | No (they cannot change their own grant) | Yes |
-| A team's limit, the public use limit, the total | Yes | No | Yes |
-
-Editors still add people and change the level of Read-Only and Editor people,
-as the level rules allow. An editor's add gives no limit, and an editor's
-change keeps the current limit: it sends the limit back as it is, or, through
-the engine user methods, sends no `usageLimit`. A change by an editor that
-leaves any other limit is refused with "Only owners can set usage limits".
-`PermissionAllowedChanges` holds this as `limitLevels` (every level for
-owners, none for anyone else) and `canChangeModelLimits` (owners and admin
-mode).
-
-Only owners, and admin mode, take away the access of someone whose grant on the
-model has a usage limit, rules or Unlimited, on any of their login types, or
-give them an earlier end date. The limit goes with the grant, so otherwise an
-editor could lift it: take the person away and add them back with no limit, or,
-on a public model, just take them away and leave them on the public use limit.
-This holds for someone leaving on their own too. Dropping an end date, or moving
-it later, is open to editors, since the limit stays for as long or longer.
-
-### What is refused
-
-Each refusal is a reason on the change, following the no-leak rules:
-
-- `INVALID_USAGE_LIMIT`: a limit on an engine that is not a model, or
-  `SecurityModelUsageLimitUtils.findProblem` refuses the limit where it is set,
-  such as a cost rule on a model without known prices
-  (`ModelUsageCost.hasKnownPrices`), a shared rule on a person's grant, or a
-  rule for each person on the total.
-- `OWNERS_ONLY`: someone who is not an owner leaves a limit other than the
-  current one on a person or a team ("Only owners can set usage limits"), or
-  changes the public use limit or the total. The engine user methods throw it
-  with that message.
-- `ENDS_LIMITED_ACCESS`: someone who is not an owner takes away the access of a
-  person with a usage limit on the model, their own included, or gives them an
-  earlier end date ("Only owners can end or shorten the access of someone with
-  a usage limit"). The engine user methods throw it with that message.
-- `NOT_WELL_FORMED`: a `PUBLIC` or `MODEL` change that is not a `CHANGE` on an
-  engine, or that carries a level or an end date.
-
-### Audit trail
-
-Every usage limit a save leaves different is recorded as a `USAGE_LIMIT_UPDATE`
-event (`ModelUsageLimitAudit`), in the `USAGE_LIMIT` category: the limit before
-and after as `{"usageLimit": ...}` (null for no limit defined), and
-`details.limitType` (`DIRECT`, `TEAM`, `APP`, `ENGINE`, `PUBLIC` or `MODEL_TOTAL`,
-with the team for a Team Limit and the grantee's id and catalog type for an App
-Limit or an Engine Limit). A grant's removal records its limit removed with it
-(`removedWithGrant`), and so does a grant that ended, removed by SEMOSS
-(`ExpiredAccessRemoval`, `reason` `EXPIRED`). Changes to a model's public use
-or total record only this event, since they change no access. `PermissionChangeValidation` keeps the limit
-before the change (`getCurrentUsageLimit`) for it. A model's owners read its limit changes on its
-Audit tab (`ResourceAuditReadService`); admins read them with the access changes, the app and engine
-setting changes and the denied requests in Enterprise Usage & Activity (the `audit` source of
-`EnterpriseUsageUtils`).
-
-Each change to an app's or engine's own settings records an event of its own: renamed
-(`PROJECT_RENAME`, `ENGINE_RENAME`), display name (`..._DISPLAY_NAME_UPDATE`), made public or private
-(`..._GLOBAL_UPDATE`), discoverable (`..._DISCOVERABLE_UPDATE`), an app made a template
-(`PROJECT_TEMPLATE_UPDATE`) and metadata set or loaded (`..._METADATA_UPDATE`), from the owner's and
-the admin's paths alike, with the setting and its new value in `details`.
-`AuditEventType.SETTING_CHANGES` lists them; Enterprise Usage counts them as `SETTING_CHANGES`. Saving
-an app's blocks (`PROJECT_BLOCKS_UPDATE`), replacing an app by upload (`PROJECT_REPLACE`) and a user
-showing or hiding an engine in their own lists (`ENGINE_VISIBILITY_UPDATE`) have their own events too,
-on the Audit tab only. No code records `PROJECT_UPDATE` or `ENGINE_UPDATE`; they are kept so stored
-events of those types still read.
-
-Exporting a project or an engine for download records `PROJECT_EXPORT` (`ExportProject`,
-`ExportProjectApp`, `ExportApp`) or `ENGINE_EXPORT` (`ExportEngine`, `ExportDatabase`), both at `HIGH`
-severity, since a copy of the resource leaves the platform. `UserAuditTrailUtils.recordProjectExport`
-and `recordEngineExport` record it once the archive is built, with `details.reactor` (the pixel name,
-from `AbstractReactor.getPixelName`), the project's `projectType`, and `keepGit` where the export can
-keep the version history. An export that fails records its failure under the same event type
-(`AUDITED_REACTORS`), never a success. Owners see both on the Audit tab with those three details.
-
-An admin closing a user's room with an agent (`AdminCloseRoom`, from the admin Agent Runs page) records
-`AGENT_ROOM_CLOSE` at `HIGH`: the room's user is the subject, the agent the target (`PROJECT`), the room
-in the context, and `closedRoomIds` and `cancelledRunIds` in `details`. It is not on the agent's Audit
-tab, which would show its owners another user's conversation. `AgentRunService.closeRoomForAdmin` checks
-the caller is an admin and records the event itself, so no caller closes a room unchecked or unrecorded.
-
-### Reads
-
-- `getPermissions` gives each grant on an engine its `usageLimit`. On a model
-  it adds `publicUse` (`isPublic`, `usageLimit`), `modelTotal` (`usageLimit`),
-  `costLimitsAvailable`, `price` (`ModelUsageCost.priceEntry`), and
-  `allowedPermissionChanges.limitLevels` and `canChangeModelLimits`.
-- `getPermissionsToCopy` gives each grant on an engine its `usageLimit`, so a
-  copy between models can keep it.
-- `EffectivePermissionUtils.getEffectivePermissions` adds each person's `usage`
-  on a model (`billedTo`, `unlimited`, `rules`, `nextTeams`, `notApplied`), from
-  one `ModelUsageLimitResolver.resolveStored` for everyone, with `publicUse`,
-  `ceilings` and each `unlistedTeams` row's `usageLimit`.
-- `SecurityAccessPermissionBatchUtils.getUsageLimitPath` (the model's editors
-  and owners, or admin mode) and `getMyUsageLimitPath` (anyone who can use the
-  model) return how limits apply to one person, and `getMyUsageLimitPaths` how
-  they apply to the signed in user on every model they can use. Someone who may
-  not see the model gets the same answer as for a model that does not exist.
-- `getUsageLimitPath` needs the person's login type, normalized as other login
-  types are (`SecurityGroupManagerUtils.normalizeUserType`), in admin mode too.
-  Outside admin mode the person must have a grant on the model as stored: their
-  own, or a team's they are in; the model being public is not enough. It hides
-  what is not on this model (`ModelUsagePathView.toMap(path, true, true)`): the
-  `ALL_MODELS` and `PLATFORM` steps have no `rules` and say
-  `"rulesHidden": true`, and `TEAM` steps have no `teamTotal`. The person's own
-  paths and admin mode show everything (`ModelUsagePathView.toMap(path,
-  true)`).
 
 ## Errors
 
@@ -658,9 +272,9 @@ always thrown:
 
 ```java
 new PermissionErrorRules(endDate)
-        .illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
-        .illegalArgument(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS, "This user already has access ...")
-        .illegalArgumentWithIds(PermissionProblem.ErrorCode.NO_ACCESS, "... the following users ...: ")
+        .illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+        .illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS, "This user already has access ...")
+        .illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS, "... the following users ...: ")
 ```
 
 - `illegalAccess(code, text)` and `illegalArgument(code, text)` give one text.
@@ -701,22 +315,16 @@ constructor). Anything else gets the batch's own `PermissionBatchException`.
 - Someone without permission on a target learns nothing from asking. Check
   who may see or change a target before anything that reads it or the people in
   the batch, and give them the same answer whether the target is missing, is not
-  theirs, or is the wrong type (such as a login provider group asked about as a
+  theirs, or is the wrong kind (such as a login provider group asked about as a
   custom team). Only admin mode, and those who may see the target, are told
   why it cannot be changed. A refused change never says anything about its
   person: whether they exist, have access, or are a member.
 - A new option is a private field with its doc comment, a builder that turns it
   on, an accessor, and the check or write in `PermissionBatchUtils` that reads it.
-- A new target resource type needs, together: the `TargetResourceType` value, a
+- A new target kind needs, together: the `Kind` value, a
   `PermissionTargetResource` factory, `describe()`, the permissions, checks,
   reads and writes in `PermissionBatchUtils`, and the type in
   `libs/sdk/src/api/access.ts`.
-- A new subject category needs, together: the `SubjectCategory` value, a
-  `PermissionSubject` factory, `describe()`, its own read, validation and write
-  in `PermissionBatchUtils` (`readGranteeChangeFields`, `validateGranteeChange`
-  and `writeGranteeGrant` are the ones for `ENGINE`), its key in `subjectKey`,
-  its branch in `blockForNoPermission` and in `PermissionBatchAudit`, and the
-  category in `libs/sdk/src/api/access.ts`.
 - A new problem code needs a doc comment on the `Code` value and a check in
   `PermissionBatchUtils` that sets it. Methods that need their own message for
   it add a rule to their `PermissionErrorRules`.
@@ -731,15 +339,4 @@ Tests live in `test/prerna/auth/utils`:
   reads and admin mode, through `SecurityAccessPermissionBatchUtils`.
 - `PermissionBatchUtilsSaveChangesUnitTests`: the options and rules the single
   and bulk permission methods share.
-- `PermissionBatchUtilsUsageLimitUnitTests`: usage limits on a model's grants,
-  its public use and its total: how they are read, who may set them, what is
-  refused, the engine user methods and project propagation, and the reads.
-- `SecurityModelUsageLimitUtilsUnitTests`: how limits are stored, one row for
-  each key, and which one applies, on the security database's own tables.
 - `EffectivePermissionUtilsUnitTests`: the effective access view.
-- `EngineGranteePermissionUnitTests`: an app's or engine's permission on an
-  engine: who gives it, what it can be, how it is saved, read and cleaned up.
-- `SecurityEngineAccessUtilsUnitTests`: what the engine proxy's check reads.
-
-`test/prerna/auth/access/ModelUsagePathViewUnitTests` covers the path view, in
-full and with the limits on other models hidden.

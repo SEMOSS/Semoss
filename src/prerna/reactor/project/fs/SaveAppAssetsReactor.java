@@ -31,39 +31,43 @@ import java.util.List;
 
 import org.json.JSONObject;
 
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.FileSystemUtil;
-import prerna.util.FileSystemUtil.SavedAsset;
 
 public class SaveAppAssetsReactor extends AbstractSaveAppAssetsReactor {
 
 	public SaveAppAssetsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey(),
-				ReactorKeysEnum.OVERRIDE.getKey() };
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0 };
+				ReactorKeysEnum.CONTENT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
+		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
 	@Override
-	protected List<SavedAsset> saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents,
-			boolean override) {
-		return FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents, override);
+	protected void saveAssetFiles(String assetFolder, List<String> filePaths, List<String> contents) {
+		FileSystemUtil.saveAssetFiles(assetFolder, filePaths, contents);
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Saves one or more files to the project's assets folder and commits them to the project's git repository.")
-				.key(ReactorKeysEnum.PROJECT, "The unique id for the project/app")
-				.key(ReactorKeysEnum.FILE_PATH,
-						"Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
-				.key(ReactorKeysEnum.CONTENT, """
-						Contents of the file(s) to save. \
-						For convenience, instead of escaping quotes or backslashes you can wrap \
-						the input within "<encode>your_text</encode>" and the system will encode it for you.
-						""").key(ReactorKeysEnum.COMMENT_KEY,
-						"Comment to add while saving the files within the git repository for the project");
+	public String getReactorDescription() {
+		return "Saves one or more files to the project's assets folder and commits them to the project's git repository.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The unique id for the project/app";
+		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
+			return "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
+		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
+			return """
+					Contents of the file(s) to save. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
+		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
+			return "Comment to add while saving the files within the git repository for the project";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 	@Override

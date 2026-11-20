@@ -63,10 +63,6 @@ class AskModelEngineResponse2(BaseModel):
     thinking_tokens: Optional[int] = Field(
         default=None, serialization_alias="numberOfThinkingTokens"
     )
-    # True when the response stopped at an output maximum the usage ceiling lowered.
-    usage_capped: Optional[bool] = Field(
-        default=None, serialization_alias="usageCapped"
-    )
     schemaVersion: Optional[int] = None
     io: Optional[str] = None
     parts: Optional[List[Dict[str, Any]]] = None
@@ -139,7 +135,9 @@ class EmbeddingsModelEngineResponse2(BaseModel):
     response_tokens: int = Field(
         default=0, serialization_alias="numberOfTokensInResponse"
     )
-    prompt_tokens: int = Field(default=0, serialization_alias="numberOfTokensInPrompt")
+    prompt_tokens: int = Field(
+        default=0, serialization_alias="numberOfTokensInPrompt"
+    )
     metadata: Optional[Dict[str, Any]] = None
 
     model_config = {"populate_by_name": True, "serialize_by_alias": True}
@@ -171,7 +169,9 @@ class MultiModalEmbeddingsResponse(BaseModel):
     text: List[MultiModalEmbeddingItem] = Field(default_factory=list)
     image: List[MultiModalEmbeddingItem] = Field(default_factory=list)
     video: List[MultiModalEmbeddingItem] = Field(default_factory=list)
-    prompt_tokens: int = Field(default=0, serialization_alias="numberOfTokensInPrompt")
+    prompt_tokens: int = Field(
+        default=0, serialization_alias="numberOfTokensInPrompt"
+    )
     metadata: Optional[Dict[str, Any]] = None
 
     model_config = {"populate_by_name": True, "serialize_by_alias": True}

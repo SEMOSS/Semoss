@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.collaboration.CollaborationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -44,7 +45,11 @@ public abstract class AbstractCollaborationReactor extends AbstractReactor {
 		if (!Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
 			throw new IllegalArgumentException("Collaboration is not enabled on this instance");
 		}
-		return requireUser();
+		User user = this.insight.getUser();
+		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
+			throwAnonymousUserError();
+		}
+		return user;
 	}
 
 	// true or false param, or null when absent

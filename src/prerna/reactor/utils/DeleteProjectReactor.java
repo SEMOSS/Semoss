@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.DeleteProjectRunner;
@@ -51,16 +52,14 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.AuditEventType;
-import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
 /**
- * Deletes projects owned by the caller and removes project-type-specific
- * references before the project assets are torn down.
+ * Deletes projects owned by the caller and removes project-type-specific references before the
+ * project assets are torn down.
  */
 public class DeleteProjectReactor extends AbstractReactor {
 
@@ -77,15 +76,19 @@ public class DeleteProjectReactor extends AbstractReactor {
 			User user = this.insight.getUser();
 
 			// we may have the alias
-			if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
-				throwFunctionalityOnlyExposedForAdminsError();
-			}
+			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
+			if (!isAdmin) {
+					if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
+					throwFunctionalityOnlyExposedForAdminsError();
+				}
 
-			boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-			if (!isOwner) {
-				throw new IllegalArgumentException("Project " + projectId
-						+ " does not exist or user does not have permissions to delete the project. "
-						+ "User must be the owner to perform this function.");
+				boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
+				if (!isOwner) {
+					throw new IllegalArgumentException("Project " + projectId
+							+ " does not exist or user does not have permissions to delete the project. "
+							+ "User must be the owner to perform this function.");
+				}
 			}
 
 			if (SystemDefaultEngines.getSystemApps().contains(projectId)
@@ -97,11 +100,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 			}
 
 			IProject project = Utility.getProject(projectId);
-			IProject.PROJECT_TYPE projectType = project.getProjectType();
-			String projectName = project.getProjectName();
 			deleteProject(project);
-			UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_DELETE, projectId, projectName,
-					projectType == null ? null : Map.of("projectType", projectType.name()));
 			// also remove this project in case it is the current insight's project id
 			if (projectId.equals(this.insight.getContextProjectId())) {
 				this.insight.setContextProjectId(null);
@@ -139,7 +138,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 		// remove from DIHelper
 		UploadUtilities.removeProjectFromDIHelper(projectId);
 		// remove from security
-		SecurityProjectUtils.deleteProject(this.insight.getUser(), projectId);
+		SecurityProjectUtils.deleteProject(projectId);
 		// remove from user tracking
 		UserTrackingUtils.deleteProject(projectId);
 

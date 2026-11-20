@@ -34,7 +34,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -94,8 +93,7 @@ public class MicrosoftTeamsGetChatReactor extends AbstractMicrosoftTeamsMessageR
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Read one Microsoft Teams chat, including who is in it.")
-				.key(CHAT_ID, CHAT_ID_DESCRIPTION);
+	public String getReactorDescription() {
+		return "Read one Microsoft Teams chat, including who is in it.";
 	}
 }

@@ -63,11 +63,7 @@ public abstract class AbstractOWLEngine implements IExplorable {
 
 	private static final String SEMOSS_URI = "http://semoss.org/ontologies/";
 	private static final String CONTAINS_BASE_URI = SEMOSS_URI + Constants.DEFAULT_RELATION_CLASS + "/Contains";
-	// @formatter:off
-	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { "
-			+ "{ <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } "
-			+ "} LIMIT 1";
-	// @formatter:on
+	private static final String GET_BASE_URI_FROM_OWL = "SELECT DISTINCT ?entity WHERE { { <SEMOSS:ENGINE_METADATA> <CONTAINS:BASE_URI> ?entity } } LIMIT 1";
 
 	// kept as a reference for the from/to neighbor traversal queries
 //	private static final String FROM_SPARQL = "SELECT DISTINCT ?entity WHERE { "
@@ -149,24 +145,20 @@ public abstract class AbstractOWLEngine implements IExplorable {
 
 	@Override
 	public Vector<String> getFromNeighbors(String physicalNodeType, int neighborHood) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?node WHERE { "
-				+ "BIND(<" + physicalNodeType + "> AS ?start) "
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> " + Q_RELATION + "} "
-				+ "{?node ?rel ?start}"
-				+ "}";
-		// @formatter:on
+		// this is where this node is the from node
+		// String physicalNodeType = getTransformedNodeName(Constants.DISPLAY_URI +
+		// Utility.getInstanceName(nodeType), false);
+		String query = "SELECT DISTINCT ?node WHERE { BIND(<" + physicalNodeType + "> AS ?start) {?rel <"
+				+ RDFS.SUBPROPERTYOF + "> " + Q_RELATION + "} " + "{?node ?rel ?start}}";
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
 	public Vector<String[]> getFromNeighborsWithRelation(String physicalNodeType, int neighborHood) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?node ?rel WHERE { "
-				+ "BIND(<" + physicalNodeType + "> AS ?start) "
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> " + Q_RELATION + "} "
-				+ "{?node ?rel ?start}"
-				+ "}";
-		// @formatter:on
+		// this is where this node is the from node
+		// String physicalNodeType = getTransformedNodeName(Constants.DISPLAY_URI +
+		// Utility.getInstanceName(nodeType), false);
+		String query = "SELECT DISTINCT ?node ?rel WHERE { BIND(<" + physicalNodeType + "> AS ?start) {?rel <"
+				+ RDFS.SUBPROPERTYOF + "> " + Q_RELATION + "} " + "{?node ?rel ?start}}";
 		return Utility.getVectorArrayOfReturn(query, baseDataEngine, true);
 	}
 
@@ -174,13 +166,8 @@ public abstract class AbstractOWLEngine implements IExplorable {
 	@Override
 	public Vector<String> getToNeighbors(String physicalNodeType, int neighborHood) {
 		// this is where this node is the to node
-		// @formatter:off
-		String query = "SELECT DISTINCT ?node WHERE { "
-				+ "BIND(<" + physicalNodeType + "> AS ?start) "
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> " + Q_RELATION + "} "
-				+ "{?start ?rel ?node}"
-				+ "}";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?node WHERE { BIND(<" + physicalNodeType + "> AS ?start) {?rel <"
+				+ RDFS.SUBPROPERTYOF + "> " + Q_RELATION + "} " + "{?start ?rel ?node}}";
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
@@ -260,12 +247,8 @@ public abstract class AbstractOWLEngine implements IExplorable {
 	}
 
 	public Vector<String> getConcepts() {
-		// @formatter:off
-		String query = "SELECT ?concept WHERE { "
-				+ "{?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
-				+ " Filter(?concept != " + Q_CONCEPT + ") "
-				+ "}";
-		// @formatter:on
+		String query = "SELECT ?concept WHERE { {?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
+				+ " Filter(?concept != " + Q_CONCEPT + ") }";
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
@@ -300,21 +283,16 @@ public abstract class AbstractOWLEngine implements IExplorable {
 
 	@Override
 	public String getDataTypes(String uri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?TYPE WHERE { "
-				+ "{<" + uri + "> <" + RDFS.CLASS.toString() + "> ?TYPE} "
-				+ "}";
-		// @formatter:on
-		String dataType = null;
+		String query = "SELECT DISTINCT ?TYPE WHERE { {<" + uri + "> <" + RDFS.CLASS.toString() + "> ?TYPE} }";
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query)) {
 			if (wrapper.hasNext()) {
-				dataType = wrapper.next().getValues()[0].toString();
+				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error executing OWL query on engine {}", this.engineName, e);
 		}
 
-		return dataType;
+		return null;
 	}
 
 	@Override
@@ -323,11 +301,7 @@ public abstract class AbstractOWLEngine implements IExplorable {
 		for (String uri : uris) {
 			bindBuilder.append("(<").append(uri).append(">)");
 		}
-		// @formatter:off
-		String query = "SELECT DISTINCT ?NODE ?TYPE WHERE { "
-				+ "{?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} "
-				+ "} ";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?NODE ?TYPE WHERE { {?NODE <" + RDFS.CLASS.toString() + "> ?TYPE} } ";
 		String bindings = bindBuilder.toString();
 		if (!bindings.isEmpty()) {
 			query += "BINDINGS ?NODE {" + bindings + "}";
@@ -351,23 +325,20 @@ public abstract class AbstractOWLEngine implements IExplorable {
 
 	@Override
 	public String getAdtlDataTypes(String uri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?ADTLTYPE WHERE { "
-				+ "{<" + uri + "> <" + ADDITIONAL_DATATYPE_RELATION_URI + "> ?ADTLTYPE} "
-				+ "}";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?ADTLTYPE WHERE { {<" + uri + "> <" + ADDITIONAL_DATATYPE_RELATION_URI
+				+ "> ?ADTLTYPE} }";
 
-		String adtlType = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query)) {
 			if (wrapper.hasNext()) {
 				IHeadersDataRow row = wrapper.next();
-				adtlType = row.getValues()[0].toString().replace("ADTLTYPE:", "");
+				String adtlType = row.getValues()[0].toString().replace("ADTLTYPE:", "");
+				return adtlType;
 			}
 		} catch (Exception e) {
 			classLogger.error("Error executing OWL query on engine {}", this.engineName, e);
 		}
 
-		return adtlType;
+		return null;
 	}
 
 	@Override
@@ -376,11 +347,8 @@ public abstract class AbstractOWLEngine implements IExplorable {
 		for (String uri : uris) {
 			bindBuilder.append("(<").append(uri).append(">)");
 		}
-		// @formatter:off
-		String query = "SELECT DISTINCT ?NODE ?ADTLTYPE WHERE { "
-				+ "{?NODE <" + ADDITIONAL_DATATYPE_RELATION_URI + "> ?ADTLTYPE} "
-				+ "} ";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?NODE ?ADTLTYPE WHERE { {?NODE <" + ADDITIONAL_DATATYPE_RELATION_URI
+				+ "> ?ADTLTYPE} } ";
 		String bindings = bindBuilder.toString();
 		if (!bindings.isEmpty()) {
 			query += "BINDINGS ?NODE {" + bindings + "}";
@@ -410,15 +378,10 @@ public abstract class AbstractOWLEngine implements IExplorable {
 		// create this from the query struct
 		Map<String, MetamodelVertex> tableToVert = new TreeMap<>();
 
-		// @formatter:off
-		String getSelectorsInformation = "SELECT DISTINCT ?concept ?property WHERE { "
-				+ "{?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
-				+ "OPTIONAL {"
-				+ "{?property " + Q_RDF_TYPE + " <" + CONTAINS_BASE_URI + "> } "
-				+ "{?concept <" + OWL.DatatypeProperty.toString() + "> ?property } "
-				+ "}" // END OPTIONAL
+		String getSelectorsInformation = "SELECT DISTINCT ?concept ?property WHERE { " + "{?concept " + Q_SUBCLASS_OF
+				+ " " + Q_CONCEPT + " }" + "OPTIONAL {" + "{?property " + Q_RDF_TYPE + " <" + CONTAINS_BASE_URI + "> } "
+				+ "{?concept <" + OWL.DatatypeProperty.toString() + "> ?property } " + "}" // END OPTIONAL
 				+ "}"; // END WHERE
-		// @formatter:on
 
 		// execute the query and loop through and add the nodes and props
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine,
@@ -449,16 +412,12 @@ public abstract class AbstractOWLEngine implements IExplorable {
 		List<Map<String, String>> relationships = new ArrayList<>();
 
 		// query to get all the relationships
-		// @formatter:off
 		String getRelationshipsInformation = "SELECT DISTINCT ?fromConceptualConcept ?rel ?toConceptualConcept WHERE { "
-				+ "{?fromConcept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + "} "
-				+ "{?toConcept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + "} "
-				+ "{?rel <" + RDFS.SUBPROPERTYOF.toString() + "> " + Q_RELATION + "} "
-				+ "{?fromConcept ?rel ?toConcept} "
-				+ "{?fromConcept " + Q_CONCEPTUAL + " ?fromConceptualConcept }"
-				+ "{?toConcept " + Q_CONCEPTUAL + " ?toConceptualConcept }"
-				+ "}"; // END WHERE
-		// @formatter:on
+				+ "{?fromConcept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + "} " + "{?toConcept " + Q_SUBCLASS_OF + " "
+				+ Q_CONCEPT + "} " + "{?rel <" + RDFS.SUBPROPERTYOF.toString() + "> " + Q_RELATION + "} "
+				+ "{?fromConcept ?rel ?toConcept} " + "{?fromConcept " + Q_CONCEPTUAL + " ?fromConceptualConcept }"
+				+ "{?toConcept " + Q_CONCEPTUAL + " ?toConceptualConcept }" + "}"; // END
+																					// WHERE
 
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine,
 				getRelationshipsInformation)) {
@@ -517,36 +476,23 @@ public abstract class AbstractOWLEngine implements IExplorable {
 
 	@Override
 	public List<String> getPixelConcepts() {
-		// @formatter:off
-		String query = "SELECT ?pixelName WHERE {"
-				+ " {?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
-				+ " {?concept " + Q_PIXEL + " ?pixelName }"
-				+ " }";
-		// @formatter:on
+		String query = "SELECT ?pixelName WHERE {" + " {?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
+				+ " {?concept " + Q_PIXEL + " ?pixelName }" + " }";
 		return Utility.getVectorOfReturn(query, baseDataEngine, false);
 	}
 
 	@Override
 	public List<String> getPixelSelectors(String conceptPixelName) {
 		// first grab the concept if it has data
-		// @formatter:off
-		String query = "SELECT DISTINCT ?pixelName WHERE { "
-				+ " BIND(<" + BASE_NODE_URI + "/" + conceptPixelName + "> as ?concept) "
-				+ " {?concept " + Q_PIXEL + " ?pixelName }"
-				+ " FILTER NOT EXISTS {?concept " + Q_RDFS_DOMAIN + " \"noData\" }"
-				+ " }";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?pixelName WHERE { " + " BIND(<" + BASE_NODE_URI + "/" + conceptPixelName
+				+ "> as ?concept) " + " {?concept " + Q_PIXEL + " ?pixelName }" + " FILTER NOT EXISTS {?concept "
+				+ Q_RDFS_DOMAIN + " \"noData\" }" + " }";
 		// then grab the properties of the concept which always have data
 		Vector<String> retArr = Utility.getVectorOfReturn(query, baseDataEngine, false);
-		// @formatter:off
-		query = "SELECT DISTINCT ?pixelName WHERE { "
-				+ " BIND(<" + BASE_NODE_URI + "/" + conceptPixelName + "> as ?concept) "
-				+ " {?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " } "
-				+ " {?property " + Q_RDF_TYPE + " " + Q_CONTAINS + "} "
-				+ " {?concept " + Q_DATATYPE_PROPERTY + " ?property} "
-				+ " {?property " + Q_PIXEL + " ?pixelName}"
-				+ " }";
-		// @formatter:on
+		query = "SELECT DISTINCT ?pixelName WHERE { " + " BIND(<" + BASE_NODE_URI + "/" + conceptPixelName
+				+ "> as ?concept) " + " {?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " } " + " {?property "
+				+ Q_RDF_TYPE + " " + Q_CONTAINS + "} " + " {?concept " + Q_DATATYPE_PROPERTY + " ?property} "
+				+ " {?property " + Q_PIXEL + " ?pixelName}" + " }";
 		Vector<String> pArr = Utility.getVectorOfReturn(query, baseDataEngine, true);
 		for (String p : pArr) {
 			retArr.add(conceptPixelName + "__" + Utility.getClassName(p));
@@ -558,15 +504,10 @@ public abstract class AbstractOWLEngine implements IExplorable {
 	@Override
 	public List<String> getPropertyPixelSelectors(String conceptPixelName) {
 		// then grab the properties of the concept which always have data
-		// @formatter:off
-		String query = "SELECT DISTINCT ?pixelName WHERE { "
-				+ " BIND(<" + BASE_NODE_URI + "/" + conceptPixelName + "> as ?concept) "
-				+ " {?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " } "
-				+ " {?property " + Q_RDF_TYPE + " " + Q_CONTAINS + "} "
-				+ " {?concept " + Q_DATATYPE_PROPERTY + " ?property} "
-				+ " {?property " + Q_PIXEL + " ?pixelName}"
-				+ " }";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?pixelName WHERE { " + " BIND(<" + BASE_NODE_URI + "/" + conceptPixelName
+				+ "> as ?concept) " + " {?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " } " + " {?property "
+				+ Q_RDF_TYPE + " " + Q_CONTAINS + "} " + " {?concept " + Q_DATATYPE_PROPERTY + " ?property} "
+				+ " {?property " + Q_PIXEL + " ?pixelName}" + " }";
 		List<String> retArr = new ArrayList<>();
 		Vector<String> pArr = Utility.getVectorOfReturn(query, baseDataEngine, false);
 		for (String p : pArr) {
@@ -578,40 +519,26 @@ public abstract class AbstractOWLEngine implements IExplorable {
 
 	@Override
 	public List<String> getPhysicalConcepts() {
-		// @formatter:off
-		String query = "SELECT ?concept WHERE {"
-				+ "{?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
-				+ "Filter(?concept != " + Q_CONCEPT + ")"
-				+ "}";
-		// @formatter:on
+		String query = "SELECT ?concept WHERE {" + "{?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
+				+ "Filter(?concept != " + Q_CONCEPT + ")" + "}";
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
 	@Override
 	public List<String[]> getPhysicalRelationships() {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { "
-				+ "{?start " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
-				+ "{?end " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
-				+ "{?rel <" + RDFS.SUBPROPERTYOF + "> " + Q_RELATION + "} "
-				+ "{?start ?rel ?end}"
-				+ "Filter(?rel != <" + RDFS.SUBPROPERTYOF + ">)"
-				+ "Filter(?rel != " + Q_RELATION + ")"
-				+ "}";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?start ?end ?rel WHERE { " + "{?start " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
+				+ "{?end " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }" + "{?rel <" + RDFS.SUBPROPERTYOF + "> " + Q_RELATION
+				+ "} " + "{?start ?rel ?end}" + "Filter(?rel != <" + RDFS.SUBPROPERTYOF + ">)" + "Filter(?rel != "
+				+ Q_RELATION + ")" + "}";
 		return Utility.getVectorArrayOfReturn(query, baseDataEngine, true);
 	}
 
 	@Override
 	public List<String> getPropertyUris4PhysicalUri(String physicalUri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?property WHERE { "
-				+ "BIND(<" + physicalUri + "> AS ?concept) "
-				+ "{?concept " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " } "
-				// + "{?property " + Q_RDF_TYPE + " " + Q_CONTAINS + "} "
-				+ "{?concept " + Q_DATATYPE_PROPERTY + " ?property} "
-				+ "}";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?property WHERE { " + "BIND(<" + physicalUri + "> AS ?concept) " + "{?concept "
+				+ Q_SUBCLASS_OF + " " + Q_CONCEPT + " } "
+//					+ "{?property " + Q_RDF_TYPE + " " + Q_CONTAINS + "} "
+				+ "{?concept " + Q_DATATYPE_PROPERTY + " ?property} " + "}";
 		return Utility.getVectorOfReturn(query, baseDataEngine, true);
 	}
 
@@ -633,20 +560,13 @@ public abstract class AbstractOWLEngine implements IExplorable {
 		String query = null;
 		if (semossPropertyName == null) {
 			// this is just a concept
-			// @formatter:off
-			query = "SELECT DISTINCT ?concept WHERE { "
-					+ " BIND(<" + BASE_NODE_URI + "/" + semossConceptName + "> as ?pixelName) "
-					+ " {?concept " + Q_PIXEL + " ?pixelName } "
-					+ " }";
-			// @formatter:on
+			query = "SELECT DISTINCT ?concept WHERE { " + " BIND(<" + BASE_NODE_URI + "/" + semossConceptName
+					+ "> as ?pixelName) " + " {?concept " + Q_PIXEL + " ?pixelName } " + " }";
 		} else {
 			// this is a property
-			// @formatter:off
-			query = "SELECT DISTINCT ?property WHERE { "
-					+ " BIND(<" + BASE_PROPERTY_URI + "/" + semossPropertyName + "/" + semossConceptName + "> as ?pixelName) "
-					+ " {?property " + Q_PIXEL + " ?pixelName } "
+			query = "SELECT DISTINCT ?property WHERE { " + " BIND(<" + BASE_PROPERTY_URI + "/" + semossPropertyName
+					+ "/" + semossConceptName + "> as ?pixelName) " + " {?property " + Q_PIXEL + " ?pixelName } "
 					+ " }";
-			// @formatter:on
 		}
 
 		List<String> retArr = Utility.getVectorOfReturn(query, baseDataEngine, true);
@@ -666,12 +586,8 @@ public abstract class AbstractOWLEngine implements IExplorable {
 	 * which could point to multiple concepts
 	 */
 	public String getPixelUriFromPhysicalUri(String physicalUri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?pixel WHERE { "
-				+ " BIND(<" + physicalUri + "> as ?physicalUri) "
-				+ " {?physicalUri " + Q_PIXEL + " ?pixel } "
-				+ " }";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?pixel WHERE { " + " BIND(<" + physicalUri + "> as ?physicalUri) "
+				+ " {?physicalUri " + Q_PIXEL + " ?pixel } " + " }";
 		List<String> retArr = Utility.getVectorOfReturn(query, baseDataEngine, true);
 		if (!retArr.isEmpty()) {
 			if (retArr.size() > 1) {
@@ -684,13 +600,9 @@ public abstract class AbstractOWLEngine implements IExplorable {
 
 	@Override
 	public String getConceptPixelUriFromPhysicalUri(String conceptPhysicalUri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?pixel WHERE { "
-				+ " BIND(<" + conceptPhysicalUri + "> as ?physicalUri) "
-				+ " {?physicalUri " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
-				+ " {?physicalUri " + Q_PIXEL + " ?pixel } "
-				+ " }";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?pixel WHERE { " + " BIND(<" + conceptPhysicalUri + "> as ?physicalUri) "
+				+ " {?physicalUri " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }" + " {?physicalUri " + Q_PIXEL
+				+ " ?pixel } " + " }";
 		List<String> retArr = Utility.getVectorOfReturn(query, baseDataEngine, true);
 		if (!retArr.isEmpty()) {
 			if (retArr.size() > 1) {
@@ -707,19 +619,13 @@ public abstract class AbstractOWLEngine implements IExplorable {
 	 * {@link #getPixelUriFromPhysicalUri(String)}
 	 */
 	public String getPropertyPixelUriFromPhysicalUri(String conceptPhysicalUri, String propertyPhysicalUri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?pixel ?parentPixel WHERE { "
-				+ " BIND(<" + propertyPhysicalUri + "> as ?propertyPhysicalUri) "
-				+ " BIND(<" + conceptPhysicalUri + "> as ?conceptPhysicalUri) "
-				+ " {?conceptPhysicalUri " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
-				+ " {?conceptPhysicalUri " + Q_PIXEL + " ?parentPixel } "
-				+ " {?propertyPhysicalUri " + Q_RDF_TYPE + " " + Q_CONTAINS + "} "
-				+ "	{?conceptPhysicalUri " + Q_DATATYPE_PROPERTY + " ?propertyPhysicalUri} "
-				+ " {?propertyPhysicalUri " + Q_PIXEL + " ?pixel } "
-				+ " }";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?pixel ?parentPixel WHERE { " + " BIND(<" + propertyPhysicalUri
+				+ "> as ?propertyPhysicalUri) " + " BIND(<" + conceptPhysicalUri + "> as ?conceptPhysicalUri) "
+				+ " {?conceptPhysicalUri " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }" + " {?conceptPhysicalUri " + Q_PIXEL
+				+ " ?parentPixel } " + " {?propertyPhysicalUri " + Q_RDF_TYPE + " " + Q_CONTAINS + "} "
+				+ "	{?conceptPhysicalUri " + Q_DATATYPE_PROPERTY + " ?propertyPhysicalUri} " + " {?propertyPhysicalUri "
+				+ Q_PIXEL + " ?pixel } " + " }";
 
-		String pixelUri = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query)) {
 			String conceptName = null;
 			if (wrapper.hasNext()) {
@@ -728,74 +634,54 @@ public abstract class AbstractOWLEngine implements IExplorable {
 				String parentPixel = raw[1].toString();
 				conceptName = Utility.getInstanceName(parentPixel);
 				if (Utility.getInstanceName(propPixel).equals(conceptName)) {
-					pixelUri = propPixel;
+					return propPixel;
 				}
 			}
-			if (pixelUri == null) {
-				classLogger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! {} ::: {}", conceptPhysicalUri,
-						propertyPhysicalUri);
-				while (wrapper.hasNext()) {
-					Object[] raw = wrapper.next().getRawValues();
-					String propPixel = raw[0].toString();
-					if (Utility.getInstanceName(propPixel).equals(conceptName)) {
-						pixelUri = propPixel;
-						break;
-					}
+			classLogger.debug("UGH... WHY ARE YOU NOT UNIQUE AS PHYSICAL!!! {} ::: {}", conceptPhysicalUri,
+					propertyPhysicalUri);
+			while (wrapper.hasNext()) {
+				Object[] raw = wrapper.next().getRawValues();
+				String propPixel = raw[0].toString();
+				if (Utility.getInstanceName(propPixel).equals(conceptName)) {
+					return propPixel;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Error executing OWL query on engine {}", this.engineName, e);
 		}
-		return pixelUri;
+		return null;
 	}
 
 	@Override
 	public String getPixelSelectorFromPhysicalUri(String physicalUri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?pixel ?type WHERE { "
-				+ " {"
-				+ " BIND(\"concept\" as ?type) "
-				+ " BIND(<" + physicalUri + "> as ?physicalUri) "
-				+ " {?physicalUri " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
-				+ " {?physicalUri " + Q_PIXEL + " ?pixel } "
-				+ " }"
-				+ " UNION "
-				+ "	{"
-				+ " BIND(\"property\" as ?type) "
-				+ " BIND(<" + physicalUri + "> as ?physicalUri) "
-				+ " {?physicalUri " + Q_RDF_TYPE + " " + Q_CONTAINS + " }"
-				+ " {?physicalUri " + Q_PIXEL + " ?pixel } "
-				+ "	}"
-				+ " }";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?pixel ?type WHERE { " + " {" + " BIND(\"concept\" as ?type) " + " BIND(<"
+				+ physicalUri + "> as ?physicalUri) " + " {?physicalUri " + Q_SUBCLASS_OF + " " + Q_CONCEPT + " }"
+				+ " {?physicalUri " + Q_PIXEL + " ?pixel } " + " }" + " UNION " + "	{" + " BIND(\"property\" as ?type) "
+				+ " BIND(<" + physicalUri + "> as ?physicalUri) " + " {?physicalUri " + Q_RDF_TYPE + " " + Q_CONTAINS
+				+ " }" + " {?physicalUri " + Q_PIXEL + " ?pixel } " + "	}" + " }";
 
-		String pixelSelector = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query)) {
-			if (wrapper.hasNext()) {
+			while (wrapper.hasNext()) {
 				Object[] raw = wrapper.next().getRawValues();
 				if (raw[1].toString().contains("concept")) {
-					pixelSelector = Utility.getInstanceName(raw[0].toString());
+					return Utility.getInstanceName(raw[0].toString());
 				} else {
 					String parent = Utility.getInstanceName(raw[0].toString());
 					String child = Utility.getClassName(raw[0].toString());
-					pixelSelector = parent + "__" + child;
+					return parent + "__" + child;
 				}
 			}
 		} catch (Exception e) {
 			classLogger.error("Error executing OWL query on engine {}", this.engineName, e);
 		}
 
-		return pixelSelector;
+		return null;
 	}
 
 	@Override
 	public String getConceptualName(String physicalUri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?conceptual WHERE { "
-				+ "BIND(<" + physicalUri + "> AS ?uri) "
-				+ "{?uri <" + CONCEPTUAL_RELATION_URI + "> ?conceptual } "
-				+ "}";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?conceptual WHERE { " + "BIND(<" + physicalUri + "> AS ?uri) " + "{?uri <"
+				+ CONCEPTUAL_RELATION_URI + "> ?conceptual } " + "}";
 
 		String conceptualName = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query)) {
@@ -810,12 +696,8 @@ public abstract class AbstractOWLEngine implements IExplorable {
 
 	@Override
 	public Set<String> getLogicalNames(String physicalUri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?logical WHERE { "
-				+ "BIND(<" + physicalUri + "> AS ?uri) "
-				+ "{?uri <" + OWL.sameAs.toString() + "> ?logical } "
-				+ "}";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?logical WHERE { " + "BIND(<" + physicalUri + "> AS ?uri) " + "{?uri <"
+				+ OWL.sameAs.toString() + "> ?logical } " + "}";
 
 		Set<String> logicals = new TreeSet<>();
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query)) {
@@ -831,44 +713,34 @@ public abstract class AbstractOWLEngine implements IExplorable {
 
 	@Override
 	public String getDescription(String physicalUri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?description WHERE { "
-				+ "BIND(<" + physicalUri + "> AS ?uri) "
-				+ "{?uri <" + RDFS.COMMENT.toString() + "> ?description } "
-				+ "}";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?description WHERE { " + "BIND(<" + physicalUri + "> AS ?uri) " + "{?uri <"
+				+ RDFS.COMMENT.toString() + "> ?description } " + "}";
 
-		String description = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query)) {
 			if (wrapper.hasNext()) {
-				description = wrapper.next().getValues()[0].toString();
+				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error executing OWL query on engine {}", this.engineName, e);
 		}
 
-		return description;
+		return null;
 	}
 
 	@Override
 	@Deprecated
 	public String getLegacyPrimKey4Table(String physicalUri) {
-		// @formatter:off
-		String query = "SELECT DISTINCT ?value WHERE { "
-				+ "BIND(<" + physicalUri + "> AS ?uri) "
-				+ "{?uri <" + LEGACY_PRIM_KEY_URI + "> ?value } "
-				+ "}";
-		// @formatter:on
+		String query = "SELECT DISTINCT ?value WHERE { " + "BIND(<" + physicalUri + "> AS ?uri) " + "{?uri <"
+				+ LEGACY_PRIM_KEY_URI + "> ?value } " + "}";
 
-		String primKey = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(baseDataEngine, query)) {
 			if (wrapper.hasNext()) {
-				primKey = wrapper.next().getValues()[0].toString();
+				return wrapper.next().getValues()[0].toString();
 			}
 		} catch (Exception e) {
 			classLogger.error("Error executing OWL query on engine {}", this.engineName, e);
 		}
 
-		return primKey;
+		return null;
 	}
 }

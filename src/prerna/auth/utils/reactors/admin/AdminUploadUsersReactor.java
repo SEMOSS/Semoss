@@ -28,6 +28,7 @@
 package prerna.auth.utils.reactors.admin;
 
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -57,12 +58,11 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class AdminUploadUsersReactor extends AbstractReactor {
 
@@ -78,8 +78,6 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 	static final String USERNAME_KEY = "USERNAME";
 	static final String ADMIN_KEY = "ADMIN";
 	static final String PUBLISHER_KEY = "PUBLISHER";
-	/** Finds a user id, whatever its login type */
-	private static final String FIND_USER_ID = "SELECT ID FROM SMSS_USER WHERE ID=?";
 
 	private static String insertQuery = null;
 	private static Map<String, Integer> psIndex = new HashMap<>();
@@ -130,11 +128,23 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 
 		IRDBMSEngine database = SystemEngineRegistry.getSecurityDb();
 		long start = System.currentTimeMillis();
-		try (ExcelSheetFileIterator it = getExcelIterator(filePath);) {
-			loadExcelFile(database, it);
-		} catch (Exception e) {
-			classLogger.error("Unable to upload users from the provided file.", e);
-			throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
+		{
+			ExcelSheetFileIterator it = null;
+			try {
+				it = getExcelIterator(filePath);
+				loadExcelFile(database, it);
+			} catch (Exception e) {
+				classLogger.error("Unable to upload users from the provided file.", e);
+				throw new IllegalArgumentException("Error loading admin users : " + e.getMessage());
+			} finally {
+				if (it != null) {
+					try {
+						it.close();
+					} catch (IOException e) {
+						classLogger.error("Unable to upload users from the provided file.", e);
+					}
+				}
+			}
 		}
 		long end = System.currentTimeMillis();
 		return new NounMetadata("Time to finish = " + (end - start) + "ms", PixelDataType.CONST_STRING);
@@ -173,16 +183,6 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 		return it;
 	}
 
-	/**
-	 * Adds the people in the file who have no account yet, in one transaction.
-	 * People who have an account already are skipped. A row that cannot be read,
-	 * reaching the user limit, or a failure to save stops the import with nothing
-	 * saved.
-	 *
-	 * @param database the security database
-	 * @param helper   the rows of the file
-	 * @throws Exception when the import stops, after rolling it back
-	 */
 	private void loadExcelFile(IRDBMSEngine database, ExcelSheetFileIterator helper) throws Exception {
 		// see if there is a user limit applied
 		int currentUserCount = -1;
@@ -199,32 +199,12 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 			}
 		}
 
-		int boundUserLimit = userLimit;
-		int boundCurrentUserCount = currentUserCount;
-		AbstractSqlQueryUtil queryUtil = database.getQueryUtil();
-		int counter = QueryExecutionUtility.write(database,
-				connection -> loadExcelFile(connection, queryUtil, helper, boundUserLimit, boundCurrentUserCount));
-		logger.info("Done with updates, total rows = {}", counter);
-	}
+		Connection conn = null;
+		PreparedStatement ps = null;
+		try {
+			conn = database.getConnection();
+			ps = conn.prepareStatement(insertQuery);
 
-	/**
-	 * Reads the rows of the file and adds the people who have no account yet, in
-	 * the caller's transaction. A row whose id an account has already is skipped.
-	 *
-	 * @param connection       the connection of the caller's transaction
-	 * @param queryUtil        the security database's query utility
-	 * @param helper           the rows of the file
-	 * @param userLimit        the most users allowed, or not positive for no limit
-	 * @param currentUserCount how many users there were before the upload
-	 * @return how many people were added
-	 * @throws IllegalArgumentException when the headers are missing, or a row has
-	 *                                  no id or login type, naming the row
-	 * @throws SemossPixelException     when the user limit is reached
-	 * @throws Exception                when a statement fails
-	 */
-	private int loadExcelFile(Connection connection, AbstractSqlQueryUtil queryUtil, ExcelSheetFileIterator helper,
-			int userLimit, int currentUserCount) throws Exception {
-		try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
 			String[] excelHeaders = helper.getHeaders();
 			List<String> excelHeadersList = Arrays.asList(excelHeaders);
 
@@ -246,6 +226,11 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 			int counter = 0;
 			Object[] row = null;
 			while ((helper.hasNext())) {
+				// if we hit the limit - throw an error
+				if (userLimit > 0 && currentUserCount + 1 > userLimit) {
+					throw new SemossPixelException("User Limit exceeded the max value of " + userLimit);
+				}
+
 				row = helper.next().getRawValues();
 				// id could be string or # based on the type
 				Object idObj = row[idxId];
@@ -256,7 +241,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				if (idObj instanceof Number) {
 					id = BigDecimal.valueOf(((Number) idObj).doubleValue()).toPlainString();
 				} else {
-					id = (idObj + "").trim();
+					id = idObj + "";
 				}
 				String name = (String) row[idxName];
 				String email = (String) row[idxEmail];
@@ -271,7 +256,7 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 					throw new IllegalArgumentException("Must have the id for the user defined - check row " + counter);
 				}
 				// check if the ID already exists
-				if (userIdExists(connection, id)) {
+				if (SecurityQueryUtils.checkUserExist(id)) {
 					logger.info("User id = {} alraedy exists - skipping record for upload", id);
 					continue;
 				}
@@ -280,23 +265,31 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 					throw new IllegalArgumentException(
 							"Must have the type of login for the user defined - check row " + counter);
 				}
-				// if adding this user goes over the limit - throw an error; the users added
-				// from this file so far count toward it
-				if (userLimit > 0 && currentUserCount + counter + 1 > userLimit) {
-					throw new SemossPixelException("User Limit exceeded the max value of " + userLimit);
-				}
 				AuthProvider provider = AuthProvider.valueOf(type.trim().toUpperCase());
 				// these 2 are required
 				ps.setString(psIndex.get(TYPE_KEY), provider.toString());
-				ps.setString(psIndex.get(ID_KEY), id);
+				ps.setString(psIndex.get(ID_KEY), id.trim());
 				// boolean is always true/false and defaults to false for parseBoolean logic
 				ps.setBoolean(psIndex.get(ADMIN_KEY), admin);
 				ps.setBoolean(psIndex.get(PUBLISHER_KEY), publisher);
 
-				queryUtil.setNullableString(ps, psIndex.get(NAME_KEY), name == null ? null : name.trim());
-				queryUtil.setNullableString(ps, psIndex.get(EMAIL_KEY),
-						email == null ? null : email.trim().toLowerCase());
-				queryUtil.setNullableString(ps, psIndex.get(USERNAME_KEY), username == null ? null : username.trim());
+				if (name == null) {
+					ps.setNull(psIndex.get(NAME_KEY), java.sql.Types.VARCHAR);
+				} else {
+					ps.setString(psIndex.get(NAME_KEY), name.trim());
+				}
+
+				if (email == null) {
+					ps.setNull(psIndex.get(EMAIL_KEY), java.sql.Types.VARCHAR);
+				} else {
+					ps.setString(psIndex.get(EMAIL_KEY), email.trim().toLowerCase());
+				}
+
+				if (username == null) {
+					ps.setNull(psIndex.get(USERNAME_KEY), java.sql.Types.VARCHAR);
+				} else {
+					ps.setString(psIndex.get(USERNAME_KEY), username.trim());
+				}
 
 				// if password is there
 				// but no salt
@@ -318,21 +311,13 @@ public class AdminUploadUsersReactor extends AbstractReactor {
 				counter++;
 			}
 			ps.executeBatch();
-			return counter;
+			if (conn != null && !conn.getAutoCommit()) {
+				conn.commit();
+			}
+			logger.info("Done with updates, total rows = {}", counter);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(database, conn, ps);
 		}
-	}
-
-	/**
-	 * Whether an account has this user id, read in the caller's transaction.
-	 *
-	 * @param connection the connection of the caller's transaction
-	 * @param userId     the user id
-	 * @return whether a row of SMSS_USER has the id, whatever its login type
-	 * @throws Exception when the query fails
-	 */
-	private static boolean userIdExists(Connection connection, String userId) throws Exception {
-		return QueryExecutionUtility.queryOne(connection, FIND_USER_ID, ps -> ps.setString(1, userId),
-				rs -> rs.getString(1)) != null;
 	}
 
 }

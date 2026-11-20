@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -39,26 +40,27 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 @Deprecated
 public class DatabaseUsersReactor extends AbstractReactor {
-
-	@Deprecated
+	
 	public DatabaseUsersReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey() };
+		this.keysToGet = new String[]{ReactorKeysEnum.DATABASE.getKey()};
 	}
 
-	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String databaseId = this.keyValue.get(this.keysToGet[0]);
-
-		if (databaseId == null || (databaseId = databaseId.trim()).isEmpty()) {
+		
+		if(databaseId == null || (databaseId = databaseId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input an database id");
 		}
-
-		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+		
+		// make sure valid id for user
+		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), databaseId);
+		if(!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), databaseId)) {
+			// you dont have access
 			throw new IllegalArgumentException("Database does not exist or user does not have access to database");
 		}
-
+		
 		List<Map<String, Object>> baseInfo = SecurityEngineUtils.getDisplayDatabaseOwnersAndEditors(databaseId);
 		return new NounMetadata(baseInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.DATABASE_USERS);
 	}

@@ -38,7 +38,6 @@ import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
-import prerna.security.SessionIds;
 
 /**
  * A snapshot of the request context an agent run was submitted from, taken so
@@ -93,6 +92,9 @@ record InsightHandle(Insight insight, String insightId, String sessionId, String
 		String insightId = InsightStore.getInstance().put(clone);
 		Map<String, String> log4jContextMap = captureLog4jContext(runId, user);
 		String sessionId = ThreadStore.getSessionId();
+		if (sessionId == null || sessionId.trim().isEmpty()) {
+			sessionId = log4jContextMap.get(SemossLogUtils.SESSION_ID);
+		}
 		return new InsightHandle(clone, insightId, sessionId, ThreadStore.getRouteId(), ThreadStore.getLocalHostname(),
 				ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort(), log4jContextMap, ownsUser,
 				new AtomicBoolean());
@@ -128,7 +130,7 @@ record InsightHandle(Insight insight, String insightId, String sessionId, String
 	private static Map<String, String> captureLog4jContext(String runId, User user) {
 		Map<String, String> context = new HashMap<>(ThreadContext.getImmutableContext());
 		putIfBlank(context, SemossLogUtils.REQUEST_ID, runId);
-		putIfBlank(context, SemossLogUtils.SESSION_ID, SessionIds.hash(ThreadStore.getSessionId()));
+		putIfBlank(context, SemossLogUtils.SESSION_ID, ThreadStore.getSessionId());
 
 		if (user != null && user.getPrimaryLoginToken() != null) {
 			var token = user.getPrimaryLoginToken();

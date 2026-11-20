@@ -52,21 +52,19 @@ class LocalEmbedder(AbstractEmbedder):
 
         self.embedder = self.get_embedder()
 
-        # the tokenizer takes one maximum, max_tokens, so a max_input_tokens setting
-        # is dropped here
-        kwargs.pop(MAX_INPUT_TOKENS, None)
         self.tokenizer = HuggingfaceTokenizer(
             encoder_name=self.model_name,
             max_tokens=kwargs.pop(MAX_TOKENS, None),
+            max_input_tokens=kwargs.pop(MAX_INPUT_TOKENS, None),
         )
 
         self.key_bert_model = None
 
     def _get_tokenizer(self, init_args: Dict) -> HuggingfaceTokenizer:
-        init_args.pop(MAX_INPUT_TOKENS, None)
         tokenizer = HuggingfaceTokenizer(
             encoder_name=self.model_name,
             max_tokens=init_args.pop(MAX_TOKENS, None),
+            max_input_tokens=init_args.pop(MAX_INPUT_TOKENS, None),
         )
 
         return tokenizer

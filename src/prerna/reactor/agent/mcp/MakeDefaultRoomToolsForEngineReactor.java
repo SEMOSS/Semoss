@@ -43,6 +43,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
@@ -51,7 +52,6 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRDFDatabase;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.engine.fs.BrowseEngineAssetsReactor;
 import prerna.reactor.engine.fs.CopyEngineAssetReactor;
@@ -146,7 +146,11 @@ public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = requireUser();
+
+		User user = this.insight.getUser();
+		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
+			throwAnonymousUserError();
+		}
 
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
@@ -177,7 +181,7 @@ public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 				true);
 		JSONObject mcpJson = wrapMcpJson(mergedTools);
 		FileSystemUtil.saveAssetFiles(roomFolder, List.of(MCPUtility.PIXEL_MCP_RELATIVE_PATH),
-				List.of(mcpJson.toString(4)), true);
+				List.of(mcpJson.toString(4)));
 
 		classLogger.info("Saved {} room MCP tool(s) for {} engine '{}'", generatedTools.length(),
 				engine.getCatalogType(), engine.getEngineId());
@@ -327,11 +331,16 @@ public class MakeDefaultRoomToolsForEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Generates mcp/pixel_mcp.json in a room using the default tools for an engine type")
-				.key(ReactorKeysEnum.ENGINE,
-						"The unique id for the engine whose tools should be added to the current room");
+	public String getReactorDescription() {
+		return "Generates mcp/pixel_mcp.json in a room using the default tools for an engine type";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The unique id for the engine whose tools should be added to the current room";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 	@Override

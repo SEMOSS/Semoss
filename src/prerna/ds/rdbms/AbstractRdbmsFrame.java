@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ds.rdbms;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -53,6 +54,7 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.query.querystruct.transform.QSRenameTableConverter;
 import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.reactor.imports.ImportUtility;
+import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
@@ -231,7 +233,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		if (isEmpty()) {
 			return 0;
 		}
-		return this.builder.getNumRows(tableName);
+		return this.builder.getNumRecords(tableName);
 	}
 
 	@Override
@@ -255,7 +257,7 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 		}
 		IQueryInterpreter interp = getQueryInterpreter();
 		interp.setQueryStruct(qs);
-		interp.setLogger(AbstractRdbmsFrame.classLogger);
+		interp.setLogger(this.classLogger);
 		String iteratorQuery = interp.composeQuery();
 		classLogger.info("Done generating SQL query");
 		return query(iteratorQuery);
@@ -268,18 +270,28 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 
 		HardSelectQueryStruct qs = new HardSelectQueryStruct();
 		qs.setQuery(query);
-		try (IRawSelectWrapper it = query(qs)) {
+		IRawSelectWrapper it = null;
+		try {
+			it = query(qs);
 			while (it.hasNext()) {
 				data.add(Arrays.asList(it.next().getValues()));
 			}
-			retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr(it.getTypes()));
-			retMap.put("columns", it.getHeaders());
 		} catch (Exception e) {
 			classLogger.error("Failed to execute sql query: {}", query, e);
 			throw new IllegalArgumentException("Error executing sql: " + query);
+		} finally {
+			if (it != null) {
+				try {
+					it.close();
+				} catch (IOException e) {
+					classLogger.error("Failed to close the query iterator after executing sql", e);
+				}
+			}
 		}
 
 		retMap.put("data", data);
+		retMap.put("types", SemossDataType.convertSemossDataTypeArrToStringArr(it.getTypes()));
+		retMap.put("columns", it.getHeaders());
 		return retMap;
 	}
 
@@ -302,4 +314,24 @@ public abstract class AbstractRdbmsFrame extends AbstractTableDataFrame {
 	public IQueryInterpreter getQueryInterpreter() {
 		return getQueryUtil().getInterpreter(this);
 	}
+
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Legacy methods... do not require
+	 */
+
+	@Override
+	public void processDataMakerComponent(DataMakerComponent component) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public String getDataMakerName() {
+		return null;
+	}
+
 }

@@ -27,9 +27,7 @@
  *******************************************************************************/
 package prerna.util.git;
 
-import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
-import prerna.om.ThreadStore;
 
 /**
  * A resolved engine or project: its id, the version folder holding the git
@@ -64,11 +62,7 @@ public final class GitTargetHandle {
 	 */
 	public void pushToCluster() {
 		if (ClusterUtil.IS_CLUSTER) {
-			User user = ThreadStore.getUser();
-			Thread.startVirtualThread(() -> {
-				ThreadStore.setUser(user);
-				this.pushClusterLambda.run();
-			});
+			Thread.startVirtualThread(this.pushClusterLambda);
 		}
 	}
 }

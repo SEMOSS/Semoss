@@ -77,9 +77,7 @@ public class GetSurveyMonkeySurveysReactor extends AbstractReactor {
 		params.put("per_page", 1000);
 		params.put("sort_order", "DESC");
 		// make the call
-		String output = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(),
-				HttpHelperUtility.withQueryParameters(url_str, params),
-				HttpHelperUtility.bearerJsonHeaders(accessToken));
+		String output = HttpHelperUtility.makeGetCall(url_str, accessToken, params, true);
 
 		// fill the bean with the return
 		Object C = BeanFiller.fillFromJson(output, jsonPattern, beanProps, new RemoteItem());

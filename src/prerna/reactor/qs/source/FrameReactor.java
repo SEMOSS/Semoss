@@ -94,7 +94,7 @@ public class FrameReactor extends AbstractQueryStructReactor {
 		}
 
 		if (this.insight != null) {
-			return this.insight.getCurrentFrame();
+			return (ITableDataFrame) this.insight.getDataMaker();
 		}
 		return null;
 	}

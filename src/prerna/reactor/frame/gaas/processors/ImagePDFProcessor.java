@@ -50,7 +50,7 @@ import prerna.util.Constants;
 
 public class ImagePDFProcessor extends AbstractFileImageProcessor {
 
-	private static final Logger classLogger = LogManager.getLogger(ImagePDFProcessor.class);
+	private static final Logger classLogger = LogManager.getLogger(PDFProcessor.class);
 
 	public ImagePDFProcessor(String filePath, VectorDatabaseCSVWriter writer) {
 		super(filePath, writer);

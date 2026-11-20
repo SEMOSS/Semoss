@@ -41,18 +41,12 @@ import prerna.util.RuntimeTimeContext;
 public interface BrainClassifier {
 
 	/**
-	 * What a classifier sees: the gated thread, never more. earlier: the messages before the
-	 * newest are included (the default; COLLAB_CLASSIFIER_WINDOW 0 for an engine leaves them out).
+	 * What a classifier sees: the gated thread, never more. earlier: the engine's
+	 * window fits the earlier messages too (COLLAB_CLASSIFIER_WINDOW).
 	 * currentTime is captured by the server before scoring, with the owner's timezone.
 	 */
 	record ThreadInput(String threadId, String ownerName, String subject, List<String> participants,
-			List<Message> messages, boolean earlier, RuntimeTimeContext currentTime, Map<String, Object> outlook) {
-
-		// outlook: what the mailbox says (the owner's folders and categories, their flag); null when nothing
-		public ThreadInput(String threadId, String ownerName, String subject, List<String> participants,
-				List<Message> messages, boolean earlier, RuntimeTimeContext currentTime) {
-			this(threadId, ownerName, subject, participants, messages, earlier, currentTime, null);
-		}
+			List<Message> messages, boolean earlier, RuntimeTimeContext currentTime) {
 	}
 
 	/**
@@ -92,15 +86,6 @@ public interface BrainClassifier {
 	String version();
 
 	Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight);
-
-	/**
-	 * How surely a machine-sent message needs the owner personally to act (a ticket assigned to them, an
-	 * approval waiting on them), in [0, 1]; null when this classifier cannot say. Asked on its own, never
-	 * with score: more questions in one call moved the other answers when it was tried.
-	 */
-	default Double demand(ThreadInput thread, Insight insight) {
-		return null;
-	}
 
 	// picks the classifier for an engine by its model type: TypeSafe (Jev) or any
 	// chat model

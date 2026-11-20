@@ -29,7 +29,6 @@ package prerna.reactor.project;
 
 import org.json.JSONObject;
 
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
@@ -45,12 +44,17 @@ public class ProjectPyReactor extends AbstractProjectPyReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().key(ReactorKeysEnum.CODE, """
-				The python code to execute. \
-				For convenience, instead of escaping quotes or backslashes you can wrap \
-				the input within "<encode>your_text</encode>" and the system will encode it for you.
-				""").key(ReactorKeysEnum.PROJECT, "The project id");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.CODE.getKey())) {
+			return """
+					The python code to execute. \
+					For convenience, instead of escaping quotes or backslashes you can wrap \
+					the input within "<encode>your_text</encode>" and the system will encode it for you.
+					""";
+		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
+			return "The project id";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 	@Override

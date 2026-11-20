@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -75,12 +74,19 @@ public class ServiceNowRetrieveRecordsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Retrieves records from a ServiceNow table via OAuth authentication.")
-				.key(ReactorKeysEnum.TABLE, "Required ServiceNow table name from which the records will be retrieved.")
-				.key(ReactorKeysEnum.LIMIT,
-						"Required number of records the user wants to retrieve from a ServiceNow table.")
-				.key(INSTANCE_URL, "Required URL of the ServiceNow user's instance.");
+	public String getReactorDescription() {
+		return "Retrieves records from a ServiceNow table via OAuth authentication.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.TABLE.getKey())) {
+			return "Required ServiceNow table name from which the records will be retrieved.";
+		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
+			return "Required number of records the user wants to retrieve from a ServiceNow table.";
+		} else if (key.equals(INSTANCE_URL)) {
+			return "Required URL of the ServiceNow user's instance.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

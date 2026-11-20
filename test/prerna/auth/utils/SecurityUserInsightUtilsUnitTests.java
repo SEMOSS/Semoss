@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,11 +42,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityUserInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
@@ -271,6 +268,35 @@ public class SecurityUserInsightUtilsUnitTests extends AbstractSecurityUtilsUnit
 	}
 
 	///
+	/// insightPermissionIsExpired
+	///
+
+	@Test
+	void testInsightPermissionIsExpired_NotExpired() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+
+		User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+		String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
+
+		// Give user2 permission without end date
+		List<Map<String, String>> permissions = List.of(Map.of("userid", user2Id, "permission", "EDIT"));
+		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid1", permissions, null);
+
+		assertFalse(SecurityUserInsightUtils.insightPermissionIsExpired(user2Id, "pid1", "iid1"));
+	}
+
+	@Test
+	void testInsightPermissionIsExpired_NoPermission() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+
+		assertFalse(SecurityUserInsightUtils.insightPermissionIsExpired("nonexistent", "pid1", "iid1"));
+	}
+
+	///
 	/// getInsightUsers
 	///
 
@@ -460,41 +486,6 @@ public class SecurityUserInsightUtilsUnitTests extends AbstractSecurityUtilsUnit
 		SecurityUserInsightUtils.setInsightFavorite(user2, "pid1", "iid1", true);
 	}
 
-	@Test
-	void testSetInsightFavorite_savesEveryLoginOrNone() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
-		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
-		AccessToken github = new AccessToken();
-		github.setId("admingithub");
-		github.setName("adminname");
-		github.setProvider(AuthProvider.GITHUB);
-		user.setAccessToken(github);
-
-		// the second login's row fails after the first login's was written
-		QueryExecutionUtility.executeUpdate(securityDb,
-				"ALTER TABLE USERINSIGHTPREFERENCE ADD CONSTRAINT FAVORITE_FAIL CHECK (TYPE <> 'GITHUB')",
-				QueryExecutionUtility.NO_PARAMETERS);
-		try {
-			assertThrows(Exception.class,
-					() -> SecurityUserInsightUtils.setInsightFavorite(user, "pid1", "iid1", true));
-		} finally {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"ALTER TABLE USERINSIGHTPREFERENCE DROP CONSTRAINT FAVORITE_FAIL",
-					QueryExecutionUtility.NO_PARAMETERS);
-		}
-		assertEquals(0L, favoriteRows("pid1", "iid1"));
-
-		SecurityUserInsightUtils.setInsightFavorite(user, "pid1", "iid1", true);
-		assertEquals(2L, favoriteRows("pid1", "iid1"));
-	}
-
-	private long favoriteRows(String projectId, String insightId) throws SQLException {
-		return ((Number) UnitTestGroupTables.queryValue(securityDb,
-				"SELECT COUNT(*) FROM USERINSIGHTPREFERENCE WHERE PROJECTID=? AND INSIGHTID=? AND FAVORITE=TRUE",
-				projectId, insightId)).longValue();
-	}
-
 	///
 	/// deleteInsight
 	///
@@ -518,5 +509,37 @@ public class SecurityUserInsightUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		// Verify user no longer has permission after deletion
 		assertFalse(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid1"));
+	}
+
+	@Test
+	void testDeleteInsight_Multiple() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid2", "insight2", "grid");
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid3", "insight3", "grid");
+
+		// Give user permission so we can verify via user permission
+		User user2 = UnitTestSecurityAuthUtils.createUser("viewer", false);
+		String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
+		List<Map<String, String>> perm1 = List.of(Map.of("userid", user2Id, "permission", "READ_ONLY"));
+		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid1", perm1, null);
+		List<Map<String, String>> perm2 = List.of(Map.of("userid", user2Id, "permission", "READ_ONLY"));
+		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid2", perm2, null);
+		List<Map<String, String>> perm3 = List.of(Map.of("userid", user2Id, "permission", "READ_ONLY"));
+		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid3", perm3, null);
+
+		// Verify user has permission before deletion
+		assertTrue(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid1"));
+		assertTrue(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid2"));
+		assertTrue(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid3"));
+
+		SecurityUserInsightUtils.deleteInsight("pid1", "iid1", "iid2");
+
+		// Verify deleted insights permissions are gone
+		assertFalse(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid1"));
+		assertFalse(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid2"));
+		// Verify iid3 still has permissions
+		assertTrue(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid3"));
 	}
 }

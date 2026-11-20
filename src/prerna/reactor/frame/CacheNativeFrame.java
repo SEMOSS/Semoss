@@ -35,11 +35,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.auth.User;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
-import prerna.om.ThreadStore;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.imports.IImporter;
 import prerna.reactor.imports.ImportFactory;
@@ -96,13 +94,7 @@ public class CacheNativeFrame extends AbstractFrameReactor {
 			return newFrameNoun;
 		} else {
 			logger.info("Start running cache in background");
-			User user = this.insight.getUser();
-			String insightId = this.insight.getInsightId();
-			java.lang.Thread t = new Thread(() -> {
-				ThreadStore.setInsightId(insightId);
-				ThreadStore.setUser(user);
-				cache.run();
-			});
+			java.lang.Thread t = new Thread(cache);
 			t.start();
 			return new NounMetadata("Swapping frame in parallel thread", PixelDataType.CONST_STRING, PixelOperationType.FRAME_SWAP);
 		}

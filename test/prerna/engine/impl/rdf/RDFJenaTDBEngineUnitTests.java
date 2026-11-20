@@ -39,8 +39,8 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
+import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
-import prerna.util.MockedDIHelper;
 
 import java.io.IOException;
 import java.net.URI;
@@ -49,6 +49,8 @@ import java.nio.file.Path;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class RDFJenaTDBEngineUnitTests {
 
@@ -133,8 +135,10 @@ public class RDFJenaTDBEngineUnitTests {
         Path engineAssetFolder = engineFolder.resolve("assets");
         Path engineVersionFolder = engineFolder.resolve("version");
 
-        try (MockedDIHelper dh = MockedDIHelper.start()) {
-            dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
+        try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
+            DIHelper diMock = mock(DIHelper.class);
+            dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
+            when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
             try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
                  MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class)) {
 

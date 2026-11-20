@@ -56,7 +56,6 @@ import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.reactor.imports.RImporter;
 import prerna.util.CSVToOwlMaker;
 import prerna.util.Constants;
-import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 public class RNativeEngine extends AbstractDatabaseEngine {
@@ -70,12 +69,12 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 	private Map<String, String> newHeaders = null;
 	// to store based on columnToType
 	private Map<String, SemossDataType> columnTypes = null;
-
+	
 	private String dtName;
 	private Insight in;
 	private AbstractRJavaTranslator rJavaTranslator;
 	private RDataTable dt;
-
+	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -86,7 +85,7 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 		List<String> concepts = this.getConcepts();
 		// usually there should be only one, but just a check again
 		// need to account for concept being itself
-		if (concepts.size() > 2) {
+		if(concepts.size() > 2) {
 			throw new IllegalArgumentException("Cannot support more than 1 table in R Native Engine");
 		}
 
@@ -105,7 +104,7 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 		} else {
 			this.columnToType = this.getDataTypes(propertyUriArr);
 		}
-
+		
 		String addTypeStr = this.smssProp.getProperty(Constants.ADDITIONAL_DATA_TYPES);
 		if (addTypeStr != null && !addTypeStr.trim().isEmpty()) {
 			try {
@@ -125,41 +124,39 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 		}
-
+		
 		this.in = new Insight();
 		this.rJavaTranslator = RJavaTranslatorFactory.getRJavaTranslator(this.in, classLogger);
-
+		
 		CsvQueryStruct cqs = new CsvQueryStruct();
 		cqs.setFilePath(this.fileLocation);
 		cqs.setColumnTypes(this.columnToType);
 		cqs.setAdditionalTypes(this.additionalDataType);
 		cqs.setNewHeaderNames(this.newHeaders);
 		CsvFileIterator iterator = new CsvFileIterator(cqs);
-
+		
 		this.dt = new RDataTable(rJavaTranslator, this.dtName);
 		RImporter importer = new RImporter(dt, cqs, iterator);
 		importer.insertData();
-
+		
 		// store the data types
 		this.columnTypes = this.dt.getMetaData().getHeaderToTypeMap();
 	}
-
+	
 	/**
 	 * Generate the OWL based on a flat file
-	 * 
 	 * @param dataFile
 	 * @param owlFile
 	 * @param owlFileName
 	 * @return
-	 * @throws Exception
+	 * @throws Exception 
 	 */
-	protected String generateOwlFromFlatFile(String engineId, String dataFile, String owlFile, String owlFileName)
-			throws Exception {
+	protected String generateOwlFromFlatFile(String engineId, String dataFile, String owlFile, String owlFileName) throws Exception {
 		CSVToOwlMaker maker = new CSVToOwlMaker();
 		maker.makeFlatOwl(getOWLEngineFactory().getWriteOWL(), dataFile, owlFile, getDatabaseType(), false);
-		if (owlFile.equals("REMAKE")) {
+		if(owlFile.equals("REMAKE")) {
 			try {
-				InternalUtility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
+				Utility.changePropertiesFileValue(this.smssFilePath, Constants.OWL, owlFileName);
 			} catch (IOException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
@@ -181,7 +178,7 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 	@Override
 	public Vector<Object> getEntityOfType(String type) {
 		// need to confirm if it is only legacy or we should implement
-		// need a way to maintain
+		// need a way to maintain 
 
 		return null;
 	}
@@ -194,7 +191,7 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 		RIterator exec = new RIterator(this.dt.getBuilder(), query);
 		return exec;
 	}
-
+	
 	public Object execQuery(String query, SelectQueryStruct qs) {
 		RIterator exec = new RIterator(this.dt.getBuilder(), query, qs);
 		return exec;
@@ -222,14 +219,14 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 	}
 
 	@Override
-	public IQueryInterpreter getQueryInterpreter() {
+	public IQueryInterpreter getQueryInterpreter(){
 		RInterpreter retInterp = new RInterpreter();
 		retInterp.setDataTableName(this.dtName);
 		retInterp.setColDataTypes(this.columnTypes);
 //		retInterp.setAdditionalTypes(this.additionalDataType);
 		return retInterp;
 	}
-
+	
 	/**
 	 * Reload the file to generate the frame
 	 */
@@ -240,16 +237,15 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 		cqs.setAdditionalTypes(this.additionalDataType);
 		cqs.setNewHeaderNames(this.newHeaders);
 		CsvFileIterator iterator = new CsvFileIterator(cqs);
-
+		
 		// the insertData will generate a new variable
 		RImporter importer = new RImporter(this.dt, cqs, iterator);
 		importer.insertData();
 	}
-
+	
 	/**
-	 * Load data from this R env to another R env This is used for performance
-	 * enhancements when moving from engine to frame
-	 * 
+	 * Load data from this R env to another R env
+	 * This is used for performance enhancements when moving from engine to frame
 	 * @param otherTranslator
 	 * @param assignVar
 	 * @param rScript
@@ -257,10 +253,10 @@ public class RNativeEngine extends AbstractDatabaseEngine {
 	public void directLoad(AbstractRJavaTranslator otherTranslator, String assignVar, String rScript) {
 		AbstractRJavaTranslator.loadDataBetweenEnv(otherTranslator, assignVar, this.rJavaTranslator, rScript);
 	}
-
+	
 	@Override
 	public boolean holdsFileLocks() {
 		return false;
 	}
-
+	
 }

@@ -28,15 +28,14 @@
 package prerna.reactor.panel.external;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class OpenTabReactor extends AbstractReactor {
-
+	
 	public OpenTabReactor() {
-		this.keysToGet = new String[] { "webURL" };
+		this.keysToGet = new String[]{"webURL"};
 	}
 
 	@Override
@@ -44,15 +43,16 @@ public class OpenTabReactor extends AbstractReactor {
 		String url = this.curRow.get(0).toString();
 		return new NounMetadata(url, PixelDataType.CONST_STRING, PixelOperationType.OPEN_TAB);
 	}
-
+	
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description(
-						"Tells the client to open the given web address in a new browser tab, and returns the address.")
-				.key("webURL", "The web address for the page that you would like to open in a new browser");
+	protected String getDescriptionForKey(String key) {
+		if (key.equals("webURL")) {
+			return "The web address for the page that you would like to open in a new browser";
+		} else {
+			return super.getDescriptionForKey(key);
+		}
 	}
 
 }

@@ -38,7 +38,7 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 import prerna.om.Insight;
 
-/** Keeps mail sent from a collaboration chat in that chat and the topics its owner set on it. */
+/** Keeps mail sent from a collaboration chat in that chat and its linked topics. */
 public final class BrainOutgoingEmail {
 
 	private BrainOutgoingEmail() {

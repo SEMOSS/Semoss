@@ -33,7 +33,6 @@ import java.util.List;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.py.PandasFrame;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -280,14 +279,11 @@ public class RankReactor extends AbstractPyFrameReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Adds a dense rank column to the current Python frame, ranking rows by the given columns in their sort directions, optionally restarting the rank within each partition, and sorts the frame by the rank.")
-				.key(ReactorKeysEnum.COLUMNS, key -> key.list(String.class))
-				.key(ReactorKeysEnum.SORT, key -> key.list(String.class).description(
-						"The sort direction for each rank column, in the same order: asc or desc; a column without one is ascending."))
-				.key(PARTITION_BY_COLS,
-						key -> key.list(String.class).description("The columns used for partitioning the rank"));
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(PARTITION_BY_COLS)) {
+			return "The columns used for partitioning the rank";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

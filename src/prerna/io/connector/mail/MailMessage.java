@@ -65,13 +65,11 @@ import prerna.io.connector.ConnectorTimes;
  *                          for
  * @param replyRecipients   who a reply to everybody would go to, when it was
  *                          asked for
- * @param draft             whether it is a draft that was never sent, which a
- *                          thread read from every folder lists with the rest
  */
 public record MailMessage(String id, String internetMessageId, String conversationId, String from, String fromName,
 		List<String> to, List<String> cc, String subject, Instant sentDate, Instant receivedDate, boolean unread,
 		boolean hasAttachments, String body, String uniqueBody, String webLink, List<MailAttachment> attachments,
-		Map<String, Object> displayBody, MailRecipients replyRecipients, boolean draft) {
+		Map<String, Object> displayBody, MailRecipients replyRecipients) {
 
 	public MailMessage {
 		to = to == null ? List.of() : List.copyOf(to);
@@ -99,10 +97,6 @@ public record MailMessage(String id, String internetMessageId, String conversati
 		ConnectorOutput.putIfPresent(output, "receivedDate", ConnectorTimes.format(this.receivedDate));
 		output.put("unread", this.unread);
 		output.put("hasAttachments", this.hasAttachments);
-		// said only of a draft, so whoever saves a thread where others read it can leave it out
-		if (this.draft) {
-			output.put("isDraft", true);
-		}
 		ConnectorOutput.putIfPresent(output, "webLink", this.webLink);
 		if (includeBody) {
 			ConnectorOutput.putText(output, "body", this.body, maxBodyChars);

@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
@@ -50,6 +51,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 
 public class InsightUsageStatisticsReactor extends AbstractReactor {
@@ -77,13 +79,14 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 		if (projectGrsFilters != null && !projectGrsFilters.isEmpty()) {
 			pFilters = new ArrayList<String>();
 			for (int i = 0; i < projectGrsFilters.size(); i++) {
-				String projectFilter = projectGrsFilters.get(i).toString();
-				if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectFilter)) {
-					pFilters.add(projectFilter);
+				String engineFilter = projectGrsFilters.get(i).toString();
+				engineFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), engineFilter);
+				if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), engineFilter)) {
+					pFilters.add(engineFilter);
 				} else {
 					// store warnings
 					warningNouns.add(NounMetadata.getWarningNounMessage(
-							projectFilter + " does not exist or user does not have access to project."));
+							engineFilter + " does not exist or user does not have access to project."));
 				}
 			}
 		}
@@ -98,8 +101,8 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Error occurred trying to create frame of the default type", e);
 		}
 		// set as default frame if none available
-		if (this.insight.getCurrentFrame() == null) {
-			this.insight.setCurrentFrame(newFrame);
+		if (this.insight.getDataMaker() == null) {
+			this.insight.setDataMaker(newFrame);
 		}
 
 		// get results
@@ -107,13 +110,23 @@ public class InsightUsageStatisticsReactor extends AbstractReactor {
 				searchTerm, tagFilters);
 
 		IDatabaseEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+		IRawSelectWrapper wrapper = null;
+		try {
+			wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs);
 			IImporter importer = ImportFactory.getImporter(newFrame, qs, wrapper);
 			importer.insertData();
 		} catch (Exception e) {
-			classLogger.error("Failed to load the insight usage statistics into frame {}", newFrame.getName(), e);
+			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(
 					"There was an error in executing the retrieving and loading the insight query statistics", e);
+		} finally {
+			if (wrapper != null) {
+				try {
+					wrapper.close();
+				} catch (IOException e) {
+					classLogger.error(Constants.STACKTRACE, e);
+				}
+			}
 		}
 
 		return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.FRAME,

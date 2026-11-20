@@ -80,7 +80,6 @@ import prerna.om.MosfetFile;
 import prerna.poi.main.FormUtility;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
-import prerna.security.SecretRedactor;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.git.GitUtils;
 import prerna.util.gson.GsonUtility;
@@ -104,6 +103,12 @@ public final class UploadUtilities {
 	public static final String GRID_DELTA_INSIGHT_NAME = "Grid Delta";
 	public static final String GRID_DELTA_LAYOUT = "Grid";
 
+	public static final String AUDIT_MODIFICATION_VIEW_INSIGHT_NAME = "What are the modifications made to specific column(s)?";
+	public static final String AUDIT_MODIFICATION_VIEW_LAYOUT = "Bar";
+
+	public static final String AUDIT_TIMELINE_INSIGHT_NAME = "What are the modifications made to the specific column(s) over time?";
+	public static final String AUDIT_TIMELINE_LAYOUT = "Line";
+
 	public static final String INSERT_FORM_LAYOUT = "form-builder";
 	public static final String UPDATE_FORM_LAYOUT = "form-builder";
 
@@ -111,14 +116,6 @@ public final class UploadUtilities {
 	public static final String RECIPE_ID_KEY = "recipe";
 	public static final String INSIGHT_NAME_KEY = "insightName";
 	public static final String SCHEMA_NAME_KEY = "schemaName";
-
-	/**
-	 * The engine details key reserved for the name an engine is cataloged under,
-	 * for every engine type. Import forms send the catalog name under this key, and
-	 * create reactors take the name from their own reactor key, so the smss writers
-	 * drop it from the details and no engine reads a setting by this name.
-	 */
-	public static final String CATALOG_NAME_KEY = "CATALOG_NAME";
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
@@ -178,7 +175,6 @@ public final class UploadUtilities {
 	public static void removeEngineFromDIHelper(String engineIdToRemove) {
 		removeEngineExcludingSMSSFromDIHelper(engineIdToRemove);
 		DIHelper.getInstance().removeEngineProperty(engineIdToRemove + "_" + Constants.STORE);
-		SecretRedactor.forgetSecrets(engineIdToRemove);
 	}
 
 	/**
@@ -203,7 +199,6 @@ public final class UploadUtilities {
 	 * @param projectIdToRemove
 	 */
 	public static void removeProjectFromDIHelper(String projectIdToRemove) {
-		SecretRedactor.forgetSecrets(projectIdToRemove);
 		DIHelper.getInstance().removeProjectProperty(projectIdToRemove + "_" + Constants.STORE);
 		DIHelper.getInstance().removeProjectProperty(projectIdToRemove);
 		String projectIds = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
@@ -262,7 +257,7 @@ public final class UploadUtilities {
 	 * @throws Exception
 	 */
 	public static void updateMetadata(String databaseId, User user) throws Exception {
-		InternalUtility.synchronizeEngineMetadata(databaseId);
+		Utility.synchronizeEngineMetadata(databaseId);
 		SecurityEngineUtils.addEngine(databaseId, false, user);
 	}
 
@@ -1142,7 +1137,6 @@ public final class UploadUtilities {
 	public static File createTemporaryExternalRdbmsSmss(String databaseId, String databaseName, File owlFile,
 			String dbClassName, RdbmsTypeEnum dbType, String connectionUrl, Map<String, Object> connectionDetails,
 			Map<String, Object> jdbcPropertiesMap) throws IOException {
-		removeCatalogName(connectionDetails);
 
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 
@@ -1446,7 +1440,6 @@ public final class UploadUtilities {
 			bufferedWriter.write(newLine);
 
 			if (properties != null) {
-				removeCatalogName(properties);
 				if (secretStore != null) {
 					properties.put(Constants.ENGINE, engineId);
 					properties.put(Constants.ENGINE_ALIAS, engineName);
@@ -1478,17 +1471,6 @@ public final class UploadUtilities {
 		}
 
 		return engineTempSmss;
-	}
-
-	/**
-	 * Remove the reserved catalog name key, in any case, from engine details before
-	 * they are written to an smss file or the secret store. See
-	 * {@link #CATALOG_NAME_KEY}.
-	 *
-	 * @param details the engine details sent by the caller
-	 */
-	static void removeCatalogName(Map<String, Object> details) {
-		details.keySet().removeIf(CATALOG_NAME_KEY::equalsIgnoreCase);
 	}
 
 	static String escapeSmssPropertyValue(Object value) {
@@ -1769,6 +1751,126 @@ public final class UploadUtilities {
 			return retMap;
 		} catch (Exception e) {
 			classLogger.error("Failed to add grid delta insight for database {}: {}", databaseName, e.getMessage(), e);
+		}
+		return null;
+	}
+
+	/**
+	 * Add the insight to check the modifications made to a column from audit db
+	 * 
+	 * @param databaseId
+	 * @param insightEngine
+	 */
+	public static Map<String, Object> addAuditModificationView(String projectId, String projectName, String databaseId,
+			String databaseName, IRDBMSEngine insightEngine) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+				+ "AuditModificationView.json";
+		File jsonFile = new File(jsonLoc);
+		if (jsonFile.exists()) {
+			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			try {
+				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
+						.replace("<<ENGINE>>", databaseId)
+						.replace("<<INSIGHT_NAME>>", AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
+				newPixel += "} </encode>\" ) ;";
+				List<String> pixelRecipeToSave = new ArrayList<>();
+				pixelRecipeToSave.add(newPixel);
+				String insightName = getInsightName(databaseName, AUDIT_MODIFICATION_VIEW_INSIGHT_NAME);
+				boolean global = true;
+				boolean cacheable = Utility.getApplicationCacheInsight();
+				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
+				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
+				String cacheCron = Utility.getApplicationCacheCron();
+				ZonedDateTime cachedOn = null;
+				String description = null;
+				List<String> tags = null;
+				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
+
+				String insightId = admin.addInsight(insightName, AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave,
+						global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+				// write recipe to file
+				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName,
+						AUDIT_MODIFICATION_VIEW_LAYOUT, pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron,
+						cachedOn, cacheEncrypt, description, tags, schemaName);
+				// add the insight to git
+				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
+				List<String> files = new ArrayList<>();
+				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+				GitRepoUtils.addSpecificFiles(gitFolder, files);
+				GitRepoUtils.commitAddedFiles(gitFolder,
+						GitUtils.getDateMessage("Saved " + insightName + " insight on"));
+
+				Map<String, Object> retMap = new HashMap<>();
+				retMap.put(INSIGHT_ID_KEY, insightId);
+				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+				retMap.put(INSIGHT_NAME_KEY, insightName);
+				retMap.put(SCHEMA_NAME_KEY, schemaName);
+				return retMap;
+			} catch (Exception e) {
+				classLogger.error("Failed to add audit modification view insight for database {}: {}", databaseName,
+						e.getMessage(), e);
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Add the insight to check the modifications made to a column over time from
+	 * audit database
+	 * 
+	 * @param databaseId
+	 * @param insightEngine
+	 */
+	public static Map<String, Object> addAuditTimelineView(String projectId, String projectName, String databaseId,
+			String databaseName, IRDBMSEngine insightEngine) {
+		InsightAdministrator admin = new InsightAdministrator(insightEngine);
+		String jsonLoc = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+				+ "AuditTimelineView.json";
+		File jsonFile = new File(jsonLoc);
+		if (jsonFile.exists()) {
+			String newPixel = "META | AddPanel(0); META | Panel ( 0 ) | SetPanelView ( \"param\" , \"<encode> {\"json\":";
+			try {
+				newPixel += new String(Files.readAllBytes(jsonFile.toPath())).replaceAll("\n|\r|\t", "")
+						.replace("<<ENGINE>>", databaseId).replace("<<INSIGHT_NAME>>", AUDIT_TIMELINE_INSIGHT_NAME);
+				newPixel += "} </encode>\" ) ;";
+				List<String> pixelRecipeToSave = new ArrayList<>();
+				pixelRecipeToSave.add(newPixel);
+				String insightName = getInsightName(databaseName, AUDIT_TIMELINE_INSIGHT_NAME);
+				boolean global = true;
+				boolean cacheable = Utility.getApplicationCacheInsight();
+				int cacheMinutes = Utility.getApplicationCacheInsightMinutes();
+				boolean cacheEncrypt = Utility.getApplicationCacheEncrypt();
+				String cacheCron = Utility.getApplicationCacheCron();
+				ZonedDateTime cachedOn = null;
+				String description = null;
+				List<String> tags = null;
+				String schemaName = SecurityInsightUtils.makeInsightSchemaNameUnique(projectId, insightName);
+
+				String insightId = admin.addInsight(insightName, AUDIT_TIMELINE_LAYOUT, pixelRecipeToSave, global,
+						cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, schemaName);
+				// write recipe to file
+				MosfetSyncHelper.makeMosfitFile(projectId, projectName, insightId, insightName, AUDIT_TIMELINE_LAYOUT,
+						pixelRecipeToSave, global, cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt,
+						description, tags, schemaName);
+				// add the insight to git
+				String gitFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
+				List<String> files = new ArrayList<>();
+				files.add(insightId + "/" + MosfetFile.RECIPE_FILE);
+				GitRepoUtils.addSpecificFiles(gitFolder, files);
+				GitRepoUtils.commitAddedFiles(gitFolder,
+						GitUtils.getDateMessage("Saved " + insightName + " insight on"));
+
+				Map<String, Object> retMap = new HashMap<>();
+				retMap.put(INSIGHT_ID_KEY, insightId);
+				retMap.put(RECIPE_ID_KEY, pixelRecipeToSave);
+				retMap.put(INSIGHT_NAME_KEY, insightName);
+				retMap.put(SCHEMA_NAME_KEY, schemaName);
+				return retMap;
+			} catch (Exception e) {
+				classLogger.error("Failed to add audit timeline view insight for database {}: {}", databaseName,
+						e.getMessage(), e);
+			}
 		}
 		return null;
 	}

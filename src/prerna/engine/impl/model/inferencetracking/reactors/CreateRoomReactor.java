@@ -61,7 +61,7 @@ public class CreateRoomReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = requireUser();
+		User user = insight.getUser();
 
 		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
@@ -96,7 +96,7 @@ public class CreateRoomReactor extends AbstractReactor {
 			Path folderPath = Paths.get(room.getRoomFolderPath());
 			try {
 				Files.createDirectories(folderPath);
-				this.insight.getUser().getSandbox().grantFolder(folderPath.toString());
+				this.insight.getUser().getUserSymlinkHelper().symlinkFolder(folderPath.toString());
 			} catch (IOException e) {
 				throw new UncheckedIOException("Failed to create and symlink room folder: " + folderPath, e);
 			}

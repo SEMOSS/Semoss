@@ -30,7 +30,6 @@ package prerna.engine.impl.model;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -74,9 +73,6 @@ public final class RoomMessageStore {
 
 	private static final String LOCK_TTL_MS = "ROOM_MESSAGE_STORE_LOCK_TTL_MS";
 	private static final String LOCK_WAIT_MS = "ROOM_MESSAGE_STORE_LOCK_WAIT_MS";
-	// sliding expiry on the cached projection; refreshed on every write
-	private static final String REDIS_TTL_HOURS = "ROOM_MESSAGE_REDIS_TTL_HOURS";
-	private static final long DEFAULT_REDIS_TTL_HOURS = 1L;
 	private static final ReentrantLock[] LOCAL_LOCKS = new ReentrantLock[256];
 	// Separate stripes so a short options update never waits on a long model call.
 	private static final ReentrantLock[] OPTIONS_LOCAL_LOCKS = new ReentrantLock[256];
@@ -283,50 +279,6 @@ public final class RoomMessageStore {
 		}
 	}
 
-	/**
-	 * Appends every message of one room to the end of another and persists it. The
-	 * source room is left as it was. Each appended message whose parent is not in
-	 * the source history starts the appended branch, so it is re-parented onto the
-	 * destination's last message.
-	 *
-	 * @return how many messages were appended
-	 */
-	public static int appendRoomMessages(String intoRoomId, String fromRoomId, String userId) {
-		if (intoRoomId.equals(fromRoomId)) {
-			throw new IllegalArgumentException("Pick a different chat to merge into");
-		}
-		// locked in id order, so two merges over the same pair cannot wait on each other
-		String first = intoRoomId.compareTo(fromRoomId) < 0 ? intoRoomId : fromRoomId;
-		String second = first.equals(intoRoomId) ? fromRoomId : intoRoomId;
-		try (RoomMutationLock ignoredFirst = acquireMutationLock(first);
-				RoomMutationLock ignoredSecond = acquireMutationLock(second)) {
-			Room into = ModelInferenceLogsUtils.getRoomById(intoRoomId, userId);
-			Room from = ModelInferenceLogsUtils.getRoomById(fromRoomId, userId);
-			if (into == null || from == null) {
-				throw new IllegalArgumentException("Chat not found");
-			}
-			List<AbstractMessage> appended = new ArrayList<>(from.getMessages());
-			Set<String> appendedIds = requireUniqueMessageIds(appended);
-			Set<String> existingIds = requireUniqueMessageIds(into.getMessages());
-			if (appendedIds.stream().anyMatch(existingIds::contains)) {
-				throw new IllegalStateException("Both chats contain the same message, so they cannot be merged");
-			}
-			AbstractMessage last = into.getMessages().isEmpty() ? null : into.getMessages().getLast();
-			for (AbstractMessage message : appended) {
-				String parentMessageId = ValueUtils.trimToNull(message.getParentMessageId());
-				if (parentMessageId == null || !appendedIds.contains(parentMessageId)) {
-					message.setParentMessageId(last == null ? null : last.getMessageId());
-				}
-				message.setRoom(into);
-				into.getMessages().add(message);
-			}
-			if (!appended.isEmpty() && !persist(into, userId)) {
-				throw new IllegalStateException("Unable to save the merged chat " + intoRoomId);
-			}
-			return appended.size();
-		}
-	}
-
 	public static RoomMutationLock acquireMutationLock(Room room) {
 		if (room == null) {
 			return RoomMutationLock.NO_OP;
@@ -456,7 +408,6 @@ public final class RoomMessageStore {
 		validateForPersistence(room, messages);
 
 		Set<String> toolCallIds = new HashSet<>();
-		Set<String> providerRunCallIds = new HashSet<>();
 		Set<String> toolResultIds = new HashSet<>();
 		for (AbstractMessage message : messages) {
 			for (MessagePart part : message.getParts()) {
@@ -464,9 +415,6 @@ public final class RoomMessageStore {
 					String toolCallId = toolCallId((ToolCallMessagePart) part);
 					if (toolCallId != null) {
 						toolCallIds.add(toolCallId);
-						if (MessageUtils.isServerToolCall(((ToolCallMessagePart) part).getToolCall())) {
-							providerRunCallIds.add(toolCallId);
-						}
 					}
 				} else if (part instanceof ToolResultMessagePart) {
 					String toolResultId = toolResultId((ToolResultMessagePart) part);
@@ -483,13 +431,9 @@ public final class RoomMessageStore {
 			throw new IllegalStateException(
 					"Room message payload contains tool results without tool calls: " + unmatched);
 		}
-		Set<String> unmatched = new HashSet<>(toolCallIds);
-		unmatched.removeAll(toolResultIds);
-		// A provider runs its own tools. When the model calls one beside ours, the
-		// provider waits for our results and runs it in the next request, so until
-		// then that call has no result here.
-		unmatched.removeAll(providerRunCallIds);
-		if (!unmatched.isEmpty()) {
+		if (!toolResultIds.containsAll(toolCallIds)) {
+			Set<String> unmatched = new HashSet<>(toolCallIds);
+			unmatched.removeAll(toolResultIds);
 			throw new IllegalStateException("Room message payload contains unresolved tool calls: " + unmatched);
 		}
 	}
@@ -528,9 +472,9 @@ public final class RoomMessageStore {
 		}
 		try {
 			RoomMessageRedisClient redis = redisClient();
-			long ttlSeconds = redisTtlSeconds();
-			if (redis.setMessagesIfAbsent(room.getId(), messageHistory, ttlSeconds)) {
-				redis.incrementVersion(room.getId(), ttlSeconds);
+			if (redis.getMessages(room.getId()) == null) {
+				redis.setMessages(room.getId(), messageHistory);
+				redis.incrementVersion(room.getId());
 			}
 		} catch (Exception e) {
 			classLogger.warn("Failed to warm Redis room-message projection for room={}", room.getId(), e);
@@ -543,9 +487,8 @@ public final class RoomMessageStore {
 		}
 		try {
 			RoomMessageRedisClient redis = redisClient();
-			long ttlSeconds = redisTtlSeconds();
-			redis.setMessages(room.getId(), messageHistory, ttlSeconds);
-			redis.incrementVersion(room.getId(), ttlSeconds);
+			redis.setMessages(room.getId(), messageHistory);
+			redis.incrementVersion(room.getId());
 		} catch (Exception e) {
 			classLogger.warn("Failed to update Redis room-message projection for room={}", room.getId(), e);
 			invalidateRedisProjection(room);
@@ -561,32 +504,6 @@ public final class RoomMessageStore {
 		} catch (Exception e) {
 			classLogger.warn("Failed to invalidate Redis room-message projection for room={}", room.getId(), e);
 		}
-	}
-
-	// best-effort: a missing projection just reloads from the DB on next read
-	public static void evictRedisProjection(String roomId) {
-		if (roomId == null || !RedisConnectionConfig.isRedisEnabled()) {
-			return;
-		}
-		try {
-			redisClient().evictRoom(roomId);
-		} catch (Exception e) {
-			classLogger.warn("Failed to evict Redis room-message projection for room={}", roomId, e);
-		}
-	}
-
-	public static void evictRedisProjections(Collection<String> roomIds) {
-		if (roomIds == null || roomIds.isEmpty() || !RedisConnectionConfig.isRedisEnabled()) {
-			return;
-		}
-		for (String roomId : new ArrayList<>(roomIds)) {
-			evictRedisProjection(roomId);
-		}
-	}
-
-	private static long redisTtlSeconds() {
-		long hours = getLongProperty(REDIS_TTL_HOURS, DEFAULT_REDIS_TTL_HOURS);
-		return TimeUnit.HOURS.toSeconds(hours > 0 ? hours : DEFAULT_REDIS_TTL_HOURS);
 	}
 
 	public static RoomMessageRedisClient redisClient() {

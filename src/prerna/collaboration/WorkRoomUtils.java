@@ -35,7 +35,6 @@ import java.util.Map;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
-import prerna.engine.impl.model.RoomMessageStore;
 
 // Work open tabs (WORK_OPEN_ROOM). The room itself lives in the inference logs database;
 // this only records which thread rooms the owner has open.
@@ -105,17 +104,11 @@ public final class WorkRoomUtils {
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		BrainThreadUtils.requireThread(ownerId, ownerType, threadId);
-		String roomId;
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			roomId = CollaborationDbUtils.queryOne(
-					"SELECT ROOM_ID FROM WORK_OPEN_ROOM WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
-					rs -> CollaborationDbUtils.getString(rs, "ROOM_ID"), ownerId, ownerType, threadId);
 			CollaborationDbUtils.update(
 					"DELETE FROM WORK_OPEN_ROOM WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND THREAD_ID = ?", ownerId,
 					ownerType, threadId);
 		}
-		// closing the tab drops the cached projection; the next open reloads from the DB
-		RoomMessageStore.evictRedisProjection(roomId);
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("threadId", threadId);
 		result.put("closed", true);

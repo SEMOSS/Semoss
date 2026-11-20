@@ -40,7 +40,6 @@ import org.json.JSONTokener;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -63,9 +62,9 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException(
-					"Project does not exist or user does not have access to view the project");
+			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
 		}
 
 		if (fileName == null || fileName.trim().isEmpty()) {
@@ -142,9 +141,16 @@ public class GetPlaywrightScriptVariablesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description(
-				"Extracts variables (TYPE or VARIABLE steps) from a Playwright script JSON file, returning them as a list of VariableRecord objects.")
-				.key(SCRIPT_KEY, "The name of the JSON file (e.g., 'script-1.json') located in the recordings folder.");
+	public String getReactorDescription() {
+		return "Extracts variables (TYPE or VARIABLE steps) from a Playwright script JSON file, returning them as a list of VariableRecord objects.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(SCRIPT_KEY)) {
+			return "The name of the JSON file (e.g., 'script-1.json') located in the recordings folder.";
+		}
+
+		return super.getDescriptionForKey(key);
 	}
 }

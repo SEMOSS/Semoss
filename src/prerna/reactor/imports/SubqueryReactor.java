@@ -54,7 +54,7 @@ public class SubqueryReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		ITableDataFrame curFrame = this.insight.getCurrentFrame();
+		ITableDataFrame curFrame = this.insight.getCurFrame();
 		SelectQueryStruct qs = getQueryStruct();
 		if (qs != null) {
 			AbstractQueryStruct.QUERY_STRUCT_TYPE type = qs.getQsType();
@@ -89,7 +89,7 @@ public class SubqueryReactor extends AbstractReactor {
 				this.insight.getVarStore().put(curFrame.getName(), noun);
 			}
 			if (curFrame == this.insight.getVarStore().get(Insight.CUR_FRAME_KEY).getValue()) {
-				this.insight.setCurrentFrame(mergeFrame);
+				this.insight.setDataMaker(mergeFrame);
 			}
 		}
 

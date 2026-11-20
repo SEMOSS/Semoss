@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -57,7 +58,8 @@ public class GetInsightUserAccessRequestReactor extends AbstractReactor {
 		}
 		// check user permission for the database
 		User user = this.insight.getUser();
-		if (!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
+		if(!SecurityAdminUtils.userIsAdmin(user) && 
+				!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
 			throw new IllegalArgumentException("User does not have permission to view access requests for this insight");
 		}
 		List<Map<String, Object>> requests = SecurityInsightUtils.getUserAccessRequestsByInsight(projectId, insightId);;

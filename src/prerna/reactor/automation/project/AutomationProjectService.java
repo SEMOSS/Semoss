@@ -27,29 +27,18 @@
  *******************************************************************************/
 package prerna.reactor.automation.project;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.jgit.api.AddCommand;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.Status;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.errors.NoWorkTreeException;
 import org.javatuples.Pair;
 
-import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -65,6 +54,7 @@ import prerna.reactor.automation.definition.AutomationNodeType;
 import prerna.util.AssetUtility;
 import prerna.util.ProjectSyncUtility;
 import prerna.util.Utility;
+import prerna.util.git.GitRepoUtils;
 
 /**
  * Coordinates project-level access, persistence, and derived assets for
@@ -83,31 +73,32 @@ import prerna.util.Utility;
 public final class AutomationProjectService {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationProjectService.class);
-	private static final String UPDATE_COMMIT_MESSAGE = "Update automation definition";
 
 	private AutomationProjectService() {
 	}
 
 	/**
-	 * Reads an automation project the user can view.
+	 * Resolves a project ID or alias and requires view access to an automation
+	 * project.
 	 *
-	 * @param user      user requesting access
-	 * @param projectId project ID
-	 * @return the automation project
+	 * @param user             user requesting access
+	 * @param projectIdOrAlias project ID or alias
+	 * @return resolved automation project
 	 */
-	public static IProject getViewableAutomationProject(User user, String projectId) {
-		return getAutomationProject(user, projectId, false);
+	public static IProject getViewableAutomationProject(User user, String projectIdOrAlias) {
+		return getAutomationProject(user, projectIdOrAlias, false);
 	}
 
 	/**
-	 * Reads an automation project the user can edit.
+	 * Resolves a project ID or alias and requires edit access to an automation
+	 * project.
 	 *
-	 * @param user      user requesting access
-	 * @param projectId project ID
-	 * @return the automation project
+	 * @param user             user requesting access
+	 * @param projectIdOrAlias project ID or alias
+	 * @return resolved automation project
 	 */
-	public static IProject getEditableAutomationProject(User user, String projectId) {
-		return getAutomationProject(user, projectId, true);
+	public static IProject getEditableAutomationProject(User user, String projectIdOrAlias) {
+		return getAutomationProject(user, projectIdOrAlias, true);
 	}
 
 	/**
@@ -117,7 +108,8 @@ public final class AutomationProjectService {
 	 * @param user user running or reading inline runs
 	 * @return {@link AutomationConstants#INLINE_RUN_SCOPE_PREFIX} plus a hash of
 	 *         the login type and id
-	 * @throws IllegalArgumentException for a missing or not logged-in user
+	 * @throws IllegalArgumentException for a missing, anonymous, or not logged-in
+	 *                                  user
 	 */
 	public static String inlineRunScope(User user) {
 		Pair<String, String> login = User.getPrimaryUserIdAndTypePair(user);
@@ -139,38 +131,39 @@ public final class AutomationProjectService {
 	}
 
 	/**
-	 * Resolves the run scope a run reactor reads or controls. A blank project means
-	 * the caller's own inline runs; an inline scope is accepted only when it is the
-	 * caller's own; anything else must be an accessible automation project.
+	 * Resolves the run scope a run reactor reads or controls. A blank project
+	 * means the caller's own inline runs; an inline scope is accepted only when it
+	 * is the caller's own; anything else must be an accessible automation project.
 	 *
-	 * @param user        user requesting access
-	 * @param projectId   project ID, inline run scope, or blank
-	 * @param requireEdit whether a project must grant edit access
+	 * @param user             user requesting access
+	 * @param projectIdOrAlias project ID or alias, inline run scope, or blank
+	 * @param requireEdit      whether a project must grant edit access
 	 * @return run scope to match against {@code AUTOMATION_RUNS.PROJECT_ID}
 	 */
-	public static String resolveRunScope(User user, String projectId, boolean requireEdit) {
-		if (projectId == null || projectId.isBlank()) {
+	public static String resolveRunScope(User user, String projectIdOrAlias, boolean requireEdit) {
+		if (projectIdOrAlias == null || projectIdOrAlias.isBlank()) {
 			return inlineRunScope(user);
 		}
-		if (isInlineRunScope(projectId)) {
-			if (!projectId.equals(inlineRunScope(user))) {
+		if (isInlineRunScope(projectIdOrAlias)) {
+			if (!projectIdOrAlias.equals(inlineRunScope(user))) {
 				throw new IllegalArgumentException("Run does not exist or user does not have access.");
 			}
-			return projectId;
+			return projectIdOrAlias;
 		}
-		return getAutomationProject(user, projectId, requireEdit).getProjectId();
+		return getAutomationProject(user, projectIdOrAlias, requireEdit).getProjectId();
 	}
 
-	private static IProject getAutomationProject(User user, String projectId, boolean requireEdit) {
-		if (projectId == null || projectId.isBlank()) {
+	private static IProject getAutomationProject(User user, String projectIdOrAlias, boolean requireEdit) {
+		if (projectIdOrAlias == null || projectIdOrAlias.isBlank()) {
 			throw new IllegalArgumentException("Must provide a project id.");
 		}
 
-		// An inline run scope is never a project, even when an uploaded project claims
-		// that id.
-		boolean hasAccess = !isInlineRunScope(projectId)
-				&& (requireEdit ? SecurityProjectUtils.userCanEditProject(user, projectId)
-						: SecurityProjectUtils.userCanViewProject(user, projectId));
+		String projectId = isInlineRunScope(projectIdOrAlias) ? projectIdOrAlias
+				: SecurityProjectUtils.testUserProjectIdForAlias(user, projectIdOrAlias);
+		// An inline run scope is never a project, even when an uploaded project claims that id.
+		boolean hasAccess = !isInlineRunScope(projectId) && (requireEdit
+				? SecurityProjectUtils.userCanEditProject(user, projectId)
+				: SecurityProjectUtils.userCanViewProject(user, projectId));
 		if (!hasAccess) {
 			throw new IllegalArgumentException(requireEdit ? "Project does not exist or user does not have edit access."
 					: "Project does not exist or user does not have access.");
@@ -233,28 +226,6 @@ public final class AutomationProjectService {
 	 */
 	public static AutomationDefinitionService.DefinitionFiles saveDefinition(String projectId, String definitionJson,
 			Map<String, String> nodeSources, String expectedRevision, User user) {
-		return saveDefinition(projectId, definitionJson, nodeSources, expectedRevision, user, UPDATE_COMMIT_MESSAGE);
-	}
-
-	/**
-	 * Saves an automation definition with an operation-specific project Git commit
-	 * message. Package-owned operations such as version restore use this boundary
-	 * so they retain the same locking, validation, and persistence behavior as an
-	 * ordinary save.
-	 *
-	 * @param projectId        project ID
-	 * @param definitionJson   canonical graph JSON
-	 * @param nodeSources      source by non-start node ID
-	 * @param expectedRevision revision returned by the prior read
-	 * @param user             user performing the save
-	 * @param commitMessage    project Git commit message
-	 * @return persisted graph and node sources
-	 */
-	static AutomationDefinitionService.DefinitionFiles saveDefinition(String projectId, String definitionJson,
-			Map<String, String> nodeSources, String expectedRevision, User user, String commitMessage) {
-		if (commitMessage == null || commitMessage.isBlank()) {
-			throw new IllegalArgumentException("Automation version commit message must be provided.");
-		}
 		ReentrantLock projectLock = ProjectSyncUtility.getProjectLock(projectId);
 		projectLock.lock();
 		try {
@@ -272,7 +243,7 @@ public final class AutomationProjectService {
 			AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.save(projectId,
 					definitionJson, nodeSources);
 			AutomationMcpSync.sync(projectId, files.definition(), user);
-			syncDefinitionAssets(projectId, user, commitMessage);
+			syncDefinitionAssets(projectId, user, "Update automation definition");
 			// Return the same normalized aggregate a subsequent GetAutomation call will
 			// read. This keeps the optimistic-concurrency token stable after Save.
 			return AutomationDefinitionService.load(projectId);
@@ -361,8 +332,8 @@ public final class AutomationProjectService {
 			if (typedNode == AutomationNodeType.CONTROL_JEV) {
 				Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 				if (typeAndSubtype.length < 2 || !"TYPESAFE".equalsIgnoreCase(String.valueOf(typeAndSubtype[1]))) {
-					throw new IllegalArgumentException(
-							"Automation Jev decision node '" + nodeId + "' requires a TYPESAFE model engine.");
+					throw new IllegalArgumentException("Automation Jev decision node '" + nodeId
+							+ "' requires a TYPESAFE model engine.");
 				}
 			}
 			if (typedNode.getPermission() == AutomationNodeType.Permission.EDIT
@@ -445,8 +416,9 @@ public final class AutomationProjectService {
 
 	private static void syncDefinitionAssets(IProject project, String projectId, User user, String commitMessage) {
 		if (project == null) {
-			classLogger.error("Unable to version automation definition because project {} is not available", projectId);
-			throw new IllegalArgumentException("Automation project is unavailable for version history: " + projectId);
+			classLogger.warn("Project {} not found in registry; skipping automation asset synchronization", projectId);
+			SecurityProjectUtils.updateProjectLastEditedDate(projectId);
+			return;
 		}
 
 		List<String> files = new ArrayList<>();
@@ -460,10 +432,10 @@ public final class AutomationProjectService {
 
 		String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 		try {
-			commitDefinitionAssets(versionFolder, files, commitMessage, user);
-		} catch (RuntimeException e) {
-			classLogger.error("Failed to version automation definition for project {}", projectId, e);
-			throw e;
+			GitRepoUtils.addSpecificFiles(versionFolder, files);
+			GitRepoUtils.commitAddedFiles(versionFolder, commitMessage, user);
+		} catch (Exception e) {
+			classLogger.warn("Git commit failed for automation project {}", projectId, e);
 		}
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
@@ -473,76 +445,5 @@ public final class AutomationProjectService {
 			}
 		}
 		SecurityProjectUtils.updateProjectLastEditedDate(projectId);
-	}
-
-	/**
-	 * Stages and commits Automation-owned project assets through the project's
-	 * standard Git repository. This operation uses JGit directly because the shared
-	 * convenience helpers intentionally log and suppress add/commit API failures,
-	 * while version history must report a failed save to its caller.
-	 *
-	 * @param versionFolder project Git working directory
-	 * @param files         Automation-owned absolute artifact paths
-	 * @param commitMessage project Git commit message
-	 * @param user          commit author
-	 */
-	static void commitDefinitionAssets(String versionFolder, List<String> files, String commitMessage, User user) {
-		Set<String> ownedPaths = repositoryRelativePaths(versionFolder, files);
-		try (Git git = Git.open(new File(versionFolder))) {
-			AddCommand add = git.add();
-			ownedPaths.forEach(add::addFilepattern);
-			add.call();
-
-			Status status = git.status().call();
-			if (hasOwnedChanges(status.getModified(), ownedPaths) || hasOwnedChanges(status.getMissing(), ownedPaths)
-					|| hasOwnedChanges(status.getUntracked(), ownedPaths)
-					|| hasOwnedChanges(status.getConflicting(), ownedPaths)) {
-				throw new IllegalArgumentException("Unable to stage Automation definition assets for version history.");
-			}
-			boolean hasStagedChanges = hasOwnedChanges(status.getAdded(), ownedPaths)
-					|| hasOwnedChanges(status.getChanged(), ownedPaths)
-					|| hasOwnedChanges(status.getRemoved(), ownedPaths);
-			if (!hasStagedChanges) {
-				return;
-			}
-
-			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-			String author = accessToken == null ? null : accessToken.getResolvedUsername();
-			String email = accessToken == null ? null : accessToken.getEmail();
-			git.commit().setMessage(commitMessage)
-					.setAuthor(defaultIfBlank(author, "SEMOSS"), defaultIfBlank(email, "semoss@semoss.org")).call();
-		} catch (IOException | GitAPIException | NoWorkTreeException e) {
-			throw new IllegalArgumentException("Unable to commit Automation definition assets to version history.", e);
-		}
-	}
-
-	private static Set<String> repositoryRelativePaths(String versionFolder, List<String> files) {
-		Path repository = Path.of(versionFolder).toAbsolutePath().normalize();
-		Set<String> relativePaths = new HashSet<>();
-		for (String file : files) {
-			Path artifact = Path.of(file).toAbsolutePath().normalize();
-			if (!artifact.startsWith(repository)) {
-				throw new IllegalArgumentException(
-						"Automation definition asset is outside the project version folder.");
-			}
-			relativePaths.add(repository.relativize(artifact).toString().replace(File.separatorChar, '/'));
-		}
-		return relativePaths;
-	}
-
-	private static boolean hasOwnedChanges(Collection<String> changedPaths, Set<String> ownedPaths) {
-		for (String changedPath : changedPaths) {
-			String normalizedChangedPath = changedPath.replace('\\', '/');
-			for (String ownedPath : ownedPaths) {
-				if (ownedPath.equals(normalizedChangedPath) || ownedPath.startsWith(normalizedChangedPath + "/")) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	private static String defaultIfBlank(String value, String defaultValue) {
-		return value == null || value.isBlank() ? defaultValue : value;
 	}
 }

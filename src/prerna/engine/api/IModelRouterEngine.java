@@ -29,7 +29,6 @@ package prerna.engine.api;
 
 import java.io.IOException;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.logging.IgnoreEngineLogging;
 
 /**
@@ -56,7 +55,6 @@ public interface IModelRouterEngine extends IModelEngine {
 	 * @throws IOException if the config file is missing or unreadable
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	String readConfigJson() throws IOException;
 
 	/**
@@ -67,7 +65,6 @@ public interface IModelRouterEngine extends IModelEngine {
 	 * @throws IOException if the config file cannot be written
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void updateConfig(String json) throws IOException;
 
 	/**
@@ -77,7 +74,6 @@ public interface IModelRouterEngine extends IModelEngine {
 	 * @throws IOException if the config file is missing or unreadable
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(AccessPermissionEnum.EDIT)
 	void reloadConfig() throws IOException;
 
 }

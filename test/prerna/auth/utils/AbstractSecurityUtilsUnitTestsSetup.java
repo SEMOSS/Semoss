@@ -48,7 +48,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
-import prerna.util.InternalUtility;
+import prerna.util.DIHelper;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.SystemEngineRegistryTestExtension;
 
@@ -83,7 +83,7 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		InternalUtility.loadCoreProp(rdfMap);
+		DIHelper.getInstance().loadCoreProp(rdfMap);
 
 		// adding security db to temp DI Helper
 		File securityFolder = new File(dbFolder, "security");
@@ -111,6 +111,7 @@ public class AbstractSecurityUtilsUnitTestsSetup extends SemossUnitTest {
 			assertTrue(c.getMetaData().getURL().contains("junit"));
 			s.execute("SHUTDOWN");
 		}
+		DIHelper.getInstance();
 		securityDb.closeDataSource();
 		securityDb.close();
 //		securityDb.delete();

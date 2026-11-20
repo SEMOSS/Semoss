@@ -74,7 +74,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
-import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IMCP;
@@ -91,6 +90,7 @@ import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.ClientProcessWrapper;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.OldInsight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookBuilder;
@@ -101,6 +101,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.reactor.IReactor;
 import prerna.reactor.ProjectCustomReactorCompilator;
 import prerna.reactor.frame.r.util.TCPRTranslator;
+import prerna.reactor.legacy.playsheets.LegacyInsightDatabaseUtility;
 import prerna.sablecc2.NotebookExecution;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
@@ -108,12 +109,10 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.parser.ParserException;
-import prerna.security.SecretRedactor;
 import prerna.tcp.client.CustomReactorWrapper;
 import prerna.tcp.client.SocketClient;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.InternalUtility;
 import prerna.util.Settings;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -181,8 +180,7 @@ public class Project implements IProject {
 	protected String workingDirectoryBasePath = null;
 	protected File cacheFolder;
 	// project specific analytics thread
-	private final transient ClientProcessWrapper cpw = new ClientProcessWrapper();
-	private final transient ClientProcessWrapper javaCPW = new ClientProcessWrapper();
+	private transient ClientProcessWrapper cpw = new ClientProcessWrapper();
 	protected PyTranslator pyTranslator = null;
 
 	protected IMCP projectMCP = null;
@@ -200,7 +198,6 @@ public class Project implements IProject {
 		setSmssProp(smssProp);
 		this.projectId = this.smssProp.getProperty(Constants.PROJECT);
 		this.projectName = this.smssProp.getProperty(Constants.PROJECT_ALIAS);
-		SecretRedactor.recordSecrets(this.projectId, this.smssProp);
 		String smssDisplayName = this.smssProp.getProperty(Constants.PROJECT_DISPLAY_NAME);
 		this.displayName = (smssDisplayName != null && !smssDisplayName.trim().isEmpty()) ? smssDisplayName
 				: this.projectName;
@@ -242,12 +239,15 @@ public class Project implements IProject {
 			GitRepoUtils.init(this.projectVersionFolder);
 		}
 
-		this.projectType = IProject.PROJECT_TYPE.fromSmss(this.smssProp);
-
-		if (!this.isAsset && this.projectType.holdsInsights()) {
-			loadInsightsRdbms();
+		String projectTypeStr = this.smssProp.getProperty(Constants.PROJECT_ENUM_TYPE);
+		if (projectTypeStr != null) {
+			this.projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
 		} else {
-			ProjectHelper.deleteInsightsDatabase(this.smssProp);
+			this.projectType = IProject.PROJECT_TYPE.INSIGHTS;
+		}
+
+		if (!isAsset) {
+			loadInsightsRdbms();
 		}
 
 		this.projectProperties = new ProjectProperties(this.projectAssetFolder, this.projectName, this.projectId);
@@ -257,7 +257,7 @@ public class Project implements IProject {
 		this.portalsHelper = new ProjectPortalsHelper(this, this.projectPortalFolder, this.smssProp);
 		try {
 			loadCompiledProjectReactors();
-		} catch (Exception | LinkageError e) {
+		} catch (Exception e) {
 			classLogger.error("Unable to compile project reactors on project initialization for project '{}'",
 					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
@@ -297,17 +297,17 @@ public class Project implements IProject {
 	}
 
 	/**
-	 * Load the insights database the smss RDBMS_INSIGHTS names, creating its file
-	 * when it does not exist. A project whose smss names none has no insights
-	 * database.
-	 *
-	 * @throws Exception if the insights database cannot be opened
+	 * Load the insights database
+	 * 
+	 * @throws Exception
 	 */
 	protected void loadInsightsRdbms() throws Exception {
-		File insightDatabaseFile = SmssUtilities.getInsightsRdbmsFile(this.smssProp);
-		if (insightDatabaseFile != null) {
-			this.insightDatabaseLoc = insightDatabaseFile.getAbsolutePath();
-			ProjectHelper.setAsideLegacyInsightsDatabase(this.smssProp, insightDatabaseFile, classLogger);
+		// load the rdbms insights db
+		this.insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(this.smssProp).getAbsolutePath();
+
+		// if it is not defined directly in the smss
+		// we will not create an insights database
+		if (insightDatabaseLoc != null) {
 			this.insightRdbms = ProjectHelper.loadInsightsEngine(this.smssProp, classLogger);
 		}
 	}
@@ -364,9 +364,6 @@ public class Project implements IProject {
 
 	@Override
 	public Vector<String> getPerspectives() {
-		if (this.insightRdbms == null) {
-			return new Vector<>();
-		}
 		Vector<String> perspectives = Utility.getVectorOfReturn(GET_ALL_PERSPECTIVES_QUERY, insightRdbms, false);
 		if (perspectives.contains("")) {
 			int index = perspectives.indexOf("");
@@ -377,9 +374,6 @@ public class Project implements IProject {
 
 	@Override
 	public Vector<String> getInsights(String perspective) {
-		if (this.insightRdbms == null) {
-			return new Vector<>();
-		}
 		String insightsInPerspective = null;
 		if (perspective.equals("Semoss-Base-Perspective")) {
 			perspective = null;
@@ -395,9 +389,6 @@ public class Project implements IProject {
 
 	@Override
 	public Vector<String> getInsights() {
-		if (this.insightRdbms == null) {
-			return new Vector<>();
-		}
 		return Utility.getVectorOfReturn(GET_ALL_INSIGHTS_QUERY, insightRdbms, false);
 	}
 
@@ -430,20 +421,31 @@ public class Project implements IProject {
 			}
 		}
 
-		// shut down the project's python process when it is running; a project opened
-		// again is a new instance that starts its own
-		try {
-			this.cpw.shutdown(false);
-		} catch (Exception e) {
-			classLogger.error("Failed to shut down the python process of project '{}'",
-					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
-		}
-		try {
-			this.javaCPW.shutdown(false);
-		} catch (Exception e) {
-			classLogger.error("Failed to shut down the Java worker of project '{}'",
-					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
-		}
+		// TODO: do we want to close the py process everything time we close?
+		// we close when we push insights (cause of the insights database) or update
+		// smss
+
+//		try {
+//			if(tcpClient != null) {
+//				// this should destroy the process as well
+//				tcpClient.stopPyServe(this.tcpServerDirectory);
+//			}
+//		} catch(Exception e) {
+//			classLogger.error(Constants.STACKTRACE, e);
+//		}
+//		// but just in case above doesn't destroy it
+//		try {
+//			if(tcpServerProcess != null) {
+//				tcpServerProcess.destroy();
+//			}
+//		} catch(Exception e) {
+//			classLogger.error(Constants.STACKTRACE, e);
+//			try {
+//				tcpServerProcess.destroy();
+//			} catch(Exception e1) {
+//				classLogger.error(Constants.STACKTRACE, e1);
+//			}
+//		}
 	}
 
 	@Override
@@ -502,34 +504,51 @@ public class Project implements IProject {
 
 	@Override
 	public Vector<Insight> getInsight(String... questionIDs) {
-		if (this.insightRdbms == null) {
-			return new Vector<>();
-		}
 		String idString = "";
 		int numIDs = questionIDs.length;
 		Vector<Insight> insightV = new Vector<Insight>(numIDs);
 		List<Integer> counts = new Vector<Integer>(numIDs);
 		for (int i = 0; i < numIDs; i++) {
 			String id = questionIDs[i];
-			idString = idString + "'" + id + "'";
-			if (i != numIDs - 1) {
-				idString = idString + ", ";
+			try {
+				idString = idString + "'" + id + "'";
+				if (i != numIDs - 1) {
+					idString = idString + ", ";
+				}
+				counts.add(i);
+			} catch (NumberFormatException e) {
+				System.err.println(">>>>>>>> FAILED TO GET ANY INSIGHT FOR ARRAY :::::: " + questionIDs[i]);
 			}
-			counts.add(i);
 		}
 
 		if (!idString.isEmpty()) {
 			String query = GET_INSIGHT_INFO_QUERY.replace(QUESTION_PARAM_KEY, idString);
 			classLogger.info("Running insights query {}", Utility.cleanLogString(query));
 
-			try (IRawSelectWrapper wrap = WrapperManager.getInstance().getRawWrapper(insightRdbms, query)) {
+			IRawSelectWrapper wrap = null;
+			try {
+				wrap = WrapperManager.getInstance().getRawWrapper(insightRdbms, query);
 				while (wrap.hasNext()) {
 					IHeadersDataRow dataRow = wrap.next();
 					Object[] values = dataRow.getValues();
-					// Object[] rawValues = dataRow.getRawValues();
+//					Object[] rawValues = dataRow.getRawValues();
 
 					String rdbmsId = values[0] + "";
 					String insightName = values[1] + "";
+
+					String insightMakeup = (String) values[2];
+//					Clob insightMakeup = (Clob) values[2];
+//					InputStream insightMakeupIs = null;
+//					if(insightMakeup != null) {
+//						try {
+//							insightMakeupIs = insightMakeup.getAsciiStream();
+//						} catch (SQLException e) {
+//							logger.error(Constants.STACKTRACE, e);
+//						}
+//					}
+					String layout = values[4] + "";
+					String dataTableAlign = values[6] + "";
+					String dataMakerName = values[7] + "";
 					boolean cacheable = (boolean) values[8];
 					Integer cacheMinutes = (Integer) values[9];
 					if (cacheMinutes == null) {
@@ -546,6 +565,16 @@ public class Project implements IProject {
 					if (insightRdbms.getQueryUtil().allowArrayDatatype()) {
 						pixel = (Object[]) values[12];
 					} else {
+//						Clob pixelArray = (Clob) values[9];
+//						InputStream pixelArrayIs = null;
+//						if(pixelArray != null) {
+//							try {
+//								pixelArrayIs = pixelArray.getAsciiStream();
+//							} catch (SQLException e) {
+//								logger.error(Constants.STACKTRACE, e);
+//							}
+//						}
+
 						// flush input stream to string
 						String pixelArray = (String) values[12];
 						Gson gson = new Gson();
@@ -554,33 +583,56 @@ public class Project implements IProject {
 						pixel = gson.fromJson(reader, String[].class);
 					}
 
+					String perspective = values[3] + "";
+					String order = values[5] + "";
+
+					Insight in = null;
 					if (pixel == null || pixel.length == 0) {
-						throw new IllegalArgumentException("Insight '" + insightName
-								+ "' was saved in the retired playsheet format and can no longer be opened");
-					}
-					Insight in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, cacheMinutes,
-							cacheCron, cacheEncrypt, pixel.length);
-					in.setInsightName(insightName);
-					List<String> pixelList = new Vector<String>(pixel.length);
-					for (int i = 0; i < pixel.length; i++) {
-						String pixelString = pixel[i].toString();
-						List<String> breakdown;
-						try {
-							breakdown = PixelUtility.parsePixel(pixelString);
-							pixelList.addAll(breakdown);
-						} catch (ParserException | LexerException | IOException e) {
-							classLogger.error("Error parsing pixel expression '{}' for insight id '{}'", pixelString,
-									rdbmsId, e);
-							throw new IllegalArgumentException("Error occurred parsing the pixel expression");
+						in = new OldInsight(this, dataMakerName, layout);
+						in.setRdbmsId(rdbmsId);
+						in.setInsightName(insightName);
+						((OldInsight) in).setOutput(layout);
+						((OldInsight) in).setMakeup(insightMakeup);
+//						in.setPerspective(perspective);
+//						in.setOrder(order);
+						((OldInsight) in).setDataTableAlign(dataTableAlign);
+						// adding semoss parameters to insight
+						((OldInsight) in).setInsightParameters(
+								LegacyInsightDatabaseUtility.getParamsFromInsightId(this.insightRdbms, rdbmsId));
+						in.setIsOldInsight(true);
+					} else {
+						in = new Insight(this.projectId, this.projectName, rdbmsId, cacheable, cacheMinutes, cacheCron,
+								cacheEncrypt, pixel.length);
+						in.setInsightName(insightName);
+						List<String> pixelList = new Vector<String>(pixel.length);
+						for (int i = 0; i < pixel.length; i++) {
+							String pixelString = pixel[i].toString();
+							List<String> breakdown;
+							try {
+								breakdown = PixelUtility.parsePixel(pixelString);
+								pixelList.addAll(breakdown);
+							} catch (ParserException | LexerException | IOException e) {
+								classLogger.error("Error parsing pixel expression '{}' for insight id '{}'",
+										pixelString, rdbmsId, e);
+								throw new IllegalArgumentException("Error occurred parsing the pixel expression");
+							}
 						}
+						in.setPixelRecipe(pixelList);
 					}
-					in.setPixelRecipe(pixelList);
 					insightV.insertElementAt(in, counts.remove(0));
 				}
 			} catch (IllegalArgumentException e) {
 				throw e;
 			} catch (Exception e) {
 				classLogger.error("Failed to retrieve insights for query IDs {}", idString, e);
+			} finally {
+				if (wrap != null) {
+					try {
+						wrap.close();
+					} catch (IOException e) {
+						classLogger.error("Failed to close insight query wrapper for query IDs {}", idString, e);
+					}
+				}
 			}
 		}
 		return insightV;
@@ -589,12 +641,11 @@ public class Project implements IProject {
 	@Override
 	public String getInsightDefinition() {
 		StringBuilder stringBuilder = new StringBuilder();
-		if (this.insightRdbms == null) {
-			return stringBuilder.toString();
-		}
 		// call script command to get everything necessary to recreate rdbms engine on
 		// the other side//
-		try (ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(insightRdbms, "SCRIPT")) {
+		ISelectWrapper wrap = null;
+		try {
+			wrap = WrapperManager.getInstance().getSWrapper(insightRdbms, "SCRIPT");
 			String[] names = wrap.getVariables();
 			while (wrap.hasNext()) {
 				ISelectStatement ss = wrap.next();
@@ -603,6 +654,14 @@ public class Project implements IProject {
 		} catch (Exception e) {
 			classLogger.error("Failed to generate insight definition script for project '{}'",
 					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
+		} finally {
+			if (wrap != null) {
+				try {
+					wrap.close();
+				} catch (IOException e) {
+					classLogger.error("Failed to close SCRIPT wrapper while generating insight definition", e);
+				}
+			}
 		}
 		return stringBuilder.toString();
 	}
@@ -644,19 +703,12 @@ public class Project implements IProject {
 		boolean loadJars = jars != null && jars.length > 0;
 		boolean hasPom = pomFile.exists() && pomFile.isFile();
 
-		// LinkageError covers classes built for a newer java version, which must not
-		// take the project down with them
-		try {
-			if (loadJars) {
-				compileReactorFromJars(jars);
-			} else if (hasPom) {
-				compileReactorsFromPom(pomFile);
-			} else {
-				compileReactorsFromJavaFiles();
-			}
-		} catch (Exception | LinkageError e) {
-			classLogger.error("Failed to compile reactors for project '{}'",
-					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
+		if (loadJars) {
+			compileReactorFromJars(jars);
+		} else if (hasPom) {
+			compileReactorsFromPom(pomFile);
+		} else {
+			compileReactorsFromJavaFiles();
 		}
 
 		this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
@@ -669,7 +721,7 @@ public class Project implements IProject {
 	private void compileReactorsFromJavaFiles() {
 		// have the classes been loaded already?
 		if (ProjectCustomReactorCompilator.needsCompilation(this.projectId)) {
-			int status = InternalUtility.compileJava(this.projectAssetFolder, getCP());
+			int status = Utility.compileJava(this.projectAssetFolder, getCP());
 			if (status == 0) {
 				ProjectCustomReactorCompilator.setCompiled(this.projectId);
 			} else {
@@ -739,15 +791,8 @@ public class Project implements IProject {
 					throw new IllegalArgumentException("Unable to load jar file : " + jars[i].getName());
 				}
 			}
-			try {
-				projectSpecificHash = this.reactorHelper.loadReactorsFromJars(urls);
-				ProjectCustomReactorCompilator.setCompiled(this.projectId);
-			} catch (LinkageError e) {
-				// a jar built for a newer java version fails the same way every time, so it
-				// is not retried on every lookup, only once the class cache is cleared
-				ProjectCustomReactorCompilator.setFailed(this.projectId);
-				throw e;
-			}
+			projectSpecificHash = this.reactorHelper.loadReactorsFromJars(urls);
+			ProjectCustomReactorCompilator.setCompiled(this.projectId);
 		}
 	}
 
@@ -762,7 +807,7 @@ public class Project implements IProject {
 
 		IReactor retReac = null;
 		try {
-			if (projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) {
+			if (projectSpecificHash.containsKey(className.toUpperCase())) {
 				Class<IReactor> thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 				retReac = thisReactorClass.getDeclaredConstructor().newInstance();
 			}
@@ -819,8 +864,8 @@ public class Project implements IProject {
 	public String getTargetFolder(File pomFile) {
 		String targetFolder = null;
 
-		try (FileInputStream pomStream = new FileInputStream(pomFile)) {
-			InputSource is = new InputSource(pomStream);
+		try {
+			InputSource is = new InputSource(new FileInputStream(pomFile));
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			// Use this if the JAXP parser accepts it
 			dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
@@ -868,6 +913,10 @@ public class Project implements IProject {
 
 		if (hasPom) {
 			// this is maven
+
+			// TODO: need to figure out how we see if maven is already compiled and exists
+			// TODO: need to figure out how we see if maven is already compiled and exists
+			// TODO: need to figure out how we see if maven is already compiled and exists
 			// TODO: need to figure out how we see if maven is already compiled and exists
 
 		} else if (loadJars) {
@@ -911,7 +960,7 @@ public class Project implements IProject {
 					Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
 					retReac = (IReactor) thisReactorClass.getDeclaredConstructor().newInstance();
 				}
-			} catch (Exception | LinkageError e) {
+			} catch (Exception e) {
 				classLogger.error("Failed to instantiate cached reactor '{}' for project '{}'", className,
 						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 			}
@@ -942,22 +991,20 @@ public class Project implements IProject {
 			boolean loadJars = jars != null && jars.length > 0;
 			boolean hasPom = pomFile.exists() && pomFile.isFile();
 
-			// LinkageError covers classes built for a newer java version
-			try {
-				if (loadJars) {
-					retReac = getReactorFromJars(className, jars);
-				} else if (hasPom) {
-					retReac = getReactorsFromPom(className, pomFile);
-				} else {
-					compileReactorsFromJavaFiles();
+			if (loadJars) {
+				retReac = getReactorFromJars(className, jars);
+			} else if (hasPom) {
+				retReac = getReactorsFromPom(className, pomFile);
+			} else {
+				compileReactorsFromJavaFiles();
+				try {
 					if (projectSpecificHash != null && projectSpecificHash.containsKey(className.toUpperCase())) {
-						Class<IReactor> thisReactorClass = projectSpecificHash.get(className.toUpperCase());
-						retReac = thisReactorClass.getDeclaredConstructor().newInstance();
+						Class thisReactorClass = projectSpecificHash.get(className.toUpperCase());
+						retReac = (IReactor) thisReactorClass.getDeclaredConstructor().newInstance();
 					}
+				} catch (Exception e) {
+					classLogger.error("Failed to instantiate reactor '{}' from project java source", className, e);
 				}
-			} catch (Exception | LinkageError e) {
-				classLogger.error("Failed to load reactor '{}' for project '{}'", className,
-						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 			}
 
 			this.lastReactorCompilationDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
@@ -965,18 +1012,24 @@ public class Project implements IProject {
 					this.lastReactorCompilationDate);
 		}
 
+		boolean useNettyPy = Utility.getDIHelperProperty(Constants.NETTY_PYTHON) != null
+				&& Utility.getDIHelperProperty(Constants.NETTY_PYTHON).equalsIgnoreCase("true");
+		if (!useNettyPy) {
+			return retReac;
+		}
+
 		// secondary check to execute reactor here
-		if (executeReactorOnSocket() && ((InternalUtility.getLocalProperty("core") == null
-				|| InternalUtility.getLocalProperty("core").toString().equalsIgnoreCase("true")) && retReac != null)) {
+		if (executeReactorOnSocket() && ((Utility.getDIHelperLocalProperty("core") == null
+				|| Utility.getDIHelperLocalProperty("core").toString().equalsIgnoreCase("true")) && retReac != null)) {
 
 			// need to convert this to reactor wrapper before I give it to be executed
 			CustomReactorWrapper wrapper = new CustomReactorWrapper();
 			wrapper.realReactor = retReac;
 			wrapper.reactorCallName = className;
 			return wrapper;
+		} else {
+			return retReac;
 		}
-
-		return retReac;
 	}
 
 	@Override
@@ -1209,140 +1262,118 @@ public class Project implements IProject {
 		if (!create) {
 			return this.cpw.getSocketClient();
 		}
-		return this.cpw.getOrStartSocketClient(() -> createProjectTcpServer(port));
+
+		if (this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return this.cpw.getSocketClient();
+		}
+
+		createProjectTcpServer(port);
+		return this.cpw.getSocketClient();
 	}
 
 	/**
-	 * Returns an R translator that runs R in this project's Java worker process,
-	 * starting the worker, or reconnecting to it, when it is not connected.
-	 *
-	 * @return the R translator for this project
+	 * 
+	 * @return
 	 */
 	@Override
 	public TCPRTranslator getProjectRTranslator() {
-		SocketClient client = this.javaCPW.getOrStartSocketClient(() -> createProjectJavaServer(-1));
+		if (this.cpw.getSocketClient() == null) {
+			createProjectTcpServer(-1);
+		} else if (!this.cpw.getSocketClient().isConnected()) {
+			this.cpw.shutdown(false);
+			try {
+				this.cpw.reconnect();
+			} catch (Exception e) {
+				classLogger.error("Failed to reconnect TCP client for project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
+				throw new IllegalArgumentException("Failed to start TCP Server for Project = "
+						+ SmssUtilities.getUniqueName(this.projectName, this.projectId));
+			}
+		}
 		TCPRTranslator rJavaTranslator = new TCPRTranslator();
-		rJavaTranslator.setClient(client);
+		rJavaTranslator.setClient(this.cpw.getSocketClient());
 		return rJavaTranslator;
 	}
 
 	/**
-	 * Starts this project's Java worker process, which runs the project's R, and
-	 * connects its socket client. Called through
-	 * {@link ClientProcessWrapper#getOrStartSocketClient(Runnable)}, which holds
-	 * the wrapper's create lock.
-	 *
-	 * @param port the port to connect on; negative to auto-allocate, or to attach
-	 *             to the smss JAVA_FORCE_PORT when it is set
-	 */
-	private void createProjectJavaServer(int port) {
-		if (this.workingDirectoryBasePath == null) {
-			this.createCacheFolder();
-		}
-
-		boolean debug = false;
-		String forcePort = this.smssProp.getProperty(Settings.JAVA_FORCE_PORT);
-		if (port < 0 && forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-			try {
-				port = Integer.parseInt(forcePort);
-				debug = true;
-			} catch (NumberFormatException e) {
-				classLogger.warn("Project {} has an invalid JAVA_FORCE_PORT value '{}'", this.getEngineName(),
-						forcePort);
-			}
-		}
-
-		String timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT, "30");
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
-		File serverDirectory = new File(this.cacheFolder, "java");
-		serverDirectory.mkdirs();
-
-		try {
-			this.javaCPW.createProcessAndClient(false, null, port, null, serverDirectory.getAbsolutePath(), debug,
-					timeout, loggerLevel);
-		} catch (Exception e) {
-			classLogger.error("Unable to start the Java worker for project '{}'",
-					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
-			throw new IllegalArgumentException("Unable to connect to the Java worker for project = "
-					+ SmssUtilities.getUniqueName(this.projectName, this.projectId));
-		}
-	}
-
-	/**
-	 * Returns the translator that runs python in this project's python process,
-	 * starting the process when it is not running.
-	 *
-	 * @return the python translator for this project
+	 * 
+	 * @return
 	 */
 	@Override
 	public PyTranslator getProjectPyTranslator() {
-		SocketClient client = this.cpw.getOrStartSocketClient(() -> createProjectTcpServer(-1));
-		this.pyTranslator.setSocketClient(client);
+		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
+			this.createProjectTcpServer(-1);
+		}
+		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
 		return this.pyTranslator;
 	}
 
-	@Override
-	public Object clearPythonImports() {
-		if (this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			return null;
-		}
-		// the translator's insight carries this project as its context, so the
-		// script runs with the project assets as its asset paths
-		this.pyTranslator.setSocketClient(this.cpw.getSocketClient());
-		return this.pyTranslator.runScript(PyUtils.CLEAR_APP_IMPORTS_SCRIPT);
-	}
-
 	/**
-	 * Starts this project's python process, connects its socket client, and creates
-	 * the python translator that runs scripts with this project as their context.
-	 * Called through {@link ClientProcessWrapper#getOrStartSocketClient(Runnable)},
-	 * which holds the wrapper's create lock.
-	 *
-	 * @param port the port to connect on; negative to auto-allocate, or to attach
-	 *             to the smss FORCE_PORT when it is set
+	 * 
 	 */
-	private void createProjectTcpServer(int port) {
+	private synchronized void createProjectTcpServer(int port) {
+		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+			return;
+		}
 		if (this.workingDirectoryBasePath == null) {
 			this.createCacheFolder();
+		}
+
+		// check if we have already created a process wrapper
+		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+		if (this.cpw != null) {
+			this.cpw.shutdown(false);
 		}
 
 		String timeout = "30";
 		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
 			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
 		}
-		boolean debug = false;
+		if (cpwToInit.getSocketClient() == null) {
+			boolean debug = false;
 
-		// pull the relevant values from the smss
-		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
-		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+			// pull the relevant values from the smss
+			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "INFO");
+			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 
-		if (port < 0) {
-			// port has not been forced
-			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-				try {
-					port = Integer.parseInt(forcePort);
-					debug = true;
-				} catch (NumberFormatException e) {
-					// ignore
-					classLogger.warn("Project {} has an invalid FORCE_PORT value '{}'", this.getEngineName(),
-							forcePort);
+			if (port < 0) {
+				// port has not been forced
+				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch (NumberFormatException e) {
+						// ignore
+						classLogger.warn("Project {} has an invalid FORCE_PORT value '{}'", this.getEngineName(),
+								forcePort);
+					}
 				}
 			}
-		}
 
-		String serverDirectory = this.cacheFolder.getAbsolutePath();
-		// it has to be -- don't change this unless you can send engine calls from
-		// python
-		boolean nativePyServer = true;
-		try {
-			this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, debug, timeout,
-					loggerLevel);
-		} catch (Exception e) {
-			classLogger.error("Unable to create project TCP process/client for project '{}'",
-					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
-			throw new IllegalArgumentException("Unable to connect to server for python model engine.");
+			String serverDirectory = this.cacheFolder.getAbsolutePath();
+			boolean nativePyServer = true; // it has to be -- don't change this unless you can send engine calls from
+											// python
+			try {
+				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
+						debug, timeout, loggerLevel);
+			} catch (Exception e) {
+				classLogger.error("Unable to create project TCP process/client for project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
+				throw new IllegalArgumentException("Unable to connect to server for python model engine.");
+			}
+		} else if (!cpwToInit.getSocketClient().isConnected()) {
+			cpwToInit.shutdown(false);
+			try {
+				cpwToInit.reconnect();
+			} catch (Exception e) {
+				classLogger.error("Unable to reconnect project TCP process/client for project '{}'",
+						SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
+				throw new IllegalArgumentException(
+						"Failed to start TCP Server for Python Model Engine = " + this.getEngineName());
+			}
 		}
 
 		// create the py translator
@@ -1350,7 +1381,9 @@ public class Project implements IProject {
 		processInsight.setContextProjectId(this.projectId);
 		processInsight.setContextProjectName(this.projectName);
 		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(this.cpw.getSocketClient(), processInsight);
+		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
+		// finally set the cpw in the class
+		this.cpw = cpwToInit;
 	}
 
 	/**

@@ -29,7 +29,6 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkWorkspaceUtils;
-import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkListWorkspaces(); or WorkListWorkspaces(threadId=["..."]);
@@ -49,9 +48,15 @@ public class WorkListWorkspacesReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition()
-				.description("Lists thread workspaces (steps) for every thread that has one, or for one thread")
-				.key(THREAD_ID, "Thread id; omit for every thread");
+	public String getReactorDescription() {
+		return "Lists thread workspaces (goal, steps) for every thread that has one, or for one thread";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id; omit for every thread";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

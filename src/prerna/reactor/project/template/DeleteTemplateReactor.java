@@ -39,16 +39,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-@Deprecated
+
+/** This reactor will delete the existing template information from the app corresponding template property file. 
+ * @author kprasannakumar
+ *
+ */
 public class DeleteTemplateReactor extends AbstractReactor {
-	@Deprecated
 	public DeleteTemplateReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.TEMPLATE_NAME.getKey(),
 				ReactorKeysEnum.TEMPLATE_FILE.getKey() };
 	}
 
-	@Deprecated
-	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
@@ -57,20 +58,17 @@ public class DeleteTemplateReactor extends AbstractReactor {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException(
-					"Project does not exist or user does not have access to edit the project");
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
 		}
 
 		IProject project = Utility.getProject(projectId);
-		ClusterUtil.pullProjectFolder(project,
-				AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		Map<String, String> templateDataMap = TemplateUtility.deleteTemplate(projectId, templateFile, templateName);
-		ClusterUtil.pushProjectFolder(project,
-				AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
+		ClusterUtil.pushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 
-		// returning back the updated template information which will contain all the
-		// template
+		// returning back the updated template information which will contain all the template
 		// information with template name as key and file name as the value
 		return new NounMetadata(templateDataMap, PixelDataType.MAP);
 	}

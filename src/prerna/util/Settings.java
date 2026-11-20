@@ -56,6 +56,7 @@ public class Settings {
 	public static final String PY_HOME = "PY_HOME";
 	public static final String PYTHONHOME = "PYTHONHOME";
 	public static final String PYTHONHOME_SITE_PACKAGES = "PYTHONHOME_SITE_PACKAGES";
+	public static final String NATIVE_PY_SERVER = "NATIVE_PY_SERVER";
 	public static final String PY_SERVER_USER = "PY_SERVER_USER";
 
 	// node.js agent execution environment
@@ -85,8 +86,11 @@ public class Settings {
 
 	// FOR REMOTE CLIENTS
 
-	// The short name for a model
+	// The short name for a model.. Can't use the HuggingFace model repo id
+	// here due to naming restrictions on kubernetes resources
 	public static final String MODEL = "MODEL";
+	// The HuggingFace model repo id
+	public static final String MODEL_REPO_ID = "MODEL_REPO_ID";
 	// The type of model
 	public static final String MODEL_TYPE = "MODEL_TYPE";
 
@@ -94,7 +98,6 @@ public class Settings {
 
 	// the port to force the connection on
 	public static final String FORCE_PORT = "FORCE_PORT";
-	public static final String JAVA_FORCE_PORT = "JAVA_FORCE_PORT";
 	// the python logger level � DEBUG, INFO, WARNING, or CRITICAL
 	public static final String LOGGER_LEVEL = "LOGGER_LEVEL";
 
