@@ -177,6 +177,7 @@ public final class AutomationNodeCatalog {
 				List.of(engineField(IEngine.CATALOG_TYPE.FUNCTION),
 						field("arguments", ConfigFieldType.JSON, "Input parameters", true, Map.of())),
 				controlInputs(), controlAndResultOutputs()));
+		definitions.add(apiRequestDefinition());
 		definitions.add(definition(AutomationNodeType.APP_PIXEL, "Run an app action",
 				"Run a static Pixel action in an optional app context.", orderedConfig("appId", "", "pixel", ""),
 				List.of(field("appId", ConfigFieldType.STRING, "App", false, ""),
@@ -251,6 +252,41 @@ public final class AutomationNodeCatalog {
 				"Run custom Python for advanced transformations.", AutomationConstants.NODE_CODE_MODE_CUSTOM, Map.of(),
 				List.of(), List.of(), controlInputs(), controlAndResultOutputs()));
 		return Collections.unmodifiableList(definitions);
+	}
+
+	private static AutomationNodeDefinition apiRequestDefinition() {
+		Map<String, Object> defaultConfig = orderedConfig(AutomationConstants.CONFIG_API_METHOD, "GET",
+				AutomationConstants.CONFIG_API_URL, "", AutomationConstants.CONFIG_API_CONNECTION_ID, "",
+				AutomationConstants.CONFIG_API_QUERY, Map.of(), AutomationConstants.CONFIG_API_HEADERS, Map.of(),
+				AutomationConstants.CONFIG_API_BODY_TYPE, AutomationConstants.API_BODY_NONE,
+				AutomationConstants.CONFIG_API_BODY, "", AutomationConstants.CONFIG_API_TIMEOUT_SECONDS,
+				AutomationConstants.API_DEFAULT_TIMEOUT_SECONDS);
+		List<ConfigField> fields = List.of(
+				field(AutomationConstants.CONFIG_API_METHOD, ConfigFieldType.STRING, "Method", true, "GET"),
+				field(AutomationConstants.CONFIG_API_URL, ConfigFieldType.STRING, "URL", true, ""),
+				new ConfigField(AutomationConstants.CONFIG_API_CONNECTION_ID, ConfigFieldType.ENGINE, "Connection",
+						false, "", null, null, IEngine.CATALOG_TYPE.FUNCTION),
+				field(AutomationConstants.CONFIG_API_QUERY, ConfigFieldType.JSON, "Query parameters", false, Map.of()),
+				field(AutomationConstants.CONFIG_API_HEADERS, ConfigFieldType.JSON, "Headers", false, Map.of()),
+				field(AutomationConstants.CONFIG_API_BODY_TYPE, ConfigFieldType.STRING, "Body type", false,
+						AutomationConstants.API_BODY_NONE),
+				field(AutomationConstants.CONFIG_API_BODY, ConfigFieldType.CODE, "Body", false, ""),
+				boundedIntegerField(AutomationConstants.CONFIG_API_TIMEOUT_SECONDS, "Timeout (seconds)",
+						AutomationConstants.API_DEFAULT_TIMEOUT_SECONDS, AutomationConstants.API_MIN_TIMEOUT_SECONDS,
+						AutomationConstants.API_MAX_TIMEOUT_SECONDS));
+		List<OutputField> outputFields = List.of(
+				outputField("status", OutputFieldType.NUMBER, "Status code", "HTTP status code of the response.", true),
+				outputField("headers", OutputFieldType.OBJECT, "Headers",
+						"Response headers. Set-Cookie and Authorization are removed.", true),
+				outputField("body", OutputFieldType.OBJECT, "Body",
+						"Parsed JSON for JSON content types, otherwise response text.", false),
+				outputField("truncated", OutputFieldType.BOOLEAN, "Truncated",
+						"Whether the body was cut at the size limit.", true),
+				outputField("durationMs", OutputFieldType.NUMBER, "Duration (ms)", "Time taken to receive the response.",
+						true));
+		return definition(AutomationNodeType.API_REQUEST, "API request",
+				"Send an HTTP request to an external service and use its response.", defaultConfig, fields,
+				outputFields, controlInputs(), controlAndResultOutputs());
 	}
 
 	private static AutomationNodeDefinition databaseWriteDefinition(AutomationNodeType nodeType, String label,
