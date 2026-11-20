@@ -22,7 +22,7 @@ The native harness builds a prompt from these sources:
 
 - Platform behavior from [SemossHarnessPrompts](../../src/prerna/reactor/agent/runtime/SemossHarnessPrompts.java).
 - Delegation instructions for the subagent tools actually exposed to the run.
-- Available skill names, descriptions, and paths discovered in the working directory.
+- Available skill names, descriptions, and paths discovered in the working directory, unless a toolbox replaces the built-in tools (see [Tools and execution policy](#tools-and-execution-policy)).
 - The agent's own files, when it has any (see [Agent files](#agent-files)).
 - Resolved agent context: working-directory instructions, workspace/room authored instructions, and selected-engine context when applicable.
 - Runtime context, including identifiers and the execution target.
@@ -88,6 +88,7 @@ An agent's own files are the files in the `public` assets folder of its project,
 - Every tool that writes refuses an `agent:/` path. `CopyAgentFile` copies a file into the working target, where it can be changed. Shell and managed code see only the working target, so a file is copied before code uses it.
 - The prompt names the files, up to 50 of them.
 - An upload stores a file under a cleaned name, so `R&D plan.md` is on disk as `R&amp;D plan.md`. When no file has the name a tool was given, the tool looks for the cleaned name, in the working target as well, and its answer shows the name on disk.
+- The prompt leaves the files out when a toolbox replaces the built-in tools, since that toolbox's tools do not take `agent:/` paths.
 - Nothing else in the agent's project is offered to a run. The CLI harnesses do not have agent files.
 
 ### Digital Twins
@@ -105,6 +106,8 @@ Its own files, its owner's skills and toolboxes, and the chat's working director
 A model's built-in tools, such as web search, run at the provider, and their results come back inside the model's response. The exception is a response that calls one of them together with a tool of ours: the provider then stops without running its own tool and waits. The harness runs our tools and continues with their results alone, with no runtime status after them, because the provider resumes its waiting tool only when our results are all the message holds. The call has no stored result until the next response brings it, so the room's payload check does not count it as unanswered.
 
 `useDefaultAgentTools` and `disabledDefaultTools` control the agent's general built-in tools. Default-tool availability can also be supplied by a deployment-configured MCP project. Explicit resource attachments and their permission checks still matter; a skill does not grant an engine, filesystem, or tool permission.
+
+When a deployment replaces the built-in tools with a toolbox (`AGENT_DEFAULT_TOOLS_MCP_ID`), the prompt leaves out the parts written for the built-in tools: the available-skills block (which points at `LoadSkill`), the [agent files](#agent-files) block (only the built-in read tools take `agent:/` paths) and the runtime context's notes on `BashCommand`, `ExecutePythonCode`, `ExecuteNodeCode` and the file tools. That toolbox's tools are described by their own definitions, even where a name matches a built-in one. Notes on harness-owned tools, such as the presentation workflow's `BuildPptx`, and Collaboration file delivery stay.
 
 Tool execution mode such as `SMSS_MCP_EXECUTION=ask` requires an approval decision; see [MCP tools and `_meta` options](mcp_tools.md) for every tool metadata key, including deferred loading. The executor persists that decision point as a run action. [Tool hooks](../../src/prerna/reactor/agent/IToolHook.java) participate before and after dispatch; run hooks surround the overall harness lifecycle.
 
