@@ -745,6 +745,33 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}
 
+	/**
+	 * The named dependencies of a catalog item: its manual links that have a
+	 * dependency name, so an app's code can find a dependency by that name.
+	 * Automatic links have no name and are left out.
+	 *
+	 * @param catalogId the engine id or project id
+	 * @return each dependency id keyed by its dependency name
+	 */
+	public static Map<String, String> getNamedDependencies(String catalogId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__NAME", "dependency_name"));
+		qs.addSelector(new QueryColumnSelector("CATALOGDEPENDENCIES__DEPENDENCYID", "catalog_id"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CATALOGDEPENDENCIES__CATALOGID", "==", catalogId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CATALOGDEPENDENCIES__ROLE", "==",
+				CatalogDependencyRole.MANUAL.name()));
+		Map<String, String> named = new HashMap<>();
+		for (Map<String, Object> row : QueryExecutionUtility.flushRsToMap(securityDb, qs)) {
+			Object name = row.get("dependency_name");
+			Object id = row.get("catalog_id");
+			if (name instanceof String && !((String) name).trim().isEmpty() && id instanceof String) {
+				named.put(((String) name).trim(), (String) id);
+			}
+		}
+		return named;
+	}
+
 	private static void collect(String catalogId, boolean subdependencies, Set<String> visited,
 			List<Map<String, Object>> all, java.util.function.Function<String, List<Map<String, Object>>> direct) {
 		if (!visited.add(catalogId)) {

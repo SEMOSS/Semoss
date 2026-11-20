@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
@@ -63,14 +67,19 @@ public class LoadAppReactor extends AbstractReactor {
 			return getError("User does not have access to load the app " + context);
 		}
 
-		return new NounMetadata("Successfully set app context to '" + context, PixelDataType.CONST_STRING,
-				PixelOperationType.OPERATION);
+		// the app's named dependencies, so its code can look an engine up by the
+		// name its owner gave the dependency rather than hardcoding the id
+		Map<String, Object> result = new HashMap<>();
+		result.put("message", "Successfully set app context to '" + context + "'");
+		result.put("dependencies", SecurityCatalogDependencyUtils.getNamedDependencies(context));
+		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Set the context for the insight in order to have access to app assets including custom reactors and python scripts");
+				"Set the context for the insight in order to have access to app assets including custom reactors and python scripts. "
+						+ "Returns message and dependencies: the app's named dependencies, each dependency name mapped to its engine or project id");
 	}
 
 }
