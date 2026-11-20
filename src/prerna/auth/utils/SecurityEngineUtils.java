@@ -1211,6 +1211,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
+		// the dependencies the engine owns; others that depend on it keep theirs
+		deletes.add("DELETE FROM CATALOGDEPENDENCIES WHERE CATALOGID=?");
 		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE GRANTEEENGINEID=? AND GRANTEEENGINETYPE <> '"
 				+ PermissionSubject.PROJECT_TYPE + "'");

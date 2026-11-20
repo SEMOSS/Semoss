@@ -49,6 +49,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
@@ -153,7 +154,9 @@ public final class AgentProjectArchiveUtils {
 	}
 
 	/**
-	 * Restore the exported dependency types, including non-UUID platform projects.
+	 * Restore the exported dependencies with their types, including non-UUID
+	 * platform projects such as platform skills. Types are read from the security
+	 * database when it has the item.
 	 */
 	public static void importDependencies(File directory, String projectName, String projectId, User user)
 			throws IOException {
@@ -161,15 +164,32 @@ public final class AgentProjectArchiveUtils {
 		if (!file.isFile()) {
 			return;
 		}
-		List<Map<String, Object>> dependencies = new ArrayList<>();
+		List<Map<String, Object>> rows = new ArrayList<>();
 		try (Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
 			for (JsonElement element : JsonParser.parseReader(reader).getAsJsonArray()) {
 				JsonObject dependency = element.getAsJsonObject();
-				dependencies.add(Map.of("ENGINEID", string(dependency, "engine_id", true), "ENGINETYPE",
-						IProject.CATALOG_TYPE.valueOf(string(dependency, "engine_type", true)).name()));
+				Map<String, Object> row = new HashMap<>();
+				// this release exports catalog_id and catalog_type, older ones engine_id and
+				// engine_type
+				boolean current = dependency.has("catalog_id");
+				row.put("catalog_id", string(dependency, current ? "catalog_id" : "engine_id", true));
+				row.put("catalog_type", string(dependency, current ? "catalog_type" : "engine_type", true));
+				// the link, from exports that have it
+				for (String key : new String[] { "role", "dependency_name", "dependency_description" }) {
+					JsonElement value = dependency.get(key);
+					if (value != null && !value.isJsonNull()) {
+						row.put(key, value.getAsString());
+					}
+				}
+				JsonElement automatic = dependency.get("is_automatic");
+				if (automatic != null && !automatic.isJsonNull()) {
+					row.put("is_automatic", automatic.getAsBoolean());
+				}
+				rows.add(row);
 			}
 		}
-		SecurityProjectUtils.updateProjectDependencies(user, projectId, dependencies);
+		SecurityCatalogDependencyUtils.replaceAllDependencies(user, projectId, IProject.PROJECT_TYPE.WORKSPACE.name(),
+				SecurityCatalogDependencyUtils.fromExported(rows));
 		Files.delete(file.toPath());
 	}
 

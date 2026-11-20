@@ -34,6 +34,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.auth.utils.CatalogDependencyRole;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
@@ -52,7 +54,7 @@ import prerna.util.ValueUtils;
  * Detaches a skill from a workspace. Mirrors
  * {@link AttachSkillToWorkspaceReactor}: removes the
  * {@code WORKSPACE_RESOURCE__} row, the matching {@code CONFIG_JSON.skills[]}
- * entry, and the {@code PROJECTDEPENDENCIES} entry.
+ * entry, and the {@code CATALOGDEPENDENCIES} entry.
  *
  * <p>
  * No-op when the attachment does not exist. Does not delete the skill itself;
@@ -120,13 +122,14 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 
 		if (deleted > 0) {
 			try {
-				SecurityProjectUtils.removeProjectDependency(user, workspaceId, skillId);
+				SecurityCatalogDependencyUtils.removeAutomaticDependency(workspaceId, skillId,
+						CatalogDependencyRole.SKILL);
 			} catch (Exception depEx) {
 				classLogger.warn(
-						"Detached skill '{}' from workspace '{}' but failed to remove PROJECTDEPENDENCIES entry",
+						"Detached skill '{}' from workspace '{}' but failed to remove CATALOGDEPENDENCIES entry",
 						skillId, workspaceId, depEx);
 				response.put("dependency_warning",
-						"Skill detached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());
+						"Skill detached but CATALOGDEPENDENCIES sync failed: " + depEx.getMessage());
 			}
 			UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_DETACH, AuditTargetType.SKILL, skillId,
 					null, workspaceId, null, null, Map.of("workspaceId", workspaceId));

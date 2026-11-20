@@ -38,6 +38,9 @@ import org.apache.logging.log4j.Logger;
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.auth.User;
+import prerna.auth.utils.CatalogDependencyRole;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
+import prerna.project.api.IProject;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -140,37 +143,20 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 				response.put("warning", "Skill attached but CONFIG_JSON sync failed: " + mirrorEx.getMessage());
 			}
 
-			// Mirror the attachment into PROJECTDEPENDENCIES so the skill shows up as a
-			// project dependency alongside MCP engines/projects. Bulk update via merge:
-			// read current deps, append the skill if not already present, rewrite.
-			// Best-effort - WORKSPACE_RESOURCE row is the source of truth.
+			// Mirror the attachment into CATALOGDEPENDENCIES so the skill shows up as a
+			// dependency of the workspace alongside MCP engines/projects; one already
+			// there is kept. Best-effort - WORKSPACE_RESOURCE row is the source of truth.
 			try {
-				List<Map<String, Object>> current = SecurityProjectUtils.getProjectDependencies(workspaceId, false);
-				List<Map<String, Object>> merged = new ArrayList<>();
-				boolean alreadyPresent = false;
-				for (Map<String, Object> row : current) {
-					String existingId = (String) row.get("engine_id");
-					String existingType = (String) row.get("engine_type");
-					Map<String, Object> entry = new HashMap<>();
-					entry.put("ENGINEID", existingId);
-					entry.put("ENGINETYPE", existingType);
-					merged.add(entry);
-					if (skillId.equals(existingId)) {
-						alreadyPresent = true;
-					}
-				}
-				if (!alreadyPresent) {
-					Map<String, Object> skillDep = new HashMap<>();
-					skillDep.put("ENGINEID", skillId);
-					skillDep.put("ENGINETYPE", CATALOG_TYPE.PROJECT.name());
-					merged.add(skillDep);
-					SecurityProjectUtils.updateProjectDependencies(user, workspaceId, merged);
-				}
+				SecurityCatalogDependencyUtils.addAutomaticDependencies(user, workspaceId,
+						IProject.PROJECT_TYPE.WORKSPACE.name(),
+						List.of(SecurityCatalogDependencyUtils.Dependency.automatic(skillId,
+								IProject.PROJECT_TYPE.SKILL.name(), CatalogDependencyRole.SKILL,
+								"Skill attached to this agent")));
 			} catch (Exception depEx) {
-				classLogger.warn("Attached skill '{}' to workspace '{}' but failed to record PROJECTDEPENDENCIES entry",
+				classLogger.warn("Attached skill '{}' to workspace '{}' but failed to record CATALOGDEPENDENCIES entry",
 						skillId, workspaceId, depEx);
 				response.put("dependency_warning",
-						"Skill attached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());
+						"Skill attached but CATALOGDEPENDENCIES sync failed: " + depEx.getMessage());
 			}
 
 			UserAuditTrailUtils.recordResourceEvent(user, AuditEventType.SKILL_ATTACH, AuditTargetType.SKILL, skillId,

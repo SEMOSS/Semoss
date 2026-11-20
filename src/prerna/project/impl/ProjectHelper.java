@@ -61,6 +61,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.CatalogTypes;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -675,7 +676,7 @@ public final class ProjectHelper {
 		// extract engineIds from project including project_dependencies.json
 		Map<String, Map<String, Object>> uuidToFiles = ProjectHelper.countUuidsInProjectFolder(projectFolder);
 		// process engineIds and set project dependencies
-		Map<String, Object> engineInfo = ProjectHelper.validateProjectDependencies(uuidToFiles.keySet());
+		Map<String, Object> engineInfo = ProjectHelper.validateDependencyIds(uuidToFiles.keySet());
 		Map<String, Map<String, String>> successMap = (Map<String, Map<String, String>>) engineInfo.get("success");
 		Set<String> failedSet = (Set<String>) engineInfo.get("failed");
 
@@ -793,29 +794,30 @@ public final class ProjectHelper {
 	}
 
 	/**
-	 * Split ids into those in the engine table and those that are not.
+	 * Split ids into the engines and projects in the security database and the
+	 * rest. Reads the security database alone, so nothing is loaded or pulled.
 	 *
 	 * @param engineIds the ids to check
-	 * @return a "success" map from engine id to its engineType and engineName, and
-	 *         a "failed" set of the ids that are not engines
+	 * @return a "success" map from engine or project id to its engineType (its own
+	 *         engine type or project type) and engineName, and a "failed" set of
+	 *         the ids that are neither
 	 */
-	private static Map<String, Object> validateProjectDependencies(Collection<String> engineIds) {
+	private static Map<String, Object> validateDependencyIds(Collection<String> engineIds) {
 		Map<String, Map<String, String>> success = new HashMap<>();
 		Set<String> failed = new HashSet<>();
 
 		for (String engineId : engineIds) {
-			if (SecurityEngineUtils.containsEngineId(engineId)) {
-				IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
-				String engineName = SecurityEngineUtils.getEngineAliasForId(engineId);
-
-				Map<String, String> engineInfo = new HashMap<>();
-				engineInfo.put("engineType", engineType.toString());
-				engineInfo.put("engineName", engineName);
-
-				success.put(engineId, engineInfo);
-			} else {
+			String catalogType = CatalogTypes.resolve(engineId);
+			if (catalogType == null) {
 				failed.add(engineId);
+				continue;
 			}
+			String name = CatalogTypes.isProjectType(catalogType) ? SecurityProjectUtils.getProjectAliasForId(engineId)
+					: SecurityEngineUtils.getEngineAliasForId(engineId);
+			Map<String, String> engineInfo = new HashMap<>();
+			engineInfo.put("engineType", catalogType);
+			engineInfo.put("engineName", name);
+			success.put(engineId, engineInfo);
 		}
 
 		// build final result map to return

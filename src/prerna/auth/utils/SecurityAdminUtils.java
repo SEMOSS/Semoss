@@ -1794,9 +1794,45 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			}
 			return;
 		}
-		String userId = Utility.inputSQLSanitizer(permissionUser.trim());
 		String userAlias = "PERMISSION_USER_GRANTS";
 		String groupAlias = "PERMISSION_USER_GROUP_GRANTS";
+		addUserGrantJoins(qs, resourceIdCol, permissionTable, groupPermissionTable, idColumn, permissionUser.trim(),
+				userAlias, groupAlias);
+
+		qs.addSelector(new QueryColumnSelector(userAlias + "__PERMISSION", "permission_user_permission"));
+		qs.addSelector(new QueryColumnSelector(groupAlias + "__PERMISSION", "permission_user_group_permission"));
+
+		if (hasLevels) {
+			qs.addExplicitFilter(getEffectivePermissionFilter(userAlias + "__PERMISSION", groupAlias + "__PERMISSION",
+					globalCol, effectivePermissions));
+		}
+	}
+
+	/**
+	 * Left joins one user's grants onto a resource query: the user's best direct
+	 * grant per resource as {@code <userAlias>__PERMISSION} and the best grant of
+	 * the custom groups the user belongs to as {@code <groupAlias>__PERMISSION}.
+	 * Either is null where the user has no such grant. Identity provider groups are
+	 * only known while that user is signed in, so they are not counted. Together
+	 * with {@link #getEffectivePermissionFilter} these give the user's effective
+	 * permission on each resource.
+	 *
+	 * @param qs                   the resource query
+	 * @param resourceIdCol        the resource id column, such as
+	 *                             {@code PROJECT__PROJECTID}
+	 * @param permissionTable      the user grant table, such as
+	 *                             {@code PROJECTPERMISSION}
+	 * @param groupPermissionTable the group grant table, such as
+	 *                             {@code GROUPPROJECTPERMISSION}
+	 * @param idColumn             the resource id column in both grant tables, such
+	 *                             as {@code PROJECTID}
+	 * @param userId               the user whose grants to join; sanitized here
+	 * @param userAlias            the alias of the direct grant subquery
+	 * @param groupAlias           the alias of the group grant subquery
+	 */
+	static void addUserGrantJoins(SelectQueryStruct qs, String resourceIdCol, String permissionTable,
+			String groupPermissionTable, String idColumn, String userId, String userAlias, String groupAlias) {
+		String sanitizedUserId = Utility.inputSQLSanitizer(userId);
 
 		// the user's best direct grant per resource
 		{
@@ -1805,7 +1841,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			userQs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 					permissionTable + "__PERMISSION", "PERMISSION"));
 			userQs.addGroupBy(new QueryColumnSelector(permissionTable + "__" + idColumn, idColumn));
-			userQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(permissionTable + "__USERID", "==", userId));
+			userQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(permissionTable + "__USERID", "==", sanitizedUserId));
 			qs.addRelation(new SubqueryRelationship(userQs, userAlias, "left.outer.join",
 					new String[] { userAlias + "__" + idColumn, resourceIdCol, "=" }));
 		}
@@ -1815,7 +1852,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			SelectQueryStruct membershipQs = new SelectQueryStruct();
 			membershipQs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
 			membershipQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userId));
+					SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", sanitizedUserId));
 
 			SelectQueryStruct groupQs = new SelectQueryStruct();
 			groupQs.addSelector(new QueryColumnSelector(groupPermissionTable + "__" + idColumn, idColumn));
@@ -1829,14 +1866,124 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			qs.addRelation(new SubqueryRelationship(groupQs, groupAlias, "left.outer.join",
 					new String[] { groupAlias + "__" + idColumn, resourceIdCol, "=" }));
 		}
+	}
 
-		qs.addSelector(new QueryColumnSelector(userAlias + "__PERMISSION", "permission_user_permission"));
-		qs.addSelector(new QueryColumnSelector(groupAlias + "__PERMISSION", "permission_user_group_permission"));
+	/** Where a user's effective permission on a catalog item comes from */
+	public enum CatalogAccessSource {
+		/** The user's own grant */
+		DIRECT,
+		/** A grant to a custom team the user belongs to */
+		TEAM,
+		/** The item is public, which gives everyone read only access */
+		PUBLIC
+	}
 
-		if (hasLevels) {
-			qs.addExplicitFilter(getEffectivePermissionFilter(userAlias + "__PERMISSION", groupAlias + "__PERMISSION",
-					globalCol, effectivePermissions));
+	/**
+	 * Every engine and project a user can use, with the user's effective permission
+	 * on each and where it comes from. The permission is the best (lowest) of the
+	 * user's own grant, their custom teams' best grant, and read only for a public
+	 * item, by the same rules as the admin lists' permission filter; a tie goes to
+	 * the user's own grant, then the team grant, then public. Identity provider
+	 * groups are only known while the user is signed in, so they are not counted.
+	 *
+	 * @param userId the user's id
+	 * @return each as id, kind (ENGINE or PROJECT), permission (1 owner, 2 edit, 3
+	 *         read only) and source (DIRECT, TEAM or PUBLIC), engines first, each
+	 *         kind by id
+	 */
+	public static List<Map<String, Object>> getUserCatalogAccess(String userId) {
+		if (userId == null || userId.isBlank()) {
+			throw new IllegalArgumentException("A user id is required");
 		}
+		List<Map<String, Object>> access = new ArrayList<>();
+		access.addAll(readUserCatalogAccess("ENGINE", "ENGINE__ENGINEID", "ENGINE__GLOBAL", "ENGINEPERMISSION",
+				"GROUPENGINEPERMISSION", "ENGINEID", userId.trim()));
+		access.addAll(readUserCatalogAccess("PROJECT", "PROJECT__PROJECTID", "PROJECT__GLOBAL", "PROJECTPERMISSION",
+				"GROUPPROJECTPERMISSION", "PROJECTID", userId.trim()));
+		return access;
+	}
+
+	private static List<Map<String, Object>> readUserCatalogAccess(String kind, String resourceIdCol,
+			String globalCol, String permissionTable, String groupPermissionTable, String idColumn, String userId) {
+		String userAlias = "ACCESS_USER_GRANTS";
+		String groupAlias = "ACCESS_USER_GROUP_GRANTS";
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(resourceIdCol, "resource_id"));
+		qs.addSelector(new QueryColumnSelector(globalCol, "is_global"));
+		qs.addSelector(new QueryColumnSelector(userAlias + "__PERMISSION", "user_permission"));
+		qs.addSelector(new QueryColumnSelector(groupAlias + "__PERMISSION", "group_permission"));
+		addUserGrantJoins(qs, resourceIdCol, permissionTable, groupPermissionTable, idColumn, userId, userAlias,
+				groupAlias);
+		qs.addExplicitFilter(getEffectivePermissionFilter(userAlias + "__PERMISSION", groupAlias + "__PERMISSION",
+				globalCol, List.of(AccessPermissionEnum.OWNER.getId(), AccessPermissionEnum.EDIT.getId(),
+						AccessPermissionEnum.READ_ONLY.getId())));
+		qs.addOrderBy(new QueryColumnOrderBySelector(resourceIdCol));
+
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(SystemEngineRegistry.getSecurityDb(), qs);
+		List<Map<String, Object>> access = new ArrayList<>(rows.size());
+		for (Map<String, Object> row : rows) {
+			Map.Entry<Integer, CatalogAccessSource> best = effectiveAccess(toLevel(row.get("user_permission")),
+					toLevel(row.get("group_permission")), isTrue(row.get("is_global")));
+			if (best == null) {
+				continue;
+			}
+			Map<String, Object> item = new LinkedHashMap<>();
+			item.put("id", row.get("resource_id"));
+			item.put("kind", kind);
+			item.put("permission", best.getKey());
+			item.put("source", best.getValue().name());
+			access.add(item);
+		}
+		return access;
+	}
+
+	private static Integer toLevel(Object value) {
+		if (value instanceof Number number) {
+			return number.intValue();
+		}
+		if (value instanceof String text && !text.isBlank()) {
+			return Integer.valueOf(text.trim());
+		}
+		return null;
+	}
+
+	private static boolean isTrue(Object value) {
+		if (value instanceof Boolean bool) {
+			return bool;
+		}
+		if (value instanceof Number number) {
+			return number.intValue() != 0;
+		}
+		return value != null && Boolean.parseBoolean(value.toString());
+	}
+
+	/**
+	 * The effective permission from a user's own grant, their teams' best grant and
+	 * whether the item is public: the lowest level, a tie going to the own grant,
+	 * then the team grant, then public.
+	 *
+	 * @param direct the user's own grant, or null
+	 * @param team   the user's teams' best grant, or null
+	 * @param global whether the item is public
+	 * @return the level and its source, or null when the user has no access
+	 */
+	static Map.Entry<Integer, CatalogAccessSource> effectiveAccess(Integer direct, Integer team, boolean global) {
+		Integer level = null;
+		CatalogAccessSource source = null;
+		if (direct != null) {
+			level = direct;
+			source = CatalogAccessSource.DIRECT;
+		}
+		if (team != null && (level == null || team < level)) {
+			level = team;
+			source = CatalogAccessSource.TEAM;
+		}
+		int publicLevel = AccessPermissionEnum.READ_ONLY.getId();
+		if (global && (level == null || publicLevel < level)) {
+			level = publicLevel;
+			source = CatalogAccessSource.PUBLIC;
+		}
+		return level == null ? null : Map.entry(level, source);
 	}
 
 	/**

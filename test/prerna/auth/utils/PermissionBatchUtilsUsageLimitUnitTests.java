@@ -673,7 +673,7 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 		SecurityAccessPermissionBatchUtils.saveBatches(owner,
 				List.of(modelBatch(changeWith("readerid", "READ_ONLY", tokensADay(500)))));
 
-		Map<String, Object> noLimit = SecurityProjectUtils.propagateProjectPermission(owner, PROJECT_ID, "readerid",
+		Map<String, Object> noLimit = SecurityCatalogDependencyUtils.propagatePermission(owner, PROJECT_ID, "readerid",
 				NATIVE, "EDIT", null);
 
 		assertTrue(strings(noLimit.get("accessGranted")).contains(MODEL_ID));
@@ -690,7 +690,7 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 		SecurityAccessPermissionBatchUtils.saveBatches(owner,
 				List.of(modelBatch(changeWith("readerid", "READ_ONLY", twoRules))));
 
-		SecurityProjectUtils.propagateProjectPermission(owner, PROJECT_ID, "readerid", NATIVE, "EDIT", null,
+		SecurityCatalogDependencyUtils.propagatePermission(owner, PROJECT_ID, "readerid", NATIVE, "EDIT", null,
 				tokensADay(500));
 
 		assertEquals(2, SecurityEngineUtils.getUserEnginePermission("readerid", MODEL_ID));
@@ -700,11 +700,12 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 	@Test
 	void propagateProjectPermission_aRefusedEngineDoesNotStopTheOthers() throws Exception {
 		dependOnTheModel();
-		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID, ENGINETYPE) VALUES (?,?,?)", PROJECT_ID,
+		execute("INSERT INTO CATALOGDEPENDENCIES (CATALOGID, CATALOGTYPE, DEPENDENCYID, DEPENDENCYTYPE) VALUES (?,?,?,?)",
+				PROJECT_ID, "CODE",
 				DATABASE_ID, IEngine.CATALOG_TYPE.DATABASE.name());
 
 		// a shared rule cannot be a person's limit, so the model refuses the change
-		Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(owner, PROJECT_ID, "readerid",
+		Map<String, Object> result = SecurityCatalogDependencyUtils.propagatePermission(owner, PROJECT_ID, "readerid",
 				NATIVE, "EDIT", null, sharedTokens(10));
 
 		assertTrue(strings(result.get("couldNotAddRequest")).contains(MODEL_ID));
@@ -717,7 +718,7 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 	void propagateProjectPermission_anEditorWhoGivesALimitIsRefusedOnTheModel() throws Exception {
 		dependOnTheModel();
 
-		Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(editor, PROJECT_ID, "readerid",
+		Map<String, Object> result = SecurityCatalogDependencyUtils.propagatePermission(editor, PROJECT_ID, "readerid",
 				NATIVE, "EDIT", null, tokensADay(900));
 
 		assertTrue(strings(result.get("couldNotAddRequest")).contains(MODEL_ID));
@@ -896,7 +897,8 @@ class PermissionBatchUtilsUsageLimitUnitTests extends AbstractSecurityUtilsUnitT
 
 	private void dependOnTheModel() throws Exception {
 		UnitTestSecurityAuthUtils.createProject(PROJECT_ID, "limited project", owner);
-		execute("INSERT INTO PROJECTDEPENDENCIES (PROJECTID, ENGINEID, ENGINETYPE) VALUES (?,?,?)", PROJECT_ID,
+		execute("INSERT INTO CATALOGDEPENDENCIES (CATALOGID, CATALOGTYPE, DEPENDENCYID, DEPENDENCYTYPE) VALUES (?,?,?,?)",
+				PROJECT_ID, "CODE",
 				MODEL_ID, IEngine.CATALOG_TYPE.MODEL.name());
 	}
 

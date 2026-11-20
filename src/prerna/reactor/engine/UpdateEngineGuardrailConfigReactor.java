@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.engine;
 
+import prerna.auth.utils.CatalogDependencyDerivation;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -193,6 +194,8 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 			lock.unlock();
 		}
 		releaseLocksOfRemovedLimits(user, engine, validated.hitLimits());
+		CatalogDependencyDerivation.syncGuardrails(user, engine.getEngineId(), engine.getCatalogType().name(),
+				validated.pipelines());
 
 		if (ClusterUtil.IS_CLUSTER) {
 			ClusterUtil.pushEngine(engineId);

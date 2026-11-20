@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.function.upload;
 
+import prerna.auth.utils.CatalogDependencyDerivation;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -153,6 +154,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractReactor {
 			function.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(functionId, functionName, function, smssFile);
 			SecurityEngineUtils.addEngine(functionId, false, user);
+			CatalogDependencyDerivation.syncSmss(user, functionId, IEngine.CATALOG_TYPE.FUNCTION.name(), functionDetails);
 
 			SecurityEngineUtils.addEngineOwner(user, functionId);
 

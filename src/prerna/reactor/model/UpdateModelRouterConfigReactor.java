@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
+import prerna.auth.utils.CatalogDependencyDerivation;
 import java.io.IOException;
 import java.util.Map;
 
@@ -82,6 +83,8 @@ public class UpdateModelRouterConfigReactor extends AbstractReactor {
 		} catch (IOException e) {
 			throw new IllegalStateException("Unable to write the router configuration: " + e.getMessage(), e);
 		}
+
+		CatalogDependencyDerivation.syncRouter(this.insight.getUser(), engineId, config);
 
 		if (ClusterUtil.IS_CLUSTER) {
 			ClusterUtil.pushEngine(engineId);

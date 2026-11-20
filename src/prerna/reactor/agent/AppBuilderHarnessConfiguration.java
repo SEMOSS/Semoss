@@ -42,6 +42,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.util.EngineUtility;
@@ -137,7 +138,7 @@ public class AppBuilderHarnessConfiguration {
     /**
      * Builds the "Selected Engines" system prompt block for a project. Reads
      * the dependency list fresh from the canonical store
-     * ({@link prerna.auth.utils.SecurityProjectUtils#getProjectDependencyDetails})
+     * ({@link prerna.auth.utils.SecurityCatalogDependencyUtils#getDependencyDetails(String)})
      * so workbench selections are always current at run time, regardless of
      * which reactor last mutated them.
      *
@@ -152,7 +153,7 @@ public class AppBuilderHarnessConfiguration {
         }
         List<Map<String, Object>> dependencyList;
         try {
-            dependencyList = SecurityProjectUtils.getProjectDependencyDetails(projectId);
+            dependencyList = SecurityCatalogDependencyUtils.getDependencyDetails(projectId);
         } catch (Exception e) {
             logger.warn("Failed to load dependency details for selected-engines prompt, project: {}",
                     projectId, e);
@@ -174,13 +175,13 @@ public class AppBuilderHarnessConfiguration {
         if (dependencyList != null) {
             for (Map<String, Object> dep : dependencyList) {
                 if (dep == null) continue;
-                Object idObj = dep.get("engine_id");
-                Object typeObj = dep.get("engine_type");
+                Object idObj = dep.get("catalog_id");
+                Object typeObj = dep.get("catalog_type");
                 if (idObj == null || typeObj == null) continue;
                 String id = String.valueOf(idObj);
                 String typeKey = String.valueOf(typeObj).toLowerCase() + "_engines";
                 if (!enginesByType.containsKey(typeKey)) continue; // PROJECT or other
-                Object nameObj = dep.get("engine_name");
+                Object nameObj = dep.get("catalog_name");
                 String name = nameObj != null ? String.valueOf(nameObj) : id;
                 Map<String, String> entry = new LinkedHashMap<>();
                 entry.put(ENGINE_NAME, name);

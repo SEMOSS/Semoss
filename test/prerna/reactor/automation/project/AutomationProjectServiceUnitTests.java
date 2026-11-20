@@ -34,11 +34,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.when;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,17 +50,23 @@ import java.util.Map;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.CatalogDependencyDerivation;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
+import prerna.project.api.IProject;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
+import prerna.util.AssetUtility;
+import prerna.util.Utility;
 
 /** Covers the owner-scoped run scope used by runs of inline definition JSON. */
 public class AutomationProjectServiceUnitTests {
@@ -184,6 +194,106 @@ public class AutomationProjectServiceUnitTests {
 						List.of(definition.toString()), "Update automation definition", user("owner")));
 
 		assertEquals("Unable to commit Automation definition assets to version history.", error.getMessage());
+	}
+
+	/**
+	 * Every definition mutation enters through saveDefinition, so the dependency
+	 * sync belongs there rather than in one reactor: a granular step edit or a
+	 * version restore records the same engines a full save does, and the nodes of a
+	 * loop body count as much as the steps beside it.
+	 */
+	@Test
+	void saveRecordsTheEnginesOfNestedStepsAsAutomaticDependencies() throws Exception {
+		Path versionFolder = repositoryFolder.resolve("automation-version");
+		Files.createDirectories(versionFolder);
+		Git.init().setDirectory(versionFolder.toFile()).call().close();
+		User owner = user("owner");
+		String definitionJson = loopDefinition();
+		Path definitionFile = versionFolder.resolve("assets/automation-workflow.json");
+		Files.createDirectories(definitionFile.getParent());
+		Files.writeString(definitionFile, definitionJson);
+		AutomationDefinitionService.DefinitionFiles files = new AutomationDefinitionService.DefinitionFiles(
+				definitionJson, Map.of());
+		IProject project = mock(IProject.class);
+		when(project.getProjectName()).thenReturn("Automation");
+
+		try (MockedStatic<AutomationDefinitionService> definitions = mockStatic(AutomationDefinitionService.class);
+				MockedStatic<AutomationMcpSync> mcp = mockStatic(AutomationMcpSync.class);
+				MockedStatic<Utility> utility = mockStatic(Utility.class);
+				MockedStatic<AssetUtility> assets = mockStatic(AssetUtility.class);
+				MockedStatic<SecurityProjectUtils> security = mockStatic(SecurityProjectUtils.class);
+				MockedStatic<SecurityEngineUtils> engines = mockStatic(SecurityEngineUtils.class);
+				MockedStatic<CatalogDependencyDerivation> dependencies = mockStatic(
+						CatalogDependencyDerivation.class)) {
+			definitions.when(() -> AutomationDefinitionService.load("automation-1")).thenReturn(files);
+			definitions.when(() -> AutomationDefinitionService.save("automation-1", definitionJson, Map.of()))
+					.thenReturn(files);
+			definitions.when(() -> AutomationDefinitionService.getArtifactPaths("automation-1"))
+					.thenReturn(List.of(definitionFile));
+			utility.when(() -> Utility.getProject("automation-1")).thenReturn(project);
+			assets.when(() -> AssetUtility.getProjectAssetsFolder("automation-1"))
+					.thenReturn(repositoryFolder.toString());
+			assets.when(() -> AssetUtility.getProjectVersionFolder("Automation", "automation-1"))
+					.thenReturn(versionFolder.toString());
+			engines.when(() -> SecurityEngineUtils.userCanViewEngine(owner, "engine-1")).thenReturn(true);
+			engines.when(() -> SecurityEngineUtils.getEngineType("engine-1")).thenReturn(IEngine.CATALOG_TYPE.DATABASE);
+
+			AutomationProjectService.saveDefinition("automation-1", definitionJson, Map.of(), null, owner);
+
+			@SuppressWarnings("unchecked")
+			ArgumentCaptor<Collection<Map<String, Object>>> synced = ArgumentCaptor.forClass(Collection.class);
+			dependencies.verify(() -> CatalogDependencyDerivation.syncAutomation(eq(owner), eq("automation-1"),
+					synced.capture()));
+			assertEquals(List.of("start", "work", "body-query"),
+					synced.getValue().stream()
+							.map(node -> String.valueOf(node.get(AutomationConstants.NODE_FIELD_ID))).toList());
+		}
+	}
+
+	/** A trigger, a for-each loop, and a database query inside the loop's body. */
+	private static String loopDefinition() {
+		Map<String, Object> bodyNode = new LinkedHashMap<>();
+		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-query");
+		bodyNode.put(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_DATABASE_QUERY);
+		bodyNode.put(AutomationConstants.NODE_FIELD_LABEL, "Read claims");
+		bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "claims");
+		bodyNode.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
+		bodyNode.put(AutomationConstants.NODE_FIELD_CONFIG,
+				Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", "query",
+						"SELECT * FROM CLAIMS ORDER BY ID", AutomationConstants.CONFIG_LIMIT, 100));
+
+		Map<String, Object> loop = new LinkedHashMap<>();
+		loop.put(AutomationConstants.NODE_FIELD_ID, "work");
+		loop.put(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_CONTROL_LOOP);
+		loop.put(AutomationConstants.NODE_FIELD_LABEL, "For each claim");
+		loop.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "work_1");
+		loop.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
+		loop.put(AutomationConstants.NODE_FIELD_CONFIG,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1, 2),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(bodyNode), AutomationConstants.DOC_EDGES, List.of()));
+
+		Map<String, Object> start = new LinkedHashMap<>();
+		start.put(AutomationConstants.NODE_FIELD_ID, "start");
+		start.put(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_START);
+		start.put(AutomationConstants.NODE_FIELD_LABEL, "Start");
+		start.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
+		start.put(AutomationConstants.NODE_FIELD_CONFIG, Map.of());
+
+		Map<String, Object> edge = Map.of(AutomationConstants.NODE_FIELD_ID, "e-start-work",
+				AutomationConstants.EDGE_FIELD_KIND, AutomationConstants.EDGE_KIND_CONTROL,
+				AutomationConstants.EDGE_FIELD_SOURCE, "start", AutomationConstants.EDGE_FIELD_SOURCE_PORT,
+				AutomationConstants.CONTROL_PORT_OUT, AutomationConstants.EDGE_FIELD_TARGET, "work",
+				AutomationConstants.EDGE_FIELD_TARGET_PORT, AutomationConstants.CONTROL_PORT_IN);
+
+		return AutomationRuntimeUtils.GSON.toJson(Map.of(AutomationConstants.DOC_FORMAT_VERSION,
+				AutomationConstants.PYTHON_DOC_CURRENT_VERSION, AutomationConstants.DOC_TRIGGER_BINDINGS,
+				List.of(Map.of("id", "manual", "type", "manual")), AutomationConstants.DOC_GRAPH,
+				Map.of(AutomationConstants.DOC_NODES, List.of(start, loop), AutomationConstants.DOC_EDGES,
+						List.of(edge))));
 	}
 
 	@Test
