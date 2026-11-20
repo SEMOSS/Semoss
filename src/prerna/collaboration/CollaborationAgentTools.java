@@ -86,6 +86,8 @@ import prerna.reactor.collaboration.BrainGetRelatedItemsReactor;
 import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
 import prerna.reactor.collaboration.BrainGetWritingStyleReactor;
 import prerna.reactor.collaboration.BrainListTopicsReactor;
+import prerna.reactor.collaboration.BrainListTopicM365FoldersReactor;
+import prerna.reactor.collaboration.BrainLinkTopicM365FolderReactor;
 import prerna.reactor.collaboration.BrainRememberReactor;
 import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
 import prerna.reactor.collaboration.BrainSearchThreadsReactor;
@@ -167,6 +169,9 @@ public final class CollaborationAgentTools {
 		// tags the chat it runs in with a topic; no approval, the owner can undo or
 		// dismiss it
 		REACTORS.put("TagTopic", BrainTagTopicReactor.class);
+		// link and list M365 folders to topics
+		REACTORS.put("ListTopicM365Folders", BrainListTopicM365FoldersReactor.class);
+		REACTORS.put("LinkTopicM365Folder", BrainLinkTopicM365FolderReactor.class);
 		// then Outlook directly, for what Brain does not hold; Brain's rules do not
 		// apply to it
 		REACTORS.put("ListM365Mail", MicrosoftOutlookListMailReactor.class);
@@ -469,6 +474,7 @@ public final class CollaborationAgentTools {
 				params = params == null ? new LinkedHashMap<>() : new LinkedHashMap<>(params);
 				params.put("timeZone", BrainProfileUtils.timeZone(insight.getUser()).getId());
 			}
+			applyTopicFolderDefaults(toolName, params, insight.getUser(), insight);
 			String output = MCPUtility.runPixelTool(null, insight, meta.getString(MCPUtility.SMSS_FUNCTION_NAME),
 					properties, params);
 			return ToolExecutionResult.success(CollaborationToolResults.forModel(toolName, output, insight.getUser(),
@@ -476,6 +482,86 @@ public final class CollaborationAgentTools {
 		} catch (RuntimeException e) {
 			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 			return ToolExecutionResult.error(message, message);
+		}
+	}
+
+	private static void applyTopicFolderDefaults(String toolName, Map<String, Object> params, User user,
+			Insight insight) {
+		if (params == null || user == null || insight == null) {
+			return;
+		}
+		if (!("ListDriveFiles".equals(toolName) || "SearchFiles".equals(toolName)
+				|| "ListChannelFiles".equals(toolName))) {
+			return;
+		}
+
+		try {
+			String roomId = insight.getRoomId();
+			if (roomId == null || roomId.isBlank()) {
+				return;
+			}
+
+			List<String> topicIds = BrainTopicBrief.chatTopics(user, roomId);
+			if (topicIds.isEmpty()) {
+				return;
+			}
+
+			if ("ListDriveFiles".equals(toolName) || "SearchFiles".equals(toolName)) {
+				applyOneDriveFolderDefaults(params, user, topicIds);
+			} else if ("ListChannelFiles".equals(toolName)) {
+				applyTeamsFolderDefaults(params, user, topicIds);
+			}
+		} catch (RuntimeException e) {
+			classLogger.debug("Could not apply topic folder defaults for tool {}: {}", toolName, e.getMessage());
+		}
+	}
+
+	private static void applyOneDriveFolderDefaults(Map<String, Object> params, User user, List<String> topicIds) {
+		if (params.containsKey("driveId") && !String.valueOf(params.get("driveId")).isBlank()) {
+			return;
+		}
+
+		for (String topicId : topicIds) {
+			List<Map<String, Object>> links = BrainTopicLinks.ofTopic(CollaborationDbUtils.ownerOf(user).getValue0(),
+					CollaborationDbUtils.ownerOf(user).getValue1(), topicId);
+			for (Map<String, Object> link : links) {
+				String kind = String.valueOf(link.get("kind"));
+				String state = String.valueOf(link.get("state"));
+				if ("drive_folder".equals(kind) && "ok".equals(state)) {
+					String driveId = String.valueOf(link.get("driveId"));
+					String itemId = String.valueOf(link.get("itemId"));
+					if (driveId != null && !driveId.isBlank() && itemId != null && !itemId.isBlank()) {
+						params.putIfAbsent("driveId", driveId);
+						params.putIfAbsent("itemId", itemId);
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	private static void applyTeamsFolderDefaults(Map<String, Object> params, User user, List<String> topicIds) {
+		if ((params.containsKey("teamId") && !String.valueOf(params.get("teamId")).isBlank())
+				&& (params.containsKey("channelId") && !String.valueOf(params.get("channelId")).isBlank())) {
+			return;
+		}
+
+		for (String topicId : topicIds) {
+			List<Map<String, Object>> links = BrainTopicLinks.ofTopic(CollaborationDbUtils.ownerOf(user).getValue0(),
+					CollaborationDbUtils.ownerOf(user).getValue1(), topicId);
+			for (Map<String, Object> link : links) {
+				String kind = String.valueOf(link.get("kind"));
+				String state = String.valueOf(link.get("state"));
+				if ("channel_files".equals(kind) && "ok".equals(state)) {
+					String teamId = String.valueOf(link.get("teamId"));
+					String channelId = String.valueOf(link.get("channelId"));
+					if (teamId != null && !teamId.isBlank() && channelId != null && !channelId.isBlank()) {
+						params.putIfAbsent("teamId", teamId);
+						params.putIfAbsent("channelId", channelId);
+						return;
+					}
+				}
+			}
 		}
 	}
 

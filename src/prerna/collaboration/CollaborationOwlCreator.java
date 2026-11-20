@@ -378,6 +378,21 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// onedrive or teams: the app the owner picked the file in
 				Pair.with("SOURCE", VARCHAR_20),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// OneDrive, Teams and SharePoint folders the owner linked to a topic; stores pointers, never contents
+		addTable("BRAIN_TOPIC_LINK", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("LINK_ID", VARCHAR_50),
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("KIND", VARCHAR_50),
+				Pair.with("DRIVE_ID", VARCHAR_255),
+				Pair.with("ITEM_ID", VARCHAR_255),
+				Pair.with("TEAM_ID", VARCHAR_255),
+				Pair.with("CHANNEL_ID", VARCHAR_255),
+				Pair.with("SITE_ID", VARCHAR_255),
+				Pair.with("DISPLAY_NAME", VARCHAR_255),
+				Pair.with("WEB_URL", CLOB_DATATYPE_NAME),
+				Pair.with("STATE", VARCHAR_20),
+				Pair.with("CHECKED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// mail Collaboration sent the owner (KIND routine or notice), by the key the import gives
 		// it, so the import skips it. A data reset keeps these rows, so a later import skips it too
 		addTable("BRAIN_OWN_MAIL", Arrays.asList(

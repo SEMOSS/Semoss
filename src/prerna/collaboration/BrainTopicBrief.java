@@ -179,6 +179,7 @@ public final class BrainTopicBrief {
 			classLogger.warn("Could not count the threads of topic {} for the brief", topicId, e);
 		}
 		out.append(BrainTopicFiles.brief(ownerId, ownerType, topicId));
+		out.append(linkedFoldersBrief(ownerId, ownerType, topicId));
 		// the topic's work items, each with the owner's next step or who they wait on
 		List<Map<String, Object>> items = new ArrayList<>();
 		for (Object o : (List<?>) WorkTaskUtils.listMyWork(user, Map.of("topicId", topicId)).get("workItems")) {
@@ -244,5 +245,37 @@ public final class BrainTopicBrief {
 
 	private static String clip(String text, int max) {
 		return text.length() <= max ? text : text.substring(0, max - 3) + "...";
+	}
+
+	private static String linkedFoldersBrief(String ownerId, String ownerType, String topicId) {
+		List<Map<String, Object>> links = BrainTopicLinks.ofTopic(ownerId, ownerType, topicId);
+		if (links.isEmpty()) {
+			return "";
+		}
+		StringBuilder out = new StringBuilder(
+				"\nLinked Microsoft 365 folders: the agent lists and reads files from these by default. "
+						+ "To list files, call ListDriveFiles for a OneDrive link, or ListChannelFiles for Teams. "
+						+ "Availability is marked 'ok' or 'unavailable' (access lost):");
+		for (Map<String, Object> link : links.subList(0, Math.min(links.size(), MAX_ITEMS))) {
+			out.append("\n- ").append(BrainThreadBrief.neutral(String.valueOf(link.get("displayName"))))
+					.append(" (");
+			String state = String.valueOf(link.get("state"));
+			out.append(state);
+			if ("ok".equals(state)) {
+				String kind = String.valueOf(link.get("kind"));
+				if ("drive_folder".equals(kind)) {
+					out.append(", driveId ").append(link.get("driveId")).append(", itemId ")
+							.append(link.get("itemId"));
+				} else if ("channel_files".equals(kind)) {
+					out.append(", teamId ").append(link.get("teamId")).append(", channelId ")
+							.append(link.get("channelId"));
+				}
+			}
+			out.append(")");
+		}
+		if (links.size() > MAX_ITEMS) {
+			out.append("\nAnd ").append(links.size() - MAX_ITEMS).append(" more, listed on the topic's page.");
+		}
+		return out.toString();
 	}
 }
