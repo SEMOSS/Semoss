@@ -63,6 +63,7 @@ public class BrainSaveSettingsReactor extends AbstractCollaborationReactor {
 								+ "syncEveryMinutes (0 off, 15, 30, 60 or 240: how often mail syncs while the app is closed), "
 								+ "newTopicsEveryHours (0 never, 24, 72 or 168: how often new topics may be proposed from "
 								+ "incoming mail), closeAcrossThreads (bool: a message on one conversation of a topic may "
-								+ "finish a step from another), version");
+								+ "finish a step from another), twinCheckEveryHours (0 never, 1, 4 or 24: how often "
+								+ "their Digital Twins are checked for copies whose original changed), version");
 	}
 }

@@ -37,29 +37,26 @@ import java.util.Map;
  * One onboarding chat turn over the topic draft. Read-only; the owner applies
  * proposed changes through the draft.
  */
-public class BrainTopicReviewChatReactor extends AbstractCollaborationReactor {
-	public BrainTopicReviewChatReactor() {
-		this.keysToGet = new String[] { "reviewId", "revision", "chat" };
+public class BrainStartTopicBuildReactor extends AbstractCollaborationReactor {
+	public BrainStartTopicBuildReactor() {
+		this.keysToGet = new String[] { "reviewId", "revision", "text" };
 		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		Integer revision = getIntFromKeyOrCurRow("revision");
-		var chat = getMapFromKeyOrCurRow("chat");
-		if (revision == null || chat == null)
-			throw new IllegalArgumentException("Pass the saved review revision and the chat messages");
-		return mapResult(BrainTopicReviewUtils.chat(getUser(), getString("reviewId"), revision, chat.get("messages")));
+		if (revision == null) throw new IllegalArgumentException("Pass the saved review revision");
+		return mapResult(BrainTopicReviewUtils.startBuild(getUser(), getString("reviewId"), revision, getString("text")));
 	}
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Onboarding setup chat: given chat.messages (role owner or assistant, text), returns a reply and proposed topic draft changes (add_topic, edit_topic, keep, skip, combine) using only the draft's topic keys and the owner's own people; no writes")
-				.key("chat", key -> key.type(Map.class).description(
-						"A map whose messages list holds the conversation so far, each message with a role (owner or assistant) and text. The last message must be from the owner."))
+				"Onboarding topic builder: turns the owner's words (one topic, or a list with one per line) into drafts of the topics to set up, each with a name, description, clues, suggested people with reasons, the suggestions it draws on and at most one question with options; no writes")
 				.key("reviewId", "The id of the signed-in user's topic review.")
 				.key("revision", key -> key.type(Integer.class).description(
-						"The review revision the caller last read. The call fails when the saved review has changed since."));
+						"The review revision the caller last read. The call fails when the saved review has changed since."))
+				.key("text", "What the owner wrote about the topics they want.");
 	}
 }

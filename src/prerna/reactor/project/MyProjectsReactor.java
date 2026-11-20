@@ -229,6 +229,9 @@ public class MyProjectsReactor extends AbstractReactor {
 		itemProperties.put("project_created_by_type",
 				new JSONObject().put("type", "string").put("description", "Auth type of creator, e.g. NATIVE"));
 
+		itemProperties.put("digital_twin_owner_name", new JSONObject().put("type", new JSONArray().put("string").put("null"))
+				.put("description", "Display name of the person represented when filtering by digital_twin, if known."));
+
 		itemProperties.put("permission",
 				new JSONObject().put("type", "integer").put("enum", new JSONArray().put(1).put(2).put(3))
 						.put("description", "User's permission level: 1=Owner, 2=Editor, 3=ReadOnly"));
