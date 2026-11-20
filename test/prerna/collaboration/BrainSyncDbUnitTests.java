@@ -104,6 +104,7 @@ class BrainSyncDbUnitTests {
 	private MockedStatic<SystemEngineRegistry> registry;
 	private MockedStatic<WorkThreadInsights> insights;
 	private MockedStatic<WorkExpenseRoutine> expenses;
+	private MockedStatic<WorkTwinUpdates> twinUpdates;
 	// the message keys each expense review was started for
 	private final List<List<String>> reviews = new ArrayList<>();
 	private User user;
@@ -145,6 +146,8 @@ class BrainSyncDbUnitTests {
 		// the review itself runs on the scheduler; what is under test is how often it
 		// is asked for
 		expenses = mockStatic(WorkExpenseRoutine.class);
+		// the check of the owner's Digital Twins a sync starts when one is due runs as a job of its own
+		twinUpdates = mockStatic(WorkTwinUpdates.class);
 		expenses.when(() -> WorkExpenseRoutine.onNewMail(anyString(), anyString(), any())).thenAnswer(call -> {
 			List<String> keys = new ArrayList<>();
 			for (String[] message : (List<String[]>) call.getArgument(2)) {
@@ -195,6 +198,7 @@ class BrainSyncDbUnitTests {
 
 	@AfterEach
 	void tearDown() throws Exception {
+		twinUpdates.close();
 		expenses.close();
 		insights.close();
 		registry.close();

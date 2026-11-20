@@ -38,6 +38,7 @@ import com.google.gson.Gson;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.collaboration.CollaborationAgentTools;
+import prerna.collaboration.WorkTwinFiles;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
@@ -176,8 +177,12 @@ public final class AgentToolDecisionHandler {
 		boolean delegationSubmit = HumanDelegationService.SUBMIT_TOOL_NAME.equals(toolName);
 		boolean delegationRequest = HumanDelegationService.TOOL_NAME.equals(toolName);
 		// Collaboration tools run their reactor directly; they have no engine either.
-		boolean collaborationTool = CollaborationAgentTools.isTool(toolName)
-				&& CollaborationAgentTools.isToolMeta(parseStoredMap(pendingAction.get("toolMeta")));
+		Map<String, Object> storedToolMeta = parseStoredMap(pendingAction.get("toolMeta"));
+		boolean collaborationTool = CollaborationAgentTools.isTool(toolName) && CollaborationAgentTools.isToolMeta(storedToolMeta);
+		boolean twinFile = collaborationTool && CollaborationAgentTools.isTwinFileTool(toolName);
+		if (twinFile && (roomId == null || roomId.isBlank())) {
+			throw new IllegalStateException("This approval has no Digital Twin chat. Request the change again.");
+		}
 		String engineId = delegationSubmit || delegationRequest || collaborationTool ? null
 				: AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction), this.insight);
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
@@ -188,7 +193,18 @@ public final class AgentToolDecisionHandler {
 				throw new IllegalStateException(
 						"Cannot execute the agent tool call because room was not found roomId=" + roomId);
 			}
-			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
+			if (twinFile) {
+				Object expectedTwin = storedToolMeta.get(CollaborationAgentTools.TWIN_APPROVAL_PROJECT);
+				if (expectedTwin == null && "SaveToDigitalTwin".equals(toolName)) {
+					// Additions pending before the tool stored its target can use the original run's workspace.
+					Map<String, Object> run = AgentRunStore.getRunMap(runId, this.insight);
+					expectedTwin = run == null ? null : run.get("workspaceId");
+				}
+				if (!WorkTwinFiles.approvalMatches(executionRoom, expectedTwin)) {
+					throw new IllegalStateException("The Digital Twin in this chat changed. Request the change again.");
+				}
+			}
+			if (twinFile || MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(executionRoom);
 			}
 			// Collaboration/delegation tools run by the raw name they were matched on.
@@ -196,7 +212,6 @@ public final class AgentToolDecisionHandler {
 			// yet, so fall back to the original name persisted with the action.
 			if (!delegationSubmit && !delegationRequest && !collaborationTool) {
 				String resolvedToolName = executionRoom.resolveOriginalToolName(toolName);
-				Map<String, Object> storedToolMeta = parseStoredMap(pendingAction.get("toolMeta"));
 				String originalToolName = storedToolMeta != null
 						? ValueUtils.trimToNull(storedToolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME))
 						: null;

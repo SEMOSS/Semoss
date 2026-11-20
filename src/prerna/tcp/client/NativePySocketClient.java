@@ -453,6 +453,7 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			return;
 		}
 		NativePyEngineWorker worker = new NativePyEngineWorker(user, ps, insight);
+		worker.setSandbox(this.cpw);
 		// a per-user engine such as MultiRDBMSNativeEngine picks its database from the
 		// thread's user, and this is the socket's reader thread, which every user of
 		// the

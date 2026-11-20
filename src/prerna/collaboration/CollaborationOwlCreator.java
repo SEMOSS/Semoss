@@ -61,8 +61,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 		// @formatter:off
 
 		// --- Owner and sources ---
-		// The owner's link to Microsoft 365. A data reset (BrainResetUtils) keeps these two tables
-		// and BRAIN_OWN_MAIL, and deletes the owner's rows in every other table.
+		// The owner's link to Microsoft 365. A data reset (BrainResetUtils) keeps these two tables,
+		// BRAIN_OWN_MAIL and BRAIN_PERSONA, and deletes the owner's rows in every other table.
 		// one row per owner: the Microsoft 365 mailbox their Brain reads (MS_USER_ID, MS_UPN),
 		// saved by each mail import. A Graph new-mail notification and the scheduled sync find the
 		// owner by MS_USER_ID, and the routines check it before they run
@@ -192,11 +192,30 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// whether a done message on another thread of a topic may finish a step (WorkReconcile); null the
 				// instance's COLLAB_WORK_CLOSE_ACROSS
 				Pair.with("WORK_CLOSE_ACROSS", BOOLEAN_DATATYPE_NAME),
+				// hours between checks of the owner's Digital Twins against what they were copied from
+				// (WorkTwinUpdates.watch); 0 is off, null the default 24
+				Pair.with("TWIN_CHECK_HOURS", INTEGER_DATATYPE_NAME),
 				// when the owner finished setup (Open Work) or skipped the rest of it; null sends them back to it,
 				// unless their import is from before this column (BrainConnection)
 				Pair.with("SETUP_DONE_AT", TIMESTAMP_DATATYPE_NAME),
 				// the first Work build over the imported mail: its state and the threads it has left (WorkPipeline)
 				Pair.with("WORK_BUILD_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// the owner's persona, one row per owner (WorkTwinPersona): how they sound, how they decide
+		// and what is left to them, in eight short sections (BRIEF_JSON). Their Digital Twins answer
+		// with it and their own assistant writes for them with it. There is a persona while a section
+		// holds text. INTERVIEW_JSON is the working state of the interview that writes it and never
+		// reaches a prompt. OFF_TWINS_JSON lists the twins (project ids) the owner switched the
+		// persona off for; a twin not listed uses it. ASSISTANT_OFF is true once they switched it off
+		// for their own assistant, which uses it until then. A data reset keeps the row and clears
+		// the interview
+		addTable("BRAIN_PERSONA", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("BRIEF_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("INTERVIEW_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("OFF_TWINS_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("ASSISTANT_OFF", BOOLEAN_DATATYPE_NAME),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// the owner's topic setup at onboarding: one resumable draft per owner, which a topic_map
 		// job builds. DRAFT_JSON holds only topic profiles and bounded evidence metadata; REVISION
@@ -823,6 +842,23 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("SOURCE_PERSON_ID", VARCHAR_50),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// one row per copy in an owner's Digital Twin that a check can compare with what it was copied
+		// from (WorkTwinUpdates): COPY_ID names the twin (PROJECT_ID) and the copy's path. COPIED_AT is
+		// when the copy was last known current: the file's time when a check first saw it, then each
+		// Update. CHANGE_KIND is what the last check found, changed, gone or duplicate, null when
+		// nothing; SOURCE_AT is the source's newest change that finding is about. STATUS is open while
+		// it waits for the owner and dismissed once they kept the copy as it is. DETAIL_JSON holds the
+		// copy's path, kind, item key and drive, and what the page says of the change
+		addTable("WORK_TWIN_COPY", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("COPY_ID", VARCHAR_50),
+				Pair.with("PROJECT_ID", VARCHAR_50),
+				Pair.with("COPIED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CHANGE_KIND", VARCHAR_20),
+				Pair.with("SOURCE_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("STATUS", VARCHAR_20),
+				Pair.with("DETAIL_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("FOUND_AT", TIMESTAMP_DATATYPE_NAME)));
 		// @formatter:on
 	}
 }

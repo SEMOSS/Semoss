@@ -86,6 +86,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryIfSelector;
+import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
@@ -1547,16 +1548,27 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> getProjectUsers(User user, String projectId, String searchParam,
 			String permission, long limit, long offset) throws IllegalAccessException {
-		if (!userCanViewProject(user, projectId)) {
+		if (!userCanSeeProjectPeople(user, projectId)) {
 			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 		return SecurityUserProjectUtils.getProjectUsers(projectId, searchParam, permission, limit, offset);
 	}
 
+	/**
+	 * Whether a user may see who a project is shared with, and who it is not:
+	 * anyone who can view it, except on a Digital Twin, whose people are for those
+	 * who can change it. Someone a twin is only shared with is not told who else
+	 * has it, and gets the answer they would get for a project they cannot view.
+	 */
+	private static boolean userCanSeeProjectPeople(User user, String projectId) {
+		return userCanViewProject(user, projectId)
+				&& (!isDigitalTwin(projectId) || userCanEditProject(user, projectId));
+	}
+
 	public static long getProjectUsersCount(User user, String projectId, String searchParam, String permission)
 			throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!userCanViewProject(user, projectId)) {
+		if (!userCanSeeProjectPeople(user, projectId)) {
 			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 		boolean hasSearchParam = searchParam != null && !(searchParam = searchParam.trim()).isEmpty();
@@ -2099,6 +2111,85 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * The display name of the person who created a project, such as the person a
+	 * Digital Twin answers about. A user is an id and a login type, so both are
+	 * matched; a project stored without its creator's login type matches the id
+	 * alone.
+	 *
+	 * @return the name, or null when the project has no creator on record, the
+	 *         creator has no name, or the lookup fails
+	 */
+	public static String getProjectCreatorName(String projectId) {
+		try {
+			List<String> names = QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
+					"SELECT SMSS_USER.NAME FROM PROJECT INNER JOIN SMSS_USER ON SMSS_USER.ID = PROJECT.CREATEDBY "
+							+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR SMSS_USER.TYPE = PROJECT.CREATEDBYTYPE) "
+							+ "WHERE PROJECT.PROJECTID = ?",
+					ps -> ps.setString(1, projectId), rs -> rs.getString(1));
+			for (String name : names) {
+				if (name != null && !name.isBlank()) {
+					return name.trim();
+				}
+			}
+			return null;
+		} catch (Exception e) {
+			// the name only words a prompt, so a failed lookup is not an error
+			classLogger.warn("Could not read who created project {}", projectId, e);
+			return null;
+		}
+	}
+
+	/**
+	 * Whether a user created a project, such as whether they are the person a
+	 * Digital Twin answers about. A user is an id and a login type, so both are
+	 * matched against any of the user's logins; a project stored without its
+	 * creator's login type matches the id alone.
+	 *
+	 * @return false as well when the project has no creator on record or the
+	 *         lookup fails, so what is kept for a creator is never given by mistake
+	 */
+	public static boolean isProjectCreator(User user, String projectId) {
+		Pair<String, String> creator = user == null ? null : getProjectCreator(projectId);
+		if (creator == null) {
+			return false;
+		}
+		for (Pair<String, String> login : User.getUserIdAndType(user)) {
+			if (login.getValue0().equals(creator.getValue0())
+					&& (creator.getValue1() == null || login.getValue1().equals(creator.getValue1()))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Who created a project, as the id and login type on its row.
+	 *
+	 * @return the id with its login type, which is null where the project was
+	 *         stored without one; null when the project has no creator on record
+	 *         or the lookup fails
+	 */
+	public static Pair<String, String> getProjectCreator(String projectId) {
+		if (projectId == null) {
+			return null;
+		}
+		try {
+			List<String[]> creators = QueryExecutionUtility.queryList(SystemEngineRegistry.getSecurityDb(),
+					"SELECT CREATEDBY, CREATEDBYTYPE FROM PROJECT WHERE PROJECTID = ?",
+					ps -> ps.setString(1, projectId), rs -> new String[] { rs.getString(1), rs.getString(2) });
+			for (String[] creator : creators) {
+				if (creator[0] != null && !creator[0].isBlank()) {
+					return Pair.with(creator[0], creator[1]);
+				}
+			}
+			return null;
+		} catch (Exception e) {
+			classLogger.warn("Could not read who created project {}", projectId, e);
+			return null;
+		}
+	}
+
+	/**
 	 * Refuses a way of sharing a Digital Twin beyond named people, such as making
 	 * it public, discoverable or a template, or giving a team or everyone access.
 	 *
@@ -2217,9 +2308,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			long limit, long offset) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		/*
-		 * Security check to make sure that the user can view the application provided.
+		 * Security check to make sure that the user can view the application provided,
+		 * and its people: who is not on a Digital Twin's list says who is.
 		 */
-		if (!userCanViewProject(user, projectId)) {
+		if (!userCanSeeProjectPeople(user, projectId)) {
 			throw new IllegalAccessException("The user does not have access to view this project");
 		}
 
@@ -2370,6 +2462,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
+		if (projectMetadataFilter != null && projectMetadataFilter.containsKey(DIGITAL_TWIN_METAKEY)) {
+			// A legacy untyped creator id may identify people on more than one provider.
+			qs1.addSelector(new QueryOpaqueSelector("(SELECT CASE WHEN COUNT(*) = 1 THEN MIN(creator.NAME) END "
+					+ "FROM SMSS_USER creator WHERE creator.ID = PROJECT.CREATEDBY "
+					+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR creator.TYPE = PROJECT.CREATEDBYTYPE))",
+					"digital_twin_owner_name"));
+		}
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DATECREATED", "project_date_created"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DATELASTEDITED", "project_date_last_edited"));
 
