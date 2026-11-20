@@ -150,7 +150,7 @@ A project's custom code needs the method's level, and the `projectCode` level wh
 - the signed in user holds it on the engine, or
 - the engine gave the app a permission that covers it; see [giving an app or an engine a permission on an engine](#giving-an-app-or-an-engine-a-permission-on-an-engine).
 
-On its own project, a project's custom code has `EDIT`.
+On its own project, a project's custom code has `EDIT`. A task a custom reactor submits to a `SignedInTasks` executor runs as the user who submitted it, so its calls are checked the same way; see [work on other threads](project_reactor_sandbox.md#work-on-other-threads).
 
 Guarded by [SandboxEngineAccessUnitTests](../../test/prerna/util/SandboxEngineAccessUnitTests.java), which loads a class through the project sandbox and has it call an engine behind the real proxy:
 

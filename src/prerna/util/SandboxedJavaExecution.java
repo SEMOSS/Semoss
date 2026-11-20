@@ -299,6 +299,16 @@ public final class SandboxedJavaExecution {
 	}
 
 	/**
+	 * The sandbox root set on the current thread, without the global fallback, so
+	 * work handed to another thread can open files in the same folder.
+	 *
+	 * @return the user's chroot folder, or null when none is set on this thread
+	 */
+	static String sandboxRootForCurrentThread() {
+		return THREAD_SANDBOX_ROOT.get();
+	}
+
+	/**
 	 * Sets a global sandbox root used as a fallback when no thread-local root has
 	 * been configured. Pass {@code null} to disable global sandboxing.
 	 *
