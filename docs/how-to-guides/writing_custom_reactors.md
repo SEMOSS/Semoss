@@ -336,6 +336,31 @@ String created = HttpHelperUtility.postRequestStringBody("https://api.example.co
 -   **Where a request can go**: Every request follows the admin's `BLACK_LIST_DOMAINS` and `WHITE_LIST_DOMAINS`, on the URL, on each redirect and on the addresses the host resolves to. A request a project's reactor sends to the cloud metadata service is refused. Localhost is open unless the admin blacklists it. A refused request throws an `IllegalArgumentException` that names the host. See the [project reactor sandbox](../platform_services/project_reactor_sandbox.md#http-requests).
 -   **Error messages**: Both exceptions name the full URL in their message. When a key travels as a query parameter, build the message a reactor returns from the status code and the address without its query string.
 
+## Running Work in Parallel
+
+A reactor runs work on other threads, such as one model call per document, with [SignedInTasks](../../src/prerna/util/SignedInTasks.java). `SignedInTasks.newVirtualThreadExecutor()` returns an `ExecutorService` whose tasks run on virtual threads, and each task runs as the user signed in on the reactor's thread, so its engine calls go through with that user's permission or the app's, exactly as the reactor's own calls do:
+
+```java
+try (ExecutorService llmExecutor = SignedInTasks.newVirtualThreadExecutor()) {
+    List<Future<ResponseMessage>> docCalls = new ArrayList<>();
+    for (JsonObject doc : documents) {
+        Room docRoom = RoomUtils.createRoomForStatelessAsk(docRoomKey, this.insight, modelEngine, "");
+        InputMessage msg = InputMessage.builder(docRoom) /* prompt + the document */ .build();
+        docCalls.add(llmExecutor.submit(() -> docRoom.ask(msg, modelEngine, null, false)));
+    }
+    for (Future<ResponseMessage> call : docCalls) {
+        ResponseMessage response = call.get(timeout, TimeUnit.SECONDS);
+        // merge the answers
+    }
+}
+```
+
+-   **Who a task runs as**: The user signed in on the thread that submits it, with the request's insight and job, its log context and, with `CHROOT_ENABLE` on, the user's folder for the files it opens. A thread from `Executors`, a parallel stream or `CompletableFuture` has no signed in user, so the engine refuses its calls.
+-   **Closing**: Closing the executor, as the `try` does, waits for every task. A `get` that times out leaves its task running; to stop the rest when one answer fails, call `llmExecutor.shutdownNow()` before leaving the `try`. It interrupts the running tasks and cancels the waiting ones.
+-   **Virtual or platform threads**: A virtual thread executor suits many tasks that spend their time waiting, such as model calls and web requests: it runs up to `SignedInTasks.VIRTUAL_PARALLEL` (256) of its tasks at once, and the server runs up to `SignedInTasks.VIRTUAL_THREADS` (4096) across every reactor. `SignedInTasks.newExecutor()` runs tasks on platform threads the server shares, for work that keeps a processor busy: up to `SignedInTasks.PLATFORM_PARALLEL` (16) at once, and up to `SignedInTasks.PLATFORM_THREADS` (64) across the server.
+-   **How many wait**: Either executor holds the tasks past the ones it runs, up to `SignedInTasks.MOST_WAITING` (1024), and starts them in the order they were submitted. A task past these limits makes `submit` throw `RejectedExecutionException`.
+-   **Failures**: A task's exception comes back from `get` as the cause of an `ExecutionException`.
+
 ## Best Practices
 
 -   **Clear Naming**: Use descriptive class names. The class name without `Reactor` is the reactor's Pixel name and its MCP tool name.
