@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.automation.definition;
 
-import prerna.auth.utils.CatalogDependencyDerivation;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -91,7 +90,6 @@ public class SaveAutomationReactor extends AbstractReactor {
 						"nodeSourceCount", files.nodeSources() == null ? 0 : files.nodeSources().size()));
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(files.definition());
-		CatalogDependencyDerivation.syncAutomation(this.insight.getUser(), projectId, validated.nodes());
 		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(validated));
 		result.put(AutomationConstants.RESULT_SCOPE_VARIABLES, AutomationScopeCatalog.variablesByNode(validated));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);

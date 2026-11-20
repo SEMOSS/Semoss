@@ -394,7 +394,7 @@ public class GenerateMetamodelLayout {
 	 *
 	 * @param layout the layout the graph sends its nodes and edges to
 	 */
-	private static void computeLayout(Layout layout) {
+	public static void computeLayout(Layout layout) {
 		long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(LAYOUT_TIME_LIMIT_MS);
 		int steps = 0;
 		while (steps < MAX_LAYOUT_STEPS && layout.getStabilization() < LAYOUT_STABILIZATION) {
