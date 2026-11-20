@@ -135,8 +135,8 @@ public final class OpenShellSecrets {
 	 */
 	public static void ensureForProject(OpenShellTransport transport, String projectId) {
 		IProject project = Utility.getProject(projectId);
-		if (project != null && project.getSmssProp() != null) {
-			ensureForProject(transport, projectId, project.getSmssProp());
+		if (project != null) {
+			ensureForProject(transport, projectId, project.getSandboxSecretSettings());
 		}
 	}
 
@@ -365,7 +365,8 @@ public final class OpenShellSecrets {
 		try {
 			Path stage = Files.createDirectory(dir.resolve(PLACEHOLDER_DIR));
 			Files.writeString(stage.resolve(PLACEHOLDER_FILE), new Gson().toJson(byProject), StandardCharsets.UTF_8);
-			OpenShellTransport.cli(List.of("sandbox", "upload", sandbox, stage.toString(), PLACEHOLDER_PARENT),
+			OpenShellTransport.cli(
+					List.of("sandbox", "upload", "--no-git-ignore", sandbox, stage.toString(), PLACEHOLDER_PARENT),
 					CLI_TIMEOUT_S, Map.of());
 		} finally {
 			deleteQuietly(dir);

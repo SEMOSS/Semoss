@@ -125,7 +125,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @throws SQLException
 	 */
-	public static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
+	static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb,
@@ -151,7 +151,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @throws SQLException
 	 */
-	public static void registerUserAssetProject(User user, AuthProvider provider, String projectId)
+	static void registerUserAssetProject(User user, AuthProvider provider, String projectId)
 			throws SQLException {
 		registerUserAssetProject(user.getAccessToken(provider), projectId);
 	}

@@ -158,7 +158,7 @@ public class ChromaVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		
 		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
 				MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class)){
@@ -169,7 +169,7 @@ public class ChromaVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, embedderModel);
 			embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 			
 			EmbeddingsModelEngineResponse outputMocked = mock(EmbeddingsModelEngineResponse.class);
 			when(modelEmbedder.embeddings(new Vector<String>(), insight, null)).thenReturn(outputMocked);
@@ -235,7 +235,7 @@ public class ChromaVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			
 			// model embedder properties
 			Properties embedderProps = new Properties();
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 			
 			IllegalArgumentException e = assertThrows(
 					IllegalArgumentException.class,
@@ -259,8 +259,8 @@ public class ChromaVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			// model embedder properties
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, "embedder_model");
-			embedderProps.setProperty(IModelEngine.MODEL_TYPE, "embedder_model_type");
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			embedderProps.setProperty(IModelEngine.MODEL_TYPE, "OPEN_AI");
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 			IllegalArgumentException e = assertThrows(
 					IllegalArgumentException.class,
@@ -373,8 +373,8 @@ public class ChromaVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			// model embedder properties
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, "embedder_model");
-			embedderProps.setProperty(IModelEngine.MODEL_TYPE, "embedder_model_type");
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			embedderProps.setProperty(IModelEngine.MODEL_TYPE, "OPEN_AI");
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 			///// all previous statements were for verifyModelProps()
 			
 			// mocking getting embeddings

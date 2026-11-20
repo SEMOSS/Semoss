@@ -44,7 +44,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -333,7 +332,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile,
 							new TypeToken<Map<String, Object>>() {
 							}.getType());
-					SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+					SecurityProjectUtils.updateProjectMetadata(user, projectId, metadata);
 					// delete this file since values can update and file is dynamically generated on
 					// export
 					metadataFile.delete();
@@ -365,7 +364,9 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					UploadUtilities.removeProjectFromDIHelper(projectId);
 				}
 				// delete from security
-				SecurityProjectUtils.deleteProject(projectId);
+				if (SecurityProjectUtils.containsProjectId(projectId)) {
+					SecurityProjectUtils.deleteProject(user, projectId);
+				}
 			} else {
 				File[] assetsFilesToDelete = finalProjectAssetF
 						.listFiles((dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX)
@@ -377,10 +378,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 
 		// add user as engine owner
 		if (!replacingExistingProject) {
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
-			}
+			SecurityProjectUtils.addProjectOwner(user, projectId);
 		}
 
 		// push new project to cloud

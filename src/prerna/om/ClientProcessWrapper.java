@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -942,6 +943,27 @@ public class ClientProcessWrapper {
 	}
 
 	/**
+	 * @return whether this wrapper's worker runs in an OpenShell sandbox
+	 */
+	public boolean isOpenShell() {
+		return this.openshell != null;
+	}
+
+	/**
+	 * Makes a file the host just wrote readable by the worker. Outside OpenShell the worker
+	 * shares the host's files, so the path is returned as it is. Takes no lock: it runs on the
+	 * socket reader thread, and the write-back waits on a reply that only that thread can read.
+	 *
+	 * @param hostPath the file the engine worker wrote on the host
+	 * @return the path the worker should open
+	 * @throws IOException when the file could not be sent into the sandbox
+	 */
+	public String deliverResultFile(String hostPath) throws IOException {
+		OpenShellTransport current = this.openshell;
+		return current == null ? hostPath : current.pushScratchFile(Paths.get(hostPath));
+	}
+
+	/**
 	 * @return the socket client connected to the server process, or null if not yet
 	 *         created
 	 */
@@ -1609,6 +1631,13 @@ public class ClientProcessWrapper {
 			commands.add("--jail-root");
 			commands.add(jailDir);
 			addSandboxPathMounts(commands);
+			// When SANDBOX_ALLOW_NETWORK=true the launcher skips CLONE_NEWNET so
+			// user code can reach external services. Filesystem isolation, capability
+			// drop, and seccomp still apply; only the empty-netns and the AF_UNIX-
+			// only socket restriction are lifted.
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.SANDBOX_ALLOW_NETWORK))) {
+				commands.add("--no-net");
+			}
 			commands.add("--");
 			commands.add("--port");
 			commands.add(port);

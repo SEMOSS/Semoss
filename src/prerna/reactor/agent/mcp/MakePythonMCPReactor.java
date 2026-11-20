@@ -29,7 +29,6 @@ package prerna.reactor.agent.mcp;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,7 +47,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
-import prerna.util.InternalUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -159,16 +157,13 @@ public class MakePythonMCPReactor extends AbstractReactor {
 		Map<String, Object> mcpJson = (Map<String, Object>) insight.getPyTranslator().runScript(script);
 
 		// add tags
-		MCPUtility.addMCPTag(engine);
+		MCPUtility.addMCPTag(user, engine);
 		// update smss of engine
 		boolean mcpEnabled = engine.isMCPEnabled();
 		if (!mcpEnabled && engineType != CATALOG_TYPE.PROJECT) {
-			String smssFilePath = engine.getSmssFilePath();
-			Map<String, String> mcpEnabledMap = new HashMap<>();
-			mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
 			try {
-				InternalUtility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
-				engine.open(smssFilePath);
+				engine.updateSetting(Constants.MCP_ENABLED, "true");
+				engine.reload();
 			} catch (Exception e) {
 				throw new IllegalArgumentException("Error enabling mcp in smss");
 			}

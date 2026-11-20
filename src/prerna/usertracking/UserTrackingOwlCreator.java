@@ -53,6 +53,13 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 		this.allSchemas = new ArrayList<>();
 
 		// @formatter:off
+		// the user tracking database: activity records, written only when user tracking is turned
+		// on (Utility.isUserTrackingEnabled), and the security audit trail
+
+		// one row per login session: the HTTP SESSIONID, the login's USERID and TYPE (its
+		// provider), CREATED_ON at login and ENDED_ON at logout, and the client's IP address with
+		// its location (latitude, longitude, country, state and city). UserActivityReactor counts
+		// logins per day from it
 		addTable("USER_TRACKING", Arrays.asList(
 				Pair.with("SESSIONID", VARCHAR_255),
 				Pair.with("USERID", VARCHAR_255),
@@ -66,17 +73,26 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 				Pair.with("IP_STATE", VARCHAR_255),
 				Pair.with("IP_CITY", VARCHAR_255))); 
 
+		// the views of an engine per day: one row per ENGINEID and DATE with that day's VIEWS.
+		// EngineViewsUtils adds to the day's count and sums the counts, and an engine's rows go
+		// when the engine is deleted
 		addTable("ENGINE_VIEWS", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),
 				Pair.with("DATE", "DATE"),
 				Pair.with("VIEWS", INTEGER_DATATYPE_NAME)));
 
+		// the engines a saved insight queries: one row per ENGINEID, INSIGHTID and PROJECTID, with
+		// the DATE it was last saved. SaveInsightReactor adds the rows and UpdateInsightReactor
+		// reconciles them, and they go with the engine, the project or the insight
 		addTable("ENGINE_USES", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),
 				Pair.with("INSIGHTID", VARCHAR_255),
 				Pair.with("PROJECTID", VARCHAR_255),
 				Pair.with("DATE", "DATE")));
 
+		// a user's vote on an engine in the catalog: one row per USERID, TYPE (login type) and
+		// ENGINEID, with VOTE 1 for up or -1 for down and when it last changed. VoteEngineReactor
+		// and UnvoteEngineReactor change it, and the engine lists show each engine's total
 		addTable("USER_CATALOG_VOTES", Arrays.asList(
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
@@ -84,6 +100,9 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 				Pair.with("VOTE", INTEGER_DATATYPE_NAME),
 				Pair.with("LAST_MODIFIED", TIMESTAMP_DATATYPE_NAME)));
 
+		// one row per email the platform sends through EmailUtility: when, whether the send
+		// succeeded, the sender, the to, cc and bcc recipients, the subject, the body, the
+		// attachments and whether the body is HTML
 		addTable("EMAIL_TRACKING", Arrays.asList(
 				Pair.with("ID", VARCHAR_255),
 				Pair.with("SENT_TIME", TIMESTAMP_DATATYPE_NAME),
@@ -97,12 +116,18 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 				Pair.with("ATTACHMENTS", CLOB_DATATYPE_NAME),
 				Pair.with("IS_HTML", BOOLEAN_DATATYPE_NAME)));
 
+		// one row each time a user opens an insight (OpenInsightReactor): the insight, the user,
+		// when and the ORIGIN the open came from
 		addTable("INSIGHT_OPENS", Arrays.asList(
 				Pair.with("INSIGHTID", VARCHAR_255),
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("OPENED_ON", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("ORIGIN", "VARCHAR(2000)")));
 
+		// one row per query run on a database through the raw select wrappers
+		// (RawRDBMSSelectWrapper, RawSesameSelectWrapper): the user's id and login type, the
+		// database, the query text, its start and end, TOTAL_EXECUTION_TIME in milliseconds and
+		// whether it failed. UserQueryTrackingThread writes it off the query's thread
 		addTable("QUERY_TRACKING", Arrays.asList(
 				Pair.with("ID", VARCHAR_255),
 				Pair.with("USERID", VARCHAR_255),
@@ -114,6 +139,16 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 				Pair.with("TOTAL_EXECUTION_TIME", "BIGINT"),
 				Pair.with("FAILED_EXECUTION", BOOLEAN_DATATYPE_NAME)));
 
+		// the security audit trail, USER_AUDIT_EVENTS: one row per audited event
+		// (UserAuditTrailUtils), such as a login, a permission change, a scheduled job change or an
+		// Automation run. It records the event and its outcome, the actor (a user's id and login
+		// type, an agent or the system) and the user affected, the request, with a hash of the
+		// session id and never the id itself, the target and the project, engine, insight or room
+		// it concerns, the values before and after, any error, and the code that recorded it.
+		// AUDIT_SEQUENCE orders the rows; each row's HASH_CURRENT is the hash of the row, and its
+		// HASH_PREVIOUS the HASH_CURRENT of the row before it, which chains the rows together, and
+		// AuditChainStore keeps the chain's head in USER_AUDIT_CHAIN_STATE. AdminAuditEventsReactor
+		// and the resource audit reactors read it
 		addTable(UserAuditTrailUtils.TABLE, Arrays.asList(
 				// event
 				Pair.with("EVENT_ID", VARCHAR_255),
@@ -162,7 +197,7 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 				Pair.with("SOURCE_APP", "VARCHAR(100)"),
 				Pair.with("SOURCE_MODULE", VARCHAR_255),
 				Pair.with("SOURCE_CLASS", VARCHAR_255),
-				// optional integrity
+				// integrity: the hash chain
 				Pair.with("HASH_PREVIOUS", "VARCHAR(100)"),
 				Pair.with("HASH_CURRENT", "VARCHAR(100)")));
 		// @formatter:on

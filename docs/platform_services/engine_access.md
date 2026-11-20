@@ -16,17 +16,22 @@ void insertData(String query) throws Exception;
 java.sql.Connection getConnection() throws SQLException;
 ```
 
-- `value` is the level the signed in user needs.
-- `projectCode` is the level needed when a project's custom code makes the call itself. It is set on the methods that hand back more than the platform's own callers pass on: a raw connection, or the engine's settings.
+- `value` is the level every call needs, whoever makes it: the platform for a user, a project's custom code, or another engine's own code.
+- `projectCode` is a higher level for a call a project's custom code makes itself. It is set on the methods that hand back more than the platform's own callers pass on, such as a raw connection.
 
-| What the method does | Examples | User | Custom code |
+A call meets its level through the signed in user's permission, or through the permission the engine gives the app or engine making the call.
+
+| What the method does | Examples | Every call (`value`) | Custom code calling itself (`projectCode`) |
 | --- | --- | --- | --- |
 | Reads | `getEngineId`, `ask`, `embeddings`, `nearestNeighbor`, `list`, `copyToLocal`, `execute`, `getReactor` | `READ_ONLY` | `READ_ONLY` |
 | Writes | `insertData`, `removeData`, `commit`, `commitOWL`, `copyToStorage`, `deleteFromStorage`, `addDocument`, `removeDocument`, `addPackage`, `pullRequirementsFile` | `EDIT` | `EDIT` |
 | Hands back a connection or runs SQL as given | `getConnection`, `getPreparedStatement`, `execQuery`, `executeInTransaction`, `getQueryUtil`, `getConnectionMetadata` | `READ_ONLY` | `EDIT` |
-| Hands back the engine's settings | `getSmssProp`, `getSmssFilePath`, `getProperty`, `getConnectionUrl`, `getDataSource` | `READ_ONLY` | `OWNER` |
+| Reads one setting | `getCatalogSubType`, `getPipelineFile`, `getModelName`, `getMaxToolNameLength`, `getMaxTokens`, `getEmbedderEngineId`, `getBucketName`, `isBigData`, `getFunctionType`, `getJudgeModelEngineId` | `READ_ONLY` | `READ_ONLY` |
+| Hands back the engine's settings, or picks the file it opens from | `getSmssProp`, `getOrigSmssProp`, `setSmssProp`, `getSmssFilePath`, `setSmssFilePath`, `open`, `getProperty`, `addProperty`, `setOwlFilePath`, `getConnectionUrl`, `getDataSource` | `OWNER` | `OWNER` |
+| Reopens the engine, or changes a setting editors change | `reload`, `updateSetting` | `EDIT` | `OWNER` |
+| Hands an app's sandbox its secrets | `getSandboxSecretSettings` | `READ_ONLY` | `OWNER` |
 | Changes the engine itself | `delete`, `setEngineId`, `setEngineName`, `setDisplayName` | `OWNER` | `OWNER` |
-| Reopens or reconfigures the engine | `open`, `setSmssProp`, `closeDataSource`, `getOrigSmssProp`, `addProperty`, `setOwlFilePath`, `setBaseDataEngine`, `setInsightDatabase` | `EDIT` | `OWNER` |
+| Reconfigures the engine | `closeDataSource`, `setBaseDataEngine`, `setInsightDatabase` | `EDIT` | `OWNER` |
 | Closes the engine | `close` | `READ_ONLY` | `OWNER` |
 | A project's own runtime | `getInsightDatabase`, `getProjectProperties`, `getProjectPyTranslator`, `compileReactors` | `READ_ONLY` | `EDIT` |
 
@@ -35,10 +40,42 @@ Guarded by [EngineAccessLevelsUnitTests](../../test/prerna/engine/api/EngineAcce
 | Rule | Test |
 | --- | --- |
 | Every method of an engine or project interface has a level, so a new method cannot reach an engine unchecked | `everyMethodOfAnEngineOrProjectInterfaceHasALevel` |
-| The level for custom code is one level, above the user's | `theLevelForProjectCodeIsOneLevelThatIsNoLowerThanTheUsers` |
+| The level for custom code is one level, above the level of every call | `theLevelForProjectCodeIsOneLevelAboveTheLevelOfEveryCall` |
 | The methods in the table above keep their levels | `theMethodsThatMatterMostKeepTheirLevels` |
 
-To add a method to an engine interface, give it an `@EngineAccess` with the level the work it does needs: `READ_ONLY` to read, `EDIT` to write or reconfigure, `OWNER` to change the engine itself. `everyMethodOfAnEngineOrProjectInterfaceHasALevel` fails until it has one.
+To add a method to an engine interface, give it an `@EngineAccess` with the level the work it does needs: `READ_ONLY` to read, `EDIT` to write or reconfigure, `OWNER` to change the engine itself or hand back its settings. `everyMethodOfAnEngineOrProjectInterfaceHasALevel` fails until it has one.
+
+## An engine's settings stay with its owners
+
+An engine's smss holds its secrets: passwords, API keys, tokens and connection strings. So only its owners read or change its settings, or pick the file it opens from, whoever makes the call: the platform for a user, a project's custom code, or another engine. A Read-Only or Editor permission, a user's or one an engine gives another engine, never reaches them. The platform loading an engine, a platform operation and an admin operation still go through, as they do for every method.
+
+Code that needs one harmless setting calls the getter for it, a `READ_ONLY` method that reads that one value from the engine's own settings: a model's name and the longest tool name it takes, a vector database's embedding model, a storage engine's bucket, a database's big data setting, a function's type, a guardrail's judge model, an engine's subtype and pipeline file. A new need gets a getter of its own, never the whole smss.
+
+Editors keep two jobs that touch the smss, through methods that take no file and no free-form setting:
+
+- `reload()` closes the engine and opens it again from its own registered smss file, as Reload Database and a model's metadata updates do.
+- `updateSetting(key, value)` saves one setting of `IEngine.SETTINGS_EDITORS_CHANGE`, `PIPELINE` or `MCP_ENABLED`, to the smss file and the open settings, as the guardrail configuration and enabling MCP do. Any other key is refused.
+
+Platform code that only needs where an engine's smss file is, such as the metamodel positions or the local master sync, reads it from the platform registry with `InternalUtility.getEngineSmssPath`, which a project's custom code cannot call.
+
+A few features hand settings on by design:
+
+- An app's sandbox gets the app's sandbox secrets for everyone who can open the app, through `IProject.getSandboxSecretSettings`, which returns only `SANDBOX_SECRETS` and its `SANDBOX_SECRET_*` values. Custom code reads them only for the app's owners.
+- A proxy vector database opens a copy of its target with the target's settings, so it needs the target to give it Editor in its Engines section, or the signed in user to own the target ([ProxyVectorDatabaseEngineAccessUnitTests](../../test/prerna/engine/impl/vector/ProxyVectorDatabaseEngineAccessUnitTests.java)).
+- A LiveKit room hands the model's keys to the user's Python, so only the model's owners join one.
+
+Guarded by [EngineAccessGuardUnitTests](../../test/prerna/engine/impl/pipeline/EngineAccessGuardUnitTests.java) and [EngineSettingsUnitTests](../../test/prerna/engine/api/EngineSettingsUnitTests.java):
+
+| Rule | Test |
+| --- | --- |
+| A viewer or an editor never reads the settings or picks the file the engine opens from | `onlyAnOwnerReadsTheSettingsOrPicksTheFileTheEngineOpensFrom` |
+| An owner does | `anOwnerReadsTheSettingsAndPicksTheFileTheEngineOpensFrom` |
+| An editor reloads the engine and changes the settings editors change | `anEditorReloadsTheEngineAndChangesOnlyTheSettingsEditorsChange` |
+| A permission an engine gives another engine reaches one setting, never the settings | `anEngineThatGaveAnotherEditorStillKeepsItsSettings` |
+| A setting editors change is saved to the smss file and the open settings; any other is refused | `aSettingEditorsChangeIsSavedToTheSmssFileAndTheOpenSettings`, `anyOtherSettingIsLeftToTheOwners` |
+| Reloading opens the engine from its own file | `reloadingClosesTheEngineAndOpensItFromItsOwnFile` |
+| Each getter reads its one setting | `eachGetterReadsItsOneSetting`, `aVectorDatabaseNamesItsEmbedderByEitherKey`, `s3AndGoogleCloudStorageNameTheirBucket` |
+| An app hands its sandbox only its sandbox secrets | `aProjectHandsOverOnlyItsSandboxSecrets` |
 
 ## Who is acting
 
@@ -47,8 +84,8 @@ The check reads the call stack from the proxy down and stops at the first of the
 | Who | How it is recognized |
 | --- | --- |
 | A project's custom code | A class loaded by the [project sandbox](project_reactor_sandbox.md). The classes of the JDK and of shared libraries are passed over, so a call a project makes through a lambda, a stream or a library is still the project's |
-| An engine | An engine's own class, or another proxy call: a vector database calling the model that makes its embeddings, a function engine opening its storage engine, a guardrail calling its judge model |
-| The platform loading an engine or project | The `Utility` getter that loads it |
+| An engine | An engine's own class, or another proxy call: a vector database calling the model that makes its embeddings, a function engine opening its storage engine, a guardrail calling its judge model. The engine is the one answering the proxy call that runs on the thread, or the one being opened, so the calls an engine makes from its `open` are its own ([EngineCallPermission](../../src/prerna/engine/impl/pipeline/EngineCallPermission.java)). An engine object that a project's custom code creates or extends and calls itself, with no proxy in between, acts as that project's custom code |
+| The platform loading an engine or project | The `Utility` getter that loads it, when no engine being opened comes first |
 | The platform | Anything else. A reactor a user runs inside an engine's call, such as a tool of a project, is the platform again |
 
 ## Calls from the platform
@@ -62,7 +99,7 @@ Guarded by [EngineAccessGuardUnitTests](../../test/prerna/engine/impl/pipeline/E
 | A user calls the methods their level covers: a reader reads, an editor also writes, an owner also deletes | `aUserCallsTheMethodsTheirLevelCovers` |
 | A user with no permission is refused every method, with the same answer as for an engine that does not exist | `aUserWithNoPermissionIsRefusedEveryMethod` |
 | A refusal names the level the method needs | `aRefusalNamesTheLevelTheMethodNeeds` |
-| For a user who can view an engine, the platform reads its settings and gets a connection | `thePlatformReadsSettingsAndGetsAConnectionForAUserWhoCanView` |
+| For a user who can view an engine, the platform gets a connection and reads one setting at a time | `thePlatformGetsAConnectionAndOneSettingAtATimeForAUserWhoCanView` |
 | Permission on one engine gives nothing on another | `permissionOnOneEngineGivesNothingOnAnother` |
 | A project is checked against the user's permission on the project | `aProjectIsCheckedAgainstTheUsersPermissionOnTheProject` |
 | A user off the thread is read from the insight of the call | `aUserOffTheThreadIsReadFromTheInsightOfTheCall` |
@@ -73,7 +110,6 @@ A call from the platform also goes through in these cases:
 
 | Case | Why | Test |
 | --- | --- | --- |
-| An engine is acting | The engine's owner configured the engine it calls | `anEngineCallingTheEngineConfiguredOnItGoesThrough` |
 | A reactor a user runs inside an engine's call | It is checked as the user, like any other reactor | `aReactorAUserRunsInsideAnEngineCallIsCheckedAsTheUser` |
 | The platform is loading the engine or project | Loading syncs the engine's files, whoever asked for it | `thePlatformLoadingAnEngineGoesThrough` |
 | The proxy was handed out for the platform's own use | A feature uses the model a platform setting names for every user of the feature; see [engines the platform uses for everyone](#engines-the-platform-uses-for-everyone) | `aProxyHandedOutForThePlatformsOwnUseServesAnyUser` |
@@ -84,14 +120,37 @@ A call from the platform also goes through in these cases:
 | The security database does not list the engine or project | It is being created or deleted | `anEngineTheSecurityDatabaseDoesNotListGoesThrough` |
 | The JVM has no security database | The Java worker holds stand-ins that send each call back to the server, which checks it there | `aJvmWithoutTheSecurityDatabaseChecksNothing` |
 
+## Calls from an engine
+
+An engine's own code calling another engine needs the method's level, and has it in one of two ways:
+
+- the user the call is for holds it on the other engine, or
+- the other engine gave the calling engine a permission that covers it; see [giving an app or an engine a permission on an engine](#giving-an-app-or-an-engine-a-permission-on-an-engine).
+
+It also goes through when the engine calls itself, when the engine answering is a project, whose own code is the platform's, when the other engine is a venv engine, which only names where its Python runs, and when the method needs `READ_ONLY` and the other engine is public. A platform operation, a proxy handed out for the platform's own use, an admin operation for an admin, and an engine the security database does not list go through as they do for the platform. Reading a discoverable engine through the platform does not apply to an engine's call. An engine calling a project is checked as the platform is.
+
+Guarded by [EngineAccessGuardUnitTests](../../test/prerna/engine/impl/pipeline/EngineAccessGuardUnitTests.java):
+
+| Rule | Test |
+| --- | --- |
+| An engine calling an engine that gave it nothing is refused | `anEngineCallingAnEngineThatGaveItNothingIsRefused` |
+| An engine calls an engine that gave it a permission covering the method, and the engine it calls knows it | `anEngineCallsAnEngineThatGaveItAPermissionThatCoversTheMethod` |
+| A permission given to an app does not cover an engine with the same id | `aPermissionGivenToAnAppDoesNotCoverAnEngineWithTheSameId` |
+| An engine calling an engine the user can use goes through | `anEngineCallingAnEngineTheUserCanUseGoesThrough` |
+| An engine calling itself goes through | `anEngineCallingItselfGoesThrough` |
+| An engine reads a public engine, and needs a permission to write to it | `anEngineReadsAPublicEngineWithNoPermission` |
+| An engine uses a venv engine | `anEngineUsesAVenvEngineWithNoPermission` |
+| An engine opening calls another engine as itself | `anEngineOpeningCallsAnotherEngineAsItself` |
+| A model's call to an engine that gave it nothing is refused, and one the user can use goes through | `aModelsCallToAnEngineThatGaveItNothingIsRefused`, `aModelsCallToAnEngineTheUserCanUseGoesThroughWithNoGrant` in [SandboxEngineAccessUnitTests](../../test/prerna/util/SandboxEngineAccessUnitTests.java) |
+
 ## Calls from custom reactors
 
 A project's custom code needs the method's level, and the `projectCode` level when it makes the call itself. It has the level in one of two ways:
 
 - the signed in user holds it on the engine, or
-- the engine gave the app a permission that covers it; see [giving an app a permission on an engine](#giving-an-app-a-permission-on-an-engine).
+- the engine gave the app a permission that covers it; see [giving an app or an engine a permission on an engine](#giving-an-app-or-an-engine-a-permission-on-an-engine).
 
-On its own project, a project's custom code has `EDIT`.
+On its own project, a project's custom code has `EDIT`. A task a custom reactor submits to a `SignedInTasks` executor runs as the user who submitted it, so its calls are checked the same way; see [work on other threads](project_reactor_sandbox.md#work-on-other-threads).
 
 Guarded by [SandboxEngineAccessUnitTests](../../test/prerna/util/SandboxEngineAccessUnitTests.java), which loads a class through the project sandbox and has it call an engine behind the real proxy:
 
@@ -117,26 +176,32 @@ Guarded by [SandboxEngineAccessUnitTests](../../test/prerna/util/SandboxEngineAc
 | A custom reactor has `EDIT` on its own project | `aCustomReactorHasEditOnItsOwnProject` |
 | A custom reactor needs the user's permission on another project | `aCustomReactorNeedsTheUsersPermissionOnAnotherProject` |
 | A project's loader names its project | `aProjectsLoaderNamesItsProject` |
+| An engine object a custom reactor creates or extends and calls itself reaches other engines with the user's permission or the app's, like the reactor's own calls | `anEngineObjectACustomReactorDrivesItselfActsAsItsProject` |
 
 The sandbox adds rules of its own, in [SandboxReplacedCallsUnitTests](../../test/prerna/util/SandboxReplacedCallsUnitTests.java) and [SandboxBlockedClassesUnitTests](../../test/prerna/util/SandboxBlockedClassesUnitTests.java):
 
 | Rule | Test |
 | --- | --- |
 | The query utility an RDBMS engine hands out (`getQueryUtil()`) builds SQL for a custom reactor, and its user name, password, connection properties and connection URL stay with the engine | `anEnginesCredentialsCannotBeReadOrChangedThroughItsQueryUtility` |
-| The classes that build the proxy, `EngineProxyFactory` and `PipelineInvocationHandler`, cannot be used by a custom reactor | `platformStateAndInternalHelpersAreBlocked` |
+| The classes that build the proxy and keep the call's state, `EngineProxyFactory`, `PipelineInvocationHandler` and `EngineCallPermission`, cannot be used by a custom reactor | `platformStateAndInternalHelpersAreBlocked` |
 | A custom reactor reads what the thread says about the request it serves and never changes it: the signed in user, the insight, session, route and job, the context project and the thread's whole map | `theSignedInUserCannotBeChanged`, `theRequestTheThreadServesCannotBeChanged` |
 | A custom reactor cannot use `InsightStore`, which holds every open insight of every user | `platformStateAndInternalHelpersAreBlocked` |
 
-## Giving an app a permission on an engine
+## Giving an app or an engine a permission on an engine
 
-An app often works with an engine for people who have no access to that engine themselves: a form that inserts into a database, a workflow that adds a document to a storage engine. An owner of the engine gives the app a permission on it, and the app's custom reactors then use the engine with that permission, whoever runs them. The owner does it on the engine's Access Control tab, in Apps, or with a call to Monolith, like every other permission:
+An app often works with an engine for people who have no access to that engine themselves: a form that inserts into a database, a workflow that adds a document to a storage engine. Engines work with each other the same way: a vector database embeds with a model, a guardrail asks a judge model, a model runs the guardrails on its pipeline, a router passes a call to the models it routes to, a function engine opens a storage engine. An owner of the engine gives the app or the other engine a permission on it, and the app's custom reactors, or the other engine's own code, then use the engine with that permission, whoever the call is for. The owner does it on the engine's Access Control tab, in Apps or Engines, or with a call to Monolith, like every other permission. The grantee is named by its id and its catalog type, `PROJECT` for an app:
 
 ```
-POST /Monolith/api/auth/engine/setEngineProjectPermission
-engineId=<engine id>&projectId=<app id>&permission=EDIT
+POST /Monolith/api/auth/engine/setEngineGranteePermission
+engineId=<engine id>&granteeEngineId=<app id>&granteeEngineType=PROJECT&permission=EDIT
 ```
 
-With an `EDIT` permission the app's reactors get the connection and run their own transactions:
+```
+POST /Monolith/api/auth/engine/setEngineGranteePermission
+engineId=<embedding model id>&granteeEngineId=<vector database id>&granteeEngineType=VECTOR&permission=READ_ONLY
+```
+
+With an `EDIT` permission an app's reactors get the connection and run their own transactions:
 
 ```java
 IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(databaseId);
@@ -150,94 +215,97 @@ try (Connection connection = database.getConnection();
 }
 ```
 
-| Level | What the app's custom reactors can do |
+| Level | What the app's custom reactors, or the other engine's code, can do |
 | --- | --- |
-| `READ_ONLY` | Call the engine's read methods: run a query through the platform's query classes, ask a model, list and download from a storage engine, search a vector database |
+| `READ_ONLY` | Call the engine's read methods: run a query through the platform's query classes, ask a model or embed with it, list and download from a storage engine, search a vector database |
 | `EDIT` | Everything above, and write: get the connection and prepared statements, insert, update and delete, add to and delete from a storage engine, add and remove documents |
 
-An app is never an owner of an engine, so an engine's settings and secrets stay with its owners.
+A grantee is never an owner of an engine, so an engine's settings and secrets stay with its owners, and an engine is never given a permission on itself. The one engine whose work needs another engine's settings is a proxy vector database, which opens a copy of its target with them: Editor from the target lets it; see [an engine's settings stay with its owners](#an-engines-settings-stay-with-its-owners).
 
-### An app's usage limit on a model
+### The usage limit on a model's permission
 
-On a model, the app's permission carries an App Limit, set by the model's owners the way a team's limit is: an overall amount for the app (rules that count `SHARED`), an amount for each user of the app (rules that count `EACH_PERSON`), or both. It counts the calls the app's custom reactors make to the model for people whose only way to it is the app: those with no grant of their own and none through a team. A person with a grant of their own, or a team's, counts against their own limits inside the app too. The App Limit comes after Team Limits and before the Public Use Limit, so on a public model the app's users count against the App Limit when one is defined. When the app's overall amount is used up, the model refuses the app's calls for everyone until it resets; when one person's amount is used up, it refuses that person's. With no App Limit defined, the call counts against the Public Use Limit on a public model, then the person's User's Total Model Limit and the General Platform Limit. See [model usage limits](../model_usage_limits/README.md).
+On a model, the permission carries the grantee's limit, set by the model's owners the way a team's limit is: the App Limit for an app and the Engine Limit for an engine. It has an overall amount for the grantee (rules that count `SHARED`), an amount for each user (rules that count `EACH_PERSON`), or both. It counts the calls the app's custom reactors, or the engine's own code, make to the model for people whose only way to it is that app or engine: those with no grant of their own and none through a team. A person with a grant of their own, or a team's, counts against their own limits there too. The limit comes after Team Limits and before the Public Use Limit, so on a public model the grantee's users count against its limit when one is defined. When the overall amount is used up, the model refuses the grantee's calls for everyone until it resets; when one person's amount is used up, it refuses that person's. With no limit defined, the call counts against the Public Use Limit on a public model, then the person's User's Total Model Limit and the General Platform Limit. See [model usage limits](../model_usage_limits/README.md).
 
 ```
-POST /Monolith/api/auth/engine/setEngineProjectPermission
-engineId=<model id>&projectId=<app id>&permission=READ_ONLY&usageLimit={"unlimited": false, "rules": [
+POST /Monolith/api/auth/engine/setEngineGranteePermission
+engineId=<model id>&granteeEngineId=<guardrail id>&granteeEngineType=GUARDRAIL&permission=READ_ONLY&usageLimit={"unlimited": false, "rules": [
     {"metric": "TOKENS", "amount": 1000000, "window": "DAY", "counts": "SHARED"},
     {"metric": "TOKENS", "amount": 50000, "window": "DAY", "counts": "EACH_PERSON"}]}
 ```
 
-Leaving `usageLimit` out keeps the limit the app has, and an empty `usageLimit` removes it.
+Leaving `usageLimit` out keeps the limit the grantee has, and an empty `usageLimit` removes it.
 
 The endpoints are Monolith's, beside the ones for people and teams. An owner uses `/auth/engine`, and an admin in admin mode uses `/auth/admin/engine` on any engine:
 
 | Endpoint | Who calls it | Form or query fields | What it does |
 | --- | --- | --- | --- |
-| `POST /auth/engine/setEngineProjectPermission` | An owner of the engine | `engineId`, `projectId`, `permission`, and optionally `endDate` and `usageLimit`, the App Limit on a model | Gives the app the level, or changes the one it has |
-| `POST /auth/engine/removeEngineProjectPermission` | An owner of the engine | `engineId`, `projectId` | Takes the permission away |
-| `GET /auth/engine/getEngineProjectPermissions` | An editor or owner of the engine | `engineId` | Lists the apps the engine gives a permission to |
-| `POST /auth/admin/engine/setEngineProjectPermission` | An admin | The same fields | The same, on any engine |
-| `POST /auth/admin/engine/removeEngineProjectPermission` | An admin | The same fields | The same, on any engine |
-| `GET /auth/admin/engine/getEngineProjectPermissions` | An admin | `engineId` | The same, on any engine |
+| `POST /auth/engine/setEngineGranteePermission` | An owner of the engine | `engineId`, `granteeEngineId`, `granteeEngineType`, `permission`, and optionally `endDate` and `usageLimit`, the grantee's limit on a model | Gives the app or engine the level, or changes the one it has |
+| `POST /auth/engine/removeEngineGranteePermission` | An owner of the engine | `engineId`, `granteeEngineId`, `granteeEngineType` | Takes the permission away |
+| `GET /auth/engine/getEngineGranteePermissions` | An editor or owner of the engine | `engineId` | Lists the apps and engines the engine gives a permission to |
+| `POST /auth/admin/engine/setEngineGranteePermission` | An admin | The same fields | The same, on any engine |
+| `POST /auth/admin/engine/removeEngineGranteePermission` | An admin | The same fields | The same, on any engine |
+| `GET /auth/admin/engine/getEngineGranteePermissions` | An admin | `engineId` | The same, on any engine |
 
-The permission is part of the permission batch model ([prerna.auth.access](../../src/prerna/auth/access/AGENTS.md)): the subject is a `PROJECT` on an `ENGINE` target, saved through `PermissionBatchUtils` and stored in `PROJECTENGINEPERMISSION`. Bulk Access Management sends it as:
+The permission is part of the permission batch model ([prerna.auth.access](../../src/prerna/auth/access/AGENTS.md)): the subject is an `ENGINE`, with the grantee's id and catalog type, on an `ENGINE` target, saved through `PermissionBatchUtils` and stored in `ENGINE2ENGINEPERMISSION`, with the catalog types of the engine giving it and of the grantee. Bulk Access Management sends it as:
 
 ```json
 [{"target": {"resourceType": "ENGINE", "id": "<engine id>"},
   "changes": [{"action": "ADD",
-               "subject": {"category": "PROJECT", "id": "<app id>"},
+               "subject": {"category": "ENGINE", "id": "<app id>", "type": "PROJECT"},
                "to": {"level": "EDIT", "endDate": null, "usageLimit": null}}]}]
 ```
 
-`getPermissions` on an engine returns its apps as `projects`, each with its name (the app's display name when it has one), level, end date and App Limit. Only the engine's editors and owners, and admin mode, see them: `allowedPermissionChanges.canViewProjects` says whether the user does, and anyone else gets an empty list. `allowedPermissionChanges.canChangeProjects` says whether the user can change them.
+`getPermissions` on an engine returns its apps and engines as `engines`, each with its type, its name (the display name when it has one), an engine's subtype, and its level, end date and limit. Only the engine's editors and owners, and admin mode, see them: `allowedPermissionChanges.canViewEngines` says whether the user does, and anyone else gets an empty list. `allowedPermissionChanges.canChangeEngines` says whether the user can change them.
 
-Guarded by [EngineProjectPermissionUnitTests](../../test/prerna/auth/utils/EngineProjectPermissionUnitTests.java), and the endpoints by `EngineAuthorizationResourceTest` and `AdminEngineAuthorizationResourceTest` in Monolith:
+Guarded by [EngineGranteePermissionUnitTests](../../test/prerna/auth/utils/EngineGranteePermissionUnitTests.java), and the endpoints by `EngineAuthorizationResourceTest` and `AdminEngineAuthorizationResourceTest` in Monolith:
 
 | Rule | Test |
 | --- | --- |
-| An owner gives an app a permission on the engine | `anOwnerGivesAnAppAPermissionOnTheEngine` |
-| The permission is for that app and that engine only | `thePermissionIsForThatAppAndThatEngineOnly` |
+| An owner gives an app or another engine a permission on the engine | `anOwnerGivesAnAppAPermissionOnTheEngine`, `anOwnerGivesAnotherEngineAPermission` |
+| The permission is for that grantee and that engine only, and an app and an engine with the same id are two grantees | `thePermissionIsForThatAppAndThatEngineOnly`, `anAppAndAnEngineWithTheSameIdAreTwoGrantees` |
+| The grantee's type is a catalog type, read ignoring case, and an engine named with another type is refused | `aGranteeTypeIsReadIgnoringCase`, `aGranteeWithNoCatalogTypeIsRefused`, `anEngineNamedWithAnotherCatalogTypeIsRefused` |
+| An engine is never given a permission on itself | `anEngineIsNeverGivenAPermissionOnItself` |
 | Setting again changes the level | `settingAgainChangesTheLevel` |
 | An owner takes the permission away | `anOwnerTakesThePermissionAway`, `takingAwayAPermissionThatIsNotThereIsRefused` |
-| Only an owner of the engine gives or takes away an app's permission | `onlyAnOwnerOfTheEngineGivesAnAppAPermission`, `onlyAnOwnerOfTheEngineTakesAnAppsPermissionAway` |
-| Someone who is not an owner learns nothing about the app or the engine | `someoneWhoIsNotAnOwnerLearnsNothingAboutTheApp` |
+| Only an owner of the engine gives or takes away the permission | `onlyAnOwnerOfTheEngineGivesAnAppAPermission`, `onlyAnOwnerOfTheEngineTakesAnAppsPermissionAway` |
+| Someone who is not an owner learns nothing about the grantee or the engine | `someoneWhoIsNotAnOwnerLearnsNothingAboutTheApp` |
 | An admin gives, takes away and lists in admin mode, on an engine that exists | `anAdminGivesAndTakesAwayInAdminMode`, `adminModeRefusesAnEngineThatDoesNotExist` |
-| An app is never an owner of an engine | `anAppIsNeverAnOwnerOfAnEngine` |
-| The level is `READ_ONLY` or `EDIT`, and the app exists | `aLevelThatIsNotOneOfTheLevelsIsRefused`, `anAppThatDoesNotExistIsRefused` |
-| An app is given a permission only on an engine | `anAppIsGivenAPermissionOnlyOnAnEngine` |
-| An owner gives an app a limit on a model, with an amount for the app and one for each user | `anOwnerGivesAnAppALimitOnAModelWithAnAmountForTheAppAndOneForEachUser` |
-| An app's limit is only on a model, and one that cannot be defined is refused | `anAppsLimitIsOnlyOnAModel`, `anAppsLimitThatCannotBeDefinedIsRefused` |
-| Changing an app's level keeps its limit, and sending no limit defined removes it | `changingAnAppsLevelKeepsItsLimit`, `sendingNoLimitDefinedRemovesAnAppsLimit` |
-| Taking the permission away, or deleting the app, removes its limit | `takingAnAppsPermissionAwayRemovesItsLimit`, `deletingTheAppRemovesItsLimits` |
-| An app is in a batch once, and is added once | `anAppIsInABatchOnce`, `aBatchThatAddsAnAppTwiceInARowIsRefusedTheSecondTime` |
+| A grantee is never an owner of an engine | `anAppIsNeverAnOwnerOfAnEngine` |
+| The level is `READ_ONLY` or `EDIT`, and the grantee exists | `aLevelThatIsNotOneOfTheLevelsIsRefused`, `anAppThatDoesNotExistIsRefused` |
+| A grantee is given a permission only on an engine | `anAppIsGivenAPermissionOnlyOnAnEngine` |
+| An owner gives an app or engine a limit on a model, with an amount for the grantee and one for each user | `anOwnerGivesAnAppALimitOnAModelWithAnAmountForTheAppAndOneForEachUser`, `anOwnerGivesAnEngineALimitOnAModel` |
+| The limit is only on a model, and one that cannot be defined is refused | `anAppsLimitIsOnlyOnAModel`, `anAppsLimitThatCannotBeDefinedIsRefused` |
+| Changing the level keeps the limit, and sending no limit defined removes it | `changingAnAppsLevelKeepsItsLimit`, `sendingNoLimitDefinedRemovesAnAppsLimit` |
+| Taking the permission away, or deleting the grantee, removes its limit | `takingAnAppsPermissionAwayRemovesItsLimit`, `deletingTheAppRemovesItsLimits`, `deletingAnEngineRemovesThePermissionsItWasGivenAndTheirLimits` |
+| A grantee is in a batch once, and is added once | `anAppIsInABatchOnce`, `aBatchThatAddsAnAppTwiceInARowIsRefusedTheSecondTime` |
 | A permission has an optional end date, and one that has ended is not in effect | `anEndDateThatCannotBeReadIsRefused`, `aPermissionThatHasEndedIsNotInEffect` |
-| A permission that has ended is removed with its App Limit and recorded as ended | `anEndedAppPermissionTakesItsAppLimitWithIt`, `anEndedGrantNamesWhoHadItAndTheLevel` |
+| A permission that has ended is removed with its limit and recorded as ended | `anEndedAppOrEnginePermissionTakesItsLimitWithIt`, `anEndedGrantNamesWhoHadItAndTheLevel` |
 | A batch sent as JSON gives an app a permission | `aBatchSentAsJsonGivesAnAppAPermission` |
-| An engine's permissions list its apps, and tell an owner they can change them | `theEnginesPermissionsListItsApps`, `onlyAnOwnerIsToldTheyCanChangeTheApps`, `aProjectsPermissionsHaveNoApps` |
-| Only the engine's editors and owners list its apps | `onlyTheEnginesEditorsAndOwnersListItsApps` |
-| Someone who can only view the engine sees none of its apps in its permissions | `aReaderSeesNoneOfTheEnginesAppsInItsPermissions` |
-| Deleting the engine or the app removes the permission | `deletingTheEngineRemovesThePermissionsItGave`, `deletingTheAppRemovesThePermissionsItWasGiven` |
+| An engine's permissions list its apps and engines with their types, and tell an owner they can change them | `theEnginesPermissionsListItsApps`, `theEnginesPermissionsListItsAppsAndEnginesWithTheirTypes`, `onlyAnOwnerIsToldTheyCanChangeTheApps`, `aProjectsPermissionsHaveNoApps` |
+| Only the engine's editors and owners list its grantees | `onlyTheEnginesEditorsAndOwnersListItsApps` |
+| Someone who can only view the engine sees none of its grantees in its permissions | `aReaderSeesNoneOfTheEnginesAppsInItsPermissions` |
+| Deleting the engine or the grantee removes the permission | `deletingTheEngineRemovesThePermissionsItGave`, `deletingTheAppRemovesThePermissionsItWasGiven` |
 
-The App Limit's own rules are guarded where the other limits' are:
+The limit's own rules are guarded where the other limits' are:
 
 | Rule | Test |
 | --- | --- |
-| A model answering a call an app's custom reactors make knows the app, whether the call went through on the app's permission or on the user's own, and an engine it calls does not | `aModelAnsweringACallMadeWithAnAppsPermissionKnowsTheApp`, `aModelKnowsTheAppMakingTheCallWhenTheUserHasAccessOfTheirOwn` in [SandboxEngineAccessUnitTests](../../test/prerna/util/SandboxEngineAccessUnitTests.java) |
-| A call of an app the model gives no permission, a call the platform makes, and a refused call carry no app | `aModelSeesNoAppWhenItGivesTheCallingAppNoPermission`, `aModelSeesNoAppOnACallThePlatformMakes`, `aRefusedCallLeavesNoAppBehind` |
-| A call an app makes for a person with no grant is billed to the app's limit, before public use | `resolve_aCallAnAppMakesForAPersonWithNoGrantIsBilledToTheAppsLimit`, `resolve_theAppsLimitComesBeforePublicUse`, `theGuardKeepsTheAppsPathApartFromThePersonsOwn` in [SecurityModelUsageLimitUtilsUnitTests](../../test/prerna/auth/utils/SecurityModelUsageLimitUtilsUnitTests.java) |
-| An app with no limit defined passes on to public use, then to the person's all-models default | `resolve_anAppWithNoLimitDefinedPassesOnToPublicUse`, `resolve_anAppWithNoLimitDefinedPassesOnToThePersonsAllModelsDefault` |
-| The app's limit is skipped for a person with a grant of their own or a team's | `resolve_anAppsLimitIsSkippedForAPersonWithAGrantOfTheirOwn`, `resolve_anAppsLimitIsSkippedForAPersonWithATeamsGrant` |
-| The app's limit is not on a path for a call no app makes, and one app's limit is not another's | `resolve_anAppsLimitIsNotOnAPathForACallNoAppMakes`, `resolve_oneAppsLimitIsNotAnotherApps` |
-| The app's overall amount is shared by everyone who uses the app, and the amount for each user stops only that user | `anAppsOverallAmountIsSharedByEveryoneWhoUsesTheApp`, `anAppsAmountForEachUserStopsOnlyThatUser`, `whatOneAppUsesDoesNotCountAgainstAnother` in [ModelUsageGuardUnitTests](../../test/prerna/engine/impl/model/usage/ModelUsageGuardUnitTests.java) |
-| The app's counters are filled from the calls billed to the app | `anAppsCountersAreFilledFromTheCallsBilledToTheApp`, `aCounterKeepsItsNameAndAnAppsCounterEndsWithTheApp` |
+| A model answering a call an app's custom reactors make knows the app, whether the call went through on the app's permission or on the user's own, and an engine it calls with a permission knows the model | `aModelAnsweringACallMadeWithAnAppsPermissionKnowsTheApp`, `aModelKnowsTheAppMakingTheCallWhenTheUserHasAccessOfTheirOwn` in [SandboxEngineAccessUnitTests](../../test/prerna/util/SandboxEngineAccessUnitTests.java) |
+| A call of an app the model gives no permission, a call the platform makes, and a refused call carry no grantee | `aModelSeesNoAppWhenItGivesTheCallingAppNoPermission`, `aModelSeesNoAppOnACallThePlatformMakes`, `aRefusedCallLeavesNoAppBehind` |
+| A call an app or engine makes for a person with no grant is billed to its limit, before public use | `resolve_aCallAnAppMakesForAPersonWithNoGrantIsBilledToTheAppsLimit`, `resolve_aCallAnEngineMakesForAPersonWithNoGrantIsBilledToTheEnginesLimit`, `resolve_theAppsLimitComesBeforePublicUse`, `theGuardKeepsTheAppsPathApartFromThePersonsOwn` in [SecurityModelUsageLimitUtilsUnitTests](../../test/prerna/auth/utils/SecurityModelUsageLimitUtilsUnitTests.java) |
+| A grantee with no limit defined passes on to public use, then to the person's all-models default | `resolve_anAppWithNoLimitDefinedPassesOnToPublicUse`, `resolve_anAppWithNoLimitDefinedPassesOnToThePersonsAllModelsDefault` |
+| The limit is skipped for a person with a grant of their own or a team's | `resolve_anAppsLimitIsSkippedForAPersonWithAGrantOfTheirOwn`, `resolve_anAppsLimitIsSkippedForAPersonWithATeamsGrant` |
+| The limit is not on a path for a call no grantee makes, one grantee's limit is not another's, and a grantee that does not exist is refused | `resolve_anAppsLimitIsNotOnAPathForACallNoAppMakes`, `resolve_oneAppsLimitIsNotAnotherApps`, `resolve_anAppThatDoesNotExistIsRefused`, `resolve_anEngineThatDoesNotExistIsRefused` |
+| The overall amount is shared by everyone who uses the grantee, and the amount for each user stops only that user | `anAppsOverallAmountIsSharedByEveryoneWhoUsesTheApp`, `anAppsAmountForEachUserStopsOnlyThatUser`, `whatOneAppUsesDoesNotCountAgainstAnother`, `aCallAnEngineMakesForAPersonWithNoGrantIsBilledToTheEnginesLimit`, `anEnginesUsedUpLimitNamesTheEngine` in [ModelUsageGuardUnitTests](../../test/prerna/engine/impl/model/usage/ModelUsageGuardUnitTests.java) |
+| The grantee's counters are filled from the calls billed to it | `anAppsCountersAreFilledFromTheCallsBilledToTheApp`, `aCounterKeepsItsNameAndAnAppsCounterEndsWithTheAppAndItsType` |
 
 ## Where the answers come from
 
 [SecurityEngineAccessUtils](../../src/prerna/auth/utils/SecurityEngineAccessUtils.java) reads the security database for the check:
 
 - a user's level is their highest grant in effect, given to them directly or to a team they are in, or `READ_ONLY` on a public engine or project (`SecurityEngineUtils.getCurrentUserEngineLevel`, `SecurityProjectUtils.getCurrentUserProjectLevel`);
-- an app's permission is its row in `PROJECTENGINEPERMISSION`, while it has not ended.
+- an app's or engine's permission is its row in `ENGINE2ENGINEPERMISSION`, while it has not ended;
+- whether an engine is public, for an engine's read of it.
 
 The check runs on every call, so the answers are kept for 30 seconds. A permission saved on a server is read again by that server at once, and by the other servers of a cluster within 30 seconds.
 
@@ -318,6 +386,7 @@ Guarded by [EngineAccessGuardUnitTests](../../test/prerna/engine/impl/pipeline/E
 | A user who is not an admin gains nothing from an admin class, and neither does a call with no signed in user | `aUserWhoIsNotAnAdminGainsNothingFromAnAdminClass`, `anAdminClassWithNoSignedInUserIsRefused` |
 | An admin operation never runs under a custom reactor, such as an admin pixel a custom reactor runs through its insight | `anAdminOperationNeverRunsUnderACustomReactor` |
 | Being an admin gives a custom reactor's own calls nothing | `beingAnAdminGivesACustomReactorNothing` |
+| While a custom reactor is acting, the user is an admin nowhere: `SecurityAdminUtils.userIsAdmin` answers no and `getInstance` returns nothing, so an admin reactor it runs through its insight refuses | `anAdminIsNotAnAdminWhileACustomReactorIsActing` in [SandboxActsAsTheUserUnitTests](../../test/prerna/util/SandboxActsAsTheUserUnitTests.java) |
 
 A reactor every user runs checks the user's own permission, for an admin too, and its admin counterpart does the same work on any engine or project for an admin. The admin counterparts are in `prerna.auth.utils.reactors.admin`:
 

@@ -139,7 +139,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 		// remove from DIHelper
 		UploadUtilities.removeProjectFromDIHelper(projectId);
 		// remove from security
-		SecurityProjectUtils.deleteProject(projectId);
+		SecurityProjectUtils.deleteProject(this.insight.getUser(), projectId);
 		// remove from user tracking
 		UserTrackingUtils.deleteProject(projectId);
 

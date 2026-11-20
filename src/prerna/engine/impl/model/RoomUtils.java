@@ -195,7 +195,7 @@ public final class RoomUtils {
 		String agentType = null;
 		String engineId = null;
 		if (modelEngine != null) {
-			agentType = modelEngine.getCatalogSubType(modelEngine.getSmssProp());
+			agentType = modelEngine.getCatalogSubType();
 			engineId = modelEngine.getEngineId();
 		}
 		User user = insight.getUser();

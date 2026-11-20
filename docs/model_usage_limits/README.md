@@ -30,8 +30,8 @@ whichever source is billed.
 | Ceiling | Team Total | a team, across all models | admins |
 | 1 | Direct Limit | a person's grant on a model | the model's owners |
 | 2 | Team Limit | a team's grant on a model | the model's owners |
-| 3 | App Limit | the permission a model gives an app, for the calls the app's custom reactors make for people whose only way to the model is the app | the model's owners |
-| 4 | Public Use Limit | a public model, for people with no direct, team or app limit | the model's owners |
+| 3 | App Limit or Engine Limit | the permission a model gives an app or another engine, for the calls the app's custom reactors or the engine's own code make for people whose only way to the model is that app or engine | the model's owners |
+| 4 | Public Use Limit | a public model, for people with no direct, team, app or engine limit | the model's owners |
 | 5 | User's Total Model Limit | a person, across all models | admins |
 | 6 | General Platform Limit | everyone, across all models | admins |
 
@@ -40,11 +40,13 @@ first, then the team they got access through first. When that team has nothing
 left, calls move on to the next team.
 
 An App Limit is on a path only for a call the custom reactors of an app make,
-when the model gives the app a permission. It applies to a person whose only way
-to the model is the app: one with no grant of their own and none through a team.
-Like a Team Limit, it has a shared amount for the app as a whole, an amount for
-each user of the app, or both. See
-[engine access](../platform_services/engine_access.md#giving-an-app-a-permission-on-an-engine).
+and an Engine Limit only for a call another engine's own code makes, such as a
+guardrail asking its judge model or a vector database embedding, when the model
+gives that app or engine a permission. It applies to a person whose only way to
+the model is the app or engine: one with no grant of their own and none through
+a team. Like a Team Limit, it has a shared amount for the app or engine as a
+whole, an amount for each user, or both. See
+[engine access](../platform_services/engine_access.md#giving-an-app-or-an-engine-a-permission-on-an-engine).
 
 ## How a call is checked
 

@@ -362,10 +362,15 @@ def _jump(code, k, jt, jf):
     return _SockFilter(code, jt, jf, k)
 
 
-def _build_seccomp_filter():
+def _build_seccomp_filter(restrict_inet=True):
     """Default-ALLOW filter that denies a fixed blocklist of escape/privilege
-    syscalls with EPERM, and restricts socket() to AF_UNIX (defence in depth on
-    top of the empty netns)."""
+    syscalls with EPERM.
+
+    When restrict_inet is True (the default, used with CLONE_NEWNET) socket()
+    is additionally restricted to AF_UNIX only -- this is defence in depth on
+    top of the empty netns. When restrict_inet is False (used when the worker
+    runs in the host network namespace and needs outbound TCP/UDP), all socket
+    families are permitted and only the escape/privilege blocklist applies."""
     prog = []
     # 1. pin the architecture (prevents x32 / i386 number-aliasing bypass)
     prog.append(_stmt(_BPF_LD | _BPF_W | _BPF_ABS, _OFF_ARCH))
@@ -381,8 +386,10 @@ def _build_seccomp_filter():
     for nr in sorted(set(_BLOCK.values())):
         prog.append(_jump(_BPF_JMP | _BPF_JEQ | _BPF_K, nr, 0, 1))
         prog.append(_stmt(_BPF_RET | _BPF_K, SECCOMP_RET_ERRNO | EPERM))
-    # 4. socket(): allow AF_UNIX only, else EACCES
-    if SYS_socket is not None:
+    # 4. socket(): when in an empty netns, allow AF_UNIX only (else EACCES).
+    #    When the worker shares the host netns (--no-net), skip this rule so
+    #    AF_INET/AF_INET6 calls succeed normally.
+    if restrict_inet and SYS_socket is not None:
         prog.append(_jump(_BPF_JMP | _BPF_JEQ | _BPF_K, SYS_socket, 0, 3))
         prog.append(_stmt(_BPF_LD | _BPF_W | _BPF_ABS, _OFF_ARG0))
         prog.append(_jump(_BPF_JMP | _BPF_JEQ | _BPF_K, AF_UNIX, 1, 0))
@@ -392,12 +399,12 @@ def _build_seccomp_filter():
     return prog
 
 
-def install_seccomp():
+def install_seccomp(restrict_inet=True):
     if AUDIT_ARCH is None:
         sys.stderr.write("WARNING: unknown arch %r -- seccomp filter NOT "
                          "installed\n" % _MACHINE)
         return
-    prog = _build_seccomp_filter()
+    prog = _build_seccomp_filter(restrict_inet=restrict_inet)
     arr = (_SockFilter * len(prog))(*prog)
     fprog = _SockFprog(len(prog), arr)
     # no_new_privs already set in drop_capabilities(); required so an
@@ -411,9 +418,13 @@ def install_seccomp():
 
 def harden(unshare_net_already_done=True):
     """Final, irreversible lockdown of the interpreter.  Call after pivot_root
-    and (optional) net unshare, immediately before running user code / exec."""
+    and (optional) net unshare, immediately before running user code / exec.
+
+    When unshare_net_already_done is True the worker is in an empty network
+    namespace, so socket() is restricted to AF_UNIX only as defence in depth.
+    When False the worker shares the host netns and needs AF_INET/AF_INET6."""
     drop_capabilities()
-    install_seccomp()
+    install_seccomp(restrict_inet=unshare_net_already_done)
 
 
 # ---------------------------------------------------------------------------
@@ -809,10 +820,11 @@ def _real_mode(args):
     if gaas_args and gaas_args[0] == "--":
         gaas_args = gaas_args[1:]
 
+    _unshare_net = not args.no_net
     child_pid = os.fork()
     if child_pid == 0:
-        enter_jail(jail, inject_roots, unshare_net=not args.no_net)
-        harden()
+        enter_jail(jail, inject_roots, unshare_net=_unshare_net)
+        harden(unshare_net_already_done=_unshare_net)
         if args.exec_cmd:
             # alternate worker runtime (e.g. the node agent worker); the exec
             # target must be visible inside the jail (DEFAULT_RO_PATHS or an

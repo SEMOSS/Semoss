@@ -26,6 +26,20 @@ When you add a setting that holds a secret to an engine, give it a name the rule
 | Audit trail | `[REDACTED]` for values under secret keys and for the secret shapes listed below. |
 | Error text | `[REDACTED]` in place of each secret, as described next. |
 
+## Editing an smss
+
+An engine's or project's owners, and admins in admin mode, edit its smss in the smss editor. The read reactors return the masked text (`smss`) and `smssHash`, the SHA-256 of the smss file's bytes and of the secret store's values in key order ([SmssEditCopy](../../src/prerna/engine/impl/SmssEditCopy.java)). With a secret store, a save changes the store and not the file, so the hash covers both. The server works the hash out from what is stored, never from the text the editor sends back, so the masking does not change it.
+
+The save endpoints (`/e-{engineId}/updateSmssFile`, `/project-{projectId}/updateSmssFile` and the admin `auth/admin/engine/updateSmssFile` and `auth/admin/project/updateSmssFile`) take the edited text and that `smssHash`. Under the engine's or project's lock, the save goes through only while the smss is still as the editor read it, and its answer carries the new `smssHash`:
+
+| The save | The answer |
+| --- | --- |
+| Made from the smss as it is now | 200 with `success` and the new `smssHash` |
+| Made after someone else saved the smss, or after its secret store values changed | 409 with `errorMessage` and `errorCode` `SMSS_CHANGED`; the smss is not changed |
+| Sent without `smssHash` | 400, asking to load the smss again |
+
+The editor shows a 409 as "This SMSS changed since you opened it", keeps the user's text, and offers Load Latest, which first warns that the unsaved changes will be lost.
+
 ## Error text
 
 Error text is built from internal state: a provider's error body, a Python traceback, or a failed HTTP call that names its URL. SEMOSS removes secrets from it before it leaves the server, with two checks in [SecretRedactor](../../src/prerna/security/SecretRedactor.java):
@@ -78,7 +92,7 @@ Custom reactors in a project run in a sandbox: [SemossClassLoader](../../src/pre
 - Every platform class that requires an admin cannot be used: the classes whose name starts with `Admin`, such as the admin reactors, and `SecurityAdminUtils`.
 - `Utility.getDIHelperProperty(key)` returns an RDF_Map setting, and null for every key the RDF_Map editor hides.
 - `Utility.loadProperties` reads a file under the same path rule as `new File(...)`: inside the user's folder when `CHROOT_ENABLE` is on.
-- An engine's settings (`getSmssProp()`, `getOrigSmssProp()`, `getProperty(key)`, `getConnectionUrl()`, `getDataSource()`) need `OWNER` on the engine from a custom reactor, and a permission an engine gives an app never reaches them. The query utility an RDBMS engine hands out builds SQL, and its user name, password and connection URL stay with the engine. See [engine access](engine_access.md).
+- An engine's settings (`getSmssProp()`, `getOrigSmssProp()`, `getSmssFilePath()`, `getProperty(key)`, `getConnectionUrl()`, `getDataSource()`) need `OWNER` on the engine, from a custom reactor as from every other caller, and a permission an engine gives an app or another engine never reaches them. A custom reactor that needs one harmless setting, such as a model's name, calls the getter for it. The query utility an RDBMS engine hands out builds SQL, and its user name, password and connection URL stay with the engine. See [engine access](engine_access.md).
 - A method reference to a method the sandbox rewrites or refuses, such as `File::getAbsolutePath` or `System::getenv`, behaves exactly like the call it stands for. A method handle constant to one is refused when the class loads.
 
 ## Python in a model engine

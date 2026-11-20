@@ -196,7 +196,7 @@ public interface IRDBMSEngine extends IDatabaseEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	String getConnectionUrl();
 
 	/**
@@ -205,7 +205,7 @@ public interface IRDBMSEngine extends IDatabaseEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	HikariDataSource getDataSource();
 
 	/**

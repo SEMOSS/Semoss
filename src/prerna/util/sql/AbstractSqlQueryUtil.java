@@ -60,6 +60,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.gson.Gson;
 
 import prerna.algorithm.api.ITableDataFrame;
@@ -155,16 +156,16 @@ public abstract class AbstractSqlQueryUtil {
 	protected Properties properites;
 	protected Map<String, Object> conDetails;
 
-	protected String connectionUrl;
-	protected String username;
-	protected String password;
+	protected transient String connectionUrl;
+	protected transient String username;
+	protected transient String password;
 
 	// these should be replaced and use the properties / conDetails
 	protected String hostname;
 	protected String port;
 	protected String database;
 	protected String schema;
-	protected String additionalProps;
+	protected transient String additionalProps;
 
 	// reserved words
 	protected List<String> reservedWords = null;
@@ -379,6 +380,7 @@ public abstract class AbstractSqlQueryUtil {
 		this.schema = schema;
 	}
 
+	@JsonIgnore
 	public String getUsername() {
 		return username;
 	}
@@ -387,6 +389,7 @@ public abstract class AbstractSqlQueryUtil {
 		this.username = username;
 	}
 
+	@JsonIgnore
 	public String getPassword() {
 		return password;
 	}
@@ -395,6 +398,7 @@ public abstract class AbstractSqlQueryUtil {
 		this.password = password;
 	}
 
+	@JsonIgnore
 	public String getAdditionalProps() {
 		return additionalProps;
 	}
@@ -445,6 +449,7 @@ public abstract class AbstractSqlQueryUtil {
 		return connectionUrl + separator + props;
 	}
 
+	@JsonIgnore
 	public String getConnectionUrl() {
 		return connectionUrl;
 	}

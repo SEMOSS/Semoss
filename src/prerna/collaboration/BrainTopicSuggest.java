@@ -143,7 +143,7 @@ public final class BrainTopicSuggest {
 			return false;
 		}
 		Map<String, Object> last = CollaborationJobUtils.latest(ownerId, ownerType, FRESH_KIND);
-		Timestamp lastAt = last == null ? null : (Timestamp) last.get("startedAt");
+		Timestamp lastAt = last == null ? null : CollaborationDbUtils.toTimestamp(last.get("startedAt"), "startedAt");
 		Timestamp now = CollaborationDbUtils.now();
 		// the owner's own choice (Settings) comes before the instance's
 		Integer own = CollaborationDbUtils.queryOne("SELECT TOPIC_WATCH_HOURS FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND "

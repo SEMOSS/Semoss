@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Test;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.SystemEngineRegistry;
 
@@ -126,8 +127,9 @@ class SecurityEngineAccessUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		assertNull(SecurityEngineAccessUtils.getUserPermission(owner, "no-such-engine", false));
 		assertFalse(SecurityEngineAccessUtils.isAdmin(null));
 		assertFalse(SecurityEngineAccessUtils.isReadableThroughPlatform(null, ENGINE_ID, false));
-		assertNull(SecurityEngineAccessUtils.getProjectPermission(null, ENGINE_ID));
-		assertNull(SecurityEngineAccessUtils.getProjectPermission(PROJECT_ID, null));
+		assertNull(SecurityEngineAccessUtils.getGranteePermission(null, ENGINE_ID));
+		assertNull(SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(PROJECT_ID), null));
+		assertNull(SecurityEngineAccessUtils.getGranteePermission(new EngineGrantee(PROJECT_ID, null), ENGINE_ID));
 	}
 
 	@Test
@@ -165,7 +167,7 @@ class SecurityEngineAccessUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		assertFalse(SecurityEngineAccessUtils.isListed(ENGINE_ID, true));
 		assertFalse(SecurityEngineAccessUtils.isListed(null, false));
 
-		SecurityEngineUtils.deleteEngine(ENGINE_ID);
+		SecurityEngineUtils.deleteEngine(owner, ENGINE_ID);
 		assertFalse(SecurityEngineAccessUtils.isListed(ENGINE_ID, false));
 	}
 

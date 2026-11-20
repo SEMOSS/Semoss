@@ -65,6 +65,7 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
@@ -167,6 +168,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private final String engineId;
 	private final String engineName;
 	private final IEngine.CATALOG_TYPE catalogType;
+	/** The engine, as {@link EngineCallPermission} names the engine answering a call */
+	private final EngineGrantee answering;
 	private final boolean forPlatformUse;
 	private final String engineType;
 	private final String engineSubType;
@@ -202,6 +205,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		this.engineId = realEngine.getEngineId();
 		this.engineName = realEngine.getEngineName();
 		this.catalogType = realEngine.getCatalogType();
+		this.answering = new EngineGrantee(this.engineId, this.catalogType == null ? null : this.catalogType.name());
 		this.engineType = this.catalogType.name();
 		this.engineSubType = realEngine.getCatalogSubType(realEngine.getSmssProp());
 
@@ -221,13 +225,13 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-		String appId = EngineAccessGuard.check(this.engineId, this.catalogType == IEngine.CATALOG_TYPE.PROJECT,
-				this.forPlatformUse, method, args);
-		String previousAppId = EngineCallAppPermission.begin(appId);
+		EngineGrantee grantee = EngineAccessGuard.check(this.engineId, this.catalogType, this.forPlatformUse, method,
+				args);
+		EngineCallPermission.State previous = EngineCallPermission.begin(this.answering, grantee);
 		try {
 			return invokeWithPipeline(method, args);
 		} finally {
-			EngineCallAppPermission.restore(previousAppId);
+			EngineCallPermission.restore(previous);
 		}
 	}
 
@@ -253,8 +257,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @throws IllegalStateException when the reactor left no result
 	 */
 	private static Map<String, Object> interimResultOf(Map<String, Object> arguments) {
-		return namedValues(arguments.get(PipelineReactorUtils.INTERIM_RESULT),
-				"A pipeline reactor returned no result");
+		return namedValues(arguments.get(PipelineReactorUtils.INTERIM_RESULT), "A pipeline reactor returned no result");
 	}
 
 	/**
