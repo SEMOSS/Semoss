@@ -16,7 +16,7 @@ when comparing it with the assessed application baseline.
 
 | Component | Selection |
 | --- | --- |
-| Build stage and JDK source | `registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.9.16` |
+| Build stage and JDK source | `registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.10.0` (Maven 3.10.0, Amazon Corretto 25.0.5.1) |
 | Final OS | `registry1.dso.mil/ironbank/redhat/ubi/ubi10:10.3` |
 | Python runtime donor | `registry1.dso.mil/ironbank/opensource/python:v3.14` (Python 3.14.10, UBI 10.3) |
 | Tomcat | 9.0.119 (SEMOSS 5.4 uses `javax.servlet`, not Tomcat 10/11's Jakarta API) |
@@ -500,7 +500,7 @@ The workflow:
 - Logs in to Iron Bank and builds the existing digest-pinned `linux/amd64`
   Dockerfile, including its build-time validation.
   [refresh_bases.py](./refresh_bases.py) first resolves the current digests for
-  Maven `3.9.16`, UBI `10.3`, and Python `v3.14`; any failed lookup or invalid
+  Maven `3.10.0`, UBI `10.3`, and Python `v3.14`; any failed lookup or invalid
   digest aborts without falling back to the old pins. The build uses `--pull`
   and `--no-cache`, passing these newly resolved immutable references. This
   refreshes the development bases and RPM installation without automatically
@@ -1690,6 +1690,8 @@ documentation. Maven/JDK, SEMOSS, Tomcat, FIPS artifact pins, and feature flags
 remain unchanged.
 
 Base refresh 2026-11-16: UBI 10.2 -> 10.3 (Iron Bank `10.3` digest `b6d1084f...`), Maven 3.9.16 and Python v3.14 (now 3.14.10, itself built on UBI 10.3) re-resolved to newer digests, to clear base-image OS findings. No other changes.
+
+JDK security update 2026-11-19 (CVE-2026-114938, "Java4Shell", the HotSpot AVX-512 Base64 decoder): the Maven/JDK base moved from Iron Bank `3.9.16` (Corretto 25.0.4.1, built 2026-08-18, vulnerable) to `3.10.0` (digest `b0956466...`, Corretto 25.0.5.1, JDK dated 2026-11-17, the first Iron Bank JDK 25 with the fix). Maven moved 3.9.16 -> 3.10.0 with it. No other changes.
 
 Python integration: added the digest-pinned Iron Bank Python runtime (3.14.7 initially; 3.14.10 after the 2026-11-16 base refresh),
 complete hash-locked CPU dependencies, documented compatibility updates, and

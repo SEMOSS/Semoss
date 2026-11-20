@@ -187,7 +187,7 @@ from the repository root:
 docker run --rm \
   -v semoss-devbuild-m2:/home/maven/.m2 \
   -v "$(pwd)":/build -w /build \
-  registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.9.16 \
+  registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.10.0 \
   mvn compile -q
 ```
 

@@ -1,5 +1,5 @@
 # BuildKit is required; use its bundled frontend instead of pulling a floating frontend image.
-ARG MAVEN_IMAGE=registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.9.16@sha256:7823acc27b893494709b4532925b8019482fae51a75abff12b478723851c9bb9
+ARG MAVEN_IMAGE=registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.10.0@sha256:b0956466b31201e0c8eaa0325b8712e7acf48d0dbff9a543b689339e2b9e048d
 ARG UBI_IMAGE=registry1.dso.mil/ironbank/redhat/ubi/ubi10:10.3@sha256:b6d1084fc676e18abfcfe640d8ac04e8fa7624989a9bc0039cc021d9ef928b3e
 ARG PYTHON_IMAGE=registry1.dso.mil/ironbank/opensource/python:v3.14@sha256:be2171be2efe4373369f1187c4a3b4630b529a7c2be4cb69714c45d2016292a6
 
