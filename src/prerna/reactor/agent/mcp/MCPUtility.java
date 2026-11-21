@@ -34,7 +34,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -267,46 +266,6 @@ public final class MCPUtility {
 			}
 			return null;
 		}
-	}
-
-	/**
-	 * Resolves a tool-produced relative file reference beneath its execution root.
-	 * Both paths are canonicalized so a symlink inside the root cannot escape it.
-	 *
-	 * @param rootFolderPath execution root supplied to the MCP tool
-	 * @param relativePath   tool-produced path relative to the execution root
-	 * @return canonical path to an existing regular file beneath the root
-	 * @throws IOException              when either path cannot be resolved
-	 * @throws IllegalArgumentException when the input is blank, absolute, outside
-	 *                                  the root, or not a regular file
-	 */
-	public static Path resolveContainedMcpFile(String rootFolderPath, String relativePath) throws IOException {
-		if (rootFolderPath == null || rootFolderPath.isBlank()) {
-			throw new IllegalArgumentException("MCP execution root must not be blank");
-		}
-		if (relativePath == null || relativePath.isBlank()) {
-			throw new IllegalArgumentException("MCP file reference must not be blank");
-		}
-
-		Path reference = Path.of(relativePath);
-		if (reference.isAbsolute()) {
-			throw new IllegalArgumentException("MCP file reference must be relative");
-		}
-
-		Path canonicalRoot = Path.of(rootFolderPath).toAbsolutePath().normalize().toRealPath();
-		Path candidate = canonicalRoot.resolve(reference).normalize();
-		if (!candidate.startsWith(canonicalRoot)) {
-			throw new IllegalArgumentException("MCP file reference is outside its execution root");
-		}
-
-		Path canonicalFile = candidate.toRealPath();
-		if (!canonicalFile.startsWith(canonicalRoot)) {
-			throw new IllegalArgumentException("MCP file reference resolves outside its execution root");
-		}
-		if (!Files.isRegularFile(canonicalFile, LinkOption.NOFOLLOW_LINKS)) {
-			throw new IllegalArgumentException("MCP file reference is not a regular file");
-		}
-		return canonicalFile;
 	}
 
 	/**

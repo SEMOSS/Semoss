@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -80,27 +81,24 @@ public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
 		Insight insight = (Insight) parameterValues.getOrDefault("INSIGHT", null);
-		String instanceDir = Utility.normalizePath(insight.getInsightFolder());
 
 		String filePath = (String) parameterValues.getOrDefault("filePath", null);
 		if (filePath == null || filePath.isEmpty()) {
 			throw new IllegalArgumentException("Parameter 'filePath' is required.");
 		}
 
-		String fileLocation = instanceDir + "/" + filePath;
-
 		try {
-			return transcribe(new File(fileLocation));
+			File audioFile = Utility.resolveContainedFile(insight.getInsightFolder(), filePath.replaceFirst("^/+", ""))
+					.toFile();
+			return transcribe(audioFile);
+		} catch (NoSuchFileException e) {
+			throw new IllegalArgumentException("No file exists in the insight folder at: " + filePath, e);
 		} catch (IOException e) {
 			throw new RuntimeException("Transcription failed: " + e.getMessage(), e);
 		}
 	}
 
 	private String transcribe(File audioFile) throws IOException {
-		if (!audioFile.exists()) {
-			throw new IOException("File does not exist: " + audioFile.getAbsolutePath());
-		}
-
 		String modelUrl = this.url.endsWith("/") ? this.url + "audio/transcriptions"
 				: this.url + "/audio/transcriptions";
 

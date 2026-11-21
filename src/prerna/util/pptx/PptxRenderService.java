@@ -62,6 +62,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
+import prerna.util.Utility;
+
 /** Renders a snapshot of a deck without changing its source or rebuilding its slides. */
 public final class PptxRenderService {
     public static final int IMAGE_LONG_EDGE = 1600;
@@ -162,11 +164,7 @@ public final class PptxRenderService {
     }
 
     public static Path resolveSource(Path root, String filePath) throws IOException {
-        if (filePath == null || filePath.isBlank() || Path.of(filePath).isAbsolute())
-            throw new IllegalArgumentException("filePath must be relative to the working directory");
-        Path source = root.resolve(filePath).toRealPath();
-        if (!source.startsWith(root.toRealPath()) || !Files.isRegularFile(source))
-            throw new IllegalArgumentException("PPTX must be a file inside the working directory");
+        Path source = Utility.resolveContainedFile(root.toString(), filePath);
         if (!source.getFileName().toString().toLowerCase(java.util.Locale.ROOT).endsWith(".pptx"))
             throw new IllegalArgumentException("Only .pptx files are supported");
         return source;
