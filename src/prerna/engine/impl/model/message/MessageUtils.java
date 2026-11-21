@@ -54,6 +54,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.util.Utility;
 
 /**
  * Helper methods for message serialization/deserialization, legacy
@@ -609,7 +610,7 @@ public class MessageUtils {
 						return output;
 					}
 					for (String relPath : relPaths) {
-						Path resolvedPath = MCPUtility.resolveContainedMcpFile(roomFolderPath, relPath);
+						Path resolvedPath = Utility.resolveContainedFile(roomFolderPath, relPath);
 						String absPath = resolvedPath.toString();
 						String format = MessageInputMedia.extractFormat(absPath);
 						String mime = MessageInputMedia.guessMimeType(absPath, format);

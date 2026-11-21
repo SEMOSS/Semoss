@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.engine.impl.function.mail.policy;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -46,6 +45,7 @@ import jakarta.mail.internet.InternetAddress;
 import prerna.engine.impl.function.mail.config.MailProperties;
 import prerna.engine.impl.function.mail.model.OutboundMail;
 import prerna.om.Insight;
+import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
 /**
@@ -267,9 +267,10 @@ public final class SendMailPolicy {
 	 * <p>
 	 * Attachments are read out of the calling insight's own folder and the resolved
 	 * path is checked to still be inside it, so a caller cannot walk out of the
-	 * insight and mail an arbitrary file off the server. That check is on the
-	 * canonical path rather than the requested one, which is what makes a symlink
-	 * or a {@code ..} no different from any other way of naming a file.
+	 * insight and mail an arbitrary file off the server.
+	 * {@link Utility#resolveContainedFile} checks the real path rather than the
+	 * requested one, which is what makes a symlink or a {@code ..} no different
+	 * from any other way of naming a file.
 	 *
 	 * @param value   the attachments the call asked for, or null
 	 * @param insight the insight this call is running under, or null
@@ -291,25 +292,19 @@ public final class SendMailPolicy {
 					"Attachments can only be sent from within an insight that holds the files");
 		}
 
-		try {
-			File insightFolder = new File(insight.getInsightFolder()).getCanonicalFile();
-			List<String> attachments = new ArrayList<>();
-			for (String fileName : MailProperties.splitList(value)) {
-				File attachment = new File(insightFolder, fileName).getCanonicalFile();
-				if (!attachment.toPath().startsWith(insightFolder.toPath())) {
-					throw new IllegalArgumentException(
-							"The attachment " + fileName + " is not a file in this insight and cannot be sent");
-				}
-				if (!attachment.isFile()) {
-					throw new IllegalArgumentException(
-							"Could not find the attachment " + fileName + " in this insight");
-				}
-				attachments.add(attachment.getPath());
+		List<String> attachments = new ArrayList<>();
+		for (String fileName : MailProperties.splitList(value)) {
+			try {
+				attachments.add(Utility
+						.resolveContainedFile(insight.getInsightFolder(), fileName.replaceFirst("^/+", "")).toString());
+			} catch (IOException e) {
+				throw new IllegalArgumentException("Could not find the attachment " + fileName + " in this insight", e);
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException(
+						"The attachment " + fileName + " is not a file in this insight and cannot be sent", e);
 			}
-			return attachments;
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Could not resolve the insight folder or an attachment", e);
 		}
+		return attachments;
 	}
 
 	/**
