@@ -260,7 +260,9 @@ uploaded project's metadata file or a metadata reactor sends.
   to leave teams out. The mark is read only for someone who could change teams,
   so nobody else learns the project is a twin.
 - **Everyone.** `SecurityProjectUtils` and `SecurityAdminUtils` refuse to make a
-  twin public, discoverable or a template (`requireNotDigitalTwin`), and to give
+  twin public, discoverable or a template, or to mark it as having its own login
+  page, which would serve its portal to signed out visitors
+  (`requireNotDigitalTwin`), and to give
   everyone access to it (`grantNewUsersProjectAccess`, `addAllProjectUsers`);
   `grantAllProjects` leaves twins out. `CreateAppFromTemplate` does not clone one.
 - **People.** People are added and removed as on any project, and an add can
@@ -602,7 +604,9 @@ setting changes and the denied requests in Enterprise Usage & Activity (the `aud
 Each change to an app's or engine's own settings records an event of its own: renamed
 (`PROJECT_RENAME`, `ENGINE_RENAME`), display name (`..._DISPLAY_NAME_UPDATE`), made public or private
 (`..._GLOBAL_UPDATE`), discoverable (`..._DISCOVERABLE_UPDATE`), an app made a template
-(`PROJECT_TEMPLATE_UPDATE`) and metadata set or loaded (`..._METADATA_UPDATE`), from the owner's and
+(`PROJECT_TEMPLATE_UPDATE`), an app marked as having its own login page
+(`PROJECT_CUSTOM_LOGIN_UPDATE`, at `HIGH` severity, since its portal is then served to signed out
+visitors) and metadata set or loaded (`..._METADATA_UPDATE`), from the owner's and
 the admin's paths alike, with the setting and its new value in `details`.
 `AuditEventType.SETTING_CHANGES` lists them; Enterprise Usage counts them as `SETTING_CHANGES`. Saving
 an app's blocks (`PROJECT_BLOCKS_UPDATE`), replacing an app by upload (`PROJECT_REPLACE`) and a user

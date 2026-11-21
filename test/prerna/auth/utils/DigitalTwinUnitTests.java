@@ -71,8 +71,8 @@ import prerna.util.SystemEngineRegistry;
 /**
  * Checks that a Digital Twin can only be shared with named people: its mark
  * cannot be set or cleared as metadata, and every way of making a project
- * public, discoverable, a template, a team's or everyone's is refused on it, for
- * its owner and in admin mode, while a plain project is left as it was.
+ * public, discoverable, a template, a team's or everyone's is refused on it,
+ * for its owner and in admin mode, while a plain project is left as it was.
  */
 class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -128,15 +128,17 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		// what an uploaded project's metadata file, or a metadata reactor, would send
 		SecurityProjectUtils.updateProjectMetadata(owner, TWIN_ID,
 				Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, List.of(), "tag", List.of("kept")));
-		SecurityProjectUtils.updateProjectMetadata(owner, TWIN_ID, Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "false"));
-		SecurityProjectUtils.updateProjectMetadata(owner, PLAIN_ID, Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
+		SecurityProjectUtils.updateProjectMetadata(owner, TWIN_ID,
+				Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "false"));
+		SecurityProjectUtils.updateProjectMetadata(owner, PLAIN_ID,
+				Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
 
 		assertTrue(SecurityProjectUtils.isDigitalTwin(TWIN_ID));
 		assertFalse(SecurityProjectUtils.isDigitalTwin(PLAIN_ID));
 		// the rest of the metadata is still written
 		assertEquals(List.of(TWIN_ID), SecurityProjectUtils.getProjectIdsWithMetaValue("tag", "kept"));
-		assertEquals(List.of(TWIN_ID), SecurityProjectUtils
-				.getProjectIdsWithMetaValue(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
+		assertEquals(List.of(TWIN_ID),
+				SecurityProjectUtils.getProjectIdsWithMetaValue(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
 	}
 
 	@Test
@@ -149,13 +151,15 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	@Test
 	void onlyThePersonWhoMadeATwinIsItsCreator() throws Exception {
 		assertTrue(SecurityProjectUtils.isProjectCreator(owner, TWIN_ID));
-		// someone who can change the twin did not make it, and it is not theirs to add to from a chat
+		// someone who can change the twin did not make it, and it is not theirs to add
+		// to from a chat
 		assertTrue(SecurityProjectUtils.userCanEditProject(editor, TWIN_ID));
 		assertFalse(SecurityProjectUtils.isProjectCreator(editor, TWIN_ID));
 		assertFalse(SecurityProjectUtils.isProjectCreator(stranger, TWIN_ID));
 		assertFalse(SecurityProjectUtils.isProjectCreator(null, TWIN_ID));
 		assertFalse(SecurityProjectUtils.isProjectCreator(owner, "no-such-project"));
-		// the id and login type Collaboration keeps that person's data under, their persona included
+		// the id and login type Collaboration keeps that person's data under, their
+		// persona included
 		assertEquals(User.getPrimaryUserIdAndTypePair(owner), SecurityProjectUtils.getProjectCreator(TWIN_ID));
 		assertNull(SecurityProjectUtils.getProjectCreator("no-such-project"));
 		assertNull(SecurityProjectUtils.getProjectCreator(null));
@@ -187,6 +191,21 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	}
 
 	@Test
+	void itsPortalIsNeverServedToSignedOutVisitors() throws Exception {
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(admin);
+
+		assertPeopleOnly(() -> SecurityProjectUtils.setProjectCustomLogin(owner, TWIN_ID, true));
+		assertPeopleOnly(() -> adminUtils.setProjectCustomLogin(TWIN_ID, true));
+		assertFalse(SecurityProjectUtils.projectHasCustomLogin(TWIN_ID));
+
+		// turning it off is always allowed, and a plain project can have one
+		SecurityProjectUtils.setProjectCustomLogin(owner, TWIN_ID, false);
+		adminUtils.setProjectCustomLogin(TWIN_ID, false);
+		SecurityProjectUtils.setProjectCustomLogin(owner, PLAIN_ID, true);
+		assertTrue(SecurityProjectUtils.projectHasCustomLogin(PLAIN_ID));
+	}
+
+	@Test
 	void someoneWhoIsNotItsOwnerIsNotToldItIsATwin() {
 		// the ordinary refusal, as on any project
 		assertThrows(IllegalAccessException.class, () -> SecurityProjectUtils.setProjectGlobal(reader, TWIN_ID, true));
@@ -195,8 +214,8 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		assertThrows(IllegalAccessException.class,
 				() -> SecurityProjectUtils.setProjectTemplate(reader, TWIN_ID, true));
 
-		Map<String, Object> change = changes(SecurityAccessPermissionBatchUtils
-				.validateBatches(editor, List.of(teamAdd(TWIN_ID))).get(0)).get(0);
+		Map<String, Object> change = changes(
+				SecurityAccessPermissionBatchUtils.validateBatches(editor, List.of(teamAdd(TWIN_ID))).get(0)).get(0);
 		assertEquals(false, change.get("allowed"));
 		assertEquals("Only this project's owners can change which teams can use it", change.get("reason"));
 	}
@@ -229,8 +248,9 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		PermissionTargetResource twin = PermissionTargetResource.project(TWIN_ID);
 
 		// Bulk Access Management, for its owner and in admin mode
-		assertBlocked(changes(
-				SecurityAccessPermissionBatchUtils.validateBatches(owner, List.of(teamAdd(TWIN_ID))).get(0)).get(0));
+		assertBlocked(
+				changes(SecurityAccessPermissionBatchUtils.validateBatches(owner, List.of(teamAdd(TWIN_ID))).get(0))
+						.get(0));
 		assertBlocked(changes(SecurityAccessPermissionBatchUtils
 				.validateBatches(SecurityAdminUtils.getInstance(admin), admin, List.of(teamAdd(TWIN_ID))).get(0))
 				.get(0));
@@ -268,7 +288,8 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		assertEquals("ownername", shared.getFirst().get("digital_twin_owner_name"));
 		assertEquals(List.of(), ids(
 				SecurityProjectUtils.getUserProjectList(stranger, null, null, false, twins, null, null, null, null)));
-		// what the create step asks before it makes a second one: a twin the user made and owns
+		// what the create step asks before it makes a second one: a twin the user made
+		// and owns
 		assertEquals(List.of(TWIN_ID),
 				ids(SecurityProjectUtils.getUserProjectList(owner, null, null, false, twins, null, null, null, null,
 						null, false, List.of(AccessPermissionEnum.OWNER.getId()), User.getUserIdAndType(owner))));
@@ -281,8 +302,8 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	void twinBylinesResolveLegacyIdsOnlyWhenUnambiguous() throws Exception {
 		Map<String, Object> twins = Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, List.of("true"));
 		Supplier<Object> byline = () -> SecurityProjectUtils
-				.getUserProjectList(reader, null, null, false, twins, null, null, null, null)
-				.getFirst().get("digital_twin_owner_name");
+				.getUserProjectList(reader, null, null, false, twins, null, null, null, null).getFirst()
+				.get("digital_twin_owner_name");
 		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET CREATEDBYTYPE = NULL WHERE PROJECTID = ?",
 				ps -> ps.setString(1, TWIN_ID));
 		assertEquals("ownername", byline.get());
@@ -290,8 +311,8 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 				"INSERT INTO SMSS_USER (ID, TYPE, NAME) VALUES (?, 'MICROSOFT', 'Other person')",
 				ps -> ps.setString(1, "ownerid"));
 		assertNull(byline.get());
-		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET CREATEDBYTYPE = 'NATIVE' WHERE PROJECTID = ?",
-				ps -> ps.setString(1, TWIN_ID));
+		QueryExecutionUtility.executeUpdate(securityDb,
+				"UPDATE PROJECT SET CREATEDBYTYPE = 'NATIVE' WHERE PROJECTID = ?", ps -> ps.setString(1, TWIN_ID));
 		assertEquals("ownername", byline.get());
 	}
 
@@ -307,13 +328,16 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		// project they cannot view at all would get
 		String refusal = "The user does not have access to view this project";
 		for (User other : List.of(reader, stranger)) {
-			assertEquals(refusal, assertThrows(IllegalAccessException.class,
-					() -> SecurityProjectUtils.getProjectUsers(other, TWIN_ID, null, null, -1, -1)).getMessage());
+			assertEquals(refusal,
+					assertThrows(IllegalAccessException.class,
+							() -> SecurityProjectUtils.getProjectUsers(other, TWIN_ID, null, null, -1, -1))
+							.getMessage());
 			assertEquals(refusal, assertThrows(IllegalAccessException.class,
 					() -> SecurityProjectUtils.getProjectUsersCount(other, TWIN_ID, null, null)).getMessage());
-			assertEquals(refusal, assertThrows(IllegalAccessException.class,
-					() -> SecurityProjectUtils.getProjectUsersNoCredentials(other, TWIN_ID, null, -1, -1))
-					.getMessage());
+			assertEquals(refusal,
+					assertThrows(IllegalAccessException.class,
+							() -> SecurityProjectUtils.getProjectUsersNoCredentials(other, TWIN_ID, null, -1, -1))
+							.getMessage());
 		}
 		// any other project is as it was: a reader sees who else has it
 		assertEquals(3, SecurityProjectUtils.getProjectUsers(reader, PLAIN_ID, null, null, -1, -1).size());
@@ -334,7 +358,8 @@ class DigitalTwinUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 				.map(person -> String.valueOf(person.get("end_date"))).findFirst().orElse(null);
 		assertEquals("2999-12-31 23:59:59", ends);
 
-		// the day is over: the server's once-a-minute removal of ended access takes theirs
+		// the day is over: the server's once-a-minute removal of ended access takes
+		// theirs
 		QueryExecutionUtility.write(securityDb, connection -> {
 			QueryExecutionUtility.executeUpdate(connection,
 					"UPDATE PROJECTPERMISSION SET ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?", ps -> {

@@ -32,6 +32,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -333,7 +334,8 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 * Checks a login against its stored account. It sets the token's locked flag,
 	 * last login and last password reset, and locks the account when its last login
 	 * is older than the configured days to lock. When the login is not locked, it
-	 * records the login time and saves or loads the token's user metadata.
+	 * records the login time and saves or loads the token's user metadata. Only the
+	 * token's values for keys in USERMETAKEYS are saved.
 	 * 
 	 * @param newUser
 	 * @return
@@ -413,9 +415,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		if (!newUser.isLocked()) {
 			SecurityUpdateUtils.updateUserLastLogin(newUser.getId(), newUser.getProvider());
 
-			// if metadata is set on the token, persist it. otherwise load it
+			// if metadata is set on the token, persist its metakeys. otherwise load it
 			if (newUser.getMeta() != null) {
-				SecurityUserUtils.updateUserMetadata(newUser, newUser.getMeta());
+				Map<String, Collection<String>> metakeyValues = new HashMap<>(newUser.getMeta());
+				metakeyValues.keySet().retainAll(SecurityUserUtils.getAllMetakeys());
+				if (!metakeyValues.isEmpty()) {
+					SecurityUserUtils.updateUserMetadata(newUser, metakeyValues);
+				}
 			} else {
 				newUser.setMeta(
 						SecurityUserUtils.getAggregateUserMetadata(newUser.getId(), newUser.getProvider(), null, true));
