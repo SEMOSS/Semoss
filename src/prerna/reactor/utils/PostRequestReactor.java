@@ -58,7 +58,6 @@ public class PostRequestReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		String url = this.keyValue.get(this.keysToGet[0]);
-		Utility.checkIfValidDomain(url);
 		Map<String, String> headersMap = getHeadersMap();
 		Map<String, String> bodyMap = getBody();
 		String keyStore = null;
