@@ -273,7 +273,8 @@ public class TCPChromeDriverUtility {
 			driver.manage().deleteCookie(cook);
 			classLogger.info("##CHROME DRIVER: deleted cookie with Name = {}", cookieName);
 
-			classLogger.info("##CHROME DRIVER: Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {}",
+			classLogger.info(
+					"##CHROME DRIVER: Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {}",
 					name.getName(), name.getDomain(), name.getPath(), name.isHttpOnly(), name.isSecure());
 			// works - but doesnt login
 			driver.manage().addCookie(name);

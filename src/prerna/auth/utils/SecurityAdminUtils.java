@@ -156,8 +156,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * Whether the user acts as an admin now. An admin acts as one in the platform's
 	 * own reactors and endpoints. While a project's custom code is on the call
-	 * stack the answer is no, so a custom reactor an admin runs, and every pixel
-	 * it runs through its insight, has the admin's own permissions only.
+	 * stack the answer is no, so a custom reactor an admin runs, and every pixel it
+	 * runs through its insight, has the admin's own permissions only.
 	 *
 	 * @param user the signed in user
 	 * @return true when the user is an admin and no project's custom code is acting
@@ -167,8 +167,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Whether the security database records the user as an admin, whoever is
-	 * acting on the thread.
+	 * Whether the security database records the user as an admin, whoever is acting
+	 * on the thread.
 	 *
 	 * @param user the signed in user
 	 * @return true when the user is an admin
@@ -1288,8 +1288,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean otherLoginsRemain;
 		try {
-			otherLoginsRemain = !QueryExecutionUtility.queryList(securityDb,
-					"SELECT TYPE FROM SMSS_USER WHERE ID=? AND TYPE<>?", ps -> {
+			otherLoginsRemain = !QueryExecutionUtility
+					.queryList(securityDb, "SELECT TYPE FROM SMSS_USER WHERE ID=? AND TYPE<>?", ps -> {
 						ps.setString(1, userIdToDelete);
 						ps.setString(2, userTypeToDelete);
 					}, rs -> rs.getString(1)).isEmpty();
@@ -1436,8 +1436,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user publisher privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as a publisher");
 		}
-		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, userType, null,
-				Map.of("publisher", isPublisher), null);
+		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, userType, null, Map.of("publisher", isPublisher),
+				null);
 	}
 
 	/**
@@ -1929,6 +1929,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "DISCOVERABLE", "project_discoverable"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "IS_TEMPLATE", "project_is_template"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "HAS_CUSTOM_LOGIN", "project_has_custom_login"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
@@ -2128,6 +2129,26 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		auditProjectChange(AuditEventType.PROJECT_TEMPLATE_UPDATE, projectId,
 				Map.of("field", "template", "template", isTemplate));
 		return true;
+	}
+
+	/**
+	 * Sets whether a project has a login page of its own in its portal, as an
+	 * admin. With it, the portal is served to signed out visitors so they can sign
+	 * in there. A Digital Twin never has one, since it is shared with named people
+	 * only.
+	 *
+	 * @param projectId      the project
+	 * @param hasCustomLogin whether the project has its own login page
+	 * @throws IllegalArgumentException when the project is a Digital Twin, or does
+	 *                                  not exist
+	 */
+	public void setProjectCustomLogin(String projectId, boolean hasCustomLogin) {
+		if (hasCustomLogin) {
+			SecurityProjectUtils.requireNotDigitalTwin(projectId);
+		}
+		SecurityProjectUtils.updateProjectCustomLogin(projectId, hasCustomLogin);
+		auditProjectChange(AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE, projectId,
+				Map.of("field", "customLogin", "customLogin", hasCustomLogin));
 	}
 
 	/**
@@ -2392,8 +2413,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			// rows with no level are no access, so those projects are added
 			Set<String> current = new HashSet<>(getProjectIdsUserCanUse(userId));
 			// a Digital Twin is left out: its owner names the people who can use it
-			current.addAll(SecurityProjectUtils
-					.getProjectIdsWithMetaValue(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
+			current.addAll(
+					SecurityProjectUtils.getProjectIdsWithMetaValue(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
 			for (String projectId : SecurityProjectUtils.getAllProjectIds()) {
 				if (!current.contains(projectId)) {
 					batches.add(new PermissionBatch(PermissionTargetResource.project(projectId),
@@ -2770,8 +2791,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * Reads the apps and engines an engine gives a permission to, in admin mode:
 	 * each with its subject, the grantee's id, catalog type and name (its display
-	 * name when it has one), and its access, the level, the end date and on a
-	 * model the App Limit or Engine Limit.
+	 * name when it has one), and its access, the level, the end date and on a model
+	 * the App Limit or Engine Limit.
 	 *
 	 * @param engineId the engine
 	 * @return one entry for each app and engine, ordered by catalog type and id
