@@ -48,7 +48,6 @@ import com.google.gson.JsonParser;
 import com.google.gson.Strictness;
 import com.google.gson.stream.JsonReader;
 
-import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.ColorByValueRule;
 import prerna.om.HeadersDataRow;
@@ -108,7 +107,6 @@ public class GsonUtility {
 		GsonBuilder gsonBuilder = new GsonBuilder().disableHtmlEscaping()
 				.excludeFieldsWithModifiers(Modifier.STATIC, Modifier.TRANSIENT)
 				.registerTypeAdapter(Double.class, new NumberAdapter())
-				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 
 				// qs
 				.registerTypeAdapter(TemporalEngineHardQueryStruct.class,
