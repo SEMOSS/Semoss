@@ -33,7 +33,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -96,11 +96,11 @@ public class RdbmsReplaceDatabaseCsvUploadReactor extends RdbmsCsvUploadReactor 
 			if (this.database == null) {
 				throw new IllegalArgumentException("Couldn't find the database " + databaseId + " to append data into");
 			}
-			if (!(this.database instanceof RDBMSNativeEngine)) {
+			if (!(this.database instanceof IRDBMSEngine)) {
 				throw new IllegalArgumentException("Database must be using a relational database");
 			}
 			this.logger.info("Done");
-			RdbmsUploadReactorUtility.deleteRowsFromAllTables((RDBMSNativeEngine) this.database);
+			RdbmsUploadReactorUtility.deleteRowsFromAllTables((IRDBMSEngine) this.database);
 			addToExistingDatabase(filePath);
 			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE
 			// REPLACE!
