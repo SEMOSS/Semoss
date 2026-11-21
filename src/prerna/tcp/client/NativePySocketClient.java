@@ -84,8 +84,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	private static final String INLINE_IMAGE_PREFIX = "<img src='data:image/";
 
 	/**
-	 * Set while this client is asking the worker for its change set, so the reply to
-	 * that query does not trigger another fetch-back.
+	 * Set while this client is asking the worker for its change set, so the reply
+	 * to that query does not trigger another fetch-back.
 	 */
 	private static final ThreadLocal<Boolean> IN_CHANGE_QUERY = ThreadLocal.withInitial(() -> Boolean.FALSE);
 
@@ -561,10 +561,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 	 *
 	 * <p>
 	 * The worker watches the project, room and user roots with inotify and answers
-	 * from its event queue, so this costs one round trip on the socket that is already
-	 * open rather than a stat-walk of the tree or a process spawn. Returns null when
-	 * the worker cannot answer (no watcher, an image that predates the verb, or a
-	 * malformed reply) so the caller falls back to a full reconcile.
+	 * from its event queue, so this costs one round trip on the socket that is
+	 * already open rather than a stat-walk of the tree or a process spawn. Returns
+	 * null when the worker cannot answer (no watcher, an image that predates the
+	 * verb, or a malformed reply) so the caller falls back to a full reconcile.
 	 *
 	 * @return the worker's change snapshot, or null
 	 */
@@ -618,8 +618,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			addEpocForJob(ps.jobId, ps.epoc);
 		}
 		ps.longRunning = true;
-		// The other half of the execution boundary: before a block runs, host-side changes
-		// (another user's write-back, a cluster pull, the UI) are copied into the sandbox, so
+		// The other half of the execution boundary: before a block runs, host-side
+		// changes
+		// (another user's write-back, a cluster pull, the UI) are copied into the
+		// sandbox, so
 		// the block sees what the platform holds now rather than its first-use copy.
 		if (!ps.response && this.cpw != null && !Boolean.TRUE.equals(IN_CHANGE_QUERY.get())
 				&& (ps.operation == PayloadStruct.OPERATION.PYTHON || ps.operation == PayloadStruct.OPERATION.CMD)) {
@@ -682,6 +684,9 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								PixelJobRunner jobRunner = PixelJobManager.getManager().getJob(ps.jobId);
 								cancelled = jobRunner != null
 										&& jobRunner.getPixelJobStatus() == PixelJobStatus.CANCELED;
+								if (cancelled) {
+									interruptInsightJob(null, ps.jobId);
+								}
 							}
 
 							if (cancelled) {
@@ -740,7 +745,8 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 				// visible to the platform here -- asset browser, git, MCP generation --
 				// instead of waiting for logout, where it used to be lost entirely.
 				if (reply != null && this.cpw != null && !Boolean.TRUE.equals(IN_CHANGE_QUERY.get())
-						&& (ps.operation == PayloadStruct.OPERATION.PYTHON || ps.operation == PayloadStruct.OPERATION.CMD)) {
+						&& (ps.operation == PayloadStruct.OPERATION.PYTHON
+								|| ps.operation == PayloadStruct.OPERATION.CMD)) {
 					try {
 						this.cpw.fetchBackChangedPaths();
 					} catch (Exception fetchError) {

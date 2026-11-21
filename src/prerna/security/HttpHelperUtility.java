@@ -182,9 +182,9 @@ public final class HttpHelperUtility {
 	 * names or the JDK's own {@code cacerts}. Requests that carry a sign in, such
 	 * as an OAuth token exchange or the user information read with its token, use
 	 * it. Everything else matches
-	 * {@link #getCustomClient(CookieStore, String, String, String)}: the JVM's proxy
-	 * settings, and the whitelist and the blacklist on every request, redirect and
-	 * resolved address.
+	 * {@link #getCustomClient(CookieStore, String, String, String)}: the JVM's
+	 * proxy settings, and the whitelist and the blacklist on every request,
+	 * redirect and resolved address.
 	 *
 	 * @return configured {@link CloseableHttpClient}
 	 */
@@ -499,8 +499,9 @@ public final class HttpHelperUtility {
 	/**
 	 * Executes an HTTP GET request with the client given and returns the response
 	 * body as UTF-8 text. {@link #getSystemClient()} checks the server's
-	 * certificate, and {@link #getCustomClient(CookieStore, String, String, String)}
-	 * trusts it. The client is closed when the request is done.
+	 * certificate, and
+	 * {@link #getCustomClient(CookieStore, String, String, String)} trusts it. The
+	 * client is closed when the request is done.
 	 *
 	 * @param httpClient the client to send the request with, which this closes
 	 * @param url        target URL
@@ -1535,8 +1536,8 @@ public final class HttpHelperUtility {
 	 * @param input       response body in key-value pair format
 	 * @param nameOfToken token key to read (for example {@code access_token} or
 	 *                    {@code id_token})
-	 * @return populated {@link AccessToken} including optional refresh-token
-	 *         metadata
+	 * @return populated {@link AccessToken} including the refresh token when the
+	 *         response carries one
 	 */
 	public static AccessToken getAccessToken(String input, String nameOfToken) {
 		String accessToken = null;
@@ -1554,10 +1555,10 @@ public final class HttpHelperUtility {
 		tok.setAccess_token(accessToken);
 		if (refreshToken != null && !refreshToken.isEmpty()) {
 			try {
-				tok.addMetaValue("refresh_token", URLDecoder.decode(refreshToken, StandardCharsets.UTF_8.toString()));
+				tok.setRefresh_token(URLDecoder.decode(refreshToken, StandardCharsets.UTF_8.toString()));
 			} catch (UnsupportedEncodingException e) {
 				classLogger.error("Failed to decode refresh token value while parsing token response", e);
-				tok.addMetaValue("refresh_token", refreshToken);
+				tok.setRefresh_token(refreshToken);
 			}
 		}
 		tok.init();
@@ -1605,7 +1606,7 @@ public final class HttpHelperUtility {
 			if (refreshTokenNode != null && !refreshTokenNode.isNull()) {
 				String refreshToken = refreshTokenNode.asText();
 				if (refreshToken != null && !refreshToken.isEmpty()) {
-					tok.addMetaValue("refresh_token", refreshToken);
+					tok.setRefresh_token(refreshToken);
 				}
 			}
 			tok.init();
@@ -1649,7 +1650,7 @@ public final class HttpHelperUtility {
 			if (refreshTokenNode != null && !refreshTokenNode.isNull()) {
 				String refreshToken = refreshTokenNode.asText();
 				if (refreshToken != null && !refreshToken.isEmpty()) {
-					tok.addMetaValue("refresh_token", refreshToken);
+					tok.setRefresh_token(refreshToken);
 				}
 			}
 			tok.init();
