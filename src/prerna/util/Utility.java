@@ -110,7 +110,6 @@ import prerna.project.impl.ProjectHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
-import prerna.security.UrlAccessRules;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented
@@ -3100,19 +3099,6 @@ public final class Utility {
 	 */
 	public static boolean isNullValue(Object obj) {
 		return (Objects.isNull(obj) || (obj instanceof Double && Double.isNaN((Double) obj)));
-	}
-
-	/**
-	 * Checks a URL against the blacklist ({@link Constants#BLACK_LIST_DOMAINS}) and
-	 * the whitelist ({@link Constants#WHITE_LIST_DOMAINS}) of
-	 * {@link UrlAccessRules}. With neither list configured every URL passes.
-	 *
-	 * @param urlString the URL whose host should be validated
-	 * @throws IllegalArgumentException when the URL is malformed, has no host, or
-	 *                                  the lists do not allow its host
-	 */
-	public static void checkIfValidDomain(String urlString) {
-		UrlAccessRules.checkUrl(urlString);
 	}
 
 	/**
