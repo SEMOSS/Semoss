@@ -50,12 +50,10 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.date.SemossDate;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.util.gson.SemossDateAdapter;
 
 /**
  * Helper methods for message serialization/deserialization, legacy
@@ -95,7 +93,6 @@ public class MessageUtils {
 
 	// For DB: skips "room", "insight", "socket", and "base64Data"
 	private static final Gson GSON_FOR_DB = new GsonBuilder().disableHtmlEscaping()
-			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.registerTypeAdapter(MessagePart.class, new MessagePartAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
@@ -113,7 +110,6 @@ public class MessageUtils {
 	// For Python: skips "room", "insight", "socket", "paramMap", includes
 	// base64Data
 	private static final Gson GSON_FOR_PY = new GsonBuilder().disableHtmlEscaping()
-			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 			.registerTypeAdapter(MessagePart.class, new MessagePartAdapter())
 			.addSerializationExclusionStrategy(NO_ROOM_INSIGHT_SOCKET_EXCLUSION)
 			.addSerializationExclusionStrategy(new ExclusionStrategy() {
@@ -657,7 +653,8 @@ public class MessageUtils {
 	 */
 	public static List<AbstractMessage> getMessageBranchWithNewMessage(List<AbstractMessage> messages,
 			AbstractMessage newMessage) {
-		// Signed model steps and their tool results must remain intact until whole-turn compaction.
+		// Signed model steps and their tool results must remain intact until whole-turn
+		// compaction.
 		boolean signedHistory = messages.stream().anyMatch(m -> m.getGoogleInteractions() != null);
 		// 1. Build lookup map (messageId to message)
 		Map<String, AbstractMessage> idMap = new HashMap<>();
@@ -745,7 +742,10 @@ public class MessageUtils {
 		return history;
 	}
 
-	/** Deep copy via the persistence serializer; keeps the room links and attachment bytes it skips. */
+	/**
+	 * Deep copy via the persistence serializer; keeps the room links and attachment
+	 * bytes it skips.
+	 */
 	public static <T extends AbstractMessage> T deepCopy(T m) {
 		@SuppressWarnings("unchecked")
 		T copy = (T) GSON_FOR_DB.fromJson(GSON_FOR_DB.toJson(m), m.getClass());
