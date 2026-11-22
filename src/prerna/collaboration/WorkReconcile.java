@@ -35,6 +35,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,6 +56,8 @@ import prerna.util.Utility;
 // candidates with the same words first, and caps item size. plan() writes nothing.
 // Plan: AGENTS_TASKS/teamwork/wiki/work-items-plan-2026-11-02.md
 public final class WorkReconcile {
+	// topics planned at once when they share no conversation
+	private static final int PLANNERS = 4;
 	private static final Logger classLogger = LogManager.getLogger(WorkReconcile.class);
 
 	static final String NO_TOPIC = "(no topic)";
@@ -250,23 +256,63 @@ public final class WorkReconcile {
 			byTopic.computeIfAbsent(topicId, k -> new ArrayList<>()).add(c);
 		}
 		List<Map<String, Object>> topics = new ArrayList<>();
-		for (Map.Entry<String, List<Map<String, Object>>> e : byTopic.entrySet()) {
-			Map<String, Object> out = new LinkedHashMap<>();
-			out.put("topicId", e.getKey());
-			try {
-				planTopic(user, ownerId, ownerType, model, e.getKey(), e.getValue(), out);
-			} catch (RuntimeException ex) {
-				classLogger.warn("Reconcile failed for topic {}", e.getKey(), ex);
-				out.put("error", String.valueOf(ex.getMessage()));
+		List<Map.Entry<String, List<Map<String, Object>>>> entries = new ArrayList<>(byTopic.entrySet());
+		ExecutorService planners = Executors.newFixedThreadPool(Math.max(1, Math.min(PLANNERS, entries.size())));
+		try {
+			for (int next = 0; next < entries.size();) {
+				// topics that share no conversation need none of each other's new items: they are planned at once
+				// and saved in order; a topic sharing one waits for the next round
+				List<Map.Entry<String, List<Map<String, Object>>>> wave = new ArrayList<>();
+				Set<String> threads = new HashSet<>();
+				for (int i = next; i < entries.size(); i++) {
+					Set<String> own = new HashSet<>();
+					entries.get(i).getValue().forEach(c -> {
+						if (c.get("threadId") != null) own.add(String.valueOf(c.get("threadId")));
+					});
+					if (!wave.isEmpty() && own.stream().anyMatch(threads::contains)) break;
+					wave.add(entries.get(i));
+					threads.addAll(own);
+				}
+				List<Future<Map<String, Object>>> plans = new ArrayList<>();
+				for (Map.Entry<String, List<Map<String, Object>>> e : wave) {
+					plans.add(planners.submit(() -> planOne(user, ownerId, ownerType, model, e.getKey(), e.getValue())));
+				}
+				for (int i = 0; i < wave.size(); i++) {
+					Map<String, Object> out;
+					try {
+						out = plans.get(i).get();
+					} catch (InterruptedException ex) {
+						Thread.currentThread().interrupt();
+						out = new LinkedHashMap<>(Map.of("topicId", wave.get(i).getKey(), "error", "Stopped"));
+					} catch (ExecutionException ex) {
+						out = new LinkedHashMap<>(Map.of("topicId", wave.get(i).getKey(), "error", String.valueOf(ex.getCause())));
+					}
+					topics.add(out);
+					if (onTopic != null) {
+						onTopic.accept(out);
+					}
+				}
+				next += wave.size();
 			}
-			topics.add(out);
-			if (onTopic != null) {
-				onTopic.accept(out);
-			}
+		} finally {
+			planners.shutdownNow();
 		}
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("topics", topics);
 		return result;
+	}
+
+	private static Map<String, Object> planOne(User user, String ownerId, String ownerType, IModelEngine model,
+			String topicId, List<Map<String, Object>> candidates) {
+		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("topicId", topicId);
+		try {
+			planTopic(user, ownerId, ownerType, model, topicId, candidates, out);
+		} catch (RuntimeException ex) {
+			classLogger.warn("Reconcile failed for topic {}", topicId, ex);
+			out.put("error", String.valueOf(ex.getMessage()));
+		}
+		return out;
 	}
 
 	@SuppressWarnings("unchecked")

@@ -389,6 +389,29 @@ public final class WorkPipeline {
 				ownerType, false, false, since);
 	}
 
+	// threads a first build still has after the part now running, shown as "then N more"
+	private static final Map<String, Integer> AFTER = new ConcurrentHashMap<>();
+	private static final Set<String> ACTIVE_STATES = Set.of("running", "grouping", "tidying");
+
+	// a build waiting in the lane; one already going keeps its progress and shows what comes after it
+	private static void markQueued(String ownerId, String ownerType, int threads) {
+		Map<String, Object> current = RUNS.get(key(ownerId, ownerType));
+		if (current != null && ACTIVE_STATES.contains(current.get("state"))) {
+			current.put("queuedThreads", threads);
+			return;
+		}
+		RUNS.put(key(ownerId, ownerType), new ConcurrentHashMap<>(Map.of("state", "queued", "threads", threads)));
+	}
+
+	// what needs the owner first, then what they wait on, then the rest (only for their information), newest first in each
+	private static List<String> byNeed(String ownerId, String ownerType, List<String> threads) {
+		Map<String, String> inbox = WorkTaskUtils.inbox(ownerId, ownerType);
+		Map<String, Integer> rank = Map.of("needs_me", 0, "waiting", 1);
+		List<String> out = new ArrayList<>(threads);
+		out.sort(java.util.Comparator.comparingInt(id -> rank.getOrDefault(inbox.get(id), 2)));
+		return out;
+	}
+
 	/** Where the owner's last build stands. */
 	public static Map<String, Object> status(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -413,6 +436,8 @@ public final class WorkPipeline {
 		status.put("state", "running");
 		status.put("threads", threadIds.size());
 		status.put("startedAt", Instant.now().toString());
+		Integer queuedAfter = AFTER.remove(key(ownerId, ownerType));
+		if (queuedAfter != null && queuedAfter > 0) status.put("queuedThreads", queuedAfter);
 		RUNS.put(key(ownerId, ownerType), status);
 		// one build per owner at a time, so two syncs never both save the same
 		// candidates
@@ -1393,7 +1418,8 @@ public final class WorkPipeline {
 					rs -> rs.getTimestamp("T"), ownerId, ownerType);
 			long days = oldest == null ? FIRST_BUILD_DAYS
 					: ChronoUnit.DAYS.between(oldest.toInstant(), Instant.now()) + 1;
-			List<String> threads = recent(ownerId, ownerType, (int) Math.max(1, Math.min(FIRST_BUILD_DAYS, days)));
+			List<String> threads = byNeed(ownerId, ownerType,
+					recent(ownerId, ownerType, (int) Math.max(1, Math.min(FIRST_BUILD_DAYS, days))));
 			// creates the settings row the marker is kept in
 			BrainProfileUtils.getSettings(ownerId, ownerType);
 			saveBuild(ownerId, ownerType, threads);
@@ -1401,8 +1427,7 @@ public final class WorkPipeline {
 				// recorded before the model is looked up: with none set yet, the owner's sync
 				// runs build it once one is
 				String engine = engine(user);
-				RUNS.put(key(ownerId, ownerType),
-						new ConcurrentHashMap<>(Map.of("state", "queued", "threads", threads.size())));
+				markQueued(ownerId, ownerType, threads.size());
 				submit(lane(ownerId, ownerType), () -> buildPart(user, ownerId, ownerType, engine));
 			}
 		} catch (RuntimeException e) {
@@ -1421,14 +1446,14 @@ public final class WorkPipeline {
 			return;
 		}
 		List<String> part = new ArrayList<>(left.subList(0, Math.min(BUILD_PART, left.size())));
+		AFTER.put(key(ownerId, ownerType), left.size() - part.size());
 		if ("error".equals(run(user, ownerId, ownerType, engine, part).get("state"))) {
 			return;
 		}
 		left.removeAll(part);
 		saveBuild(ownerId, ownerType, left);
 		if (!left.isEmpty()) {
-			RUNS.put(key(ownerId, ownerType),
-					new ConcurrentHashMap<>(Map.of("state", "queued", "threads", left.size())));
+			markQueued(ownerId, ownerType, left.size());
 			submit(lane(ownerId, ownerType), () -> buildPart(user, ownerId, ownerType, engine));
 		}
 	}
