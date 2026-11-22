@@ -21,6 +21,7 @@ parent-directory segments.
 
 | Task | Reference |
 | --- | --- |
+| Ask for a choice, short form, or structured review in chat | [ui/a2ui.md](references/ui/a2ui.md) |
 | Locate a file, inspect an upload, or read prior output | [files/find-and-read.md](references/files/find-and-read.md) |
 | Create, edit, verify, or hand off a room file | [files/write-and-deliver.md](references/files/write-and-deliver.md) |
 | Read an email attachment, PDF, document, or spreadsheet | [documents/read-and-extract.md](references/documents/read-and-extract.md) |

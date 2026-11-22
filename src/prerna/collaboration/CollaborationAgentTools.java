@@ -108,6 +108,7 @@ import prerna.reactor.collaboration.WorkSaveToTwinReactor;
 import prerna.reactor.collaboration.WorkSaveWorkReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 import prerna.reactor.collaboration.WorkShowItemReactor;
+import prerna.reactor.collaboration.WorkShowUIReactor;
 import prerna.reactor.collaboration.WorkUpdateStepReactor;
 import prerna.reactor.collaboration.WorkUseSkillInAssistantReactor;
 
@@ -138,6 +139,7 @@ public final class CollaborationAgentTools {
 	// tool name the model sees -> reactor it runs
 	private static final Map<String, Class<? extends AbstractReactor>> REACTORS = new LinkedHashMap<>();
 	static {
+		REACTORS.put("ShowUI", WorkShowUIReactor.class);
 		REACTORS.put("ListCalendars", MicrosoftCalendarListCalendarsReactor.class);
 		REACTORS.put("ListEvents", MicrosoftCalendarListEventsReactor.class);
 		REACTORS.put("GetEvent", MicrosoftCalendarGetEventReactor.class);
@@ -241,7 +243,7 @@ public final class CollaborationAgentTools {
 	// tools about the chat itself: only for the owner's chat at the root of the
 	// run, never a routine;
 	// ShowItem needs the owner's chat on screen to show anything
-	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "ShowItem");
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "ShowItem", "ShowUI");
 
 	// the email editor is open in the owner's chat; a routine has none, its
 	// delivery step sends the result
