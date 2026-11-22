@@ -82,7 +82,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 	/** The calls made, by kind, and what each was given. */
 	private final List<String> asked = new ArrayList<>();
 	private final List<Map<String, Object>> given = new ArrayList<>();
-	private final WorkTwinPersonaInterview.Model model = (input, instructions, schema, maxTokens, key) -> {
+	private final WorkTwinPersonaInterview.Model model = (input, instructions, schema, key) -> {
 		// the replies to choose between and the twin's own answers are both asked for as rounds, and the persona by
 		// the first of its sections
 		String kind = "rounds".equals(key) ? (instructions.contains("\"aIs\"") ? "voice" : "mirror")

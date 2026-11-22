@@ -72,7 +72,6 @@ public final class BrainStyleLearning {
 	static final int MAX_EXAMPLES = 3;
 	static final int MAX_VARIANT_EXAMPLES = 2;
 	static final int MIN_EXAMPLE = 20;
-	private static final int MAX_TOKENS = 2000;
 	private static final int ATTEMPTS = 2;
 
 	private static final String INTERNAL = "internal";
@@ -338,7 +337,7 @@ public final class BrainStyleLearning {
 						sample.text().length() > 400 ? sample.text().substring(0, 400) : sample.text()));
 			}
 			Map<String, Object> answer = call(model, user, FILTER_INSTRUCTIONS,
-					CollaborationDbUtils.toJson(Map.of("messages", messages)), FILTER_SCHEMA, 1000, "keep");
+					CollaborationDbUtils.toJson(Map.of("messages", messages)), FILTER_SCHEMA, "keep");
 			if (answer == null || !(answer.get("keep") instanceof List<?> keep)) {
 				return samples;
 			}
@@ -358,7 +357,7 @@ public final class BrainStyleLearning {
 			input.add(Map.of("id", sample.id(), "audience", sample.audience(), "text", sample.text()));
 		}
 		Map<String, Object> answer = call(model, user, LEARN_INSTRUCTIONS,
-				CollaborationDbUtils.toJson(Map.of("samples", input)), LEARN_SCHEMA, MAX_TOKENS, "summary");
+				CollaborationDbUtils.toJson(Map.of("samples", input)), LEARN_SCHEMA, "summary");
 		if (answer == null) {
 			throw new IllegalStateException("Brain's text model did not return a style it could read");
 		}
@@ -366,10 +365,9 @@ public final class BrainStyleLearning {
 	}
 
 	private static Map<String, Object> call(IModelEngine model, User user, String instructions, String prompt,
-			Map<String, Object> schema, int maxTokens, String requiredKey) {
+			Map<String, Object> schema, String requiredKey) {
 		Map<String, Object> params = new LinkedHashMap<>();
 		params.put("temperature", 0);
-		params.put("max_tokens", maxTokens);
 		params.put("schema", schema);
 		for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
 			// an insight of its own: nothing goes through a room

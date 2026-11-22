@@ -286,7 +286,7 @@ public final class WorkTwinPersonaInterview {
 	/** The text model, so a test can stand in for it. It throws when its answer cannot be read. */
 	interface Model {
 		Map<String, Object> ask(Map<String, Object> input, String instructions, Map<String, Object> schema,
-				int maxTokens, String key);
+				String key);
 	}
 
 	/** The owner's own words by where they are from, so a test can stand in for Microsoft and Brain. */
@@ -325,8 +325,8 @@ public final class WorkTwinPersonaInterview {
 		String engine = BrainTopicModel.engine(user);
 		IModelEngine model = engine == null ? null : Utility.getModel(engine);
 		Model ask = model == null ? null
-				: (input, instructions, schema, maxTokens, key) -> WorkTwinSuggest.ask(model, user, input,
-						instructions, schema, maxTokens, key);
+				: (input, instructions, schema, key) -> WorkTwinSuggest.ask(model, user, input,
+						instructions, schema, key);
 		return step(user, answer, wrap, back, sources, ask, live(user), true);
 	}
 
@@ -621,7 +621,7 @@ public final class WorkTwinPersonaInterview {
 				Map<String, Object> input = new LinkedHashMap<>();
 				input.put("priorities", chosen(answers.get("priorities")));
 				input.put("staysOutOf", chosen(answers.get("limits")));
-				Map<String, Object> written = model.ask(input, TRADEOFF_INSTRUCTIONS, MESSAGE_SCHEMA, 300, "message");
+				Map<String, Object> written = model.ask(input, TRADEOFF_INSTRUCTIONS, MESSAGE_SCHEMA, "message");
 				String text = one(written.get("message"), MAX_REPLY);
 				if (!text.isEmpty()) {
 					message = List.of(one(written.get("from"), MAX_LINE), text);
@@ -639,7 +639,7 @@ public final class WorkTwinPersonaInterview {
 			List<String> questions = STANDS_FALLBACK;
 			try {
 				List<String> written = lines(
-						model.ask(transcript(state), STANDS_INSTRUCTIONS, STANDS_SCHEMA, 400, "questions")
+						model.ask(transcript(state), STANDS_INSTRUCTIONS, STANDS_SCHEMA, "questions")
 								.get("questions"),
 						MAX_STANDS, MAX_LINE);
 				if (!written.isEmpty()) {
@@ -667,7 +667,7 @@ public final class WorkTwinPersonaInterview {
 			List<Map<String, Object>> probes = new ArrayList<>();
 			try {
 				for (Object found : list(
-						model.ask(transcript(state), PROBE_INSTRUCTIONS, PROBE_SCHEMA, 500, "probes").get("probes"))) {
+						model.ask(transcript(state), PROBE_INSTRUCTIONS, PROBE_SCHEMA, "probes").get("probes"))) {
 					Map<String, Object> probe = new LinkedHashMap<>();
 					probe.put("id", "p" + (probes.size() + 1));
 					probe.put("question", one(map(found).get("question"), MAX_LINE));
@@ -692,7 +692,7 @@ public final class WorkTwinPersonaInterview {
 			List<Map<String, Object>> rounds = new ArrayList<>();
 			try {
 				for (Object written : list(
-						model.ask(transcript(state), MIRROR_INSTRUCTIONS, MIRROR_SCHEMA, 1200, "rounds").get("rounds"))) {
+						model.ask(transcript(state), MIRROR_INSTRUCTIONS, MIRROR_SCHEMA, "rounds").get("rounds"))) {
 					Map<String, Object> round = new LinkedHashMap<>();
 					round.put("id", "m" + (rounds.size() + 1));
 					round.put("ask", one(map(written).get("ask"), MAX_LINE));
@@ -728,7 +728,7 @@ public final class WorkTwinPersonaInterview {
 			Map<String, Object> input = new LinkedHashMap<>();
 			input.put("observations", observations(state));
 			input.put("dials", map(map(state.get("answers")).get("dials")).get("values"));
-			Map<String, Object> written = model.ask(input, VOICE_INSTRUCTIONS, VOICE_SCHEMA, 1400, "rounds");
+			Map<String, Object> written = model.ask(input, VOICE_INSTRUCTIONS, VOICE_SCHEMA, "rounds");
 			for (Object entry : list(written.get("rounds"))) {
 				Map<String, Object> round = round("r" + (rounds.size() + 1), one(map(entry).get("from"), MAX_LINE),
 						one(map(entry).get("message"), MAX_REPLY));
@@ -927,7 +927,7 @@ public final class WorkTwinPersonaInterview {
 			input.put("about", transcript(state));
 			String reply;
 			try {
-				reply = one(model.ask(input, RETRY_INSTRUCTIONS, RETRY_SCHEMA, 500, "reply").get("reply"), MAX_REPLY);
+				reply = one(model.ask(input, RETRY_INSTRUCTIONS, RETRY_SCHEMA, "reply").get("reply"), MAX_REPLY);
 			} catch (RuntimeException e) {
 				reply = "";
 			}
@@ -1034,7 +1034,7 @@ public final class WorkTwinPersonaInterview {
 	 */
 	static Map<String, String> compile(Map<String, Object> state, Model model) {
 		Map<String, Object> answers = map(state.get("answers"));
-		Map<String, Object> written = model.ask(transcript(state), COMPILE_INSTRUCTIONS, COMPILE_SCHEMA, 1400, "voice");
+		Map<String, Object> written = model.ask(transcript(state), COMPILE_INSTRUCTIONS, COMPILE_SCHEMA, "voice");
 		Map<String, String> sections = new LinkedHashMap<>();
 		for (String key : List.of("short", "voice", "decide", "people")) {
 			sections.put(key, CollaborationDbUtils.asString(written.get(key)));
@@ -1157,7 +1157,7 @@ public final class WorkTwinPersonaInterview {
 		}
 		progress.accept("Working out how you sound");
 		try {
-			Map<String, Object> noticed = model.ask(Map.of("samples", samples), READ_INSTRUCTIONS, READ_SCHEMA, 900,
+			Map<String, Object> noticed = model.ask(Map.of("samples", samples), READ_INSTRUCTIONS, READ_SCHEMA,
 					"observations");
 			return notes(lines(noticed.get("observations"), 8, MAX_LINE), map(noticed.get("dials")), skipped);
 		} catch (RuntimeException e) {

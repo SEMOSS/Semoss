@@ -131,7 +131,7 @@ final class BrainTopicNotices {
 		}
 		List<String> ids = List.copyOf(byId.keySet());
 		String prompt = new Gson().toJson(Map.of("conversations", rows));
-		Map<String, Object> parameters = Map.of("temperature", 0, "schema", schema(ids), "max_tokens", 2000);
+		Map<String, Object> parameters = Map.of("temperature", 0, "schema", schema(ids));
 		for (int attempt = 0; attempt < settings.attempts(); attempt++) {
 			try {
 				Set<String> flagged = validate(caller.ask(prompt, INSTRUCTIONS, parameters), byId.keySet());

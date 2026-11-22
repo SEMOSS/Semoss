@@ -68,7 +68,6 @@ public final class WorkReconcile {
 	// a done claim for an older one stays
 	// unmatched; put the candidates' own threads first if owners hit it
 	private static final int MAX_OTHER_STEPS = 40;
-	private static final int MAX_TOKENS = 8000;
 
 	private static final String INSTRUCTIONS = """
 			You keep the owner's work list for one topic. The input is JSON: today, the topic (name, \
@@ -1151,7 +1150,6 @@ public final class WorkReconcile {
 			Map<String, Object> schema) {
 		Map<String, Object> params = new LinkedHashMap<>();
 		params.put("temperature", 0);
-		params.put("max_tokens", MAX_TOKENS);
 		params.put("schema", schema);
 		String effort = Utility.getDIHelperProperty(Constants.COLLAB_WORK_REASONING_EFFORT);
 		if (effort != null && !effort.isBlank()) {

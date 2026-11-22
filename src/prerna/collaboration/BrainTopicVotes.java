@@ -102,8 +102,7 @@ public final class BrainTopicVotes {
 		}
 		List<String> ids = prepared.cards().stream().map(c -> (String) c.get("id")).toList();
 		String prompt = new com.google.gson.Gson().toJson(Map.of("clusters", prepared.cards()));
-		Map<String, Object> parameters = Map.of("temperature", 0, "schema", schema(ids), "max_tokens",
-				settings.maxTokens());
+		Map<String, Object> parameters = Map.of("temperature", 0, "schema", schema(ids));
 		List<Map<String, Vote>> votes = new ArrayList<>();
 		AtomicInteger calls = new AtomicInteger();
 		int failed = 0;

@@ -84,7 +84,6 @@ public final class WorkPipeline {
 	private static final int WINDOW = 12;
 	// a silent owner on a thread this big was not asked
 	private static final int BIG_THREAD = 9;
-	private static final int MAX_TOKENS = 4000;
 	private static final int MAX_NOTED = 60;
 	private static final int MAX_PENDING = 400;
 	// the most a new owner's first build reads
@@ -1476,7 +1475,6 @@ public final class WorkPipeline {
 	private static String ask(IModelEngine model, User user, Map<String, Object> input) {
 		Map<String, Object> params = new LinkedHashMap<>();
 		params.put("temperature", 0);
-		params.put("max_tokens", MAX_TOKENS);
 		params.put("schema", EXTRACT_SCHEMA);
 		// a thinking model reads a thread in seconds with its thinking held low, and in minutes without
 		String effort = Utility.getDIHelperProperty(Constants.COLLAB_WORK_REASONING_EFFORT);

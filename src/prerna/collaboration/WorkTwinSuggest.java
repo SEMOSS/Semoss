@@ -226,7 +226,7 @@ public final class WorkTwinSuggest {
 			Read<Map<String, Object>> chat) {
 		long started = System.nanoTime();
 		// 1. the model writes what to search each place for
-		Map<String, Object> plan = ask(model, user, Map.of("request", asked), PLAN_INSTRUCTIONS, PLAN_SCHEMA, 400,
+		Map<String, Object> plan = ask(model, user, Map.of("request", asked), PLAN_INSTRUCTIONS, PLAN_SCHEMA,
 				"mail");
 
 		// 2. each place's own search, the three places at once
@@ -346,7 +346,7 @@ public final class WorkTwinSuggest {
 			Map<String, Object> input = new LinkedHashMap<>();
 			input.put("request", asked);
 			input.put("items", read);
-			Object answer = ask(model, user, input, PICK_INSTRUCTIONS, PICK_SCHEMA, 6000, "picks").get("picks");
+			Object answer = ask(model, user, input, PICK_INSTRUCTIONS, PICK_SCHEMA, "picks").get("picks");
 			Set<Integer> picked = new HashSet<>();
 			for (Object pick : answer instanceof List<?> picks ? picks : List.of()) {
 				// a name the model made up, or gave twice, is not an item
@@ -725,11 +725,10 @@ public final class WorkTwinSuggest {
 
 	// the model's answer as JSON that holds the key it must, asked once more when it does not
 	static Map<String, Object> ask(IModelEngine model, User user, Map<String, Object> input,
-			String instructions, Map<String, Object> schema, int maxTokens, String key) {
+			String instructions, Map<String, Object> schema, String key) {
 		for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
 			Map<String, Object> params = new LinkedHashMap<>();
 			params.put("temperature", 0);
-			params.put("max_tokens", maxTokens);
 			params.put("schema", schema);
 			// an insight of its own: nothing goes through a room
 			Insight insight = new Insight();
