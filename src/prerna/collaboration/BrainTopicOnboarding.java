@@ -75,6 +75,12 @@ final class BrainTopicOnboarding {
 	 */
 	static BrainTopicStructure.Reader reader(User user, String ownerId, String ownerType, BrainMessageSource source,
 			Map<String, Object> notes) {
+		return reader(user, ownerId, ownerType, source, notes, null);
+	}
+
+	// onRead hears (read so far, pool size) after each conversation, read or not
+	static BrainTopicStructure.Reader reader(User user, String ownerId, String ownerType, BrainMessageSource source,
+			Map<String, Object> notes, java.util.function.BiConsumer<Integer, Integer> onRead) {
 		return pool -> {
 			Map<String, List<BrainTopicStructure.Text>> out = new java.util.concurrent.ConcurrentHashMap<>();
 			java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
@@ -103,6 +109,16 @@ final class BrainTopicOnboarding {
 						}
 					} catch (Exception e) {
 						failed.incrementAndGet();
+					}
+				});
+			}
+			if (onRead != null) {
+				java.util.concurrent.atomic.AtomicInteger done = new java.util.concurrent.atomic.AtomicInteger();
+				jobs.replaceAll(read -> () -> {
+					try {
+						read.run();
+					} finally {
+						onRead.accept(done.incrementAndGet(), pool.size());
 					}
 				});
 			}
@@ -148,14 +164,21 @@ final class BrainTopicOnboarding {
 		// stored headers after a sort: per-message To/Cc only fed the engagement gate, which WIDE does not use;
 		// what the messages say is read only then, and only for the pool
 		BrainTopicVotes.Caller caller = caller(user, engineId);
+		java.util.function.BiConsumer<Integer, Integer> onRead = job == null ? null : (read, total) -> {
+			job.count("read", read);
+			job.count("toRead", total);
+			job.tick("grouping", 10 + 15 * read / Math.max(1, total));
+		};
 		BrainTopicStructure.Prepared prepared = snapshot(ownerId, ownerType, eligible.keySet(), self, emails, vips,
-				ownOrg, notes, caller, reader(user, ownerId, ownerType, BrainMessageSource.current(), notes));
+				ownOrg, notes, caller, reader(user, ownerId, ownerType, BrainMessageSource.current(), notes, onRead));
 		if (job != null) {
 			job.count("conversations", prepared.pool().size());
 			job.count("groups", prepared.seeds().size());
 			job.step("naming", 30);
 		}
-		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings(ownerId, ownerType), caller);
+		BrainTopicStructure.Settings settings = settings(ownerId, ownerType);
+		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings,
+				job == null ? caller : counting(caller, job, settings.votes()));
 		Map<String, Object> diagnostics = new LinkedHashMap<>();
 		diagnostics.putAll(notes);
 		diagnostics.put("status", votes.status());
@@ -236,6 +259,21 @@ final class BrainTopicOnboarding {
 	}
 
 	// one model call as the owner; each call gets its own insight
+	// each answered check moves the naming step along, so a slow thinking model still shows progress
+	private static BrainTopicVotes.Caller counting(BrainTopicVotes.Caller caller, CollaborationJobUtils.Job job,
+			int needed) {
+		java.util.concurrent.atomic.AtomicInteger answered = new java.util.concurrent.atomic.AtomicInteger();
+		job.count("checks", needed);
+		job.count("checked", 0);
+		return (prompt, instructions, params) -> {
+			String reply = caller.ask(prompt, instructions, params);
+			int checked = Math.min(answered.incrementAndGet(), needed);
+			job.count("checked", checked);
+			job.step("naming", 30 + 40 * checked / needed);
+			return reply;
+		};
+	}
+
 	static BrainTopicVotes.Caller caller(User user, String engineId) {
 		IModelEngine model = Utility.getModel(engineId);
 		if (model == null) {
