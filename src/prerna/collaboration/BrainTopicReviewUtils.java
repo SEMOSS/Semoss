@@ -36,12 +36,23 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 
 /** Owner-scoped, resumable topic setup. Draft writes and apply receipts use optimistic revisions. */
 public final class BrainTopicReviewUtils {
+	private static final Logger classLogger = LogManager.getLogger(BrainTopicReviewUtils.class);
+	// topics whose conversations are found at once when the owner listed their work up front
+	private static final int FIND_LANES = 15;
+	private static final long WAIT_FOR_MAIL_MS = 15 * 60 * 1000L;
 	private static final int MAX_TOPICS = 100;
 	public static final String MAP_KIND = "topic_map";
 	private static final String COLUMNS = "REVIEW_ID, REVISION, DRAFT_JSON, APPLIED_REVISION, RESULT_JSON, "
@@ -255,6 +266,17 @@ public final class BrainTopicReviewUtils {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
+		// a mail sync (one runs after every server start) must finish first; wait for it rather than fail
+		long until = System.currentTimeMillis() + WAIT_FOR_MAIL_MS;
+		while (CollaborationJobUtils.anyRunning(ownerId, ownerType, MAP_KIND) && System.currentTimeMillis() < until) {
+			job.step("waiting", 1);
+			try {
+				Thread.sleep(3000);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				break;
+			}
+		}
 		job.step("reading", 2);
 		Map<String, Object> suggestions = BrainTopicSuggest.topics(user, false, job);
 		List<Map<String, Object>> topics = new ArrayList<>();
@@ -290,6 +312,12 @@ public final class BrainTopicReviewUtils {
 		}
 		draft.put("topics", topics);
 		draft.put("modelError", Objects.toString(suggestions.get("modelError"), ""));
+		// the owner's own words come first: one card per line, its conversations already found
+		String context = BrainProfileUtils.workContext(ownerId, ownerType);
+		if (!context.isEmpty()) {
+			draft.put("guidance", context);
+			if (BrainTopicModel.engine(user) != null) draft.put("prebuilt", prebuild(user, ownerId, ownerType, draft, context, job));
+		}
 		job.step("saving", 95);
 		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", ownerId, ownerType)) {
 			// a draft made meanwhile wins; this map is dropped
@@ -305,6 +333,73 @@ public final class BrainTopicReviewUtils {
 	}
 
 	/** Keep an area's topics separate (split) or as one topic again. */
+	// cards the builder opens with; a line whose search fails is found again when its card opens
+	private static Map<String, Object> prebuild(User user, String ownerId, String ownerType, Map<String, Object> draft,
+			String context, CollaborationJobUtils.Job job) {
+		Map<String, Object> out = new LinkedHashMap<>();
+		out.put("text", context);
+		Map<String, Object> review = Map.of("draft", draft);
+		List<Map<String, Object>> cards;
+		try {
+			job.step("drafting", 84);
+			Map<String, Object> started = BrainTopicBuilder.start(user, ownerId, ownerType, review, context);
+			cards = maps(started.get("topics"));
+			out.put("reply", Objects.toString(started.get("reply"), ""));
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not draft topics from the owner's work context", e);
+			out.put("error", e instanceof IllegalArgumentException ? e.getMessage() : "Brain could not draft your topics. Try again.");
+			out.put("topics", List.of());
+			return out;
+		}
+		job.count("topics", cards.size());
+		job.count("topicsFound", 0);
+		job.step("finding", 86);
+		AtomicInteger done = new AtomicInteger();
+		List<Map<String, Object>> rows = new ArrayList<>();
+		ExecutorService lanes = Executors.newFixedThreadPool(Math.max(1, Math.min(FIND_LANES, cards.size())));
+		try {
+			List<Future<Map<String, Object>>> finds = new ArrayList<>();
+			for (Map<String, Object> card : cards) {
+				Map<String, Object> profile = new LinkedHashMap<>();
+				profile.put("name", card.get("name"));
+				profile.put("description", card.get("description"));
+				profile.put("clues", card.get("clues"));
+				profile.put("people", maps(card.get("people")).stream().map(person -> person.get("id")).toList());
+				profile.put("suggestionKeys", maps(card.get("suggestions")).stream().map(row -> row.get("key")).toList());
+				// the owner's other lines, so a conversation that fits one of them better is not pre-ticked here
+				profile.put("otherTopics", cards.stream().filter(other -> other != card).map(other -> Map.of(
+						"name", Objects.toString(other.get("name"), ""), "description", Objects.toString(other.get("description"), ""),
+						"clues", other.get("clues") == null ? List.of() : other.get("clues"))).toList());
+				finds.add(lanes.submit(() -> {
+					try {
+						return BrainTopicBuilder.find(user, ownerId, ownerType, review, profile);
+					} finally {
+						job.count("topicsFound", done.incrementAndGet());
+						job.tick("finding", 86 + 8 * done.get() / cards.size());
+					}
+				}));
+			}
+			for (int i = 0; i < cards.size(); i++) {
+				Map<String, Object> row = new LinkedHashMap<>();
+				row.put("draft", cards.get(i));
+				try {
+					row.put("found", finds.get(i).get());
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					row.put("found", null);
+				} catch (Exception e) {
+					classLogger.warn("Could not find conversations for a topic from the owner's work context", e);
+					row.put("found", null);
+				}
+				rows.add(row);
+			}
+		} finally {
+			lanes.shutdownNow();
+		}
+		out.put("topics", rows);
+		return out;
+	}
+
 	public static Map<String, Object> area(User user, String reviewId, int revision, String areaKey, boolean split) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();

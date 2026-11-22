@@ -230,6 +230,8 @@ public final class BrainSync {
 		// summaries and action items for the threads with new mail, on their own pool: the sync does not wait
 		Set<String> summarize = new LinkedHashSet<>(touched);
 		summarize.removeIf(id -> AUTOMATED.equals(verdicts.get(id)) || "skipped".equals(verdicts.get(id)));
+		// not during setup: onboarding needs the model, and its Work step builds work items on purpose
+		if (!setupDone(ownerId, ownerType)) summarize.clear();
 		WorkThreadInsights.queue(user, ownerId, ownerType, summarize);
 		WorkPipeline.queue(user, ownerId, ownerType, summarize);
 		job.count("summarizing", summarize.size());
@@ -363,7 +365,7 @@ public final class BrainSync {
 		for (String[] sent : run.ownerSent) {
 			WorkItemUtils.closeOnReply(ownerId, ownerType, sent[0], sent[1]);
 		}
-		WorkThreadInsights.queue(user, ownerId, ownerType, run.threads);
+		if (setupDone(ownerId, ownerType)) WorkThreadInsights.queue(user, ownerId, ownerType, run.threads);
 		// no Work yet: unclassified, a newsletter would raise steps and a new thread would have no topic. The next
 		// sync classifies these threads (threadsSince) and queues them
 		finishFollowUps(ownerId, ownerType, run);
@@ -667,5 +669,10 @@ public final class BrainSync {
 
 	private static Instant later(Instant a, Instant b) {
 		return a.isAfter(b) ? a : b;
+	}
+
+	private static boolean setupDone(String ownerId, String ownerType) {
+		return CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND SETUP_DONE_AT IS NOT NULL",
+				ownerId, ownerType);
 	}
 }
