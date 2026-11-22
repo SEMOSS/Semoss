@@ -2069,6 +2069,60 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Sets the display name of any engine in the security database, where catalog
+	 * listings, page headers and search read it.
+	 *
+	 * @param engineId    the engine
+	 * @param displayName the new display name
+	 * @throws IllegalArgumentException when the name is blank or cannot be saved
+	 */
+	public void setEngineDisplayName(String engineId, String displayName) {
+		if (displayName == null || displayName.isBlank()) {
+			throw new IllegalArgumentException("Display name cannot be null or blank.");
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE ENGINE SET ENGINEDISPLAYNAME=? WHERE ENGINEID=?",
+					ps -> {
+						ps.setString(1, displayName);
+						ps.setString(2, engineId);
+					});
+		} catch (Exception e) {
+			classLogger.error("Failed to update the display name of engine {}", engineId, e);
+			throw new IllegalArgumentException("An error occurred updating the engine display name");
+		}
+		auditEngineChange(AuditEventType.ENGINE_DISPLAY_NAME_UPDATE, engineId,
+				Map.of("field", "displayName", "displayName", displayName));
+	}
+
+	/**
+	 * Sets the display name of any project in the security database, where catalog
+	 * listings, page headers and search read it.
+	 *
+	 * @param projectId   the project
+	 * @param displayName the new display name
+	 * @throws IllegalArgumentException when the name is blank or cannot be saved
+	 */
+	public void setProjectDisplayName(String projectId, String displayName) {
+		if (displayName == null || displayName.isBlank()) {
+			throw new IllegalArgumentException("Display name cannot be null or blank.");
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET PROJECTDISPLAYNAME=? WHERE PROJECTID=?",
+					ps -> {
+						ps.setString(1, displayName);
+						ps.setString(2, projectId);
+					});
+		} catch (Exception e) {
+			classLogger.error("Failed to update the display name of project {}", projectId, e);
+			throw new IllegalArgumentException("An error occurred updating the project display name");
+		}
+		auditProjectChange(AuditEventType.PROJECT_DISPLAY_NAME_UPDATE, projectId,
+				Map.of("field", "displayName", "displayName", displayName));
+	}
+
+	/**
 	 * Set if project should be public or not
 	 * 
 	 * @param projectId

@@ -240,7 +240,21 @@ public final class HttpHelperUtility {
 	 */
 	public static CloseableHttpClient getSchedulerClient(CookieStore cookieStore, String keyStore, String keyStorePass,
 			String keyPass) {
-		return buildClient(cookieStore, keyStore, keyStorePass, keyPass, Timeout.DISABLED, schedulerHost(), true);
+		return getSchedulerClient(cookieStore, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #getSchedulerClient(CookieStore, String, String, String)},
+	 * with a limit on how long a request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return configured {@link CloseableHttpClient}
+	 */
+	public static CloseableHttpClient getSchedulerClient(CookieStore cookieStore, String keyStore, String keyStorePass,
+			String keyPass, Timeout timeout) {
+		return buildClient(cookieStore, keyStore, keyStorePass, keyPass, timeout, schedulerHost(), true);
 	}
 
 	/**
@@ -683,8 +697,26 @@ public final class HttpHelperUtility {
 	 */
 	public static byte[] getRequestBytes(String url, Map<String, String> headerMap, String keyStore,
 			String keyStorePass, String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return getRequestBytes(url, headerMap, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #getRequestBytes(String, Map, String, String, String)}, with a
+	 * limit on how long the request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as bytes, or {@code null} when the response has no
+	 *         entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static byte[] getRequestBytes(String url, Map<String, String> headerMap, String keyStore,
+			String keyStorePass, String keyPass, Timeout timeout) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpGet httpGet = new HttpGet(url);
 			if (headerMap != null && !headerMap.isEmpty()) {
 				for (String key : headerMap.keySet()) {
@@ -734,6 +766,27 @@ public final class HttpHelperUtility {
 	 */
 	public static File getRequestFileDownload(String url, Map<String, String> headerMap, String keyStore,
 			String keyStorePass, String keyPass, String saveFilePath, String saveFileName) {
+		return getRequestFileDownload(url, headerMap, keyStore, keyStorePass, keyPass, saveFilePath, saveFileName,
+				Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as
+	 * {@link #getRequestFileDownload(String, Map, String, String, String, String, String)},
+	 * with a limit on how long the request waits to connect and for each read of
+	 * the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return saved file reference
+	 * @throws IllegalArgumentException if the destination directory cannot be
+	 *                                  created, the URL cannot be reached, the
+	 *                                  limit passes, the URL does not include a
+	 *                                  file name when none is provided, or malware
+	 *                                  is detected
+	 */
+	public static File getRequestFileDownload(String url, Map<String, String> headerMap, String keyStore,
+			String keyStorePass, String keyPass, String saveFilePath, String saveFileName, Timeout timeout) {
 		final String savePath = callerPath(saveFilePath);
 		String fileName = saveFileName;
 		if (fileName == null) {
@@ -747,8 +800,8 @@ public final class HttpHelperUtility {
 		}
 		final String resolvedFileName = fileName;
 
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpGet httpGet = new HttpGet(url);
 			if (headerMap != null && !headerMap.isEmpty()) {
 				for (String key : headerMap.keySet()) {
@@ -840,8 +893,27 @@ public final class HttpHelperUtility {
 	 */
 	public static String postRequestUrlEncodedBody(String url, Map<String, String> headersMap,
 			Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return postRequestUrlEncodedBody(url, headersMap, bodyMap, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as
+	 * {@link #postRequestUrlEncodedBody(String, Map, Map, String, String, String)},
+	 * with a limit on how long the request waits to connect and for each read of
+	 * the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String postRequestUrlEncodedBody(String url, Map<String, String> headersMap,
+			Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass, Timeout timeout) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpPost httpPost = new HttpPost(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
@@ -981,9 +1053,49 @@ public final class HttpHelperUtility {
 	 */
 	public static String postRequestBytesBody(String url, Map<String, String> headersMap, byte[] bodyBytes,
 			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return postRequestBytesBody(url, headersMap, bodyBytes, contentType, keyStore, keyStorePass, keyPass,
+				Timeout.DISABLED);
+	}
 
+	/**
+	 * Same as
+	 * {@link #postRequestBytesBody(String, Map, byte[], ContentType, String, String, String)},
+	 * with a limit on how long the request waits to connect and for each read of
+	 * the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String postRequestBytesBody(String url, Map<String, String> headersMap, byte[] bodyBytes,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass, Timeout timeout) {
+		return postRequestBytesBody(getCustomClient(null, keyStore, keyStorePass, keyPass, timeout), url, headersMap,
+				bodyBytes, contentType);
+	}
+
+	/**
+	 * Executes an HTTP POST request with a byte-array payload with the client
+	 * given. {@link #getSystemClient()} checks the server's certificate, and
+	 * {@link #getCustomClient(CookieStore, String, String, String)} trusts it. The
+	 * client is closed when the request is done.
+	 *
+	 * @param httpClient  the client to send the request with, which this closes
+	 * @param url         target URL
+	 * @param headersMap  optional request headers
+	 * @param bodyBytes   request payload; ignored when {@code null} or empty
+	 * @param contentType content type used for the request entity
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws HttpStatusException      if the endpoint returns a non-2xx status
+	 * @throws IllegalArgumentException if the URL cannot be reached
+	 */
+	public static String postRequestBytesBody(CloseableHttpClient httpClient, String url,
+			Map<String, String> headersMap, byte[] bodyBytes, ContentType contentType) {
+		try (httpClient) {
 			HttpPost httpPost = new HttpPost(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (Map.Entry<String, String> entry : headersMap.entrySet()) {
@@ -1029,8 +1141,28 @@ public final class HttpHelperUtility {
 	 */
 	public static String putRequestStringBody(String url, Map<String, String> headersMap, String body,
 			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return putRequestStringBody(url, headersMap, body, contentType, keyStore, keyStorePass, keyPass,
+				Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as
+	 * {@link #putRequestStringBody(String, Map, String, ContentType, String, String, String)},
+	 * with a limit on how long the request waits to connect and for each read of
+	 * the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String putRequestStringBody(String url, Map<String, String> headersMap, String body,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass, Timeout timeout) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpPut httpPut = new HttpPut(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
@@ -1075,8 +1207,28 @@ public final class HttpHelperUtility {
 	 */
 	public static String putRequestBytesBody(String url, Map<String, String> headersMap, byte[] bodyBytes,
 			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return putRequestBytesBody(url, headersMap, bodyBytes, contentType, keyStore, keyStorePass, keyPass,
+				Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as
+	 * {@link #putRequestBytesBody(String, Map, byte[], ContentType, String, String, String)},
+	 * with a limit on how long the request waits to connect and for each read of
+	 * the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String putRequestBytesBody(String url, Map<String, String> headersMap, byte[] bodyBytes,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass, Timeout timeout) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 
 			HttpPut httpPut = new HttpPut(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
@@ -1123,8 +1275,27 @@ public final class HttpHelperUtility {
 	 */
 	public static String putRequestUrlEncodedBody(String url, Map<String, String> headersMap,
 			Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return putRequestUrlEncodedBody(url, headersMap, bodyMap, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as
+	 * {@link #putRequestUrlEncodedBody(String, Map, Map, String, String, String)},
+	 * with a limit on how long the request waits to connect and for each read of
+	 * the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String putRequestUrlEncodedBody(String url, Map<String, String> headersMap,
+			Map<String, String> bodyMap, String keyStore, String keyStorePass, String keyPass, Timeout timeout) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpPut httpPost = new HttpPut(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
@@ -1173,8 +1344,28 @@ public final class HttpHelperUtility {
 	 */
 	public static String patchRequestStringBody(String url, Map<String, String> headersMap, String body,
 			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return patchRequestStringBody(url, headersMap, body, contentType, keyStore, keyStorePass, keyPass,
+				Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as
+	 * {@link #patchRequestStringBody(String, Map, String, ContentType, String, String, String)},
+	 * with a limit on how long the request waits to connect and for each read of
+	 * the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String patchRequestStringBody(String url, Map<String, String> headersMap, String body,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass, Timeout timeout) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpPatch httpPatch = new HttpPatch(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
@@ -1216,8 +1407,25 @@ public final class HttpHelperUtility {
 	 */
 	public static String headRequest(String url, Map<String, String> headersMap, String keyStore, String keyStorePass,
 			String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return headRequest(url, headersMap, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #headRequest(String, Map, String, String, String)}, with a
+	 * limit on how long the request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return JSON array of header name/value maps
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String headRequest(String url, Map<String, String> headersMap, String keyStore, String keyStorePass,
+			String keyPass, Timeout timeout) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpHead httpHead = new HttpHead(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
@@ -1262,8 +1470,24 @@ public final class HttpHelperUtility {
 	 */
 	public static int headRequestStatus(String url, Map<String, String> headersMap, String keyStore,
 			String keyStorePass, String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return headRequestStatus(url, headersMap, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #headRequestStatus(String, Map, String, String, String)}, with
+	 * a limit on how long the request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return HTTP status code from the response
+	 * @throws IllegalArgumentException if the URL cannot be reached or the limit
+	 *                                  passes
+	 */
+	public static int headRequestStatus(String url, Map<String, String> headersMap, String keyStore,
+			String keyStorePass, String keyPass, Timeout timeout) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpHead httpHead = new HttpHead(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
@@ -1297,8 +1521,27 @@ public final class HttpHelperUtility {
 	 */
 	public static String deleteRequestStringBody(String url, Map<String, String> headersMap, String keyStore,
 			String keyStorePass, String keyPass) {
-		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
-				keyPass)) {
+		return deleteRequestStringBody(url, headersMap, keyStore, keyStorePass, keyPass, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as
+	 * {@link #deleteRequestStringBody(String, Map, String, String, String)}, with a
+	 * limit on how long the request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached, the limit
+	 *                                  passes, or the endpoint returns a non-2xx
+	 *                                  status
+	 */
+	public static String deleteRequestStringBody(String url, Map<String, String> headersMap, String keyStore,
+			String keyStorePass, String keyPass, Timeout timeout) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass,
+				timeout)) {
 			HttpDelete httpHead = new HttpDelete(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
@@ -1363,11 +1606,25 @@ public final class HttpHelperUtility {
 	 */
 	public static AccessToken getAccessToken(String url, Map<String, String> params, Map<String, String> headers,
 			boolean json, boolean extract) {
+		return getAccessToken(url, params, headers, json, extract, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #getAccessToken(String, Map, Map, boolean, boolean)}, with a
+	 * limit on how long the request waits to connect and for each read of the
+	 * response. A request that passes the limit returns {@code null}.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return parsed {@link AccessToken}, or {@code null}
+	 */
+	public static AccessToken getAccessToken(String url, Map<String, String> params, Map<String, String> headers,
+			boolean json, boolean extract, Timeout timeout) {
 		AccessToken tok = null;
 		CloseableHttpClient httpclient = null;
 		String result = null;
 		try {
-			httpclient = getSystemClient();
+			httpclient = getSystemClient(null, null, null, null, timeout);
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			if (headers != null) {
@@ -1446,12 +1703,27 @@ public final class HttpHelperUtility {
 	 *         parsing succeeds; otherwise {@code null}
 	 */
 	public static AccessToken getIdToken(String url, Map<String, String> params, boolean json, boolean extract) {
+		return getIdToken(url, params, json, extract, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #getIdToken(String, Map, boolean, boolean)}, with a limit on
+	 * how long the request waits to connect and for each read of the response. A
+	 * request that passes the limit returns {@code null}.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return parsed {@link AccessToken} when {@code extract} is {@code true} and
+	 *         parsing succeeds; otherwise {@code null}
+	 */
+	public static AccessToken getIdToken(String url, Map<String, String> params, boolean json, boolean extract,
+			Timeout timeout) {
 		// still using accessToken object
 		AccessToken tok = null;
 		CloseableHttpClient httpclient = null;
 		String result = null;
 		try {
-			httpclient = getSystemClient();
+			httpclient = getSystemClient(null, null, null, null, timeout);
 			// this is a post
 			HttpPost httppost = new HttpPost(url);
 			// loop through all keys and add as basic name value pair
@@ -1681,9 +1953,22 @@ public final class HttpHelperUtility {
 	 * @return response body, or {@code null} when the request fails
 	 */
 	public static String makePostCall(String url, String accessToken, Object input, boolean json) {
+		return makePostCall(url, accessToken, input, json, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #makePostCall(String, String, Object, boolean)}, with a limit
+	 * on how long the request waits to connect and for each read of the response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response body, or {@code null} when the request fails or passes the
+	 *         limit
+	 */
+	public static String makePostCall(String url, String accessToken, Object input, boolean json, Timeout timeout) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = getSystemClient();
+			httpclient = getSystemClient(null, null, null, null, timeout);
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type", "application/json; charset=utf-8");
@@ -1747,9 +2032,24 @@ public final class HttpHelperUtility {
 	 * @return response body, or {@code null} when the request fails
 	 */
 	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName, String localPath) {
+		return makeBinaryFilePutCall(url, accessToken, fileName, localPath, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #makeBinaryFilePutCall(String, String, String, String)}, with
+	 * a limit on how long the request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response body, or {@code null} when the request fails or passes the
+	 *         limit
+	 */
+	public static String makeBinaryFilePutCall(String url, String accessToken, String fileName, String localPath,
+			Timeout timeout) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = getSystemClient();
+			httpclient = getSystemClient(null, null, null, null, timeout);
 			HttpPut httpput = new HttpPut(url);
 			httpput.addHeader("Authorization", "Bearer " + accessToken);
 			httpput.addHeader("Content-Type", "application/json; charset=utf-8");
@@ -1800,9 +2100,24 @@ public final class HttpHelperUtility {
 	 * @return response body, or {@code null} when the request fails
 	 */
 	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath) {
+		return makeBinaryFilePostCall(url, accessToken, filename, filepath, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #makeBinaryFilePostCall(String, String, String, String)}, with
+	 * a limit on how long the request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response body, or {@code null} when the request fails or passes the
+	 *         limit
+	 */
+	public static String makeBinaryFilePostCall(String url, String accessToken, String filename, String filepath,
+			Timeout timeout) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = getSystemClient();
+			httpclient = getSystemClient(null, null, null, null, timeout);
 			HttpPost httppost = new HttpPost(url);
 			httppost.addHeader("Authorization", "Bearer " + accessToken);
 			httppost.addHeader("Content-Type", "application/octet-stream");
@@ -1852,9 +2167,23 @@ public final class HttpHelperUtility {
 	 * @return response body, or {@code null} when the request fails
 	 */
 	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath) {
+		return makeBinaryFilePatchCall(url, accessToken, filepath, Timeout.DISABLED);
+	}
+
+	/**
+	 * Same as {@link #makeBinaryFilePatchCall(String, String, String)}, with a
+	 * limit on how long the request waits to connect and for each read of the
+	 * response.
+	 *
+	 * @param timeout the limit; {@link Timeout#DISABLED} waits for as long as the
+	 *                server stays silent
+	 * @return response body, or {@code null} when the request fails or passes the
+	 *         limit
+	 */
+	public static String makeBinaryFilePatchCall(String url, String accessToken, String filepath, Timeout timeout) {
 		CloseableHttpClient httpclient = null;
 		try {
-			httpclient = getSystemClient();
+			httpclient = getSystemClient(null, null, null, null, timeout);
 			HttpPatch httppatch = new HttpPatch(url);
 			httppatch.addHeader("Authorization", "Bearer " + accessToken);
 
