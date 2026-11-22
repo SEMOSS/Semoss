@@ -74,6 +74,19 @@ public final class WorkTaskUtils {
 	public static final String BRAIN = WorkItemUtils.BRAIN;
 
 	public static final String PROPOSED = "proposed";
+
+	/** Open work items the owner kept, per topic. */
+	static Map<String, Integer> openByTopic(String ownerId, String ownerType) {
+		Map<String, Integer> counts = new HashMap<>();
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType, ownerId, ownerType, ACCEPTED));
+		params.addAll(OPEN_STATUSES);
+		CollaborationDbUtils.query("SELECT x.TOPIC_ID, COUNT(DISTINCT t.TASK_ID) FROM WORK_TASK_TOPIC x JOIN WORK_TASK t"
+				+ " ON t.OWNER_ID = x.OWNER_ID AND t.OWNER_TYPE = x.OWNER_TYPE AND t.TASK_ID = x.TASK_ID"
+				+ " WHERE x.OWNER_ID = ? AND x.OWNER_TYPE = ? AND t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.STATE = ?"
+				+ " AND t.STATUS IN (" + CollaborationDbUtils.placeholders(OPEN_STATUSES.size()) + ") GROUP BY x.TOPIC_ID",
+				rs -> counts.put(rs.getString(1), rs.getInt(2)), params.toArray());
+		return counts;
+	}
 	public static final String ACCEPTED = "accepted";
 
 	static final Set<String> STEP_OPEN = Set.of("open", "waiting");
@@ -105,8 +118,10 @@ public final class WorkTaskUtils {
 	 */
 	public static Map<String, Object> listMyWork(User user, Map<String, Object> filter) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		String ownerId = owner.getValue0();
-		String ownerType = owner.getValue1();
+		return listMyWork(owner.getValue0(), owner.getValue1(), filter);
+	}
+
+	static Map<String, Object> listMyWork(String ownerId, String ownerType, Map<String, Object> filter) {
 		String self = selfId(ownerId, ownerType);
 		String status = lower(filter.get("status"));
 		String kind = checked(lower(filter.get("kind")), KINDS, "kind");
@@ -293,8 +308,8 @@ public final class WorkTaskUtils {
 	/**
 	 * Creates a work item (no id) or changes one. args: id, title, kind,
 	 * description, status, ongoing, nextStep, waitingOnPersonId, personId, due,
-	 * priority, topicIds, threadIds, note (a timeline line). origin is who made a
-	 * new one.
+	 * priority, topicIds, removeTopicIds (links to drop; with topicIds this moves
+	 * it), threadIds, note (a timeline line). origin is who made a new one.
 	 */
 	public static Map<String, Object> saveWork(User user, Map<String, Object> args, String origin) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -313,6 +328,8 @@ public final class WorkTaskUtils {
 		for (String topicId : topicIds) {
 			BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
 		}
+		// topics the owner says it is not about
+		List<String> removeTopicIds = strings(args.get("removeTopicIds"));
 		List<String> threadIds = strings(args.get("threadIds"));
 		for (String threadId : threadIds) {
 			BrainThreadUtils.requireThread(ownerId, ownerType, threadId);
@@ -379,6 +396,7 @@ public final class WorkTaskUtils {
 						values.toArray());
 			}
 			linkTopics(conn, ownerId, ownerType, id[0], topicIds, now);
+			unlinkTopics(conn, ownerId, ownerType, id[0], removeTopicIds, topicIds);
 			for (String threadId : threadIds) {
 				linkThread(conn, ownerId, ownerType, id[0], threadId, origin, now);
 			}
@@ -1026,6 +1044,33 @@ public final class WorkTaskUtils {
 							+ "IS_PRIMARY, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?)",
 					ownerId, ownerType, taskId, topicId, !hasPrimary, now);
 			hasPrimary = true;
+		}
+	}
+
+	// drops the topic links the owner called wrong; the first link left becomes primary if the primary went,
+	// and steps filed under a dropped topic follow the primary
+	private static void unlinkTopics(java.sql.Connection conn, String ownerId, String ownerType, String taskId,
+			List<String> dropIds, List<String> keepIds) throws SQLException {
+		List<String> drop = dropIds.stream().filter(topicId -> !keepIds.contains(topicId)).toList();
+		if (drop.isEmpty()) {
+			return;
+		}
+		for (String topicId : drop) {
+			CollaborationDbUtils.update(conn,
+					"DELETE FROM WORK_TASK_TOPIC" + OWNED + " AND TASK_ID = ? AND TOPIC_ID = ?", ownerId, ownerType,
+					taskId, topicId);
+		}
+		CollaborationDbUtils.update(conn,
+				"UPDATE WORK_TASK_TOPIC SET IS_PRIMARY = ?" + OWNED + " AND TASK_ID = ? AND TOPIC_ID = "
+						+ "(SELECT TOPIC_ID FROM WORK_TASK_TOPIC" + OWNED
+						+ " AND TASK_ID = ? ORDER BY CREATED_AT, TOPIC_ID LIMIT 1) AND NOT EXISTS "
+						+ "(SELECT 1 FROM WORK_TASK_TOPIC" + OWNED + " AND TASK_ID = ? AND IS_PRIMARY = ?)",
+				true, ownerId, ownerType, taskId, ownerId, ownerType, taskId, ownerId, ownerType, taskId, true);
+		for (String topicId : drop) {
+			CollaborationDbUtils.update(conn,
+					"UPDATE WORK_THREAD_STEP SET LINK_TOPIC_ID = (SELECT TOPIC_ID FROM WORK_TASK_TOPIC" + OWNED
+							+ " AND TASK_ID = ? AND IS_PRIMARY = ?)" + OWNED + " AND TASK_ID = ? AND LINK_TOPIC_ID = ?",
+					ownerId, ownerType, taskId, true, ownerId, ownerType, taskId, topicId);
 		}
 	}
 
