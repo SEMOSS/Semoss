@@ -1153,7 +1153,7 @@ public final class WorkReconcile {
 		params.put("schema", schema);
 		String effort = Utility.getDIHelperProperty(Constants.COLLAB_WORK_REASONING_EFFORT);
 		if (effort != null && !effort.isBlank()) {
-			params.put("reasoning_effort", effort.trim());
+			params.put("effort", effort.trim());
 		}
 		Insight insight = new Insight();
 		insight.setUser(user);

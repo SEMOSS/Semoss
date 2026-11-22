@@ -670,6 +670,7 @@ public final class WorkPipeline {
 			}
 		}
 		List<Map<String, Object>> found = new ArrayList<>();
+		live(ownerId, ownerType, "windows", (messages.size() + WINDOW - 1) / WINDOW);
 		for (int from = 0; from < messages.size(); from += WINDOW) {
 			List<Map<String, Object>> window = messages.subList(from, Math.min(messages.size(), from + WINDOW));
 			Map<String, Object> input = new LinkedHashMap<>();
@@ -710,6 +711,7 @@ public final class WorkPipeline {
 					noted.add(text);
 				}
 			}
+			live(ownerId, ownerType, "windowsRead", 1);
 		}
 
 		boolean posted = Boolean.TRUE.equals(facts.get("ownerPosted"));
@@ -931,9 +933,16 @@ public final class WorkPipeline {
 			return counts;
 		}
 		Saver saver = new Saver(user, ownerId, ownerType, byShort);
+		// topics this pass groups, for the status call; candidates without a topic are one more
+		Map<String, Object> run = RUNS.get(key(ownerId, ownerType));
+		if (run != null && "grouping".equals(run.get("state"))) {
+			run.put("groupTopics", (int) input.stream().map(c -> String.valueOf(c.get("topicId"))).distinct().count());
+			run.put("groupedTopics", 0);
+		}
 		// each topic is saved before the next is planned, so later topics see its new
 		// items
 		WorkReconcile.plan(user, ownerId, ownerType, model, input, topic -> {
+			live(ownerId, ownerType, "groupedTopics", 1);
 			if (topic.get("error") != null) {
 				// left pending: the next run tries the topic again
 				saver.failedTopics.add(String.valueOf(topic.get("topicId")));
@@ -1479,7 +1488,7 @@ public final class WorkPipeline {
 		// a thinking model reads a thread in seconds with its thinking held low, and in minutes without
 		String effort = Utility.getDIHelperProperty(Constants.COLLAB_WORK_REASONING_EFFORT);
 		if (effort != null && !effort.isBlank()) {
-			params.put("reasoning_effort", effort.trim());
+			params.put("effort", effort.trim());
 		}
 		Insight insight = new Insight();
 		insight.setUser(user);
@@ -1598,6 +1607,14 @@ public final class WorkPipeline {
 
 	private static String clip(String value, int max) {
 		return value == null || value.length() <= max ? value : value.substring(0, max);
+	}
+
+	// adds to a count on the owner's running build, read by the status call; a read outside a build counts nowhere
+	private static void live(String ownerId, String ownerType, String count, int delta) {
+		Map<String, Object> status = RUNS.get(key(ownerId, ownerType));
+		if (status != null && ("running".equals(status.get("state")) || "grouping".equals(status.get("state")))) {
+			status.merge(count, delta, (a, b) -> (Integer) a + (Integer) b);
+		}
 	}
 
 	private static String key(String ownerId, String ownerType) {
