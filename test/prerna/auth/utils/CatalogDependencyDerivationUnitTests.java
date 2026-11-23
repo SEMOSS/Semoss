@@ -48,8 +48,9 @@ public class CatalogDependencyDerivationUnitTests {
 	private static final UnaryOperator<String> TYPES = id -> switch (id) {
 	case "missing" -> null;
 	case "guard1", "guard2" -> "GUARDRAIL";
-	case "kb1" -> "VECTOR";
-	case "bucket1" -> "STORAGE";
+	case "kb1", "kb2" -> "VECTOR";
+	case "bucket1", "s3bucket1" -> "STORAGE";
+	case "processor1" -> "FUNCTION";
 	case "agent2" -> "WORKSPACE";
 	case "skill1" -> "SKILL";
 	case "app1" -> "CODE";
@@ -92,6 +93,74 @@ public class CatalogDependencyDerivationUnitTests {
 		assertTrue(CatalogDependencyDerivation.fromSmss("GUARDRAIL", Map.of("MODEL_ENGINE_ID", "missing"), TYPES)
 				.isEmpty());
 		assertTrue(CatalogDependencyDerivation.fromSmss("MODEL", Map.of("EMBEDDER_ENGINE_ID", "embedder1"), TYPES)
+				.isEmpty());
+	}
+
+	@Test
+	void smss_givesAVectorsKeywordModelDocumentProcessorAndProxyTarget() {
+		List<Dependency> vector = CatalogDependencyDerivation.fromSmss("VECTOR",
+				Map.of("EMBEDDER_ENGINE_ID", "embedder1", "KEYWORD_ENGINE_ID", "keywords1",
+						"CUSTOM_DOCUMENT_PROCESSOR", "true", "CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID", "processor1",
+						"TARGET_ENGINE_ID", "kb2"),
+				TYPES);
+		assertEquals(List.of(CatalogDependencyRole.EMBEDDER, CatalogDependencyRole.KEYWORD_ENGINE,
+				CatalogDependencyRole.DOCUMENT_PROCESSOR, CatalogDependencyRole.PROXY_TARGET),
+				vector.stream().map(Dependency::role).toList());
+		assertEquals("FUNCTION", vector.get(2).type());
+		assertEquals("VECTOR", vector.get(3).type());
+		assertTrue(CatalogDependencyDerivation.SMSS_ROLES.containsAll(vector.stream().map(Dependency::role).toList()));
+
+		// the processor function is used only when the custom processor is on, and an
+		// empty keyword model, as the vector database writes back, is none
+		List<Dependency> processorOff = CatalogDependencyDerivation.fromSmss("VECTOR",
+				Map.of("EMBEDDER_ENGINE_ID", "embedder1", "KEYWORD_ENGINE_ID", "",
+						"CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID", "processor1"),
+				TYPES);
+		assertEquals(List.of(CatalogDependencyRole.EMBEDDER), processorOff.stream().map(Dependency::role).toList());
+	}
+
+	@Test
+	void smss_skipsTheDocumentProcessorWhenTheCustomProcessorIsTurnedOff() {
+		List<Dependency> vector = CatalogDependencyDerivation.fromSmss("VECTOR",
+				Map.of("EMBEDDER_ENGINE_ID", "embedder1", "CUSTOM_DOCUMENT_PROCESSOR", "false",
+						"CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID", "processor1"),
+				TYPES);
+		assertEquals(List.of(CatalogDependencyRole.EMBEDDER), vector.stream().map(Dependency::role).toList());
+	}
+
+	@Test
+	void smss_readsTheLegacyEncoderOnlyWithoutAnEmbedder() {
+		List<Dependency> legacy = CatalogDependencyDerivation.fromSmss("VECTOR", Map.of("ENCODER_ID", " encoder1 "),
+				TYPES);
+		assertEquals(1, legacy.size());
+		assertEquals(CatalogDependencyRole.EMBEDDER, legacy.get(0).role());
+		assertEquals("encoder1", legacy.get(0).id());
+
+		List<Dependency> both = CatalogDependencyDerivation.fromSmss("VECTOR",
+				Map.of("EMBEDDER_ENGINE_ID", "embedder1", "ENCODER_ID", "encoder1"), TYPES);
+		assertEquals(List.of("embedder1"), both.stream().map(Dependency::id).toList());
+
+		List<Dependency> blankEmbedder = CatalogDependencyDerivation.fromSmss("VECTOR",
+				Map.of("EMBEDDER_ENGINE_ID", "  ", "ENCODER_ID", "encoder1"), TYPES);
+		assertEquals(List.of("encoder1"), blankEmbedder.stream().map(Dependency::id).toList());
+	}
+
+	@Test
+	void smss_givesAFunctionsS3BucketAndImageModel() {
+		List<Dependency> textract = CatalogDependencyDerivation.fromSmss("FUNCTION",
+				Map.of("S3BUCKETENGINEID", "s3bucket1"), TYPES);
+		assertEquals(1, textract.size());
+		assertEquals(CatalogDependencyRole.FUNCTION_STORAGE, textract.get(0).role());
+		assertEquals("STORAGE", textract.get(0).type());
+
+		List<Dependency> image = CatalogDependencyDerivation.fromSmss("FUNCTION",
+				Map.of("IMAGE_ENGINE_ID", "vision1"), TYPES);
+		assertEquals(1, image.size());
+		assertEquals(CatalogDependencyRole.IMAGE_MODEL, image.get(0).role());
+		assertEquals("MODEL", image.get(0).type());
+
+		// a vector key on a function is no dependency
+		assertTrue(CatalogDependencyDerivation.fromSmss("FUNCTION", Map.of("KEYWORD_ENGINE_ID", "keywords1"), TYPES)
 				.isEmpty());
 	}
 

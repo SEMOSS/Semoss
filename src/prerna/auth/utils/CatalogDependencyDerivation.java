@@ -44,6 +44,8 @@ import com.google.gson.Gson;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityCatalogDependencyUtils.Dependency;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.vector.ProxyVectorDatabaseEngine;
+import prerna.util.Constants;
 
 /**
  * Works out the automatic dependencies of a catalog item from its own
@@ -63,7 +65,9 @@ public final class CatalogDependencyDerivation {
 
 	/** The roles read from an engine's smss */
 	public static final List<CatalogDependencyRole> SMSS_ROLES = List.of(CatalogDependencyRole.JUDGE_MODEL,
-			CatalogDependencyRole.TOPIC_VECTOR, CatalogDependencyRole.EMBEDDER, CatalogDependencyRole.FUNCTION_STORAGE);
+			CatalogDependencyRole.TOPIC_VECTOR, CatalogDependencyRole.EMBEDDER, CatalogDependencyRole.FUNCTION_STORAGE,
+			CatalogDependencyRole.KEYWORD_ENGINE, CatalogDependencyRole.DOCUMENT_PROCESSOR,
+			CatalogDependencyRole.PROXY_TARGET, CatalogDependencyRole.IMAGE_MODEL);
 	/** The roles read from a model router's router.json */
 	public static final List<CatalogDependencyRole> ROUTER_ROLES = List.of(CatalogDependencyRole.ROUTE_MODEL,
 			CatalogDependencyRole.ROUTER_CLASSIFIER, CatalogDependencyRole.ROUTER_EMBEDDINGS,
@@ -74,9 +78,26 @@ public final class CatalogDependencyDerivation {
 	/** The smss key of the vector database an On Topic guardrail compares with */
 	static final String VECTOR_ENGINE_ID = "VECTOR_ENGINE_ID";
 	/** The smss key of the model a vector database embeds with */
-	static final String EMBEDDER_ENGINE_ID = "EMBEDDER_ENGINE_ID";
+	static final String EMBEDDER_ENGINE_ID = Constants.EMBEDDER_ENGINE_ID;
+	/**
+	 * The legacy smss key of a vector database's embedding model, read only when
+	 * {@link #EMBEDDER_ENGINE_ID} is not set, as the vector database reads it
+	 */
+	static final String ENCODER_ID = "ENCODER_ID";
+	/** The smss key of the model a vector database generates keywords with */
+	static final String KEYWORD_ENGINE_ID = Constants.KEYWORD_ENGINE_ID;
+	/** The smss key that turns on a vector database's custom document processor */
+	static final String CUSTOM_DOCUMENT_PROCESSOR = Constants.CUSTOM_DOCUMENT_PROCESSOR;
+	/** The smss key of the function a vector database processes its documents with */
+	static final String CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID = Constants.CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID;
+	/** The smss key of the vector database a proxy vector database calls */
+	static final String TARGET_ENGINE_ID = ProxyVectorDatabaseEngine.TARGET_ENGINE_ID;
 	/** The smss key of the storage engine a Google bucket function reads */
 	static final String GOOGLE_BUCKET_ENGINEID = "GOOGLE_BUCKET_ENGINEID";
+	/** The smss key of the storage engine an AWS Textract or Transcribe function reads */
+	static final String S3BUCKETENGINEID = "S3BUCKETENGINEID";
+	/** The smss key of the model an image description function describes images with */
+	static final String IMAGE_ENGINE_ID = Constants.IMAGE_ENGINE_ID;
 
 	private CatalogDependencyDerivation() {
 
@@ -129,8 +150,9 @@ public final class CatalogDependencyDerivation {
 
 	/**
 	 * The engines an engine's smss names: a guardrail's judge model or vector
-	 * database, a vector database's embedding model, and a Google bucket function's
-	 * storage engine.
+	 * database; a vector database's embedding model, keyword model, document
+	 * processor function, or a proxy's target vector database; and a function's
+	 * Google or S3 bucket storage engine or image description model.
 	 *
 	 * @param engineType the engine's type, such as GUARDRAIL
 	 * @param smss       its smss properties or creation details
@@ -149,11 +171,31 @@ public final class CatalogDependencyDerivation {
 			add(dependencies, typeOf, trimmed(smss.get(VECTOR_ENGINE_ID)), CatalogDependencyRole.TOPIC_VECTOR,
 					"Vector database this guardrail compares text with to stay on topic");
 		} else if (IEngine.CATALOG_TYPE.VECTOR.name().equals(type)) {
-			add(dependencies, typeOf, trimmed(smss.get(EMBEDDER_ENGINE_ID)), CatalogDependencyRole.EMBEDDER,
+			// the vector database falls back to the legacy key only when the current one
+			// is not set
+			String embedderId = trimmed(smss.get(EMBEDDER_ENGINE_ID));
+			if (embedderId == null) {
+				embedderId = trimmed(smss.get(ENCODER_ID));
+			}
+			add(dependencies, typeOf, embedderId, CatalogDependencyRole.EMBEDDER,
 					"Model that creates this vector database's embeddings");
+			add(dependencies, typeOf, trimmed(smss.get(KEYWORD_ENGINE_ID)), CatalogDependencyRole.KEYWORD_ENGINE,
+					"Model that generates keywords for this vector database's documents");
+			// the processor function is called only when the custom processor is on
+			if (Boolean.parseBoolean(trimmed(smss.get(CUSTOM_DOCUMENT_PROCESSOR)))) {
+				add(dependencies, typeOf, trimmed(smss.get(CUSTOM_DOCUMENT_PROCESSOR_FUNCTION_ID)),
+						CatalogDependencyRole.DOCUMENT_PROCESSOR,
+						"Function that processes this vector database's documents");
+			}
+			add(dependencies, typeOf, trimmed(smss.get(TARGET_ENGINE_ID)), CatalogDependencyRole.PROXY_TARGET,
+					"Vector database this proxy sends its calls to");
 		} else if (IEngine.CATALOG_TYPE.FUNCTION.name().equals(type)) {
 			add(dependencies, typeOf, trimmed(smss.get(GOOGLE_BUCKET_ENGINEID)), CatalogDependencyRole.FUNCTION_STORAGE,
 					"Storage engine this function reads its bucket from");
+			add(dependencies, typeOf, trimmed(smss.get(S3BUCKETENGINEID)), CatalogDependencyRole.FUNCTION_STORAGE,
+					"Storage engine this function reads its bucket from");
+			add(dependencies, typeOf, trimmed(smss.get(IMAGE_ENGINE_ID)), CatalogDependencyRole.IMAGE_MODEL,
+					"Model that describes the images this function finds in documents");
 		}
 		return dependencies;
 	}

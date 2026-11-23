@@ -44,6 +44,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
+import prerna.auth.utils.CatalogDependencyResync;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
@@ -365,6 +366,17 @@ public class UploadEngineReactor extends AbstractReactor {
 
 		// add user as engine owner
 		SecurityEngineUtils.addEngineOwner(user, engineId);
+
+		// record what the imported engine's configuration depends on from its smss
+		// and the pipeline.json / router.json in its folder, without loading the
+		// engine; the upload succeeds without it, and SyncCatalogDependencies or the
+		// admin backfill can record it later
+		try {
+			CatalogDependencyResync.resyncEngineFromFiles(user, engineId, engineName, engineType, prop);
+		} catch (Exception e) {
+			classLogger.warn("Uploaded engine {} but could not record its dependencies",
+					Utility.cleanLogString(engineId), e);
+		}
 
 		ClusterUtil.pushEngine(engineId);
 		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_CREATE,

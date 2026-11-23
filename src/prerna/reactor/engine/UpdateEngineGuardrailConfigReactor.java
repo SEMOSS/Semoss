@@ -193,9 +193,11 @@ public class UpdateEngineGuardrailConfigReactor extends AbstractEngineGuardrailC
 		} finally {
 			lock.unlock();
 		}
-		releaseLocksOfRemovedLimits(user, engine, validated.hitLimits());
+		// record the guardrails before anything that can fail, since the configuration
+		// is saved already
 		CatalogDependencyDerivation.syncGuardrails(user, engine.getEngineId(), engine.getCatalogType().name(),
 				validated.pipelines());
+		releaseLocksOfRemovedLimits(user, engine, validated.hitLimits());
 
 		if (ClusterUtil.IS_CLUSTER) {
 			ClusterUtil.pushEngine(engineId);

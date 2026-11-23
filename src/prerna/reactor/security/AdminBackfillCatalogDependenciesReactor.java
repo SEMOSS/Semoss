@@ -27,47 +27,25 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import com.google.gson.Gson;
 
 import prerna.auth.User;
-import prerna.auth.utils.CatalogDependencyDerivation;
-import prerna.auth.utils.CatalogDependencyRole;
-import prerna.auth.utils.CatalogTypes;
+import prerna.auth.utils.CatalogDependencyResync;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.auth.utils.SecurityCatalogDependencyUtils;
-import prerna.auth.utils.SecurityCatalogDependencyUtils.Dependency;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IEngine;
-import prerna.engine.impl.model.ModelRouterEngine;
-import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
-import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.project.api.IProject;
-import prerna.project.impl.ProjectHelper;
-import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
-import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EngineUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 
 /**
  * Works out the automatic dependencies of every engine, agent, automation and app
@@ -76,7 +54,8 @@ import prerna.util.Utility;
  * knowledge, skills, model and subagents, automations' nodes, blocks apps'
  * engines, and the ids in code apps' files. Picked
  * dependencies are kept; a row from before IS_AUTOMATIC that a derived one
- * stands for is replaced. Safe to run again.
+ * stands for is replaced. Safe to run again. Each item is read by
+ * {@link CatalogDependencyResync}, as SyncCatalogDependencies reads one.
  */
 public class AdminBackfillCatalogDependenciesReactor extends AbstractReactor {
 
@@ -97,7 +76,7 @@ public class AdminBackfillCatalogDependenciesReactor extends AbstractReactor {
 		List<String> failed = new ArrayList<>();
 		for (String engineId : SecurityEngineUtils.getAllEngineIds()) {
 			try {
-				backfillEngine(user, engineId);
+				CatalogDependencyResync.resyncEngine(user, engineId);
 				engines++;
 			} catch (Exception e) {
 				classLogger.warn("Could not backfill the dependencies of engine {}", engineId, e);
@@ -108,7 +87,7 @@ public class AdminBackfillCatalogDependenciesReactor extends AbstractReactor {
 		int workspaces = 0;
 		for (String projectId : projectIdsOfType(IProject.PROJECT_TYPE.WORKSPACE.name())) {
 			try {
-				backfillWorkspace(user, projectId);
+				CatalogDependencyResync.resyncWorkspace(user, projectId);
 				workspaces++;
 			} catch (Exception e) {
 				classLogger.warn("Could not backfill the dependencies of agent {}", projectId, e);
@@ -119,7 +98,7 @@ public class AdminBackfillCatalogDependenciesReactor extends AbstractReactor {
 		int automations = 0;
 		for (String projectId : projectIdsOfType(IProject.PROJECT_TYPE.AUTOMATION.name())) {
 			try {
-				backfillAutomation(user, projectId);
+				CatalogDependencyResync.resyncAutomation(user, projectId);
 				automations++;
 			} catch (Exception e) {
 				classLogger.warn("Could not backfill the dependencies of automation {}", projectId, e);
@@ -130,7 +109,7 @@ public class AdminBackfillCatalogDependenciesReactor extends AbstractReactor {
 		int blocks = 0;
 		for (String projectId : projectIdsOfType(IProject.PROJECT_TYPE.BLOCKS.name())) {
 			try {
-				backfillBlocks(user, projectId);
+				CatalogDependencyResync.resyncBlocks(user, projectId);
 				blocks++;
 			} catch (Exception e) {
 				classLogger.warn("Could not backfill the dependencies of blocks app {}", projectId, e);
@@ -141,7 +120,7 @@ public class AdminBackfillCatalogDependenciesReactor extends AbstractReactor {
 		int code = 0;
 		for (String projectId : projectIdsOfType(IProject.PROJECT_TYPE.CODE.name())) {
 			try {
-				backfillCode(user, projectId);
+				CatalogDependencyResync.resyncCode(user, projectId);
 				code++;
 			} catch (Exception e) {
 				classLogger.warn("Could not backfill the dependencies of code app {}", projectId, e);
@@ -157,114 +136,6 @@ public class AdminBackfillCatalogDependenciesReactor extends AbstractReactor {
 		result.put("code", code);
 		result.put("failed", failed);
 		return new NounMetadata(result, PixelDataType.MAP);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static void backfillEngine(User user, String engineId) throws Exception {
-		IEngine engine = Utility.getEngine(engineId);
-		if (engine == null) {
-			throw new IllegalStateException("Engine " + engineId + " could not be loaded");
-		}
-		String engineType = engine.getCatalogType().name();
-		CatalogDependencyDerivation.syncSmss(user, engineId, engineType, engine.getSmssProp());
-
-		if (engine.getCatalogType() != IEngine.CATALOG_TYPE.GUARDRAIL) {
-			String pipelineName = engine.getSmssProp().getProperty(IEngine.PIPELINE);
-			Map<String, Object> pipelines = Map.of();
-			if (pipelineName != null && !pipelineName.isBlank()) {
-				File pipelineFile = EngineProxyFactory.pipelineFile(engine, pipelineName.trim());
-				if (pipelineFile.isFile()) {
-					Map<String, Object> config = new Gson().fromJson(
-							Files.readString(pipelineFile.toPath(), StandardCharsets.UTF_8), Map.class);
-					if (config != null && config.get("pipelines") instanceof Map<?, ?> read) {
-						pipelines = (Map<String, Object>) read;
-					}
-				}
-			}
-			CatalogDependencyDerivation.syncGuardrails(user, engineId, engineType, pipelines);
-		}
-
-		if (engine instanceof ModelRouterEngine router) {
-			File configFile = router.resolveConfigFile();
-			if (configFile.isFile()) {
-				CatalogDependencyDerivation.syncRouterJson(user, engineId,
-						Files.readString(configFile.toPath(), StandardCharsets.UTF_8));
-			}
-		}
-	}
-
-	private static void backfillWorkspace(User user, String workspaceId) {
-		List<Map<String, Object>> resources = ModelInferenceLogsUtils.getWorkspaceResourcesByType(workspaceId, null);
-		JSONObject config = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
-		String modelId = config == null ? null : config.optString("model_id", null);
-		List<String> subagentIds = new ArrayList<>();
-		JSONArray subagents = config == null ? null : config.optJSONArray("subagents");
-		if (subagents != null) {
-			for (int i = 0; i < subagents.length(); i++) {
-				JSONObject subagent = subagents.optJSONObject(i);
-				if (subagent != null) {
-					subagentIds.add(subagent.optString("workspaceId", null));
-				}
-			}
-		}
-		List<Dependency> dependencies = CatalogDependencyDerivation.fromWorkspace(resources, modelId, subagentIds,
-				CatalogTypes::resolve);
-		SecurityCatalogDependencyUtils.syncAutomaticDependencies(user, workspaceId,
-				IProject.PROJECT_TYPE.WORKSPACE.name(), CatalogDependencyDerivation.WORKSPACE_ROLES, dependencies);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static void backfillAutomation(User user, String projectId) {
-		String definition = AutomationDefinitionService.load(projectId).definition();
-		List<Map<String, Object>> nodes = new ArrayList<>();
-		if (definition != null && !definition.isBlank()) {
-			Map<String, Object> parsed = new Gson().fromJson(definition, Map.class);
-			if (parsed != null && parsed.get("nodes") instanceof List<?> list) {
-				for (Object node : list) {
-					if (node instanceof Map<?, ?> nodeMap) {
-						nodes.add((Map<String, Object>) nodeMap);
-					}
-				}
-			}
-		}
-		SecurityCatalogDependencyUtils.syncAutomaticDependencies(user, projectId,
-				IProject.PROJECT_TYPE.AUTOMATION.name(), List.of(CatalogDependencyRole.AUTOMATION_NODE),
-				CatalogDependencyDerivation.fromAutomationNodes(nodes, CatalogTypes::resolve));
-	}
-
-	/**
-	 * A blocks app's BLOCK_ENGINE dependencies, read from its saved blocks json as
-	 * SaveAppBlocksJson records them
-	 */
-	private static void backfillBlocks(User user, String projectId) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalStateException("Blocks app " + projectId + " could not be loaded");
-		}
-		Set<String> engineIds = new HashSet<>(project.getEngineDependencies().values());
-		engineIds.remove(INotebookHelper.UNDEFINED_VALUE);
-		SecurityCatalogDependencyUtils.syncAutomaticDependencyIds(user, projectId, IProject.PROJECT_TYPE.BLOCKS.name(),
-				CatalogDependencyRole.BLOCK_ENGINE, "Engine a block of this app uses", engineIds);
-	}
-
-	/**
-	 * A code app's CODE_REFERENCE dependencies: the engine and project ids found in
-	 * its files, as ExtractAndSetDependencies records them for the whole app
-	 */
-	@SuppressWarnings("unchecked")
-	private static void backfillCode(User user, String projectId) {
-		IProject project = Utility.getProject(projectId);
-		if (project == null) {
-			throw new IllegalStateException("Code app " + projectId + " could not be loaded");
-		}
-		File assets = new File(EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
-				project.getProjectId(), project.getProjectName()));
-		Map<String, Object> found = ProjectHelper.extractEngineIdsFromProjectFolder(assets);
-		Set<String> ids = found.get("success") instanceof Map<?, ?> success
-				? ((Map<String, Object>) success).keySet()
-				: Set.of();
-		SecurityCatalogDependencyUtils.syncAutomaticDependencyIds(user, projectId, IProject.PROJECT_TYPE.CODE.name(),
-				CatalogDependencyRole.CODE_REFERENCE, "Engine referenced in this app's files", ids);
 	}
 
 	private static List<String> projectIdsOfType(String type) {

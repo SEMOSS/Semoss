@@ -467,6 +467,27 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * How many automatic dependency rows a catalog item has, one for each
+	 * dependency and role
+	 *
+	 * @param catalogId the engine id or project id
+	 * @return the count of its automatic rows
+	 * @throws IllegalStateException when they cannot be counted
+	 */
+	public static int countAutomaticDependencies(String catalogId) {
+		try {
+			Integer count = QueryExecutionUtility.queryOne(SystemEngineRegistry.getSecurityDb(),
+					"SELECT COUNT(*) FROM " + TABLE + " WHERE CATALOGID=? AND IS_AUTOMATIC = ?", ps -> {
+						ps.setString(1, catalogId);
+						ps.setBoolean(2, true);
+					}, rs -> rs.getInt(1));
+			return count == null ? 0 : count;
+		} catch (Exception e) {
+			throw new IllegalStateException("Unable to count the automatic dependencies of " + catalogId, e);
+		}
+	}
+
+	/**
 	 * Replaces every dependency of a catalog item, picked and automatic, with the
 	 * ones given, as they are, in one transaction. For an item that was just
 	 * imported with its dependency file.

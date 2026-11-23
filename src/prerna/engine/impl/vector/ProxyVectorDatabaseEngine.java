@@ -64,7 +64,7 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(ProxyVectorDatabaseEngine.class);
 
-	private static final String TARGET_ENGINE_ID = "TARGET_ENGINE_ID";
+	public static final String TARGET_ENGINE_ID = "TARGET_ENGINE_ID";
 	private static final String TARGET_INTERCEPTOR = "TARGET_INTERCEPTOR";
 	private static final String TARGET_PARAMETERS = "TARGET_PARAMETERS";
 

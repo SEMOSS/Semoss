@@ -61,6 +61,14 @@ public enum CatalogDependencyRole {
 	EMBEDDER,
 	/** The storage engine a function reads its bucket from */
 	FUNCTION_STORAGE,
+	/** The model a vector database generates keywords with */
+	KEYWORD_ENGINE,
+	/** The function a vector database processes its documents with */
+	DOCUMENT_PROCESSOR,
+	/** The vector database a proxy vector database sends its calls to */
+	PROXY_TARGET,
+	/** The model a function describes images with */
+	IMAGE_MODEL,
 
 	/** A model a router sends a route to */
 	ROUTE_MODEL,
