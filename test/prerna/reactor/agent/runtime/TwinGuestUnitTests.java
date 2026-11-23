@@ -54,10 +54,11 @@ class TwinGuestUnitTests {
 	private static final String REFUSED = " is not available in a chat with a Digital Twin. Nothing was run. "
 			+ "Do not retry it.";
 
-	// the asker's mail, calendar, Teams, memory, topics, routines and skills
+	// the asker's mail, calendar, Teams, memory, topics, routines and skills, and how they write: GetWritingStyle
+	// returns the asker's own persona
 	private static final List<String> ASKERS_TOOLS = List.of("SearchMail", "ReadThread", "ListM365Mail",
-			"ComposeEmail", "ListEvents", "CreateEvent", "Remember", "Forget", "SearchMemories", "TagTopic",
-			"ShowItem", "CreateRoutine", "ManageRoutine", "PublishSkill", "UseSkillInAssistant");
+			"ComposeEmail", "GetWritingStyle", "ListEvents", "CreateEvent", "Remember", "Forget", "SearchMemories",
+			"TagTopic", "ShowItem", "CreateRoutine", "ManageRoutine", "PublishSkill", "UseSkillInAssistant");
 	private static final List<String> SUB_AGENT_TOOLS = List.of(SubAgentToolSynthesizer.TOOL_SPAWN_SUBAGENT,
 			SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT, SubAgentToolSynthesizer.TOOL_WAIT_SUBAGENT);
 	// its own files and the chat's working directory

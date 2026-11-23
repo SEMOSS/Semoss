@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import prerna.date.SemossDate;
 import prerna.om.InsightSheet;
 import prerna.reactor.ReactorDefinition;
 import prerna.reactor.panel.AbstractInsightPanelReactor;
@@ -45,7 +44,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.gson.InsightSheetAdapter;
 import prerna.util.gson.NumberAdapter;
-import prerna.util.gson.SemossDateAdapter;
 
 public class SetSheetStateReactor extends AbstractInsightPanelReactor {
 
@@ -56,8 +54,7 @@ public class SetSheetStateReactor extends AbstractInsightPanelReactor {
 	 */
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
-			.registerTypeAdapter(Double.class, new NumberAdapter())
-			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter()).create();
+			.registerTypeAdapter(Double.class, new NumberAdapter()).create();
 
 	private static final String STATE = "state";
 

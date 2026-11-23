@@ -55,6 +55,7 @@ import prerna.collaboration.CollaborationMemoryRunHook;
 import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationSkills;
 import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.WorkMainTwin;
 import prerna.collaboration.WorkTwinPersona;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
@@ -69,6 +70,7 @@ import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
 import prerna.reactor.agent.skill.SkillProjects;
+import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.SystemDefaultEngines;
@@ -216,6 +218,14 @@ public final class AgentConfigLoader {
 			b.digitalTwinOwnChat(SecurityProjectUtils.isProjectCreator(runUser, workspaceId));
 			// how its owner sounds and decides, unless they have no persona or switched it off for this twin
 			b.digitalTwinPersona(WorkTwinPersona.promptBlock(workspaceId, twinOwner));
+		}
+		// The Collaboration Agent in a person's own chat is their own Digital Twin: it is told its name and how
+		// they think. Not in a routine's unattended run, and not for any other agent in the chat. A sub-agent it
+		// starts runs the same agent in a room with the same options, so its room is left out by its mark: the
+		// harness's depth check alone reads as the root for a sub-agent resumed after a restart.
+		if (runUser != null && Constants.AGENT_COLLABORATION.equals(workspaceId) && CollaborationRunMode.isChat(room)
+				&& room.getOptionsMap().get(AgentSubAgentRegistry.ROOM_OPTION_PARENT_ROOM_ID) == null) {
+			b.mainTwinPrompt(WorkMainTwin.promptBlock(runUser));
 		}
 
 		// CONFIG_JSON budgets override per field; remaining values come from caller

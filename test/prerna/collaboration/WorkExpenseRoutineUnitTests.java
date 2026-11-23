@@ -85,6 +85,10 @@ class WorkExpenseRoutineUnitTests {
 		assertTrue(withDocuments.contains("Do not call SaveDraft"));
 		// approvers scan the summary for what breaks the guidelines, not for what passes
 		assertTrue(withDocuments.contains("Leave out everything that complies"));
+		// the owner's persona gives the draft its voice, never its decision, and a note written into the draft's
+		// quote would be saved as part of the email
+		assertTrue(withDocuments.contains("Use what GetWritingStyle returns only for how the draft sounds"));
+		assertTrue(withDocuments.contains("add no Note line"));
 	}
 
 	@Test

@@ -54,8 +54,8 @@ import prerna.engine.impl.function.AbstractFunctionEngine;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.om.Insight;
 import prerna.security.HttpHelperUtility;
+import prerna.security.UrlAccessRules;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class ServiceNowFunctionEngine extends AbstractFunctionEngine {
 
@@ -160,7 +160,6 @@ public class ServiceNowFunctionEngine extends AbstractFunctionEngine {
 		while (this.endpoint.endsWith("/")) {
 			this.endpoint = this.endpoint.substring(0, this.endpoint.length() - 1);
 		}
-		Utility.checkIfValidDomain(this.endpoint);
 
 		this.authType = smssProp.getProperty(AUTH_TYPE_KEY);
 		if (this.authType == null || (this.authType = this.authType.toLowerCase()).isEmpty()) {
@@ -227,7 +226,7 @@ public class ServiceNowFunctionEngine extends AbstractFunctionEngine {
 				// default to the standard token endpoint on the instance
 				this.oauthEndpoint = this.endpoint + DEFAULT_OAUTH_PATH;
 			}
-			Utility.checkIfValidDomain(this.oauthEndpoint);
+			UrlAccessRules.checkUrl(this.oauthEndpoint);
 		}
 
 		// all of the table query settings are optional defaults that the caller can

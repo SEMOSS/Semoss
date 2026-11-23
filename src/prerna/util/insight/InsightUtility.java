@@ -53,7 +53,6 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.date.SemossDate;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
@@ -93,13 +92,11 @@ import prerna.util.gson.FrameCacheHelper;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
 import prerna.util.gson.NumberAdapter;
-import prerna.util.gson.SemossDateAdapter;
 
 public class InsightUtility {
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
-			.registerTypeAdapter(Double.class, new NumberAdapter())
-			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter()).create();
+			.registerTypeAdapter(Double.class, new NumberAdapter()).create();
 
 	protected static final Logger classLogger = LogManager.getLogger(InsightUtility.class.getName());
 	public static final String PANEL_VIEW_VISUALIZATION = "visualization";

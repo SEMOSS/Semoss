@@ -114,8 +114,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	private static final String INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this project's permissions.";
 	private static final String NOT_HIGH_ENOUGH = "The user doesn't have the high enough permissions to modify this users project permission.";
 	private static final String INSERT_PROJECT = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, "
-			+ "DISCOVERABLE, IS_TEMPLATE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, PROJECTDISPLAYNAME) "
-			+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+			+ "DISCOVERABLE, IS_TEMPLATE, HAS_CUSTOM_LOGIN, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, "
+			+ "PROJECTDISPLAYNAME) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	private static final String UPDATE_PROJECT = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=? "
 			+ "WHERE PROJECTID=?";
 	private static final String SELECT_STORED_INSIGHTS = "SELECT INSIGHTID, INSIGHTNAME, LAYOUT, GLOBAL, CACHEABLE, "
@@ -511,9 +511,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Inserts a project's PROJECT row on the caller's connection, in its
-	 * transaction. The project is not discoverable, it was created and last edited
-	 * now, and the user, when given, is recorded as its creator. A blank display
-	 * name gives the project's name as its display name.
+	 * transaction. The project is not discoverable, has no login page of its own,
+	 * was created and last edited now, and the user, when given, is recorded as its
+	 * creator. A blank display name gives the project's name as its display name.
 	 *
 	 * @param connection the security database connection, in the caller's
 	 *                   transaction
@@ -531,6 +531,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
 			ps.setBoolean(parameterIndex++, isTemplate);
+			ps.setBoolean(parameterIndex++, false);
 			if (user != null) {
 				AuthProvider ap = user.getPrimaryLogin();
 				AccessToken token = user.getAccessToken(ap);
@@ -1223,6 +1224,31 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether a project has a login page of its own in its portal, so its portal is
+	 * served to signed out visitors for them to sign in there. A project without
+	 * one is served only to signed in users who can view it.
+	 *
+	 * @param projectId the project
+	 * @return true only when the project's custom login flag is true; false when
+	 *         the flag cannot be read
+	 */
+	public static boolean projectHasCustomLogin(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("PROJECT__HAS_CUSTOM_LOGIN", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			classLogger.error("Could not read whether project {} has a custom login page",
+					Utility.cleanLogString(projectId), e);
+			return false;
+		}
+	}
+
+	/**
 	 * Determine whether a user may clone a project. The project's owners can always
 	 * clone it; anyone else must be able to view the project, and its owner must
 	 * have enabled it as a template.
@@ -1691,8 +1717,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
-				SecurityModelUsageLimitUtils.deleteGranteeLimits(connection, projectId,
-						PermissionSubject.PROJECT_TYPE);
+				SecurityModelUsageLimitUtils.deleteGranteeLimits(connection, projectId, PermissionSubject.PROJECT_TYPE);
 				return null;
 			});
 		} catch (RuntimeException e) {
@@ -1818,6 +1843,67 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred setting the project template flag", e);
 		}
 		return true;
+	}
+
+	/**
+	 * Sets whether a project has a login page of its own in its portal. With it,
+	 * the portal is served to signed out visitors so they can sign in there;
+	 * without it, only signed in users who can view the project get the portal.
+	 * Only the project's owners can change it, and a Digital Twin never has one,
+	 * since it is shared with named people only.
+	 *
+	 * @param user           the signed in user
+	 * @param projectId      the project
+	 * @param hasCustomLogin whether the project has its own login page
+	 * @throws IllegalAccessException   when the user is not an owner of the project
+	 * @throws IllegalArgumentException when the project is a Digital Twin, or does
+	 *                                  not exist
+	 */
+	public static void setProjectCustomLogin(User user, String projectId, boolean hasCustomLogin)
+			throws IllegalAccessException {
+		if (!userIsOwner(user, projectId)) {
+			throw new IllegalAccessException("Only this project's owners can change whether it has its own login page");
+		}
+		if (hasCustomLogin) {
+			requireNotDigitalTwin(projectId);
+		}
+		updateProjectCustomLogin(projectId, hasCustomLogin);
+		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE, projectId, null,
+				Map.of("field", "customLogin", "customLogin", hasCustomLogin));
+	}
+
+	/**
+	 * Writes a project's custom login flag, with no permission check. The callers
+	 * check who may change it first: {@link #setProjectCustomLogin} for the
+	 * project's owners, and {@link SecurityAdminUtils#setProjectCustomLogin} for
+	 * admins.
+	 *
+	 * @param projectId      the project
+	 * @param hasCustomLogin whether the project has its own login page
+	 * @throws IllegalArgumentException when the project does not exist, or the flag
+	 *                                  cannot be written
+	 */
+	static void updateProjectCustomLogin(String projectId, boolean hasCustomLogin) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection
+						.prepareStatement("UPDATE PROJECT SET HAS_CUSTOM_LOGIN=? WHERE PROJECTID=?")) {
+					ps.setBoolean(1, hasCustomLogin);
+					ps.setString(2, projectId);
+					if (ps.executeUpdate() != 1) {
+						throw new IllegalArgumentException("Project " + projectId + " does not exist");
+					}
+				}
+				return null;
+			});
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Could not set whether project {} has a custom login page",
+					Utility.cleanLogString(projectId), e);
+			throw new IllegalArgumentException("Could not set whether the project has its own login page", e);
+		}
 	}
 
 	/**
@@ -3130,8 +3216,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * matched against any of the user's logins; a project stored without its
 	 * creator's login type matches the id alone.
 	 *
-	 * @return false as well when the project has no creator on record or the
-	 *         lookup fails, so what is kept for a creator is never given by mistake
+	 * @return false as well when the project has no creator on record or the lookup
+	 *         fails, so what is kept for a creator is never given by mistake
 	 */
 	public static boolean isProjectCreator(User user, String projectId) {
 		Pair<String, String> creator = user == null ? null : getProjectCreator(projectId);
@@ -3151,8 +3237,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Who created a project, as the id and login type on its row.
 	 *
 	 * @return the id with its login type, which is null where the project was
-	 *         stored without one; null when the project has no creator on record
-	 *         or the lookup fails
+	 *         stored without one; null when the project has no creator on record or
+	 *         the lookup fails
 	 */
 	public static Pair<String, String> getProjectCreator(String projectId) {
 		if (projectId == null) {
@@ -3176,7 +3262,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Refuses a way of sharing a Digital Twin beyond named people, such as making
-	 * it public, discoverable or a template, or giving a team or everyone access.
+	 * it public, discoverable or a template, serving its portal to signed out
+	 * visitors, or giving a team or everyone access.
 	 *
 	 * @throws IllegalArgumentException when the project is a Digital Twin
 	 */
@@ -3444,14 +3531,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DISCOVERABLE", "project_discoverable"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "IS_TEMPLATE", "project_is_template"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix + "HAS_CUSTOM_LOGIN", "project_has_custom_login"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
 		if (projectMetadataFilter != null && projectMetadataFilter.containsKey(DIGITAL_TWIN_METAKEY)) {
 			// A legacy untyped creator id may identify people on more than one provider.
-			qs1.addSelector(new QueryOpaqueSelector("(SELECT CASE WHEN COUNT(*) = 1 THEN MIN(creator.NAME) END "
-					+ "FROM SMSS_USER creator WHERE creator.ID = PROJECT.CREATEDBY "
-					+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR creator.TYPE = PROJECT.CREATEDBYTYPE))",
+			qs1.addSelector(new QueryOpaqueSelector(
+					"(SELECT CASE WHEN COUNT(*) = 1 THEN MIN(creator.NAME) END "
+							+ "FROM SMSS_USER creator WHERE creator.ID = PROJECT.CREATEDBY "
+							+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR creator.TYPE = PROJECT.CREATEDBYTYPE))",
 					"digital_twin_owner_name"));
 		}
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DATECREATED", "project_date_created"));
@@ -3804,6 +3893,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DISCOVERABLE", "project_discoverable"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__IS_TEMPLATE", "project_is_template"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__HAS_CUSTOM_LOGIN", "project_has_custom_login"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
@@ -3923,6 +4013,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DISCOVERABLE", "project_discoverable"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__IS_TEMPLATE", "project_is_template"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__HAS_CUSTOM_LOGIN", "project_has_custom_login"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));

@@ -125,10 +125,6 @@ class WorkTwinPersonaInterviewDbUnitTests {
 			return memories;
 		}
 
-		@Override
-		public String style() {
-			return "Short. Signs with first name.";
-		}
 	};
 
 	@BeforeEach
@@ -215,7 +211,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 		assertEquals("asking", first.get("phase"));
 		assertEquals("confirm", step(first).get("id"));
 		assertEquals(List.of("You answer in one or two lines."), step(first).get("items"));
-		// the model was given the samples, each cut to size and named for where it is from, and the email style
+		// the model was given the samples, each cut to size and named for where it is from
 		Map<String, Object> input = given.get(0);
 		List<?> samples = (List<?>) input.get("samples");
 		assertEquals(3, samples.size());
@@ -223,7 +219,7 @@ class WorkTwinPersonaInterviewDbUnitTests {
 				samples.get(0));
 		assertEquals(WorkTwinPersonaInterview.MAX_SAMPLE, ((Map<?, ?>) samples.get(1)).get("text").toString().length());
 		assertEquals("a note the assistant keeps of how they like things done", ((Map<?, ?>) samples.get(2)).get("from"));
-		assertEquals("Short. Signs with first name.", input.get("style"));
+		assertFalse(input.containsKey("style"));
 		// what is kept is the notes: nothing that was read
 		String stored = text("INTERVIEW_JSON");
 		assertFalse(stored.contains("PASSWORD-123") || stored.contains("bullet points"), stored);

@@ -92,6 +92,10 @@ public final class AgentConfig {
 	private final boolean digitalTwinOwnChat;
 	private final String digitalTwinPersona;
 
+	// What the Collaboration Agent is told in its owner's own chat, where it is their own Digital Twin: who it is
+	// and the parts of their persona it thinks with
+	private final String mainTwinPrompt;
+
 	// MCP tool projects (union of WORKSPACE_RESOURCE + room.options.mcp[])
 	private final List<Map<String, String>> mcps;
 
@@ -149,6 +153,7 @@ public final class AgentConfig {
 		this.digitalTwinOwner = b.digitalTwinOwner;
 		this.digitalTwinOwnChat = b.digitalTwinOwnChat;
 		this.digitalTwinPersona = b.digitalTwinPersona;
+		this.mainTwinPrompt = b.mainTwinPrompt;
 		this.mcps =b.mcps != null ? Collections.unmodifiableList(new ArrayList<>(b.mcps)) : Collections.emptyList();
 		this.skills = b.skills != null ? Collections.unmodifiableList(new ArrayList<>(b.skills))
 				: Collections.emptyList();
@@ -377,6 +382,16 @@ public final class AgentConfig {
 		return digitalTwinPersona;
 	}
 
+	/**
+	 * What a person's own Digital Twin is told about itself: who it is, then the
+	 * parts of their persona it thinks with. Set only for the Collaboration Agent
+	 * in that person's own chat; {@code null} for any other agent or room, and
+	 * for every Digital Twin a person shares.
+	 */
+	public String getMainTwinPrompt() {
+		return mainTwinPrompt;
+	}
+
 	// MCP tool projects
 	/**
 	 * Resolved MCP project refs for this run.
@@ -470,6 +485,7 @@ public final class AgentConfig {
 		private String digitalTwinOwner;
 		private boolean digitalTwinOwnChat;
 		private String digitalTwinPersona;
+		private String mainTwinPrompt;
 		private List<Map<String, String>> mcps;
 		private List<Map<String, String>> skills;
 		private Budgets budgets;
@@ -595,6 +611,11 @@ public final class AgentConfig {
 
 		public Builder digitalTwinPersona(String v) {
 			this.digitalTwinPersona = v;
+			return this;
+		}
+
+		public Builder mainTwinPrompt(String v) {
+			this.mainTwinPrompt = v;
 			return this;
 		}
 

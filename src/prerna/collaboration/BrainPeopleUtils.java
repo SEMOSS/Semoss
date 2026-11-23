@@ -126,6 +126,10 @@ public final class BrainPeopleUtils {
 	 * senders are left out.
 	 */
 	public static List<Map<String, Object>> findPeople(User user, String query, int limit) {
+		return findPeople(user, query, limit, true);
+	}
+
+	static List<Map<String, Object>> findPeople(User user, String query, int limit, boolean includeDirectory) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		List<String> words = java.util.Arrays.stream(query.trim().toLowerCase().split("[\\s,;]+"))
 				.filter(w -> !w.isEmpty()).limit(5).toList();
@@ -156,7 +160,7 @@ public final class BrainPeopleUtils {
 			out.add(entry);
 			seen.add(String.valueOf(person.get("email")));
 		}
-		if (out.size() < limit) {
+		if (includeDirectory && out.size() < limit) {
 			for (Map<String, Object> person : BrainMailHeaderSource.current().searchDirectory(user, query, limit)) {
 				if (out.size() < limit && seen.add(String.valueOf(person.get("email")))) {
 					Map<String, Object> entry = new LinkedHashMap<>(person);
@@ -285,7 +289,7 @@ public final class BrainPeopleUtils {
 	// the address goes into a Graph path as is, so only plain ones are asked about
 	private static final Pattern PLAIN_ADDRESS = Pattern.compile("[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+");
 	// so does a Microsoft user id, so only what has an id's own shape is asked about
-	private static final Pattern USER_ID = Pattern.compile("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}");
+	static final Pattern USER_ID = Pattern.compile("[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}");
 
 	// what the Brain knows of an address: how it relates to the owner, and the directory's answer
 	private record Known(String relationship, String directoryId, boolean checked) {

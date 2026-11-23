@@ -208,10 +208,11 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		// (PROJECTACCESSREQUEST) and GitHub link (GITHUB_PROJECT_LINK) follow further down
 
 		// one row per project: its id, name and display name, TYPE, whether it is public (GLOBAL),
-		// discoverable, or a template others can copy (IS_TEMPLATE), when and by whom its portal
-		// was last published and its custom reactors last compiled, and who created it, when, and
-		// when it was last edited. An app given a permission by an engine (ENGINE2ENGINEPERMISSION,
-		// GRANTEEENGINETYPE PROJECT) is a project here
+		// discoverable, a template others can copy (IS_TEMPLATE), or has its own login page
+		// (HAS_CUSTOM_LOGIN, so its portal is served to signed out visitors), when and by whom its
+		// portal was last published and its custom reactors last compiled, and who created it,
+		// when, and when it was last edited. An app given a permission by an engine
+		// (ENGINE2ENGINEPERMISSION, GRANTEEENGINETYPE PROJECT) is a project here
 		addTable("PROJECT", Arrays.asList(
 				Pair.with("PROJECTID", VARCHAR_255),
 				Pair.with("PROJECTNAME", VARCHAR_255),
@@ -219,6 +220,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("GLOBAL", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DISCOVERABLE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("IS_TEMPLATE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("HAS_CUSTOM_LOGIN", BOOLEAN_DATATYPE_NAME),
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("COST", VARCHAR_255),
 				Pair.with("CATALOGNAME", VARCHAR_255),

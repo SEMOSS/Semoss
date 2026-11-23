@@ -203,8 +203,6 @@ public final class WorkWorkspaceUtils {
 		return workspaces.computeIfAbsent(threadId, id -> {
 			Map<String, Object> w = new LinkedHashMap<>();
 			w.put("threadId", id);
-			// always empty: a thread's goals are its topics' goals, and the client still reads the field
-			w.put("goal", null);
 			w.put("steps", new ArrayList<>());
 			return w;
 		});
