@@ -70,6 +70,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
 /**
@@ -364,14 +365,35 @@ class TemplatePPTXReactorTest {
     }
 
     @Test
-    void resolveTemplateFile_absolutePathOutsideInsightFolder_returnsAbsoluteFile(@TempDir Path tempDir)
+    void resolveTemplateFile_notInInsightFolder_returnsFileFromProjectAssetsFolder(@TempDir Path tempDir)
             throws IOException {
         Path insightFolder = java.nio.file.Files.createDirectories(tempDir.resolve("insight"));
+        Path assetsFolder = java.nio.file.Files.createDirectories(tempDir.resolve("assets"));
+        java.nio.file.Files.createFile(assetsFolder.resolve("template.pptx"));
+
+        File resolved = resolveWithProjectAssets(insightFolder, assetsFolder, "template.pptx");
+
+        assertEquals(new File(assetsFolder.toFile(), "template.pptx"), resolved);
+    }
+
+    @Test
+    void resolveTemplateFile_absolutePath_isNotUsed(@TempDir Path tempDir) throws IOException {
+        Path insightFolder = java.nio.file.Files.createDirectories(tempDir.resolve("insight"));
+        Path assetsFolder = java.nio.file.Files.createDirectories(tempDir.resolve("assets"));
         Path template = java.nio.file.Files.createFile(tempDir.resolve("template.pptx"));
 
-        File resolved = resolveWithInsightFolder(insightFolder, template.toString());
+        assertThrows(IllegalArgumentException.class,
+                () -> resolveWithProjectAssets(insightFolder, assetsFolder, template.toString()));
+    }
 
-        assertEquals(template.toFile(), resolved);
+    @Test
+    void resolveTemplateFile_parentTraversalOutOfAssetsFolder_throws(@TempDir Path tempDir) throws IOException {
+        Path insightFolder = java.nio.file.Files.createDirectories(tempDir.resolve("insight"));
+        Path assetsFolder = java.nio.file.Files.createDirectories(tempDir.resolve("assets"));
+        java.nio.file.Files.createFile(tempDir.resolve("secret.pptx"));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> resolveWithProjectAssets(insightFolder, assetsFolder, "../secret.pptx"));
     }
 
     @Test
@@ -381,16 +403,6 @@ class TemplatePPTXReactorTest {
 
         assertTrue(e.getMessage().contains("Template file not found"));
         assertTrue(e.getMessage().contains(new File(tempDir.toFile(), "missing.pptx").getAbsolutePath()));
-    }
-
-    @Test
-    void resolveTemplateFile_missingAbsolutePath_throws(@TempDir Path tempDir) {
-        String missing = tempDir.resolve("missing.pptx").toString();
-
-        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                () -> resolveWithInsightFolder(tempDir, missing));
-
-        assertTrue(e.getMessage().contains("Template file not found"));
     }
 
     @Test
@@ -407,6 +419,21 @@ class TemplatePPTXReactorTest {
 
             assertEquals(new File(tempDir.toFile(), "template.pptx"), resolved);
             utility.verify(() -> Utility.normalizePath("raw\\template.pptx"));
+        }
+    }
+
+    private File resolveWithProjectAssets(Path insightFolder, Path assetsFolder, String rawValue) {
+        Insight insight = mock(Insight.class);
+        when(insight.getInsightFolder()).thenReturn(insightFolder.toString());
+        when(insight.getProjectId()).thenReturn("project-id");
+        reactor.setInsight(insight);
+        try (MockedStatic<Utility> utility = mockStatic(Utility.class);
+                MockedStatic<AssetUtility> assets = mockStatic(AssetUtility.class)) {
+            utility.when(() -> Utility.normalizePath(anyString()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+            assets.when(() -> AssetUtility.getProjectAssetsFolder("project-id"))
+                    .thenReturn(assetsFolder.toString());
+            return reactor.resolveTemplateFile(rawValue);
         }
     }
 
@@ -457,7 +484,7 @@ class TemplatePPTXReactorTest {
         when(insight.getUser()).thenReturn(user);
         when(insight.getInsightFolder()).thenReturn(insightFolder.toString());
         TemplatePPTXReactor reactor = reactorForExecute(
-                insight, createTemplate(tempDir.resolve("template.pptx")), outputFolder);
+                insight, createTemplate(insightFolder.resolve("template.pptx")), outputFolder);
 
         try (MockedStatic<AbstractSecurityUtils> security = mockStatic(AbstractSecurityUtils.class);
                 MockedStatic<Utility> utility = mockStatic(Utility.class)) {
@@ -491,7 +518,7 @@ class TemplatePPTXReactorTest {
     private TemplatePPTXReactor reactorForExecute(Insight insight, Path template, Path outputFolder) {
         NounStore store = new NounStore("template-pptx-execute-test");
         store.makeGenRowStruct(ReactorKeysEnum.TEMPLATE_FILE.getKey())
-                .add(template.toString(), PixelDataType.CONST_STRING);
+                .add(template.getFileName().toString(), PixelDataType.CONST_STRING);
         store.makeGenRowStruct(TemplatePPTXReactor.PAYLOAD_KEY)
                 .add("{\"slide_title\":{\"type\":\"text\",\"value\":\"Generated title\"}}",
                         PixelDataType.CONST_STRING);

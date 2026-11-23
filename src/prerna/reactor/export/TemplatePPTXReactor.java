@@ -69,6 +69,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -158,26 +159,40 @@ public class TemplatePPTXReactor extends AbstractReactor {
         return retNoun;
     }
 
-    // Resolve power point template file path
+    // Resolve power point template file path: insight folder first, then project assets folder
     File resolveTemplateFile(String rawValue) {
 		String normalized = Utility.normalizePath(rawValue);
 
 		// Insight-relative file path
-		File insightRelative = new File(this.insight.getInsightFolder(), normalized);
-		if (insightRelative.exists()) {
+		File insightFolder = new File(this.insight.getInsightFolder());
+		File insightRelative = new File(insightFolder, normalized);
+		if (insightRelative.exists() && isWithin(insightFolder, insightRelative)) {
 			return insightRelative;
 		}
 
-		// OR Absolute path
-		File absolute = new File(normalized);
-		if (absolute.isAbsolute() && absolute.exists()) {
-			return absolute;
+		// OR the root of the project assets folder, so a pptx uploaded there can be used directly
+		String projectId = this.insight.getProjectId();
+		if (projectId != null && !projectId.isEmpty()) {
+			File assetsFolder = new File(Utility.normalizePath(AssetUtility.getProjectAssetsFolder(projectId)));
+			File assetFile = new File(assetsFolder, normalized);
+			if (assetFile.isFile() && isWithin(assetsFolder, assetFile)) {
+				return assetFile;
+			}
 		}
 
 		throw new IllegalArgumentException(
 				"Template file not found. Looked in insight folder: '"
 				+ insightRelative.getAbsolutePath()
-				+ "' and as absolute path: '" + normalized + "'.");
+				+ "' and in the project assets folder for: '" + normalized + "'.");
+	}
+
+	private static boolean isWithin(File folder, File file) {
+		try {
+			return file.getCanonicalFile().toPath().startsWith(folder.getCanonicalFile().toPath());
+		} catch (IOException e) {
+			classLogger.error(Constants.STACKTRACE, e);
+			return false;
+		}
 	}
 
     // Parse Payload
