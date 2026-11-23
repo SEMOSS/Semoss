@@ -49,13 +49,13 @@ public class WorkGetTwinPersonaReactor extends AbstractCollaborationReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
 				"Returns the signed-in user's persona: how they sound, how they decide and what is left to them. "
-						+ "Every Digital Twin they created is given it unless they switched it off for that twin, and "
-						+ "their own assistant writes for them with it unless they switched that off. Only its owner "
-						+ "can read it")
+						+ "Every Digital Twin they share is given it unless they switched it off for that twin, and "
+						+ "their own Digital Twin thinks with it in their chats and writes for them with it unless "
+						+ "they switched that off. Only its owner can read it")
 				.noKeys()
 				.output(Map.class, "exists, whether any section holds text; sections, the text by section key "
 						+ "(short, voice, decide, review, stands, people, limits, examples); offTwins, the ids of "
-						+ "the twins it is switched off for; assistant, whether their own assistant writes with it; "
+						+ "the twins it is switched off for; assistant, whether their own Digital Twin uses it; "
 						+ "interview, null or how far the interview that writes it is (answered, of, wrapped, "
 						+ "done); and updatedAt");
 	}

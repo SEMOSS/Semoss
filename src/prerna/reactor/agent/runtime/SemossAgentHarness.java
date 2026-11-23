@@ -289,6 +289,14 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
+		// A person's own Digital Twin: the Collaboration Agent in their own chat is told who it is and how they
+		// think. After the agent's and the room's instructions, where the baseline says the agent's identity
+		// comes, so a room's instructions cannot replace it; and after the static parts, which stay cacheable
+		String mainTwin = ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH ? agentConfig.getMainTwinPrompt()
+				: null;
+		if (mainTwin != null) {
+			composed.append("\n\n").append(mainTwin);
+		}
 		// a Digital Twin's rules, after its owner's instructions so those cannot take
 		// them away. Its owner's persona goes between the two: whoever is chatting can
 		// replace the instructions through their room, never this, and it never goes
@@ -305,7 +313,9 @@ public class SemossAgentHarness implements IAgentHarness {
 		// after the static parts so they stay cacheable
 		if (guest) {
 			// a Digital Twin is told who is asking, and nothing Collaboration keeps for
-			// them: not their profile, their memories or their routine preferences
+			// them: not their profile, their memories or their routine preferences, nor
+			// what their own Digital Twin is told, which the loader gives the Collaboration
+			// Agent alone
 			String asker = CollaborationPrompts.twinAsker(loginName(ctx.getInsight().getUser()));
 			if (asker != null && CollaborationRunMode.of(room) != null
 					&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH) {
@@ -339,11 +349,11 @@ public class SemossAgentHarness implements IAgentHarness {
 		room.setOptionsMap(opts);
 
 		logger.info(
-				"SemossAgentHarness: composed system prompt room={} workspaceId={} harnessChars={} agentSideChars={} (agentAgentsMd={} workdirAgentsMd={} authored={}) twinPersonaChars={}",
+				"SemossAgentHarness: composed system prompt room={} workspaceId={} harnessChars={} agentSideChars={} (agentAgentsMd={} workdirAgentsMd={} authored={}) twinPersonaChars={} mainTwinChars={}",
 				room.getId(), agentConfig.getWorkspaceId(), SemossHarnessPrompts.SYSTEM_PROMPT.length(),
 				agentSidePrompt != null ? agentSidePrompt.length() : 0, lengthOrZero(agentConfig.getAgentAgentsMd()),
 				lengthOrZero(agentConfig.getWorkdirAgentsMd()), lengthOrZero(agentConfig.getAuthoredPrompt()),
-				lengthOrZero(twinPersona));
+				lengthOrZero(twinPersona), lengthOrZero(mainTwin));
 
 		AgentLoopState state = new AgentLoopState();
 		String progressOutcome = "failed";

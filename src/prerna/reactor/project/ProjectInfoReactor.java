@@ -144,8 +144,9 @@ public class ProjectInfoReactor extends AbstractReactor {
 
 								Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
 								  Core project fields: project_id, project_name, project_display_name, project_type, project_cost,
-								    project_global, project_discoverable, project_is_template, project_catalog_name, project_created_by, project_created_by_type,
-								    project_date_created, project_date_last_edited, low_project_name, project_description.
+								    project_global, project_discoverable, project_is_template, project_has_custom_login, project_catalog_name,
+								    project_created_by, project_created_by_type, project_date_created, project_date_last_edited, low_project_name,
+								    project_description.
 								  Portal fields: project_has_portal, project_portal_name, project_portal_published_date, project_published_user,
 								    project_published_user_type, project_reactors_compiled_date, project_reactors_compiled_user,
 								    project_reactors_compiled_user_type. When project_has_portal is true, project_portal_url is also returned.

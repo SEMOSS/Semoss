@@ -111,8 +111,8 @@ class SignedInTasksUnitTests {
 		ThreadStore.setJobId("job-1");
 		ThreadStore.setRouteId("route-1");
 
-		List<Object> seen = executor(kind).submit(() -> Arrays.asList(ThreadStore.getUser(),
-				ThreadStore.getInsightId(), ThreadStore.getJobId(), ThreadStore.getRouteId(), Thread.currentThread()))
+		List<Object> seen = executor(kind).submit(() -> Arrays.asList(ThreadStore.getUser(), ThreadStore.getInsightId(),
+				ThreadStore.getJobId(), ThreadStore.getRouteId(), Thread.currentThread()))
 				.get(WAIT_SECONDS, TimeUnit.SECONDS);
 
 		assertSame(this.user, seen.get(0));
@@ -157,9 +157,8 @@ class SignedInTasksUnitTests {
 		ThreadContext.put("userId", "jdoe");
 		SandboxedJavaExecution.setSandboxRootForCurrentThread(this.folder.toString());
 
-		List<String> seen = executor(kind)
-				.submit(() -> Arrays.asList(ThreadContext.get("userId"),
-						SandboxedJavaExecution.sandboxRootForCurrentThread()))
+		List<String> seen = executor(kind).submit(
+				() -> Arrays.asList(ThreadContext.get("userId"), SandboxedJavaExecution.sandboxRootForCurrentThread()))
 				.get(WAIT_SECONDS, TimeUnit.SECONDS);
 
 		assertEquals(List.of("jdoe", this.folder.toAbsolutePath().normalize().toString()), seen);

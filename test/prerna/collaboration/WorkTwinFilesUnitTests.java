@@ -137,7 +137,7 @@ class WorkTwinFilesUnitTests {
 	@Test
 	void onlyATwinsOwnerAddsToItAndOnlyFromAChatWithIt() {
 		User user = mock(User.class);
-		String refused = "Files can only be added in a chat with your own Digital Twin";
+		String refused = "Files can only be added in your own chat with a twin you share";
 		try (MockedStatic<SecurityProjectUtils> security = mockStatic(SecurityProjectUtils.class)) {
 			// a chat with no agent of its own, and no chat at all
 			for (Room room : new Room[] { null, chatWith(null), chatWith(" ") }) {

@@ -62,7 +62,7 @@ public class WorkDeleteMySkillReactor extends AbstractCollaborationReactor {
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Deletes one of the owner's skills for good. Routines and the assistant stop using it on their next "
+				"Deletes one of the owner's skills for good. Routines and their own Digital Twin stop using it on their next "
 						+ "run.")
 				.key(SKILL_ID, "Id of the owner's skill, from ListMySkills.");
 	}

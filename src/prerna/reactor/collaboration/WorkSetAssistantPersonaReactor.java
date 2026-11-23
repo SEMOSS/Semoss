@@ -56,11 +56,12 @@ public class WorkSetAssistantPersonaReactor extends AbstractCollaborationReactor
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Switches the signed-in user's persona on or off for their own assistant. Their assistant writes "
-						+ "email and Teams messages for them with it until it is switched off. Their Digital Twins "
-						+ "are not affected")
+				"Switches the signed-in user's persona on or off for work done as them in Collaboration. While it "
+						+ "is on, their own Digital Twin (the Collaboration Agent in their chats) thinks with it, and "
+						+ "any agent that writes email or Teams messages for them, a routine included, writes with "
+						+ "it through GetWritingStyle. The Digital Twins they share are not affected")
 				.key(ENABLED, key -> key.type(Boolean.class).description(
-						"true for their assistant to write with the persona, false for it to write without it"))
+						"true for the persona to be used when thinking and writing for them, false for neither"))
 				.output(Map.class, "enabled as it now is");
 	}
 }

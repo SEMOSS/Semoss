@@ -339,6 +339,52 @@ class WorkTwinPersonaDbUnitTests {
 	}
 
 	@Test
+	void theOwnersOwnTwinThinksWithTheSectionsItUsesUntilItIsSwitchedOff() throws Exception {
+		CollaborationDbUtils.initialized = true;
+		assertNull(WorkTwinPersona.forMainTwin(user));
+		assertNull(WorkTwinPersona.forMainTwin(null));
+		// only a section it does not think with holds text
+		WorkTwinPersona.save(user, Map.of("voice", "Direct."));
+		assertNull(WorkTwinPersona.forMainTwin(user));
+
+		Map<String, Object> all = new LinkedHashMap<>();
+		for (String key : WorkTwinPersona.SECTIONS.keySet()) {
+			all.put(key, "About " + key + ".");
+		}
+		WorkTwinPersona.save(user, all);
+		String text = WorkTwinPersona.forMainTwin(user);
+		assertNotNull(text);
+		assertTrue(text.startsWith("## How the owner thinks\n"), text);
+		// who they are, how they decide, what they check, their standing answers and what is left to them
+		int at = -1;
+		for (String section : List.of("### In short\nAbout short.", "### How the owner decides\nAbout decide.",
+				"### What the owner checks when reviewing work\nAbout review.",
+				"### Where the owner stands\nAbout stands.", "### Leave to the owner\nAbout limits.")) {
+			int next = text.indexOf(section);
+			assertTrue(next > at, section + " in " + text);
+			at = next;
+		}
+		// how they sound stays with what a draft reads
+		for (String key : List.of("voice", "people", "examples")) {
+			assertFalse(text.contains("About " + key + "."), text);
+		}
+
+		// one switch covers how their own twin thinks and how it writes for them
+		WorkTwinPersona.setAssistant(user, false);
+		assertNull(WorkTwinPersona.forMainTwin(user));
+		assertNull(WorkTwinPersona.forAssistant(user));
+		WorkTwinPersona.setAssistant(user, true);
+		assertEquals(text, WorkTwinPersona.forMainTwin(user));
+
+		// a persona that cannot be read is a chat without it, never a failed chat
+		sql("DROP TABLE BRAIN_PERSONA");
+		assertNull(WorkTwinPersona.forMainTwin(user));
+		// Collaboration is off: nothing is read
+		CollaborationDbUtils.initialized = false;
+		assertNull(WorkTwinPersona.forMainTwin(user));
+	}
+
+	@Test
 	void theAssistantCanBeSwitchedOffBeforeThereIsAPersona() throws Exception {
 		CollaborationDbUtils.initialized = true;
 		// on is what someone with no row has, so switching it on writes nothing

@@ -39,7 +39,6 @@ import java.util.TreeMap;
 import java.util.stream.Stream;
 
 import prerna.date.SemossDate;
-import prerna.io.connector.AbstractOAuthTokenFiller;
 
 public class AccessToken implements Serializable {
 
@@ -56,6 +55,7 @@ public class AccessToken implements Serializable {
 	private String id = null;
 	private String username = null;
 	private String access_token = null;
+	private String refresh_token = null;
 	private String instance_url = null;
 	private int expires_in = 0; // this is in seconds
 	private String token_type = "Bearer";
@@ -110,6 +110,25 @@ public class AccessToken implements Serializable {
 	 */
 	public String getAccess_token() {
 		return this.access_token;
+	}
+
+	/**
+	 * Sets the OAuth refresh token the provider issued with this access token. It
+	 * lives only on the token and is never saved as user metadata.
+	 *
+	 * @param refreshToken the refresh token value to set
+	 */
+	public void setRefresh_token(String refreshToken) {
+		this.refresh_token = refreshToken;
+	}
+
+	/**
+	 * Gets the OAuth refresh token the provider issued with this access token.
+	 *
+	 * @return the refresh token value, or null when the provider issued none
+	 */
+	public String getRefresh_token() {
+		return this.refresh_token;
 	}
 
 	public void setInstance_url(String instanceUrl) {
@@ -651,13 +670,10 @@ public class AccessToken implements Serializable {
 	 * the login populated. Also includes the token's meta, SAN, and group
 	 * information, plus the supplied user epoch.
 	 * <p>
-	 * When {@code includeToken} is {@code true} the raw access token is included
-	 * under the {@code accessToken} key; when it is {@code false} the refresh-token
-	 * entry ({@link AbstractOAuthTokenFiller#REFRESH_TOKEN_KEY}) is stripped from
-	 * the meta map before it is added.
+	 * When {@code includeToken} is {@code true} the raw access and refresh tokens
+	 * are included under the {@code accessToken} and {@code refreshToken} keys.
 	 *
-	 * @param includeToken whether to include the raw access token and retain the
-	 *                     refresh token in the meta map
+	 * @param includeToken whether to include the raw access and refresh tokens
 	 * @param userEpoch    the user epoch to record under the {@code userEpoch} key
 	 * @param includeDates if the output should include teh lastPwdReset and
 	 *                     lastLogin dates which only come from the semoss dbs and
@@ -669,6 +685,7 @@ public class AccessToken implements Serializable {
 		Map<String, Object> providerMap = new TreeMap<>();
 		if (includeToken) {
 			providerMap.put("accessToken", getAccess_token());
+			providerMap.put("refreshToken", getRefresh_token());
 		}
 		providerMap.put("id", getId() == null ? "null" : getId());
 		providerMap.put("name", getName() == null ? "null" : getName());
@@ -681,13 +698,7 @@ public class AccessToken implements Serializable {
 		// get extended user properties
 		Map<String, Collection<String>> meta = getMeta();
 		if (meta != null) {
-			if (!includeToken && meta.containsKey(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY)) {
-				Map<String, Collection<String>> newMap = new HashMap<>(meta);
-				newMap.remove(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
-				providerMap.put("meta", newMap);
-			} else {
-				providerMap.put("meta", meta);
-			}
+			providerMap.put("meta", meta);
 		}
 
 		// add san info
@@ -728,6 +739,7 @@ public class AccessToken implements Serializable {
 		this.id = source.id;
 		this.username = source.username;
 		this.access_token = source.access_token;
+		this.refresh_token = source.refresh_token;
 		this.instance_url = source.instance_url;
 		this.expires_in = source.expires_in;
 		this.token_type = source.token_type;
@@ -793,6 +805,7 @@ public class AccessToken implements Serializable {
 		newToken.id = token.id;
 		newToken.username = token.username;
 		newToken.access_token = token.access_token;
+		newToken.refresh_token = token.refresh_token;
 		newToken.expires_in = token.expires_in;
 		newToken.token_type = token.token_type;
 		newToken.startTime = token.startTime;

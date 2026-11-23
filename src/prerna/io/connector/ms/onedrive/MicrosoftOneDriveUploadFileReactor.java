@@ -28,6 +28,7 @@
 package prerna.io.connector.ms.onedrive;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -142,7 +143,8 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 	 * path that climbs above its root, which is the same guard the insight asset
 	 * reactors use. Stripping a leading slash afterwards keeps an absolute path
 	 * from being read as one, so it resolves under the insight folder like any
-	 * other relative path.
+	 * other relative path, and {@link Utility#resolveContainedFile} refuses a
+	 * symbolic link that leads out of the folder.
 	 * </p>
 	 *
 	 * @param requestedPath path relative to the insight folder
@@ -151,9 +153,6 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 	 *                              readable file
 	 */
 	private File resolveInsightFile(String requestedPath) {
-		String insightFolder = this.insight.getInsightFolder();
-		File insightFolderFile = new File(insightFolder);
-
 		String relativePath;
 		try {
 			relativePath = Utility.normalizePath(requestedPath);
@@ -168,11 +167,11 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 			throw new SemossPixelException("A file path is required to upload to OneDrive.");
 		}
 
-		File sourceFile = new File(insightFolderFile, relativePath);
-		if (!sourceFile.exists() || !sourceFile.isFile()) {
+		try {
+			return Utility.resolveContainedFile(this.insight.getInsightFolder(), relativePath).toFile();
+		} catch (IOException | IllegalArgumentException e) {
 			throw new SemossPixelException("No file exists in the insight folder at: " + relativePath);
 		}
-		return sourceFile;
 	}
 
 	@Override

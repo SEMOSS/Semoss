@@ -1262,13 +1262,13 @@ public abstract class AbstractSecurityUtils {
 			// Type and cost are the main questions -
 			boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
 			colNames = new String[] { "PROJECTID", "PROJECTNAME", "PROJECTDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
-					"IS_TEMPLATE", "CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED", "TYPE", "COST",
-					"CATALOGNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILED",
-					"REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE" };
+					"IS_TEMPLATE", "HAS_CUSTOM_LOGIN", "CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED",
+					"TYPE", "COST", "CATALOGNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
+					"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255,
-					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME,
+					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECT", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -1296,14 +1296,18 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 
-				// existing rows get their display name from their canonical name, and rows with
-				// no template flag are not templates, in one transaction
+				// existing rows get their display name from their canonical name, rows with no
+				// template flag are not templates, and rows with no custom login flag have no
+				// login page of their own, in one transaction
 				QueryExecutionUtility.write(securityDb, connection -> {
 					QueryExecutionUtility.executeUpdate(connection,
 							"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''",
 							QueryExecutionUtility.NO_PARAMETERS);
 					QueryExecutionUtility.executeUpdate(connection,
 							"UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL",
+							ps -> ps.setBoolean(1, false));
+					QueryExecutionUtility.executeUpdate(connection,
+							"UPDATE PROJECT SET HAS_CUSTOM_LOGIN = ? WHERE HAS_CUSTOM_LOGIN IS NULL",
 							ps -> ps.setBoolean(1, false));
 					return null;
 				});
