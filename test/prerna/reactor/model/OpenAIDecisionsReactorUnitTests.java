@@ -90,6 +90,7 @@ class OpenAIDecisionsReactorUnitTests {
 		when(engine.getEngineId()).thenReturn("model-id");
 		when(engine.getEngineName()).thenReturn("OpenAI");
 		when(engine.getCatalogSubType(any())).thenReturn("OPEN_AI");
+		when(engine.getCatalogSubType()).thenReturn("OPEN_AI");
 		Logger logger = mock(Logger.class);
 		when(engine.getEngineLogger("EngineLogger")).thenReturn(logger);
 		IModelEngine guarded = EngineProxyFactory.createGuardedModelEngine(engine);

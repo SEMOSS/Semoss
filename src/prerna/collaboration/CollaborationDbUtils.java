@@ -579,6 +579,7 @@ public class CollaborationDbUtils {
 					// brain: you
 					OwlIndex.of("BRAIN_PROFILE_OWNER_INDEX", "BRAIN_PROFILE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_SETTINGS_OWNER_INDEX", "BRAIN_SETTINGS", "OWNER_ID", "OWNER_TYPE"),
+					OwlIndex.of("BRAIN_PERSONA_OWNER_INDEX", "BRAIN_PERSONA", "OWNER_ID", "OWNER_TYPE"),
 
 					// brain: people
 					OwlIndex.of("BRAIN_ACCOUNT_OWNER_INDEX", "BRAIN_ACCOUNT", "OWNER_ID", "OWNER_TYPE"),
@@ -702,7 +703,9 @@ public class CollaborationDbUtils {
 					OwlIndex.of("WORK_CANDIDATE_THREAD_ID_INDEX", "WORK_CANDIDATE", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_ID"),
 					OwlIndex.of("WORK_STEP_EVIDENCE_STEP_ID_INDEX", "WORK_STEP_EVIDENCE", "OWNER_ID", "OWNER_TYPE",
-							"STEP_ID")));
+							"STEP_ID"),
+					OwlIndex.of("WORK_TWIN_COPY_COPY_ID_INDEX", "WORK_TWIN_COPY", "OWNER_ID", "OWNER_TYPE",
+							"COPY_ID")));
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();

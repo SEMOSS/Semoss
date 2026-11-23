@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.tcp.client.workers;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,6 +38,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.ClientProcessWrapper;
 import prerna.om.IStringExportProcessor;
 import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
@@ -54,6 +59,7 @@ public class NativePyEngineWorker implements Runnable {
 	private final PayloadStruct ps;
 	private final User user;
 	private final Insight insight;
+	private ClientProcessWrapper sandbox = null;
 	private PayloadStruct output = null;
 
 	/**
@@ -81,6 +87,38 @@ public class NativePyEngineWorker implements Runnable {
 		this.insight = insight;
 	}
 
+	/**
+	 * Sets the wrapper of the Python process that asked, so a result file can be sent into its
+	 * sandbox when it runs in one.
+	 *
+	 * @param sandbox the wrapper of the asking process, or null
+	 */
+	public void setSandbox(ClientProcessWrapper sandbox) {
+		this.sandbox = sandbox;
+	}
+
+	/** Writes the rows to a file and sets the payload to the path the Python process should open. */
+	private void writeResultFile(IRawSelectWrapper wrapper) throws IOException {
+		String name = "a_" + Utility.getRandomString(5) + ".json";
+		if (this.sandbox == null || !this.sandbox.isOpenShell()) {
+			String fileLocation = insight.getInsightFolder() + "/" + name;
+			Utility.writeResultToJson(fileLocation, wrapper, null, ESCAPE_QUOTES);
+			ps.payload = new Object[] { fileLocation.replace("\\", "/") };
+			return;
+		}
+		// A sandboxed process cannot see the host's insight folder: write to a temp folder, send the
+		// file in, and drop the host copy (Python only deletes its own).
+		Path dir = Files.createTempDirectory("semoss-engine-result-");
+		Path file = dir.resolve(name);
+		try {
+			Utility.writeResultToJson(file.toString(), wrapper, null, ESCAPE_QUOTES);
+			ps.payload = new Object[] { this.sandbox.deliverResultFile(file.toString()) };
+		} finally {
+			Files.deleteIfExists(file);
+			Files.deleteIfExists(dir);
+		}
+	}
+
 	@Override
 	public void run() {
 		String engineId = ps.objId;
@@ -97,9 +135,7 @@ public class NativePyEngineWorker implements Runnable {
 				if (this.insight == null || (ps.payload.length > 1 && "json".equals(ps.payload[1]))) {
 					ps.payload = new Object[] { Utility.writeResultToJsonObject(wrapper, null, ESCAPE_QUOTES) };
 				} else {
-					String fileLocation = insight.getInsightFolder() + "/a_" + Utility.getRandomString(5) + ".json";
-					Utility.writeResultToJson(fileLocation, wrapper, null, ESCAPE_QUOTES);
-					ps.payload = new Object[] { fileLocation.replace("\\", "/") };
+					writeResultFile(wrapper);
 				}
 			}
 		} catch (Exception e) {

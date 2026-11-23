@@ -41,6 +41,7 @@ import prerna.io.connector.ms.teams.MicrosoftTeamsMessageHelper;
 import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 // WorkShowItem(emailRef=["email:..."]); or threadId, chatId, or path instead.
 // Checks one item the assistant found and returns its exact ids; the owner's chat
@@ -196,7 +197,7 @@ public class WorkShowItemReactor extends AbstractCollaborationReactor {
 		Path file;
 		Path root;
 		try {
-			file = MCPUtility.resolveContainedMcpFile(folder, relative);
+			file = Utility.resolveContainedFile(folder, relative);
 			root = Path.of(folder).toAbsolutePath().normalize().toRealPath();
 		} catch (IOException | IllegalArgumentException e) {
 			throw new IllegalArgumentException("No file at " + path

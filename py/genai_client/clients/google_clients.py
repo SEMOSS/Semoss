@@ -44,8 +44,9 @@ class GoogleClient:
 
     client: Union[GoogleGenAIClient, AnthropicVertex]
 
-    def __init__(self, config: GoogleClientConfig):
+    def __init__(self, config: GoogleClientConfig, api_version: Optional[str] = None):
         self.config = config
+        self.api_version = api_version
 
         if config.service_account_credentials or config.service_account_key_file:
             self.service_account_credentials = self._load_credentials(
@@ -109,9 +110,23 @@ class GoogleClient:
         self,
     ) -> GoogleGenAIClient:
         """Initialize the Google Gen AI client with credentials from SMSS."""
+        import ssl
+        from google.genai.types import HttpOptions
+
         try:
+            # Reuse the process trust store; httpx2's second truststore conflicts with pip-system-certs.
+            context = ssl.create_default_context()
+            http_options = HttpOptions(
+                api_version=self.api_version
+                or ("v1beta" if self.config.api_key else "v1beta1"),
+                client_args={"verify": context},
+                async_client_args={"verify": context},
+            )
             if self.config.api_key:
-                return GoogleGenAIClient(api_key=self.config.api_key)
+                # SDK 3 changed its default; legacy generation/media keep their API version.
+                return GoogleGenAIClient(
+                    api_key=self.config.api_key, http_options=http_options
+                )
             elif (
                 self.config.project
                 and self.config.region
@@ -122,13 +137,10 @@ class GoogleClient:
                     "vertexai": True,
                     "location": self.config.region,
                     "project": self.config.project,
+                    "http_options": http_options,
                 }
                 if self.config.base_url:
-                    from google.genai.types import HttpOptions
-
-                    kwargs["http_options"] = HttpOptions(
-                        base_url=self.config.base_url
-                    )
+                    http_options.base_url = self.config.base_url
                 return GoogleGenAIClient(**kwargs)
             else:
                 raise ValueError(

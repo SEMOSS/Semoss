@@ -39,6 +39,7 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IVenvEngine;
 import prerna.project.api.IProject;
 
 /**
@@ -121,6 +122,17 @@ public final class StubEngines {
 	public static IModelEngine platformModel(String id) {
 		IModelEngine engine = stub(IModelEngine.class, id, IEngine.CATALOG_TYPE.MODEL, Map.of(), IEngine.class);
 		return EngineProxyFactory.createPlatformModelEngine(engine);
+	}
+
+	/**
+	 * A venv engine behind the engine proxy.
+	 *
+	 * @param id the engine id
+	 * @return the proxy
+	 */
+	public static IVenvEngine venv(String id) {
+		IVenvEngine engine = stub(IVenvEngine.class, id, IEngine.CATALOG_TYPE.VENV, Map.of(), IEngine.class);
+		return EngineProxyFactory.createGuardedVenvEngine(engine);
 	}
 
 	/**

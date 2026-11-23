@@ -27,13 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -52,9 +52,12 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.tika.mime.MimeTypeException;
+import org.apache.tika.mime.MimeTypes;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import com.google.gson.Gson;
 
@@ -91,6 +94,7 @@ import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.MimeTypeUtility;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 
@@ -99,6 +103,8 @@ public final class MCPUtility {
 	private static final Logger classLogger = LogManager.getLogger(MCPUtility.class);
 
 	private static final Gson GSON = GsonUtility.getDefaultGson();
+	private static final Set<String> BASE64_FILE_REACTORS = Set.of("GetInsightAssetsBase64", "GetRoomAssetsBase64",
+			"GetAppAssetsBase64", "GetEngineAssetsBase64", "GetUserAssetsBase64", "GetStorageFileAsBase64");
 
 	public static final String SMSS_ENGINE_ID = "SMSS_ENGINE_ID";
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
@@ -141,6 +147,7 @@ public final class MCPUtility {
 	public static final String COMPONENT_EMAIL_SEND = "email-send";
 	public static final String COMPONENT_CALENDAR_EVENT = "calendar-event";
 	public static final String COMPONENT_MEMORY = "memory";
+	public static final String COMPONENT_ORG_CHART = "org-chart";
 
 	/**
 	 * @deprecated Use {@link #SMSS_ENGINE_ID}, which is set for every engine type
@@ -260,46 +267,6 @@ public final class MCPUtility {
 			}
 			return null;
 		}
-	}
-
-	/**
-	 * Resolves a tool-produced relative file reference beneath its execution root.
-	 * Both paths are canonicalized so a symlink inside the root cannot escape it.
-	 *
-	 * @param rootFolderPath execution root supplied to the MCP tool
-	 * @param relativePath   tool-produced path relative to the execution root
-	 * @return canonical path to an existing regular file beneath the root
-	 * @throws IOException              when either path cannot be resolved
-	 * @throws IllegalArgumentException when the input is blank, absolute, outside
-	 *                                  the root, or not a regular file
-	 */
-	public static Path resolveContainedMcpFile(String rootFolderPath, String relativePath) throws IOException {
-		if (rootFolderPath == null || rootFolderPath.isBlank()) {
-			throw new IllegalArgumentException("MCP execution root must not be blank");
-		}
-		if (relativePath == null || relativePath.isBlank()) {
-			throw new IllegalArgumentException("MCP file reference must not be blank");
-		}
-
-		Path reference = Path.of(relativePath);
-		if (reference.isAbsolute()) {
-			throw new IllegalArgumentException("MCP file reference must be relative");
-		}
-
-		Path canonicalRoot = Path.of(rootFolderPath).toAbsolutePath().normalize().toRealPath();
-		Path candidate = canonicalRoot.resolve(reference).normalize();
-		if (!candidate.startsWith(canonicalRoot)) {
-			throw new IllegalArgumentException("MCP file reference is outside its execution root");
-		}
-
-		Path canonicalFile = candidate.toRealPath();
-		if (!canonicalFile.startsWith(canonicalRoot)) {
-			throw new IllegalArgumentException("MCP file reference resolves outside its execution root");
-		}
-		if (!Files.isRegularFile(canonicalFile, LinkOption.NOFOLLOW_LINKS)) {
-			throw new IllegalArgumentException("MCP file reference is not a regular file");
-		}
-		return canonicalFile;
 	}
 
 	/**
@@ -671,15 +638,29 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Returns the maximum tool name length for the given model engine. Checks
-	 * MAX_TOOL_NAME_CHAR in the engine's SMSS first, then falls back to the
-	 * per-provider default.
+	 * Returns the maximum tool name length for the given model engine, from
+	 * {@link IModelEngine#getMaxToolNameLength()}.
+	 *
+	 * @param modelEngine the model, or null
+	 * @return the longest tool name, in characters
 	 */
 	public static int getMaxToolNameLength(IModelEngine modelEngine) {
 		if (modelEngine == null) {
 			return DEFAULT_MAX_TOOL_NAME_LENGTH;
 		}
-		java.util.Properties smssProp = modelEngine.getSmssProp();
+		return modelEngine.getMaxToolNameLength();
+	}
+
+	/**
+	 * Returns the maximum tool name length for a model from its own settings.
+	 * Checks MAX_TOOL_NAME_CHAR first, then falls back to the per-provider default.
+	 *
+	 * @param smssProp  the model's settings, or null
+	 * @param modelType the model's type, or null
+	 * @param engineId  the model's id, for the log
+	 * @return the longest tool name, in characters
+	 */
+	public static int getMaxToolNameLength(java.util.Properties smssProp, ModelTypeEnum modelType, String engineId) {
 		if (smssProp != null) {
 			String smssValue = smssProp.getProperty(MAX_TOOL_NAME_CHAR);
 			if (smssValue != null && !smssValue.isBlank()) {
@@ -687,11 +668,10 @@ public final class MCPUtility {
 					return Integer.parseInt(smssValue.trim());
 				} catch (NumberFormatException e) {
 					classLogger.warn("Invalid {} value '{}' in SMSS for engine {} - falling back to provider default",
-							MAX_TOOL_NAME_CHAR, smssValue, modelEngine.getEngineId());
+							MAX_TOOL_NAME_CHAR, smssValue, engineId);
 				}
 			}
 		}
-		ModelTypeEnum modelType = modelEngine.getModelType();
 		// OpenAI's Responses API allows 128-char tool names; Chat Completions stays at
 		// 64
 		if (modelType == ModelTypeEnum.OPEN_AI && smssProp != null
@@ -1495,11 +1475,13 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Add the MCP tag to an existing engine (engine and project)
+	 * Add the MCP tag to an existing engine (engine and project). The user needs to
+	 * be able to edit it.
 	 *
-	 * @param engine
+	 * @param user   the signed in user
+	 * @param engine the engine or project
 	 */
-	public static void addMCPTag(IEngine engine) {
+	public static void addMCPTag(User user, IEngine engine) {
 		Map<String, Object> metadata = null;
 		boolean isProject = engine.getCatalogType() == IEngine.CATALOG_TYPE.PROJECT;
 		if (isProject) {
@@ -1524,9 +1506,9 @@ public final class MCPUtility {
 			tags.add("MCP");
 			metadata.put("tag", tags);
 			if (isProject) {
-				SecurityProjectUtils.updateProjectMetadata(engine.getEngineId(), metadata);
+				SecurityProjectUtils.updateProjectMetadata(user, engine.getEngineId(), metadata);
 			} else {
-				SecurityEngineUtils.updateEngineMetadata(engine.getEngineId(), metadata);
+				SecurityEngineUtils.updateEngineMetadata(user, engine.getEngineId(), metadata);
 			}
 		}
 	}
@@ -1596,7 +1578,9 @@ public final class MCPUtility {
 	 * names those files relative to the room. Image and PDF references are expanded
 	 * back into inline data only in the payload sent to the model (see
 	 * {@code MessageUtils#toJsonArrayWithImageData}); other media is named in the
-	 * text only.
+	 * text only. Pixel response wrappers retain their other outputs and metadata
+	 * in a text block, with the inline media replaced by room file references. Raw
+	 * base64 returned by Pixel file readers follows the same media path.
 	 *
 	 * @param toolOutput the tool result, as returned by
 	 *                   {@link #executeTool(String, String, Map, Insight)}
@@ -1605,20 +1589,24 @@ public final class MCPUtility {
 	 *         unchanged
 	 */
 	public static String externalizeToolResultMedia(String toolOutput, Room room) {
-		// cheap guard so ordinary results are never parsed
-		if (toolOutput == null || room == null || !toolOutput.contains("\"base64Data\"")) {
+		// Only model media and Pixel result envelopes can contain media we recognize.
+		if (toolOutput == null || room == null
+				|| !toolOutput.contains("\"base64Data\"") && !toolOutput.contains("\"pixelReturn\"")) {
 			return toolOutput;
 		}
-		JSONObject result;
+		Object result;
 		try {
-			result = new JSONObject(toolOutput);
+			result = new JSONTokener(toolOutput).nextValue();
 		} catch (JSONException e) {
 			return toolOutput;
 		}
-		JSONArray parts = result.optJSONArray(AskModelEngineResponse.PARTS);
-		if (parts == null) {
+		JSONArray parts = new JSONArray();
+		collectToolResultParts(result, parts);
+		if (parts.isEmpty()) {
 			return toolOutput;
 		}
+		boolean wrapped = result instanceof JSONArray
+				|| result instanceof JSONObject object && object.has("pixelReturn");
 
 		String roomFolder = room.getRoomFolderPath() != null ? room.getRoomFolderPath()
 				: Room.roomFolderPath(room.getId());
@@ -1650,8 +1638,10 @@ public final class MCPUtility {
 			if (base64Data == null || base64Data.isBlank()) {
 				continue;
 			}
+			media.remove("base64Data");
 			try {
 				String fileName = writeToolMediaToRoom(roomFolder, media, base64Data);
+				media.put("fileName", fileName).put("fileLocation", fileName).put("mediaInputType", "FILE");
 				String mimeType = media.optString("mimeType", "");
 				if (mimeType.isBlank()) {
 					mimeType = MessageInputMedia.guessMimeType(fileName, MessageInputMedia.extractFormat(fileName));
@@ -1662,6 +1652,9 @@ public final class MCPUtility {
 				}
 			} catch (IOException | RuntimeException e) {
 				unsaved++;
+				part.remove("mediaInfo");
+				part.remove("media_info");
+				part.put("type", "TEXT").put("text", "Media output could not be saved.");
 				classLogger.warn("Could not save media from a tool result to room {}", room.getId(), e);
 			}
 		}
@@ -1673,9 +1666,10 @@ public final class MCPUtility {
 		}
 
 		// the model's own words come first, then what became of the media
-		Object response = result.opt(AskModelEngineResponse.RESPONSE);
+		Object response = result instanceof JSONObject object ? object.opt(AskModelEngineResponse.RESPONSE) : null;
 		String responseText = response instanceof String ? ((String) response).trim() : "";
-		StringBuilder text = new StringBuilder(responseText.isEmpty() ? String.join("\n\n", textChunks) : responseText);
+		StringBuilder text = new StringBuilder(wrapped ? ""
+				: responseText.isEmpty() ? String.join("\n\n", textChunks) : responseText);
 		if (text.length() > 0) {
 			text.append("\n\n");
 		}
@@ -1688,12 +1682,69 @@ public final class MCPUtility {
 		}
 
 		List<Map<String, Object>> blocks = new ArrayList<>();
+		if (wrapped) {
+			blocks.add(MCPResponseBuilder.textPart(result.toString()));
+		}
 		blocks.add(MCPResponseBuilder.textPart(text.toString()));
 		if (!modelVisibleFiles.isEmpty()) {
 			blocks.add(MCPResponseBuilder.imagePart(modelVisibleFiles.toArray(new String[0])));
 		}
 		classLogger.info("Moved {} media file(s) from a tool result into room {}", savedFiles.size(), room.getId());
 		return GSON.toJson(MCPResponseBuilder.response(blocks));
+	}
+
+	private static void collectToolResultParts(Object result, JSONArray parts) {
+		if (result instanceof JSONArray array) {
+			for (int i = 0; i < array.length(); i++) {
+				collectToolResultParts(array.get(i), parts);
+			}
+		} else if (result instanceof JSONObject object) {
+			JSONArray modelParts = object.optJSONArray(AskModelEngineResponse.PARTS);
+			if (modelParts != null) {
+				for (int i = 0; i < modelParts.length(); i++) {
+					parts.put(modelParts.get(i));
+				}
+			}
+			JSONArray pixelReturn = object.optJSONArray("pixelReturn");
+			if (pixelReturn != null) {
+				for (int i = 0; i < pixelReturn.length(); i++) {
+					JSONObject pixel = pixelReturn.optJSONObject(i);
+					if (pixel != null) {
+						normalizePixelFileMedia(pixel);
+						collectToolResultParts(pixel.opt("output"), parts);
+					}
+				}
+			}
+		}
+	}
+
+	private static void normalizePixelFileMedia(JSONObject pixel) {
+		if (!(pixel.opt("output") instanceof String output) || output.isBlank()) {
+			return;
+		}
+		String expression = pixel.optString("pixelExpression", "");
+		int openParen = expression.indexOf('(');
+		if (openParen < 0 || !BASE64_FILE_REACTORS.contains(expression.substring(0, openParen).trim())) {
+			return;
+		}
+		JSONArray operations = pixel.optJSONArray("operationType");
+		if (operations != null && operations.toList().contains(PixelOperationType.ERROR.toString())) {
+			return;
+		}
+		try {
+			byte[] data = Base64.getDecoder().decode(output);
+			String mimeType = MimeTypeUtility.detectMimeType(new ByteArrayInputStream(data), null);
+			if (mimeType == null) {
+				mimeType = MimeTypeUtility.DEFAULT_MIME_TYPE;
+			}
+			String extension = MimeTypes.getDefaultMimeTypes().forName(mimeType).getExtension();
+			JSONObject media = new JSONObject().put("base64Data", output).put("mimeType", mimeType)
+					.put("fileFormat", extension.startsWith(".") ? extension.substring(1) : extension);
+			JSONObject part = new JSONObject().put("type", "MEDIA").put("mediaInfo", media);
+			pixel.put("output", new JSONObject().put(AskModelEngineResponse.PARTS, new JSONArray().put(part)));
+		} catch (IllegalArgumentException | MimeTypeException e) {
+			// A failed file read can return ordinary text instead of encoded bytes.
+		}
 	}
 
 	/**

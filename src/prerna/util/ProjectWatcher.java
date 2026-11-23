@@ -193,7 +193,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
 			for (String project : projects) {
 				if (!projectIds.contains(project) && !reservedProjects.contains(project)) {
-					SecurityProjectUtils.deleteProject(project);
+					SecurityProjectUtils.deleteProject(null, project);
 				}
 			}
 		}

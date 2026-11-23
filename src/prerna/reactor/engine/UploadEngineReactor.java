@@ -42,7 +42,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.reflect.TypeToken;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -313,7 +312,7 @@ public class UploadEngineReactor extends AbstractReactor {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile,
 							new TypeToken<Map<String, Object>>() {
 							}.getType());
-					SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+					SecurityEngineUtils.updateEngineMetadata(user, engineId, metadata);
 					// delete this file since values can update and file is dynamically generated on
 					// export
 					metadataFile.delete();
@@ -358,15 +357,14 @@ public class UploadEngineReactor extends AbstractReactor {
 					lmDeleter.deleteEngineRDBMS(engineId);
 				}
 				// delete from security
-				SecurityEngineUtils.deleteEngine(engineId);
+				if (SecurityEngineUtils.containsEngineId(engineId)) {
+					SecurityEngineUtils.deleteEngine(user, engineId);
+				}
 			}
 		}
 
 		// add user as engine owner
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityEngineUtils.addEngineOwner(engineId, user.getAccessToken(ap).getId());
-		}
+		SecurityEngineUtils.addEngineOwner(user, engineId);
 
 		ClusterUtil.pushEngine(engineId);
 		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_CREATE,

@@ -223,7 +223,7 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 				if (!clonedTags.isEmpty()) {
 					Map<String, Object> tagUpdate = new HashMap<>();
 					tagUpdate.put("tag", clonedTags);
-					SecurityProjectUtils.updateProjectMetadata(newProjectId, tagUpdate);
+					SecurityProjectUtils.updateProjectMetadata(user, newProjectId, tagUpdate);
 				}
 			} catch (Exception e) {
 				classLogger.error(

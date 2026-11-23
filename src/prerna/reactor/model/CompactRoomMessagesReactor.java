@@ -47,6 +47,7 @@ import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.GoogleInteractionsState;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -173,10 +174,11 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 				}
 			}
 		} else {
-			if (requestedTypes.contains("TOOL_PRUNE")) {
+			boolean signedHistory = branch.stream().anyMatch(m -> m.getGoogleInteractions() != null);
+			if (requestedTypes.contains("TOOL_PRUNE") && !signedHistory) {
 				typeResults.add(addToolPruneKeyToMessage(branch, parentMessageId, room, 0));
 			}
-			if (requestedTypes.contains("SUMMARY")) {
+			if (requestedTypes.contains("SUMMARY") || signedHistory && requestedTypes.contains("TOOL_PRUNE")) {
 				int txCount = countTransactions(branch);
 				typeResults.add(
 						summarizeMessages(room, parentMessageId, branch, txCount, KEEP_N_TRANSACTIONS, modelEngine));
@@ -204,7 +206,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		int currTokenCount = getLastMessageTokens(branch);
 
 		boolean useToolPruning = currTokenCount > 0
-				&& (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD;
+				&& (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD
+				&& branch.stream().noneMatch(m -> m.getGoogleInteractions() != null);
 
 		if (useToolPruning) {
 			return addToolPruneKeyToMessage(branch, messageId, room, toolTokens);
@@ -222,6 +225,11 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 			Room room, int toolTokens) {
 		Map<String, Object> result = new HashMap<>();
 		result.put("type", "TOOL_PRUNE");
+		if (branch.stream().anyMatch(m -> m.getGoogleInteractions() != null)) {
+			result.put("success", false);
+			result.put("error", "Signed Interactions history requires summary compaction with a model");
+			return result;
+		}
 
 		if (branch.size() < 2) {
 			result.put("success", false);
@@ -444,6 +452,9 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
 		// Pair the compacted input with a response message so the branch is complete
 		ResponseMessage compactedResponse = ResponseMessage.builder().withText(compactedTextMessage).build();
+		branch.stream().filter(m -> m.getGoogleInteractions() != null).findFirst().ifPresent(m ->
+				compactedResponse.setGoogleInteractions(GoogleInteractionsState.contextBoundary(
+						m.getGoogleInteractions(), compactedTextMessage)));
 		compactedResponse.setParentMessageId(compactedMessage.getMessageId());
 		compactedResponse.setVisible(false);
 

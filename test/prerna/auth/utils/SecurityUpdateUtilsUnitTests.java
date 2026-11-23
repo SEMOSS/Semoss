@@ -169,6 +169,28 @@ public class SecurityUpdateUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertNotNull(os[1]);
 	}
 
+	@Test
+	void validateUserLogin_SavesOnlyTheMetakeysTheLoginBrings() throws Exception {
+		Map<String, Object> option = new HashMap<>();
+		option.put("metakey", "department");
+		option.put("single_multi", "single");
+		option.put("display_order", 0);
+		option.put("display_options", "select-box");
+		assertTrue(SecurityUserUtils.updateMetakeyOptions(List.of(option)));
+
+		User user = UnitTestSecurityAuthUtils.createUser("admin1", true);
+		AccessToken at = AccessToken.copyToken(user.getAccessToken(AuthProvider.NATIVE));
+		at.addMetaValue("department", "finance");
+		at.addMetaValue("unlisted", "value");
+
+		SecurityUpdateUtils.validateUserLogin(at);
+
+		Map<String, Collection<String>> saved = SecurityUserUtils.getAggregateUserMetadata("admin1id",
+				AuthProvider.NATIVE, null, true);
+		assertEquals(List.of("finance"), saved.get("department"));
+		assertFalse(saved.containsKey("unlisted"));
+	}
+
 	///
 	/// UpdateOAuthUser
 	///

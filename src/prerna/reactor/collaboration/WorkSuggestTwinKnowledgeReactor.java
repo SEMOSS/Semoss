@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
+import java.util.List;
 import java.util.Map;
 
 import prerna.collaboration.WorkTwinSuggest;
@@ -34,19 +35,23 @@ import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkSuggestTwinKnowledge(prompt=["The Apollo migration and the Contoso contract"]);
+// WorkSuggestTwinKnowledge(prompt=["The Apollo migration"], kinds=["email", "file"], sinceDays=[30]);
 // takes no model on purpose: the text model is the one an admin set in RDF_Map
 public class WorkSuggestTwinKnowledgeReactor extends AbstractCollaborationReactor {
 
 	private static final String PROMPT = "prompt";
+	private static final String KINDS = "kinds";
+	private static final String SINCE_DAYS = "sinceDays";
 
 	public WorkSuggestTwinKnowledgeReactor() {
-		this.keysToGet = new String[] { PROMPT };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { PROMPT, KINDS, SINCE_DAYS };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		return mapResult(WorkTwinSuggest.suggest(getUser(), getString(PROMPT)));
+		return mapResult(WorkTwinSuggest.suggest(getUser(), getString(PROMPT), getNounAsStringList(KINDS),
+				getInt(SINCE_DAYS)));
 	}
 
 	@Override
@@ -57,9 +62,15 @@ public class WorkSuggestTwinKnowledgeReactor extends AbstractCollaborationReacto
 						+ "the ones that fit with the reason for each. Nothing is copied or saved; the caller "
 						+ "copies in the ones the user picks")
 				.key(PROMPT, "What the Digital Twin should know, in the user's words, up to 1000 characters")
+				.key(KINDS, key -> key.type(List.class).description("Optional kinds to look for: email, chat and "
+						+ "file. Only the places that hold them are searched: Outlook, Teams chats and OneDrive. "
+						+ "All three when left out"))
+				.key(SINCE_DAYS, key -> key.type(Integer.class)
+						.description("Optional number of days back to look. Any time when left out"))
 				.output(Map.class, "suggestions, the best first, each with kind (email, chat or file), id (an "
 						+ "email's conversationId, a chatId, or a drive item id with its driveId), title, from, "
-						+ "date, preview and reason; and notes, one for each place that could not be searched or "
-						+ "was searched only in part");
+						+ "date, preview and reason, and where it is known person, whose picture to show: an "
+						+ "email's sender by email, a one on one chat's other person by userId or email; and "
+						+ "notes, one for each place that could not be searched or was searched only in part");
 	}
 }

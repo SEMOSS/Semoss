@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.NotebookExecution;
@@ -78,7 +79,7 @@ public class ExecuteAppNotebookReactor extends AbstractReactor {
 		}
 		
 		Insight newInsight = new Insight();
-		InsightUtility.registerNestedInsight(this.insight, newInsight, getSessionId());
+		InsightUtility.registerNestedInsight(this.insight, newInsight, ThreadStore.getSessionId());
 
 		IProject project = Utility.getProject(projectId);
 		NotebookExecution execution = project.executeNotebooks(newInsight, inputValueMap);

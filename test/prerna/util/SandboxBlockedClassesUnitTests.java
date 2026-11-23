@@ -31,9 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -48,6 +50,9 @@ import org.objectweb.asm.Type;
  * sandbox page in the docs lists each group with the test here that guards it.
  */
 class SandboxBlockedClassesUnitTests {
+
+	private static final Pattern ASKS_FOR_A_SYSTEM_DATABASE = Pattern
+			.compile("SystemEngineRegistry\\.get\\w*Db\\(\\)");
 
 	@TempDir
 	Path folder;
@@ -122,7 +127,7 @@ class SandboxBlockedClassesUnitTests {
 			"javax.net.ServerSocketFactory", "javax.net.ssl.SSLSocket", "javax.net.ssl.SSLSocketFactory",
 			"javax.net.ssl.SSLServerSocket", "javax.net.ssl.SSLEngine", "java.util.logging.SocketHandler",
 			"com.sun.net.httpserver.HttpServer", "com.sun.net.httpserver.SimpleFileServer",
-			"javax.print.PrintServiceLookup" })
+			"javax.print.PrintServiceLookup", "java.net.NetworkInterface" })
 	void socketsAreBlocked(String name) {
 		assertTrue(SemossClassLoader.isReflectionApiBlocked(name));
 	}
@@ -180,7 +185,10 @@ class SandboxBlockedClassesUnitTests {
 	@ValueSource(strings = { "prerna.util.DIHelper", "prerna.util.SystemEngineRegistry",
 			"prerna.security.SecretRedactor", "prerna.util.InternalUtility", "prerna.util.InternalUtility$Nested",
 			"prerna.engine.impl.pipeline.EngineProxyFactory", "prerna.engine.impl.pipeline.PipelineInvocationHandler",
-			"prerna.engine.impl.pipeline.PlatformOperation", "prerna.om.InsightStore" })
+			"prerna.engine.impl.pipeline.PlatformOperation", "prerna.engine.impl.pipeline.EngineCallPermission",
+			"prerna.om.InsightStore",
+			"prerna.util.LocalMasterConceptIdHash", "prerna.util.SystemProjectSeeder",
+			"prerna.util.SystemDatabaseSchemaUtils" })
 	void platformStateAndInternalHelpersAreBlocked(String name) {
 		assertTrue(SemossClassLoader.isReflectionApiBlocked(name));
 	}
@@ -226,14 +234,86 @@ class SandboxBlockedClassesUnitTests {
 	}
 
 	@ParameterizedTest
+	@ValueSource(strings = { "com.fasterxml.jackson.databind.introspect.AnnotatedField",
+			"com.fasterxml.jackson.databind.introspect.AnnotatedMethod",
+			"com.fasterxml.jackson.databind.introspect.BasicBeanDescription",
+			"com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector",
+			"com.fasterxml.jackson.databind.ser.BeanSerializerFactory",
+			"com.fasterxml.jackson.databind.ser.DefaultSerializerProvider$Impl",
+			"com.fasterxml.jackson.databind.deser.BeanDeserializerFactory",
+			"com.fasterxml.jackson.databind.deser.DefaultDeserializationContext$Impl",
+			"com.fasterxml.jackson.databind.deser.std.StdValueInstantiator",
+			"com.fasterxml.jackson.databind.deser.SettableBeanProperty",
+			"com.fasterxml.jackson.databind.deser.impl.FieldProperty",
+			"tools.jackson.databind.introspect.AnnotatedMethod", "tools.jackson.databind.ser.BeanSerializerFactory",
+			"tools.jackson.databind.deser.DeserializationContextExt",
+			"tools.jackson.databind.deser.std.StdValueInstantiator",
+			"tools.jackson.databind.deser.bean.BeanDeserializer", "com.fasterxml.jackson.databind.node.POJONode",
+			"com.fasterxml.jackson.databind.util.RawValue", "com.fasterxml.jackson.databind.util.TokenBuffer",
+			"tools.jackson.databind.node.POJONode", "tools.jackson.databind.util.RawValue",
+			"tools.jackson.databind.util.TokenBuffer" })
+	void theJacksonClassesThatReachIntoAnyObjectAreBlocked(String name) {
+		assertTrue(SemossClassLoader.isReflectionApiBlocked(name), name);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "com.fasterxml.jackson.databind.ObjectMapper",
+			"com.fasterxml.jackson.databind.JsonNode", "com.fasterxml.jackson.databind.node.ObjectNode",
+			"com.fasterxml.jackson.databind.module.SimpleModule",
+			"com.fasterxml.jackson.databind.ser.std.StdSerializer",
+			"com.fasterxml.jackson.databind.deser.std.StdDeserializer",
+			"com.fasterxml.jackson.databind.introspect.VisibilityChecker$Std",
+			"com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider",
+			"com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter",
+			"com.fasterxml.jackson.databind.json.JsonMapper", "com.fasterxml.jackson.core.JsonParser",
+			"com.fasterxml.jackson.annotation.JsonProperty", "tools.jackson.databind.ObjectMapper",
+			"tools.jackson.databind.ser.std.StdSerializer", "tools.jackson.databind.deser.std.StdDeserializer",
+			"com.google.gson.Gson", "com.google.gson.GsonBuilder" })
+	void theJsonClassesCustomReactorsRelyOnStayOpen(String name) {
+		assertFalse(SemossClassLoader.isReflectionApiBlocked(name), name);
+	}
+
+	@Test
+	void everyClassThatAsksForASystemDatabaseIsClosedToAProjectsDirectCalls() throws Exception {
+		Path source = Path.of("src");
+		assertTrue(Files.isDirectory(source), "run from the Semoss folder");
+		List<String> open = List.of("prerna/util/SystemEngineRegistry", "prerna/auth/PasswordRequirements");
+
+		List<String> askers;
+		try (Stream<Path> files = Files.walk(source)) {
+			askers = files.filter(file -> file.getFileName().toString().endsWith(".java")).filter(file -> {
+				try {
+					String text = new String(Files.readAllBytes(file), StandardCharsets.ISO_8859_1);
+					return ASKS_FOR_A_SYSTEM_DATABASE.matcher(text).find();
+				} catch (Exception e) {
+					throw new IllegalStateException(e);
+				}
+			}).map(file -> {
+				String relative = source.relativize(file).toString().replace('\\', '/');
+				return relative.substring(0, relative.length() - ".java".length());
+			}).toList();
+		}
+
+		assertFalse(askers.isEmpty());
+		for (String asker : askers) {
+			boolean reactor = asker.endsWith("Reactor");
+			boolean closed = SemossClassLoader.isSystemDatabaseClass(asker)
+					|| SemossClassLoader.isReflectionApiBlocked(asker.replace('/', '.'));
+			assertTrue(closed || reactor || open.contains(asker), asker);
+		}
+	}
+
+	@ParameterizedTest
 	@ValueSource(strings = { "java.lang.String", "java.util.ArrayList", "java.io.File", "java.net.URL", "java.net.URI",
 			"java.net.URLEncoder", "java.sql.Connection", "java.sql.DriverManager", "java.security.MessageDigest",
 			"java.security.Security", "javax.security.auth.x500.X500Principal", "javax.sql.DataSource",
 			"java.util.concurrent.ConcurrentHashMap", "java.util.concurrent.TimeUnit",
-			"java.util.concurrent.ThreadLocalRandom", "java.time.Duration", "java.lang.invoke.LambdaMetafactory",
+			"java.util.concurrent.ThreadLocalRandom", "java.util.concurrent.ExecutorService",
+			"java.util.concurrent.Future", "java.time.Duration", "java.lang.invoke.LambdaMetafactory",
 			"javax.xml.parsers.DocumentBuilderFactory", "javax.xml.transform.TransformerFactory",
 			"org.xml.sax.InputSource", "org.w3c.dom.ls.LSSerializer", "org.w3c.dom.ls.DOMImplementationLS",
-			"prerna.util.Utility", "prerna.reactor.AbstractReactor", "prerna.security.HttpHelperUtility",
+			"prerna.util.Utility", "prerna.util.SignedInTasks", "prerna.reactor.AbstractReactor",
+			"prerna.security.HttpHelperUtility",
 			"prerna.security.HttpStatusException", "prerna.util.EmailUtility", "jakarta.mail.Session",
 			"jakarta.mail.internet.MimeMessage", "prerna.auth.utils.SecurityEngineUtils",
 			"prerna.reactor.agent.admin.RunSummary", "custom.reactors.AdminPanelReactor" })

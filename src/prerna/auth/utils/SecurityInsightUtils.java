@@ -836,7 +836,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 */
 
 	/**
-	 * 
+	 * Adds an insight's row to the security database. The user needs to be able
+	 * to edit the project that holds it.
+	 *
+	 * @param user the signed in user, who needs to be able to edit the project
 	 * @param projectId
 	 * @param insightId
 	 * @param insightName
@@ -846,10 +849,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheMinutes
 	 * @param cacheEncrypt
 	 * @param recipe
+	 * @throws IllegalArgumentException when the user may not make the change
 	 */
-	public static void addInsight(String projectId, String insightId, String insightName, boolean global, String layout,
-			boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt,
+	public static void addInsight(User user, String projectId, String insightId, String insightName, boolean global,
+			String layout, boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt,
 			List<String> recipe, String schemaName) {
+		ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String insertQuery = "INSERT INTO INSIGHT (PROJECTID, INSIGHTID, INSIGHTNAME, GLOBAL, EXECUTIONCOUNT, "
 				+ "CREATEDON, LASTMODIFIEDON, LAYOUT, CACHEABLE, CACHEMINUTES, CACHECRON, CACHEDON, CACHEENCRYPT, RECIPE, SCHEMANAME) "
@@ -888,12 +893,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param insightId
+	 * Makes the user who added an insight to a project its owner, with an OWNER
+	 * row for each of their logins. The user needs to be able to edit the project,
+	 * and no one can have been given access to the insight yet.
+	 *
+	 * @param user      the signed in user who added the insight
+	 * @param projectId the project that holds the insight
+	 * @param insightId the insight
+	 * @throws IllegalArgumentException when the user cannot edit the project or the
+	 *                                  insight already has access given out
 	 */
 	public static void addUserInsightCreator(User user, String projectId, String insightId) {
+		ResourceWriteAccess.requireNewInsightOwner(user, projectId, insightId);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		List<AuthProvider> logins = user.getLogins();
@@ -921,7 +932,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 	// TODO >>>timb: push app here on create/update
 	/**
-	 * 
+	 * Updates an insight's row: its name, whether it is public, its layout, its
+	 * cache settings, its recipe and its schema. The user needs to be able to edit
+	 * the insight.
+	 *
+	 * @param user the signed in user, who needs to be able to edit the insight
 	 * @param projectId
 	 * @param insightId
 	 * @param insightName
@@ -931,10 +946,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * @param cacheMinutes
 	 * @param cacheEncrypt
 	 * @param recipe
+	 * @throws IllegalArgumentException when the user may not make the change
 	 */
-	public static void updateInsight(String projectId, String insightId, String insightName, boolean global,
+	public static void updateInsight(User user, String projectId, String insightId, String insightName, boolean global,
 			String layout, boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn,
 			boolean cacheEncrypt, List<String> recipe, String schemaName) {
+		ResourceWriteAccess.requireInsight(user, projectId, insightId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String updateQuery = "UPDATE INSIGHT SET INSIGHTNAME=?, GLOBAL=?, LASTMODIFIEDON=?, "
 				+ "LAYOUT=?, CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?,"
@@ -974,11 +991,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * Update the insight name
 	 * 
+	 * @param user the signed in user, who needs to be able to edit the insight
 	 * @param projectId
 	 * @param insightId
 	 * @param insightName
+	 * @throws IllegalArgumentException when the user may not make the change
 	 */
-	public static void updateInsightName(String projectId, String insightId, String insightName) {
+	public static void updateInsightName(User user, String projectId, String insightId, String insightName) {
+		ResourceWriteAccess.requireInsight(user, projectId, insightId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
@@ -1001,14 +1021,17 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/**
 	 * Update if an insight should be cached
 	 * 
+	 * @param user the signed in user, who needs to be able to edit the insight
 	 * @param projectId
 	 * @param insightId
 	 * @param cacheInsight
 	 * @param cacheMinutes
 	 * @param cacheEncrypt
+	 * @throws IllegalArgumentException when the user may not make the change
 	 */
-	public static void updateInsightCache(String projectId, String insightId, boolean cacheInsight, int cacheMinutes,
+	public static void updateInsightCache(User user, String projectId, String insightId, boolean cacheInsight, int cacheMinutes,
 			String cacheCron, LocalDateTime cachedOn, boolean cacheEncrypt) {
+		ResourceWriteAccess.requireInsight(user, projectId, insightId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
@@ -1071,11 +1094,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Update the insight metadata for the insight Will delete existing values and
 	 * then perform a bulk insert
 	 * 
+	 * @param user the signed in user, who needs to be able to edit the insight
 	 * @param projectId
 	 * @param insightId
 	 * @param metadata
+	 * @throws IllegalArgumentException when the user may not make the change
 	 */
-	public static void updateInsightMetadata(String projectId, String insightId, Map<String, Object> metadata) {
+	public static void updateInsightMetadata(User user, String projectId, String insightId, Map<String, Object> metadata) {
+		ResourceWriteAccess.requireInsight(user, projectId, insightId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -1129,11 +1155,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Update the insight description Will perform an insert if the description
 	 * doesn't currently exist
 	 * 
+	 * @param user the signed in user, who needs to be able to edit the insight
 	 * @param projectId
 	 * @param insideId
 	 * @param description
+	 * @throws IllegalArgumentException when the user may not make the change
 	 */
-	public static void updateInsightDescription(String projectId, String insightId, String description) {
+	public static void updateInsightDescription(User user, String projectId, String insightId, String description) {
+		ResourceWriteAccess.requireInsight(user, projectId, insightId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -1184,11 +1213,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	 * Update the insight tags for the insight Will delete existing values and then
 	 * perform a bulk insert
 	 * 
+	 * @param user the signed in user, who needs to be able to edit the insight
 	 * @param projectId
 	 * @param insightId
 	 * @param tags
+	 * @throws IllegalArgumentException when the user may not make the change
 	 */
-	public static void updateInsightTags(String projectId, String insightId, List<String> tags) {
+	public static void updateInsightTags(User user, String projectId, String insightId, List<String> tags) {
+		ResourceWriteAccess.requireInsight(user, projectId, insightId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -1227,59 +1259,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Update the insight tags for the insight Will delete existing values and then
-	 * perform a bulk insert
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 * @param tags
-	 */
-	public static void updateInsightTags(String projectId, String insightId, String[] tags) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				// first do a delete
-				final String metaKey = "tag";
-				String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
-
-				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, metaKey);
-					ps.setString(parameterIndex++, insightId);
-					ps.setString(parameterIndex++, projectId);
-				});
-
-				// now we do the new insert with the order of the tags
-				query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA",
-						new String[] { "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" });
-
-				QueryExecutionUtility.executeBatch(connection, query, ps -> {
-					for (int i = 0; i < tags.length; i++) {
-						String tag = tags[i];
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.setString(parameterIndex++, metaKey);
-						ps.setString(parameterIndex++, tag);
-						ps.setInt(parameterIndex++, i);
-						ps.addBatch();
-					}
-				});
-				return null;
-			});
-		} catch (Exception e) {
-			classLogger.error("Unable to update insight tags.", e);
-		}
-	}
-
-	/**
 	 * Update the frame information in the insight frames table
 	 * 
+	 * @param user the signed in user, who needs to be able to edit the insight
 	 * @param projectId
 	 * @param insightId
 	 * @param insightFrames
+	 * @throws IllegalArgumentException when the user may not make the change
 	 */
-	public static void updateInsightFrames(String projectId, String insightId, Set<ITableDataFrame> insightFrames) {
+	public static void updateInsightFrames(User user, String projectId, String insightId, Set<ITableDataFrame> insightFrames) {
+		ResourceWriteAccess.requireInsight(user, projectId, insightId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -1335,21 +1324,17 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
+	 * Deletes an insight's rows from the security database: the insight, who can
+	 * use it, preferences, metadata and frames. The user needs to be able to edit
+	 * the insight.
+	 *
+	 * @param user the signed in user, who needs to be able to edit the insight
 	 * @param projectId
 	 * @param insightId
+	 * @throws IllegalArgumentException when the user may not make the change
 	 */
-	public static void deleteInsight(String projectId, String insightId) {
-		SecurityUserInsightUtils.deleteInsight(projectId, insightId);
-		// TODO: delete group
-	}
-
-	/**
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 */
-	public static void deleteInsight(String projectId, String... insightId) {
+	public static void deleteInsight(User user, String projectId, String insightId) {
+		ResourceWriteAccess.requireInsight(user, projectId, insightId, AccessPermissionEnum.EDIT);
 		SecurityUserInsightUtils.deleteInsight(projectId, insightId);
 		// TODO: delete group
 	}

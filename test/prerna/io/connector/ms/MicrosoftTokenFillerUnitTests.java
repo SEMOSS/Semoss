@@ -47,7 +47,6 @@ import org.mockito.MockedStatic;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.security.HttpHelperUtility;
 import prerna.util.SocialPropertiesUtil;
 
@@ -70,9 +69,9 @@ class MicrosoftTokenFillerUnitTests {
 					});
 
 			AccessToken refreshed = filler.refreshAccessToken(current, Map.of());
-			assertEquals(List.of("new-refresh"), refreshed.getMetaValues(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY));
+			assertEquals("new-refresh", refreshed.getRefresh_token());
 			assertEquals(List.of("preserved"), refreshed.getMetaValues("unrelated"));
-			assertEquals(List.of("old-refresh"), current.getMetaValues(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY));
+			assertEquals("old-refresh", current.getRefresh_token());
 			filler.refreshAccessToken(refreshed, Map.of());
 			assertEquals(2, calls.get());
 		}
@@ -90,7 +89,7 @@ class MicrosoftTokenFillerUnitTests {
 
 			AccessToken refreshed = filler.refreshAccessToken(token("old-access", "old-refresh"), Map.of());
 			assertEquals("new-access", refreshed.getAccess_token());
-			assertEquals(List.of("old-refresh"), refreshed.getMetaValues(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY));
+			assertEquals("old-refresh", refreshed.getRefresh_token());
 		}
 	}
 
@@ -109,9 +108,7 @@ class MicrosoftTokenFillerUnitTests {
 		token.setAccess_token(access);
 		token.setExpires_in(3600);
 		token.init();
-		if (refresh != null) {
-			token.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, refresh);
-		}
+		token.setRefresh_token(refresh);
 		return token;
 	}
 }

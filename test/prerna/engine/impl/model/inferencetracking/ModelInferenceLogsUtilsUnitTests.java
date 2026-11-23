@@ -370,11 +370,13 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS, PARENT_ROOM_ID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 			verify(engine, atLeastOnce()).getQueryUtil();
 			verify(absQueryUtil, times(2)).setNullableLargeText(eq(ps), eq(4), eq("roomContext"));
-			verify(absQueryUtil).setNullableJson(eq(ps), eq(15), any(HashMap.class), any(Gson.class));
+			verify(ps, times(2)).setString(1, FIXED_UUID.toString());
+			verify(ps, times(2)).setString(2, "roomId");
+			verify(absQueryUtil, times(2)).setNullableJson(eq(ps), eq(15), any(HashMap.class), any(Gson.class));
 
 			verify(ps).setString(16, "parentRoomId");
 			verify(absQueryUtil).setNullableLargeText(eq(ps), eq(4), org.mockito.ArgumentMatchers.isNull());
-			verify(absQueryUtil, times(2)).setNullableJson(eq(ps), eq(15), org.mockito.ArgumentMatchers.isNull(),
+			verify(absQueryUtil).setNullableJson(eq(ps), eq(15), org.mockito.ArgumentMatchers.isNull(),
 					any(Gson.class));
 			verify(conn).rollback();
 

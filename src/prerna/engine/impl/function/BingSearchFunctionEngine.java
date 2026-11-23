@@ -48,7 +48,6 @@ import org.json.JSONObject;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 /**
  * Function engine that reaches the public web through the Foundry
@@ -157,7 +156,6 @@ public class BingSearchFunctionEngine extends AbstractFunctionEngine {
 			throw new IllegalArgumentException("Must have key " + ENDPOINT_KEY + " in SMSS");
 		}
 		this.endpoint = normalizeEndpoint(this.endpoint);
-		Utility.checkIfValidDomain(this.endpoint);
 
 		this.model = smssProp.getProperty(MODEL_KEY);
 		if (StringUtils.isEmpty(this.model)) {
