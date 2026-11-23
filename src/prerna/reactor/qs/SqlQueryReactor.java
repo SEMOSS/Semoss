@@ -37,6 +37,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
  */
 public class SqlQueryReactor extends AbstractSqlQueryReactor {
 
+    @Override
+    public prerna.sablecc2.om.nounmeta.NounMetadata execute() {
+        var isolated = prerna.reactor.apptest.RegressionPixelAccess.query(this.insight);
+        return isolated == null ? super.execute() : isolated;
+    }
+
+
 	@Override
 	protected String getDecodedQuery() {
 		return this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey());

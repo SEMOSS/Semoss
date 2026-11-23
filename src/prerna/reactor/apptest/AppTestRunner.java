@@ -129,6 +129,13 @@ final class AppTestRunner {
 	static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
 			List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat,
 			Consumer<Map<String, Object>> progress) {
+		return run(runId, target, root, sessionId, cookieName, recordings, reportFolder, deadline, repeat, progress, null, null, null);
+    }
+
+    static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
+            List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat,
+            Consumer<Map<String, Object>> progress, String owner, AppTestEnvironment.Definition database,
+            AppTestEnvironment.Portal portal) {
 		Instant startedAt = Instant.now();
 		List<Map<String, Object>> tests = new ArrayList<>();
 		for (Map<String, Object> recording : recordings) tests.add(pendingTest(recording, "QUEUED"));
@@ -143,7 +150,7 @@ final class AppTestRunner {
 					Map<String, Object> recording = recordings.get(index);
 					tests.set(index, pendingTest(recording, "RUNNING"));
 					progress.accept(progressReport(runId, target, tests, startedAt));
-					tests.set(index, replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat, runId));
+					tests.set(index, replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat, runId, owner, target, database, portal));
 					progress.accept(progressReport(runId, target, tests, startedAt));
 				}
 			}
@@ -156,6 +163,7 @@ final class AppTestRunner {
 			}
 		}
 		Map<String, Object> report = report(runId, target, tests);
+        if (database != null) report.putAll(Map.of("mode", "ISOLATED_H2", "fixtureHash", database.fixtureHash(), "portalHash", portal.hash()));
 		report.put("startedAt", startedAt.toString());
 		report.put("durationMs", java.time.Duration.between(startedAt, Instant.now()).toMillis());
 		try {
@@ -193,7 +201,7 @@ final class AppTestRunner {
 
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> replay(Browser browser, URI root, String sessionId, String cookieName,
-			Map<String, Object> recording, long deadline) {
+			Map<String, Object> recording, long deadline, AppTestEnvironment testEnvironment) {
 		Instant startedAt = Instant.now();
 		Map<String, Object> test = new LinkedHashMap<>();
 		test.put("id", recording.get("id"));
@@ -222,27 +230,30 @@ final class AppTestRunner {
 			context.addInitScript(DISABLE_ANIMATIONS);
 			Instant fixedTime = fixedTime();
 			if (fixedTime != null) context.clock().install(new Clock.InstallOptions().setTime(fixedTime.toString()));
-			String modulePath = root.getPath().substring(0, root.getPath().indexOf("/public_home/"));
-			context.addCookies(List.of(new Cookie(cookieName, sessionId).setDomain(root.getHost())
-					.setPath(modulePath.isEmpty() ? "/" : modulePath).setHttpOnly(true).setSecure("https".equals(root.getScheme()))));
-			context.route("**/*", route -> {
-				URI destination;
-				try { destination = URI.create(route.request().url()); }
-				catch (RuntimeException e) { route.abort(); return; }
-				boolean cookieOriginMismatch = root.getHost().equalsIgnoreCase(String.valueOf(destination.getHost()))
-						&& !sameOrigin(root, destination);
-				if (cookieOriginMismatch || route.request().isNavigationRequest() && !insideApp(root, destination.toString())) {
-					unsafeNavigation.set(true);
-					route.abort();
-				} else route.resume();
-			});
+            if (testEnvironment != null) configureTestBrowser(context, root, testEnvironment, unsafeNavigation);
+            else {
+				String modulePath = root.getPath().substring(0, root.getPath().indexOf("/public_home/"));
+				context.addCookies(List.of(new Cookie(cookieName, sessionId).setDomain(root.getHost())
+						.setPath(modulePath.isEmpty() ? "/" : modulePath).setHttpOnly(true).setSecure("https".equals(root.getScheme()))));
+				context.route("**/*", route -> {
+					URI destination;
+					try { destination = URI.create(route.request().url()); }
+					catch (RuntimeException e) { route.abort(); return; }
+					boolean cookieOriginMismatch = root.getHost().equalsIgnoreCase(String.valueOf(destination.getHost()))
+							&& !sameOrigin(root, destination);
+					if (cookieOriginMismatch || route.request().isNavigationRequest() && !insideApp(root, destination.toString())) {
+						unsafeNavigation.set(true);
+						route.abort();
+					} else route.resume();
+				});
+            }
 			context.onResponse(response -> {
 				if (sameOrigin(root, URI.create(response.url())) && (response.status() == 401 || response.status() == 403)) {
 					unauthorized.set(true);
 				}
 			});
 			Page page = context.newPage();
-			if (smoke) page.onPageError(error -> runtimeErrors.incrementAndGet());
+			if (smoke || testEnvironment != null) page.onPageError(error -> runtimeErrors.incrementAndGet());
 			page.setDefaultTimeout(STEP_TIMEOUT_MS);
 			page.setDefaultNavigationTimeout(15_000);
 			try {
@@ -264,11 +275,13 @@ final class AppTestRunner {
 				}
 				// Flush protocol events before evaluating environment failures.
 				page.evaluate("() => document.readyState");
-				if (smoke) {
+				if (smoke || testEnvironment != null) {
 					page.waitForTimeout(250);
 					if (runtimeErrors.get() > 0) throw new AssertionError("Unhandled app runtime errors observed");
 				}
-				if (unauthorized.get() || unsafeNavigation.get()) throw new IllegalStateException("App session or navigation failed");
+				if (testEnvironment != null && Boolean.TRUE.equals(page.evaluate("() => window.__semossTestBlocked"))) unsafeNavigation.set(true);
+                if (unauthorized.get() || unsafeNavigation.get() || testEnvironment != null && testEnvironment.failure() != null)
+                    throw new IllegalStateException("App session, preview request or database operation failed");
 				if (assertionCount == 0) {
 					test.put("status", "SKIPPED");
 					test.put("classification", "NO_ASSERTIONS");
@@ -277,15 +290,17 @@ final class AppTestRunner {
 			} catch (RuntimeException | AssertionError e) {
 				boolean ambiguous = AppTestPlayback.ambiguous(e);
                 boolean invalidSelector = AppTestPlayback.invalidSelector(e);
-                boolean environment = unauthorized.get() || unsafeNavigation.get()
+                boolean environment = unauthorized.get() || unsafeNavigation.get() || testEnvironment != null && testEnvironment.failure() != null
 						|| !(ambiguous || invalidSelector || e instanceof TimeoutError || e instanceof AssertionError);
 				// A missing element may be a removal that was intended, so it is not called a regression.
 				boolean routeMismatch = e instanceof AppTestPlayback.WrongPage;
 				boolean targetMissing = !environment && !routeMismatch && !ambiguous && !invalidSelector && currentStep > 0 && targetMissing(page, steps.get(currentStep - 1));
 				test.put("status", environment ? "ERROR" : "FAILED");
-				test.put("classification", environment ? "ERROR" : ambiguous ? "AMBIGUOUS_SELECTOR" : invalidSelector ? "INVALID_SELECTOR" : routeMismatch ? "WRONG_PAGE" : targetMissing ? "TARGET_NOT_FOUND" : "REGRESSION_SUSPECTED");
+				test.put("classification", testEnvironment != null && (unsafeNavigation.get() || testEnvironment.failure() != null) ? "TEST_DATABASE_UNSUPPORTED" : environment ? "ERROR" : ambiguous ? "AMBIGUOUS_SELECTOR" : invalidSelector ? "INVALID_SELECTOR" : routeMismatch ? "WRONG_PAGE" : targetMissing ? "TARGET_NOT_FOUND" : "REGRESSION_SUSPECTED");
 				if (currentStep > 0) test.put("failedStep", currentStep);
-				test.put("reason", unauthorized.get() ? "SEMOSS session expired or access was denied. Sign in again before running tests."
+				test.put("reason", testEnvironment != null && testEnvironment.failure() != null ? testEnvironment.failure()
+                        : testEnvironment != null && unsafeNavigation.get() ? "The test preview requested an unsupported asset, endpoint or database operation. No request was forwarded to the real database."
+                        : unauthorized.get() ? "SEMOSS session expired or access was denied. Sign in again before running tests."
 						: unsafeNavigation.get() ? "Navigation left the target app or required a different authentication origin."
 						: smoke && runtimeErrors.get() > 0 ? "The page visibility smoke check observed unhandled JavaScript errors. This check provides no workflow coverage."
 						: ambiguous ? "The selector matches multiple elements. Use a unique data-testid or scope it to the intended row/lane. The runner will not choose the first match."
@@ -379,15 +394,61 @@ final class AppTestRunner {
 		}
 	}
 
-	private static Map<String, Object> replayRepeated(Browser browser, URI root, String sessionId, String cookieName,
-			Map<String, Object> recording, long deadline, int repeat, String runId) {
-		List<Map<String, Object>> outcomes = new ArrayList<>();
-		for (int i = 0; i < Math.max(1, repeat); i++) {
-			outcomes.add(replay(browser, root, sessionId, cookieName, AppTestPlayback.variables(recording, runId, i + 1), deadline));
-			if (System.nanoTime() >= deadline) break;
-		}
-		return aggregateRepeats(outcomes, Math.max(1, repeat));
-	}
+    private static void configureTestBrowser(BrowserContext context, URI root, AppTestEnvironment environment,
+            AtomicBoolean denied) {
+        context.setOffline(true);
+        context.routeWebSocket("**/*", socket -> { denied.set(true); socket.close(); });
+        URI module = root.resolve("../../../");
+        context.route("**/*", route -> {
+            try {
+                URI url = URI.create(route.request().url());
+                if (!sameOrigin(root, url)) throw new IllegalArgumentException("External request");
+                String path = url.getPath();
+                if ("POST".equals(route.request().method()) && module.resolve("api/engine/runPixel").getPath().equals(path)) {
+                    String body = route.request().postData();
+                    if (body == null || body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > RegressionPixelAccess.MAX_REQUEST_BYTES)
+                        throw new IllegalArgumentException("SDK request is too large");
+                    route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(200)
+                            .setContentType("application/json").setBody(new com.google.gson.Gson().toJson(environment.execute(body))));
+                } else if ("GET".equals(route.request().method()) && module.resolve("api/config").getPath().equals(path)) {
+                    route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(200)
+                            .setContentType("application/json").setBody(new com.google.gson.Gson().toJson(environment.sdkConfig())));
+                } else if ("GET".equals(route.request().method()) && insideApp(root, url.toString())) {
+                    String relative = path.substring(module.getPath().length());
+                    AppTestEnvironment.Asset asset = environment.asset(relative, "");
+                    if (asset == null) throw new IllegalArgumentException("Missing preview asset");
+                    route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(200)
+                            .setContentType(asset.contentType()).setBodyBytes(asset.bytes())
+                            .setHeaders(Map.of("Content-Security-Policy", environment.contentSecurityPolicy("http://semoss-app-test.invalid"))));
+                } else if ("GET".equals(route.request().method()) && "/favicon.ico".equals(path)) {
+                    route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(404));
+                } else throw new IllegalArgumentException("Unsupported test preview endpoint");
+            } catch (RuntimeException failure) { denied.set(true); route.abort(); }
+        });
+    }
+
+    private static Map<String, Object> replayRepeated(Browser browser, URI root, String sessionId, String cookieName,
+            Map<String, Object> recording, long deadline, int repeat, String runId, String owner, String target,
+            AppTestEnvironment.Definition database, AppTestEnvironment.Portal portal) {
+        List<Map<String, Object>> outcomes = new ArrayList<>();
+        for (int i = 0; i < Math.max(1, repeat); i++) {
+            var definition = AppTestPlayback.variables(recording, runId, i + 1);
+            if (database == null) outcomes.add(replay(browser, root, sessionId, cookieName, definition, deadline, null));
+            else {
+                try (AppTestEnvironment environment = AppTestEnvironment.open(owner, target, database, portal, false)) {
+                    outcomes.add(replay(browser, environment.root(), null, null, definition, deadline, environment));
+                } catch (java.io.IOException | java.sql.SQLException | RuntimeException failure) {
+                    var failed = pendingTest(recording, "ERROR");
+                    failed.put("classification", "TEST_DATABASE_SETUP_FAILED");
+                    failed.put("reason", "Could not prepare the isolated H2 fixture: " + failure.getMessage());
+                    failed.put("finishedAt", Instant.now().toString());
+                    outcomes.add(failed);
+                }
+            }
+            if (System.nanoTime() >= deadline) break;
+        }
+        return aggregateRepeats(outcomes, Math.max(1, repeat));
+    }
 
 	/**
 	 * One result for identical replays of the same recording. It passes only if every

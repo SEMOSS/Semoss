@@ -116,6 +116,8 @@ final class AppTestRecordings {
 	/** Only paths relative to the app portal are accepted, including hash routes. */
 	static String relativePath(Object raw) {
 		String value = raw == null ? "" : String.valueOf(raw);
+        if (value.contains("app-test-preview/"))
+            throw new IllegalArgumentException("Do not save a temporary test preview URL or capability. Use only the app-relative route inside portals/.");
 		if (value.length() > 2048 || value.indexOf('\\') >= 0 || value.chars().anyMatch(c -> c < 32)
 				|| value.startsWith("/")) {
 			throw new IllegalArgumentException("Navigation must be a relative path inside this app, for example index.html#/boards/b1 or #/boards/b1; use an empty string for the portal root. Do not use a leading slash, full URL or .. segments");

@@ -81,7 +81,13 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 			}
 		}
 
-		String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName, repeat, getNounAsStringList(RECORDING_IDS), getBoolean(ALL, false));
+		final AppTestEnvironment.Definition database;
+        try { database = AppTestEnvironment.definition(requireUser(), projectId); }
+        catch (java.io.IOException failure) { throw new IllegalArgumentException("TEST_DATABASE_SETUP_FAILED: " + failure.getMessage(), failure); }
+        if (database != null && scenario != null && !scenario.isBlank())
+            throw new IllegalArgumentException("Development mock scenarios cannot be combined with an enabled test database");
+        String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName,
+                repeat, getNounAsStringList(RECORDING_IDS), getBoolean(ALL, false), database);
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("runId", runId);
@@ -89,6 +95,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 		result.put("status", AppTestRuns.get(owner, runId).get("status"));
 		result.put("scope", AppTestRuns.PLATFORM_SMOKE_SUITE.equals(suite) ? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSIONS");
 		result.put("maxFixAttempts", AppTestRuns.maxFixAttempts());
+        if (database != null) result.put("mode", "ISOLATED_H2");
 		if (repeat > 1) result.put("repeat", repeat);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
@@ -103,7 +110,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Replay saved app recordings or an explicit limited __platform_smoke__ page visibility check with isolated Playwright. Explicit target project and one selection (recordingIds, suite or all=true) are required. Never default to all tests. Poll GetAppTestRun until status is COMPLETED, ERROR or NO_TESTS. Action-only recordings are SKIPPED/NO_ASSERTIONS. "
+				"Replay saved app recordings or an explicit limited __platform_smoke__ page visibility check with isolated Playwright. Explicit target project and one selection (recordingIds, suite or all=true) are required. Never default to all tests. An enabled ManageAppTestDatabase configuration automatically uses a fresh isolated H2 fixture per test/replay; setup or unsupported operation failures never fall back to the real database. Poll GetAppTestRun until status is COMPLETED, ERROR or NO_TESTS. Action-only recordings are SKIPPED/NO_ASSERTIONS. "
 						+ "maxFixAttempts is how many times you may fix a failure and run again before you only report it.")
 				.key(ReactorKeysEnum.PROJECT, "Required target app project id. Never use the toolbox id or infer it from tool context.")
 				.key(SUITE, "Single recording UUID (legacy alias for recordingIds), or reserved __platform_smoke__ for a limited page visibility/runtime-error check. Names are not accepted. Mutually exclusive with recordingIds and all=true.")

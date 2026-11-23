@@ -112,6 +112,12 @@ final class AppTestRuns {
     /** Real runs must choose UUIDs, the platform smoke check, or explicitly all recordings. */
     static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
             String applicationUrl, String sessionId, String cookieName, int repeat, List<String> recordingIds, boolean all) {
+        return start(owner, projectId, scenario, suite, pages, applicationUrl, sessionId, cookieName, repeat, recordingIds, all, null);
+    }
+
+    static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
+            String applicationUrl, String sessionId, String cookieName, int repeat, List<String> recordingIds, boolean all,
+            AppTestEnvironment.Definition database) {
         int replays = Math.max(1, Math.min(MAX_REPEAT, repeat));
         String runId = UUID.randomUUID().toString();
         Map<String, Object> pending = new LinkedHashMap<>();
@@ -151,15 +157,25 @@ final class AppTestRuns {
             register(runId, run);
             return runId;
         }
-        if (sessionId == null || sessionId.isBlank()) {
+        if (database == null && (sessionId == null || sessionId.isBlank())) {
             throw new IllegalArgumentException("A signed-in browser session is required to replay app tests. Run from the app editor after signing in.");
         }
         if (!ACTIVE_PROJECTS.add(projectId)) throw new IllegalArgumentException("An app test run is already active for this app. Wait for it to finish before starting another shared-data workflow.");
         try {
-        URI root = AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId);
+        AppTestEnvironment.Portal portal;
+        try { portal = database == null ? null : AppTestEnvironment.portal(projectId); }
+        catch (IOException failure) { throw new IllegalArgumentException("TEST_PREVIEW_UNAVAILABLE: " + failure.getMessage(), failure); }
+        URI root = database == null
+                ? AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId)
+                : AppTestRunner.appRoot("http://semoss-app-test.invalid/", projectId);
         List<Map<String, Object>> selected = recordings;
         long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * replays * 1_000_000;
         pending.putAll(AppTestHistory.pending(runId, projectId, selected, replays, Instant.now()));
+        if (database != null) {
+            pending.put("mode", "ISOLATED_H2");
+            pending.put("fixtureHash", database.fixtureHash());
+            pending.put("portalHash", portal.hash());
+        }
         try {
             run.historyFolder = AppTestHistory.folder(projectId);
             String warning = AppTestHistory.publishAt(projectId, run.historyFolder, pending);
@@ -186,7 +202,7 @@ final class AppTestRuns {
             WORKERS.execute(() -> {
                 try {
                 Map<String, Object> result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected,
-                        reportFolder, deadline, replays, progress -> update(run, projectId, pending, progress));
+                        reportFolder, deadline, replays, progress -> update(run, projectId, pending, progress), owner, database, portal);
                 if (!result.containsKey("reportWarning")) result.put("privateReportRunId", runId);
                 update(run, projectId, pending, result);
                 } catch (RuntimeException | AssertionError failure) {
@@ -217,6 +233,8 @@ final class AppTestRuns {
     /** Store progress independently of the UI lifecycle; failures remain visible on the live result. */
     private static void update(Run run, String projectId, Map<String, Object> initial, Map<String, Object> progress) {
         Map<String, Object> next = new LinkedHashMap<>(progress);
+        for (String field : List.of("mode", "fixtureHash", "portalHash"))
+            if (initial.containsKey(field)) next.put(field, initial.get(field));
         next.put("version", 1);
         next.put("expiresAt", initial.get("expiresAt"));
         next.put("repeat", initial.get("repeat"));

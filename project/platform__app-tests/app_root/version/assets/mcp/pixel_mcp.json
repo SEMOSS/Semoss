@@ -1,8 +1,63 @@
 {
   "tools": [
     {
+      "name": "ManageAppTestDatabase",
+      "description": "Configure isolated H2 fixtures for this app. Enabled configurations are used automatically by RunAppTests with a fresh database per test. Open/close a disposable preview for manual recording. Never print or save the preview URL, which contains temporary credentials.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string",
+            "description": "Explicit app project ID, never the toolbox ID."
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "get",
+              "save",
+              "open",
+              "close"
+            ],
+            "description": "get reads configuration; save validates and persists fixtures; open creates a fresh recording preview; close destroys it."
+          },
+          "configuration": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "sourceEngineId": {
+                "type": "string",
+                "description": "Original H2 database ID the app already references. No ID edits in app code are needed."
+              },
+              "schemaSql": {
+                "type": "string",
+                "description": "Simple CREATE TABLE and CREATE INDEX statements for the test schema."
+              },
+              "seedSql": {
+                "type": "string",
+                "description": "Synthetic literal INSERT statements, or empty text. Never copy real rows or credentials."
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "additionalProperties": false
+          },
+          "environmentId": {
+            "type": "string",
+            "description": "Only for close; returned by open for this app/user."
+          }
+        },
+        "required": [
+          "project"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
       "name": "RunAppTests",
-      "description": "Replay explicitly selected recording UUIDs for the app being edited. Set all=true only for an intentional full regression run; omitted selection is an error. Reserved suite __platform_smoke__ provides limited visibility/runtime-error coverage only. Poll GetAppTestRun.",
+      "description": "Replay explicitly selected recording UUIDs for the app being edited. Set all=true only for an intentional full regression run; omitted selection is an error. Reserved suite __platform_smoke__ provides limited visibility/runtime-error coverage only. Poll GetAppTestRun. An enabled ManageAppTestDatabase configuration automatically uses isolated H2 fixtures; a setup/unsupported-operation error must never be bypassed by disabling the configuration.",
       "inputSchema": {
         "type": "object",
         "properties": {

@@ -72,6 +72,18 @@ class AppTestHistoryUnitTests {
         assertThrows(IOException.class,()->AppTestHistory.publishAt("app",blocked,run));
     }
 
+    @Test void isolatedRunHistoryPreservesModeAndInputHashesButNeverCapabilities() throws Exception {
+        Map<String,Object> run = pending(List.of(recording("H2")), NOW);
+        run.put("mode", "ISOLATED_H2"); run.put("fixtureHash", "fixture"); run.put("portalHash", "portal");
+        run.put("previewPath", "private-capability");
+        AppTestHistory.write(folder, run);
+        Map<String,Object> saved = AppTestHistory.read(folder, (String)run.get("runId"), "app", NOW);
+        assertEquals("ISOLATED_H2", saved.get("mode"));
+        assertEquals("fixture", saved.get("fixtureHash")); assertEquals("portal", saved.get("portalHash"));
+        assertFalse(saved.containsKey("previewPath"));
+        assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.relativePath("app-test-preview/id/secret/public_home/app/portals/"));
+    }
+
     @Test void hashIsStableAcrossMapOrderingAndEditTimestampsButChangesWithTheTest() {
         Map<String, Object> first = recording("Checkout");
         Map<String, Object> copy = new LinkedHashMap<>(first);

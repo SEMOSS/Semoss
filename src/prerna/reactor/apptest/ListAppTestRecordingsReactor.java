@@ -48,6 +48,7 @@ public class ListAppTestRecordingsReactor extends AbstractAppTestReactor {
 		try {
 			Map<String,Object> result = new java.util.LinkedHashMap<>(AppTestRecordings.discover(AppTestRecordings.folder(target)));
             result.put("target", target);
+            result.put("testDatabaseEnabled", Boolean.TRUE.equals(AppTestEnvironment.configuration(target).get("enabled")));
 			return new NounMetadata(result,
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {
