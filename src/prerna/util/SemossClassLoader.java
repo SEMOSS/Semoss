@@ -116,13 +116,15 @@ public class SemossClassLoader extends ClassLoader {
 
 	/**
 	 * Single classes that work on a system database for whoever calls them, out of
-	 * a package whose other classes do not, by internal name: the two JDBC log
-	 * appenders, and the Microsoft directory lookup, which adds directory users to
-	 * the security database. Project reactor code searches the directory through
+	 * a package whose other classes do not, by internal name: the three JDBC log
+	 * appenders (the audit log, the server log and the IL4 security audit trail),
+	 * and the Microsoft directory lookup, which adds directory users to the
+	 * security database. Project reactor code searches the directory through
 	 * {@link prerna.auth.CustomReactorSecurity}.
 	 */
 	private static final Set<String> SYSTEM_DATABASE_CLASSES = Set.of("prerna/logging/AuditLogsJDBCAppender",
-			"prerna/logging/ServerLogsJDBCAppender", "prerna/io/connector/ms/MicrosoftGraphUserLookup");
+			"prerna/logging/ServerLogsJDBCAppender", "prerna/logging/SecurityAuditLogsJDBCAppender",
+			"prerna/io/connector/ms/MicrosoftGraphUserLookup");
 
 	/**
 	 * The package of the security utilities, as an internal name prefix. Project
