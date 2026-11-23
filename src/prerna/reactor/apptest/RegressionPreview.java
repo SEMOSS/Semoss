@@ -121,7 +121,7 @@ final class RegressionPreview {
 
     static RegressionPreview load(User actor, String projectId, String candidateSha, String recordingId, String runId)
             throws IOException {
-        String config = System.getProperty(ROOT_PROPERTY);
+        String config = configurationValue(ROOT_PROPERTY);
         if (config == null || config.isBlank()) {
             throw new IOException("H2 regression is disabled on this worker");
         }
@@ -183,7 +183,7 @@ final class RegressionPreview {
     }
 
     static String approvedRecordingId(String projectId) {
-        String root = System.getProperty(ROOT_PROPERTY);
+        String root = configurationValue(ROOT_PROPERTY);
         if (root == null || root.isBlank() || !projectId.matches("[A-Za-z0-9_-]{1,128}")) {
             return null;
         }
@@ -229,12 +229,17 @@ final class RegressionPreview {
         return Map.copyOf(assets);
     }
 
-    private static URI loopbackMonolith() throws IOException {
-        String url = System.getProperty(MONOLITH_PROPERTY, "");
-        if (!url.matches("http://127\\.0\\.0\\.1:[0-9]{1,5}(?:/[A-Za-z0-9_-]+)*/?")) {
+    static URI loopbackMonolith() throws IOException {
+        String url = configurationValue(MONOLITH_PROPERTY);
+        if (url == null || !url.matches("http://127\\.0\\.0\\.1:[0-9]{1,5}(?:/[A-Za-z0-9_-]+)*/?")) {
             throw new IOException("A loopback Monolith URL is required on the pinned H2 regression worker");
         }
         return URI.create(url.endsWith("/") ? url : url + "/");
+    }
+
+    private static String configurationValue(String key) {
+        String override = System.getProperty(key);
+        return override == null ? Utility.getDIHelperProperty(key) : override;
     }
 
     private static boolean sha(String value) {

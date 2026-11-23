@@ -28,7 +28,10 @@
 package prerna.reactor.apptest;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.parallel.Resources.SYSTEM_PROPERTIES;
 
+import java.io.IOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -37,12 +40,47 @@ import java.util.Properties;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.parallel.ResourceLock;
 
 import prerna.reactor.AbstractReactor;
 import prerna.util.InternalUtility;
 
 class AppTestContractUnitTests {
 	@TempDir Path temporary;
+
+	@Test
+	@ResourceLock(SYSTEM_PROPERTIES)
+	void readsH2SettingsFromRdfMapWithJvmOverrides() throws Exception {
+		String rootKey = "semoss.appRegressionRoot";
+		String urlKey = "semoss.appRegressionMonolithUrl";
+		String recordingId = "94e82b66-61ce-449c-b6c2-b7e1dcbcfb71";
+		Path project = Files.createDirectory(temporary.resolve("app"));
+		Files.writeString(project.resolve("approval.json"), "{\"recordingId\":\"" + recordingId + "\"}");
+		Properties prior = InternalUtility.getCoreProp();
+		Properties configured = new Properties(prior);
+		configured.setProperty(rootKey, temporary.toString());
+		configured.setProperty(urlKey, "http://127.0.0.1:8080/Monolith");
+		String priorRoot = System.clearProperty(rootKey);
+		String priorUrl = System.clearProperty(urlKey);
+		try {
+			InternalUtility.setCoreProp(configured);
+			assertEquals(recordingId, RegressionPreview.approvedRecordingId("app"));
+			assertEquals(URI.create("http://127.0.0.1:8080/Monolith/"), RegressionPreview.loopbackMonolith());
+
+			System.setProperty(rootKey, "");
+			System.setProperty(urlKey, "http://127.0.0.1:9090/Monolith");
+			assertNull(RegressionPreview.approvedRecordingId("app"));
+			assertEquals(URI.create("http://127.0.0.1:9090/Monolith/"), RegressionPreview.loopbackMonolith());
+
+			System.clearProperty(urlKey);
+			configured.setProperty(urlKey, "http://example.org:8080/Monolith");
+			assertThrows(IOException.class, RegressionPreview::loopbackMonolith);
+		} finally {
+			InternalUtility.setCoreProp(prior);
+			if (priorRoot == null) System.clearProperty(rootKey); else System.setProperty(rootKey, priorRoot);
+			if (priorUrl == null) System.clearProperty(urlKey); else System.setProperty(urlKey, priorUrl);
+		}
+	}
 
 	@Test
 	void allAppScopedToolsRequireAnExplicitTargetAndDeclareMapOutputs() {

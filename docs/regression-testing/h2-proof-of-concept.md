@@ -21,12 +21,14 @@ Run this on a single development worker with the matching Semoss, semoss-ui, and
 
 For a candidate with schema changes, add its full Git SHA and the hash of its approved SQL to **migrations**. Put those reviewed statements in **<candidate SHA>.sql** beside the baseline. Statements run in the order in the file after the baseline and before the seed.
 
-4. Set these JVM properties on the dedicated Monolith and restart the worker. The second value must target the same instance over IPv4 loopback. Keep the servlet path private to the worker at the reverse proxy.
+4. Add these settings to the `RDF_Map.prop` loaded by Monolith and restart Tomcat. Use the absolute fixture directory on that worker and the HTTP port and context path of the same Tomcat instance. Keep the servlet path private to the worker at the reverse proxy.
 
 ~~~text
--Dsemoss.appRegressionRoot=/opt/semoss/h2-regression
--Dsemoss.appRegressionMonolithUrl=http://127.0.0.1:8080/Monolith
+semoss.appRegressionRoot=/opt/semoss/h2-regression
+semoss.appRegressionMonolithUrl=http://127.0.0.1:8080/Monolith
 ~~~
+
+Existing JVM options with the same keys take precedence over the file. Remove the corresponding `-D` options to use the values in `RDF_Map.prop`.
 
 5. In the app editor's Testing tab, paste the candidate SHA into **Candidate Commit SHA** and select **Run H2 Regression**. Alternatively, call the following Pixel as a signed-in app editor.
 
