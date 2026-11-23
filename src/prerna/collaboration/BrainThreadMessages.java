@@ -274,6 +274,14 @@ public final class BrainThreadMessages {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("threadId", threadId);
 		result.put("source", source);
+		// for Teams chats, include when this source was last synced to Brain; agents can compare
+		// against newest message timestamp to detect staleness
+		for (Map<String, Object> sourceStatus : CollaborationSourceUtils.getSources(ownerId, ownerType)) {
+			if (source.equals(sourceStatus.get("id")) && sourceStatus.get("lastEventAt") instanceof Object lastSync) {
+				result.put("lastSyncedAt", lastSync);
+				break;
+			}
+		}
 		result.put("muted", Boolean.parseBoolean(thread[2]));
 		result.put("messages", out);
 		result.put("hiddenCount", hidden);
