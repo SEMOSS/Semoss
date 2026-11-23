@@ -51,6 +51,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.utils.CatalogDependencyDerivation;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -255,6 +256,8 @@ public final class AutomationProjectService {
 		if (commitMessage == null || commitMessage.isBlank()) {
 			throw new IllegalArgumentException("Automation version commit message must be provided.");
 		}
+		AutomationDefinitionValidator.ValidatedDefinition validated;
+		AutomationDefinitionService.DefinitionFiles saved;
 		ReentrantLock projectLock = ProjectSyncUtility.getProjectLock(projectId);
 		projectLock.lock();
 		try {
@@ -267,18 +270,24 @@ public final class AutomationProjectService {
 							"Automation changed since it was loaded. Refresh and reapply your changes.");
 				}
 			}
-			validateDefinitionReferences(AutomationDefinitionValidator.parseAndValidateForAuthoring(definitionJson),
-					user);
+			validated = AutomationDefinitionValidator.parseAndValidateForAuthoring(definitionJson);
+			validateDefinitionReferences(validated, user);
 			AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.save(projectId,
 					definitionJson, nodeSources);
 			AutomationMcpSync.sync(projectId, files.definition(), user);
 			syncDefinitionAssets(projectId, user, commitMessage);
-			// Return the same normalized aggregate a subsequent GetAutomation call will
+			// Read back the same normalized aggregate a subsequent GetAutomation call will
 			// read. This keeps the optimistic-concurrency token stable after Save.
-			return AutomationDefinitionService.load(projectId);
+			saved = AutomationDefinitionService.load(projectId);
 		} finally {
 			projectLock.unlock();
 		}
+		// Every save path funnels through here, so the dependency map follows granular
+		// step edits and version restores as well as a full save. allNodes carries the
+		// nodes nested in a loop body, and the sync logs rather than throws, so it can
+		// neither fail nor delay the save it records.
+		CatalogDependencyDerivation.syncAutomation(user, projectId, AutomationRuntime.allNodes(validated));
+		return saved;
 	}
 
 	/**

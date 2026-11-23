@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.model.upload;
 
+import prerna.auth.utils.CatalogDependencyDerivation;
 import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -163,6 +164,11 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			model.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(modelId, modelName, model, smssFile);
 			SecurityEngineUtils.addEngine(modelId, global, user);
+			// a model router's router.json names the models it sends to
+			Object routerConfig = modelDetails.get(prerna.engine.impl.model.ModelRouterEngine.ROUTER_CONFIG_JSON);
+			if (routerConfig instanceof String routerJson) {
+				CatalogDependencyDerivation.syncRouterJson(user, modelId, routerJson);
+			}
 			if (modelDescription != null) {
 				SecurityEngineUtils.updateEngineMetadata(user, modelId, Map.of(Constants.DESCRIPTION, modelDescription));
 			}

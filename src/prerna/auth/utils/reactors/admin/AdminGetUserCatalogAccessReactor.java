@@ -25,35 +25,30 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.security;
+package prerna.auth.utils.reactors.admin;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.api.IEngine;
-import prerna.project.api.IProject;
-import prerna.project.impl.notebook.INotebookHelper;
+import prerna.auth.utils.SecurityAdminUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-public class ValidateProjectDependenciesReactor extends AbstractReactor {
+/**
+ * Admin only: every engine and project a user can use, with the user's
+ * effective permission on each and whether it comes from their own grant, a
+ * custom team's grant, or the item being public.
+ */
+public class AdminGetUserCatalogAccessReactor extends AbstractReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(ValidateProjectDependenciesReactor.class);
+	private static final String USER_ID = "userId";
 
-	public ValidateProjectDependenciesReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+	public AdminGetUserCatalogAccessReactor() {
+		this.keysToGet = new String[] { USER_ID };
 		this.keyRequired = new int[] { 1 };
 	}
 
@@ -61,36 +56,28 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			// you don't have access
-			throw new IllegalArgumentException(
-					"Project/App does not exist or user does not have access to the project");
+		if (!SecurityAdminUtils.userIsAdmin(user)) {
+			throw new IllegalArgumentException("User is not an admin and does not have access. Please login as an admin");
 		}
-
-		List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId, true);
-		Map<String, Object> dependencyMap = new HashMap<>();
-		for (Map<String, Object> dep : projectDependencies) {
-			String engineId = (String) dep.get("engine_id");
-			String engineType = (String) dep.get("engine_type");
-
-			boolean canView = false;
-			if (engineType == null || IEngine.CATALOG_TYPE.valueOf(engineType) != IEngine.CATALOG_TYPE.PROJECT) {
-				canView = SecurityEngineUtils.userCanViewEngine(user, engineId);
-			} else {
-				canView = SecurityProjectUtils.userCanViewProject(user, engineId);
-			}
-			dependencyMap.put(engineId, canView);
+		String userId = this.keyValue.get(USER_ID);
+		if (userId == null || userId.isBlank()) {
+			throw new IllegalArgumentException("Must provide the user id");
 		}
-
-		NounMetadata noun = new NounMetadata(dependencyMap, PixelDataType.MAP);
-		return noun;
+		List<Map<String, Object>> access = SecurityAdminUtils.getUserCatalogAccess(userId.trim());
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("userId", userId.trim());
+		result.put("access", access);
+		return new NounMetadata(result, PixelDataType.MAP);
 	}
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
-				.description("Return true if the user has access to all engine dependencies listed in this project");
+				.description("Admin Only: Every engine and project a user can use, each with id, kind (ENGINE or "
+						+ "PROJECT), the user's effective permission (1 owner, 2 edit, 3 read only) and its source: "
+						+ "DIRECT for the user's own grant, TEAM for a custom team's grant, PUBLIC for a public item. "
+						+ "The best permission wins; a tie goes to DIRECT, then TEAM, then PUBLIC.")
+				.key(USER_ID, "The user's id")
+				.output(Map.class, "userId and access");
 	}
-
 }

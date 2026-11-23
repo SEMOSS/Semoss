@@ -264,19 +264,26 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("METAVALUE", CLOB_DATATYPE_NAME),
 				Pair.with("METAORDER", INTEGER_DATATYPE_NAME)));
 
-		// the engines and other projects a project uses: one row per dependency, with its catalog
-		// type (ENGINETYPE, PROJECT for a project), who set it (USERID and TYPE) and when.
-		// SetProjectDependencies and the agent workspace reactors replace the list. Passing a
-		// person's project access on to the dependencies gives them the level on each, or files an
-		// access request for its owners where the person giving access is Read-Only or has no
-		// access there
-		addTable("PROJECTDEPENDENCIES", Arrays.asList(
-				Pair.with("PROJECTID", VARCHAR_255),
-				Pair.with("ENGINEID", VARCHAR_255),
-				Pair.with("ENGINETYPE", VARCHAR_255),
+		// an engine's or a project's (the catalog item's) dependencies: one row per link to an engine
+		// or project, each with its own engine type or project type, who set it (USERID and TYPE) and
+		// when. IS_AUTOMATIC rows are derived by save reactors from the item's own configuration, each
+		// under its ROLE (SecurityCatalogDependencyUtils.syncAutomaticDependencies); the others a user
+		// picked with SetCatalogDependencies, role MANUAL, with an optional NAME, unique per item.
+		// DESCRIPTION says what the link is for. Passing a person's project access on to the
+		// dependencies gives them the level on each, or files an access request for its owners where
+		// the person giving access is Read-Only or has no access there
+		addTable("CATALOGDEPENDENCIES", Arrays.asList(
+				Pair.with("CATALOGID", VARCHAR_255),
+				Pair.with("CATALOGTYPE", VARCHAR_255),
+				Pair.with("DEPENDENCYID", VARCHAR_255),
+				Pair.with("DEPENDENCYTYPE", VARCHAR_255),
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
-				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("DATEADDED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("IS_AUTOMATIC", BOOLEAN_DATATYPE_NAME),
+				Pair.with("ROLE", VARCHAR_255),
+				Pair.with("NAME", VARCHAR_255),
+				Pair.with("DESCRIPTION", "VARCHAR(2000)")));
 
 		// each login's asset project, the project that holds that user's own files: one row per
 		// login (USERID, and TYPE the login provider) with its PROJECTID. The project is not in

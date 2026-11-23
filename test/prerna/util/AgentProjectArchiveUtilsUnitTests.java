@@ -27,6 +27,10 @@
  *******************************************************************************/
 package prerna.util;
 
+import static org.mockito.ArgumentMatchers.any;
+import org.mockito.Mockito;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
+import prerna.auth.utils.CatalogTypes;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -281,16 +285,26 @@ class AgentProjectArchiveUtilsUnitTests {
 	}
 
 	@Test
-	void restoresDependenciesWithExportedTypesIncludingPlatformSkills() throws Exception {
+	void restoresDependenciesWithTheirTypesIncludingPlatformSkills() throws Exception {
 		Path file = directory.resolve(NAME + IProject.DEPENDENCIES_FILE_SUFFIX);
 		Files.writeString(file, """
 				[{"engine_id":"python","engine_type":"PROJECT"}, {"engine_id":"tool","engine_type":"FUNCTION"}]
 				""");
-		try (var projects = mockStatic(SecurityProjectUtils.class)) {
+		// built before the static mock, whose verify would count the record's own calls
+		List<SecurityCatalogDependencyUtils.Dependency> expected = List.of(
+				new SecurityCatalogDependencyUtils.Dependency("python", "SKILL"),
+				new SecurityCatalogDependencyUtils.Dependency("tool", "FUNCTION"));
+		try (var types = mockStatic(CatalogTypes.class, Mockito.CALLS_REAL_METHODS);
+				var dependencies = mockStatic(SecurityCatalogDependencyUtils.class, Mockito.CALLS_REAL_METHODS)) {
+			// the platform skill is in the security database; the tool is not, so its
+			// exported type is kept
+			types.when(() -> CatalogTypes.resolve("python")).thenReturn("SKILL");
+			types.when(() -> CatalogTypes.resolve("tool")).thenReturn(null);
+			dependencies.when(() -> SecurityCatalogDependencyUtils.replaceAllDependencies(any(), any(), any(), any()))
+					.thenAnswer(invocation -> null);
 			AgentProjectArchiveUtils.importDependencies(directory.toFile(), NAME, ID, user);
-			projects.verify(() -> SecurityProjectUtils.updateProjectDependencies(user, ID,
-					List.of(Map.of("ENGINEID", "python", "ENGINETYPE", "PROJECT"),
-							Map.of("ENGINEID", "tool", "ENGINETYPE", "FUNCTION"))));
+			dependencies.verify(() -> SecurityCatalogDependencyUtils.replaceAllDependencies(user, ID, "WORKSPACE",
+					expected));
 		}
 		assertFalse(Files.exists(file));
 	}

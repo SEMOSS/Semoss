@@ -52,6 +52,7 @@ import org.apache.logging.log4j.Logger;
 
 import jakarta.ws.rs.core.Response;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -208,7 +209,32 @@ public final class EngineCloneUtility {
 						cloneSmss, cloneImage, couchImageCopied);
 			}
 		}
+		copyDependencies(user, sourceEngineId, cloneId, engineType);
 		return cloneId;
+	}
+
+	/**
+	 * Gives the clone the source's dependencies, each link as it is. The clone's
+	 * configuration is a copy of the source's, so its automatic links are the same,
+	 * and the manual ones a user picked come along. Like a recorded dependency
+	 * elsewhere, a failure here never fails the clone: it is logged and left for
+	 * the backfill.
+	 *
+	 * @param user           the user who owns the clone
+	 * @param sourceEngineId the engine cloned
+	 * @param cloneId        the clone
+	 * @param engineType     their type
+	 */
+	private static void copyDependencies(User user, String sourceEngineId, String cloneId,
+			IEngine.CATALOG_TYPE engineType) {
+		try {
+			SecurityCatalogDependencyUtils.replaceAllDependencies(user, cloneId, engineType.name(),
+					SecurityCatalogDependencyUtils
+							.fromExported(SecurityCatalogDependencyUtils.getDependencyDetails(sourceEngineId)));
+		} catch (RuntimeException e) {
+			classLogger.warn("Cloned engine {} into {} but could not copy its dependencies",
+					Utility.cleanLogString(sourceEngineId), cloneId, e);
+		}
 	}
 
 	/**

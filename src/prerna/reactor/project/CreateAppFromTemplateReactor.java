@@ -46,6 +46,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
 import prerna.auth.User;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -178,7 +179,6 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 						.getWorkspaceResourcesByType(projectTemplateId, null);
 
 				List<Map<String, String>> clonedResources = new ArrayList<>();
-				List<Map<String, Object>> dependencyList = new ArrayList<>();
 				if (sourceResources != null) {
 					for (Map<String, Object> r : sourceResources) {
 						String resourceId = (String) r.get("resource_id");
@@ -191,14 +191,16 @@ public class CreateAppFromTemplateReactor extends AbstractReactor {
 						entry.put("resource_type", resourceType);
 						entry.put("resource_subtype", resourceSubtype);
 						clonedResources.add(entry);
-						Map<String, Object> dep = new HashMap<>();
-						dep.put("ENGINEID", resourceId);
-						dep.put("ENGINETYPE", resourceType);
-						dependencyList.add(dep);
 					}
 				}
 
-				SecurityProjectUtils.updateProjectDependencies(user, newProjectId, dependencyList);
+				// each resource is kept with its own engine type or project type, read from
+				// the security database
+				// the clone depends on what the template does, each link as it is
+				SecurityCatalogDependencyUtils.replaceAllDependencies(user, newProjectId,
+						SecurityCatalogDependencyUtils.resolveCatalogType(newProjectId, null),
+						SecurityCatalogDependencyUtils.fromExported(
+								SecurityCatalogDependencyUtils.getDependencyDetails(projectTemplateId)));
 				ModelInferenceLogsUtils.createNewWorkspaceEntry(newProjectId, user.getPrimaryLoginToken().getId(),
 						newProjectName, sourceDescription, sourceSystemPrompt, clonedResources);
 				if (sourceConfigJson != null) {

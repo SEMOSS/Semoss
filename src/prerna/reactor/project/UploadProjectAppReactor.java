@@ -47,6 +47,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityCatalogDependencyUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -195,6 +196,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		File finalProjectFolderF = null;
 		File finalProjectVersionF = null;
 		File finalProjectAssetF = null;
+		// the dependencies the export listed, read before its file is deleted
+		List<Map<String, Object>> exportedDependencies = new ArrayList<>();
 		boolean projectAddedToDIHelper = false;
 		boolean replacingExistingProject = false;
 		try {
@@ -368,6 +371,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					SecurityProjectUtils.deleteProject(user, projectId);
 				}
 			} else {
+				exportedDependencies = SecurityCatalogDependencyUtils.readDependencyFile(
+						new File(finalProjectAssetF, projectName + IProject.DEPENDENCIES_FILE_SUFFIX));
 				File[] assetsFilesToDelete = finalProjectAssetF
 						.listFiles((dir, name) -> name.endsWith(IEngine.METADATA_FILE_SUFFIX)
 								|| name.endsWith(IProject.DEPENDENCIES_FILE_SUFFIX)
@@ -385,10 +390,22 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		ClusterUtil.pushProject(projectId);
 
 		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(finalProjectFolderF);
-		// update the project dependencies table only with valid engineIds
-		if (agentMetadata == null && engineIdMap.containsKey("success")) {
-			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
-			SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, successMap.keySet());
+		// set the dependencies the export listed, engines and projects with their
+		// types, and the engines and projects whose ids are in the project's files
+		if (agentMetadata == null) {
+			List<SecurityCatalogDependencyUtils.Dependency> dependencies = new ArrayList<>(
+					SecurityCatalogDependencyUtils.fromExported(exportedDependencies));
+			if (engineIdMap.containsKey("success")) {
+				Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
+				for (SecurityCatalogDependencyUtils.Dependency found : SecurityCatalogDependencyUtils
+						.resolveDependencies(successMap.keySet(), null)) {
+					dependencies.add(SecurityCatalogDependencyUtils.Dependency.automatic(found.id(), found.type(),
+							prerna.auth.utils.CatalogDependencyRole.CODE_REFERENCE,
+							"Engine referenced in this app's files"));
+				}
+			}
+			SecurityCatalogDependencyUtils.replaceAllDependencies(user, projectId,
+					SecurityCatalogDependencyUtils.resolveCatalogType(projectId, null), dependencies);
 		}
 
 		UserAuditTrailUtils.recordProjectLifecycle(user,

@@ -1878,7 +1878,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
-	/// propagateProjectPermission
+	/// propagatePermission
 	///
 
 	@Test
@@ -1888,7 +1888,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
 		// Call propagate with no project dependencies - should return empty result maps
-		Map<String, Object> result = SecurityProjectUtils.propagateProjectPermission(user, "testProjectId", "user2id",
+		Map<String, Object> result = SecurityCatalogDependencyUtils.propagatePermission(user, "testProjectId", "user2id",
 				"user", "READ_ONLY", null);
 		assertNotNull(result);
 	}
@@ -1921,12 +1921,12 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	private static Map<String, Object> propagateToAModelWhoseAddsAreAdminOnly(User requester) {
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", requester);
 		UnitTestSecurityAuthUtils.createEngine("model1", "Model One", IEngine.CATALOG_TYPE.MODEL, requester);
-		SecurityProjectUtils.updateProjectDependencies(requester, "testProjectId",
-				List.of(Map.<String, Object>of("ENGINEID", "model1", "ENGINETYPE", IEngine.CATALOG_TYPE.MODEL.name())));
+		SecurityCatalogDependencyUtils.setManualDependencies(requester, "testProjectId", "INSIGHTS",
+				List.of(new SecurityCatalogDependencyUtils.Dependency("model1", IEngine.CATALOG_TYPE.MODEL.name())));
 		boolean adminOnlyBefore = AbstractSecurityUtils.adminOnlyModelAddAccess;
 		AbstractSecurityUtils.adminOnlyModelAddAccess = true;
 		try {
-			return SecurityProjectUtils.propagateProjectPermission(requester, "testProjectId", "user2id", "NATIVE",
+			return SecurityCatalogDependencyUtils.propagatePermission(requester, "testProjectId", "user2id", "NATIVE",
 					"READ_ONLY", null);
 		} finally {
 			AbstractSecurityUtils.adminOnlyModelAddAccess = adminOnlyBefore;
@@ -1934,7 +1934,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
-	/// getProjectDependencies & updateProjectDependencies
+	/// getDependencies & getDependencyDetails
 	///
 
 	@Test
@@ -1942,7 +1942,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-		List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencies("testProjectId", true);
+		List<Map<String, Object>> deps = SecurityCatalogDependencyUtils.getDependencies("testProjectId", true);
 		assertNotNull(deps);
 		assertTrue(deps.isEmpty());
 	}
@@ -1952,7 +1952,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-		List<Map<String, Object>> deps = SecurityProjectUtils.getProjectDependencyDetails("testProjectId", false);
+		List<Map<String, Object>> deps = SecurityCatalogDependencyUtils.getDependencyDetails("testProjectId", false);
 		assertNotNull(deps);
 		assertTrue(deps.isEmpty());
 	}
