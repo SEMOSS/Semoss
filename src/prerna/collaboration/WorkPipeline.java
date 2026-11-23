@@ -464,6 +464,7 @@ public final class WorkPipeline {
 				if (model == null) {
 					throw new IllegalStateException("Work items model (" + engine + ") could not be loaded");
 				}
+				Timestamp started = CollaborationDbUtils.now();
 				String[] self = CollaborationDbUtils.queryOne(
 						"SELECT PERSON_ID, DISPLAY_NAME FROM BRAIN_PERSON WHERE "
 								+ "OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?",
@@ -511,6 +512,7 @@ public final class WorkPipeline {
 					}
 					before = after;
 				}
+				retitleNew(user, ownerId, ownerType, model, started);
 				// an item whose steps are all finished is finished; one with a step open again is open again
 				expireAttended(user, ownerId, ownerType);
 				WorkTaskUtils.settleAll(ownerId, ownerType);
@@ -542,6 +544,71 @@ public final class WorkPipeline {
 				+ "STEP_ID NOT IN (" + behind + "(c.ATTEND IS NULL OR c.ATTEND = ?))", WorkTaskUtils.DROPPED, "passed",
 				CollaborationDbUtils.now(), ownerId, ownerType, BRAIN, "open", "waiting", false, dayStart(user),
 				ownerId, ownerType, "source", true, ownerId, ownerType, "source", false);
+	}
+
+	// the items this run made get titles that say the outcome: one small call per topic, topics at once
+	private static void retitleNew(User user, String ownerId, String ownerType, IModelEngine model, Timestamp since) {
+		Map<String, List<String[]>> byTopic = new LinkedHashMap<>();
+		CollaborationDbUtils.query("SELECT t.TASK_ID, t.TITLE, (SELECT MIN(x.TOPIC_ID) FROM WORK_TASK_TOPIC x WHERE "
+				+ "x.OWNER_ID = t.OWNER_ID AND x.OWNER_TYPE = t.OWNER_TYPE AND x.TASK_ID = t.TASK_ID AND x.IS_PRIMARY = ?) "
+				+ "AS TOPIC_ID FROM WORK_TASK t WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.ORIGIN = ? AND "
+				+ "t.CREATED_AT >= ? ORDER BY t.CREATED_AT", rs -> {
+					String topic = rs.getString("TOPIC_ID");
+					byTopic.computeIfAbsent(topic == null ? WorkReconcile.NO_TOPIC : topic, k -> new ArrayList<>())
+							.add(new String[] { rs.getString("TASK_ID"), rs.getString("TITLE") });
+					return null;
+				}, true, ownerId, ownerType, BRAIN, since);
+		if (byTopic.isEmpty()) {
+			return;
+		}
+		ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(Math.min(4, byTopic.size()));
+		try {
+			List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
+			for (Map.Entry<String, List<String[]>> e : byTopic.entrySet()) {
+				pending.add(pool.submit(() -> retitleTopic(user, ownerId, ownerType, model, e.getKey(), e.getValue())));
+			}
+			for (java.util.concurrent.Future<?> f : pending) {
+				try {
+					f.get();
+				} catch (java.util.concurrent.ExecutionException ex) {
+					classLogger.warn("Retitling work items failed", ex.getCause());
+				}
+			}
+		} catch (InterruptedException ex) {
+			Thread.currentThread().interrupt();
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	private static void retitleTopic(User user, String ownerId, String ownerType, IModelEngine model, String topicId,
+			List<String[]> tasks) {
+		String name = WorkReconcile.NO_TOPIC.equals(topicId) ? WorkReconcile.NO_TOPIC
+				: CollaborationDbUtils.queryOne("SELECT NAME FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
+						+ "TOPIC_ID = ?", rs -> rs.getString("NAME"), ownerId, ownerType, topicId);
+		List<Map<String, Object>> items = new ArrayList<>();
+		Map<String, String[]> byShort = new LinkedHashMap<>();
+		for (String[] t : tasks) {
+			List<String> steps = CollaborationDbUtils.query("SELECT TEXT FROM WORK_THREAD_STEP WHERE OWNER_ID = ? AND "
+					+ "OWNER_TYPE = ? AND TASK_ID = ? AND STATUS IN (?, ?) ORDER BY CREATED_AT", rs -> rs.getString("TEXT"),
+					ownerId, ownerType, t[0], "open", "waiting");
+			String w = "w" + (byShort.size() + 1);
+			byShort.put(w, t);
+			Map<String, Object> item = new LinkedHashMap<>();
+			item.put("id", w);
+			item.put("title", t[1]);
+			item.put("steps", steps.subList(0, Math.min(10, steps.size())));
+			items.add(item);
+		}
+		WorkReconcile.retitle(user, model, name == null ? topicId : name, items).forEach((w, title) -> {
+			String[] t = byShort.get(w);
+			// only a title nobody changed since this run made it
+			if (t != null && !title.equals(t[1]) && title.length() <= 120) {
+				CollaborationDbUtils.update("UPDATE WORK_TASK SET TITLE = ?, UPDATED_AT = ? WHERE OWNER_ID = ? AND "
+						+ "OWNER_TYPE = ? AND TASK_ID = ? AND TITLE = ?", title, CollaborationDbUtils.now(), ownerId,
+						ownerType, t[0], t[1]);
+			}
+		});
 	}
 
 	// ---- extract ----
