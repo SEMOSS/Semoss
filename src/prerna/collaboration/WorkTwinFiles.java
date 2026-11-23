@@ -102,7 +102,7 @@ public final class WorkTwinFiles {
 		// one answer whether the chat has no agent, its agent is not a twin, or the twin is someone else's:
 		// only its owner is told that an agent is a twin
 		if (!canManage(user, twinId)) {
-			throw new IllegalArgumentException("Files can only be added in a chat with your own Digital Twin");
+			throw new IllegalArgumentException("Files can only be added in your own chat with a twin you share");
 		}
 		Path source = chatFile(Path.of(Room.roomFolderPath(room.getId())), path);
 		IProject project = Utility.getProject(twinId);
@@ -156,7 +156,7 @@ public final class WorkTwinFiles {
 	public static Map<String, Object> remove(User user, Room room, String path) {
 		String twinId = room == null ? null : agentOf(room);
 		if (!canManage(user, twinId)) {
-			throw new IllegalArgumentException("Files can only be removed in a chat with your own Digital Twin");
+			throw new IllegalArgumentException("Files can only be removed in your own chat with a twin you share");
 		}
 		IProject project = Utility.getProject(twinId);
 		if (project == null) {

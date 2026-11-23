@@ -202,19 +202,23 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("WORK_BUILD_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// the owner's persona, one row per owner (WorkTwinPersona): how they sound, how they decide
-		// and what is left to them, in eight short sections (BRIEF_JSON). Their Digital Twins answer
-		// with it and their own assistant writes for them with it. There is a persona while a section
+		// and what is left to them, in eight short sections (BRIEF_JSON). The Digital Twins they share
+		// answer with it and their own Digital Twin thinks and writes with it. There is a persona while a section
 		// holds text. INTERVIEW_JSON is the working state of the interview that writes it and never
 		// reaches a prompt. OFF_TWINS_JSON lists the twins (project ids) the owner switched the
 		// persona off for; a twin not listed uses it. ASSISTANT_OFF is true once they switched it off
-		// for their own assistant, which uses it until then. A data reset keeps the row and clears
-		// the interview
+		// for their own Digital Twin, which uses it until then. TWIN_NAME and TWIN_IMAGE are what
+		// they call their own Digital Twin and the picture they chose for it, a base64 PNG
+		// (WorkMainTwin); empty means the default name and their Microsoft photo. A data reset
+		// keeps the row and clears the interview
 		addTable("BRAIN_PERSONA", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("BRIEF_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("INTERVIEW_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("OFF_TWINS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("ASSISTANT_OFF", BOOLEAN_DATATYPE_NAME),
+				Pair.with("TWIN_NAME", VARCHAR_255),
+				Pair.with("TWIN_IMAGE", CLOB_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// the owner's topic setup at onboarding: one resumable draft per owner, which a topic_map

@@ -44,10 +44,12 @@ import prerna.auth.utils.SecurityProjectUtils;
 
 /**
  * A person's persona (BRAIN_PERSONA, one row per owner): how they sound, how they decide and what is left to them, in
- * eight short sections of plain text. Every Digital Twin the person created is given it as a section of its prompt,
- * ahead of the twin's rules, unless they switched it off for that twin. Their own assistant is given the sections a
- * draft reads when it writes for them (GetWritingStyle), unless they switched that off. Only its owner reads or
- * changes it here; the people a twin is shared with never get it from a reactor.
+ * eight short sections of plain text. Every Digital Twin the person created to share is given it as a section of its
+ * prompt, ahead of the twin's rules, unless they switched it off for that twin. Their own Digital Twin, the
+ * Collaboration Agent in their chat (WorkMainTwin), is given the sections it thinks with in its prompt, and any
+ * agent that writes for them in Collaboration is given the sections a draft reads (GetWritingStyle), unless they
+ * switched that off: one switch for both. Only its owner reads or changes it here; the people a twin is shared
+ * with never get it from a reactor.
  */
 public final class WorkTwinPersona {
 
@@ -65,10 +67,16 @@ public final class WorkTwinPersona {
 	static final int MAX_PROMPT = 6000;
 
 	/**
-	 * The sections the owner's own assistant writes with: how they sound, their standing answers and what is left to
-	 * them. How they decide and what they check stay with their twins.
+	 * The sections the owner's own Digital Twin writes for them with: how they sound, their standing answers and
+	 * what is left to them.
 	 */
 	static final List<String> ASSISTANT_SECTIONS = List.of("short", "voice", "stands", "people", "limits", "examples");
+
+	/**
+	 * The sections the owner's own Digital Twin thinks with in their chat: who they are, how they decide, what they
+	 * check, their standing answers and what is left to them. How they sound stays with ASSISTANT_SECTIONS.
+	 */
+	static final List<String> MAIN_TWIN_SECTIONS = List.of("short", "decide", "review", "stands", "limits");
 
 	private WorkTwinPersona() {
 	}
@@ -81,7 +89,7 @@ public final class WorkTwinPersona {
 	 *
 	 * @return {@code exists}, whether any section holds text; {@code sections}, the text of every section by its key,
 	 *         empty where nothing is written; {@code offTwins}, the ids of the twins they switched it off for;
-	 *         {@code assistant}, whether their own assistant writes for them with it; {@code interview}, where the
+	 *         {@code assistant}, whether their own Digital Twin thinks and writes with it; {@code interview}, where the
 	 *         interview that writes it is, or null when there is none; and {@code updatedAt}
 	 */
 	public static Map<String, Object> get(User user) {
@@ -172,8 +180,8 @@ public final class WorkTwinPersona {
 	}
 
 	/**
-	 * Switches the signed-in person's persona on or off for their own assistant, which writes for them with it until
-	 * it is switched off.
+	 * Switches the signed-in person's persona on or off for their own Digital Twin, which thinks with it in their
+	 * chat and writes for them with it until it is switched off.
 	 */
 	public static Map<String, Object> setAssistant(User user, boolean enabled) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -200,26 +208,50 @@ public final class WorkTwinPersona {
 	 */
 	public static String forAssistant(User user) {
 		try {
-			if (user == null || !CollaborationDbUtils.isInitalized()) {
-				return null;
-			}
-			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-			Row row = read(owner.getValue0(), owner.getValue1());
-			if (row == null || row.assistantOff()) {
-				return null;
-			}
-			Map<String, String> kept = new LinkedHashMap<>();
-			for (String key : ASSISTANT_SECTIONS) {
-				String text = row.sections().get(key);
-				if (text != null) {
-					kept.put(key, text);
-				}
-			}
-			return CollaborationPrompts.assistantPersona(kept);
+			Map<String, String> kept = own(user, ASSISTANT_SECTIONS);
+			return kept == null ? null : CollaborationPrompts.assistantPersona(kept);
 		} catch (Exception e) {
 			classLogger.warn("Could not read the persona for its owner's assistant; it writes without one", e);
 			return null;
 		}
+	}
+
+	/**
+	 * The parts of the signed-in person's persona their own Digital Twin thinks with in their chat, as a section of
+	 * its prompt. The switch that {@link #forAssistant} follows covers it too. Never fails a run.
+	 *
+	 * @return the section, or null when the twin runs without one: Collaboration is off, they have no persona or
+	 *         switched it off for their own twin, none of those sections holds text, or it could not be read
+	 */
+	public static String forMainTwin(User user) {
+		try {
+			Map<String, String> kept = own(user, MAIN_TWIN_SECTIONS);
+			return kept == null ? null : CollaborationPrompts.mainTwinThinking(kept);
+		} catch (Exception e) {
+			classLogger.warn("Could not read the persona for its owner's Digital Twin; it runs without one", e);
+			return null;
+		}
+	}
+
+	// the named sections of the signed-in person's persona, for their own Digital Twin; null when it uses none:
+	// no user, Collaboration is off, they have no persona or switched it off for it
+	private static Map<String, String> own(User user, List<String> keys) {
+		if (user == null || !CollaborationDbUtils.isInitalized()) {
+			return null;
+		}
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		Row row = read(owner.getValue0(), owner.getValue1());
+		if (row == null || row.assistantOff()) {
+			return null;
+		}
+		Map<String, String> kept = new LinkedHashMap<>();
+		for (String key : keys) {
+			String text = row.sections().get(key);
+			if (text != null) {
+				kept.put(key, text);
+			}
+		}
+		return kept;
 	}
 
 	/**
@@ -292,8 +324,8 @@ public final class WorkTwinPersona {
 		return plain.length() > max ? plain.substring(0, max).strip() : plain;
 	}
 
-	// One column of the owner's row, which is made the first time anything is written: JSON text, or the assistant's
-	// switch. Callers hold the persona lock.
+	// One column of the owner's row, which is made the first time anything is written: JSON text, the switch for
+	// their own Digital Twin, or that twin's name or picture (WorkMainTwin). Callers hold the persona lock.
 	static void write(String ownerId, String ownerType, String column, Object value) {
 		Timestamp now = CollaborationDbUtils.now();
 		int updated = CollaborationDbUtils.update(
