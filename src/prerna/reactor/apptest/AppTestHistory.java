@@ -140,10 +140,12 @@ final class AppTestHistory {
                                     && outcome.containsKey(field)) compact.put(field, outcome.get(field));
                         }
                         copyCleanup(outcome, compact);
+                        if (outcome.containsKey("diagnostics")) compact.put("diagnostics", AppTestDiagnostics.compact(outcome.get("diagnostics")));
                         return compact;
                     }).toList());
         }
         copyCleanup(source, test);
+        if (source.containsKey("diagnostics")) test.put("diagnostics", AppTestDiagnostics.compact(source.get("diagnostics")));
         return test;
     }
 

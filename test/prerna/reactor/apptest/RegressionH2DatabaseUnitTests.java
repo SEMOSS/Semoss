@@ -127,6 +127,39 @@ class RegressionH2DatabaseUnitTests {
         assertThrows(SecurityException.class, () -> RegressionPixelAccess.authenticate(runId, capability));
     }
 
+    @Test
+    void supportsPaginationAliasesQuotedIdentifiersAggregatesAndLiteralPredicates() throws Exception {
+        String schema = "CREATE TABLE ITEMS (ID INTEGER PRIMARY KEY, TITLE VARCHAR(80), SCORE INTEGER);";
+        String seed = "INSERT INTO ITEMS VALUES (1,'First',10); INSERT INTO ITEMS VALUES (2,'Second',20); INSERT INTO ITEMS VALUES (3,'Third',30);";
+        try (var database = RegressionH2Database.open(root, schema, "", seed)) {
+            assertEquals(List.of(List.of("Second")), rows(database.execute("SELECT i.\"TITLE\" AS label FROM PUBLIC.\"ITEMS\" AS i WHERE (i.ID >= 1 AND i.ID IN (1,2,3)) ORDER BY i.ID LIMIT 1 OFFSET 1", 100)));
+            assertEquals(List.of(List.of("Second")), rows(database.execute("SELECT TITLE FROM ITEMS WHERE ID BETWEEN 1 AND 3 ORDER BY ID OFFSET 1 ROWS FETCH NEXT 1 ROW ONLY", 100)));
+            var aggregate = (List<?>)rows(database.execute("SELECT COUNT(*) AS total, SUM(SCORE) AS score FROM ITEMS WHERE TITLE IS NOT NULL AND TITLE NOT LIKE 'Missing%'", 100));
+            assertEquals(3L, ((Number)((List<?>)aggregate.getFirst()).getFirst()).longValue());
+            assertEquals(60L, ((Number)((List<?>)aggregate.getFirst()).get(1)).longValue());
+            assertEquals(List.of(List.of(10)), rows(database.execute("SELECT SCORE FROM ITEMS GROUP BY SCORE HAVING COUNT(*) >= 1 ORDER BY SCORE LIMIT 1", 100)));
+            assertEquals(true, database.execute("UPDATE ITEMS SET SCORE=99 WHERE (ID=1 OR ID=2) AND TITLE NOT IN ('Third')", 100));
+            assertEquals(true, database.execute("INSERT INTO ITEMS (ID,TITLE,SCORE) VALUES (4,'Fourth',40),(5,'Fifth',50)", 100));
+            assertEquals(true, database.execute("DELETE FROM ITEMS WHERE SCORE > 30 AND ID != 3", 100));
+        }
+    }
+
+    @Test
+    void consumesTheWholeStatementAndRejectsUnapprovedSqlCapabilities() {
+        for (String sql : List.of(
+                "SELECT TITLE FROM ITEMS; DROP TABLE ITEMS", "SELECT TITLE FROM ITEMS UNION SELECT TITLE FROM ITEMS",
+                "SELECT * FROM ITEMS JOIN OTHER ON ITEMS.ID=OTHER.ID", "SELECT * FROM (SELECT * FROM ITEMS)",
+                "SELECT FILE_READ('/tmp/private') FROM ITEMS", "SELECT CSVREAD('/tmp/private') FROM ITEMS",
+                "SELECT * FROM INFORMATION_SCHEMA.USERS", "SELECT CURRENT_USER FROM ITEMS",
+                "SELECT TITLE INTO OUTFILE '/tmp/file' FROM ITEMS", "SELECT TITLE FROM ITEMS FOR UPDATE",
+                "SELECT * FROM ITEMS WHERE ID IN (SELECT ID FROM ITEMS)", "SELECT * FROM ITEMS LIMIT -1",
+                "SELECT * FROM ITEMS WHERE ID=1 OR FILE_WRITE('x','y')=1", "UPDATE ITEMS SET SCORE=1",
+                "DELETE FROM ITEMS", "CALL CSVWRITE('/tmp/file','SELECT 1')", "CREATE ALIAS EVIL FOR 'java.lang.System.exit'")) {
+            assertThrows(IllegalArgumentException.class, () -> RegressionH2Database.isRead(sql), sql);
+        }
+        assertEquals("SELECT ? FROM ? WHERE ? = ?", RegressionSql.shape("SELECT TITLE FROM ITEMS WHERE TITLE='private-token'"));
+    }
+
     private static String pixel(String engine, String sql) {
         return "SqlQuery(database=[\"" + engine + "\"], query=[\"" + sql + "\"]);";
     }

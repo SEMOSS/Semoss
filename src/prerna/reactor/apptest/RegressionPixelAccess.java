@@ -49,9 +49,10 @@ public final class RegressionPixelAccess implements AutoCloseable {
     static final String STRING = "\"(?:[^\"\\\\\\p{Cntrl}]++|\\\\(?:[\"\\\\/bfnrt]|u[0-9A-Fa-f]{4}))*\"";
     private static final Pattern PIXEL = Pattern.compile(
             "\\s*(?:META\\s*\\|\\s*)?SqlQuery\\((.*)\\)\\s*;?\\s*", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final String VALUE = STRING + "|true|false|[0-9]{1,6}";
     private static final Pattern ARGUMENT = Pattern.compile(
-            "\\G\\s*(database|query|limit|commit|transaction|timeout)\\s*=\\s*\\[\\s*(" + STRING
-                    + "|true|false|[0-9]{1,6})\\s*]\\s*(,|$)", Pattern.CASE_INSENSITIVE);
+            "\\G\\s*(database|query|limit|commit|transaction|timeout)\\s*=\\s*(?:\\[\\s*(" + VALUE
+                    + ")\\s*]|(" + VALUE + "))\\s*(,|$)", Pattern.CASE_INSENSITIVE);
     private static final Map<String, RegressionPixelAccess> ACTIVE = new ConcurrentHashMap<>();
     private static final ThreadLocal<Execution> CURRENT = new ThreadLocal<>();
 
@@ -63,6 +64,8 @@ public final class RegressionPixelAccess implements AutoCloseable {
     private final String originalEngineId;
     private String projectId;
     private String lastFailure;
+    final AppTestDiagnostics diagnostics = new AppTestDiagnostics();
+    private String activePixel;
     private final RegressionH2Database database;
     private final Instant expiresAt;
     private final Insight insight = new Insight();
@@ -100,7 +103,7 @@ public final class RegressionPixelAccess implements AutoCloseable {
         return this;
     }
 
-    synchronized String lastFailure() { return lastFailure; }
+    synchronized String lastFailure() { return diagnostics.reason() == null ? lastFailure : diagnostics.reason(); }
 
     private static Request parse(String pixel, String originalEngineId) {
         if (pixel == null || pixel.length() > 8_192) {
@@ -114,10 +117,10 @@ public final class RegressionPixelAccess implements AutoCloseable {
         boolean trailingComma = false;
         while (argument.find()) {
             String name = argument.group(1).toLowerCase(java.util.Locale.ROOT);
-            if (arguments.putIfAbsent(name, com.google.gson.JsonParser.parseString(argument.group(2))) != null)
+            if (arguments.putIfAbsent(name, com.google.gson.JsonParser.parseString(argument.group(2) == null ? argument.group(3) : argument.group(2))) != null)
                 throw new SecurityException("Duplicate regression SqlQuery argument: " + name);
             end = argument.end();
-            trailingComma = ",".equals(argument.group(3));
+            trailingComma = ",".equals(argument.group(4));
         }
         if (end != match.group(1).length() || trailingComma
                 || !arguments.containsKey("database") || !arguments.containsKey("query")
@@ -144,20 +147,24 @@ public final class RegressionPixelAccess implements AutoCloseable {
      * The client expression is parsed here and never submitted to the interpreter.
      */
     public synchronized Map<String, Object> execute(String pixel, String insightId) {
-        checkInsight(insightId);
-        // SDK bootstrap is acknowledged without loading app reactors, Python or an ordinary user insight.
-        if (projectId != null && pixel != null && (pixel.matches("\\s*(?:META\\s*\\|\\s*)?init\\s*;?\\s*")
-                || projectId != null && pixel.strip().equals("LoadApp(\"" + projectId + "\");"))) {
-            return Map.of("insightID", insight.getInsightId(), "pixelReturn", List.of(Map.of(
-                    "isMeta", true, "operationType", List.of("OPERATION"), "output", true,
-                    "pixelExpression", "init;", "pixelId", "0", "timeToRun", 0)));
+        try { checkInsight(insightId); }
+        catch (SecurityException failure) { diagnostics.pixel(pixel, failure.getMessage(), false); throw failure; }
+        // Bootstrap is acknowledged locally; ordinary app reactors/Python are never loaded.
+        String app = Pattern.quote("\"" + projectId + "\"");
+        if (projectId != null && pixel != null && pixel.matches("(?is)\\s*(?:META\\s*\\|\\s*)?(?:init(?:\\s*\\(\\s*\\))?|LoadApp\\s*\\(\\s*(?:" + app + "|project\\s*=\\s*(?:" + app + "|\\[\\s*" + app + "\\s*]))\\s*\\))\\s*;?\\s*")) {
+            return result(true, "init;");
+        }
+        if (pixel != null && pixel.matches("(?is)\\s*(?:META\\s*\\|\\s*)?DropInsight\\(\\s*\\)\\s*;?\\s*")) {
+            return result(true, "DropInsight();");
         }
         final Request request;
         try { request = parse(pixel, originalEngineId); }
         catch (IllegalArgumentException | SecurityException failure) {
             lastFailure = failure.getMessage();
+            diagnostics.pixel(pixel, failure.getMessage(), false);
             throw failure;
         }
+        activePixel = pixel;
         CURRENT.set(new Execution(this, request));
         try {
             List<NounMetadata> results = insight
@@ -171,7 +178,14 @@ public final class RegressionPixelAccess implements AutoCloseable {
                     "pixelExpression", "SqlQuery();", "pixelId", "0", "timeToRun", 0)));
         } finally {
             CURRENT.remove();
+            activePixel = null;
         }
+    }
+
+    private Map<String,Object> result(Object output, String expression) {
+        return Map.of("insightID", insight.getInsightId(), "pixelReturn", List.of(Map.of(
+                "isMeta", true, "operationType", List.of("OPERATION"), "output", output,
+                "pixelExpression", expression, "pixelId", "0", "timeToRun", 0)));
     }
 
     private void checkInsight(String insightId) {
@@ -214,6 +228,7 @@ public final class RegressionPixelAccess implements AutoCloseable {
         } catch (SQLException e) {
             String state = e.getSQLState() == null ? "unknown" : e.getSQLState();
             execution.session.lastFailure = "TEST_DATABASE_SQL_ERROR: Check the test schema, seed data and query compatibility (SQL state " + state + "). The real database was not accessed.";
+            execution.session.diagnostics.pixel(execution.session.activePixel, execution.session.lastFailure, true);
             throw new IllegalArgumentException(execution.session.lastFailure);
         }
     }

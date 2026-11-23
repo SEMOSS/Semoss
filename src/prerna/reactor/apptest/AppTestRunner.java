@@ -260,10 +260,16 @@ final class AppTestRunner {
 				Response response = page.navigate(root.resolve(String.valueOf(recording.get("startPath"))).toString(),
 						new Page.NavigateOptions().setWaitUntil(WaitUntilState.DOMCONTENTLOADED));
 				if (response != null && response.status() >= 400) throw new IllegalStateException("App could not load");
+                if (testEnvironment != null) collectPreviewFailures(page, testEnvironment);
 				for (Map<String, Object> step : steps) {
+                    if (testEnvironment != null) {
+                        collectPreviewFailures(page, testEnvironment);
+                        if (testEnvironment.failure() != null) throw new IllegalStateException("Test preview startup or previous request failed");
+                        testEnvironment.phase("WORKFLOW");
+                    }
 					currentStep++;
 					if (System.nanoTime() >= deadline) throw new IllegalStateException("Run time limit exceeded");
-					if (unauthorized.get() || unsafeNavigation.get()) throw new IllegalStateException("App session or navigation failed");
+					if (unauthorized.get() || unsafeNavigation.get()) { currentStep--; throw new IllegalStateException("App session or navigation failed"); }
 					attemptedSteps++;
 					if (smoke && "ASSERT_VISIBLE".equals(step.get("type"))) {
 						// Fixed-position apps can have a zero-height body while their content is visible.
@@ -279,7 +285,7 @@ final class AppTestRunner {
 					page.waitForTimeout(250);
 					if (runtimeErrors.get() > 0) throw new AssertionError("Unhandled app runtime errors observed");
 				}
-				if (testEnvironment != null && Boolean.TRUE.equals(page.evaluate("() => window.__semossTestBlocked"))) unsafeNavigation.set(true);
+                if (testEnvironment != null) collectPreviewFailures(page, testEnvironment);
                 if (unauthorized.get() || unsafeNavigation.get() || testEnvironment != null && testEnvironment.failure() != null)
                     throw new IllegalStateException("App session, preview request or database operation failed");
 				if (assertionCount == 0) {
@@ -288,6 +294,7 @@ final class AppTestRunner {
 					test.put("reason", "Actions replayed, but this recording has no checks. Add a text or visibility check to verify behavior.");
 				} else test.put("status", "PASSED");
 			} catch (RuntimeException | AssertionError e) {
+                if (testEnvironment != null) collectPreviewFailures(page, testEnvironment);
 				boolean ambiguous = AppTestPlayback.ambiguous(e);
                 boolean invalidSelector = AppTestPlayback.invalidSelector(e);
                 boolean environment = unauthorized.get() || unsafeNavigation.get() || testEnvironment != null && testEnvironment.failure() != null
@@ -296,7 +303,7 @@ final class AppTestRunner {
 				boolean routeMismatch = e instanceof AppTestPlayback.WrongPage;
 				boolean targetMissing = !environment && !routeMismatch && !ambiguous && !invalidSelector && currentStep > 0 && targetMissing(page, steps.get(currentStep - 1));
 				test.put("status", environment ? "ERROR" : "FAILED");
-				test.put("classification", testEnvironment != null && (unsafeNavigation.get() || testEnvironment.failure() != null) ? "TEST_DATABASE_UNSUPPORTED" : environment ? "ERROR" : ambiguous ? "AMBIGUOUS_SELECTOR" : invalidSelector ? "INVALID_SELECTOR" : routeMismatch ? "WRONG_PAGE" : targetMissing ? "TARGET_NOT_FOUND" : "REGRESSION_SUSPECTED");
+				test.put("classification", testEnvironment != null && (unsafeNavigation.get() || testEnvironment.failure() != null) ? previewClassification(testEnvironment) : environment ? "ERROR" : ambiguous ? "AMBIGUOUS_SELECTOR" : invalidSelector ? "INVALID_SELECTOR" : routeMismatch ? "WRONG_PAGE" : targetMissing ? "TARGET_NOT_FOUND" : "REGRESSION_SUSPECTED");
 				if (currentStep > 0) test.put("failedStep", currentStep);
 				test.put("reason", testEnvironment != null && testEnvironment.failure() != null ? testEnvironment.failure()
                         : testEnvironment != null && unsafeNavigation.get() ? "The test preview requested an unsupported asset, endpoint or database operation. No request was forwarded to the real database."
@@ -342,14 +349,19 @@ final class AppTestRunner {
 				} catch (RuntimeException ignored) { /* Browser may already have closed. */ }
 			}
             if (recording.get("cleanupSteps") instanceof List<?> cleanup && !cleanup.isEmpty()) {
+                if (testEnvironment != null) testEnvironment.phase("CLEANUP");
                 Map<String,Object> cleanupResult = new LinkedHashMap<>();
                 int attempted = 0, completed = 0;
                 try {
                     for (Object raw : cleanup) {
                         attempted++;
-                        if (unauthorized.get() || unsafeNavigation.get()) throw new IllegalStateException("Session or navigation failed");
+                        if (unauthorized.get() || unsafeNavigation.get() || testEnvironment != null && testEnvironment.failure() != null) throw new IllegalStateException("Session or preview request failed");
                         AppTestPlayback.execute(page, root, (Map<String,Object>)raw, String.valueOf(recording.getOrDefault("routeMatch", "EXACT")), deadline);
                         completed++;
+                    }
+                    if (testEnvironment != null) {
+                        collectPreviewFailures(page, testEnvironment);
+                        if (testEnvironment.failure() != null) throw new IllegalStateException("Cleanup preview request failed");
                     }
                     cleanupResult.put("status","PASSED");
                 } catch (RuntimeException | AssertionError failure) {
@@ -357,13 +369,16 @@ final class AppTestRunner {
                     cleanupResult.put("failedStep",attempted);
                     cleanupResult.put("reason","Cleanup could not complete; check its steps, session and remaining run budget. Original workflow outcome is preserved.");
                     if ("PASSED".equals(test.get("status"))) {
-                        test.put("status","FAILED"); test.put("classification","CLEANUP_FAILED"); test.put("reason","The workflow passed but cleanup failed; shared test data may remain changed.");
+                        test.put("status", testEnvironment != null && testEnvironment.failure() != null ? "ERROR" : "FAILED");
+                        test.put("classification", testEnvironment != null && testEnvironment.failure() != null ? previewClassification(testEnvironment) : "CLEANUP_FAILED");
+                        test.put("reason", testEnvironment != null && testEnvironment.failure() != null ? testEnvironment.failure() : "The workflow passed but cleanup failed; shared test data may remain changed.");
                     }
                 }
                 cleanupResult.put("stepsAttempted",attempted); cleanupResult.put("stepsCompleted",completed);
                 test.put("cleanup",cleanupResult);
             }
 		}
+        if (testEnvironment != null && !testEnvironment.diagnostics().isEmpty()) test.put("diagnostics", testEnvironment.diagnostics());
 		test.put("assertionsPassed", completedAssertions);
 		test.put("stepsAttempted", attemptedSteps);
 		test.put("stepsCompleted", completedSteps);
@@ -394,36 +409,63 @@ final class AppTestRunner {
 		}
 	}
 
+    private static String previewClassification(AppTestEnvironment environment) {
+        String code = environment.failureCode();
+        return code == null || code.equals("TEST_DATABASE_SQL_UNSUPPORTED") || code.equals("UNMAPPED_TEST_DATABASE")
+                ? "TEST_DATABASE_UNSUPPORTED" : code;
+    }
+
+    private static void collectPreviewFailures(Page page, AppTestEnvironment environment) {
+        try {
+            Object value = page.evaluate("() => window.__semossTestViolations?.splice(0,10) ?? []");
+            if (value instanceof List<?> values) for (Object entry : values) {
+                if (entry instanceof Map<?,?> item) environment.blockedRequest("REQUEST", String.valueOf(item.get("url")), "browser",
+                        "TEST_PREVIEW_CSP_BLOCKED".equals(item.get("code")) ? "TEST_PREVIEW_CSP_BLOCKED" : "TEST_PREVIEW_ENDPOINT_UNSUPPORTED");
+            }
+        } catch (RuntimeException ignored) { /* A failed document may already be gone; network failures are retained separately. */ }
+    }
+
     private static void configureTestBrowser(BrowserContext context, URI root, AppTestEnvironment environment,
             AtomicBoolean denied) {
         context.setOffline(true);
-        context.routeWebSocket("**/*", socket -> { denied.set(true); socket.close(); });
+        context.routeWebSocket("**/*", socket -> {
+            environment.blockedRequest("WEBSOCKET", socket.url(), "websocket", "TEST_PREVIEW_ENDPOINT_UNSUPPORTED");
+            denied.set(true); socket.close();
+        });
         URI module = root.resolve("../../../");
         context.route("**/*", route -> {
+            String code = "TEST_PREVIEW_ENDPOINT_UNSUPPORTED";
             try {
                 URI url = URI.create(route.request().url());
-                if (!sameOrigin(root, url)) throw new IllegalArgumentException("External request");
+                if (!sameOrigin(root, url)) { code = "TEST_PREVIEW_EXTERNAL_REQUEST"; throw new IllegalArgumentException(); }
                 String path = url.getPath();
                 if ("POST".equals(route.request().method()) && module.resolve("api/engine/runPixel").getPath().equals(path)) {
                     String body = route.request().postData();
-                    if (body == null || body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > RegressionPixelAccess.MAX_REQUEST_BYTES)
-                        throw new IllegalArgumentException("SDK request is too large");
+                    if (body == null || body.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > RegressionPixelAccess.MAX_REQUEST_BYTES) {
+                        code = "TEST_PREVIEW_REQUEST_TOO_LARGE"; throw new IllegalArgumentException();
+                    }
+                    Map<String,Object> response;
+                    try { response = environment.execute(body); }
+                    catch (RuntimeException failure) { response = environment.pixelError(); }
                     route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(200)
-                            .setContentType("application/json").setBody(new com.google.gson.Gson().toJson(environment.execute(body))));
+                            .setContentType("application/json").setBody(new com.google.gson.Gson().toJson(response)));
                 } else if ("GET".equals(route.request().method()) && module.resolve("api/config").getPath().equals(path)) {
                     route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(200)
                             .setContentType("application/json").setBody(new com.google.gson.Gson().toJson(environment.sdkConfig())));
-                } else if ("GET".equals(route.request().method()) && insideApp(root, url.toString())) {
+                } else if ("GET".equals(route.request().method()) && (insideApp(root, url.toString()) || path.startsWith(module.resolve("sdk/").getPath()))) {
                     String relative = path.substring(module.getPath().length());
                     AppTestEnvironment.Asset asset = environment.asset(relative, "");
-                    if (asset == null) throw new IllegalArgumentException("Missing preview asset");
+                    if (asset == null) { code = "TEST_PREVIEW_ASSET_MISSING"; throw new IllegalArgumentException(); }
                     route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(200)
                             .setContentType(asset.contentType()).setBodyBytes(asset.bytes())
                             .setHeaders(Map.of("Content-Security-Policy", environment.contentSecurityPolicy("http://semoss-app-test.invalid"))));
                 } else if ("GET".equals(route.request().method()) && "/favicon.ico".equals(path)) {
                     route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(404));
-                } else throw new IllegalArgumentException("Unsupported test preview endpoint");
-            } catch (RuntimeException failure) { denied.set(true); route.abort(); }
+                } else throw new IllegalArgumentException();
+            } catch (RuntimeException failure) {
+                environment.blockedRequest(route.request().method(), route.request().url(), route.request().resourceType(), code);
+                denied.set(true); route.abort();
+            }
         });
     }
 

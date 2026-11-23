@@ -63,9 +63,10 @@ import prerna.util.sql.RdbmsTypeEnum;
 public final class AppTestEnvironment implements AutoCloseable {
     public static final String ENDPOINT = "app-test-preview/";
     private static final Gson JSON = new Gson();
+    private static final String ASSET_VALUE = "(\\[\\s*" + RegressionPixelAccess.STRING + "\\s*]|" + RegressionPixelAccess.STRING + ")";
     private static final Pattern PUBLIC_ASSET = Pattern.compile(
-            "\\s*(?:META\\s*\\|\\s*)?GetAppAssets\\(\\s*(project|filePath)\\s*=\\s*\\[\\s*(" + RegressionPixelAccess.STRING
-            + ")\\s*]\\s*,\\s*(project|filePath)\\s*=\\s*\\[\\s*(" + RegressionPixelAccess.STRING + ")\\s*]\\s*\\)\\s*;?\\s*", Pattern.CASE_INSENSITIVE);
+            "\\s*(?:META\\s*\\|\\s*)?GetAppAssets\\(\\s*(project|filePath)\\s*=\\s*" + ASSET_VALUE
+            + "\\s*,\\s*(project|filePath)\\s*=\\s*" + ASSET_VALUE + "\\s*\\)\\s*;?\\s*", Pattern.CASE_INSENSITIVE);
     private static final int MAX_CONFIG_BYTES = 256_000;
     private static final int MAX_ASSET_BYTES = 32 * 1024 * 1024;
     private static final Map<String, AppTestEnvironment> ACTIVE = new ConcurrentHashMap<>();
@@ -80,6 +81,7 @@ public final class AppTestEnvironment implements AutoCloseable {
     private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger(AppTestEnvironment.class);
 
     private static boolean shuttingDown;
+    private static volatile Map<String,byte[]> sdkAssets = Map.of();
     private static final java.util.concurrent.ScheduledExecutorService REAPER = Executors.newSingleThreadScheduledExecutor(task -> {
             Thread thread = new Thread(task, "app-test-environment-cleanup");
             thread.setDaemon(true);
@@ -95,8 +97,28 @@ public final class AppTestEnvironment implements AutoCloseable {
 
     /** Validated immutable inputs shared by a run; every replay still creates its own database. */
     record Definition(String sourceEngineId, String schemaSql, String seedSql, String fixtureHash) { }
-    record Portal(Map<String, byte[]> assets, String hash, Map<String,String> publicJson) {
-        Portal(Map<String,byte[]> assets, String hash) { this(assets, hash, Map.of()); }
+    record Portal(Map<String, byte[]> assets, String hash, Map<String,String> publicJson, Map<String,byte[]> sdk) {
+        Portal(Map<String,byte[]> assets, String hash) { this(assets, hash, Map.of(), Map.of()); }
+        Portal(Map<String,byte[]> assets, String hash, Map<String,String> publicJson) { this(assets, hash, publicJson, Map.of()); }
+    }
+
+    /** Called by Monolith at startup with the deployed frontend's fixed SDK directory, never an app-supplied path. */
+    public static void loadPlatformSdk(Path directory) throws IOException {
+        Map<String,byte[]> snapshot = new java.util.TreeMap<>();
+        int size = 0;
+        if (directory != null && Files.isDirectory(directory)) {
+            Path sdkRoot = directory.toRealPath();
+            try (var paths = Files.walk(sdkRoot)) {
+                for (Path path : paths.filter(Files::isRegularFile).toList()) {
+                    String name = sdkRoot.relativize(path).toString().replace('\\', '/');
+                    if (!(name.endsWith(".js") || name.endsWith(".mjs") || name.endsWith(".css")) || name.startsWith(".") || name.contains("/.")) continue;
+                    if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || snapshot.size() >= 256 || Files.size(path) > 16 * 1024 * 1024 - size)
+                        throw new IOException("Platform SDK snapshot exceeds limits or contains a symlink");
+                    byte[] content = Files.readAllBytes(path); size += content.length; snapshot.put(name, content);
+                }
+            }
+        }
+        sdkAssets = Map.copyOf(snapshot);
     }
     public record Asset(byte[] bytes, String contentType) { }
 
@@ -250,7 +272,9 @@ public final class AppTestEnvironment implements AutoCloseable {
                 digest.update(name.getBytes(StandardCharsets.UTF_8)); digest.update((byte)0);
                 digest.update(content.getBytes(StandardCharsets.UTF_8));
             });
-            return new Portal(Map.copyOf(assets), HexFormat.of().formatHex(digest.digest()), Map.copyOf(publicJson));
+            Map<String,byte[]> sdk = sdkAssets;
+            new java.util.TreeMap<>(sdk).forEach((name, content) -> { digest.update(("sdk/" + name).getBytes(StandardCharsets.UTF_8)); digest.update((byte)0); digest.update(content); });
+            return new Portal(Map.copyOf(assets), HexFormat.of().formatHex(digest.digest()), Map.copyOf(publicJson), sdk);
         } catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
 
@@ -289,16 +313,42 @@ public final class AppTestEnvironment implements AutoCloseable {
     String basePath() { return ENDPOINT + id + "/" + access.secret() + "/"; }
     URI root() { return AppTestRunner.appRoot("http://semoss-app-test.invalid/" + basePath(), projectId); }
     String failure() { return access.lastFailure(); }
+    String failureCode() { return access.diagnostics.code(); }
+    void phase(String phase) { access.diagnostics.phase(phase); }
+    public List<Map<String,Object>> diagnostics() { return access.diagnostics.snapshot(); }
+    public void blockedRequest(String method, String url, String resourceType, String code) {
+        access.diagnostics.request(method, url, resourceType, code);
+    }
     Map<String, Object> provenance() {
         return Map.of("mode", "ISOLATED_H2", "fixtureHash", definition.fixtureHash, "portalHash", portal.hash);
     }
 
     /** Minimal SDK bootstrap; it carries no normal session, privileges, database IDs or user information. */
     public Map<String, Object> sdkConfig() {
-        return Map.of("security", false, "logins", Map.of(), "csrf", false, "insightConfig", Map.of());
+        Map<String,Object> config = new LinkedHashMap<>();
+        config.put("security", false); config.put("csrf", false);
+        config.put("logins", Map.of("NATIVE", "Regression test preview"));
+        config.put("loginDetails", Map.of("NATIVE", Map.of("id", "app-test-preview", "name", "Regression test preview")));
+        config.put("primaryLogin", "NATIVE"); config.put("availableProviders", List.of());
+        config.put("databaseMetaKeys", List.of()); config.put("projectMetaKeys", List.of());
+        config.put("theme", Map.of()); config.put("insightConfig", Map.of());
+        config.put("python", false); config.put("r", false); config.put("anonymousUsers", false);
+        config.put("notificationEnabled", false); config.put("timeout", 30);
+        return config;
     }
 
     public Map<String, Object> execute(String form) {
+        int before = diagnostics().size();
+        try { return executeForm(form); }
+        catch (RuntimeException failure) {
+            if (diagnostics().size() == before) blockedRequest("POST", "/api/engine/runPixel", "fetch", "TEST_PREVIEW_REQUEST_INVALID");
+            throw failure;
+        }
+    }
+
+    private Map<String, Object> executeForm(String form) {
+        if (form == null || form.getBytes(StandardCharsets.UTF_8).length > RegressionPixelAccess.MAX_REQUEST_BYTES)
+            throw new IllegalArgumentException("Send a bounded URL-encoded SDK expression");
         Map<String, String> fields = new HashMap<>();
         for (String item : form.split("&", -1)) {
             int equals = item.indexOf('=');
@@ -306,25 +356,38 @@ public final class AppTestEnvironment implements AutoCloseable {
             String name = URLDecoder.decode(item.substring(0, equals), StandardCharsets.UTF_8);
             if (!Set.of("expression", "insightId", "tz").contains(name)
                     || fields.putIfAbsent(name, URLDecoder.decode(item.substring(equals + 1), StandardCharsets.UTF_8)) != null)
-                throw new IllegalArgumentException("Unexpected or duplicate SDK field: " + name);
+                throw new IllegalArgumentException("Unexpected or duplicate SDK form field");
         }
         String expression = fields.get("expression");
         if (expression != null) {
             var request = PUBLIC_ASSET.matcher(expression);
             if (request.matches()) {
                 boolean projectFirst = "project".equalsIgnoreCase(request.group(1));
-                String target = JSON.fromJson(request.group(projectFirst ? 2 : 4), String.class);
-                String file = JSON.fromJson(request.group(projectFirst ? 4 : 2), String.class);
+                String target = assetString(request.group(projectFirst ? 2 : 4));
+                String file = assetString(request.group(projectFirst ? 4 : 2));
                 String content = portal.publicJson.get(file);
                 if (request.group(1).equalsIgnoreCase(request.group(3)) || !projectId.equals(target) || content == null) {
                     String reason = "UNSUPPORTED_TEST_ASSET: Only saved public JSON settings of this app are readable in the test preview. App files are never modified.";
                     access.rejected(reason);
+                    access.diagnostics.pixel(expression, reason, false);
                     throw new SecurityException(reason);
                 }
                 return access.assetResult(fields.get("insightId"), content);
             }
         }
         return access.execute(expression, fields.get("insightId"));
+    }
+
+    private static String assetString(String literal) {
+        var value = com.google.gson.JsonParser.parseString(literal);
+        return value.isJsonArray() ? value.getAsJsonArray().get(0).getAsString() : value.getAsString();
+    }
+
+    /** Same useful, sanitized SDK error envelope for manual previews and background playback. */
+    public Map<String,Object> pixelError() {
+        return Map.of("insightID", "new", "diagnostics", diagnostics(), "pixelReturn", List.of(Map.of(
+                "isMeta", true, "pixelId", "0", "pixelExpression", "", "timeToRun", 0,
+                "operationType", List.of("ERROR"), "output", failure() == null ? "The preview request failed" : failure())));
     }
 
     public String contentSecurityPolicy(String modulePath) {
@@ -336,6 +399,11 @@ public final class AppTestEnvironment implements AutoCloseable {
 
     /** Serve the immutable build, with an SPA fallback only for extensionless navigation routes. */
     public Asset asset(String path, String modulePath) {
+        if (path.startsWith("sdk/")) {
+            String name = path.substring(4);
+            byte[] bytes = portal.sdk.get(name);
+            return bytes == null ? null : new Asset(bytes, mime(name));
+        }
         String prefix = "public_home/" + projectId + "/portals/";
         if (!path.startsWith(prefix)) throw new IllegalArgumentException("The preview path belongs to a different app");
         String name = path.substring(prefix.length());
@@ -354,6 +422,14 @@ public final class AppTestEnvironment implements AutoCloseable {
             String html = new String(content, StandardCharsets.UTF_8)
                     .replaceAll("(?is)<script\\b[^>]*\\bid=[\"']semoss-env[\"'][^>]*>.*?</script>", "")
                     .replaceAll("(?is)<base\\b[^>]*>", "");
+            // Rewrite the platform-owned SDK import map to the immutable preview-local copy.
+            var document = org.jsoup.Jsoup.parse(html);
+            document.outputSettings().prettyPrint(false);
+            var importMap = document.getElementById("semoss-sdk-importmap");
+            if (importMap != null) importMap.html(JSON.toJson(Map.of("imports", Map.of("@semoss/sdk", base + "sdk/index.mjs"))));
+            else if (document.selectFirst("script[type=importmap]") == null)
+                document.head().prepend("<script type=\"importmap\">" + JSON.toJson(Map.of("imports", Map.of("@semoss/sdk", base + "sdk/index.mjs"))) + "</script>");
+            html = document.html();
             String injection = "<base href=\"" + root + "\"><script id=\"semoss-env\" type=\"application/json\">" + env + "</script>"
                     + "<script>" + bootstrap(base, root) + "</script>";
             var head = Pattern.compile("(?i)<head(?:\\s[^>]*)?>").matcher(html);
@@ -365,11 +441,11 @@ public final class AppTestEnvironment implements AutoCloseable {
 
     private static String bootstrap(String base, String root) {
         // Apps with older SDKs may set MODULE themselves. Rewrite only known SDK URLs; other API traffic is blocked.
-        return "(()=>{window.__semossTestBlocked=false;document.addEventListener('securitypolicyviolation',()=>{window.__semossTestBlocked=true});const base=" + JSON.toJson(base) + ",root=" + JSON.toJson(root) + ";"
+        return "(()=>{window.__semossTestBlocked=false;window.__semossTestViolations=[];const blocked=(url,code)=>{window.__semossTestBlocked=true;if(window.__semossTestViolations.length<10)window.__semossTestViolations.push({url,code})};document.addEventListener('securitypolicyviolation',e=>blocked(e.blockedURI,'TEST_PREVIEW_CSP_BLOCKED'));const base=" + JSON.toJson(base) + ",root=" + JSON.toJson(root) + ";"
                 + "const rewrite=u=>{const p=new URL(u,location.href);"
                 + "if(p.pathname.endsWith('/api/engine/runPixel'))return base+'api/engine/runPixel';"
                 + "if(p.pathname.endsWith('/api/config'))return base+'api/config';"
-                + "if(p.pathname.includes('/api/'))throw Error('UNSUPPORTED_TEST_DATABASE_OPERATION: This API is unavailable in the test preview');"
+                + "if(p.pathname.includes('/api/')){blocked(p.href,'TEST_PREVIEW_ENDPOINT_UNSUPPORTED');throw Error('UNSUPPORTED_TEST_DATABASE_OPERATION: This API is unavailable in the test preview');}"
                 + "return u;};"
                 + "const f=window.fetch;window.fetch=(u,o)=>{try{return f.call(window,u instanceof Request?new Request(rewrite(u.url),u):rewrite(String(u)),o)}catch(e){return Promise.reject(e)}};"
                 + "const x=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u,...a){return x.call(this,m,rewrite(String(u)),...a)};"

@@ -45,20 +45,12 @@ import prerna.query.parsers.SqlScriptSplitter;
 
 /** One regression run owns this database and its non-admin JDBC identity. */
 final class RegressionH2Database implements AutoCloseable {
-    private static final String ID = "[A-Za-z][A-Za-z0-9_]{0,62}";
+    private static final String ID = "(?:[A-Za-z][A-Za-z0-9_]{0,62}|\"[A-Za-z][A-Za-z0-9_ ]{0,62}\")";
     private static final String IDS = ID + "(?:\\s*,\\s*" + ID + ")*";
     private static final String VALUE = "(?:NULL|TRUE|FALSE|-?\\d{1,19}(?:\\.\\d{1,16})?|'(?:[^'\\x00]++|'')*')";
     private static final String VALUES = VALUE + "(?:\\s*,\\s*" + VALUE + ")*";
-    private static final String EQUALS = ID + "\\s*=\\s*" + VALUE;
-    private static final String WHERE = "\\s+WHERE\\s+" + EQUALS + "(?:\\s+AND\\s+" + EQUALS + ")*";
-    private static final String ORDER_COLUMN = ID + "(?:\\s+(?:ASC|DESC))?";
-    private static final Pattern READ = sql("SELECT\\s+(?:\\*|" + IDS + ")\\s+FROM\\s+" + ID
-            + "(?:" + WHERE + ")?(?:\\s+ORDER\\s+BY\\s+" + ORDER_COLUMN + "(?:\\s*,\\s*" + ORDER_COLUMN + ")*)?");
     private static final Pattern INSERT = sql("INSERT\\s+INTO\\s+" + ID + "(?:\\s*\\(" + IDS
             + "\\))?\\s+VALUES\\s*\\(" + VALUES + "\\)");
-    private static final Pattern UPDATE = sql("UPDATE\\s+" + ID + "\\s+SET\\s+" + EQUALS
-            + "(?:\\s*,\\s*" + EQUALS + ")*" + WHERE);
-    private static final Pattern DELETE = sql("DELETE\\s+FROM\\s+" + ID + WHERE);
     private static final String TYPE = "(?:BIGINT|INTEGER|INT|BOOLEAN|DATE|TIMESTAMP|VARCHAR\\(\\d{1,5}\\)|DECIMAL\\(\\d{1,2},\\s*\\d{1,2}\\))";
     private static final String CHECK = "CHECK\\s*\\(\\s*" + ID + "\\s+IN\\s*\\(" + VALUES + "\\)\\s*\\)";
     private static final String COLUMN = ID + "\\s+" + TYPE + "(?:\\s+(?:NOT NULL|PRIMARY KEY|UNIQUE|" + CHECK + "))*";
@@ -136,16 +128,7 @@ final class RegressionH2Database implements AutoCloseable {
     }
 
     static boolean isRead(String sql) {
-        if (sql == null || sql.length() > MAX_SQL_CHARS) {
-            throw new IllegalArgumentException("The regression SQL is empty or exceeds its size limit");
-        }
-        if (READ.matcher(sql).matches()) {
-            return true;
-        }
-        if (INSERT.matcher(sql).matches() || UPDATE.matcher(sql).matches() || DELETE.matcher(sql).matches()) {
-            return false;
-        }
-        throw new IllegalArgumentException("UNSUPPORTED_TEST_DATABASE_OPERATION: Use a single-table SELECT, INSERT, UPDATE with WHERE, or DELETE with WHERE using literal values. The real database was not accessed.");
+        return RegressionSql.isRead(sql);
     }
 
     synchronized Object execute(String sql, int limit) throws SQLException {

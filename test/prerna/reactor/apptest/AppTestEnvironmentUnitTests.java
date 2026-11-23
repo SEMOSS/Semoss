@@ -100,6 +100,14 @@ class AppTestEnvironmentUnitTests {
         try (var environment = AppTestEnvironment.open("NATIVE:editor", "app", definition, portal, false)) {
             assertNotNull(environment.execute(form("META | init;" )).get("insightID"));
             assertNotNull(environment.execute(form("LoadApp(\"app\");")).get("insightID"));
+            assertNotNull(environment.execute(form("META | LoadApp( \"app\" );")).get("insightID"));
+            assertNotNull(environment.execute(form("LoadApp(project=[\"app\"]);")).get("insightID"));
+            assertNotNull(environment.execute(form("LoadApp(project=\"app\");")).get("insightID"));
+            assertNotNull(environment.execute(form("SqlQuery(database=\"source\",query=\"SELECT TITLE FROM TASKS LIMIT 1\",limit=10,commit=true);")).get("insightID"));
+            assertThrows(SecurityException.class, () -> environment.execute(form("SqlQuery(database=[\"source\",query=\"SELECT TITLE FROM TASKS\");")));
+            assertNotNull(environment.execute(form("DropInsight()" )).get("insightID"));
+            assertEquals(Map.of("NATIVE", "Regression test preview"), environment.sdkConfig().get("logins"));
+            assertEquals(List.of(), environment.sdkConfig().get("availableProviders"));
             assertThrows(SecurityException.class, () -> environment.execute(form("LoadApp(\"other\");")));
             assertThrows(SecurityException.class, () -> environment.execute(form("Py(\"print(1)\");")));
         }
@@ -113,9 +121,68 @@ class AppTestEnvironmentUnitTests {
             var response = environment.execute(form("GetAppAssets(project=[\"app\"],filePath=[\"public/settings.json\"]);"));
             var result = (Map<?,?>)((List<?>)response.get("pixelReturn")).getFirst();
             assertEquals("{\"databaseId\":\"source\"}", result.get("output"));
+            assertNotNull(environment.execute(form("GetAppAssets(project=\"app\",filePath=\"public/settings.json\");")).get("pixelReturn"));
             assertThrows(SecurityException.class, () -> environment.execute(form("GetAppAssets(project=[\"other\"],filePath=[\"public/settings.json\"]);")));
             assertThrows(SecurityException.class, () -> environment.execute(form("GetAppAssets(project=[\"app\"],filePath=[\"private.json\"]);")));
             assertThrows(SecurityException.class, () -> environment.execute(form("SaveAppAssets(project=[\"app\"],filePath=[\"public/settings.json\"],content=[\"changed\"]);")));
+        }
+    }
+
+    @Test void snapshotsSharedSdkLocallyAndRewritesOnlyThePlatformImportMap() throws Exception {
+        Path sdk = Files.createDirectory(temporary.resolve("sdk"));
+        Files.writeString(sdk.resolve("index.mjs"), "export const marker='original SDK';");
+        Path portalFolder = Files.createDirectory(temporary.resolve("portals"));
+        Files.writeString(portalFolder.resolve("index.html"), "<html><head><script id=\"semoss-sdk-importmap\" type=\"importmap\">{\"imports\":{\"@semoss/sdk\":\"/frontend/libs/sdk/dist/index.mjs\"}}</script></head><body>App</body></html>");
+        AppTestEnvironment.loadPlatformSdk(sdk);
+        try {
+            var portal = AppTestEnvironment.portal(portalFolder);
+            Files.writeString(sdk.resolve("index.mjs"), "changed");
+            var fixture = new AppTestEnvironment.Definition("source", SCHEMA, SEED, "fixture");
+            try (var environment = AppTestEnvironment.open("NATIVE:editor", "app", fixture, portal, false)) {
+                String html = new String(environment.asset("public_home/app/portals/", "/Monolith").bytes(), StandardCharsets.UTF_8);
+                assertTrue(html.contains("sdk/index.mjs"));
+                assertFalse(html.contains("/frontend/libs/sdk/dist/"));
+                assertEquals("export const marker='original SDK';", new String(environment.asset("sdk/index.mjs", "").bytes(), StandardCharsets.UTF_8));
+                assertNull(environment.asset("sdk/../private.js", ""));
+            }
+        } finally { AppTestEnvironment.loadPlatformSdk(null); }
+    }
+
+    @Test void retainsFirstDiagnosticAndRedactsCapabilitiesQueriesAndSqlValues() throws Exception {
+        var fixture = new AppTestEnvironment.Definition("source", SCHEMA, SEED, "fixture");
+        var portal = new AppTestEnvironment.Portal(Map.of("index.html", new byte[0]), "portal");
+        try (var environment = AppTestEnvironment.open("NATIVE:editor", "app", fixture, portal, false)) {
+            environment.blockedRequest("GET", "https://user:password@example.test/Monolith/" + environment.basePath() + "public_home/app/portals/assets/main.js?token=private-value#secret", "script", "TEST_PREVIEW_ASSET_MISSING");
+            for (int i=0; i<20; i++) environment.blockedRequest("POST", "/api/other"+i, "fetch", "TEST_PREVIEW_ENDPOINT_UNSUPPORTED");
+            assertEquals(10, environment.diagnostics().size());
+            assertTrue(environment.failure().contains("portal/assets/main.js"));
+            String json = new com.google.gson.Gson().toJson(environment.diagnostics());
+            for (String secret : List.of("password", "private-value", "#secret", environment.basePath())) assertFalse(json.contains(secret));
+        }
+        try (var environment = AppTestEnvironment.open("NATIVE:editor", "app", fixture, portal, false)) {
+            assertThrows(IllegalArgumentException.class, () -> environment.execute(form("SqlQuery(database=[\"source\"],query=[\"SELECT TITLE FROM TASKS WHERE TITLE='private-value' UNION SELECT TITLE FROM TASKS\"]);")));
+            String json = new com.google.gson.Gson().toJson(environment.diagnostics());
+            assertFalse(json.contains("private-value"));
+            assertTrue(json.contains("sqlShape"));
+            assertTrue(environment.pixelError().containsKey("diagnostics"));
+            assertThrows(IllegalArgumentException.class, () -> environment.execute(form("SqlQuery(database=\"source\",query=\"SELECT FILE_READ('private-path') FROM TASKS\");")));
+            String scalar = environment.diagnostics().getLast().toString();
+            assertTrue(scalar.contains("FILE_READ"));
+            assertTrue(scalar.contains("sqlShape"));
+            assertFalse(scalar.contains("private-path"));
+        }
+    }
+
+    @Test void distinguishesSqlExecutionFailuresFromUnsupportedSyntaxWithoutReturningDriverText() throws Exception {
+        var fixture = new AppTestEnvironment.Definition("source", SCHEMA, SEED, "fixture");
+        var portal = new AppTestEnvironment.Portal(Map.of("index.html", new byte[0]), "portal");
+        try (var environment = AppTestEnvironment.open("NATIVE:editor", "app", fixture, portal, false)) {
+            assertThrows(RuntimeException.class, () -> environment.execute(form("SqlQuery(database=[\"source\"],query=[\"SELECT MISSING_COLUMN FROM TASKS\"]);")));
+            var first = environment.diagnostics().getFirst();
+            assertEquals("TEST_DATABASE_SQL_ERROR", first.get("code"));
+            assertTrue(first.get("sqlState").toString().matches("[A-Z0-9]{5}"));
+            assertFalse(environment.failure().contains("MISSING_COLUMN"));
+            assertTrue(environment.failure().contains("SQL state"));
         }
     }
 

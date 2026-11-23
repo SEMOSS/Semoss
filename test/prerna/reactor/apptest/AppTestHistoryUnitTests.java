@@ -84,6 +84,23 @@ class AppTestHistoryUnitTests {
         assertThrows(IllegalArgumentException.class, () -> AppTestRecordings.relativePath("app-test-preview/id/secret/public_home/app/portals/"));
     }
 
+    @Test void historyRetainsBoundedDiagnosticsForTestsAndRepeatAttempts() throws Exception {
+        Map<String,Object> run = pending(List.of(recording("Startup")), NOW);
+        Map<String,Object> test = (Map<String,Object>)((List<?>)run.get("tests")).getFirst();
+        var diagnostic = Map.of("phase", "STARTUP", "kind", "ASSET", "code", "TEST_PREVIEW_ASSET_MISSING",
+                "path", "portal/assets/main.js", "reason", "Asset absent from snapshot", "requestBody", "private-payload");
+        test.put("diagnostics", List.of(diagnostic));
+        test.put("attempts", List.of(Map.of("status", "ERROR", "diagnostics", List.of(diagnostic))));
+        AppTestHistory.write(folder, run);
+        var saved = AppTestHistory.read(folder, (String)run.get("runId"), "app", NOW);
+        String json = new com.google.gson.Gson().toJson(saved);
+        assertTrue(json.contains("portal/assets/main.js"));
+        assertFalse(json.contains("private-payload"));
+        var savedTest = (Map<?,?>)((List<?>)saved.get("tests")).getFirst();
+        assertEquals(1, ((List<?>)savedTest.get("diagnostics")).size());
+        assertTrue(((Map<?,?>)((List<?>)savedTest.get("attempts")).getFirst()).containsKey("diagnostics"));
+    }
+
     @Test void hashIsStableAcrossMapOrderingAndEditTimestampsButChangesWithTheTest() {
         Map<String, Object> first = recording("Checkout");
         Map<String, Object> copy = new LinkedHashMap<>(first);
