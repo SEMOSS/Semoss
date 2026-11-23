@@ -233,6 +233,11 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 
 			AskErrorModelEngineResponse errorResponse = new AskErrorModelEngineResponse(message, errorType, code,
 					client, model, traceback);
+			errorResponse.setNumberOfTokensInPrompt(tokensInPrompt);
+			errorResponse.setNumberOfTokensInResponse(tokensInResponse);
+			errorResponse.setNumberOfCacheReadTokens(cacheReadTokens);
+			errorResponse.setNumberOfCacheCreationTokens(cacheCreationTokens);
+			errorResponse.setNumberOfThinkingTokens(thinkingTokens);
 			errorResponse.setReason(safeString(modelResponse.get(AskErrorModelEngineResponse.REASON)));
 			errorResponse.setReasonDetail(safeString(modelResponse.get(AskErrorModelEngineResponse.REASON_DETAIL)));
 			if (schemaVersion != null) {

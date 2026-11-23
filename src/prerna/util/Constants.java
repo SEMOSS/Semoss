@@ -767,6 +767,12 @@ public class Constants {
 	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
 	// Colon/semicolon-separated executable directories exposed inside sandboxes
 	public static final String SANDBOX_PATH = "SANDBOX_PATH";
+	// When true, user Python workers share the host network namespace so they
+	// can reach external services (APIs, databases, etc.). The namespace sandbox
+	// still applies filesystem isolation, capability drop, and seccomp; only the
+	// CLONE_NEWNET isolation and the AF_UNIX-only socket restriction are lifted.
+	// Default false (empty netns, no outbound network).
+	public static final String SANDBOX_ALLOW_NETWORK = "SANDBOX_ALLOW_NETWORK";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";

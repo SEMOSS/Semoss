@@ -230,7 +230,7 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 * @throws Exception when the password rules cannot be read, or the history
 	 *                   cannot be saved, in which case nothing is saved
 	 */
-	public static void storeUserPassword(String userId, String type, String hashPassword, String salt,
+	static void storeUserPassword(String userId, String type, String hashPassword, String salt,
 			java.sql.Timestamp timestamp) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// read before the transaction, since the rules can be loaded from the database

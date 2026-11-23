@@ -486,6 +486,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	public long getNumRows() {
 		if (this.numRows == 0) {
 			UserQueryTrackingThread queryT = null;
+			Connection pooledConnection = null;
 			// since we pass via the engine object
 			if (this.engine != null) {
 				User user = ThreadStore.getUser();
@@ -493,12 +494,13 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 
 				// account for multi rdbms engine as well as base rdmbs engine
 				IRDBMSEngine activeEngine = (IRDBMSEngine) this.engine;
-				if (this.dataSource == null) {
-					this.dataSource = activeEngine.getDataSource();
-				}
 				if (this.dataSource == null && this.conn == null) {
 					try {
-						this.conn = activeEngine.getConnection();
+						if (activeEngine.isConnectionPooling()) {
+							pooledConnection = activeEngine.getConnection();
+						} else {
+							this.conn = activeEngine.getConnection();
+						}
 					} catch (SQLException e) {
 						classLogger.error("Failed to acquire database connection for result counting", e);
 					}
@@ -528,6 +530,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			try {
 				if (this.dataSource != null) {
 					connection = this.dataSource.getConnection();
+				} else if (pooledConnection != null) {
+					connection = pooledConnection;
 				} else {
 					connection = this.conn;
 				}
@@ -555,7 +559,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				}
 				classLogger.error("Failed to execute RDBMS row-count query", e);
 			} finally {
-				if (this.dataSource != null) {
+				if (this.dataSource != null || pooledConnection != null) {
 					ConnectionUtils.closeAllConnections(connection, statement, resultSet);
 				} else {
 					ConnectionUtils.closeAllConnections(null, statement, resultSet);

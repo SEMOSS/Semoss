@@ -51,7 +51,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import jakarta.ws.rs.core.Response;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
@@ -169,10 +168,8 @@ public final class EngineCloneUtility {
 				InternalUtility.synchronizeEngineMetadata(cloneId);
 			}
 			SecurityEngineUtils.addEngine(cloneId, false, user);
-			copyMetadata(engineType, sourceEngineId, cloneId);
-			for (AuthProvider login : user.getLogins()) {
-				SecurityEngineUtils.addEngineOwner(cloneId, user.getAccessToken(login).getId());
-			}
+			copyMetadata(user, engineType, sourceEngineId, cloneId);
+			SecurityEngineUtils.addEngineOwner(user, cloneId);
 			// the image is not needed for the clone to work, so a failed copy leaves the
 			// clone with the stock image
 			try {
@@ -207,7 +204,7 @@ public final class EngineCloneUtility {
 			throw new SemossPixelException("Failed to clone the engine: " + e.getMessage(), false);
 		} finally {
 			if (!success) {
-				cleanUpFailedClone(engineType, rewrite, secretStore, engineAddedToDIHelper, pushStarted, cloneFolder,
+				cleanUpFailedClone(user, engineType, rewrite, secretStore, engineAddedToDIHelper, pushStarted, cloneFolder,
 						cloneSmss, cloneImage, couchImageCopied);
 			}
 		}
@@ -417,15 +414,17 @@ public final class EngineCloneUtility {
 	 * Copies the engine metadata of the source to the clone, and for a model its
 	 * model metadata.
 	 *
+	 * @param user           the user cloning the engine
 	 * @param engineType     the type of the source and clone
 	 * @param sourceEngineId the engine cloned
 	 * @param cloneId        the clone
 	 */
-	private static void copyMetadata(IEngine.CATALOG_TYPE engineType, String sourceEngineId, String cloneId) {
+	private static void copyMetadata(User user, IEngine.CATALOG_TYPE engineType, String sourceEngineId,
+			String cloneId) {
 		Map<String, Object> engineMetadata = SecurityEngineUtils.getAggregateEngineMetadata(sourceEngineId, null,
 				false);
 		if (engineMetadata != null && !engineMetadata.isEmpty()) {
-			SecurityEngineUtils.updateEngineMetadata(cloneId, engineMetadata);
+			SecurityEngineUtils.updateEngineMetadata(user, cloneId, engineMetadata);
 		}
 		if (IEngine.CATALOG_TYPE.MODEL == engineType) {
 			Map<String, Object> modelMetadata = SecurityModelMetadataUtils.getModelMetadata(sourceEngineId);
@@ -509,6 +508,7 @@ public final class EngineCloneUtility {
 	 * files, image, DIHelper entries, local master and security rows, and secrets.
 	 * Each step runs even when an earlier one fails.
 	 *
+	 * @param user                  the user cloning the engine
 	 * @param engineType            the type of the clone
 	 * @param rewrite               the source and clone identities
 	 * @param secretStore           the configured secret store, or null
@@ -520,7 +520,7 @@ public final class EngineCloneUtility {
 	 * @param cloneImage            the cluster image of the clone, or null
 	 * @param couchImageCopied      whether an image was written to CouchDB
 	 */
-	private static void cleanUpFailedClone(IEngine.CATALOG_TYPE engineType, IdentityRewrite rewrite,
+	private static void cleanUpFailedClone(User user, IEngine.CATALOG_TYPE engineType, IdentityRewrite rewrite,
 			ISecrets secretStore, boolean engineAddedToDIHelper, boolean pushStarted, File cloneFolder, File cloneSmss,
 			File cloneImage, boolean couchImageCopied) {
 		String cloneId = rewrite.cloneId;
@@ -575,7 +575,7 @@ public final class EngineCloneUtility {
 			}
 		}
 		try {
-			SecurityEngineUtils.deleteEngine(cloneId);
+			SecurityEngineUtils.deleteEngine(user, cloneId);
 		} catch (Exception e) {
 			classLogger.error("Failed to remove the failed clone {} from the security database", cloneId, e);
 		}

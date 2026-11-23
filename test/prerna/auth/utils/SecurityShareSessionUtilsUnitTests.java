@@ -125,14 +125,14 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 
 	@Test
 	void testCreateAuthToken() throws Exception {
-		String token = SecurityShareSessionUtils.createAuthToken(user, sessionId, routeId);
+		String token = SecurityShareSessionUtils.createAuthToken(user, routeId);
 		// validate entry in table
 		try (IRawSelectWrapper wrapper = getSessionSharedTableWrapper(null)) {
 			int rowCount = 0;
 			while (wrapper.hasNext()) {
 				Map<String, Object> data = wrapper.next().flushRowToMap();
 				assertEquals(token, data.get(SHARE_VAL));
-				assertEquals(sessionId, data.get(SESSION_VAL));
+				assertNull(data.get(SESSION_VAL));
 				assertEquals(routeId, data.get(ROUTE_VAL));
 				assertEquals(id, data.get(USERID));
 				assertEquals(AuthProvider.GOOGLE.getLabel(), data.get(TYPE));
@@ -239,7 +239,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 
 		assertTrue(success, "Insertion of new user was not successful");
 		// create share token
-		String token = SecurityShareSessionUtils.createAuthToken(user, sessionId, routeId);
+		String token = SecurityShareSessionUtils.createAuthToken(user, routeId);
 		// retrieve details
 		Object[] sessionDetails = SecurityShareSessionUtils.getShareSessionDetails(token);
 		AccessToken accessToken = SecurityShareSessionUtils.generateAccessTokenForShareAuth(sessionDetails);
@@ -261,7 +261,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 		User apiUser = new User();
 		apiUser.setAccessToken(originalToken);
 
-		String shareToken = SecurityShareSessionUtils.createAuthToken(apiUser, sessionId, routeId);
+		String shareToken = SecurityShareSessionUtils.createAuthToken(apiUser, routeId);
 		Object[] shareDetails = SecurityShareSessionUtils.getShareSessionDetails(shareToken);
 		assertTrue(SecurityShareSessionUtils.validateShareSessionDetails(shareDetails));
 		AccessToken restoredToken = SecurityShareSessionUtils.generateAccessTokenForShareAuth(shareDetails);
@@ -280,7 +280,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 
 	@Test
 	void testGenerateAccessTokenForShareAuthRejectsMissingIdentity() throws Exception {
-		String shareToken = SecurityShareSessionUtils.createAuthToken(user, sessionId, routeId);
+		String shareToken = SecurityShareSessionUtils.createAuthToken(user, routeId);
 		Object[] shareDetails = SecurityShareSessionUtils.getShareSessionDetails(shareToken);
 		for (String missingValue : new String[] { null, "", " " }) {
 			shareDetails[8] = missingValue;
@@ -297,7 +297,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 
 	@Test
 	void testGenerateAccessTokenForShareAuthRejectsMissingAccount() throws Exception {
-		String shareToken = SecurityShareSessionUtils.createAuthToken(user, sessionId, routeId);
+		String shareToken = SecurityShareSessionUtils.createAuthToken(user, routeId);
 		Object[] shareDetails = SecurityShareSessionUtils.getShareSessionDetails(shareToken);
 		shareDetails[8] = "missing-share-auth-account";
 		assertThrows(IllegalAccessException.class,
@@ -306,7 +306,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 
 	@Test
 	void testGenerateAccessTokenForShareAuthRejectsLookupFailure() throws Exception {
-		String shareToken = SecurityShareSessionUtils.createAuthToken(user, sessionId, routeId);
+		String shareToken = SecurityShareSessionUtils.createAuthToken(user, routeId);
 		Object[] shareDetails = SecurityShareSessionUtils.getShareSessionDetails(shareToken);
 		WrapperManager wrapperManager = mock(WrapperManager.class);
 		try (MockedStatic<WrapperManager> managers = mockStatic(WrapperManager.class)) {
@@ -321,7 +321,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 	@Test
 	void testGenerateAccessTokenForShareAuthRejectsMismatchedLoginType() throws Exception {
 		String clientId = SecurityAPIUserUtils.createAPIUser("Share Auth Type Check").get("clientId");
-		String shareToken = SecurityShareSessionUtils.createAuthToken(user, sessionId, routeId);
+		String shareToken = SecurityShareSessionUtils.createAuthToken(user, routeId);
 		Object[] shareDetails = SecurityShareSessionUtils.getShareSessionDetails(shareToken);
 		shareDetails[8] = clientId;
 		assertEquals(AuthProvider.GOOGLE.getLabel(), shareDetails[9]);
@@ -339,7 +339,7 @@ public class SecurityShareSessionUtilsUnitTests extends AbstractSecurityUtilsUni
 
 	@Test
 	void testGenerateAccessTokenForShareAuthRejectsUsedToken() throws Exception {
-		String shareToken = SecurityShareSessionUtils.createAuthToken(user, sessionId, routeId);
+		String shareToken = SecurityShareSessionUtils.createAuthToken(user, routeId);
 		Object[] shareDetails = SecurityShareSessionUtils.getShareSessionDetails(shareToken);
 		shareDetails[5] = true;
 		assertThrows(IllegalAccessException.class,

@@ -71,7 +71,7 @@ public class SemossProjectJarClassLoader extends URLClassLoader {
 	 * @param owner the project class that created or extends this loader
 	 */
 	protected SemossProjectJarClassLoader(URL[] urls, Class<?> owner) {
-		super(SandboxedJavaExecution.sandboxedJarUrls(urls), SandboxedJavaExecution.callerLoader(owner));
+		super(SandboxedClassLoading.sandboxedJarUrls(urls), SandboxedClassLoading.callerLoader(owner));
 	}
 
 	/**
@@ -114,7 +114,7 @@ public class SemossProjectJarClassLoader extends URLClassLoader {
 	 * @param owner           the project class that created or extends this loader
 	 */
 	protected SemossProjectJarClassLoader(String name, URL[] urls, ClassLoader requestedParent, Class<?> owner) {
-		super(name, SandboxedJavaExecution.sandboxedJarUrls(urls), SandboxedJavaExecution.callerLoader(owner));
+		super(name, SandboxedClassLoading.sandboxedJarUrls(urls), SandboxedClassLoading.callerLoader(owner));
 	}
 
 	/**
@@ -207,7 +207,7 @@ public class SemossProjectJarClassLoader extends URLClassLoader {
 	 */
 	@Override
 	protected void addURL(URL url) {
-		super.addURL(SandboxedJavaExecution.sandboxedJarUrl(url));
+		super.addURL(SandboxedClassLoading.sandboxedJarUrl(url));
 	}
 
 	/**

@@ -484,7 +484,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		return true;
 	}
 
-	public static void lockUserAccount(boolean isLocked, String userId, AuthProvider type) {
+	static void lockUserAccount(boolean isLocked, String userId, AuthProvider type) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String updateQuery = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=? AND TYPE=?";
 		try {
@@ -502,7 +502,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	public static void updateUserLastLogin(String userId, AuthProvider type) {
+	static void updateUserLastLogin(String userId, AuthProvider type) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// update the user last login
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();

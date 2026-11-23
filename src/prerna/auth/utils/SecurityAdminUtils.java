@@ -90,6 +90,7 @@ import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SandboxedClassLoading;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
@@ -153,11 +154,26 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Check if the user is an admin
-	 * 
-	 * @param userId String representing the id of the user to check
+	 * Whether the user acts as an admin now. An admin acts as one in the platform's
+	 * own reactors and endpoints. While a project's custom code is on the call
+	 * stack the answer is no, so a custom reactor an admin runs, and every pixel
+	 * it runs through its insight, has the admin's own permissions only.
+	 *
+	 * @param user the signed in user
+	 * @return true when the user is an admin and no project's custom code is acting
 	 */
 	public static Boolean userIsAdmin(User user) {
+		return storedAsAdmin(user) && !SandboxedClassLoading.projectCodeIsOnTheStack();
+	}
+
+	/**
+	 * Whether the security database records the user as an admin, whoever is
+	 * acting on the thread.
+	 *
+	 * @param user the signed in user
+	 * @return true when the user is an admin
+	 */
+	static boolean storedAsAdmin(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
@@ -2693,77 +2709,75 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Gives a project a permission on an engine, or changes the one it has, in
-	 * admin mode, as a permission batch. The project's custom reactors use the
-	 * permission in place of the signed in user's own.
+	 * Gives an app or another engine a permission on an engine, or changes the one
+	 * it has, in admin mode, as a permission batch. An app's custom reactors, or
+	 * the other engine's own code, use the permission in place of the signed in
+	 * user's own.
 	 *
-	 * @param projectId  the project
-	 * @param engineId   the engine
-	 * @param permission the level, READ_ONLY or EDIT
-	 * @param user       the admin
-	 * @param endDate    when the access ends, or null
+	 * @param granteeEngineId   the app or engine given the access
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the engine
+	 * @param permission        the level, READ_ONLY or EDIT
+	 * @param user              the admin
+	 * @param endDate           when the access ends, or null
 	 */
-	public void setEngineProjectPermission(String projectId, String engineId, String permission, User user,
-			String endDate) {
+	public void setEngineGranteePermission(String granteeEngineId, String granteeEngineType, String engineId,
+			String permission, User user, String endDate) {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
-				List.of(SecurityEngineUtils.projectPermissionChange(projectId, engineId,
+				List.of(SecurityEngineUtils.granteePermissionChange(granteeEngineId, granteeEngineType, engineId,
 						new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.bulkAccessManagement(true).keepingModelLimits(),
-				projectErrorRules(endDate));
+				SecurityEngineUtils.granteeErrorRules(endDate));
 	}
 
 	/**
-	 * Gives a project a permission on a model with its App Limit, or changes both,
-	 * in admin mode, as a permission batch.
+	 * Gives an app or another engine a permission on a model with its App Limit or
+	 * Engine Limit, or changes both, in admin mode, as a permission batch.
 	 *
-	 * @param projectId  the project
-	 * @param engineId   the model
-	 * @param permission the level, READ_ONLY or EDIT
-	 * @param user       the admin
-	 * @param endDate    when the access ends, or null
-	 * @param usageLimit the App Limit, or null for no limit defined
+	 * @param granteeEngineId   the app or engine given the access
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the model
+	 * @param permission        the level, READ_ONLY or EDIT
+	 * @param user              the admin
+	 * @param endDate           when the access ends, or null
+	 * @param usageLimit        the App Limit or Engine Limit, or null for no limit
+	 *                          defined
 	 */
-	public void setEngineProjectPermission(String projectId, String engineId, String permission, User user,
-			String endDate, ModelUsageLimit usageLimit) {
+	public void setEngineGranteePermission(String granteeEngineId, String granteeEngineType, String engineId,
+			String permission, User user, String endDate, ModelUsageLimit usageLimit) {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
-				List.of(SecurityEngineUtils.projectPermissionChange(projectId, engineId,
+				List.of(SecurityEngineUtils.granteePermissionChange(granteeEngineId, granteeEngineType, engineId,
 						new PermissionGrant(permission, endDate).withUsageLimit(usageLimit))),
-				PermissionBatchOptions.bulkAccessManagement(true), projectErrorRules(endDate));
-	}
-
-	private static PermissionErrorRules projectErrorRules(String endDate) {
-		return new PermissionErrorRules(endDate)
-				.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING, SecurityEngineUtils.APP_DOES_NOT_EXIST)
-				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, SecurityEngineUtils.APP_WRITE_FAILED);
+				PermissionBatchOptions.bulkAccessManagement(true), SecurityEngineUtils.granteeErrorRules(endDate));
 	}
 
 	/**
-	 * Takes away the permission an engine gives a project, in admin mode, as a
-	 * permission batch.
+	 * Takes away the permission an engine gives an app or another engine, in admin
+	 * mode, as a permission batch.
 	 *
-	 * @param projectId the project
-	 * @param engineId  the engine
-	 * @param user      the admin
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the engine
+	 * @param user              the admin
 	 */
-	public void removeEngineProjectPermission(String projectId, String engineId, User user) {
+	public void removeEngineGranteePermission(String granteeEngineId, String granteeEngineType, String engineId,
+			User user) {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
-				List.of(PermissionChange.remove(PermissionSubject.ofProject(projectId))),
-				PermissionBatchOptions.bulkAccessManagement(true),
-				new PermissionErrorRules()
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, SecurityEngineUtils.APP_HAS_NO_ACCESS)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, SecurityEngineUtils.APP_WRITE_FAILED));
+				List.of(PermissionChange.remove(PermissionSubject.ofEngine(granteeEngineId, granteeEngineType))),
+				PermissionBatchOptions.bulkAccessManagement(true), SecurityEngineUtils.granteeRemovalErrorRules());
 	}
 
 	/**
-	 * Reads the projects an engine gives a permission to, in admin mode: each with
-	 * its subject, the project's id and name (its display name when it has one),
-	 * and its access, the level, the end date and on a model the App Limit.
+	 * Reads the apps and engines an engine gives a permission to, in admin mode:
+	 * each with its subject, the grantee's id, catalog type and name (its display
+	 * name when it has one), and its access, the level, the end date and on a
+	 * model the App Limit or Engine Limit.
 	 *
 	 * @param engineId the engine
-	 * @return one entry for each project, ordered by project id
+	 * @return one entry for each app and engine, ordered by catalog type and id
 	 * @throws IllegalArgumentException when the engine does not exist
 	 */
-	public List<Map<String, Object>> getEngineProjectPermissions(String engineId) {
+	public List<Map<String, Object>> getEngineGranteePermissions(String engineId) {
 		if (engineId == null || engineId.isBlank()) {
 			throw new IllegalArgumentException("The engine id must not be null or blank");
 		}
@@ -2771,7 +2785,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (!SecurityEngineUtils.engineExists(id)) {
 			throw new IllegalArgumentException("Engine " + id + " does not exist");
 		}
-		return PermissionBatchUtils.readProjects(id);
+		return PermissionBatchUtils.readEngines(id);
 	}
 
 	/**

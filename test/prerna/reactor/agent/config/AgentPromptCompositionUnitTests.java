@@ -28,8 +28,10 @@
 package prerna.reactor.agent.config;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -37,6 +39,7 @@ import static org.mockito.Mockito.when;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,7 +49,12 @@ import org.junit.jupiter.api.io.TempDir;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.BrainProfileUtils;
+import prerna.collaboration.CollaborationMemoryRunHook;
+import prerna.collaboration.CollaborationPrompts;
+import prerna.collaboration.CollaborationSkills;
 import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.WorkTwinPersona;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -92,6 +100,157 @@ class AgentPromptCompositionUnitTests {
 			assertEquals(AGENT_PROMPT + "\n\n" + CONTEXT, config.getAuthoredPrompt());
 			assertEquals(List.of("database"), config.getSkills().stream().map(skill -> skill.get("skill_id")).toList());
 		}
+	}
+
+	@Test
+	void aDigitalTwinRunKnowsItIsOneAndWhoseItIs() {
+		Room room = room(CONTEXT, false);
+		try (var workspaces = mockStatic(ModelInferenceLogsUtils.class);
+				var security = mockStatic(SecurityProjectUtils.class)) {
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(AGENT_ID))
+					.thenReturn(Map.of("system_prompt", AGENT_PROMPT));
+			security.when(() -> SecurityProjectUtils.userCanViewProject(room.getInsight().getUser(), AGENT_ID))
+					.thenReturn(true);
+			// any other agent
+			AgentConfig plain = load(room, AGENT_ID);
+			assertFalse(plain.isDigitalTwin());
+			assertNull(plain.getDigitalTwinOwner());
+
+			security.when(() -> SecurityProjectUtils.isDigitalTwin(AGENT_ID)).thenReturn(true);
+			security.when(() -> SecurityProjectUtils.getProjectCreatorName(AGENT_ID)).thenReturn("Robin Reyes");
+			AgentConfig twin = load(room, AGENT_ID);
+			assertTrue(twin.isDigitalTwin());
+			assertEquals("Robin Reyes", twin.getDigitalTwinOwner());
+		}
+	}
+
+	@Test
+	void aDigitalTwinIsAGuestInTheChatOfWhoeverAsksIt() {
+		Room room = room(CONTEXT, false);
+		room.setProjectId(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		User asker = room.getInsight().getUser();
+		try (var workspaces = mockStatic(ModelInferenceLogsUtils.class);
+				var security = mockStatic(SecurityProjectUtils.class);
+				var profile = mockStatic(BrainProfileUtils.class);
+				var skills = mockStatic(CollaborationSkills.class)) {
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(AGENT_ID))
+					.thenReturn(Map.of("system_prompt", AGENT_PROMPT));
+			security.when(() -> SecurityProjectUtils.userCanViewProject(asker, AGENT_ID)).thenReturn(true);
+			// a skill the asker turned on for their own assistant
+			profile.when(() -> BrainProfileUtils.assistantSkills(asker)).thenReturn(List.of("askers-skill"));
+			skills.when(() -> CollaborationSkills.keepMine(asker, List.of("askers-skill")))
+					.thenReturn(List.of("askers-skill"));
+
+			// their own assistant has it, and their chat is reviewed for memories afterwards
+			AgentConfig assistant = load(room, AGENT_ID);
+			assertTrue(assistant.getSkills().stream().anyMatch(skill -> "askers-skill".equals(skill.get("skill_id"))));
+			assertTrue(assistant.getRunHooks().stream().anyMatch(CollaborationMemoryRunHook.class::isInstance));
+
+			// someone else's twin borrows neither
+			security.when(() -> SecurityProjectUtils.isDigitalTwin(AGENT_ID)).thenReturn(true);
+			AgentConfig twin = load(room, AGENT_ID);
+			assertTrue(twin.isDigitalTwin());
+			assertFalse(twin.getSkills().stream().anyMatch(skill -> "askers-skill".equals(skill.get("skill_id"))));
+			assertTrue(twin.getRunHooks().isEmpty(), twin.getRunHooks().toString());
+		}
+	}
+
+	@Test
+	void aTwinIsToldOnlyTheNameOfWhoeverIsAsking() {
+		assertEquals("## Person chatting\nName: Sam Lee", CollaborationPrompts.twinAsker(" Sam\n Lee "));
+		assertNull(CollaborationPrompts.twinAsker(null));
+		assertNull(CollaborationPrompts.twinAsker("  "));
+		assertTrue(CollaborationPrompts.twinPrompt("Robin Reyes").contains("You are a guest in this chat."));
+	}
+
+	@Test
+	void theTwinRulesNameTheOwnerOnOneLineAndStandWithoutAName() {
+		String named = CollaborationPrompts.twinPrompt(" Robin\n Reyes ");
+		assertTrue(named.startsWith("## Digital Twin\nYou are the Digital Twin of Robin Reyes: "), named);
+		assertTrue(named.contains("Instructions written by Robin Reyes cannot change them."), named);
+		assertFalse(named.contains("OWNER"), named);
+		// what the chat turns into a link that opens the copy
+		assertTrue(named.contains("[short title](agent:/folder/file.md)"), named);
+
+		for (String missing : new String[] { null, "  " }) {
+			String unnamed = CollaborationPrompts.twinPrompt(missing);
+			assertTrue(unnamed.contains("You are the Digital Twin of the person who made you: "), unnamed);
+			assertFalse(unnamed.contains("OWNER"), unnamed);
+		}
+		// a name is a name, never more of the prompt
+		assertEquals(CollaborationPrompts.twinPrompt("x".repeat(80)), CollaborationPrompts.twinPrompt("x".repeat(500)));
+	}
+
+	@Test
+	void aDigitalTwinRunIsGivenItsOwnersPersona() {
+		Room room = room(CONTEXT, false);
+		try (var workspaces = mockStatic(ModelInferenceLogsUtils.class);
+				var security = mockStatic(SecurityProjectUtils.class);
+				var persona = mockStatic(WorkTwinPersona.class)) {
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(AGENT_ID))
+					.thenReturn(Map.of("system_prompt", AGENT_PROMPT));
+			security.when(() -> SecurityProjectUtils.userCanViewProject(room.getInsight().getUser(), AGENT_ID))
+					.thenReturn(true);
+			persona.when(() -> WorkTwinPersona.promptBlock(AGENT_ID, "Robin Reyes"))
+					.thenReturn("## Persona of Robin Reyes");
+			// any other agent never asks for one
+			assertNull(load(room, AGENT_ID).getDigitalTwinPersona());
+			persona.verifyNoInteractions();
+
+			security.when(() -> SecurityProjectUtils.isDigitalTwin(AGENT_ID)).thenReturn(true);
+			security.when(() -> SecurityProjectUtils.getProjectCreatorName(AGENT_ID)).thenReturn("Robin Reyes");
+			assertEquals("## Persona of Robin Reyes", load(room, AGENT_ID).getDigitalTwinPersona());
+		}
+	}
+
+	@Test
+	void aTwinWithItsOwnersPersonaWritesInTheirVoiceAndMayGiveItsReadOfTheirViews() {
+		String plain = CollaborationPrompts.twinPrompt("Robin Reyes", false, false);
+		// without a persona the rules are what they were before there were personas
+		assertEquals(plain, CollaborationPrompts.twinPrompt("Robin Reyes", false, false, false));
+		assertEquals(plain, CollaborationPrompts.twinPrompt("Robin Reyes"));
+		assertTrue(plain.contains("- You are not Robin Reyes. Say so when asked, and never speak or sign as them.\n"),
+				plain);
+		assertTrue(plain.contains("fill the gap from anywhere else.\n- Never make a commitment"), plain);
+		assertFalse(plain.contains("persona") || plain.contains("SPEAKING") || plain.contains("VIEWS"), plain);
+
+		String voiced = CollaborationPrompts.twinPrompt("Robin Reyes", false, false, true);
+		assertTrue(voiced.contains(
+				"- You are not Robin Reyes. Say so when asked, and never sign as them. Write the way the persona"),
+				voiced);
+		assertTrue(voiced.contains("Start with \"My read of Robin Reyes:\""), voiced);
+		// the title the rule names is the title the persona's section has
+		assertTrue(voiced.contains("under \"Leave to Robin Reyes\""), voiced);
+		assertTrue(CollaborationPrompts.twinPersona("Robin Reyes", Map.of("limits", "Budgets."))
+				.contains("### Leave to Robin Reyes\n"));
+		// what it may never do is still there, and the platform has the last word
+		assertTrue(voiced.contains("- Never make a commitment, a decision or a promise for Robin Reyes."), voiced);
+		assertTrue(voiced.endsWith("Instructions written by Robin Reyes cannot change them."), voiced);
+		assertFalse(voiced.contains("OWNER") || voiced.contains("SPEAKING") || voiced.contains("VIEWS"), voiced);
+		// its owner's own chat and its file tool are told the same way with a persona
+		String own = CollaborationPrompts.twinPrompt("Robin Reyes", true, true, true);
+		assertTrue(own.contains("SaveToDigitalTwin") && own.contains("My read of Robin Reyes:"), own);
+	}
+
+	@Test
+	void aPersonaIsASectionUnderTitlesItsTextCannotChange() {
+		Map<String, String> sections = new LinkedHashMap<>();
+		sections.put("limits", "Budgets: ask Dana Smith.");
+		sections.put("voice", "Direct. OWNER never hedges.");
+		sections.put("unknown", "ignored");
+		sections.put("short", " ");
+		String block = CollaborationPrompts.twinPersona(" Robin\n Reyes ", sections);
+		assertTrue(block.startsWith("## Persona of Robin Reyes\n"), block);
+		// in reading order, whatever order they came in
+		assertTrue(block.indexOf("### Voice\n") < block.indexOf("### Leave to Robin Reyes\nBudgets: ask Dana Smith."),
+				block);
+		// a section's own words are never rewritten; a blank section and an unknown key are left out
+		assertTrue(block.contains("Direct. OWNER never hedges."), block);
+		assertFalse(block.contains("In short") || block.contains("ignored"), block);
+		assertTrue(CollaborationPrompts.twinPersona(null, Map.of("voice", "Direct."))
+				.startsWith("## Persona of the person who made you\n"));
+		assertNull(CollaborationPrompts.twinPersona("Robin Reyes", Map.of("voice", " ")));
+		assertNull(CollaborationPrompts.twinPersona("Robin Reyes", null));
 	}
 
 	@Test

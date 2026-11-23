@@ -1,7 +1,35 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -17,6 +45,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -168,8 +197,8 @@ class WorkTwinSuggestUnitTests {
 					"2026-10-30T08:00:00Z"), Map.of("id", "item-2", "name", "Apollo", "isFolder", true));
 		};
 
-		Map<String, Object> out = WorkTwinSuggest.suggest(user, "The Apollo migration", model, folders, mail, chats,
-				files, chatId -> Map.of("id", chatId, "displayName", "Apollo vendors"));
+		Map<String, Object> out = WorkTwinSuggest.suggest(user, "The Apollo migration", null, model, folders, mail,
+				chats, files, chatId -> Map.of("id", chatId, "displayName", "Apollo vendors"));
 
 		// each search is the model's words made plain: no capitals for an operator, no colon, and none twice
 		assertEquals(List.of("apollo migration", "not from cfo"), mailSearches);
@@ -204,9 +233,12 @@ class WorkTwinSuggestUnitTests {
 		assertEquals("conv-1", email.get("id"));
 		assertEquals("RE: Apollo cutover", email.get("title"));
 		assertEquals("The cutover date", email.get("reason"));
+		// the picture is of whoever sent the newest email of the thread
+		assertEquals(Map.of("email", "sam@acme.com"), email.get("person"));
 		Map<?, ?> chat = (Map<?, ?>) suggestions.get(2);
 		assertEquals("19:chat-1", chat.get("id"));
 		assertEquals("Apollo vendors", chat.get("title"));
+		assertNull(chat.get("person"));
 		assertEquals(List.of(), out.get("notes"));
 	}
 
@@ -221,7 +253,7 @@ class WorkTwinSuggestUnitTests {
 		Read<List<Map<String, Object>>> files = words -> List
 				.of(Map.of("id", "item-1", "name", "Apollo plan.docx", "isFolder", false));
 
-		Map<String, Object> out = WorkTwinSuggest.suggest(user, "Apollo", model, folders, fails, fails, files,
+		Map<String, Object> out = WorkTwinSuggest.suggest(user, "Apollo", null, model, folders, fails, fails, files,
 				chatId -> null);
 
 		assertEquals(1, ((List<?>) out.get("suggestions")).size());
@@ -230,8 +262,92 @@ class WorkTwinSuggestUnitTests {
 
 		// nothing searched is a failure, not an empty list
 		when(model.ask(anyString(), anyString(), any(), anyMap())).thenReturn(new AskStringModelEngineResponse(PLAN, 0, 0));
-		assertThrows(IllegalArgumentException.class,
-				() -> WorkTwinSuggest.suggest(user, "Apollo", model, folders, fails, fails, fails, chatId -> null));
+		assertThrows(IllegalArgumentException.class, () -> WorkTwinSuggest.suggest(user, "Apollo", null, model, folders,
+				fails, fails, fails, chatId -> null));
+	}
+
+	@Test
+	void searchesOnlyThePlacesAskedForAndKeepsNothingOlderThanTheCutoff() throws Exception {
+		when(model.ask(anyString(), anyString(), any(), anyMap())).thenReturn(new AskStringModelEngineResponse(PLAN, 0, 0))
+				.thenReturn(new AskStringModelEngineResponse("{\"picks\": [{\"id\": \"i1\", \"reason\": \"Fits\"}, "
+						+ "{\"id\": \"i2\", \"reason\": \"Fits\"}, {\"id\": \"i3\", \"reason\": \"Fits\"}]}", 0,
+						0));
+		// one email on each side of the cutoff, in one search and no other
+		List<String> mailSearches = new CopyOnWriteArrayList<>();
+		Read<List<Map<String, Object>>> mail = words -> {
+			mailSearches.add(words);
+			return mailSearches.size() > 1 ? List.of()
+					: List.of(mail("conv-new", "Apollo cutover", "sam@acme.com", "f-inbox", false, "2026-11-03T09:00:00Z",
+							"Confirmed for the 14th"),
+							mail("conv-old", "Apollo kickoff", "sam@acme.com", "f-inbox", false, "2026-09-30T23:59:59Z",
+									"Welcome to the project"));
+		};
+		// a file changed since, one changed before, and one whose date cannot be read, which is kept
+		Read<List<Map<String, Object>>> files = words -> List.of(
+				Map.of("id", "item-new", "name", "Apollo plan.docx", "isFolder", false, "lastModifiedDateTime",
+						"2026-10-01T00:00:00.5Z"),
+				Map.of("id", "item-old", "name", "Apollo charter.docx", "isFolder", false, "lastModifiedDateTime",
+						"2026-06-01T08:00:00Z"),
+				Map.of("id", "item-undated", "name", "Apollo notes.docx", "isFolder", false, "lastModifiedDateTime",
+						"last week"));
+
+		// Teams chats were left out: null, where a search that failed would be a note
+		Map<String, Object> out = WorkTwinSuggest.suggest(user, "The Apollo migration",
+				Instant.parse("2026-10-01T00:00:00Z"), model, folders, mail, null, files, chatId -> null);
+
+		assertEquals(List.of("conv-new", "item-new", "item-undated"),
+				((List<?>) out.get("suggestions")).stream().map(item -> ((Map<?, ?>) item).get("id")).toList());
+		assertEquals(List.of(), out.get("notes"));
+		ArgumentCaptor<String> asked = ArgumentCaptor.forClass(String.class);
+		verify(model, times(2)).ask(asked.capture(), anyString(), any(), anyMap());
+		for (String keptOut : List.of("Apollo kickoff", "Apollo charter")) {
+			assertFalse(asked.getAllValues().get(1).contains(keptOut), keptOut);
+		}
+
+		// the one place asked for failing is nothing searched: the places left out do not count as searched
+		when(model.ask(anyString(), anyString(), any(), anyMap())).thenReturn(new AskStringModelEngineResponse(PLAN, 0, 0));
+		Read<List<Map<String, Object>>> fails = words -> {
+			throw new IllegalStateException("Graph returned HTTP 403");
+		};
+		assertThrows(IllegalArgumentException.class, () -> WorkTwinSuggest.suggest(user, "Apollo", null, model, folders,
+				null, null, fails, chatId -> null));
+	}
+
+	@Test
+	void saysWhoAOneOnOneChatIsWithWhereItsPlaceOrTheChatItselfSays() throws Exception {
+		when(model.ask(anyString(), anyString(), any(), anyMap())).thenReturn(new AskStringModelEngineResponse(PLAN, 0, 0))
+				.thenReturn(new AskStringModelEngineResponse("{\"picks\": [{\"id\": \"i1\", \"reason\": \"Fits\"}, "
+						+ "{\"id\": \"i2\", \"reason\": \"Fits\"}, {\"id\": \"i3\", \"reason\": \"Fits\"}]}", 0,
+						0));
+		Read<List<Map<String, Object>>> chats = words -> List.of(
+				// one of the newest chats, which are read with who each is with
+				Map.of("chatId", "19:known", "chatName", "Dana Ortiz", "fromName", "Owner", "createdDateTime",
+						"2026-11-03T10:00:00Z", "summary", "Apollo is on", "person", Map.of("userId", "id-dana")),
+				// two the search found, which names neither the chat nor who is in it
+				Map.of("chatId", "19:found", "fromName", "Ben Carter", "createdDateTime", "2026-11-02T10:00:00Z",
+						"summary", "Apollo plan attached"),
+				Map.of("chatId", "19:group", "fromName", "Ben Carter", "createdDateTime", "2026-11-01T10:00:00Z",
+						"summary", "Apollo standup moved"));
+		// read once picked: the one on one holds the owner too, and the group is nobody's
+		Read<Map<String, Object>> chat = chatId -> "19:found".equals(chatId)
+				? Map.of("id", chatId, "chatType", "oneOnOne", "displayName", "Ben Carter", "members",
+						List.of(Map.of("userId", "id-me", "name", "Owner", "email", "owner@test.com"),
+								Map.of("userId", "id-ben", "name", "Ben Carter", "email", "ben@test.com")))
+				: Map.of("id", chatId, "chatType", "group", "displayName", "Ben Carter", "members",
+						List.of(Map.of("userId", "id-ben", "name", "Ben Carter")));
+
+		Map<String, Object> out = WorkTwinSuggest.suggest(user, "Apollo", null, model, folders, null, chats, null,
+				chat);
+
+		List<?> suggestions = (List<?>) out.get("suggestions");
+		assertEquals(Map.of("userId", "id-dana"), ((Map<?, ?>) suggestions.get(0)).get("person"));
+		assertEquals("Ben Carter", ((Map<?, ?>) suggestions.get(1)).get("title"));
+		assertEquals(Map.of("userId", "id-ben", "email", "ben@test.com"), ((Map<?, ?>) suggestions.get(1)).get("person"));
+		assertNull(((Map<?, ?>) suggestions.get(2)).get("person"));
+		// who a picture is of is for the page: the model reads none of it
+		ArgumentCaptor<String> asked = ArgumentCaptor.forClass(String.class);
+		verify(model, times(2)).ask(asked.capture(), anyString(), any(), anyMap());
+		assertFalse(asked.getAllValues().get(1).contains("id-dana"));
 	}
 
 	@Test
@@ -262,8 +378,8 @@ class WorkTwinSuggestUnitTests {
 			}
 		};
 
-		Map<String, Object> out = WorkTwinSuggest.suggest(user, "The Apollo migration", model, folders, words -> found,
-				chats, words -> List.of(), chatId -> null);
+		Map<String, Object> out = WorkTwinSuggest.suggest(user, "The Apollo migration", null, model, folders,
+				words -> found, chats, words -> List.of(), chatId -> null);
 
 		ArgumentCaptor<String> asked = ArgumentCaptor.forClass(String.class);
 		verify(model, times(2)).ask(asked.capture(), anyString(), any(), anyMap());

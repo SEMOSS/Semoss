@@ -158,7 +158,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 
 			// now delete from security db
-			SecurityInsightUtils.deleteInsight(projectId, insightId);
+			SecurityInsightUtils.deleteInsight(this.insight.getUser(), projectId, insightId);
 
 			// now delete from user tracking db
 			UserTrackingUtils.deleteInsight(insightId, projectId);

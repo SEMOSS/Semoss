@@ -58,6 +58,7 @@ import prerna.auth.User;
 import prerna.om.ClientProcessWrapper;
 import prerna.redis.RedisConnectionConfig;
 import prerna.redis.RedisConnectionFactory;
+import prerna.security.SessionIds;
 import prerna.util.Constants;
 import prerna.util.openshell.OpenShellTransport.SandboxInfo;
 import prerna.util.SymlinkHelper;
@@ -362,10 +363,11 @@ public final class OpenShellUserSandboxes {
 			return null;
 		}
 		String owner = ownerOf(user);
+		String session = SessionIds.hash(sessionId);
 		// Every request, not only refreshing ones: this set is what keeps the user's
 		// connection here from being released while a session of theirs is still active.
 		synchronized (ownerLock(owner)) {
-			LOCAL_SESSIONS.computeIfAbsent(owner, k -> ConcurrentHashMap.newKeySet()).add(sessionId);
+			LOCAL_SESSIONS.computeIfAbsent(owner, k -> ConcurrentHashMap.newKeySet()).add(session);
 		}
 		long now = System.currentTimeMillis();
 		if (lastTouch != null && lastTouch.startsWith(BOOT_ID + ":")) {
@@ -379,10 +381,10 @@ public final class OpenShellUserSandboxes {
 		}
 		try {
 			long ttlMs = ttlSeconds > 0 ? TimeUnit.SECONDS.toMillis(ttlSeconds) : DEFAULT_LEASE_MS;
-			registry().touch(owner, sessionId, now + ttlMs);
+			registry().touch(owner, session, now + ttlMs);
 			ensureSweeper();
 		} catch (Exception e) {
-			classLogger.warn("Could not refresh the sandbox lease for session {}", sessionId, e);
+			classLogger.warn("Could not refresh the sandbox lease for session {}", session, e);
 			return null;
 		}
 		return BOOT_ID + ":" + now;
@@ -407,10 +409,11 @@ public final class OpenShellUserSandboxes {
 		if (owner == null) {
 			return;
 		}
+		String session = SessionIds.hash(sessionId);
 		synchronized (ownerLock(owner)) {
 			Set<String> here = LOCAL_SESSIONS.get(owner);
 			if (here != null) {
-				here.remove(sessionId);
+				here.remove(session);
 			}
 			if (here == null || here.isEmpty()) {
 				LOCAL_SESSIONS.remove(owner);
@@ -418,14 +421,14 @@ public final class OpenShellUserSandboxes {
 			}
 		}
 		if (!over) {
-			classLogger.info("Session {} left with the server; keeping its sandbox lease", sessionId);
+			classLogger.info("Session {} left with the server; keeping its sandbox lease", session);
 			return;
 		}
 		boolean anyLive;
 		try {
-			anyLive = registry().release(owner, sessionId, System.currentTimeMillis());
+			anyLive = registry().release(owner, session, System.currentTimeMillis());
 		} catch (Exception e) {
-			classLogger.warn("Could not release the sandbox lease for session {}; the sweeper will", sessionId, e);
+			classLogger.warn("Could not release the sandbox lease for session {}; the sweeper will", session, e);
 			return;
 		}
 		if (!anyLive) {

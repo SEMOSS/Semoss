@@ -178,7 +178,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testAddEmbeddings() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 		
 		Properties testProps = new Properties();
@@ -226,7 +226,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				Properties embedderProps = new Properties();
 				embedderProps.setProperty(Constants.MODEL, embedderModel);
 				embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-				when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);			
+				EmbedderStubs.answerFrom(modelEmbedder, embedderProps);			
 				engine.verifyModelProps();
 				// used in addEmbeddings()
 				VectorDatabaseCSVTable vectorCsvTableMock = mock();
@@ -255,7 +255,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testAddEmbeddingsNoInsight() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 		
 		Properties testProps = new Properties();
@@ -307,7 +307,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void removeDocument() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 		String indexClass = "default";
 		
@@ -363,7 +363,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 					engine.verifyModelProps();
 					
 					hhu.when(() -> HttpHelperUtility.getRequest(any(String.class), any(Map.class),
@@ -382,7 +382,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 		
 		Properties testProps = new Properties();
@@ -430,7 +430,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 					engine.verifyModelProps();
 					
 					EmbeddingsModelEngineResponse embResMock = mock();
@@ -725,7 +725,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, embedderModel);
 			embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);			
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);			
 			engine.verifyModelProps();
 		}
 	}
