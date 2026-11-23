@@ -68,7 +68,7 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
 
-		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+		SecurityEngineUtils.updateEngineMetadata(this.insight.getUser(), engineId, metadata);
 		if (capabilityUpdates != null && !capabilityUpdates.isEmpty()) {
 			SecurityModelMetadataUtils.updateModelMetadata(engineId, capabilityUpdates);
 		}

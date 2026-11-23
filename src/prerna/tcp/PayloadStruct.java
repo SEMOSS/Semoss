@@ -42,7 +42,7 @@ public class PayloadStruct implements Serializable {
 
 	public enum OPERATION {
 		R, PYTHON, NODE, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM,
-		CANCELLED, LOG
+		CANCELLED, LOG, CHANGES
 	};
 
 	public OPERATION operation = OPERATION.R;
@@ -95,10 +95,10 @@ public class PayloadStruct implements Serializable {
 
 	/**
 	 * When true, the python server must NOT install the per-execution cancel trace
-	 * (sys.settrace) for this command. Engine-owned python processes never surface
-	 * their jobId / insightId to the user, so their executions can never be
-	 * cancelled anyway - skipping the trace avoids its (significant) overhead on
-	 * import-heavy init / ask scripts.
+	 * (sys.settrace) for this command, which avoids the trace's (significant)
+	 * overhead on import-heavy init / ask scripts. Engine-owned python processes
+	 * set it. A cancelled job's execution still stops at the next chunk it streams
+	 * through smss_stream.
 	 */
 	public boolean disableCancelTrace = false;
 

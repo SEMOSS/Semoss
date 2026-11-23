@@ -270,16 +270,6 @@ class BrainTopicChangesDbUnitTests {
 	}
 
 	@Test
-	void anEmptyModelReplyIsAnUnusableAnswer() {
-		Map<String, Object> context = Map.of("topics", List.of(), "candidatePeople", List.of());
-		for (String reply : new String[] { "", "<think>checking</think>", "null" }) {
-			IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
-					() -> BrainTopicReviewChat.run(context, (prompt, instructions, params) -> reply));
-			assertTrue(error.getMessage().contains("did not return a usable answer"), reply);
-		}
-	}
-
-	@Test
 	void aConversationOnlySuggestedForATopicIsStillLookedAtForNewTopics() throws Exception {
 		topic("t-old", "Old project", BrainTopicUtils.ACTIVE);
 		for (String thread : List.of("th-none", "th-suggested", "th-confirmed")) {

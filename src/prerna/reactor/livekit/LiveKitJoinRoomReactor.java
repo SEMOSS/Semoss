@@ -74,9 +74,9 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		String userId = User.getSingleLogginName(user);
 
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException(
-					"Model " + engineId + " does not exist or user does not have access to this model");
+		if (!SecurityEngineUtils.userIsOwner(user, engineId)) {
+			throw new IllegalArgumentException("Model " + engineId
+					+ " does not exist or user is not its owner. A LiveKit room hands the model's keys to the user's Python, so only the model's owners can join one");
 		}
 
 		Map<String, Object> paramMap = getParamMap();
@@ -129,7 +129,7 @@ public class LiveKitJoinRoomReactor extends AbstractReactor {
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
-		return super.getReactorDefinition().description("Create or join a LiveKit Room.")
+		return super.getReactorDefinition().description("Create or join a LiveKit Room. Only the model's owners can, since the room hands the model's keys to the user's Python.")
 				.key(ReactorKeysEnum.ENGINE, "The id of the model engine that runs the room's audio operation.")
 				.key("operation",
 						"The audio operation to run with the model in the room: turn_based_transcription, turn_based_translation or speech_to_speech_realtime.")

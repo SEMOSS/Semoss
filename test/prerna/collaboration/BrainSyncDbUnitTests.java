@@ -81,7 +81,6 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IRDBMSEngine;
-import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.io.connector.ms.MicrosoftGraphCredentialStore;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.util.SystemEngineRegistry;
@@ -104,6 +103,7 @@ class BrainSyncDbUnitTests {
 	private MockedStatic<SystemEngineRegistry> registry;
 	private MockedStatic<WorkThreadInsights> insights;
 	private MockedStatic<WorkExpenseRoutine> expenses;
+	private MockedStatic<WorkTwinUpdates> twinUpdates;
 	// the message keys each expense review was started for
 	private final List<List<String>> reviews = new ArrayList<>();
 	private User user;
@@ -145,6 +145,9 @@ class BrainSyncDbUnitTests {
 		// the review itself runs on the scheduler; what is under test is how often it
 		// is asked for
 		expenses = mockStatic(WorkExpenseRoutine.class);
+		// the check of the owner's Digital Twins a sync starts when one is due runs as
+		// a job of its own
+		twinUpdates = mockStatic(WorkTwinUpdates.class);
 		expenses.when(() -> WorkExpenseRoutine.onNewMail(anyString(), anyString(), any())).thenAnswer(call -> {
 			List<String> keys = new ArrayList<>();
 			for (String[] message : (List<String[]>) call.getArgument(2)) {
@@ -195,6 +198,7 @@ class BrainSyncDbUnitTests {
 
 	@AfterEach
 	void tearDown() throws Exception {
+		twinUpdates.close();
 		expenses.close();
 		insights.close();
 		registry.close();
@@ -233,10 +237,12 @@ class BrainSyncDbUnitTests {
 		sql("INSERT INTO WORK_CUSTOM_ROUTINE (OWNER_ID, OWNER_TYPE, ROUTINE_ID, SETTINGS_JSON) VALUES (?, ?, 'r1', ?)",
 				ownerId, ownerType, "{\"name\":\"NVIDIA Follow-up Digest\"}");
 		mailbox.clear();
-		// sent before Collaboration recorded its mail: a system routine's dated title, to the owner alone
+		// sent before Collaboration recorded its mail: a system routine's dated title,
+		// to the owner alone
 		mailbox.add(email("B1", "conv-b1", "Morning Work Briefing - 2026-11-04", "owner@test.com", "owner@test.com"));
 		mailbox.add(email("B5", "conv-b5", "Event planning - 2026-10-29", "owner@test.com", "owner@test.com"));
-		// sent through BrainOwnMail: the copy in Sent is known by its recorded id, the copy that arrived by its
+		// sent through BrainOwnMail: the copy in Sent is known by its recorded id, the
+		// copy that arrived by its
 		// header, whoever else it went to
 		mailbox.add(email("B2", "conv-b2", "NVIDIA Follow-up Digest", "owner@test.com", "owner@test.com"));
 		BrainOwnMail.record(ownerId, ownerType, "<B2@mail.example>", "routine");
@@ -248,7 +254,8 @@ class BrainSyncDbUnitTests {
 		// the same subjects to or from anyone else are ordinary mail
 		mailbox.add(email("B3", "conv-b3", "Morning Work Briefing - 2026-11-04", "owner@test.com", "kyle@test.com"));
 		mailbox.add(email("B4", "conv-b4", "NVIDIA Follow-up Digest", "kyle@test.com", "owner@test.com"));
-		// a subject alone never decides: a note to self named like a routine, and a brief's title Bcc'd to the team
+		// a subject alone never decides: a note to self named like a routine, and a
+		// brief's title Bcc'd to the team
 		mailbox.add(email("B7", "conv-b7", "NVIDIA Follow-up Digest", "owner@test.com", "owner@test.com"));
 		Map<String, Object> bcc = email("B8", "conv-b8", "Morning Work Briefing - 2026-11-05", "owner@test.com",
 				"owner@test.com");
@@ -256,23 +263,29 @@ class BrainSyncDbUnitTests {
 		mailbox.add(bcc);
 		BrainMailImport.Run run = read(true);
 		assertEquals(4, run.imported);
-		// what Collaboration sent leaves no row at all; the older results are decided once, and a sync leaves them be
+		// what Collaboration sent leaves no row at all; the older results are decided
+		// once, and a sync leaves them be
 		assertEquals(2, run.ownMail);
 		assertEquals(2, run.keptOut);
 		assertEquals(4, count("BRAIN_THREAD"));
-		assertEquals(2, ((Number) value("SELECT COUNT(*) FROM BRAIN_MESSAGE WHERE DECISION = 'never' "
-				+ "AND THREAD_ID IS NULL")).intValue());
+		assertEquals(2,
+				((Number) value(
+						"SELECT COUNT(*) FROM BRAIN_MESSAGE WHERE DECISION = 'never' " + "AND THREAD_ID IS NULL"))
+						.intValue());
 		assertEquals(0, read(true).imported);
 		assertEquals(4, count("BRAIN_THREAD"));
 		for (String kept : List.of("conv-b3", "conv-b4", "conv-b7", "conv-b8")) {
-			assertEquals(1, ((Number) value("SELECT COUNT(*) FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:" + kept + "'"))
-					.intValue(), kept);
+			assertEquals(1,
+					((Number) value("SELECT COUNT(*) FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:" + kept + "'"))
+							.intValue(),
+					kept);
 		}
 	}
 
 	@Test
 	void workRaisedFromARoutineResultImportedBeforeTheKeepOutIsDismissedOnce() throws Exception {
-		// a note to self later given a brief's subject, as imports before the keep-out left one; and a real thread
+		// a note to self later given a brief's subject, as imports before the keep-out
+		// left one; and a real thread
 		mailbox.clear();
 		mailbox.add(email("B1", "conv-b1", "Notes", "owner@test.com", "owner@test.com"));
 		mailbox.add(email("B2", "conv-b2", "Morning Work Briefing - 2026-10-30", "kyle@test.com", "owner@test.com"));
@@ -292,8 +305,10 @@ class BrainSyncDbUnitTests {
 				+ "VALUES (?, ?, 'waiting', ?, 'email', 'Morning Work Briefing - 2026-10-30', 'waiting_on', 'waiting', "
 				+ "'brain')", ownerId, ownerType, brief);
 		sql("INSERT INTO WORK_ITEM (OWNER_ID, OWNER_TYPE, ITEM_ID, THREAD_ID, SOURCE, TITLE, ASK_TYPE, STATUS, ORIGIN) "
-				+ "VALUES (?, ?, 'own', ?, 'task', 'Book the offsite', 'task', 'open', 'you')", ownerId, ownerType, brief);
-		// the work items Brain grouped those steps under; one an earlier cleanup left open with its step dismissed
+				+ "VALUES (?, ?, 'own', ?, 'task', 'Book the offsite', 'task', 'open', 'you')", ownerId, ownerType,
+				brief);
+		// the work items Brain grouped those steps under; one an earlier cleanup left
+		// open with its step dismissed
 		sql("INSERT INTO WORK_THREAD_STEP (OWNER_ID, OWNER_TYPE, STEP_ID, THREAD_ID, TEXT, KIND, STATUS, ORIGIN) VALUES "
 				+ "(?, ?, 'old', ?, 'Handle WBSs (P2)', 'task', 'dismissed', 'brain')", ownerId, ownerType, earlier);
 		String task = "INSERT INTO WORK_TASK (OWNER_ID, OWNER_TYPE, TASK_ID, KIND, TITLE, STATUS, ORIGIN) VALUES (?, ?, ?, "
@@ -307,11 +322,13 @@ class BrainSyncDbUnitTests {
 		assertArrayEquals(new int[] { 1, 1, 2 }, BrainMailImport.dismissRoutineResultWork());
 		assertEquals("dismissed", value("SELECT STATUS FROM WORK_THREAD_STEP WHERE STEP_ID = 'copied'"));
 		assertEquals("dismissed", value("SELECT STATUS FROM WORK_ITEM WHERE ITEM_ID = 'waiting'"));
-		// the owner's own step and item, and a thread someone else wrote on, keep theirs
+		// the owner's own step and item, and a thread someone else wrote on, keep
+		// theirs
 		assertEquals("open", value("SELECT STATUS FROM WORK_THREAD_STEP WHERE STEP_ID = 'mine'"));
 		assertEquals("open", value("SELECT STATUS FROM WORK_ITEM WHERE ITEM_ID = 'own'"));
 		assertEquals("open", value("SELECT STATUS FROM WORK_THREAD_STEP WHERE STEP_ID = 'real'"));
-		// a work item with nothing left to do goes; one with the owner's step on it, or real mail, stays
+		// a work item with nothing left to do goes; one with the owner's step on it, or
+		// real mail, stays
 		assertEquals("dropped", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'brief-task'"));
 		assertEquals("dropped", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'left-task'"));
 		assertEquals("active", value("SELECT STATUS FROM WORK_TASK WHERE TASK_ID = 'owner-task'"));
@@ -385,7 +402,8 @@ class BrainSyncDbUnitTests {
 
 	@Test
 	void theImportAfterOneThatWasCutOffCountsTheThreadsItLeft() throws Exception {
-		// the first run stopped before it counted its threads; the retry reads the same mail and skips it as imported
+		// the first run stopped before it counted its threads; the retry reads the same
+		// mail and skips it as imported
 		read(false);
 		assertEquals(0, value("SELECT MAX(MESSAGE_COUNT) FROM BRAIN_THREAD"));
 
@@ -440,14 +458,16 @@ class BrainSyncDbUnitTests {
 		CountDownLatch imported = new CountDownLatch(1);
 		ExecutorService pool = Executors.newSingleThreadExecutor();
 		try {
-			// Reset's order: the job lock, held while it deletes routines, then the ingest lock. The import runs on
+			// Reset's order: the job lock, held while it deletes routines, then the ingest
+			// lock. The import runs on
 			// this thread, where the database mocks live
 			Future<Boolean> reset = pool.submit(() -> {
 				reading.await(10, TimeUnit.SECONDS);
 				synchronized (CollaborationDbUtils.ownerLock("job", ownerId, ownerType)) {
 					resetHoldsJobLock.countDown();
 					if (!imported.await(5, TimeUnit.SECONDS)) {
-						// the import is waiting on this lock: let go, so the test fails instead of deadlocking
+						// the import is waiting on this lock: let go, so the test fails instead of
+						// deadlocking
 						return false;
 					}
 					synchronized (CollaborationDbUtils.ownerLock(BrainSync.INGEST_LOCK, ownerId, ownerType)) {
@@ -521,7 +541,8 @@ class BrainSyncDbUnitTests {
 		return job;
 	}
 
-	// whether a Send from a chat, which takes the owner's ingest lock to track its thread, has to wait for it now
+	// whether a Send from a chat, which takes the owner's ingest lock to track its
+	// thread, has to wait for it now
 	private boolean aSendWaits() {
 		ExecutorService pool = Executors.newSingleThreadExecutor();
 		try {
@@ -559,20 +580,20 @@ class BrainSyncDbUnitTests {
 							plannedTopics.add(c.get("topicId"));
 						}
 						// the model's item has no title, which the server refuses
-						((Consumer<Map<String, Object>>) call.getArgument(5)).accept(Map.of("topicId",
-								WorkReconcile.NO_TOPIC, "newItems",
-								List.of(Map.of("title", "", "steps",
-										List.of(Map.of("text", "Send the deck", "evidence", List.of("c1"))))),
-								"looseSteps", List.of(
-										Map.of("text", "Review the budget", "assignee", "me", "evidence", List.of("c2")))));
+						((Consumer<Map<String, Object>>) call.getArgument(5))
+								.accept(Map.of("topicId", WorkReconcile.NO_TOPIC, "newItems",
+										List.of(Map.of("title", "", "steps",
+												List.of(Map.of("text", "Send the deck", "evidence", List.of("c1"))))),
+										"looseSteps", List.of(Map.of("text", "Review the budget", "assignee", "me",
+												"evidence", List.of("c2")))));
 						return Map.of();
 					});
 			WorkPipeline.reconcile(user, ownerId, ownerType, null);
 		}
 		assertEquals(Arrays.asList(null, null), plannedTopics);
 		assertEquals(2, count("WORK_THREAD_STEP"));
-		assertEquals(0, ((Number) value("SELECT COUNT(*) FROM WORK_THREAD_STEP WHERE STEP_OWNER_ID IS NOT NULL"))
-				.intValue());
+		assertEquals(0,
+				((Number) value("SELECT COUNT(*) FROM WORK_THREAD_STEP WHERE STEP_OWNER_ID IS NOT NULL")).intValue());
 		assertEquals(2, ((Number) value("SELECT COUNT(*) FROM WORK_CANDIDATE WHERE RESULT = 'step'")).intValue());
 	}
 
@@ -616,9 +637,10 @@ class BrainSyncDbUnitTests {
 
 			@Override
 			public List<Map<String, Object>> folders(User user) {
-				return List.of(Map.of("id", "inbox-id", "displayName", "Inbox", "wellKnownName", "inbox",
-						"totalItemCount", 2), Map.of("id", "sent-id", "displayName", "Sent Items", "wellKnownName",
-								"sentitems", "totalItemCount", 0));
+				return List.of(
+						Map.of("id", "inbox-id", "displayName", "Inbox", "wellKnownName", "inbox", "totalItemCount", 2),
+						Map.of("id", "sent-id", "displayName", "Sent Items", "wellKnownName", "sentitems",
+								"totalItemCount", 0));
 			}
 
 			@Override
@@ -628,15 +650,16 @@ class BrainSyncDbUnitTests {
 		};
 		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType, true);
 		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
-		// a sync an hour after the last: the mail came out of Junk days after it arrived
+		// a sync an hour after the last: the mail came out of Junk days after it
+		// arrived
 		CollaborationJobUtils.Job job = mock(CollaborationJobUtils.Job.class);
 		BrainMailImport.importMail(job, run, BrainMailImport.readMail(user, changedMail, job, ownerId, ownerType,
 				NOW.minus(Duration.ofHours(1)), true, 0, 0), 0, 100);
 		assertEquals(1, run.imported);
-		assertEquals(1, ((Number) value("SELECT COUNT(*) FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-j1'"))
-				.intValue());
-		assertEquals(0, ((Number) value("SELECT COUNT(*) FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-j2'"))
-				.intValue());
+		assertEquals(1,
+				((Number) value("SELECT COUNT(*) FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-j1'")).intValue());
+		assertEquals(0,
+				((Number) value("SELECT COUNT(*) FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-j2'")).intValue());
 	}
 
 	@Test
@@ -686,13 +709,15 @@ class BrainSyncDbUnitTests {
 			}
 		};
 		CollaborationJobUtils.Job job = mock(CollaborationJobUtils.Job.class);
-		BrainMailImport.readMail(user, withDeleted, job, ownerId, ownerType, NOW.minus(Duration.ofHours(1)), true, 0, 0);
+		BrainMailImport.readMail(user, withDeleted, job, ownerId, ownerType, NOW.minus(Duration.ofHours(1)), true, 0,
+				0);
 		assertEquals("dismissed", value("SELECT STATUS FROM WORK_ITEM WHERE SOURCE_REF = 'G1'"));
 		assertEquals("deleted", value("SELECT CLOSED_REASON FROM WORK_ITEM WHERE SOURCE_REF = 'G1'"));
 		assertEquals("open", value("SELECT STATUS FROM WORK_ITEM WHERE SOURCE_REF = 'G2'"));
 	}
 
-	// a mailbox with Inbox and Sent whose all-mail read is the given one (changed is whether it filters on change time)
+	// a mailbox with Inbox and Sent whose all-mail read is the given one (changed
+	// is whether it filters on change time)
 	private BrainMailHeaderSource inboxSource(java.util.function.Function<Boolean, List<Map<String, Object>>> allMail) {
 		return new BrainMailHeaderSource() {
 			@Override
@@ -712,9 +737,10 @@ class BrainSyncDbUnitTests {
 
 			@Override
 			public List<Map<String, Object>> folders(User user) {
-				return List.of(Map.of("id", "inbox-id", "displayName", "Inbox", "wellKnownName", "inbox",
-						"totalItemCount", 2), Map.of("id", "sent-id", "displayName", "Sent Items", "wellKnownName",
-								"sentitems", "totalItemCount", 0));
+				return List.of(
+						Map.of("id", "inbox-id", "displayName", "Inbox", "wellKnownName", "inbox", "totalItemCount", 2),
+						Map.of("id", "sent-id", "displayName", "Sent Items", "wellKnownName", "sentitems",
+								"totalItemCount", 0));
 			}
 
 			@Override
@@ -726,7 +752,8 @@ class BrainSyncDbUnitTests {
 
 	@Test
 	void aThrottledChangedMailReadFailsTheSyncSoItsWindowIsReadAgain() {
-		// the new-mail read would work, so falling back to it would quietly lose this window's moves and flags
+		// the new-mail read would work, so falling back to it would quietly lose this
+		// window's moves and flags
 		BrainMailHeaderSource throttled = inboxSource(changed -> {
 			if (changed) {
 				throw new IllegalArgumentException("GET request to https://graph.microsoft.com/v1.0/me/messages "
@@ -760,7 +787,8 @@ class BrainSyncDbUnitTests {
 	@Test
 	void aMessageMovedAwayAndBackKeepsItsNewGraphId() throws Exception {
 		read(true);
-		// the same folder, categories and flag as before; only Graph's id for it changed
+		// the same folder, categories and flag as before; only Graph's id for it
+		// changed
 		mailbox.get(0).put("id", "G1-moved");
 		read(true);
 		assertEquals("G1-moved", value("SELECT GRAPH_ID FROM BRAIN_MESSAGE WHERE GRAPH_ID LIKE 'G1%'"));
@@ -771,18 +799,21 @@ class BrainSyncDbUnitTests {
 		read(true);
 		sql("UPDATE BRAIN_THREAD SET WORK_REF = '2026-10-29T12:00:00Z' WHERE THREAD_KEY = 'email:conv-1'");
 		mailbox.clear();
-		// a webhook lost, the next sync brings the 10:30 mail; and mail newer than what Work read changes nothing
+		// a webhook lost, the next sync brings the 10:30 mail; and mail newer than what
+		// Work read changes nothing
 		Map<String, Object> late = email("G9", "conv-1", "RE: Meeting Approval", "kyle@test.com", "owner@test.com");
 		late.put("receivedDateTime", "2026-10-29T10:30:00Z");
 		mailbox.add(late);
 		read(true);
-		assertEquals("2026-10-29T10:29:59Z", value("SELECT WORK_REF FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-1'"));
+		assertEquals("2026-10-29T10:29:59Z",
+				value("SELECT WORK_REF FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-1'"));
 		mailbox.clear();
 		Map<String, Object> newer = email("G10", "conv-1", "RE: Meeting Approval", "kyle@test.com", "owner@test.com");
 		newer.put("receivedDateTime", "2026-10-29T12:30:00Z");
 		mailbox.add(newer);
 		read(true);
-		assertEquals("2026-10-29T10:29:59Z", value("SELECT WORK_REF FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-1'"));
+		assertEquals("2026-10-29T10:29:59Z",
+				value("SELECT WORK_REF FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:conv-1'"));
 	}
 
 	@Test
@@ -798,7 +829,8 @@ class BrainSyncDbUnitTests {
 
 	@Test
 	void aMessageThatCannotBeSavedIsUndoneAloneAndTheRestOfItsBatchIsKept() throws Exception {
-		// a conversation longer than THREAD_KEY holds: its thread insert fails after the gate saved its message row
+		// a conversation longer than THREAD_KEY holds: its thread insert fails after
+		// the gate saved its message row
 		mailbox.add(1, email("G3", "c".repeat(300), "Budget", "dana@test.com", "owner@test.com"));
 		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType, true);
 		run.ensureSelf("owner@test.com", "Owner", "owner@test.com", List.of());
@@ -903,7 +935,7 @@ class BrainSyncDbUnitTests {
 					ownerType);
 			assertTrue(assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, null, null,
 					"Lyft", null, null, null, null, null, null, List.of("G4"))).getMessage()
-							.contains("cannot be added"));
+					.contains("cannot be added"));
 		}
 		assertEquals(1, count("BRAIN_TOPIC"));
 		assertEquals(3, count("BRAIN_MESSAGE"));
@@ -1112,7 +1144,7 @@ class BrainSyncDbUnitTests {
 		token.setProvider(AuthProvider.MICROSOFT);
 		token.setId(MS_ID);
 		token.setAccess_token(accessToken);
-		token.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, "refresh-" + accessToken);
+		token.setRefresh_token("refresh-" + accessToken);
 		token.setExpires_in(3600);
 		token.setStartTime(expires.toEpochMilli() - 3_600_000L);
 		return token;
@@ -1165,19 +1197,21 @@ class BrainSyncDbUnitTests {
 
 	@Test
 	void aThreadFlaggedAutomatedIsLiveAgainOnceAPersonWritesOnIt() throws Exception {
-		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, RELATIONSHIP) VALUES (?, ?, 'bot', ?)",
-				ownerId, ownerType, BrainSenderTyping.AUTOMATED);
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, RELATIONSHIP) VALUES (?, ?, 'bot', ?)", ownerId,
+				ownerType, BrainSenderTyping.AUTOMATED);
 		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, RELATIONSHIP) VALUES (?, ?, 'kyle', 'colleague')",
 				ownerId, ownerType);
 		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT, AUTOMATED) "
 				+ "VALUES (?, ?, 'announcement', 'email', 'x', TRUE)", ownerId, ownerType);
 		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT) "
-				+ "VALUES (?, ?, 'a1', 'announcement', 'bot', ?)", ownerId, ownerType, utc(NOW.minus(Duration.ofHours(2))));
+				+ "VALUES (?, ?, 'a1', 'announcement', 'bot', ?)", ownerId, ownerType,
+				utc(NOW.minus(Duration.ofHours(2))));
 
 		assertFalse(BrainThreadClassifier.newestFromPerson(ownerId, ownerType, "announcement"));
 
 		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT) "
-				+ "VALUES (?, ?, 'a2', 'announcement', 'kyle', ?)", ownerId, ownerType, utc(NOW.minus(Duration.ofHours(1))));
+				+ "VALUES (?, ?, 'a2', 'announcement', 'kyle', ?)", ownerId, ownerType,
+				utc(NOW.minus(Duration.ofHours(1))));
 
 		assertTrue(BrainThreadClassifier.newestFromPerson(ownerId, ownerType, "announcement"));
 	}

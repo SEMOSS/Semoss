@@ -59,6 +59,9 @@ public final class BrainProfileUtils {
 	static final List<Integer> SYNC_EVERY_MINUTES = List.of(0, 15, 30, 60, 240);
 	// how often new topics may be proposed from incoming mail: never, daily, every three days, weekly
 	static final List<Integer> NEW_TOPICS_EVERY_HOURS = List.of(0, 24, 72, 168);
+	// how often the owner's Digital Twins are checked against what they were copied from (WorkTwinUpdates): never,
+	// hourly, every four hours, daily
+	static final List<Integer> TWIN_CHECK_EVERY_HOURS = List.of(0, 1, 4, 24);
 
 	// ROLE_STATE and STYLE_STATE values
 	public static final String LEARNED = "learned";
@@ -380,6 +383,17 @@ public final class BrainProfileUtils {
 		settings.put("assistantAgent", CollaborationUtils.threadAgent(user));
 		// read-only: whether an admin turned Digital Twin avatars on and set their image model
 		settings.put("avatarGeneration", WorkTwinAvatar.available());
+		// read-only: whether this deployment's Microsoft sign in asks for the scope a
+		// meeting transcript is read with, so a page offers one only where it can be read
+		settings.put("meetingTranscripts", CollaborationAgentTools.transcriptsRequested());
+		// read-only here (WorkSaveMainTwin changes it): the user's own Digital Twin, which is that agent under
+		// the name and picture they chose. The web reads these settings in its first load, where one failed
+		// statement fails all of it, so a twin that cannot be read is left out
+		try {
+			settings.put("mainTwin", WorkMainTwin.get(user));
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not read the user's own Digital Twin for their settings", e);
+		}
 		return settings;
 	}
 
@@ -389,8 +403,8 @@ public final class BrainProfileUtils {
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
 				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN, DRAFT_FOLDER_ID, DRAFT_FOLDER_NAME, "
 						+ "DRAFT_FONT, DRAFT_FONT_SIZE, DRAFT_SIGNATURE_HTML, DRAFT_SIGNATURE_ON, "
-						+ "ASSISTANT_SKILLS_JSON, SYNC_EVERY_MINUTES, TOPIC_WATCH_HOURS, WORK_CLOSE_ACROSS "
-						+ "FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+						+ "ASSISTANT_SKILLS_JSON, SYNC_EVERY_MINUTES, TOPIC_WATCH_HOURS, WORK_CLOSE_ACROSS, "
+						+ "TWIN_CHECK_HOURS FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
 					// blank when drafts stay in the mailbox's Drafts
@@ -423,6 +437,9 @@ public final class BrainProfileUtils {
 					row.put("newTopicsEveryHours", watch == null ? (int) BrainTopicSuggest.instanceEveryHours() : watch.intValue());
 					Boolean across = CollaborationDbUtils.getBoolean(rs, "WORK_CLOSE_ACROSS");
 					row.put("closeAcrossThreads", across == null ? WorkReconcile.instanceClosesAcross() : across);
+					Integer twinCheck = CollaborationDbUtils.getInteger(rs, "TWIN_CHECK_HOURS");
+					row.put("twinCheckEveryHours",
+							twinCheck == null ? WorkTwinUpdates.DEFAULT_EVERY_HOURS : twinCheck.intValue());
 					return row;
 				}, ownerId, ownerType);
 		settings.put("sourcesJson", CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType));
@@ -525,6 +542,13 @@ public final class BrainProfileUtils {
 				throw new IllegalArgumentException("newTopicsEveryHours must be one of " + NEW_TOPICS_EVERY_HOURS);
 			}
 			CollaborationDbUtils.addSet(sets, params, "TOPIC_WATCH_HOURS", hours);
+		}
+		if (changes.containsKey("twinCheckEveryHours")) {
+			int hours = CollaborationDbUtils.toInt(changes.get("twinCheckEveryHours"), "twinCheckEveryHours");
+			if (!TWIN_CHECK_EVERY_HOURS.contains(hours)) {
+				throw new IllegalArgumentException("twinCheckEveryHours must be one of " + TWIN_CHECK_EVERY_HOURS);
+			}
+			CollaborationDbUtils.addSet(sets, params, "TWIN_CHECK_HOURS", hours);
 		}
 		if (changes.containsKey("closeAcrossThreads")) {
 			if (!(changes.get("closeAcrossThreads") instanceof Boolean across)) {

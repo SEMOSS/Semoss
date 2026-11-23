@@ -79,8 +79,6 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 	private static final String UTF8 = StandardCharsets.UTF_8.name();
 	private static final ObjectMapper JSON = new ObjectMapper();
 
-	public static final String REFRESH_TOKEN_KEY = "refresh_token";
-
 	// fallback redirect/callback URL used when {prefix}redirect_uri is not
 	// configured; supplied per request by the unified login endpoint
 	private String defaultRedirectUri = null;

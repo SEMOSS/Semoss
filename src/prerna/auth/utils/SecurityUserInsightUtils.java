@@ -390,7 +390,7 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 	 * @param projectId
 	 * @param insightId
 	 */
-	public static void deleteInsight(String projectId, String insightId) {
+	static void deleteInsight(String projectId, String insightId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String[] deleteQueries = new String[] { "DELETE FROM INSIGHT WHERE INSIGHTID =? AND PROJECTID=?",
 				"DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID =? AND PROJECTID=?",
@@ -411,39 +411,6 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				classLogger.error("Unable to delete insight.", e);
 			}
 
-		}
-	}
-
-	/**
-	 * 
-	 * @param projectId
-	 * @param insightId
-	 */
-	public static void deleteInsight(String projectId, String... insightId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String insightFilter = createFilter(insightId);
-		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId + "'";
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (Exception e) {
-			classLogger.error("Unable to delete insight.", e);
-		}
-		query = "DELETE FROM USERINSIGHTPERMISSION WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId
-				+ "'";
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (Exception e) {
-			classLogger.error("Unable to delete insight.", e);
-		}
-		query = "DELETE FROM USERINSIGHTPREFERENCE WHERE INSIGHTID " + insightFilter + " AND PROJECTID='" + projectId
-				+ "'";
-		try {
-			securityDb.insertData(query);
-			securityDb.commit();
-		} catch (Exception e) {
-			classLogger.error("Unable to delete insight.", e);
 		}
 	}
 

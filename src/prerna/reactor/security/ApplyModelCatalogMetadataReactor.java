@@ -123,8 +123,7 @@ public class ApplyModelCatalogMetadataReactor extends AbstractReactor {
 			lock.lock();
 			try {
 				IModelEngine modelEngine = Utility.getModel(engineId);
-				modelEngine.close();
-				modelEngine.open(modelEngine.getSmssFilePath());
+				modelEngine.reload();
 			} catch (Exception e) {
 				classLogger.error("Failed to reload model engine '{}' after applying the catalog metadata",
 						Utility.cleanLogString(engineId), e);

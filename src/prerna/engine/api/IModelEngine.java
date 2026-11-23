@@ -29,6 +29,7 @@ package prerna.engine.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import prerna.auth.AccessPermissionEnum;
@@ -44,6 +45,8 @@ import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.MultiModalEmbeddingsModelEngineResponse;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.om.Insight;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.util.Constants;
 
 public interface IModelEngine extends IEngine {
 
@@ -180,6 +183,31 @@ public interface IModelEngine extends IEngine {
 	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default long getMaxTokens() {
 		return 0;
+	}
+
+	/**
+	 * The name of the model the engine calls, its {@link Constants#MODEL} setting,
+	 * such as the provider's model id.
+	 *
+	 * @return the model name, or null when the engine has none
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getModelName() {
+		Properties smssProp = getSmssProp();
+		return smssProp == null ? null : smssProp.getProperty(Constants.MODEL);
+	}
+
+	/**
+	 * The longest tool name the model takes: its MAX_TOOL_NAME_CHAR setting, or
+	 * else the limit of its provider.
+	 *
+	 * @return the longest tool name, in characters
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default int getMaxToolNameLength() {
+		return MCPUtility.getMaxToolNameLength(getSmssProp(), getModelType(), getEngineId());
 	}
 
 	/**

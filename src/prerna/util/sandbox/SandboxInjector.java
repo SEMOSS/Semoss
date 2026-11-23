@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.util;
+package prerna.util.sandbox;
 
 import java.io.IOException;
 import java.io.InputStream;

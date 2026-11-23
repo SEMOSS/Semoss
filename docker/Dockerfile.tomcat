@@ -8,19 +8,19 @@ ARG BASE_IMAGE=ubuntu
 ARG BASE_TAG=22.04
 
 # JAVA and JDK default version
-ARG AZUL_ZULU_VERSION=25.38.109
+ARG AZUL_ZULU_VERSION=25.38.201
 ARG JAVA_HOME=/usr/lib/jvm/zulu25
-ARG JDK_VERSION=25.0.5.0.3
+ARG JDK_VERSION=25.0.5.1
 
 # FIPS 140-3 build switch. This file produces two images from one definition:
 #
-#   docker build -f Dockerfile.tomcat -t quay.io/semoss/tomcat-builder:11.0.27 .
+#   docker build -f Dockerfile.tomcat -t quay.io/semoss/tomcat-builder:11.0.29 .
 #   docker build -f Dockerfile.tomcat --build-arg FIPS_ENABLED=true \
-#       -t quay.io/semoss/tomcat-builder:11.0.27-fips .
+#       -t quay.io/semoss/tomcat-builder:11.0.29-fips .
 #
 # With FIPS_ENABLED=false nothing below is installed, so the non-FIPS image is
 # byte-identical to what it was before this switch existed. Downstream images
-# pick a base with --build-arg TOMCAT_TAG=11.0.27-fips.
+# pick a base with --build-arg TOMCAT_TAG=11.0.29-fips.
 #
 # IMPORTANT: a -fips base must be paired with a war built using -P dev,fips.
 # A default war carries BouncyCastle in WEB-INF/lib, which would sit alongside
@@ -47,7 +47,7 @@ ARG BCUTIL_FIPS_VERSION=2.1.8
 ARG MAVEN_HOME=/opt/apache-maven-3.10.0
 
 # Tomcat default version
-ARG TOMCAT_VERSION=11.0.27
+ARG TOMCAT_VERSION=11.0.29
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
@@ -96,7 +96,10 @@ RUN apt-get update -y \
 	&& ls -als artifacts/ \
 	&& chmod 777 artifacts/dockerBuilder_scripts/*
 
-RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnupg software-properties-common \
+# fetch <out> <url>...: try each mirror in order with a short timeout. archive.apache.org drops
+# connections from the CI runners at times, and bare wget then retries for ~45 min before failing.
+RUN fetch() { out="$1"; shift; for url in "$@"; do wget --timeout=30 --tries=2 -O "$out" "$url" && return 0; echo "fetch failed: $url" >&2; done; return 1; } \
+	&& apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnupg software-properties-common \
 	&& cd ~/ \
 	&& apt-get -y install wget procps git \
 	&& echo "Creating directory for ${JAVA_HOME}.." \
@@ -105,7 +108,9 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& chmod +x install_java.sh \
 	&& /bin/bash install_java.sh \
 	&& java -version \
-	&& wget https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
+	&& fetch apache-tomcat-${TOMCAT_VERSION}.tar.gz \
+		https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/${TOMCAT_VERSION}/tomcat-${TOMCAT_VERSION}.tar.gz \
+		https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz \
 	&& tar -zxvf apache-tomcat-${TOMCAT_VERSION}.tar.gz \
 	&& mkdir $TOMCAT_HOME \
 	&& mv apache-tomcat-${TOMCAT_VERSION}/* $TOMCAT_HOME/ \
@@ -123,7 +128,9 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& echo '# container environment variables. Tomcat keeps its SystemPropertySource too,' >> $TOMCAT_HOME/bin/setenv.sh \
 	&& echo '# so -D overrides still work. Used by the <Manager> in conf/context.xml.' >> $TOMCAT_HOME/bin/setenv.sh \
 	&& echo 'CATALINA_OPTS="$CATALINA_OPTS -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource"' >> $TOMCAT_HOME/bin/setenv.sh \
-	&& wget https://archive.apache.org/dist/maven/maven-3/3.10.0/binaries/apache-maven-3.10.0-bin.tar.gz\
+	&& fetch apache-maven-3.10.0-bin.tar.gz \
+		https://repo1.maven.org/maven2/org/apache/maven/apache-maven/3.10.0/apache-maven-3.10.0-bin.tar.gz \
+		https://archive.apache.org/dist/maven/maven-3/3.10.0/binaries/apache-maven-3.10.0-bin.tar.gz \
 	&& tar -zxvf apache-maven-*.tar.gz \
 	&& mkdir /opt/apache-maven-3.10.0 \
 	&& mv apache-maven-3.10.0/* /opt/apache-maven-3.10.0/ \
@@ -137,6 +144,13 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& chmod 777 $TOMCAT_HOME/bin/*.sh \
 	&& chmod 777 /opt/apache-maven-3.10.0/bin/*.cmd \
 	&& apt-get clean all
+
+# OpenShell CLI (and its gateway package), used by SANDBOX_MODE=OPENSHELL. The runtime images copy
+# /usr/bin/openshell from here; the gateway itself is not run in them.
+RUN apt-get update -y \
+	&& apt-get install -y --no-install-recommends curl ca-certificates \
+	&& curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | sh \
+	&& rm -rf /var/lib/apt/lists/*
 
 # ---------------------------------------------------------------------------
 # FIPS 140-3 wiring. Entirely skipped when FIPS_ENABLED != true.

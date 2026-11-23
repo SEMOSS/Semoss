@@ -248,7 +248,7 @@ public class AddDefaultInsightsReactor extends AbstractReactor {
 	private void registerInsightAndMetadata(String projectId, String insightIdToSave, String insightName, String layout,
 			boolean cacheable, int cacheMinutes, String cacheCron, ZonedDateTime cachedOn, boolean cacheEncrypt,
 			List<String> recipe, String schemaName) {
-		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, true, layout, cacheable, cacheMinutes,
+		SecurityInsightUtils.addInsight(this.insight.getUser(), projectId, insightIdToSave, insightName, true, layout, cacheable, cacheMinutes,
 				cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 		if (this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);

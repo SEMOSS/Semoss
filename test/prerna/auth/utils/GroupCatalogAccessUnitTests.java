@@ -312,9 +312,9 @@ class GroupCatalogAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 		for (String id : List.of("shared", "unshared")) {
 			createResource(kind, id);
 			if (kind.equals("engine")) {
-				SecurityEngineUtils.updateEngineMetadata(id, Map.of("tag", id));
+				SecurityEngineUtils.updateEngineMetadata(admin, id, Map.of("tag", id));
 			} else {
-				SecurityProjectUtils.updateProjectMetadata(id, Map.of("tag", id));
+				SecurityProjectUtils.updateProjectMetadata(admin, id, Map.of("tag", id));
 			}
 		}
 		grant(kind, "shared", "group", type, 3);

@@ -1,0 +1,7 @@
+# context is py/; keep caches and local tooling out of the sandbox image
+**/__pycache__
+**/*.pyc
+**/.DS_Store
+**/*.egg-info
+.pytest_cache
+.continue

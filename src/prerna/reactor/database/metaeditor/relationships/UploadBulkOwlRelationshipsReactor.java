@@ -56,6 +56,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineSyncUtility;
+import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -182,7 +183,8 @@ public class UploadBulkOwlRelationshipsReactor extends AbstractMetaEditorReactor
 
 			logger.info("Starting to add metadata");
 			AddToMasterDB adder = new AddToMasterDB();
-			adder.registerEngineLocal(database.getSmssFilePath(), database.getSmssProp());
+			String smssFilePath = InternalUtility.getEngineSmssPath(databaseId);
+			adder.registerEngineLocal(smssFilePath, Utility.loadProperties(smssFilePath));
 			logger.info("Done adding new metadata");
 
 			logger.info("Synchronization complete");

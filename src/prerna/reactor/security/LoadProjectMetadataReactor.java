@@ -92,17 +92,13 @@ public class LoadProjectMetadataReactor extends AbstractSetMetadataReactor {
 			}
 		}
 
-		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
-		}
-
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityProjectUtils.getAllMetakeys();
 		if (!validMetakeys.containsAll(metadata.keySet())) {
 			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
 
-		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		SecurityProjectUtils.updateProjectMetadata(this.insight.getUser(), projectId, metadata);
 		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), AuditEventType.PROJECT_METADATA_UPDATE,
 				projectId, null, Map.of("changedFields", new ArrayList<>(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);

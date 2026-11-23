@@ -31,14 +31,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Vector;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.gson.Gson;
 
@@ -186,5 +192,28 @@ public class OpenAITranscribeFunctionEngineUnitTests {
 	@Test
 	void testGetCatalogSubType() {
 		assertEquals(FunctionTypeEnum.OPENAI_TRANSCRIBE.name(), engine.getCatalogSubType(null));
+	}
+
+	@Test
+	void refusesAPathThatLeavesTheInsightFolderBeforeAnyRequest(@TempDir Path tempDir) throws IOException {
+		Path folder = Files.createDirectories(tempDir.resolve("insight"));
+		Files.writeString(tempDir.resolve("outside.txt"), "secret");
+		Files.createSymbolicLink(folder.resolve("link.mp3"), tempDir.resolve("outside.txt"));
+		when(insight.getInsightFolder()).thenReturn(folder.toString());
+
+		for (String filePath : new String[] { "../outside.txt", "/../outside.txt", "link.mp3" }) {
+			assertThrows(IllegalArgumentException.class,
+					() -> engine.execute(Map.of("INSIGHT", insight, "filePath", filePath)), filePath);
+		}
+	}
+
+	@Test
+	void namesTheMissingFileByTheGivenPath(@TempDir Path tempDir) throws IOException {
+		Path folder = Files.createDirectories(tempDir.resolve("insight"));
+		when(insight.getInsightFolder()).thenReturn(folder.toString());
+
+		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+				() -> engine.execute(Map.of("INSIGHT", insight, "filePath", "/audio.mp3")));
+		assertEquals("No file exists in the insight folder at: /audio.mp3", e.getMessage());
 	}
 }

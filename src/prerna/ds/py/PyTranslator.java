@@ -50,7 +50,8 @@ public class PyTranslator {
 	static Map<String, SemossDataType> pyS = new HashMap<String, SemossDataType>();
 	static {
 		pyS.put("object", SemossDataType.STRING);
-		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA variant)
+		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA
+		// variant)
 		pyS.put("str", SemossDataType.STRING);
 		pyS.put("string", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
@@ -59,7 +60,8 @@ public class PyTranslator {
 		pyS.put("bool", SemossDataType.BOOLEAN);
 		pyS.put("datetime64", SemossDataType.DATE);
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
-		// pandas 3 keeps the parsed resolution instead of forcing ns ("us" for parsed strings)
+		// pandas 3 keeps the parsed resolution instead of forcing ns ("us" for parsed
+		// strings)
 		pyS.put("datetime64[us]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[ms]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[s]", SemossDataType.TIMESTAMP);
@@ -220,9 +222,9 @@ public class PyTranslator {
 
 	/**
 	 * Same as {@link #runEmptyPy(String...)} but tells the python server to skip
-	 * the per-execution cancel trace (sys.settrace). Use this for engine-owned
-	 * python processes whose execution can never be cancelled by a user, to avoid
-	 * the trace overhead on import-heavy setup scripts.
+	 * the per-execution cancel trace (sys.settrace), whose overhead on import-heavy
+	 * setup scripts is large. Use this for engine-owned python processes. A
+	 * cancelled job still stops at the next chunk it streams.
 	 *
 	 * @param script
 	 */
@@ -243,7 +245,7 @@ public class PyTranslator {
 	/**
 	 * Same as {@link #runDirectPy(String...)} but tells the python server to skip
 	 * the per-execution cancel trace (sys.settrace). Use this for engine-owned
-	 * python processes whose execution can never be cancelled by a user.
+	 * python processes. A cancelled job still stops at the next chunk it streams.
 	 *
 	 * @param script
 	 * @return
@@ -273,8 +275,8 @@ public class PyTranslator {
 	/**
 	 * Same as {@link #runDirectPy(Insight, String...)} but tells the python server
 	 * to skip the per-execution cancel trace (sys.settrace). Use this for
-	 * engine-owned python processes whose execution can never be cancelled by a
-	 * user.
+	 * engine-owned python processes. A cancelled job still stops at the next chunk
+	 * it streams.
 	 *
 	 * @param executionInsight the security-context insight; may be null
 	 * @param script
@@ -286,15 +288,14 @@ public class PyTranslator {
 
 	/**
 	 * Same as {@link #runDirectPyNoCancelTrace(Insight, String...)} but stops
-	 * waiting for python after {@code maxWait}, failing with
-	 * {@code maxWaitMessage} while python keeps running. Use this where a caller
-	 * must not wait for the socket client's maximum wait, such as a guardrail
-	 * screening a request.
+	 * waiting for python after {@code maxWait}, failing with {@code maxWaitMessage}
+	 * while python keeps running. Use this where a caller must not wait for the
+	 * socket client's maximum wait, such as a guardrail screening a request.
 	 *
 	 * @param executionInsight the security-context insight; may be null
 	 * @param maxWait          how long to wait for python to answer
-	 * @param maxWaitMessage   the error the caller gets when python does not
-	 *                         answer in time
+	 * @param maxWaitMessage   the error the caller gets when python does not answer
+	 *                         in time
 	 * @param script           the python to run
 	 * @return what the script returned
 	 */
@@ -317,7 +318,7 @@ public class PyTranslator {
 	/**
 	 * Same as {@link #runScript(String...)} but tells the python server to skip the
 	 * per-execution cancel trace (sys.settrace). Use this for engine-owned python
-	 * processes whose execution can never be cancelled by a user.
+	 * processes. A cancelled job still stops at the next chunk it streams.
 	 *
 	 * @param script
 	 * @return
@@ -346,7 +347,7 @@ public class PyTranslator {
 	/**
 	 * Same as {@link #runScript(Insight, String...)} but tells the python server to
 	 * skip the per-execution cancel trace (sys.settrace). Use this for engine-owned
-	 * python processes whose execution can never be cancelled by a user.
+	 * python processes. A cancelled job still stops at the next chunk it streams.
 	 *
 	 * @param executionInsight the security-context insight; may be null
 	 * @param script

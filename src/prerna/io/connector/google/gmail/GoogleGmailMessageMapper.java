@@ -133,7 +133,8 @@ public final class GoogleGmailMessageMapper {
 				parseDate(header(payload, "Date")), internalDate(message.get("internalDate")),
 				labelIds(message).contains(UNREAD), attachments.stream().anyMatch(attachment -> !attachment.isInline()),
 				text, includeUniqueBody ? uniqueBody(html, text) : null, webLink(account, threadId),
-				includeAttachments ? attachments : null, displayBody, replyRecipients);
+				includeAttachments ? attachments : null, displayBody, replyRecipients,
+				labelIds(message).contains("DRAFT"));
 	}
 
 	/**

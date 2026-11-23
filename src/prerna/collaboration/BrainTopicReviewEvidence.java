@@ -141,8 +141,21 @@ final class BrainTopicReviewEvidence {
 				.map(link -> link.get("topicId") + ":" + link.get("source") + ":"
 						+ ((Number) link.get("confidence")).intValue() + ":" + link.get("primary"))
 				.sorted().toList();
-		return CollaborationDbUtils.toJson(Map.of("links", links, "rejected",
-				BrainThreadTopicDecisions.rejected(ownerId, ownerType, threadId).stream().sorted().toList()));
+		Map<String, Object> signature = new LinkedHashMap<>();
+		signature.put("links", links);
+		signature.put("rejected", BrainThreadTopicDecisions.rejected(ownerId, ownerType, threadId).stream().sorted().toList());
+		return CollaborationDbUtils.toJson(signature);
+	}
+
+	/** Older JVMs serialized the same two properties in different orders. */
+	static boolean sameVersion(String current, Object saved) {
+		if (!(saved instanceof String value)) return false;
+		if (current.equals(value)) return true;
+		try {
+			return CollaborationDbUtils.parseMap(current).equals(CollaborationDbUtils.parseMap(value));
+		} catch (com.google.gson.JsonParseException invalid) {
+			return false;
+		}
 	}
 
 	private static List<Map<String, Object>> headers(String ownerId, String ownerType, List<String> ids) {

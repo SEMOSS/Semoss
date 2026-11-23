@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.io.connector.ms;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -99,7 +98,7 @@ public class MicrosoftTokenFiller extends AbstractOAuthTokenFiller {
 
 	@Override
 	public AccessToken refreshAccessToken(AccessToken currentAccessToken, Map<String, Object> params) {
-		String refreshToken = getRefreshToken(currentAccessToken);
+		String refreshToken = currentAccessToken == null ? null : currentAccessToken.getRefresh_token();
 		if (ValueUtils.isBlank(refreshToken)) {
 			return null;
 		}
@@ -141,34 +140,13 @@ public class MicrosoftTokenFiller extends AbstractOAuthTokenFiller {
 		mergedToken.setExpires_in(refreshedToken.getExpires_in());
 		mergedToken.setStartTime(refreshedToken.getStartTime());
 
-		String updatedRefreshToken = getRefreshToken(refreshedToken);
-		mergedToken.removeMetaKey(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
-		if (!ValueUtils.isBlank(updatedRefreshToken)) {
-			mergedToken.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, updatedRefreshToken);
-		} else {
-			mergedToken.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, refreshToken);
-		}
+		String updatedRefreshToken = refreshedToken.getRefresh_token();
+		mergedToken.setRefresh_token(ValueUtils.isBlank(updatedRefreshToken) ? refreshToken : updatedRefreshToken);
 
 		if (mergedToken.getProvider() == null) {
 			mergedToken.setProvider(AuthProvider.MICROSOFT);
 		}
 		return mergedToken;
-	}
-
-	private String getRefreshToken(AccessToken accessToken) {
-		if (accessToken == null) {
-			return null;
-		}
-		Collection<String> refreshTokens = accessToken.getMetaValues(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
-		if (refreshTokens == null || refreshTokens.isEmpty()) {
-			return null;
-		}
-		for (String refreshToken : refreshTokens) {
-			if (!ValueUtils.isBlank(refreshToken)) {
-				return refreshToken;
-			}
-		}
-		return null;
 	}
 
 }

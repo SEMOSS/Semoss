@@ -30,6 +30,7 @@ package prerna.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -70,6 +71,7 @@ import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsServer;
 
+import prerna.auth.AccessToken;
 import prerna.util.Constants;
 import prerna.util.InternalUtility;
 
@@ -311,8 +313,8 @@ class HttpHelperUtilityUnitTests {
 
 	@Test
 	void theSystemClientReachesAServerOverPlainHttp() {
-		assertEquals("counted", HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(), baseUrl + "/count",
-				null));
+		assertEquals("counted",
+				HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(), baseUrl + "/count", null));
 	}
 
 	@Test
@@ -332,9 +334,9 @@ class HttpHelperUtilityUnitTests {
 		assumeTrue(Files.isExecutable(keytool), "keytool is not available");
 		Path keyStore = folder.resolve("server.p12");
 		Process process = new ProcessBuilder(keytool.toString(), "-genkeypair", "-alias", "server", "-keyalg", "RSA",
-				"-keysize", "2048", "-validity", "1", "-dname", "CN=localhost", "-ext", "SAN=dns:localhost,ip:127.0.0.1",
-				"-storetype", "PKCS12", "-keystore", keyStore.toString(), "-storepass", "changeit", "-keypass",
-				"changeit").redirectErrorStream(true).start();
+				"-keysize", "2048", "-validity", "1", "-dname", "CN=localhost", "-ext",
+				"SAN=dns:localhost,ip:127.0.0.1", "-storetype", "PKCS12", "-keystore", keyStore.toString(),
+				"-storepass", "changeit", "-keypass", "changeit").redirectErrorStream(true).start();
 		process.getInputStream().readAllBytes();
 		assumeTrue(process.waitFor(60, TimeUnit.SECONDS) && process.exitValue() == 0,
 				"keytool could not make a certificate");
@@ -400,6 +402,24 @@ class HttpHelperUtilityUnitTests {
 		assertEquals("http://example.com/find?sort=name&q=a+b%26c&page+size=10",
 				HttpHelperUtility.withQueryParameters("http://example.com/find?sort=name", params));
 		assertEquals("http://example.com/find", HttpHelperUtility.withQueryParameters("http://example.com/find", null));
+	}
+
+	@Test
+	void aTokenResponseKeepsItsRefreshTokenOnTheTokenAndNotInItsMetadata() {
+		AccessToken json = HttpHelperUtility
+				.getJAccessToken("{\"access_token\":\"access\",\"refresh_token\":\"refresh\",\"expires_in\":3600}");
+		assertEquals("access", json.getAccess_token());
+		assertEquals("refresh", json.getRefresh_token());
+		assertNull(json.getMeta());
+
+		AccessToken idToken = HttpHelperUtility.getJIDToken("{\"id_token\":\"id\",\"refresh_token\":\"refresh\"}");
+		assertEquals("refresh", idToken.getRefresh_token());
+		assertNull(idToken.getMeta());
+
+		AccessToken form = HttpHelperUtility.getAccessToken("access_token=access&refresh_token=a%2Fb", "access_token");
+		assertEquals("access", form.getAccess_token());
+		assertEquals("a/b", form.getRefresh_token());
+		assertNull(form.getMeta());
 	}
 
 	private static void reply(HttpExchange exchange, int status, String body) throws IOException {

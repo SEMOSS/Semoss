@@ -389,7 +389,7 @@ public final class BrainMemoryUtils {
 				}
 				case UNCONFIRM -> {
 					require(ACTIVE.equals(state) && !BrainProfileUtils.YOU.equals(memory.origin()),
-							"Only a memory the assistant saved can be unconfirmed");
+							"Only a memory your Digital Twin saved can be unconfirmed");
 					CollaborationDbUtils.update(conn, "UPDATE BRAIN_MEMORY SET CONFIRMED = ?, CONFIRMED_AT = ?, "
 							+ "UPDATED_AT = ?" + OWNED + " AND MEMORY_ID = ?", false, null, now, ownerId, ownerType,
 							memory.id());

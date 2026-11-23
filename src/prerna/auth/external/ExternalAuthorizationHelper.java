@@ -47,6 +47,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
@@ -60,6 +61,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 public class ExternalAuthorizationHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(ExternalAuthorizationHelper.class);
+
+	private static final String EXTERNAL_PERMISSION_SYNC = "external permission sync";
 
 	/**
 	 * 
@@ -79,7 +82,10 @@ public class ExternalAuthorizationHelper {
 			List<Map<String, Object>> enginePermissions = transformApiResponse(user, apiResponse);
 
 			//Update permissions for engine
-			List<Map<String, Object>> newEngines = SecurityEngineUtils.updateEngineUserPermissions(user, enginePermissions);
+			List<Map<String, Object>> newEngines;
+			try (PlatformOperation operation = PlatformOperation.begin(EXTERNAL_PERMISSION_SYNC)) {
+				newEngines = SecurityEngineUtils.updateEngineUserPermissions(user, enginePermissions);
+			}
 			classLogger.info("Engine permissions update for userid = " + User.getSingleLogginName(user));
 			
 			//Create SMSS for this engine

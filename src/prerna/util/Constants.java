@@ -757,11 +757,22 @@ public class Constants {
 	public static final String PROJECT_REACTOR_SHARED_PACKAGES = "PROJECT_REACTOR_SHARED_PACKAGES";
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
-	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
+	// FAKECHROOT (the default) / NAMESPACE (legacy NSJAIL is accepted) / OPENSHELL.
+	// Any other value, including OFF and SECCOMP_ONLY, means FAKECHROOT: only
+	// CHROOT_ENABLE=false turns jailing off. Parsed in prerna.util.sandbox.SandboxSettings.
+	// OPENSHELL runs the worker as the main process of an OpenShell sandbox instead of a
+	// child process of Tomcat. See prerna.util.openshell.OpenShellTransport.
 	public static final String SANDBOX_MODE = "SANDBOX_MODE";
+	public static final String SANDBOX_MODE_OPENSHELL = "OPENSHELL";
 	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
 	// Colon/semicolon-separated executable directories exposed inside sandboxes
 	public static final String SANDBOX_PATH = "SANDBOX_PATH";
+	// When true, user Python workers share the host network namespace so they
+	// can reach external services (APIs, databases, etc.). The namespace sandbox
+	// still applies filesystem isolation, capability drop, and seccomp; only the
+	// CLONE_NEWNET isolation and the AF_UNIX-only socket restriction are lifted.
+	// Default false (empty netns, no outbound network).
+	public static final String SANDBOX_ALLOW_NETWORK = "SANDBOX_ALLOW_NETWORK";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
@@ -1063,6 +1074,16 @@ public class Constants {
 
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
+
+	// Remote MCP client/transport tuning
+	/** How long (seconds) the client waits for a tool-call or list response. Default: 60. */
+	public static final String MCP_CLIENT_REQUEST_TIMEOUT_SECONDS = "MCP_CLIENT_REQUEST_TIMEOUT_SECONDS";
+	/** How long (seconds) the client waits for the MCP initialize handshake. Default: 20. */
+	public static final String MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS = "MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS";
+	/** How long (seconds) the transport waits to establish a TCP/TLS connection. Default: 10. */
+	public static final String MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS = "MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS";
+	/** Maximum inbound message size in MiB. Default: 16. */
+	public static final String MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB = "MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB";
 
 	// web search platform MCP; it needs a SearXNG service, so each instance turns
 	// it on in RDF_Map

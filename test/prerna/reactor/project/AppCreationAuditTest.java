@@ -117,7 +117,7 @@ class AppCreationAuditTest {
 			security.when(() -> SecurityProjectUtils.userCanEditProject(user, "project")).thenReturn(true);
 			security.when(SecurityProjectUtils::getAllMetakeys).thenReturn(List.of("description"));
 			if (fail) {
-				security.when(() -> SecurityProjectUtils.updateProjectMetadata("project", metadata))
+				security.when(() -> SecurityProjectUtils.updateProjectMetadata(user, "project", metadata))
 						.thenThrow(new IllegalStateException("Database unavailable"));
 				assertThrows(IllegalStateException.class, reactor::execute);
 				audit.verifyNoInteractions();

@@ -115,7 +115,7 @@ public class GetEngineGuardrailConfigReactor extends AbstractEngineGuardrailConf
 		User user = this.insight.getUser();
 		IEngine engine = loadEditableEngine(engineId);
 
-		String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
+		String pipelineValue = engine.getPipelineFile();
 		boolean configured = pipelineValue != null && !pipelineValue.trim().isEmpty();
 
 		Map<String, Object> response = new HashMap<>();

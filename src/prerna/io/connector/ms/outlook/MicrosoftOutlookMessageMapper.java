@@ -296,7 +296,7 @@ public class MicrosoftOutlookMessageMapper {
 				ConnectorTimes.parseProviderTime(ValueUtils.toStringOrNull(message.get("receivedDateTime"))),
 				!Boolean.TRUE.equals(message.get("isRead")), Boolean.TRUE.equals(message.get("hasAttachments")),
 				bodyOf(message), uniqueBody, ValueUtils.toStringOrNull(message.get("webLink")), attachments,
-				displayBody, replyRecipients);
+				displayBody, replyRecipients, Boolean.TRUE.equals(message.get("isDraft")));
 	}
 
 	/**

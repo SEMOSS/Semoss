@@ -35,21 +35,32 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Types;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mockito;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.BeanDescription;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.BeanPropertyDefinition;
 
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.util.gson.GsonUtility;
 
 import prerna.engine.impl.CaseInsensitiveProperties;
 
@@ -64,6 +75,59 @@ class AbstractSqlQueryUtilUnitTests {
 	 * methods so that mock can't intercept them.
 	 */
 	private final AbstractSqlQueryUtil util = new H2QueryUtil();
+
+	@Test
+	void anEnginesCredentialsStayOutOfTheJsonWrittenFromItsQueryUtility() {
+		H2QueryUtil util = new H2QueryUtil();
+		util.setConnectionUrl("jdbc:h2:mem:credentials;PASSWORD=url-secret");
+		util.setUsername("user-secret");
+		util.setPassword("password-secret");
+		util.setAdditionalProps("props-secret");
+
+		String json = GsonUtility.getDefaultGson().toJson(util);
+		ObjectMapper mapper = new ObjectMapper();
+		BeanDescription description = mapper.getSerializationConfig()
+				.introspect(mapper.constructType(H2QueryUtil.class));
+		List<String> jacksonProperties = description.findProperties().stream().map(BeanPropertyDefinition::getName)
+				.toList();
+
+		for (String secret : List.of("url-secret", "user-secret", "password-secret", "props-secret")) {
+			Assertions.assertFalse(json.contains(secret), secret);
+		}
+		for (String property : List.of("connectionUrl", "username", "password", "additionalProps")) {
+			Assertions.assertFalse(jacksonProperties.contains(property), property);
+		}
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "prerna.util.sql.AthenaQueryUtil, accessKey", "prerna.util.sql.AthenaQueryUtil, secretKey",
+			"prerna.util.sql.BigQueryQueryUtil, oauthPrivateKeyPath",
+			"prerna.util.sql.BigQueryQueryUtil, oauthAccessToken",
+			"prerna.util.sql.BigQueryQueryUtil, oauthRefreshToken",
+			"prerna.util.sql.BigQueryQueryUtil, oauthClientSecret" })
+	void aCloudQueryUtilitysSecretStaysOutOfItsJson(String className, String fieldName) throws Exception {
+		Class<?> type = Class.forName(className);
+		var constructor = type.getDeclaredConstructor();
+		constructor.setAccessible(true);
+		Object util = constructor.newInstance();
+		Field secret = type.getDeclaredField(fieldName);
+		secret.setAccessible(true);
+		secret.set(util, "cloud-secret");
+
+		Assertions.assertFalse(GsonUtility.getDefaultGson().toJson(util).contains("cloud-secret"), fieldName);
+		ObjectMapper readsFields = new ObjectMapper().setVisibility(PropertyAccessor.FIELD, Visibility.ANY);
+		for (ObjectMapper mapper : List.of(new ObjectMapper(), readsFields)) {
+			List<String> jacksonProperties = jacksonProperties(mapper, type);
+			for (String property : List.of(fieldName, "username", "password")) {
+				Assertions.assertFalse(jacksonProperties.contains(property), fieldName + " as " + property);
+			}
+		}
+	}
+
+	private static List<String> jacksonProperties(ObjectMapper mapper, Class<?> type) {
+		BeanDescription description = mapper.getSerializationConfig().introspect(mapper.constructType(type));
+		return description.findProperties().stream().map(BeanPropertyDefinition::getName).toList();
+	}
 
 	@Test
 	void h2RoundTripsExactValues() throws Exception {

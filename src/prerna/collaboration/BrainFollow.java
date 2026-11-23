@@ -50,6 +50,10 @@ public final class BrainFollow {
 	private BrainFollow() {
 	}
 
+	private static boolean decided(String state) {
+		return state != null && !SUGGESTED.equals(state);
+	}
+
 	/**
 	 * Suggests people to follow; org is person id to "Your manager", "Reports to
 	 * you" or "Same manager". Returns how many were suggested.
@@ -74,8 +78,8 @@ public final class BrainFollow {
 					return null;
 				}, ownerId, ownerType);
 
-		// not the owner, not automated, and nothing decided yet; VIPs are followed
-		// outright
+		// not the owner, not automated, and nothing decided yet (an earlier suggestion is undecided, and is
+		// worked out afresh); VIPs are followed outright
 		Map<String, String> reasons = new LinkedHashMap<>();
 		List<String> vips = new ArrayList<>();
 		List<String[]> byStrength = CollaborationDbUtils.query("SELECT PERSON_ID, RELATIONSHIP, IS_VIP, FOLLOW_STATE "
@@ -85,7 +89,7 @@ public final class BrainFollow {
 						rs.getString(4) },
 				ownerId, ownerType);
 		for (String[] p : byStrength) {
-			if (p[0].equals(selfId) || p[3] != null || BrainSenderTyping.AUTOMATED.equals(p[1])) {
+			if (p[0].equals(selfId) || decided(p[3]) || BrainSenderTyping.AUTOMATED.equals(p[1])) {
 				continue;
 			}
 			if (Boolean.parseBoolean(p[2])) {
@@ -100,7 +104,7 @@ public final class BrainFollow {
 				break;
 			}
 			int threads = together.getOrDefault(p[0], 0);
-			if (p[0].equals(selfId) || p[3] != null || BrainSenderTyping.AUTOMATED.equals(p[1]) || vips.contains(p[0])
+			if (p[0].equals(selfId) || decided(p[3]) || BrainSenderTyping.AUTOMATED.equals(p[1]) || vips.contains(p[0])
 					|| reasons.containsKey(p[0]) || threads < MIN_THREADS) {
 				continue;
 			}
@@ -108,6 +112,9 @@ public final class BrainFollow {
 			fromMail++;
 		}
 		CollaborationDbUtils.batch(conn -> {
+			// suggestions from an earlier run give way to the new ones; what the owner decided stays
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_PERSON SET FOLLOW_STATE = NULL, FOLLOW_REASON = NULL "
+					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND FOLLOW_STATE = ?", ownerId, ownerType, SUGGESTED);
 			for (String id : vips) {
 				CollaborationDbUtils.update(conn,
 						"UPDATE BRAIN_PERSON SET FOLLOW_STATE = ?, FOLLOW_REASON = ? WHERE "

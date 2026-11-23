@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
-import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.util.Utility;
 
 /**
  * Room-local snapshots keep the reviewed email separate from later file edits.
@@ -91,7 +91,7 @@ public final class EmailAttachmentFiles {
 		long total = 0;
 		int max = maxBytes();
 		for (String reference : paths) {
-			Path source = MCPUtility.resolveContainedMcpFile(rootFolder, reference);
+			Path source = Utility.resolveContainedFile(rootFolder, reference);
 			byte[] bytes = read(source);
 			total += bytes.length;
 			if (total > max) {
