@@ -606,10 +606,10 @@ public final class WorkTwinPersonaInterview {
 			return step;
 		}
 		case "limits":
-			// the answer binds both: a twin with other people, and the owner's assistant when it writes for them
+			// the answer binds both: a twin they share with other people, and the owner's own Digital Twin
 			return choice(id, "What should be left to you?",
-					"Your twins will not discuss or decide these for you, and your assistant takes no position on "
-							+ "them when it writes for you. Add anything that is missing.",
+					"The twins you share will not discuss or decide these for you, and your own Digital Twin leaves "
+							+ "them to you unless you tell it otherwise. Add anything that is missing.",
 					LIMIT_OPTIONS, false, null);
 		case "priorities":
 			return choice(id, "What wins when things conflict?",
@@ -657,8 +657,9 @@ public final class WorkTwinPersonaInterview {
 		}
 		case "review":
 			return choice(id, "What do you check when work comes to you?",
-					"Your twin looks for these first when someone asks it to look over their work.", REVIEW_OPTIONS,
-					false, null);
+					"Your Digital Twin checks its own work against these, and a twin you share looks for them when "
+							+ "someone asks it to look over their work.",
+					REVIEW_OPTIONS, false, null);
 		case "people":
 			return choice(id, "How do you change with different people?", "Pick what is true of you, or add your own.",
 					PEOPLE_OPTIONS, false, WAIT_PROBE);
@@ -709,7 +710,8 @@ public final class WorkTwinPersonaInterview {
 				return null;
 			}
 			Map<String, Object> step = step(id, "mirror", "Is this you?",
-					"This is your twin answering as you. Tap any sentence that is not how you would put it.", null);
+					"This is a twin you share answering as you. Tap any sentence that is not how you would put it.",
+					null);
 			step.put("rounds", rounds);
 			return step;
 		}
@@ -1147,7 +1149,7 @@ public final class WorkTwinPersonaInterview {
 			try {
 				sample(samples, "a note the assistant keeps of how they like things done", places.memories());
 			} catch (Exception e) {
-				skipped.add("What the assistant has learned about you could not be read: " + WorkTwinSuggest.why(e));
+				skipped.add("What your Digital Twin has learned about you could not be read: " + WorkTwinSuggest.why(e));
 			}
 		}
 		if (samples.isEmpty()) {

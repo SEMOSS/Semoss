@@ -63,13 +63,13 @@ public class WorkReadEmailAttachmentReactor extends AbstractCollaborationReactor
 			byte[] bytes = EmailAttachmentFiles.read(file);
 			if (!EmailAttachmentFiles.digest(bytes).equals(getString("sha256"))) {
 				throw new IllegalArgumentException(
-						"The email attachment changed. Ask the assistant to attach it again.");
+						"The email attachment changed. Ask in the chat to attach it again.");
 			}
 			return mapResult(Map.of("path", reference, "name", file.getFileName().toString(), "size", bytes.length,
 					"contentBase64", Base64.getEncoder().encodeToString(bytes)));
 		} catch (IOException e) {
 			throw new IllegalArgumentException(
-					"The email attachment could not be read. Ask the assistant to attach it again.", e);
+					"The email attachment could not be read. Ask in the chat to attach it again.", e);
 		}
 	}
 }
