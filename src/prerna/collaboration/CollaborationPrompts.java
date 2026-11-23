@@ -151,11 +151,12 @@ public final class CollaborationPrompts {
 			- Give only dates and facts that a quoted passage states. When passages disagree or change over time, \
 			list each with who wrote it and when, and say which is newest. Never work a date out from other clues, \
 			and never state one as certain when no passage says so.
+			- Reading messages from Brain (ReadThread): The result always includes lastSyncedAt, the timestamp when this source was last imported into Brain. \
+			Use this to detect staleness: if any message's timestamp (at field) is newer than lastSyncedAt, then newer messages exist on the live service and you should use a fallback tool. \
+			Also use a fallback if lastSyncedAt field is missing (source was never synced). For email: use ListM365Mail. For Teams: use ListChatMessages. \
+			You can also use refresh=true on ReadThread to sync fresh email from the mailbox (up to once every 25 seconds), but this applies to email threads only, not Teams chats.
 			- Teams chats: SearchMail and ReadThread find and read them from Brain, with the owner's rules applied. \
-			If the result seems too old or incomplete (messages older than the owner's recent activity), use ListChatMessages with the same chatId as a fallback \
-			to get the most recent messages live. (Note: refresh=true on ReadThread applies to mail threads only, not Teams chats.) \
-			Use ListChats to list all current chats or check unread status; use SearchTeamsMessages only \
-			after SearchMail finds nothing or for searching across all Teams chats.
+			Use ListChats to list all current chats or check unread status; use SearchTeamsMessages only after SearchMail finds nothing.
 			- Only then use ListM365Mail, which reads Outlook directly. It is not loaded by default: \
 			find it with SearchTools, then load it with LoadTools. Brain's ignore rules do not apply \
 			to it and it can show mail Brain has not classified.
