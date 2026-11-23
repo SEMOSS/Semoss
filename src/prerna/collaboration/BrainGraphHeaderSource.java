@@ -434,10 +434,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	@Override
 	public List<Map<String, Object>> searchDirectory(User user, String query, int max) {
-		// $search matches word prefixes in any order, so "ryan weiler" finds "Weiler, Ryan"
-		String text = query.replace("\"", " ").replace("\\", " ").trim();
-		String field = text.contains("@") ? "mail" : "displayName";
-		String url = BASE + "/users?$search=" + encode("\"" + field + ":" + text + "\"") + "&$select=" + USER_SELECT
+		String url = BASE + "/users?$search=" + userSearch(query) + "&$select=" + USER_SELECT
 				+ "&$top=" + Math.min(max * 2, 50);
 		List<Map<String, Object>> out = new ArrayList<>();
 		try {
@@ -467,6 +464,13 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			classLogger.warn("Directory search failed: {}", e.getMessage());
 		}
 		return out;
+	}
+
+	static String userSearch(String query) {
+		// $search matches word prefixes in any order, so "ryan weiler" finds "Weiler, Ryan"
+		String text = query.replace("\"", " ").replace("\\", " ").trim();
+		String field = text.contains("@") ? "mail" : "displayName";
+		return encode("\"" + field + ":" + text + "\"");
 	}
 
 	@Override
@@ -612,7 +616,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 				MicrosoftLoginUtils.getBearerHeader(token), null, null, null, TIMEOUT));
 	}
 
-	private static String encode(String value) {
+	static String encode(String value) {
 		return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
 	}
 }

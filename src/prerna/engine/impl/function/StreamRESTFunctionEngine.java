@@ -66,7 +66,6 @@ import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 
@@ -93,7 +92,6 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 		if (this.url == null || (this.url = this.url.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide a URL");
 		}
-		Utility.checkIfValidDomain(url);
 
 		String headersStr = smssProp.getProperty("HEADERS");
 		if (headersStr != null && !(headersStr = headersStr.trim()).isEmpty()) {

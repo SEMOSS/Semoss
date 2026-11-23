@@ -88,31 +88,38 @@ public final class WorkTwinAvatar {
 	// it opens with the feature's name because the usage log names the call after the prompt's first words
 	static final String OPENING = "Digital Twin avatar. Draw a brand-new cartoon avatar character in this style: ";
 	// one per option of a run. Each names its own face, pose and background, because the same words three times
-	// come back as the same picture three times, and a face made of dots cannot be traced from a photo
+	// come back as the same picture three times. Every face has all its features, nose included: people found the
+	// first set's toy figures with dot faces weird ("lego"). The 3D looks sit three apart, so a run gets one of them
 	static final String[] LOOKS = {
-			"A chunky 3D avatar from a casual virtual-world game: an oversized round head on a small simple body, "
-					+ "two dot eyes, a small curved smile and no nose detail, hair as one solid rounded shape, flat "
-					+ "untextured colours. Three-quarter view with one hand waving, on a warm yellow background.",
-			"A blocky toy-figure game character: the head and body are simple rounded blocks, the face is printed "
-					+ "on as two dots and a smile, and the hair is a single moulded piece. Front view, on a teal "
-					+ "background.",
-			"A flat 2D vector cartoon: solid colour shapes with clean bold outlines, no gradients and no realistic "
-					+ "shading, simple oval eyes and a line for the smile. Front view with a slight head tilt, on a "
-					+ "coral background.",
-			"A cel-shaded anime-style game avatar: large stylised eyes, hair in a few sharp simplified shapes, flat "
+			"A friendly 3D avatar from a social virtual-world app: smooth rounded shapes with clean, soft lighting, "
+					+ "a slightly oversized head, large bright eyes with coloured irises, neat eyebrows, a small "
+					+ "rounded nose and a wide smile, and hair modelled in soft chunky locks. Three-quarter view "
+					+ "with one hand waving, on a warm yellow background.",
+			"A flat 2D vector portrait: solid colour shapes with clean bold outlines, no gradients and no realistic "
+					+ "shading, round eyes with pupils, eyebrows, a nose drawn as one short curved line and an open "
+					+ "smile. Front view with a slight head tilt, on a coral background.",
+			"A cel-shaded anime-style game avatar: large detailed eyes with bright highlights, fine eyebrows, a "
+					+ "small neatly drawn nose and a gentle smile, hair in a few sharp simplified shapes, flat "
 					+ "colours with hard-edged shadows. Three-quarter view, on a violet background.",
-			"A collectible vinyl toy figure: a very large smooth head on a tiny body, glossy plastic surfaces and a "
-					+ "minimal face with small bead eyes. Seen slightly from above, on a mint green background.",
-			"A low-poly 3D game avatar: the head, hair and body are built from large flat facets with simple flat "
-					+ "shading, and the face is a few simple shapes. Front view, on a sky blue background." };
+			"A lead character from a modern 3D animated family film: exaggerated cartoon proportions, soft rounded "
+					+ "features under warm studio lighting, very big expressive eyes with detailed irises, full "
+					+ "eyebrows, a soft rounded nose and a warm smile, and hair in thick sculpted strands. Front "
+					+ "view with the shoulders turned a little, on a teal background.",
+			"A hand-inked cartoon portrait in a modern graphic-novel style: bold ink outlines, flat colours with "
+					+ "simple two-tone shading, stylised features with expressive eyes under strong eyebrows, a "
+					+ "clearly drawn nose and a confident grin. Three-quarter view, on a mint green background.",
+			"A hand-painted storybook illustration: soft visible brush strokes in gentle warm colours, stylised "
+					+ "proportions with large kind eyes, soft eyebrows, a small painted nose, rosy cheeks and a "
+					+ "friendly smile. Front view, on a sky blue background." };
 	static final String FRAMING = " Show the head and shoulders only, centred, with a little empty space around the "
 			+ "head so the picture can be cropped to a circle. Square picture, no text, no logo, no border. It must "
 			+ "read as a cartoon at a glance, never as a photograph or a photo with a filter.";
 	static final String FROM_PHOTO = " The attached picture is only a small, rough reference of the person this "
 			+ "avatar stands in for. Take from it just the hair colour and general hair style, the skin tone, "
-			+ "glasses if they wear them, and a beard or moustache if they have one. Everything else is new: the "
-			+ "simple face of the style above instead of the person's real features, different clothes, and the "
-			+ "pose and background described above. Do not retouch, trace or restyle the reference picture.";
+			+ "glasses if they wear them, and a beard or moustache if they have one. Everything else is new: a "
+			+ "face drawn in the style above with all of its features, not a copy of the person's real ones, "
+			+ "different clothes, and the pose and background described above. Do not retouch, trace or restyle "
+			+ "the reference picture.";
 	static final String FROM_DESCRIPTION = " The person: ";
 
 	private WorkTwinAvatar() {

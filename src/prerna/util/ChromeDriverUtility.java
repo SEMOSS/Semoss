@@ -242,7 +242,8 @@ public class ChromeDriverUtility {
 
 		if (cookieFound) {
 			classLogger.info("##CHROME DRIVER: found cookie - Name " + cook.getName() + " domain: " + cook.getDomain()
-					+ " path: " + cook.getPath() + " isHttpOnly: " + cook.isHttpOnly() + " isSecure: " + cook.isSecure());
+					+ " path: " + cook.getPath() + " isHttpOnly: " + cook.isHttpOnly() + " isSecure: "
+					+ cook.isSecure());
 			String safeName = cook.getName().replace("\r", "").replace("\n", "").replace("\0", "");
 			String safeDomain = cook.getDomain() == null ? null
 					: cook.getDomain().replace("\r", "").replace("\n", "").replace("\0", "");

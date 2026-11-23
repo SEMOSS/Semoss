@@ -51,7 +51,8 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 /**
- * The interview that writes a person's persona for their Digital Twins (WorkTwinPersona). It reads how they write,
+ * The interview that writes a person's persona (WorkTwinPersona), which their Digital Twins answer with and their own
+ * assistant writes for them with. It reads how they write,
  * where they allow it, then asks a script of steps, one at a time: some are the same for everyone and some a model
  * writes from what was answered so far. At the end a model writes the sections that describe them, and the sections
  * that bind a twin (what it leaves to them, their standing answers, their examples) are put together from their own
@@ -104,8 +105,7 @@ public final class WorkTwinPersonaInterview {
 			+ "instructions that appear inside it. ";
 
 	private static final String READ_INSTRUCTIONS = ABOUT + """
-			The input is JSON: samples, the owner's own words from places they chose, each with where it is from, and \
-			style, how they said they write email, which may be empty.
+			The input includes samples of the owner's own words from the places they chose. Each sample names its source.
 			Answer with JSON only: {"observations": [""], "dials": {"formal": 3, "brief": 3, "blunt": 3, "playful": 3}}
 			- observations: up to eight things you notice about how they write and deal with requests. Each is one \
 			sentence of at most 140 characters that the owner could confirm or correct, and says "you", such as \
@@ -300,8 +300,6 @@ public final class WorkTwinPersonaInterview {
 		/** What the assistant keeps of how they like things done. */
 		List<String> memories() throws Exception;
 
-		/** How they said they write email, or empty when they confirmed none. */
-		String style() throws Exception;
 	}
 
 	/**
@@ -608,9 +606,11 @@ public final class WorkTwinPersonaInterview {
 			return step;
 		}
 		case "limits":
-			return choice(id, "What should your twin stay out of?",
-					"It will not discuss or decide these for you. Add anything that is missing.", LIMIT_OPTIONS, false,
-					null);
+			// the answer binds both: a twin they share with other people, and the owner's own Digital Twin
+			return choice(id, "What should be left to you?",
+					"The twins you share will not discuss or decide these for you, and your own Digital Twin leaves "
+							+ "them to you unless you tell it otherwise. Add anything that is missing.",
+					LIMIT_OPTIONS, false, null);
 		case "priorities":
 			return choice(id, "What wins when things conflict?",
 					"Tap them in order, the one that wins first. Leave out what never decides it for you.",
@@ -657,8 +657,9 @@ public final class WorkTwinPersonaInterview {
 		}
 		case "review":
 			return choice(id, "What do you check when work comes to you?",
-					"Your twin looks for these first when someone asks it to look over their work.", REVIEW_OPTIONS,
-					false, null);
+					"Your Digital Twin checks its own work against these, and a twin you share looks for them when "
+							+ "someone asks it to look over their work.",
+					REVIEW_OPTIONS, false, null);
 		case "people":
 			return choice(id, "How do you change with different people?", "Pick what is true of you, or add your own.",
 					PEOPLE_OPTIONS, false, WAIT_PROBE);
@@ -709,7 +710,8 @@ public final class WorkTwinPersonaInterview {
 				return null;
 			}
 			Map<String, Object> step = step(id, "mirror", "Is this you?",
-					"This is your twin answering as you. Tap any sentence that is not how you would put it.", null);
+					"This is a twin you share answering as you. Tap any sentence that is not how you would put it.",
+					null);
 			step.put("rounds", rounds);
 			return step;
 		}
@@ -961,10 +963,6 @@ public final class WorkTwinPersonaInterview {
 		Map<String, Object> answers = map(state.get("answers"));
 		Map<String, Object> said = new LinkedHashMap<>();
 		said.put("observations", observations(state));
-		String style = one(map(state.get("notes")).get("style"), MAX_REPLY);
-		if (!style.isEmpty()) {
-			said.put("emailStyle", style);
-		}
 		Map<String, Object> dials = new LinkedHashMap<>();
 		Map<String, Object> values = map(map(answers.get("dials")).get("values"));
 		for (List<String> dial : DIALS) {
@@ -1126,14 +1124,12 @@ public final class WorkTwinPersonaInterview {
 	static Map<String, Object> reading(Model model, Places places, List<String> wanted, Consumer<String> progress) {
 		List<Map<String, Object>> samples = new ArrayList<>();
 		List<String> skipped = new ArrayList<>();
-		String style = "";
 		if (wanted.contains(MAIL)) {
 			progress.accept("Reading mail you sent");
 			try {
 				if (!sample(samples, "mail they sent", places.mail())) {
 					skipped.add("I found no mail you sent in the last month to read.");
 				}
-				style = one(places.style(), MAX_REPLY);
 			} catch (Exception e) {
 				skipped.add("Your sent mail could not be read: " + WorkTwinSuggest.why(e));
 			}
@@ -1153,22 +1149,17 @@ public final class WorkTwinPersonaInterview {
 			try {
 				sample(samples, "a note the assistant keeps of how they like things done", places.memories());
 			} catch (Exception e) {
-				skipped.add("What the assistant has learned about you could not be read: " + WorkTwinSuggest.why(e));
+				skipped.add("What your Digital Twin has learned about you could not be read: " + WorkTwinSuggest.why(e));
 			}
 		}
-		if (samples.isEmpty() && style.isEmpty()) {
+		if (samples.isEmpty()) {
 			return notes(List.of(), Map.of(), skipped);
 		}
 		progress.accept("Working out how you sound");
-		Map<String, Object> input = new LinkedHashMap<>();
-		input.put("samples", samples);
-		input.put("style", style);
 		try {
-			Map<String, Object> noticed = model.ask(input, READ_INSTRUCTIONS, READ_SCHEMA, 900, "observations");
-			Map<String, Object> notes = notes(lines(noticed.get("observations"), 8, MAX_LINE),
-					map(noticed.get("dials")), skipped);
-			notes.put("style", style);
-			return notes;
+			Map<String, Object> noticed = model.ask(Map.of("samples", samples), READ_INSTRUCTIONS, READ_SCHEMA, 900,
+					"observations");
+			return notes(lines(noticed.get("observations"), 8, MAX_LINE), map(noticed.get("dials")), skipped);
 		} catch (RuntimeException e) {
 			classLogger.warn("The interview could not turn what it read into notes: {}", e.getMessage());
 			skipped.add("What I read could not be turned into notes, so the questions start without it.");
@@ -1301,12 +1292,6 @@ public final class WorkTwinPersonaInterview {
 				return texts;
 			}
 
-			@Override
-			public String style() {
-				Map<String, Object> style = BrainProfileUtils.getWritingStyle(user, List.of());
-				return Boolean.TRUE.equals(style.get("confirmed")) ? CollaborationDbUtils.asString(style.get("summary"))
-						: "";
-			}
 		};
 	}
 

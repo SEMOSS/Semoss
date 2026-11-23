@@ -57,9 +57,10 @@ public class WorkSaveTwinPersonaReactor extends AbstractCollaborationReactor {
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Writes sections of the signed-in user's persona for their Digital Twins. A section that is passed "
-						+ "replaces what was there and one left out stays as it is. Their twins use the result from "
-						+ "their next chat")
+				"Writes sections of the signed-in user's persona. A section that is passed replaces what was "
+						+ "there and one left out stays as it is. The Digital Twins they share use the result from "
+						+ "their next chat, and their own Digital Twin from its next message and the next thing it "
+						+ "writes for them")
 				.key(SECTIONS, key -> key.type(Map.class).description(
 						"Plain text by section key: short, voice, decide, review, stands, people, limits, examples. "
 								+ "Blank text empties a section; at least one section must hold text"))
