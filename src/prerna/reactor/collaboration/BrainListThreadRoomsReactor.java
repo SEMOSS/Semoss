@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadRoomUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainListThreadRooms(threadId=["..."]);
@@ -48,16 +49,10 @@ public class BrainListThreadRoomsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the chats that include an email thread, most recently active first; origin thread marks a chat "
-				+ "that was opened from it";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the chats that include an email thread, most recently active first; origin thread marks a chat "
+						+ "that was opened from it")
+				.key(THREAD_ID, "Thread id");
 	}
 }

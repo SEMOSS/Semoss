@@ -583,8 +583,8 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 				() -> SecurityGroupManagerUtils.addGroupManager(outsider, GROUP_ID, "someone-new", MICROSOFT));
 		assertThrows(IllegalArgumentException.class,
 				() -> SecurityGroupManagerUtils.addGroupManager(admin, GROUP_ID, DIRECTORY_USER_ID, MICROSOFT));
-		assertThrows(IllegalArgumentException.class,
-				() -> SecurityGroupManagerUtils.addGroupManager(admin, NON_CUSTOM_GROUP_ID, "someone-new", MICROSOFT));
+		assertThrows(IllegalArgumentException.class, () -> SecurityGroupManagerUtils.addGroupManager(groups, admin,
+				NON_CUSTOM_GROUP_ID, "someone-new", MICROSOFT));
 
 		directory.verify(() -> MicrosoftGraphUserLookup.addMissingUser(any(), any()), never());
 	}
@@ -794,30 +794,30 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		groups.addGroupEnginePermission(admin, GROUP_ID, CUSTOM, ENGINE_ID, 3, null);
 
 		assertEquals(List.of(PROJECT_ID),
-				SecurityGroupManagerUtils.getProjectsForGroup(manager, GROUP_ID, null, 0, 0, false).stream()
+				SecurityGroupManagerUtils.getProjectsForGroup(manager, GROUP_ID, null, 0, 0, null).stream()
 						.map(row -> row.get("project_id")).toList());
-		assertEquals(1L, SecurityGroupManagerUtils.getNumProjectsForGroup(manager, GROUP_ID, null, false));
+		assertEquals(1L, SecurityGroupManagerUtils.getNumProjectsForGroup(manager, GROUP_ID, null, null));
 		assertEquals(List.of(ENGINE_ID), SecurityGroupManagerUtils.getEnginesForGroup(manager, GROUP_ID, null, 0, 0)
 				.stream().map(row -> row.get("engine_id")).toList());
 		assertEquals(1L, SecurityGroupManagerUtils.getNumEnginesForGroup(manager, GROUP_ID, null));
 
 		// another group's resources are not mixed in
-		assertEquals(0L, SecurityGroupManagerUtils.getNumProjectsForGroup(admin, OTHER_GROUP_ID, null, false));
+		assertEquals(0L, SecurityGroupManagerUtils.getNumProjectsForGroup(admin, OTHER_GROUP_ID, null, null));
 		assertEquals(0L, SecurityGroupManagerUtils.getNumEnginesForGroup(admin, OTHER_GROUP_ID, null));
 	}
 
 	@Test
 	void resourceReads_denyUsersWhoCannotManageTheGroup() {
 		assertThrows(IllegalAccessException.class,
-				() -> SecurityGroupManagerUtils.getProjectsForGroup(outsider, GROUP_ID, null, 0, 0, false));
+				() -> SecurityGroupManagerUtils.getProjectsForGroup(outsider, GROUP_ID, null, 0, 0, null));
 		assertThrows(IllegalAccessException.class,
-				() -> SecurityGroupManagerUtils.getNumProjectsForGroup(outsider, GROUP_ID, null, false));
+				() -> SecurityGroupManagerUtils.getNumProjectsForGroup(outsider, GROUP_ID, null, null));
 		assertThrows(IllegalAccessException.class,
 				() -> SecurityGroupManagerUtils.getEnginesForGroup(outsider, GROUP_ID, null, 0, 0));
 		assertThrows(IllegalAccessException.class,
 				() -> SecurityGroupManagerUtils.getNumEnginesForGroup(outsider, GROUP_ID, null));
 		assertThrows(IllegalAccessException.class,
-				() -> SecurityGroupManagerUtils.getProjectsForGroup(manager, OTHER_GROUP_ID, null, 0, 0, false));
+				() -> SecurityGroupManagerUtils.getProjectsForGroup(manager, OTHER_GROUP_ID, null, 0, 0, null));
 
 		IllegalAccessException e = assertThrows(IllegalAccessException.class,
 				() -> SecurityGroupManagerUtils.getEnginesForGroup(admin, NON_CUSTOM_GROUP_ID, null, 0, 0));

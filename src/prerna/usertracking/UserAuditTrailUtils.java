@@ -58,6 +58,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.security.SessionIds;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -136,7 +137,7 @@ public final class UserAuditTrailUtils {
 	private static final Pattern ADMIN_DENIAL_PATTERN = Pattern
 			.compile("(?i)(only exposed for admins|must be an admin|is not an admin|not an admin)");
 	private static final Pattern LOGIN_REQUIRED_PATTERN = Pattern
-			.compile("(?i)(must be logged in|login required|user is not logged in|anonymous users)");
+			.compile("(?i)(must be logged in|login required|user is not logged in)");
 	private static final Pattern NOT_FOUND_PATTERN = Pattern.compile("(?i)(does not exist|could not find|not found)");
 	private static final Pattern REACTOR_CALL = Pattern.compile("([A-Za-z_][A-Za-z0-9_]*)\\s*\\(");
 
@@ -162,11 +163,18 @@ public final class UserAuditTrailUtils {
 			Map.entry("UploadProject", new AuditedAction(AuditEventType.PROJECT_UPLOAD, AuditTargetType.PROJECT)),
 			Map.entry("UploadProjectApp", new AuditedAction(AuditEventType.PROJECT_UPLOAD, AuditTargetType.PROJECT)),
 			Map.entry("DeleteProject", new AuditedAction(AuditEventType.PROJECT_DELETE, AuditTargetType.PROJECT)),
+			Map.entry("AdminDeleteProject",
+					new AuditedAction(AuditEventType.PROJECT_DELETE, AuditTargetType.PROJECT)),
 			Map.entry("ExportProject", new AuditedAction(AuditEventType.PROJECT_EXPORT, AuditTargetType.PROJECT)),
+			Map.entry("AdminExportProject",
+					new AuditedAction(AuditEventType.PROJECT_EXPORT, AuditTargetType.PROJECT)),
 			Map.entry("ExportProjectApp", new AuditedAction(AuditEventType.PROJECT_EXPORT, AuditTargetType.PROJECT)),
+			Map.entry("AdminExportProjectApp",
+					new AuditedAction(AuditEventType.PROJECT_EXPORT, AuditTargetType.PROJECT)),
 			Map.entry("ExportApp", new AuditedAction(AuditEventType.PROJECT_EXPORT, AuditTargetType.PROJECT)),
 			Map.entry("UploadEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.ENGINE)),
 			Map.entry("CloneEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.ENGINE)),
+			Map.entry("AdminCloneEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.ENGINE)),
 			Map.entry("CreateModelEngine", new AuditedAction(AuditEventType.MODEL_CREATE, AuditTargetType.MODEL)),
 			Map.entry("CreateVectorDatabaseEngine",
 					new AuditedAction(AuditEventType.VECTOR_CREATE, AuditTargetType.VECTOR)),
@@ -179,8 +187,10 @@ public final class UserAuditTrailUtils {
 					new AuditedAction(AuditEventType.GUARDRAIL_CREATE, AuditTargetType.GUARDRAIL)),
 			Map.entry("CreateVenvEngine", new AuditedAction(AuditEventType.ENGINE_CREATE, AuditTargetType.VENV)),
 			Map.entry("DeleteEngine", new AuditedAction(AuditEventType.ENGINE_DELETE, AuditTargetType.ENGINE)),
+			Map.entry("AdminDeleteEngine", new AuditedAction(AuditEventType.ENGINE_DELETE, AuditTargetType.ENGINE)),
 			Map.entry("DeleteDatabase", new AuditedAction(AuditEventType.ENGINE_DELETE, AuditTargetType.DATABASE)),
 			Map.entry("ExportEngine", new AuditedAction(AuditEventType.ENGINE_EXPORT, AuditTargetType.ENGINE)),
+			Map.entry("AdminExportEngine", new AuditedAction(AuditEventType.ENGINE_EXPORT, AuditTargetType.ENGINE)),
 			Map.entry("ExportDatabase", new AuditedAction(AuditEventType.ENGINE_EXPORT, AuditTargetType.DATABASE)),
 			Map.entry("SetEngineMetadata",
 					new AuditedAction(AuditEventType.ENGINE_METADATA_UPDATE, AuditTargetType.ENGINE)),
@@ -201,6 +211,8 @@ public final class UserAuditTrailUtils {
 			Map.entry("AddWorkspace", new AuditedAction(AuditEventType.WORKSPACE_CREATE, AuditTargetType.WORKSPACE)),
 			Map.entry("EditWorkspace", new AuditedAction(AuditEventType.WORKSPACE_UPDATE, AuditTargetType.WORKSPACE)),
 			Map.entry("DeleteWorkspace", new AuditedAction(AuditEventType.WORKSPACE_DELETE, AuditTargetType.WORKSPACE)),
+			Map.entry("AdminDeleteWorkspace",
+					new AuditedAction(AuditEventType.WORKSPACE_DELETE, AuditTargetType.WORKSPACE)),
 			Map.entry("AdminCloseRoom", new AuditedAction(AuditEventType.AGENT_ROOM_CLOSE, AuditTargetType.PROJECT)),
 			Map.entry("CreateAutomation",
 					new AuditedAction(AuditEventType.AUTOMATION_CREATE, AuditTargetType.AUTOMATION)),
@@ -217,6 +229,7 @@ public final class UserAuditTrailUtils {
 			Map.entry("CreateSkill", new AuditedAction(AuditEventType.SKILL_CREATE, AuditTargetType.SKILL)),
 			Map.entry("UpdateSkill", new AuditedAction(AuditEventType.SKILL_UPDATE, AuditTargetType.SKILL)),
 			Map.entry("DeleteSkill", new AuditedAction(AuditEventType.SKILL_DELETE, AuditTargetType.SKILL)),
+			Map.entry("AdminDeleteSkill", new AuditedAction(AuditEventType.SKILL_DELETE, AuditTargetType.SKILL)),
 			Map.entry("CloneSkill", new AuditedAction(AuditEventType.SKILL_CREATE, AuditTargetType.SKILL)),
 			Map.entry("ScheduleJob", new AuditedAction(AuditEventType.JOB_CREATE, AuditTargetType.JOB)),
 			Map.entry("EditScheduledJob", new AuditedAction(AuditEventType.JOB_UPDATE, AuditTargetType.JOB)),
@@ -393,18 +406,6 @@ public final class UserAuditTrailUtils {
 			String oldPermission, Object details) {
 		recordPermissionChange(user, AuditEventType.PERMISSION_DELETE, targetType, targetId, targetName, projectId,
 				engineId, insightId, granteeId, granteeType, oldPermission, null, details);
-	}
-
-	/**
-	 * Records a permission the platform removed because its end date passed. The
-	 * actor is the system, not a user.
-	 */
-	public static void recordExpiredPermissionRemoval(AuditTargetType targetType, String targetId, String projectId,
-			String engineId, String insightId, String userId) {
-		recordEvent(new AuditEvent().eventType(AuditEventType.PERMISSION_DELETE).action(PERMISSION_EXPIRED_ACTION)
-				.status(AuditStatus.SUCCESS).systemActor().subject(userId, null, null)
-				.target(targetType, targetId, null).context(projectId, engineId, insightId, null)
-				.details(Map.of("reason", "EXPIRED")));
 	}
 
 	/**
@@ -889,17 +890,18 @@ public final class UserAuditTrailUtils {
 	}
 
 	/**
-	 * One-way hash of a session id so events from the same session can be
-	 * correlated without storing a value that could be replayed.
+	 * The session's hash ({@link SessionIds#hash(String)}), so events from the same
+	 * session can be correlated without storing a value that could be replayed. It
+	 * is the same value the logs and the other tables hold.
 	 *
 	 * @param sessionId raw session id
-	 * @return {@code sha256:<hex>} or null
+	 * @return the session's hash, or null for no session or a placeholder
 	 */
 	public static String hashSessionId(String sessionId) {
 		if (sessionId == null || sessionId.isBlank() || PLACEHOLDER_CONTEXT_VALUES.contains(sessionId)) {
 			return null;
 		}
-		return "sha256:" + sha256Hex(sessionId);
+		return SessionIds.hash(sessionId);
 	}
 
 	// ------------------------------------------------------------------------
@@ -1063,8 +1065,8 @@ public final class UserAuditTrailUtils {
 					ps.setInt(index, (Integer) value);
 				}
 			}
-			case "OLD_VALUE", "NEW_VALUE", "DETAILS", "ERROR_MESSAGE" -> queryUtil.setNullableLargeText(ps, index,
-					(String) value);
+			case "OLD_VALUE", "NEW_VALUE", "DETAILS", "ERROR_MESSAGE" ->
+				queryUtil.setNullableLargeText(ps, index, (String) value);
 			default -> queryUtil.setNullableString(ps, index, (String) value);
 			}
 		}
@@ -1094,9 +1096,6 @@ public final class UserAuditTrailUtils {
 			return null;
 		}
 		try {
-			if (user.isAnonymous()) {
-				return Boolean.FALSE;
-			}
 			Actor actor = getActor(user, null);
 			String key = actor.userId == null ? null : actor.userId + "|" + actor.userType;
 			long now = System.currentTimeMillis();
@@ -1148,10 +1147,6 @@ public final class UserAuditTrailUtils {
 			return new Actor(null, null, null);
 		}
 		try {
-			if (user.isAnonymous()) {
-				return new Actor(user.getAnonymousId(), "ANONYMOUS", "ANONYMOUS " + user.getAnonymousId());
-			}
-
 			AuthProvider resolvedProvider = provider == null ? user.getPrimaryLogin() : provider;
 			AccessToken token = resolvedProvider == null ? null : user.getAccessToken(resolvedProvider);
 			if (token == null) {
@@ -1556,8 +1551,8 @@ public final class UserAuditTrailUtils {
 			if (this.userAgent == null) {
 				this.userAgent = contextValue(SemossLogUtils.USER_AGENT);
 			}
-			String rawSession = this.sessionId != null ? this.sessionId : contextValue(SemossLogUtils.SESSION_ID);
-			this.sessionId = hashSessionId(rawSession);
+			this.sessionId = this.sessionId != null ? hashSessionId(this.sessionId)
+					: contextValue(SemossLogUtils.SESSION_ID);
 		}
 
 		/** The name an enum value is stored by, or null */

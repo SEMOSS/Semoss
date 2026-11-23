@@ -39,10 +39,10 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
@@ -55,11 +55,14 @@ import prerna.util.Utility;
  * Clones an engine of any type into a new private engine owned by the user,
  * with a copy of every asset the source keeps on the server. See
  * {@link EngineCloneUtility} for what is copied. The user must own the source
- * engine, or be an admin, and be allowed to add an engine of its type.
+ * engine and be allowed to add an engine of its type. An admin clones any
+ * engine with {@code AdminCloneEngine}.
  */
 public class CloneEngineReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CloneEngineReactor.class.getName();
+
+	private static final String ENGINE_ID_KEY = "engineId";
 
 	/** Appended to the source display name when no name is given for the clone. */
 	private static final String DEFAULT_NAME_SUFFIX = " Copy";
@@ -67,7 +70,8 @@ public class CloneEngineReactor extends AbstractReactor {
 	private static final String CLONED_FROM_DETAIL = "clonedFrom";
 
 	public CloneEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.NAME.getKey() };
+		this.keysToGet = new String[] { ENGINE_ID_KEY + "," + ReactorKeysEnum.ENGINE.getKey(),
+				ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.NAME.getKey() };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -76,24 +80,14 @@ public class CloneEngineReactor extends AbstractReactor {
 		organizeKeys();
 		Logger logger = getLogger(CLASS_NAME);
 
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to clone an engine",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(user)) {
 			throwUserNotPublisherError();
 		}
 
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
+		String engineId = this.keyValue.get(ENGINE_ID_KEY);
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin && !SecurityEngineUtils.userIsOwner(user, engineId)) {
+		if (!SecurityEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalArgumentException("Engine " + engineId
 					+ " does not exist or user does not have permissions to clone the engine. User must be the owner to perform this function.");
 		}
@@ -109,7 +103,7 @@ public class CloneEngineReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Only an admin can create a local file system storage engine");
 		}
 
-		String cloneName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
+		String cloneName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 		if (cloneName == null || cloneName.trim().isEmpty()) {
 			IEngine source = Utility.getEngine(engineId);
 			if (source == null) {
@@ -143,24 +137,17 @@ public class CloneEngineReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Clone an engine into a new private engine owned by the user. The clone gets a new id and a copy \
 				of everything the engine keeps on the server: its folder (database file, OWL, vector indexes, \
 				python files, virtual environment, version history), its smss file and secrets, its metadata, \
 				and its image. Connection settings are copied as they are, so a clone of an engine backed by an \
-				external system uses the same external data. The user must own the engine.""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id of the engine to clone";
-		} else if (key.equals(ReactorKeysEnum.NAME.getKey())) {
-			return "The name of the clone. Defaults to the engine name followed by \"" + DEFAULT_NAME_SUFFIX.trim()
-					+ "\"";
-		}
-		return super.getDescriptionForKey(key);
+				external system uses the same external data. The user must own the engine. An admin clones \
+				any engine with AdminCloneEngine.""")
+				.key(ENGINE_ID_KEY, "The id of the engine to clone")
+				.key(ReactorKeysEnum.CATALOG_NAME, "The name of the clone. Defaults to the engine name followed by \""
+						+ DEFAULT_NAME_SUFFIX.trim() + "\"");
 	}
 
 }

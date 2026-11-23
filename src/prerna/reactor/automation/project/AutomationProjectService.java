@@ -89,27 +89,25 @@ public final class AutomationProjectService {
 	}
 
 	/**
-	 * Resolves a project ID or alias and requires view access to an automation
-	 * project.
+	 * Reads an automation project the user can view.
 	 *
-	 * @param user             user requesting access
-	 * @param projectIdOrAlias project ID or alias
-	 * @return resolved automation project
+	 * @param user      user requesting access
+	 * @param projectId project ID
+	 * @return the automation project
 	 */
-	public static IProject getViewableAutomationProject(User user, String projectIdOrAlias) {
-		return getAutomationProject(user, projectIdOrAlias, false);
+	public static IProject getViewableAutomationProject(User user, String projectId) {
+		return getAutomationProject(user, projectId, false);
 	}
 
 	/**
-	 * Resolves a project ID or alias and requires edit access to an automation
-	 * project.
+	 * Reads an automation project the user can edit.
 	 *
-	 * @param user             user requesting access
-	 * @param projectIdOrAlias project ID or alias
-	 * @return resolved automation project
+	 * @param user      user requesting access
+	 * @param projectId project ID
+	 * @return the automation project
 	 */
-	public static IProject getEditableAutomationProject(User user, String projectIdOrAlias) {
-		return getAutomationProject(user, projectIdOrAlias, true);
+	public static IProject getEditableAutomationProject(User user, String projectId) {
+		return getAutomationProject(user, projectId, true);
 	}
 
 	/**
@@ -119,8 +117,7 @@ public final class AutomationProjectService {
 	 * @param user user running or reading inline runs
 	 * @return {@link AutomationConstants#INLINE_RUN_SCOPE_PREFIX} plus a hash of
 	 *         the login type and id
-	 * @throws IllegalArgumentException for a missing, anonymous, or not logged-in
-	 *                                  user
+	 * @throws IllegalArgumentException for a missing or not logged-in user
 	 */
 	public static String inlineRunScope(User user) {
 		Pair<String, String> login = User.getPrimaryUserIdAndTypePair(user);
@@ -142,39 +139,38 @@ public final class AutomationProjectService {
 	}
 
 	/**
-	 * Resolves the run scope a run reactor reads or controls. A blank project
-	 * means the caller's own inline runs; an inline scope is accepted only when it
-	 * is the caller's own; anything else must be an accessible automation project.
+	 * Resolves the run scope a run reactor reads or controls. A blank project means
+	 * the caller's own inline runs; an inline scope is accepted only when it is the
+	 * caller's own; anything else must be an accessible automation project.
 	 *
-	 * @param user             user requesting access
-	 * @param projectIdOrAlias project ID or alias, inline run scope, or blank
-	 * @param requireEdit      whether a project must grant edit access
+	 * @param user        user requesting access
+	 * @param projectId   project ID, inline run scope, or blank
+	 * @param requireEdit whether a project must grant edit access
 	 * @return run scope to match against {@code AUTOMATION_RUNS.PROJECT_ID}
 	 */
-	public static String resolveRunScope(User user, String projectIdOrAlias, boolean requireEdit) {
-		if (projectIdOrAlias == null || projectIdOrAlias.isBlank()) {
+	public static String resolveRunScope(User user, String projectId, boolean requireEdit) {
+		if (projectId == null || projectId.isBlank()) {
 			return inlineRunScope(user);
 		}
-		if (isInlineRunScope(projectIdOrAlias)) {
-			if (!projectIdOrAlias.equals(inlineRunScope(user))) {
+		if (isInlineRunScope(projectId)) {
+			if (!projectId.equals(inlineRunScope(user))) {
 				throw new IllegalArgumentException("Run does not exist or user does not have access.");
 			}
-			return projectIdOrAlias;
+			return projectId;
 		}
-		return getAutomationProject(user, projectIdOrAlias, requireEdit).getProjectId();
+		return getAutomationProject(user, projectId, requireEdit).getProjectId();
 	}
 
-	private static IProject getAutomationProject(User user, String projectIdOrAlias, boolean requireEdit) {
-		if (projectIdOrAlias == null || projectIdOrAlias.isBlank()) {
+	private static IProject getAutomationProject(User user, String projectId, boolean requireEdit) {
+		if (projectId == null || projectId.isBlank()) {
 			throw new IllegalArgumentException("Must provide a project id.");
 		}
 
-		String projectId = isInlineRunScope(projectIdOrAlias) ? projectIdOrAlias
-				: SecurityProjectUtils.testUserProjectIdForAlias(user, projectIdOrAlias);
-		// An inline run scope is never a project, even when an uploaded project claims that id.
-		boolean hasAccess = !isInlineRunScope(projectId) && (requireEdit
-				? SecurityProjectUtils.userCanEditProject(user, projectId)
-				: SecurityProjectUtils.userCanViewProject(user, projectId));
+		// An inline run scope is never a project, even when an uploaded project claims
+		// that id.
+		boolean hasAccess = !isInlineRunScope(projectId)
+				&& (requireEdit ? SecurityProjectUtils.userCanEditProject(user, projectId)
+						: SecurityProjectUtils.userCanViewProject(user, projectId));
 		if (!hasAccess) {
 			throw new IllegalArgumentException(requireEdit ? "Project does not exist or user does not have edit access."
 					: "Project does not exist or user does not have access.");
@@ -242,8 +238,8 @@ public final class AutomationProjectService {
 
 	/**
 	 * Saves an automation definition with an operation-specific project Git commit
-	 * message. Package-owned operations such as version restore use this boundary so
-	 * they retain the same locking, validation, and persistence behavior as an
+	 * message. Package-owned operations such as version restore use this boundary
+	 * so they retain the same locking, validation, and persistence behavior as an
 	 * ordinary save.
 	 *
 	 * @param projectId        project ID
@@ -365,8 +361,8 @@ public final class AutomationProjectService {
 			if (typedNode == AutomationNodeType.CONTROL_JEV) {
 				Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 				if (typeAndSubtype.length < 2 || !"TYPESAFE".equalsIgnoreCase(String.valueOf(typeAndSubtype[1]))) {
-					throw new IllegalArgumentException("Automation Jev decision node '" + nodeId
-							+ "' requires a TYPESAFE model engine.");
+					throw new IllegalArgumentException(
+							"Automation Jev decision node '" + nodeId + "' requires a TYPESAFE model engine.");
 				}
 			}
 			if (typedNode.getPermission() == AutomationNodeType.Permission.EDIT
@@ -513,8 +509,8 @@ public final class AutomationProjectService {
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 			String author = accessToken == null ? null : accessToken.getResolvedUsername();
 			String email = accessToken == null ? null : accessToken.getEmail();
-			git.commit().setMessage(commitMessage).setAuthor(defaultIfBlank(author, "SEMOSS"),
-					defaultIfBlank(email, "semoss@semoss.org")).call();
+			git.commit().setMessage(commitMessage)
+					.setAuthor(defaultIfBlank(author, "SEMOSS"), defaultIfBlank(email, "semoss@semoss.org")).call();
 		} catch (IOException | GitAPIException | NoWorkTreeException e) {
 			throw new IllegalArgumentException("Unable to commit Automation definition assets to version history.", e);
 		}
@@ -526,7 +522,8 @@ public final class AutomationProjectService {
 		for (String file : files) {
 			Path artifact = Path.of(file).toAbsolutePath().normalize();
 			if (!artifact.startsWith(repository)) {
-				throw new IllegalArgumentException("Automation definition asset is outside the project version folder.");
+				throw new IllegalArgumentException(
+						"Automation definition asset is outside the project version folder.");
 			}
 			relativePaths.add(repository.relativize(artifact).toString().replace(File.separatorChar, '/'));
 		}

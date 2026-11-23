@@ -59,7 +59,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -83,8 +82,8 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.InsightsRDBMSUtils;
+import prerna.util.InternalUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -160,10 +159,10 @@ public final class ProjectHelper {
 	 * @return the opened project
 	 * @throws IllegalArgumentException when the project name is null or empty
 	 * @throws SemossPixelException     when there is no signed in user, the user is
-	 *                                  anonymous, not a publisher or not an admin
-	 *                                  where those are required, a project folder
-	 *                                  with the name already exists, or creating
-	 *                                  the project fails
+	 *                                  not a publisher or not an admin where those
+	 *                                  are required, a project folder with the name
+	 *                                  already exists, or creating the project
+	 *                                  fails
 	 */
 	public static IProject generateNewProject(String projectId, String projectName, IProject.PROJECT_TYPE projectType,
 			boolean global, String gitProvider, String gitCloneUrl, User user, Logger logger) {
@@ -177,11 +176,6 @@ public final class ProjectHelper {
 			SemossPixelException err = new SemossPixelException(noun);
 			err.setContinueThreadOfExecution(false);
 			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			AbstractReactor.throwAnonymousUserError();
 		}
 
 		// throw error is user doesn't have rights to publish new apps
@@ -215,13 +209,7 @@ public final class ProjectHelper {
 			// well
 			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectType, gitProvider,
 					gitCloneUrl, null);
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-
-			// Only at end do we add to DIHelper
-			DIHelper.getInstance().setProjectProperty(projectId, project);
-			String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-			projects = projects + ";" + projectId;
-			DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projects);
+			InternalUtility.registerNewProject(projectId, project, tempSmss.getAbsolutePath());
 
 			// Rename .temp to .smss
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -231,21 +219,20 @@ public final class ProjectHelper {
 			// Update engine smss file location
 			project.open(smssFile.getAbsolutePath());
 			logger.info("Finished creating project");
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
+			InternalUtility.setProjectSmssPath(projectId, smssFile.getAbsolutePath());
+
+			// before the cluster push: the push re-opens the project, and a project that
+			// is not registered yet is then registered with no creator and not global
+			SecurityProjectUtils.addProject(projectId, global, user);
+			addedToSecurity = true;
+			if (user != null) {
+				SecurityProjectUtils.addProjectOwner(user, projectId);
+			}
 
 			if (ClusterUtil.IS_CLUSTER) {
 				logger.info("Syncing project for cloud backup");
 				ClusterUtil.pushProject(projectId);
 				pushedToCluster = true;
-			}
-
-			SecurityProjectUtils.addProject(projectId, global, user);
-			addedToSecurity = true;
-			if (user != null) {
-				List<AuthProvider> logins = user.getLogins();
-				for (AuthProvider ap : logins) {
-					SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
-				}
 			}
 
 			return project;
@@ -256,7 +243,8 @@ public final class ProjectHelper {
 					NounMetadata.getErrorNounMessage("An error occurred creating the new project"));
 		} finally {
 			if (error) {
-				cleanUpFailedProject(project, projectId, smssFile, newProjectFolder, pushedToCluster, addedToSecurity);
+				cleanUpFailedProject(user, project, projectId, smssFile, newProjectFolder, pushedToCluster,
+						addedToSecurity);
 			}
 
 			// always delete temp smss
@@ -272,6 +260,7 @@ public final class ProjectHelper {
 	 * smss and project folder, and delete its security rows and cluster copy when
 	 * it got that far. Each step logs its own failure so the rest still run.
 	 *
+	 * @param user            the signed in user creating the project
 	 * @param project         the project being created
 	 * @param projectId       the project id
 	 * @param smssFile        the project smss, or null when it was not written
@@ -279,8 +268,8 @@ public final class ProjectHelper {
 	 * @param pushedToCluster whether the project was pushed to the cluster
 	 * @param addedToSecurity whether the project was added to the security database
 	 */
-	private static void cleanUpFailedProject(IProject project, String projectId, File smssFile, File projectFolder,
-			boolean pushedToCluster, boolean addedToSecurity) {
+	private static void cleanUpFailedProject(User user, IProject project, String projectId, File smssFile,
+			File projectFolder, boolean pushedToCluster, boolean addedToSecurity) {
 		try {
 			project.close();
 		} catch (Exception e) {
@@ -307,7 +296,7 @@ public final class ProjectHelper {
 
 		if (addedToSecurity) {
 			try {
-				SecurityProjectUtils.deleteProject(projectId);
+				SecurityProjectUtils.deleteProject(user, projectId);
 			} catch (Exception e) {
 				classLogger.error("Failed to delete the security rows for project {} after it could not be created: {}",
 						projectId, e.getMessage(), e);
@@ -857,7 +846,7 @@ public final class ProjectHelper {
 				user, logger);
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
-		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		SecurityProjectUtils.updateProjectMetadata(user, projectId, metadata);
 		return project;
 	}
 
@@ -881,7 +870,7 @@ public final class ProjectHelper {
 				gitCloneUrl, user, logger);
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put("tag", SKILL_PROJECT_TAG);
-		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		SecurityProjectUtils.updateProjectMetadata(user, projectId, metadata);
 		return project;
 	}
 

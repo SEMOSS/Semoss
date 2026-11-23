@@ -513,7 +513,7 @@ public class CouchUtil {
 
 				File[] images;
 				if (ClusterUtil.IS_CLUSTER) {
-					String imagePath = ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "databases";
+					String imagePath = ClusterUtil.getImagesFolderPath() + DIR_SEPARATOR + "databases";
 					images = InsightUtility.findImageFile(imagePath, databaseId);
 				} else {
 					String imagePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.DATABASE,
@@ -536,7 +536,7 @@ public class CouchUtil {
 
 				File[] images;
 				if (ClusterUtil.IS_CLUSTER) {
-					String imagePath = ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects";
+					String imagePath = ClusterUtil.getImagesFolderPath() + DIR_SEPARATOR + "projects";
 					images = InsightUtility.findImageFile(imagePath, projectId);
 				} else {
 					String imagePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,

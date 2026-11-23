@@ -32,6 +32,7 @@ import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.git.GitConflictUtils.GitConflictResolveResult;
@@ -121,20 +122,12 @@ public abstract class AbstractGitResolveConflictReactor extends AbstractGitWorkt
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor resolves a merge conflict for a file in " + this.target.getLabelWithArticle()
-				+ "'s git repository";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The repo-relative file path to resolve";
-		} else if (key.equals(RESOLUTION_KEY)) {
-			return "OURS, THEIRS, BOTH, or MANUAL";
-		} else if (key.equals(ReactorKeysEnum.CONTENT.getKey())) {
-			return "The manual resolution content, required only when resolution is MANUAL";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("This reactor resolves a merge conflict for a file in " + this.target.getLabelWithArticle()
+						+ "'s git repository")
+				.key(ReactorKeysEnum.FILE_PATH, "The repo-relative file path to resolve")
+				.key(RESOLUTION_KEY, "OURS, THEIRS, BOTH, or MANUAL")
+				.key(ReactorKeysEnum.CONTENT, "The manual resolution content, required only when resolution is MANUAL");
 	}
 }

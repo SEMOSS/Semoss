@@ -76,7 +76,6 @@ import prerna.query.querystruct.selectors.IQuerySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
 public class NativeFrameUnitTests {
 
@@ -111,17 +110,6 @@ public class NativeFrameUnitTests {
 	}
 
 	// -- Simple Getters --
-
-	@Test
-	void testGetDataMakerName() {
-		NativeFrame frame = new NativeFrame("test");
-		assertEquals("NativeFrame", frame.getDataMakerName());
-	}
-
-	@Test
-	void testDataMakerNameConstant() {
-		assertEquals("NativeFrame", NativeFrame.DATA_MAKER_NAME);
-	}
 
 	@Test
 	void testGetFrameType() {
@@ -355,15 +343,6 @@ public class NativeFrameUnitTests {
 			NativeFrame frame = new NativeFrame("test");
 			IDatabaseEngine mockEngine = mock(IDatabaseEngine.class);
 			when(mockEngine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.JENA_TDB);
-			frame.getQueryStruct().setEngine(mockEngine);
-			assertTrue(frame.engineQueryCacheable());
-		}
-
-		@Test
-		void testCacheable_impala() {
-			NativeFrame frame = new NativeFrame("test");
-			IDatabaseEngine mockEngine = mock(IDatabaseEngine.class);
-			when(mockEngine.getDatabaseType()).thenReturn(IDatabaseEngine.DATABASE_TYPE.IMPALA);
 			frame.getQueryStruct().setEngine(mockEngine);
 			assertTrue(frame.engineQueryCacheable());
 		}
@@ -1325,7 +1304,6 @@ public class NativeFrameUnitTests {
 	void testDeprecatedMethods_noOp() {
 		NativeFrame frame = new NativeFrame("test");
 		// These should not throw
-		frame.processDataMakerComponent(mock(DataMakerComponent.class));
 		frame.removeColumn("col");
 		frame.addRow(new Object[] { "a" }, new String[] { "h" });
 	}

@@ -44,7 +44,6 @@ import com.google.gson.reflect.TypeToken;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 public class RESTFunctionEngine extends AbstractFunctionEngine {
 
@@ -71,7 +70,6 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 		if (this.url == null || (this.url = this.url.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide a URL");
 		}
-		Utility.checkIfValidDomain(url);
 
 		String headersStr = smssProp.getProperty("HEADERS");
 		if (headersStr != null && !(headersStr = headersStr.trim()).isEmpty()) {

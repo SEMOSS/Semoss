@@ -36,6 +36,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ITypeSafeEngine;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -43,7 +44,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-/** Evaluates typed Jev questions against shared state, without a conversation. */
+/**
+ * Evaluates typed Jev questions against shared state, without a conversation.
+ */
 public class TypeSafeReactor extends AbstractReactor {
 
 	public TypeSafeReactor() {
@@ -108,28 +111,21 @@ public class TypeSafeReactor extends AbstractReactor {
 		}
 		if (!(value instanceof Map<?, ?> map) || (required && map.isEmpty())
 				|| map.keySet().stream().anyMatch(key -> !(key instanceof String))) {
-			throw new IllegalArgumentException(this.keysToGet[index] + " must be "
-					+ (required ? "a nonempty" : "a") + " map with string keys");
+			throw new IllegalArgumentException(
+					this.keysToGet[index] + " must be " + (required ? "a nonempty" : "a") + " map with string keys");
 		}
 		return (Map<String, Object>) value;
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Evaluate named Choice, Score, and Noul questions against shared state using a TypeSafe/Jev model.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if ("state".equals(key)) {
-			return "Text, a map, or a list to evaluate. List state can be nested in a map to preserve its shape.";
-		}
-		if ("questions".equals(key)) {
-			return "Map of question names to objects with type (choice, score, noul), instructions, and criteria.";
-		}
-		if (ReactorKeysEnum.PARAM_VALUES_MAP.getKey().equals(key)) {
-			return "Optional timeout (seconds) and max_retries; model selection comes from the engine.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Evaluate named Choice, Score, and Noul questions against shared state using a TypeSafe/Jev model.")
+				.key("state",
+						"Text, a map, or a list to evaluate. List state can be nested in a map to preserve its shape.")
+				.key("questions",
+						"Map of question names to objects with type (choice, score, noul), instructions, and criteria.")
+				.key(ReactorKeysEnum.PARAM_VALUES_MAP,
+						"Optional timeout (seconds) and max_retries; model selection comes from the engine.");
 	}
 }

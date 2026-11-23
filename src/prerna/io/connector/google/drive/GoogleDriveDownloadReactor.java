@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -88,19 +89,10 @@ public class GoogleDriveDownloadReactor extends AbstractGoogleReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Download a file from Google Drive to a local path.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ID.getKey())) {
-			return "Google Drive file ID for the file to download.";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Local path where the file should be downloaded.";
-		} else if (key.equals(FILE_NAME)) {
-			return "Optional local file name to use for the downloaded file.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Download a file from Google Drive to a local path.")
+				.key(ReactorKeysEnum.ID, "Google Drive file ID for the file to download.")
+				.key(ReactorKeysEnum.FILE_PATH, "Local path where the file should be downloaded.")
+				.key(FILE_NAME, "Optional local file name to use for the downloaded file.");
 	}
 }

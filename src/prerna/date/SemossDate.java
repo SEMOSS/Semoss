@@ -32,7 +32,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -46,9 +45,15 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.util.Utility;
+import com.google.gson.annotations.JsonAdapter;
 
+import prerna.util.Utility;
+import prerna.util.gson.SemossDateAdapter;
+
+@JsonAdapter(SemossDateAdapter.class)
 public class SemossDate implements Comparable<SemossDate>, Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	private static final Logger classLogger = LogManager.getLogger(SemossDate.class);
 
@@ -247,10 +252,8 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 			classLogger.debug("Semoss Date being created without having a valid zone id");
 			zoneId = ZoneId.of(Utility.getApplicationZoneId());
 		}
-		// assume the timestamp is at the offset of this zoneId
-		ZoneOffset zoneOffset = ZonedDateTime.now(zoneId).getOffset();
-		Instant instant = dbTimestamp.toLocalDateTime().toInstant(zoneOffset);
-		this.zdt = ZonedDateTime.ofInstant(instant, zoneId);
+		this.zoneId = zoneId;
+		this.zdt = dbTimestamp.toLocalDateTime().atZone(zoneId);
 		this.pattern = pattern;
 	}
 
@@ -351,24 +354,35 @@ public class SemossDate implements Comparable<SemossDate>, Serializable {
 	}
 
 	/**
-	 * 
-	 * @return
+	 * The pattern the date is formatted with, such as {@code yyyy-MM-dd}.
+	 *
+	 * @return the pattern
 	 */
 	public String getPattern() {
 		return this.pattern;
 	}
 
 	/**
-	 * Get the string version of the date
-	 * 
-	 * @return
+	 * The zone the date is in.
+	 *
+	 * @return the zone
+	 */
+	public ZoneId getZoneId() {
+		return this.zoneId;
+	}
+
+	/**
+	 * The date formatted with its pattern. A date whose zoned value is not built
+	 * yet, such as one read back from Java serialization, builds it from its string
+	 * first.
+	 *
+	 * @return the formatted date, or null when the date is not valid
 	 */
 	public String getFormattedDate() {
-		if (this.zdt == null) {
+		if (getZonedDateTime() == null) {
 			return null;
 		}
 		if (this.strDate == null) {
-			getZonedDateTime();
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern(this.pattern, Locale.ENGLISH);
 			this.strDate = this.zdt.format(formatter);
 		}

@@ -265,6 +265,7 @@ public class LLMReactorUnitTests {
 
 	@Test
 	void executeGetReactorDescription() {
-		assertEquals("This method is used to run an LLM text-generation call", reactor.getReactorDescription());
+		assertEquals("This method is used to run an LLM text-generation call",
+				reactor.getReactorDefinition().getDescription());
 	}
 }

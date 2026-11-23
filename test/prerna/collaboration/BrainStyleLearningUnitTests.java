@@ -51,6 +51,22 @@ class BrainStyleLearningUnitTests {
 		return Map.of("summary", summary, "examples", examples);
 	}
 
+	private static Map<String, Object> mail(String from, List<String> to, List<String> cc) {
+		java.util.function.Function<List<String>, List<Map<String, Object>>> list = addresses -> addresses.stream()
+				.map(address -> Map.<String, Object>of("emailAddress", Map.of("address", address))).toList();
+		return Map.of("from", Map.of("emailAddress", Map.of("address", from)), "toRecipients", list.apply(to),
+				"ccRecipients", list.apply(cc));
+	}
+
+	@Test
+	void mailTheOwnerSentOnlyToThemselvesIsNotHowTheyWrite() {
+		// a routine's brief, or a note to self
+		assertTrue(BrainStyleLearning.toThemselves(mail("rob@test.com", List.of("Rob@test.com"), List.of())));
+		assertEquals(false, BrainStyleLearning.toThemselves(mail("rob@test.com", List.of("rob@test.com"), List.of("kim@test.com"))));
+		assertEquals(false, BrainStyleLearning.toThemselves(mail("rob@test.com", List.of("kim@test.com"), List.of())));
+		assertEquals(false, BrainStyleLearning.toThemselves(mail("rob@test.com", List.of(), List.of())));
+	}
+
 	@Test
 	void keepsOnlyExamplesQuotedFromTheNamedSample() {
 		Map<String, Object> answer = Map.of("summary", "Short and friendly.", "examples", List.of(

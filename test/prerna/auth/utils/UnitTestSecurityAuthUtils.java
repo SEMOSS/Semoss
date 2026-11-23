@@ -57,9 +57,11 @@ import prerna.auth.ReadOnlyAccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
+import prerna.util.InternalUtility;
 
 public class UnitTestSecurityAuthUtils {
 
@@ -265,37 +267,41 @@ public class UnitTestSecurityAuthUtils {
 	}
 
 	static void createProject(String id, String name, User user) {
-		createProject(id, name, user, false);
+		SecurityProjectUtils.addProject(id, name, "APP", null, false, user);
+		SecurityProjectUtils.addProjectOwner(user, id);
 	}
 
-	static void createProject(String id, String name, User user, boolean hasPortal) {
-		String userId = user.getPrimaryLoginToken().getId();
-		SecurityProjectUtils.addProject(id, name, "APP", null, false, user);
-		SecurityProjectUtils.addProjectOwner(user, id, userId);
+	/**
+	 * Creates a project of the given type owned by the user.
+	 *
+	 * @param id   the project id
+	 * @param name the project name
+	 * @param type the project type, such as CODE or BLOCKS
+	 * @param user the owner
+	 */
+	static void createProjectOfType(String id, String name, String type, User user) {
+		SecurityProjectUtils.addProject(id, name, type, null, false, user);
+		SecurityProjectUtils.addProjectOwner(user, id);
 	}
 
 	static void createEngine(String id, String name, User user) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityEngineUtils.addEngine(id, name, IEngine.CATALOG_TYPE.DATABASE, null, null, false, user);
-		SecurityEngineUtils.addEngineOwner(id, userId);
+		SecurityEngineUtils.addEngineOwner(user, id);
 	}
 
 	static void createEngineGlobal(String id, String name, User user) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityEngineUtils.addEngine(id, name, IEngine.CATALOG_TYPE.DATABASE, null, null, true, user);
-		SecurityEngineUtils.addEngineOwner(id, userId);
+		SecurityEngineUtils.addEngineOwner(user, id);
 	}
 
 	static void createEngine(String id, String name, IEngine.CATALOG_TYPE catalogType, User user) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityEngineUtils.addEngine(id, name, catalogType, null, null, false, user);
-		SecurityEngineUtils.addEngineOwner(id, userId);
+		SecurityEngineUtils.addEngineOwner(user, id);
 	}
 
 	static void createEngineWithSubtype(String id, String name, User user, String subtype) {
-		String userId = user.getPrimaryLoginToken().getId();
 		SecurityEngineUtils.addEngine(id, name, IEngine.CATALOG_TYPE.DATABASE, subtype, null, false, user);
-		SecurityEngineUtils.addEngineOwner(id, userId);
+		SecurityEngineUtils.addEngineOwner(user, id);
 	}
 
 	static void addPermissionsToUserForEngine(User user, String userId, String engineId, String permission) {
@@ -373,9 +379,20 @@ public class UnitTestSecurityAuthUtils {
 		}
 	}
 
+	/**
+	 * Adds an insight to a project as test setup, the way the platform does for
+	 * no user.
+	 *
+	 * @param projectId   the project
+	 * @param insightId   the insight
+	 * @param insightName the insight's name
+	 * @param layout      the insight's layout
+	 */
 	public static void createInsight(String projectId, String insightId, String insightName, String layout) {
-		SecurityInsightUtils.addInsight(projectId, insightId, insightName, false, layout, false, 0, null, null, false,
-				null, null);
+		try (PlatformOperation operation = PlatformOperation.begin("test setup")) {
+			SecurityInsightUtils.addInsight(null, projectId, insightId, insightName, false, layout, false, 0, null,
+					null, false, null, null);
+		}
 	}
 
 	static Path createSmssFileFromProps(Properties securityProps, String folder, String filename) throws IOException {
@@ -439,11 +456,11 @@ public class UnitTestSecurityAuthUtils {
 	}
 
 	public static void addEngineStoreProp(String testdb, Path smssFile) {
-		DIHelper.getInstance().setEngineProperty(testdb + "_" + Constants.STORE, smssFile.toAbsolutePath().toString());
+		InternalUtility.setEngineSmssPath(testdb, smssFile.toAbsolutePath().toString());
 	}
 
 	public static void removeEngineStoreProp(String testdb) {
-		DIHelper.getInstance().removeEngineProperty(testdb + "_" + Constants.STORE);
+		DIHelperTestUtils.removeEngineSmssPath(testdb);
 	}
 
 	static Properties getDefaultOpenAiProperties(String engineId) {

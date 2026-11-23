@@ -40,9 +40,8 @@ import org.h2.store.fs.FileUtils;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
 import prerna.project.api.IProject;
@@ -75,11 +74,8 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 
 		// security
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
-		if (!SecurityEngineUtils.userCanEditEngine(user, projectId)) {
-			throw new IllegalArgumentException("User does not have permission to add insights in the proejct");
+		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
+			throw new IllegalArgumentException("User does not have permission to add insights in the project");
 		}
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
@@ -183,15 +179,13 @@ public class UploadInsightReactor extends AbstractInsightReactor {
 		step++;
 
 		logger.info(step + ") Regsiter insight...");
-		SecurityInsightUtils.addInsight(projectId, newInsightId, insightName, true, layout, cacheable, cacheMinutes,
-				cacheCron, cachedOn, cacheEncrypt, pixelRecipeToSave, schemaName);
+		SecurityInsightUtils.addInsight(this.insight.getUser(), projectId, newInsightId, insightName, true, layout,
+				cacheable, cacheMinutes, cacheCron, cachedOn, cacheEncrypt, pixelRecipeToSave, schemaName);
 		if (this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, newInsightId);
 		}
 		logger.info(step + ") Done...");
 		step++;
-
-//		ClusterUtil.reactorPushInsightDB(projectId);
 
 		Map<String, Object> returnMap = new HashMap<>();
 		returnMap.put("name", insightName);

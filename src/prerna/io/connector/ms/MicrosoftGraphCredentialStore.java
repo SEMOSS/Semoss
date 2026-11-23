@@ -31,16 +31,19 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.Collection;
 import java.util.Map;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
-import prerna.io.connector.AbstractOAuthTokenFiller;
 
-/** Server-only delegated credentials for consented work that runs without a session. */
+/**
+ * Server-only delegated credentials for consented work that runs without a
+ * session. Every read and write goes through
+ * {@link SecurityExternalConnectorsUtils}: this package may not use the
+ * security database itself ({@code SystemEngineRegistry}).
+ */
 public final class MicrosoftGraphCredentialStore {
 
 	private MicrosoftGraphCredentialStore() {
@@ -59,9 +62,10 @@ public final class MicrosoftGraphCredentialStore {
 		token.setId((String) row.get("userId"));
 		token.setEmail((String) row.get("userEmail"));
 		token.setAccess_token((String) row.get("accessToken"));
-		token.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, (String) row.get("refreshToken"));
+		token.setRefresh_token((String) row.get("refreshToken"));
 		Timestamp expiration = (Timestamp) row.get("tokenExpiration");
-		// Unknown expiry must refresh; MicrosoftLoginUtils otherwise treats it as current.
+		// Unknown expiry must refresh; MicrosoftLoginUtils otherwise treats it as
+		// current.
 		token.setExpires_in(3600);
 		token.setStartTime(expiration == null ? 1L
 				: expiration.toLocalDateTime().toInstant(ZoneOffset.UTC).toEpochMilli() - 3_600_000L);
@@ -73,23 +77,38 @@ public final class MicrosoftGraphCredentialStore {
 				|| token.getId().isBlank() || token.getAccess_token() == null || token.getAccess_token().isBlank()) {
 			return false;
 		}
-		Collection<String> refresh = token.getMetaValues(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
-		return refresh != null && refresh.stream().anyMatch(value -> value != null && !value.isBlank());
+		return token.getRefresh_token() != null && !token.getRefresh_token().isBlank();
 	}
 
 	public static void save(AccessToken token) {
+		write(token, true);
+	}
+
+	/**
+	 * Keeps a renewed pair for the next background read, only while a credential
+	 * for that mailbox is still stored: never inserts one, so a run or sync still
+	 * going when the owner turns background access off cannot turn it back on.
+	 */
+	public static void update(AccessToken token) {
+		write(token, false);
+	}
+
+	private static void write(AccessToken token, boolean insert) {
 		if (!isRefreshable(token)) {
 			throw new IllegalArgumentException("Reconnect Microsoft to enable background inbox access.");
 		}
-		String refresh = token.getMetaValues(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY).stream()
-				.filter(value -> value != null && !value.isBlank()).findFirst().orElseThrow();
-		Timestamp expiration = null;
-		if (token.getStartTime() > 0 && token.getExpires_in() > 0) {
-			Instant instant = Instant.ofEpochMilli(token.getStartTime() + token.getExpires_in() * 1000L);
-			expiration = Timestamp.valueOf(LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
+		String refresh = token.getRefresh_token();
+		Timestamp expiration = token.getStartTime() > 0 && token.getExpires_in() > 0
+				? Timestamp.valueOf(LocalDateTime.ofInstant(
+						Instant.ofEpochMilli(token.getStartTime() + token.getExpires_in() * 1000L), ZoneOffset.UTC))
+				: null;
+		if (insert) {
+			SecurityExternalConnectorsUtils.upsertMicrosoftGraphCredential(token.getId(), token.getEmail(),
+					token.getAccess_token(), refresh, expiration);
+		} else {
+			SecurityExternalConnectorsUtils.updateMicrosoftGraphCredential(token.getId(), token.getEmail(),
+					token.getAccess_token(), refresh, expiration);
 		}
-		SecurityExternalConnectorsUtils.upsertMicrosoftGraphCredential(token.getId(), token.getEmail(),
-				token.getAccess_token(), refresh, expiration);
 	}
 
 	public static String accessToken(String microsoftUserId) throws Exception {
@@ -105,7 +124,7 @@ public final class MicrosoftGraphCredentialStore {
 			if (!isRefreshable(refreshed) || !microsoftUserId.equals(refreshed.getId())) {
 				throw new IllegalStateException("Microsoft background credentials could not be renewed.");
 			}
-			save(refreshed);
+			update(refreshed);
 			return accessToken;
 		} finally {
 			user.removeUserMemory();

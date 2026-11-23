@@ -79,6 +79,7 @@ import prerna.auth.utils.SecurityQueryUtils;
 import prerna.logging.SemossLogUtils;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -764,7 +765,27 @@ public class AdminExportEnterpriseUsageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Exports Admin-Only Enterprise Usage Reports As Audited CSV Or PDF Downloads.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Admin Only: Exports enterprise usage reports as audited CSV or PDF downloads.")
+				.key("app",
+						"Filters to apps whose id or name contains this text, or to the exact app id given after a leading =. Audit logs match the app id only.")
+				.key("comparisonEndDate",
+						"Last day, as YYYY-MM-DD, of the benchmark period the overview view compares against. When neither comparison date is given, the overview compares against the same number of days just before startDate.")
+				.key("comparisonStartDate",
+						"First day, as YYYY-MM-DD, of the benchmark period the overview view compares against. When neither comparison date is given, the overview compares against the same number of days just before startDate.")
+				.key("dimension",
+						"What the ranking view groups model usage by: user, app or model. The ranking export lists the top 20.")
+				.key("engine",
+						"Filters to engines whose id or name contains this text, or to the exact engine id given after a leading =.")
+				.key("format",
+						"The file to export: csv, the default, or pdf. A pdf export supports the overview view only.")
+				.key("model", "The engine filter, used when engine is not given. It matches the same way engine does.")
+				.key("source",
+						"Which logs to report on: model, the default, activity or audit. An audit export supports the logs view only, and the ranking view needs the model source.")
+				.key("user",
+						"Filters to users whose id or name contains this text, or to the exact user id given after a leading =. Audit logs match the acting or the affected user.")
+				.key("view",
+						"The report to export: overview, the default, ranking or logs. The logs view holds up to the newest 5000 rows.");
 	}
 }

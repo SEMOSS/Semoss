@@ -30,6 +30,7 @@ package prerna.reactor.agent.admin;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -59,17 +60,10 @@ public class AdminGetAgentRunReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admins only. Returns any user's agent run with its model's name and, when asked for, its room messages.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RUN_ID_KEY.equals(key)) {
-			return "The agent run to return.";
-		} else if (INCLUDE_MESSAGES_KEY.equals(key)) {
-			return "When true, includes the run's messages from its user's room.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Returns any user's agent run with its model's name and, when asked for, its room messages.")
+				.key(RUN_ID_KEY, "The agent run to return.")
+				.key(INCLUDE_MESSAGES_KEY, "When true, includes the run's messages from its user's room.");
 	}
 }

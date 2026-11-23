@@ -29,12 +29,13 @@ package prerna.io.connector.jira;
 
 import java.util.Map;
 
-import org.javatuples.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -46,7 +47,7 @@ public class JiraDeleteIssueReactor extends AbstractReactor {
 
 	private static final String PROJECT = "project";
 	private static final String JIRAID = "jiraid";
-	private static final String DELETE_SUBTASKS   = "deleteSubtasks";
+	private static final String DELETE_SUBTASKS = "deleteSubtasks";
 
 	public JiraDeleteIssueReactor() {
 		this.keysToGet = new String[] { PROJECT, JIRAID, DELETE_SUBTASKS };
@@ -65,7 +66,8 @@ public class JiraDeleteIssueReactor extends AbstractReactor {
 			Pair<String, String> jiraCreds = JiraUtils.getJiraCredentials(user);
 			String accessToken = jiraCreds.getValue0();
 			String baseUrl = jiraCreds.getValue1();
-			Map<String, Object> result = JiraHelper.deleteIssue(accessToken, baseUrl, projectName, jiraId, deleteSubtasks);
+			Map<String, Object> result = JiraHelper.deleteIssue(accessToken, baseUrl, projectName, jiraId,
+					deleteSubtasks);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while deleting a Jira issue", e);
@@ -78,19 +80,12 @@ public class JiraDeleteIssueReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Permanently deletes a Jira issue by project key and issue key.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(PROJECT)) {
-			return "Required Jira project key in uppercase (for example, RTJ).";
-		} else if (key.equals(JIRAID)) {
-			return "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).";
-		} else if (key.equals(DELETE_SUBTASKS)) {
-			return "Optional boolean string ('true' or 'false') to delete subtasks with the parent issue. Defaults to false.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Permanently deletes a Jira issue by project key and issue key.")
+				.key(PROJECT, "Required Jira project key in uppercase (for example, RTJ).")
+				.key(JIRAID, "Required Jira issue key in KEY-NUMBER format (for example, RTJ-123).")
+				.key(DELETE_SUBTASKS,
+						"Optional boolean string ('true' or 'false') to delete subtasks with the parent issue. Defaults to false.");
 	}
 }

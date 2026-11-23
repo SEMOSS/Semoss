@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -47,13 +48,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * serialized as JSON.
  * 
  * Usage: JsonLogic(rule=["{\">=\": [{\"var\": \"age\"}, 21]}"],
- * data=["{\"age\": 25}"])
- * Returns: true (no additional return)
+ * data=["{\"age\": 25}"]) Returns: true (no additional return)
  *
  * Failed rule: JsonLogic(rule=["{\">=\": [{\"var\": \"age\"}, 21]}"],
- * data=["{\"age\": 18}"])
- * Returns: false, with additional return "Condition failed for age: 18.0 >=
- * 21.0"
+ * data=["{\"age\": 18}"]) Returns: false, with additional return "Condition
+ * failed for age: 18.0 >= 21.0"
  */
 public class JsonLogicReactor extends AbstractReactor {
 
@@ -83,8 +82,7 @@ public class JsonLogicReactor extends AbstractReactor {
 			PixelDataType returnType = determineReturnType(result);
 			NounMetadata noun = new NounMetadata(result, returnType);
 			if (evaluation.get("reason") instanceof String) {
-				noun.addAdditionalReturn(
-						new NounMetadata(evaluation.get("reason"), PixelDataType.CONST_STRING));
+				noun.addAdditionalReturn(new NounMetadata(evaluation.get("reason"), PixelDataType.CONST_STRING));
 			}
 			return noun;
 		} catch (com.google.gson.JsonSyntaxException e) {
@@ -159,23 +157,17 @@ public class JsonLogicReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Evaluates JSON Logic rules against provided data. \
-				JSON Logic provides a declarative way to express complex conditional logic that can be serialized as JSON. \
-				Supports standard operations (comparisons, arithmetic, logic, arrays) plus Semoss extensions \
-				(regex matching, fuzzy string comparison, date operations, type casting, and collection helpers).\
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("rule")) {
-			return "The JSON Logic rule to evaluate (as a JSON string)";
-		} else if (key.equals("data")) {
-			return "The data context to evaluate the rule against (as a JSON string, optional)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Evaluates JSON Logic rules against provided data. \
+								JSON Logic provides a declarative way to express complex conditional logic that can be serialized as JSON. \
+								Supports standard operations (comparisons, arithmetic, logic, arrays) plus Semoss extensions \
+								(regex matching, fuzzy string comparison, date operations, type casting, and collection helpers).\
+								""")
+				.key("rule", "The JSON Logic rule to evaluate (as a JSON string)")
+				.key("data", "The data context to evaluate the rule against (as a JSON string, optional)");
 	}
 
 }

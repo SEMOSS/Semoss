@@ -44,6 +44,7 @@ import com.google.gson.stream.JsonReader;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -92,17 +93,13 @@ public class LoadEngineMetadataReactor extends AbstractSetMetadataReactor {
 			}
 		}
 
-		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Engine does not exist or user does not have access to edit");
-		}
-
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityEngineUtils.getAllMetakeys();
 		if (!validMetakeys.containsAll(metadata.keySet())) {
 			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
 
-		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+		SecurityEngineUtils.updateEngineMetadata(this.insight.getUser(), engineId, metadata);
 		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
 		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_METADATA_UPDATE,
 				AuditTargetType.ofEngine(engineType), engineId, SecurityEngineUtils.getEngineDisplayNameForId(engineId),
@@ -114,8 +111,8 @@ public class LoadEngineMetadataReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Define metadata on an engine through a JSON file";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Define metadata on an engine through a JSON file");
 	}
 
 }

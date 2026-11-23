@@ -43,7 +43,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -68,6 +67,7 @@ import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
@@ -90,6 +90,7 @@ import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.Settings;
 import prerna.util.Utility;
@@ -127,7 +128,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	private String defaultIndexClass;
 	private List<String> indexClasses;
 
-	private ClientProcessWrapper cpw = null;
+	private final ClientProcessWrapper cpw = new ClientProcessWrapper();
 	// python server
 	private PyTranslator pyTranslator = null;
 	private File pyDirectoryBasePath;
@@ -138,7 +139,6 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	// string substitute vars
 	private Map<String, String> vars = new HashMap<>();
-	private final ReentrantLock startServerLock = new ReentrantLock();
 
 	private PGVectorQueryUtil pgVectorQueryUtil = new PGVectorQueryUtil();
 
@@ -300,18 +300,18 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							+ this.embedderEngineId);
 		}
 
-		Properties modelProperties = modelEngine.getSmssProp();
-		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
+		String modelName = modelEngine.getModelName();
+		if (modelName == null || modelName.isBlank()) {
 			throw new IllegalArgumentException("Embedder engine exists but does not contain key " + Constants.MODEL);
 		}
 
-		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
-		this.smssProp.put(IModelEngine.MODEL_TYPE, modelProperties.getProperty(IModelEngine.MODEL_TYPE));
-		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
-			this.smssProp.put(Constants.MAX_TOKENS, "None");
-		} else {
-			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
+		this.smssProp.put(Constants.MODEL, modelName);
+		ModelTypeEnum modelType = modelEngine.getModelType();
+		if (modelType != null) {
+			this.smssProp.put(IModelEngine.MODEL_TYPE, modelType.name());
 		}
+		long modelMaxTokens = modelEngine.getMaxTokens();
+		this.smssProp.put(Constants.MAX_TOKENS, modelMaxTokens > 0 ? String.valueOf(modelMaxTokens) : "None");
 
 		// model engine responsible for creating keywords
 		this.keywordGeneratorEngineId = this.smssProp.getProperty(Constants.KEYWORD_ENGINE_ID);
@@ -894,9 +894,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	@Override
 	public void close() throws IOException {
 		this.modelPropsLoaded = false;
-		if (this.cpw != null) {
-			this.cpw.shutdown(true);
-		}
+		this.cpw.shutdown(true);
 		super.close();
 	}
 
@@ -930,116 +928,97 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	}
 
 	/**
+	 * Starts the python process for this vector database and runs its init
+	 * commands. Called through
+	 * {@link ClientProcessWrapper#getOrStartSocketClient(Runnable)}, which holds
+	 * the wrapper's create lock, when the process is not running.
 	 * 
-	 * @param port
+	 * @param port the port to connect on; negative to auto-allocate, or to attach
+	 *             to the smss FORCE_PORT when it is set
 	 */
 	private void startServer(int port) {
-		this.startServerLock.lock();
+		if (!modelPropsLoaded) {
+			verifyModelProps();
+		}
+		if (!this.pyDirectoryBasePath.exists()) {
+			this.pyDirectoryBasePath.mkdirs();
+		}
+
+		String timeout = "30";
+		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+		}
+
+		boolean debug = false;
+
+		// pull the relevant values from the smss
+		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+
+		if (port < 0) {
+			// port has not been forced
+			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+				try {
+					port = Integer.parseInt(forcePort);
+					debug = true;
+				} catch (NumberFormatException e) {
+					// ignore
+					classLogger.warn("Vector Database {} has an invalid FORCE_PORT value", this.engineName);
+				}
+			}
+		}
+
+		// if we have a python specific user, make sure that user can access the schema
+		// folder
+		setVectorFolderPermissions();
+
+		String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
+		boolean nativePyServer = true;
 		try {
-			// already created by another thread
-			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-				return;
+			this.cpw.setEngineOwned(true);
+			this.cpw.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, debug, timeout,
+					loggerLevel);
+		} catch (Exception e) {
+			classLogger.error("Failed to create python process client for PGVector database: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			throw new IllegalArgumentException("Unable to connect to server for pgvector databse.");
+		}
+
+		// create the py translator
+		Insight processInsight = new Insight();
+		InsightStore.getInstance().put(processInsight);
+		this.pyTranslator = new PyTranslator(this.cpw.getSocketClient(), processInsight);
+
+		try {
+			String[] commands = getServerStartCommands();
+			// replace the vars
+			StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+				String resolvedString = substitutor.replace(commands[commandIndex]);
+				commands[commandIndex] = resolvedString;
 			}
-			if (!modelPropsLoaded) {
-				verifyModelProps();
-			}
-			if (!this.pyDirectoryBasePath.exists()) {
-				this.pyDirectoryBasePath.mkdirs();
-			}
+			pyTranslator.runEmptyPyNoCancelTrace(commands);
 
-			// check if we have already created a process wrapper
-			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-			if (this.cpw != null) {
-				this.cpw.shutdown(false);
-			}
-
-			String timeout = "30";
-			if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-				timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-			}
-
-			boolean debug = false;
-
-			// pull the relevant values from the smss
-			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-
-			if (port < 0) {
-				// port has not been forced
-				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-					try {
-						port = Integer.parseInt(forcePort);
-						debug = true;
-					} catch (NumberFormatException e) {
-						// ignore
-						classLogger.warn("Vector Database {} has an invalid FORCE_PORT value", this.engineName);
-					}
-				}
-			}
-
-			// if we have a python specific user, make sure that user can access the schema
-			// folder
-			setVectorFolderPermissions();
-
-			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-			boolean nativePyServer = true;
-			try {
-				cpwToInit.setEngineOwned(true);
-				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
-						debug, timeout, loggerLevel);
-			} catch (Exception e) {
-				classLogger.error("Failed to create python process client for PGVector database: {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-				throw new IllegalArgumentException("Unable to connect to server for pgvector databse.");
-			}
-
-			// create the py translator
-			Insight processInsight = new Insight();
-			InsightStore.getInstance().put(processInsight);
-			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-			try {
-				String[] commands = getServerStartCommands();
-				// replace the vars
-				StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-					String resolvedString = substitutor.replace(commands[commandIndex]);
-					commands[commandIndex] = resolvedString;
-				}
-				pyTranslator.runEmptyPyNoCancelTrace(commands);
-
-				// for debugging...
-				classLogger.info("Initializing {} python process with commands >>> {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
-
-				// finally set the cpw in the class
-				this.cpw = cpwToInit;
-			} catch (Exception e) {
-				// set the model props to false
-				// incase those values were incorrect
-				modelPropsLoaded = false;
-				classLogger.error("Failed to initialize python start commands for PGVector database: {}",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-				if (cpwToInit != null) {
-					classLogger.warn(
-							"Able to start the python process for the vector database {} but the start script failed.",
-							SmssUtilities.getUniqueName(this.engineName, this.engineId));
-					cpwToInit.shutdown(false);
-				}
-				throw e;
-			}
-		} finally {
-			this.startServerLock.unlock();
+			// for debugging...
+			classLogger.info("Initializing {} python process with commands >>> {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
+		} catch (Exception e) {
+			// set the model props to false
+			// incase those values were incorrect
+			modelPropsLoaded = false;
+			classLogger.error("Failed to initialize python start commands for PGVector database: {}",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+			classLogger.warn("Able to start the python process for the vector database {} but the start script failed.",
+					SmssUtilities.getUniqueName(this.engineName, this.engineId));
+			this.cpw.shutdown(false);
+			throw e;
 		}
 	}
 
 	private void checkSocketStatus() {
-		if (this.cpw == null || this.cpw.getSocketClient() == null || !this.cpw.getSocketClient().isConnected()) {
-			this.startServer(-1);
-		}
+		this.cpw.getOrStartSocketClient(() -> startServer(-1));
 	}
 
 	@Override
@@ -1386,7 +1365,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		String pythonUser = Utility.getDIHelperProperty(Settings.PY_SERVER_USER);
 		if (pythonUser != null && !pythonUser.trim().isEmpty()) {
 			try {
-				Utility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
+				InternalUtility.setOwnerAndGroupPermissionsRecursively(this.schemaFolder);
 			} catch (IOException e) {
 				classLogger.error("Failed to set owner/group permissions on vector schema folder: {}",
 						this.schemaFolder.getAbsolutePath(), e);

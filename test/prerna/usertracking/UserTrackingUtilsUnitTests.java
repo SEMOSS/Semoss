@@ -30,7 +30,10 @@ package prerna.usertracking;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -38,6 +41,9 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.security.SessionIds;
 import prerna.util.JdbcTestDatabase;
 import prerna.util.Utility;
 
@@ -75,7 +81,7 @@ class UserTrackingUtilsUnitTests {
 	}
 
 	@Test
-	void anonymousQueryTrackingStoresExactSqlWithoutBorrowingExtraConnections() throws Exception {
+	void queryTrackingWithoutUserStoresExactSqlWithoutBorrowingExtraConnections() throws Exception {
 		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class, CALLS_REAL_METHODS)) {
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
 			db.execute(
@@ -134,6 +140,27 @@ class UserTrackingUtilsUnitTests {
 			assertEquals(0, db.count("USER_CATALOG_VOTES"));
 			verify(db.connection, times(1)).commit();
 			verify(db.engine, times(2)).getConnection();
+		}
+	}
+
+	@Test
+	void aSessionIsTrackedByItsHashAndItsLogoutFindsTheSameRow() {
+		String sessionId = "3F2A9C1B7E6D5A4F8B0C1D2E3F4A5B6C";
+		IUserTracking tracker = mock(IUserTracking.class);
+		User user = mock(User.class);
+		try (var utility = mockStatic(Utility.class, CALLS_REAL_METHODS);
+				var factory = mockStatic(UserTrackingFactory.class)) {
+			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+			utility.when(() -> Utility.getDIHelperProperty(SessionIds.SALT_PROPERTY)).thenReturn("pepper");
+			factory.when(UserTrackingFactory::getUserTrackingConnector).thenReturn(tracker);
+			String sessionHash = SessionIds.hash(sessionId);
+
+			UserTrackingUtils.registerLogin(sessionId, "10.0.0.1", user, AuthProvider.NATIVE);
+			UserTrackingUtils.registerLogout(sessionId);
+
+			verify(tracker).registerLogin(sessionHash, "10.0.0.1", user, AuthProvider.NATIVE);
+			verify(tracker).registerLogout(sessionHash);
+			verify(tracker, never()).registerLogin(eq(sessionId), any(), any(), any());
 		}
 	}
 }

@@ -43,35 +43,32 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 	private static Logger classLogger = LogManager.getLogger(AbstractUserTrackingUtils.class);
 
 	/**
-	 * Persists a login session for the user, keyed by the anonymous id for
-	 * anonymous users or by the access token id for the given auth provider
-	 * otherwise.
+	 * Persists a login session for the user, keyed by the access token id for the
+	 * given auth provider.
 	 *
-	 * @param sessionId the HTTP session id
+	 * @param sessionId the session's hash
+	 *                  ({@link prerna.security.SessionIds#hash(String)})
 	 * @param utd       the tracking details (IP and geolocation) for the session
 	 * @param user      the user logging in
 	 * @param ap        the auth provider the login was performed against
 	 */
 	protected static void saveSession(String sessionId, UserTrackingDetails utd, User user, AuthProvider ap) {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-		if (user.isAnonymous()) {
-			addSession(sessionId, utd, user.getAnonymousId(), "ANONYMOUS", timestamp);
-		} else {
-			// since we dont want to insert the same login multiple times
-			// we will only store for the parameter ap
-			AccessToken token = user.getAccessToken(ap);
-			addSession(sessionId, utd, token.getId(), ap.toString(), timestamp);
-		}
+		// since we dont want to insert the same login multiple times
+		// we will only store for the parameter ap
+		AccessToken token = user.getAccessToken(ap);
+		addSession(sessionId, utd, token.getId(), ap.toString(), timestamp);
 	}
 
 	/**
 	 * Inserts a user-tracking session row with the resolved user id, type, and
 	 * geolocation details.
 	 *
-	 * @param sessionId the HTTP session id
+	 * @param sessionId the session's hash
+	 *                  ({@link prerna.security.SessionIds#hash(String)})
 	 * @param utd       the tracking details (IP and geolocation) for the session
-	 * @param userId    the resolved user id (anonymous id or access token id)
-	 * @param type      the credential type (e.g. "ANONYMOUS" or the auth provider)
+	 * @param userId    the access token id
+	 * @param type      the auth provider
 	 * @param timestamp the session creation time
 	 */
 	private static void addSession(String sessionId, UserTrackingDetails utd, String userId, String type,
@@ -103,7 +100,8 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 	/**
 	 * Marks the session's tracking row as ended by stamping its end time.
 	 *
-	 * @param sessionId the HTTP session id that ended
+	 * @param sessionId the hash of the session that ended
+	 *                  ({@link prerna.security.SessionIds#hash(String)})
 	 */
 	@Override
 	public void registerLogout(String sessionId) {

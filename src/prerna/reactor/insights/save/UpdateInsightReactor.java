@@ -90,11 +90,6 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 		String existingId = getRdbmsId();
 
 		User user = this.insight.getUser();
-		// security
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
-
 		if (!SecurityInsightUtils.userCanEditInsight(user, projectId, existingId)) {
 			throw new IllegalArgumentException("User does not have permission to edit this insight");
 		}
@@ -355,19 +350,19 @@ public class UpdateInsightReactor extends AbstractInsightReactor {
 			ZonedDateTime cachedOn, boolean cacheEncrypt, List<String> recipe, String description, List<String> tags,
 			Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds, String schemaName) {
 		String projectId = project.getProjectId();
-		SecurityInsightUtils.updateInsight(projectId, existingRdbmsId, insightName, global, layout, cacheable,
+		SecurityInsightUtils.updateInsight(this.insight.getUser(), projectId, existingRdbmsId, insightName, global, layout, cacheable,
 				cacheableMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if (description != null) {
 			admin.updateInsightDescription(existingRdbmsId, description);
-			SecurityInsightUtils.updateInsightDescription(projectId, existingRdbmsId, description);
+			SecurityInsightUtils.updateInsightDescription(this.insight.getUser(), projectId, existingRdbmsId, description);
 		}
 		if (tags != null) {
 			admin.updateInsightTags(existingRdbmsId, tags);
-			SecurityInsightUtils.updateInsightTags(projectId, existingRdbmsId, tags);
+			SecurityInsightUtils.updateInsightTags(this.insight.getUser(), projectId, existingRdbmsId, tags);
 		}
 		if (insightFrames != null && !insightFrames.isEmpty()) {
-			SecurityInsightUtils.updateInsightFrames(projectId, existingRdbmsId, insightFrames);
+			SecurityInsightUtils.updateInsightFrames(this.insight.getUser(), projectId, existingRdbmsId, insightFrames);
 		}
 		UserTrackingUtils.updateEngineUsage(queriedDatabaseIds, existingRdbmsId, projectId);
 	}

@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -87,17 +88,11 @@ public class CheckNetworkIdleReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Checks if the network activity for a specific Playwright session tab is idle.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("sessionId")) {
-			return "The id for the current session";
-		} else if (key.equals("tabId")) {
-			return "the tab id for the current session ";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Checks if the network activity for a specific Playwright session tab is idle.")
+				.key("quietMillis", key -> key.type(Integer.class).description(
+						"How many milliseconds the tab must go with no requests in flight and no network activity to count as idle; defaults to 500."))
+				.key("sessionId", "The id for the current session").key("tabId", "the tab id for the current session ");
 	}
 }

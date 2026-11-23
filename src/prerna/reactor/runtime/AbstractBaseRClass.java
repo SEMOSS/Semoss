@@ -65,7 +65,6 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ArrayUtilityMethods;
-import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
@@ -129,7 +128,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		RDataTable newTable = new RDataTable(this.rJavaTranslator, frameName);
 		ImportUtility.parseTableColumnsAndTypesToFlatTable(newTable.getMetaData(), colNames, colTypes, frameName);
 		this.nounMetaOutput.add(new NounMetadata(newTable, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
-		this.insight.setDataMaker(newTable);
+		this.insight.setCurrentFrame(newTable);
 	}
 
 	/**
@@ -229,7 +228,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 							+ gridFrame.getName() + "', "
 							+ "STRINGDECODE('charset=UTF-8 fieldDelimiter=\"\" fieldSeparator=\t null=\"NA\"')" + ");");
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write frame {} to {} for R", gridFrame.getName(), outputLocation, e);
 		}
 		this.rJavaTranslator.executeEmptyR("library(data.table);");
 		this.rJavaTranslator.executeEmptyR(RSyntaxHelper.getFReadSyntax(frameName, outputLocation, "\\t"));
@@ -345,7 +344,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			} catch (SemossPixelException e) {
 				throw e;
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to check the size of frame {}", dataframe.getName(), e);
 				throw new SemossPixelException(e.getMessage());
 			}
 
@@ -361,7 +360,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		// now we return the data
 		this.nounMetaOutput.add(new NounMetadata(table, PixelDataType.FRAME, PixelOperationType.FRAME));
 		if (replaceDefaultInsightFrame) {
-			this.insight.setDataMaker(table);
+			this.insight.setCurrentFrame(table);
 			// need to clean up variables if we are dropping the frame
 			VarStore varStore = this.insight.getVarStore();
 			Set<String> curReferences = varStore.getAllAliasForObjectReference(dataframe);
@@ -551,7 +550,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		if (overrideExistingTable) {
 			this.nounMetaOutput.add(new NounMetadata(frameToUse, PixelDataType.FRAME,
 					PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE));
-			this.insight.setDataMaker(frameToUse);
+			this.insight.setCurrentFrame(frameToUse);
 		} else {
 			this.nounMetaOutput.add(new NounMetadata(frameToUse, PixelDataType.FRAME));
 		}
@@ -613,7 +612,6 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 		if (this.dataframe instanceof RDataTable) {
 			String tableVarName = ((RDataTable) this.dataframe).getName();
 			if (frameName.equals(tableVarName)) {
-				this.dataframe.updateDataId();
 				this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME,
 						PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE));
 				return true;
@@ -688,7 +686,7 @@ public abstract class AbstractBaseRClass extends AbstractJavaReactorBaseClass {
 			graphLocs.add(wd);
 			storeVariable(R_GRAQH_FOLDERS, new NounMetadata(graphLocs, PixelDataType.CONST_STRING));
 		} catch (Exception ex) {
-			classLogger.error(Constants.STACKTRACE, ex);
+			classLogger.error("Failed to synchronize the tinker frame to R as an iGraph", ex);
 			System.out.println(
 					"ERROR ::: Could not convert TinkerFrame into iGraph.\nPlease make sure iGraph package is installed.");
 		} finally {

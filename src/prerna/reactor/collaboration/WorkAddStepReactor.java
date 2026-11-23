@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.collaboration.WorkTaskUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkAddStep(text=["..."], taskId=["..."], topicId=["..."], threadId=["..."], due=["2026-11-07"], assigneeId=["..."]);
@@ -61,23 +62,16 @@ public class WorkAddStepReactor extends AbstractWorkTaskReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Adds a to-do to the owner's list when they ask (\"add X to my list\", \"remind me to Y by "
-				+ "Friday\"): under a work item when it serves one, otherwise loose under a topic. A step for "
-				+ "someone else (assigneeId) is something the owner is waiting on. In a thread's chat it is linked "
-				+ "to that thread";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		switch (key) {
-		case TEXT: return "One short imperative line, e.g. Send Kira the revised budget";
-		case TASK_ID: return "The work item it serves, from ListMyWork";
-		case TOPIC_ID: return "The topic it belongs to when it has no work item";
-		case THREAD_ID: return "The thread it came from; defaults to this chat's thread";
-		case DUE: return "YYYY-MM-DD";
-		case ASSIGNEE_ID: return "Person id when someone else has to do it; leave out for the owner";
-		default: return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Adds a to-do to the owner's list when they ask (\"add X to my list\", \"remind me to Y by "
+						+ "Friday\"): under a work item when it serves one, otherwise loose under a topic. A step for "
+						+ "someone else (assigneeId) is something the owner is waiting on. In a thread's chat it is linked "
+						+ "to that thread")
+				.key(TEXT, "One short imperative line, e.g. Send Kira the revised budget")
+				.key(TASK_ID, "The work item it serves, from ListMyWork")
+				.key(TOPIC_ID, "The topic it belongs to when it has no work item")
+				.key(THREAD_ID, "The thread it came from; defaults to this chat's thread").key(DUE, "YYYY-MM-DD")
+				.key(ASSIGNEE_ID, "Person id when someone else has to do it; leave out for the owner");
 	}
 }

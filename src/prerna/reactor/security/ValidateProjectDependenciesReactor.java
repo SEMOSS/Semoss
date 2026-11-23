@@ -41,6 +41,7 @@ import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -48,12 +49,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 public class ValidateProjectDependenciesReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ValidateProjectDependenciesReactor.class);
-	
+
 	public ValidateProjectDependenciesReactor() {
-		this.keysToGet = new String[]{ ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] {1};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
@@ -61,11 +62,12 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if(!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			// you don't have access
-			throw new IllegalArgumentException("Project/App does not exist or user does not have access to the project");
+			throw new IllegalArgumentException(
+					"Project/App does not exist or user does not have access to the project");
 		}
-		
+
 		List<Map<String, Object>> projectDependencies = SecurityProjectUtils.getProjectDependencies(projectId, true);
 		Map<String, Object> dependencyMap = new HashMap<>();
 		for (Map<String, Object> dep : projectDependencies) {
@@ -75,19 +77,20 @@ public class ValidateProjectDependenciesReactor extends AbstractReactor {
 			boolean canView = false;
 			if (engineType == null || IEngine.CATALOG_TYPE.valueOf(engineType) != IEngine.CATALOG_TYPE.PROJECT) {
 				canView = SecurityEngineUtils.userCanViewEngine(user, engineId);
-			} else {	
+			} else {
 				canView = SecurityProjectUtils.userCanViewProject(user, engineId);
 			}
 			dependencyMap.put(engineId, canView);
 		}
-		
+
 		NounMetadata noun = new NounMetadata(dependencyMap, PixelDataType.MAP);
 		return noun;
 	}
-	
+
 	@Override
-	public String getReactorDescription() {
-		return "Return true if the user has access to all engine dependencies listed in this project";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Return true if the user has access to all engine dependencies listed in this project");
 	}
-	
+
 }

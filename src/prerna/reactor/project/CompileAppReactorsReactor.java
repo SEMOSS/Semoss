@@ -42,6 +42,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -152,20 +153,18 @@ public class CompileAppReactorsReactor extends AbstractReactor {
 		}
 
 		// if we are doing reactors on socket side
-		boolean executeOnSocket = false;
-		if (Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) != null) {
-			executeOnSocket = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION) + "");
-		}
+		boolean executeOnSocket = "SOCKET"
+				.equalsIgnoreCase(Utility.getDIHelperProperty(Settings.CUSTOM_REACTOR_EXECUTION));
 
 		if (executeOnSocket && this.insight.getUser() != null
-				&& this.insight.getUser().getPythonSocketClient(false) != null) {
+				&& this.insight.getUser().getJavaSocketClient(false) != null) {
 			PayloadStruct ps = new PayloadStruct();
 			ps.operation = PayloadStruct.OPERATION.PROJECT;
 			ps.projectId = insight.getContextProjectId();
 			ps.methodName = "clearClassCache";
 			ps.hasReturn = false;
 
-			this.insight.getUser().getPythonSocketClient(false).executeCommand(ps);
+			this.insight.getUser().getJavaSocketClient(false).executeCommand(ps);
 		}
 	}
 
@@ -189,21 +188,15 @@ public class CompileAppReactorsReactor extends AbstractReactor {
 		try {
 			return FileUtils.readFileToString(compiledClasses, Charset.forName("UTF-8"));
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not read the compiled classes file {}", compiledClasses, e);
 			return e.getMessage();
 		}
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Compile the custom reactors associcated with an app";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.RELEASE.getKey())) {
-			return "If release=true, the change will be persisted to cloud storage and propagate to other containers";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Compile the custom reactors associcated with an app").key(
+				ReactorKeysEnum.RELEASE,
+				"If release=true, the change will be persisted to cloud storage and propagate to other containers");
 	}
 }

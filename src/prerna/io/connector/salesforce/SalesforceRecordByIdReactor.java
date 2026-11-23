@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -71,18 +72,11 @@ public class SalesforceRecordByIdReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Fetches a single Salesforce record by object API name and record Id.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SOBJECT_NAME.equals(key)) {
-			return "Required Salesforce object API name (for example, Account).";
-		} else if (RECORD_ID.equals(key)) {
-			return "Required Salesforce record Id to retrieve.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Fetches a single Salesforce record by object API name and record Id.")
+				.key(SOBJECT_NAME, "Required Salesforce object API name (for example, Account).")
+				.key(RECORD_ID, "Required Salesforce record Id to retrieve.");
 	}
 
 }

@@ -30,6 +30,7 @@ package prerna.reactor.agent.admin;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -62,19 +63,12 @@ public class AdminGetAllAgentRunsForRoomReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admins only. Returns every run a user has in a room, newest first, each with its model's name.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.ROOM_ID.getKey().equals(key)) {
-			return "The room whose runs are returned.";
-		} else if (USER_ID_KEY.equals(key)) {
-			return "The user the room belongs to; rooms are kept per user.";
-		} else if (USER_TYPE_KEY.equals(key)) {
-			return "The login type of the user, such as NATIVE. Runs that store no login type match the user id alone.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Admin Only: Returns every run a user has in a room, newest first, each with its model's name.")
+				.key(ReactorKeysEnum.ROOM_ID, "The room whose runs are returned.")
+				.key(USER_ID_KEY, "The user the room belongs to; rooms are kept per user.").key(USER_TYPE_KEY,
+						"The login type of the user, such as NATIVE. Runs that store no login type match the user id alone.");
 	}
 }

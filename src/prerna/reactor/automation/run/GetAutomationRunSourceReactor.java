@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.project.AutomationProjectService;
@@ -42,8 +43,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Returns the immutable implementation snapshot executed for one Automation
- * run node.
+ * Returns the immutable implementation snapshot executed for one Automation run
+ * node.
  *
  * <p>
  * Pixel:
@@ -63,8 +64,8 @@ public class GetAutomationRunSourceReactor extends AbstractReactor {
 	 * Configures the project, run, and node inputs accepted by this reactor.
 	 *
 	 * <p>
-	 * Project is optional only for user-scoped inline runs. Run and node identifiers
-	 * are always required.
+	 * Project is optional only for user-scoped inline runs. Run and node
+	 * identifiers are always required.
 	 */
 	public GetAutomationRunSourceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY, NODE_ID_KEY };
@@ -79,8 +80,8 @@ public class GetAutomationRunSourceReactor extends AbstractReactor {
 	 *         implementation descriptor
 	 * @throws IllegalArgumentException when an identifier is missing, inaccessible,
 	 *                                  or absent from the executed graph
-	 * @throws IllegalStateException    when the persisted run snapshot is missing or
-	 *                                  invalid
+	 * @throws IllegalStateException    when the persisted run snapshot is missing
+	 *                                  or invalid
 	 */
 	@Override
 	public NounMetadata execute() {
@@ -116,8 +117,8 @@ public class GetAutomationRunSourceReactor extends AbstractReactor {
 	 * @param nodeSources        hash-verified Python sources captured for the run
 	 * @return source or typed Java implementation descriptor
 	 * @throws IllegalArgumentException when the requested node is absent
-	 * @throws IllegalStateException    when the definition or requested node snapshot
-	 *                                  is invalid
+	 * @throws IllegalStateException    when the definition or requested node
+	 *                                  snapshot is invalid
 	 */
 	static Map<String, Object> buildSourceView(String runId, String nodeId, String definitionSnapshot,
 			String definitionHash, Map<String, String> nodeSources) {
@@ -258,25 +259,11 @@ public class GetAutomationRunSourceReactor extends AbstractReactor {
 		return value == null || value.toString().isBlank() ? null : value.toString();
 	}
 
-	/**
-	 * {@inheritDoc}
-	 */
 	@Override
-	public String getReactorDescription() {
-		return "Returns the immutable implementation snapshot executed for one Automation run node.";
-	}
-
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RUN_ID_KEY.equals(key)) {
-			return "Run identifier returned when the automation was triggered.";
-		}
-		if (NODE_ID_KEY.equals(key)) {
-			return "Canonical node identifier from the executed automation graph.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Returns the immutable implementation snapshot executed for one Automation run node.")
+				.key(RUN_ID_KEY, "Run identifier returned when the automation was triggered.")
+				.key(NODE_ID_KEY, "Canonical node identifier from the executed automation graph.");
 	}
 }

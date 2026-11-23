@@ -29,12 +29,15 @@ package prerna.io.connector.mail;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
 import prerna.io.connector.ConnectorOutput;
 import prerna.io.connector.ConnectorPage;
+import prerna.query.parsers.MailSearchParser;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -53,8 +56,8 @@ public abstract class AbstractListMailReactor extends AbstractMailReactor {
 	/** The most a caller can ask for, so a pixel cannot pull a whole mailbox. */
 	private static final int MAX_LIMIT = 100;
 
-	private static final String[] KEYS = { FOLDER, LIMIT, OFFSET, SUBJECT, FROM, UNREAD_ONLY, SINCE_DAYS, INCLUDE_BODY,
-			MAX_BODY_CHARS, CONVERSATION_ID };
+	private static final String[] KEYS = { FOLDER, LIMIT, OFFSET, SEARCH, SUBJECT, FROM, UNREAD_ONLY, SINCE_DAYS,
+			INCLUDE_BODY, MAX_BODY_CHARS, CONVERSATION_ID };
 
 	/**
 	 * What to look for in a mailbox.
@@ -62,15 +65,16 @@ public abstract class AbstractListMailReactor extends AbstractMailReactor {
 	 * @param folder         the folder to read, by well known name, name or id
 	 * @param limit          how many messages the page holds
 	 * @param offset         how many messages to skip
-	 * @param subject        text the subject has to contain, or null
-	 * @param from           text the sender has to contain, or null
+	 * @param terms          what the messages have to contain: the search as typed,
+	 *                       and the words the subject and the sender have to
+	 *                       contain, empty when nothing is searched for
 	 * @param unreadOnly     whether to return only messages nobody has opened
 	 * @param since          the oldest message to return, or null
 	 * @param includeBody    whether the bodies come back
 	 * @param conversationId the thread to read from every folder instead, or null
 	 */
-	public record ListMailRequest(String folder, int limit, int offset, String subject, String from, boolean unreadOnly,
-			Instant since, boolean includeBody, String conversationId) {
+	public record ListMailRequest(String folder, int limit, int offset, List<MailSearchParser.Term> terms,
+			boolean unreadOnly, Instant since, boolean includeBody, String conversationId) {
 
 		/**
 		 * @return how many messages, counted from the first, a provider that cannot
@@ -84,7 +88,7 @@ public abstract class AbstractListMailReactor extends AbstractMailReactor {
 		 * @return whether the request filters by text
 		 */
 		public boolean searches() {
-			return this.subject != null || this.from != null;
+			return !this.terms.isEmpty();
 		}
 	}
 
@@ -113,8 +117,11 @@ public abstract class AbstractListMailReactor extends AbstractMailReactor {
 			}
 			String folder = readString(FOLDER);
 			boolean includeBody = readBoolean(INCLUDE_BODY, true);
+			List<MailSearchParser.Term> terms = new ArrayList<>(MailSearchParser.parse(readString(SEARCH)));
+			terms.addAll(MailSearchParser.parse(MailSearchParser.Field.SUBJECT, readString(SUBJECT)));
+			terms.addAll(MailSearchParser.parse(MailSearchParser.Field.FROM, readString(FROM)));
 			ListMailRequest request = new ListMailRequest(folder == null ? DEFAULT_FOLDER : folder,
-					readCount(LIMIT, DEFAULT_LIMIT, MAX_LIMIT), readOffset(), readString(SUBJECT), readString(FROM),
+					readCount(LIMIT, DEFAULT_LIMIT, MAX_LIMIT), readOffset(), List.copyOf(terms),
 					readBoolean(UNREAD_ONLY, false),
 					sinceDays == null ? null : Instant.now().minus(sinceDays, ChronoUnit.DAYS), includeBody,
 					readString(CONVERSATION_ID));
@@ -159,10 +166,19 @@ public abstract class AbstractListMailReactor extends AbstractMailReactor {
 		case LIMIT:
 			return "Optional number of messages to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
 					+ MAX_LIMIT + ".";
+		case SEARCH:
+			return "Optional search, as a person types it in Outlook or Gmail. Words match the sender, subject or "
+					+ "body; from:, to:, cc:, subject: and body: narrow the word or \"quoted phrase\" after them to "
+					+ "that part, as in from:ada subject:\"budget report\" invoice. Every word has to match, and a "
+					+ "leading minus, as in -draft or -from:ada, asks for mail without it. The mailbox's own "
+					+ "operators pass through, such as received>=2026-10-01 or hasattachment:true in Outlook and "
+					+ "after:2026/10/01 or label:\"Client X\" in Gmail; any other name before a colon is searched "
+					+ "for as a word. Gmail has no body: and searches the whole email for it.";
 		case SUBJECT:
-			return "Optional text the subject has to contain.";
+			return "Optional words the subject has to contain, each of them; a \"quoted phrase\" has to appear as "
+					+ "typed.";
 		case FROM:
-			return "Optional text the sender has to contain.";
+			return "Optional words the sender's name or address has to contain.";
 		case UNREAD_ONLY:
 			return "Optional boolean to return only messages nobody has opened. Defaults to false.";
 		case SINCE_DAYS:
@@ -172,8 +188,8 @@ public abstract class AbstractListMailReactor extends AbstractMailReactor {
 		case CONVERSATION_ID:
 			return "Optional conversationId of a listed message, to read that whole thread from every folder, "
 					+ "including sent replies, instead of one folder. Each message then also has uniqueBody, its "
-					+ "text without the earlier messages it quotes. The folder, subject, from, unreadOnly and "
-					+ "sinceDays filters do not apply to it.";
+					+ "text without the earlier messages it quotes. The folder, search, subject, from, unreadOnly "
+					+ "and sinceDays filters do not apply to it.";
 		default:
 			return super.describeKey(key);
 		}

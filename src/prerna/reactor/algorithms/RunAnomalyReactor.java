@@ -32,6 +32,7 @@ import java.util.List;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -137,24 +138,20 @@ public class RunAnomalyReactor extends AbstractRFrameReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(TIME_COLUMN)) {
-			return "The column containing time stamps; can be date, string, or numeric representation";
-		} else if (key.equals(SERIES_COLUMN)) {
-			return "The column containing a numeric series with potential anomalies.";
-		} else if (key.equals(AGG_FUNC)) {
-			return "The function used to aggregate the series when there are duplicated time stamps";
-		} else if (key.equals(MAX_ANOMS)) {
-			return "The maximum proportion of the series of counts that can be considered an anomaly, must be between 0 and 1";
-		} else if (key.equals(DIRECTION)) {
-			return "The direction in which anomalies can occur, includes POSITIVE, NEGATIVE, and BOTH";
-		} else if (key.equals(ALPHA)) {
-			return "The level of statistical significance, must be between 0 and 1, but should generally be less than 0.1";
-		} else if (key.equals(PERIOD)) {
-			return "The number of time stamps per natural cycle; anomalies are sensitive to this input";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Finds anomalies in a numeric series of the current R frame, aggregating the series per time stamp, and adds two number columns to the frame: the aggregated series and its anomalous values, 0 where there is none.")
+				.key(TIME_COLUMN, "The column containing time stamps; can be date, string, or numeric representation")
+				.key(SERIES_COLUMN, "The column containing a numeric series with potential anomalies.")
+				.key(AGG_FUNC, "The function used to aggregate the series when there are duplicated time stamps")
+				.key(MAX_ANOMS, key -> key.type(Double.class).description(
+						"The maximum proportion of the series of counts that can be considered an anomaly, must be between 0 and 1"))
+				.key(DIRECTION,
+						"The direction in which anomalies can occur: positive, negative or both, in lower case. Any other value is treated as both.")
+				.key(ALPHA, key -> key.type(Double.class).description(
+						"The level of statistical significance, must be between 0 and 1, but should generally be less than 0.1"))
+				.key(PERIOD, key -> key.type(Integer.class).description(
+						"The number of time stamps per natural cycle; anomalies are sensitive to this input"));
 	}
 
 	@Override

@@ -60,6 +60,7 @@ import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.engine.impl.pipeline.EngineProxyFactory;
 import prerna.engine.impl.pipeline.GuardrailHitLimit;
 import prerna.logging.IgnoreEngineLogging;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.interceptor.GenericGuardrailInputReactor;
 import prerna.reactor.interceptor.GenericGuardrailOutputReactor;
 import prerna.reactor.interceptor.PipelineReactorUtils;
@@ -114,7 +115,7 @@ public class GetEngineGuardrailConfigReactor extends AbstractEngineGuardrailConf
 		User user = this.insight.getUser();
 		IEngine engine = loadEditableEngine(engineId);
 
-		String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
+		String pipelineValue = engine.getPipelineFile();
 		boolean configured = pipelineValue != null && !pipelineValue.trim().isEmpty();
 
 		Map<String, Object> response = new HashMap<>();
@@ -419,15 +420,9 @@ public class GetEngineGuardrailConfigReactor extends AbstractEngineGuardrailConf
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the guardrail pipeline configuration (pipeline.json contents) for an engine of any type but a guardrail, along with name and type details for every referenced guardrail engine and the list of the engine's methods a pipeline can intercept. Requires edit access to the engine.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "The id of the engine";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the guardrail pipeline configuration (pipeline.json contents) for an engine of any type but a guardrail, along with name and type details for every referenced guardrail engine and the list of the engine's methods a pipeline can intercept. Requires edit access to the engine.")
+				.key(ReactorKeysEnum.ENGINE, "The id of the engine");
 	}
 }

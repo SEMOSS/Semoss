@@ -28,6 +28,7 @@
 package prerna.tcp;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -41,15 +42,15 @@ public class PayloadStruct implements Serializable {
 
 	public enum OPERATION {
 		R, PYTHON, NODE, CHROME, ECHO, ENGINE, REACTOR, INSIGHT, PROJECT, CMD, STDOUT, STDERR, STRUCTURED_STREAM,
-		CANCELLED, LOG
+		CANCELLED, LOG, CHANGES
 	};
 
-	public OPERATION operation = OPERATION.R; // setting default to R
+	public OPERATION operation = OPERATION.R;
 	public String methodName = "method";
 	public Object[] payload = null;
-	public Class[] payloadClasses = null;
+	public Class<?>[] payloadClasses = null;
 
-	// this is because python cant marshal java classes
+	// this is because Python can't marshal java classes
 	public String[] payloadClassNames = null;
 	public String engineType = null;
 
@@ -60,7 +61,7 @@ public class PayloadStruct implements Serializable {
 	public boolean interim = false;
 
 	// this is a little bit of a complex logic
-	// the idea here is say you hve something that is not serializable
+	// the idea here is say you have something that is not serializable
 	// you can keep it on that end and then work it through that
 	public String[] inputAlias = null; // this should be the same size as payload
 	public String aliasReturn = null;
@@ -94,12 +95,25 @@ public class PayloadStruct implements Serializable {
 
 	/**
 	 * When true, the python server must NOT install the per-execution cancel trace
-	 * (sys.settrace) for this command. Engine-owned python processes never surface
-	 * their jobId / insightId to the user, so their executions can never be
-	 * cancelled anyway - skipping the trace avoids its (significant) overhead on
-	 * import-heavy init / ask scripts.
+	 * (sys.settrace) for this command, which avoids the trace's (significant)
+	 * overhead on import-heavy init / ask scripts. Engine-owned python processes
+	 * set it. A cancelled job's execution still stops at the next chunk it streams
+	 * through smss_stream.
 	 */
 	public boolean disableCancelTrace = false;
+
+	/**
+	 * How long the caller waits for python to answer, when that is shorter than the
+	 * socket client's maximum wait. Transient, so it stays on the Java side and is
+	 * never sent to the python server.
+	 */
+	public transient Duration maxWait = null;
+
+	/**
+	 * The error the caller gets when python does not answer within
+	 * {@link #maxWait}. Transient, so it stays on the Java side.
+	 */
+	public transient String maxWaitMessage = null;
 
 	// set the session id
 	public String sessionId = null;
@@ -202,6 +216,30 @@ public class PayloadStruct implements Serializable {
 		this.responseLock.lock();
 		try {
 			this.responseReady.signalAll();
+		} finally {
+			this.responseLock.unlock();
+		}
+	}
+
+	/**
+	 * Signals any thread waiting in {@link #awaitResponse}, giving up when the
+	 * response lock stays held for longer than the timeout. A thread that holds the
+	 * lock is not waiting, so it sees the change behind the signal on its next
+	 * check instead.
+	 *
+	 * @param timeout how long to wait for the lock
+	 * @param unit    the unit of the timeout
+	 * @return true when the signal was sent
+	 * @throws InterruptedException if the thread is interrupted while waiting for
+	 *                              the lock
+	 */
+	public boolean trySignalResponse(long timeout, TimeUnit unit) throws InterruptedException {
+		if (!this.responseLock.tryLock(timeout, unit)) {
+			return false;
+		}
+		try {
+			this.responseReady.signalAll();
+			return true;
 		} finally {
 			this.responseLock.unlock();
 		}

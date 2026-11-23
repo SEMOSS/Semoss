@@ -34,6 +34,7 @@ import prerna.auth.User;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.runtime.AgentCodeExecutionContext;
 import prerna.sablecc2.om.PixelDataType;
@@ -64,10 +65,7 @@ public class RemoveUserRoomReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 		String roomId = this.keyValue.get(this.keysToGet[0]);
 		boolean result = ModelInferenceLogsUtils.doSetRoomToInactive(user.getPrimaryLoginToken().getId(), roomId);
 		if (result) {
@@ -78,11 +76,10 @@ public class RemoveUserRoomReactor extends AbstractReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals("roomId")) {
-			return "The room or conversation ID for a given chat app";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Removes one of the calling user's rooms from their conversations, and clears the room's cached copy and the agent code state it left in this session. Returns true when the update runs without error.")
+				.key("roomId", "The room or conversation ID for a given chat app");
 	}
 
 	@Override

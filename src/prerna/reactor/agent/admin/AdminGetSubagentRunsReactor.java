@@ -30,6 +30,7 @@ package prerna.reactor.agent.admin;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -56,15 +57,9 @@ public class AdminGetSubagentRunsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admins only. Returns the direct subagent runs of any user's agent run, newest first, each with its model's name.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RUN_ID_KEY.equals(key)) {
-			return "The parent run whose direct subagent runs are returned.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Returns the direct subagent runs of any user's agent run, newest first, each with its model's name.")
+				.key(RUN_ID_KEY, "The parent run whose direct subagent runs are returned.");
 	}
 }

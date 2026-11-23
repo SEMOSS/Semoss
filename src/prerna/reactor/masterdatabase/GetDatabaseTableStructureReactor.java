@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -81,33 +82,27 @@ public class GetDatabaseTableStructureReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
-				Returns the complete structure of a database, including all concepts and their properties.
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"""
+								Returns the complete structure of a database, including all concepts and their properties.
 
-				Each result row contains:
-				  - PARENTSEMOSSNAME   : Logical table name (RDBMS) or vertex name (Graph)
-				  - SEMOSSNAME         : Logical column name (RDBMS) or property name (Graph)
-				  - PROPERTY_TYPE      : Data type of the column or property
-				  - PK                 : Whether this row represents a graph vertex itself, rather than a property on it (only relevant for rdf/graph dbs)
-				  - PHYSICALNAME       : Physical column/property name as stored in the database
-				  - PARENTPHYSICALNAME : Physical table/vertex name as stored in the database
+								Each result row contains:
+								  - PARENTSEMOSSNAME   : Logical table name (RDBMS) or vertex name (Graph)
+								  - SEMOSSNAME         : Logical column name (RDBMS) or property name (Graph)
+								  - PROPERTY_TYPE      : Data type of the column or property
+								  - PK                 : Whether this row represents a graph vertex itself, rather than a property on it (only relevant for rdf/graph dbs)
+								  - PHYSICALNAME       : Physical column/property name as stored in the database
+								  - PARENTPHYSICALNAME : Physical table/vertex name as stored in the database
 
-				Notes:
-				  - Logical names (PARENTSEMOSSNAME, SEMOSSNAME) reflect the schema as modeled in SEMOSS
-				  - Physical names (PARENTPHYSICALNAME, PHYSICALNAME) reflect the actual database values
-				  - For Graph: a row where PK is true and SEMOSSNAME is empty represents the vertex itself, \
-				not a property
-				  - Results are ordered by PARENTSEMOSSNAME, PK, then SEMOSSNAME
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+								Notes:
+								  - Logical names (PARENTSEMOSSNAME, SEMOSSNAME) reflect the schema as modeled in SEMOSS
+								  - Physical names (PARENTPHYSICALNAME, PHYSICALNAME) reflect the actual database values
+								  - For Graph: a row where PK is true and SEMOSSNAME is empty represents the vertex itself, \
+								not a property
+								  - Results are ordered by PARENTSEMOSSNAME, PK, then SEMOSSNAME
+								""")
+				.key(ReactorKeysEnum.DATABASE, "The database id");
 	}
 }

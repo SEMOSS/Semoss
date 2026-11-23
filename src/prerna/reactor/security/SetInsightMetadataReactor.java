@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -52,10 +53,6 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 		String projectId = this.getProject();
 		String insightId = this.getRdbmsId();
 
-		if (!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, insightId)) {
-			throw new IllegalArgumentException("Insight does not exist or user does not have access to edit");
-		}
-
 		Map<String, Object> metadata = getMetaMap();
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityInsightUtils.getAllMetakeys();
@@ -63,7 +60,7 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
 
-		SecurityInsightUtils.updateInsightMetadata(projectId, insightId, metadata);
+		SecurityInsightUtils.updateInsightMetadata(this.insight.getUser(), projectId, insightId, metadata);
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the insight"));
@@ -85,17 +82,10 @@ public class SetInsightMetadataReactor extends AbstractInsightReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Define metadata for an insight";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(META)) {
-			return "Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the insight. The list of values will determine the order that is defined for field";
-		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
-			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Define metadata for an insight").key(META,
+				"Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the insight. The list of values will determine the order that is defined for field")
+				.key(ReactorKeysEnum.JSON_CLEANUP,
+						"Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.");
 	}
 }

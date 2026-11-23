@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -101,22 +102,15 @@ public class MicrosoftOneDriveCreateFolderReactor extends AbstractMicrosoftOneDr
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Create a folder in OneDrive, in the signed in user's own drive or in a folder shared with them.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.NAME.getKey())) {
-			return "Name of the folder to create.";
-		} else if (key.equals(ITEM_ID)) {
-			return "Optional id of the folder to create inside. The drive root is used when omitted.";
-		} else if (key.equals(PATH)) {
-			return "Optional path of the folder to create inside, relative to the drive root, or relative to the folder the item id names when both are given.";
-		} else if (key.equals(CONFLICT_BEHAVIOR)) {
-			return "Optional behavior when a folder of the same name is already there: fail, rename or replace. Defaults to fail, which leaves the existing folder and its contents alone.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Create a folder in OneDrive, in the signed in user's own drive or in a folder shared with them.")
+				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION).key(ReactorKeysEnum.NAME, "Name of the folder to create.")
+				.key(ITEM_ID, "Optional id of the folder to create inside. The drive root is used when omitted.")
+				.key(PATH,
+						"Optional path of the folder to create inside, relative to the drive root, or relative to the folder the item id names when both are given.")
+				.key(CONFLICT_BEHAVIOR,
+						"Optional behavior when a folder of the same name is already there: fail, rename or replace. Defaults to fail, which leaves the existing folder and its contents alone.");
 	}
 
 	@Override

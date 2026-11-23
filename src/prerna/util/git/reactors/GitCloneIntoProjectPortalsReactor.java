@@ -40,6 +40,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
@@ -176,23 +177,14 @@ public class GitCloneIntoProjectPortalsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Clones portal files from a public GitHub subdirectory to an existing project";
-	}
-
-	@Override
-	public String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "Project id to clone portal files to";
-		} else if (key.equals(REPO)) {
-			return "The HTTPS URL of the GitHub repository to clone portal files from";
-		} else if (key.equals(BRANCH)) {
-			return "The branch of the GitHub repository to clone portal files from";
-		} else if (key.equals(SUBDIRECTORY)) {
-			return "The subdirectory of the GitHub repository to clone portal files from";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Clones portal files from a public GitHub subdirectory to an existing project")
+				.key(ReactorKeysEnum.PROJECT, "Project id to clone portal files to")
+				.key(REPO, "The HTTPS URL of the GitHub repository to clone portal files from")
+				.key(BRANCH, "The branch of the GitHub repository to clone portal files from")
+				.key(SUBDIRECTORY, "The subdirectory of the GitHub repository to clone portal files from")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while saving the files within the git repository for the project");
 	}
 }

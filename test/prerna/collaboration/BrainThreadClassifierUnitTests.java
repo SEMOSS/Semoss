@@ -1,0 +1,118 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.collaboration;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.junit.jupiter.api.Test;
+
+/** Who the newest message of a thread is addressed to, as the classifier's FYI rule reads it. */
+class BrainThreadClassifierUnitTests {
+
+	private static final BrainThreadClassifier.Self OWNER = new BrainThreadClassifier.Self("p-owner", "Owner",
+			Set.of("owner@test.com"));
+	private static final Map<String, Object> NOBODY = Map.of("to", List.of(), "cc", List.of());
+
+	@Test
+	void aTeamsMessageIsAddressedToTheOwnerThoughItsLiveReadCarriesNoRecipients() {
+		assertEquals("to", BrainThreadClassifier.recipientRole(OWNER, NOBODY, "teams"));
+	}
+
+	@Test
+	void mailNamesTheOwnerOnToOrCcOrNotAtAll() {
+		List<Map<String, Object>> owner = List.of(Map.of("address", "owner@test.com"));
+		assertEquals("to", BrainThreadClassifier.recipientRole(OWNER, Map.of("to", owner), "email"));
+		assertEquals("cc", BrainThreadClassifier.recipientRole(OWNER, Map.of("to", List.of(), "cc", owner), "email"));
+		assertEquals("none", BrainThreadClassifier.recipientRole(OWNER, NOBODY, "email"));
+	}
+
+	@Test
+	void aColleagueWithTheOwnersNameIsNotTheOwner() {
+		List<Map<String, Object>> namesake = List.of(Map.of("name", "Owner", "address", "owner@elsewhere.com"));
+		assertEquals("none",
+				BrainThreadClassifier.recipientRole(OWNER, Map.of("to", namesake, "cc", namesake), "email"));
+	}
+
+	@Test
+	void aModelReadsEarlierMessagesUnlessItsWindowSaysOtherwise() {
+		// no setting: the newest message and up to nine before it, inside a fixed budget
+		BrainThreadClassifier.Window standard = BrainThreadClassifier.window((Object) null);
+		assertEquals(10, standard.messages());
+		assertEquals(12000, standard.budget());
+		assertTrue(standard.earlier());
+		// 0: the newest message alone
+		assertFalse(BrainThreadClassifier.window((Object) 0).earlier());
+		// a context window in tokens: half of it, at three characters a token
+		BrainThreadClassifier.Window wide = BrainThreadClassifier.window((Object) 16000);
+		assertEquals(24000, wide.budget());
+		assertTrue(wide.earlier());
+	}
+
+	@Test
+	void aSubjectNamesAServiceNowTicketAndOnlyAWholeWordClosesIt() {
+		assertEquals("INC-20774", BrainThreadClassifier.ticket("Ticket INC-20774 Closed"));
+		assertEquals("INC0012345", BrainThreadClassifier.ticket("Incident INC0012345 assigned to you"));
+		assertEquals("REQ0012345", BrainThreadClassifier.ticket("REQ0012345: laptop request"));
+		assertEquals("CHG0012345", BrainThreadClassifier.ticket("Approval needed for CHG0012345"));
+		assertEquals(null, BrainThreadClassifier.ticket("Lunch on Friday"));
+		assertTrue(BrainThreadClassifier.ticketOver("Ticket INC0012345 Closed"));
+		assertTrue(BrainThreadClassifier.ticketOver("CHG0012345 approved."));
+		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 unapproved vendor list"));
+		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 re-closed review"));
+		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 prepaid cards"));
+	}
+
+	/** A sender's domain that only resembles a known organisation is named; a known or unrelated one is not. */
+	@Test
+	void aDomainThatOnlyResemblesAKnownOrganisationIsFlagged() {
+		Set<String> known = Set.of("castellanbank.example", "northpine.example", "acme.example");
+		assertEquals("castellanbank.example",
+				BrainOrgDomains.lookalike("castellanbank-payments.example", known));
+		assertEquals("northpine.example", BrainOrgDomains.lookalike("northpine-analytics.example", known));
+		assertEquals("castellanbank.example", BrainOrgDomains.lookalike("castellanbank.co", known));
+		assertEquals("castellanbank.example", BrainOrgDomains.lookalike("castelIanbank.example", known));
+		assertEquals("northpine.example", BrainOrgDomains.lookalike("mail.northplne.example", known));
+		// the organisation itself, a subdomain of it, an unrelated one, and a short name that only looks close
+		assertEquals(null, BrainOrgDomains.lookalike("castellanbank.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike("mail.northpine.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike("tidewaterlogistics.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike("acne.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike(null, known));
+		// a verified subdomain of the organisation lends its own label to nobody
+		Set<String> withSub = Set.of("northpine.example", "partners.northpine.example");
+		assertEquals(null, BrainOrgDomains.lookalike("winrate-partners.example", withSub));
+		assertEquals(null, BrainOrgDomains.lookalike("partners.northpine.example", withSub));
+		assertEquals("northpine.example", BrainOrgDomains.lookalike("northpine-sales.example", withSub));
+	}
+}

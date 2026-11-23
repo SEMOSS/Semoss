@@ -36,6 +36,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.engine.impl.owl.AbstractOwlCreator.OwlColumn;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -87,8 +88,9 @@ public class AdminGetSystemDatabaseSchemaReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admin reactor that returns the table, column, and datatype of the OWL schema for a system default database";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Admin Only: Returns the table, column, and datatype of the OWL schema for a system default database");
 	}
 
 }

@@ -82,12 +82,12 @@ public final class ResourceAuditReadService {
 	private static final Set<AuditEventType> PROJECT_EVENTS = EnumSet.of(AuditEventType.PROJECT_CREATE,
 			AuditEventType.PROJECT_UPDATE, AuditEventType.PROJECT_RENAME, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE,
 			AuditEventType.PROJECT_GLOBAL_UPDATE, AuditEventType.PROJECT_DISCOVERABLE_UPDATE,
-			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_METADATA_UPDATE,
-			AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_DELETE, AuditEventType.PROJECT_UPLOAD,
-			AuditEventType.PROJECT_REPLACE, AuditEventType.PROJECT_EXPORT, AuditEventType.WORKSPACE_CREATE,
-			AuditEventType.WORKSPACE_UPDATE, AuditEventType.WORKSPACE_DELETE, AuditEventType.SKILL_CREATE,
-			AuditEventType.SKILL_UPDATE, AuditEventType.SKILL_DELETE, AuditEventType.AUTOMATION_CREATE,
-			AuditEventType.AUTOMATION_UPDATE);
+			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE,
+			AuditEventType.PROJECT_METADATA_UPDATE, AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_DELETE,
+			AuditEventType.PROJECT_UPLOAD, AuditEventType.PROJECT_REPLACE, AuditEventType.PROJECT_EXPORT,
+			AuditEventType.WORKSPACE_CREATE, AuditEventType.WORKSPACE_UPDATE, AuditEventType.WORKSPACE_DELETE,
+			AuditEventType.SKILL_CREATE, AuditEventType.SKILL_UPDATE, AuditEventType.SKILL_DELETE,
+			AuditEventType.AUTOMATION_CREATE, AuditEventType.AUTOMATION_UPDATE);
 	/**
 	 * A usage limit set, changed or removed on a model; its owners set them, so
 	 * they see the limits
@@ -118,14 +118,16 @@ public final class ResourceAuditReadService {
 	private static final Set<AuditEventType> SETTING_DETAIL_EVENTS = EnumSet.of(AuditEventType.PROJECT_UPDATE,
 			AuditEventType.PROJECT_RENAME, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE,
 			AuditEventType.PROJECT_GLOBAL_UPDATE, AuditEventType.PROJECT_DISCOVERABLE_UPDATE,
-			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_METADATA_UPDATE,
-			AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_REPLACE, AuditEventType.ENGINE_UPDATE,
-			AuditEventType.ENGINE_RENAME, AuditEventType.ENGINE_DISPLAY_NAME_UPDATE,
-			AuditEventType.ENGINE_GLOBAL_UPDATE, AuditEventType.ENGINE_DISCOVERABLE_UPDATE,
-			AuditEventType.ENGINE_METADATA_UPDATE, AuditEventType.ENGINE_VISIBILITY_UPDATE);
+			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE,
+			AuditEventType.PROJECT_METADATA_UPDATE, AuditEventType.PROJECT_BLOCKS_UPDATE,
+			AuditEventType.PROJECT_REPLACE, AuditEventType.ENGINE_UPDATE, AuditEventType.ENGINE_RENAME,
+			AuditEventType.ENGINE_DISPLAY_NAME_UPDATE, AuditEventType.ENGINE_GLOBAL_UPDATE,
+			AuditEventType.ENGINE_DISCOVERABLE_UPDATE, AuditEventType.ENGINE_METADATA_UPDATE,
+			AuditEventType.ENGINE_VISIBILITY_UPDATE);
 
 	private static final List<String> SETTING_TEXT_FIELDS = List.of("field", "name", "displayName", "source", "mode");
-	private static final List<String> SETTING_FLAG_FIELDS = List.of("global", "discoverable", "template", "visibility");
+	private static final List<String> SETTING_FLAG_FIELDS = List.of("global", "discoverable", "template", "customLogin",
+			"visibility");
 
 	/**
 	 * Lists of names only: metadata keys, or the parts of an app that were saved
@@ -257,7 +259,7 @@ public final class ResourceAuditReadService {
 	 * audit trail is for admins only, whatever grants remain.
 	 */
 	static boolean isOwner(User user, String scope, String id) throws Exception {
-		if (user == null || user.isAnonymous()) {
+		if (user == null) {
 			return false;
 		}
 		if (SecurityAdminUtils.userIsAdmin(user)) {
@@ -386,35 +388,62 @@ public final class ResourceAuditReadService {
 		}
 	}
 
+	/**
+	 * Reduces the details an event recorded to what an owner of the resource may
+	 * see. Each kind of event keeps its own short list of fields, and everything
+	 * else it recorded is dropped, since details can hold private metadata.
+	 *
+	 * @param value     the DETAILS the event recorded, as JSON, or null
+	 * @param eventType the kind of event
+	 * @return the details to show, as JSON, or null to show none
+	 */
 	private static String permissionDetails(String value, AuditEventType eventType) {
+		// A usage limit set, changed or removed on a model: which limit (a person's, a
+		// team's, an app's, public use or the model's total) and whose it is
 		if (value != null && eventType == USAGE_LIMIT_EVENT) {
 			return usageLimitDetails(value);
 		}
+		// A write to a database: what kind of statement ran and how many rows it
+		// touched, never the statement or its values
 		if (value != null && eventType == AuditEventType.DATABASE_WRITE) {
 			return databaseWriteDetails(value);
 		}
+		// A guardrail blocked, masked or answered a call, or locked a user or closed a
+		// room: the guardrail's short fields and counts
 		if (value != null && GUARDRAIL_EVENTS.contains(eventType)) {
 			return keptFields(value, GUARDRAIL_TEXT_FIELDS, GUARDRAIL_NUMBER_FIELDS);
 		}
+		// An export of a project or an engine: what was exported
 		if (value != null && EXPORT_EVENTS.contains(eventType)) {
 			return exportDetails(value);
 		}
+		// A project or engine setting changed: which setting and its new value
 		if (value != null && SETTING_DETAIL_EVENTS.contains(eventType)) {
 			return settingDetails(value);
 		}
+		// Any other event shows no details, and neither does one that recorded none
 		if (value == null || !COMMON_EVENTS.contains(eventType)) {
 			return null;
 		}
+		// From here on the event is an access change: a permission added, changed or
+		// removed, a bulk grant, or an access request approved or rejected
 		try {
 			var object = JsonParser.parseString(value).getAsJsonObject();
 			var safe = new JsonObject();
-			for (String key : List.of("groupId", "groupType", "granteeId", "granteeType")) {
+			// Who the access was given to or taken from: a team (groupId, groupType), a
+			// person (granteeId, granteeType), or an app or engine given a permission on
+			// an engine (granteeEngineId, granteeEngineType, and granteeProjectId on
+			// events that name an app by its project id)
+			for (String key : List.of("groupId", "groupType", "granteeId", "granteeType", "granteeEngineId",
+					"granteeEngineType", "granteeProjectId")) {
 				var item = object.get(key);
+				// Kept only when it is a short piece of text, as an id or a type is
 				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
 						&& item.getAsString().length() <= 255) {
 					safe.addProperty(key, item.getAsString());
 				}
 			}
+			// The platform removed the access because its end date passed
 			if (object.has("reason") && object.get("reason").isJsonPrimitive()
 					&& "EXPIRED".equals(object.get("reason").getAsString())) {
 				safe.addProperty("reason", "EXPIRED");
@@ -543,7 +572,8 @@ public final class ResourceAuditReadService {
 		try {
 			var object = JsonParser.parseString(value).getAsJsonObject();
 			var safe = new JsonObject();
-			for (String key : List.of("limitType", "groupId", "groupType")) {
+			for (String key : List.of("limitType", "groupId", "groupType", "granteeEngineId", "granteeEngineType",
+					"projectId")) {
 				var item = object.get(key);
 				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
 						&& item.getAsString().length() <= 255) {

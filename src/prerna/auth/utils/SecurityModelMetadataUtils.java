@@ -66,7 +66,7 @@ import prerna.engine.api.ModelCapabilityEnum;
 import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.impl.model.usage.ModelUsageCost;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.StaticBuiltinToolsCatalog;
 import prerna.util.StaticModelMetadataCatalog;
@@ -80,7 +80,7 @@ import prerna.util.Utility;
  * databases.
  * <p>
  * A model's prices ({@link Constants#PRICING}) decide how far its cost limits
- * go, so only its owners and admins change them, and they can be changed but
+ * go, so only its owners change them, and they can be changed but
  * never removed. A catalog sync, or a new catalog match, replaces them only
  * with prices of its own.
  */
@@ -276,8 +276,8 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	/**
 	 * Update the user-editable metadata for a user who edits the model, which the
 	 * caller checks: {@link Constants#PRICING} needs an owner of the model,
-	 * directly or through a team, or an admin, since the prices decide how far the
-	 * model's cost limits go. Editors change every other key.
+	 * directly or through a team, since the prices decide how far the model's cost
+	 * limits go. Editors change every other key.
 	 *
 	 * @param user     the user, an editor of the model
 	 * @param engineId the model
@@ -288,7 +288,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 */
 	public static void updateModelMetadata(User user, String engineId, Map<String, Object> updates) {
 		if (updates != null && updates.containsKey(Constants.PRICING)
-				&& !SecurityEngineUtils.userIsOwner(user, engineId) && SecurityAdminUtils.getInstance(user) == null) {
+				&& !SecurityEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalArgumentException(PRICES_OWNERS_ONLY);
 		}
 		updateModelMetadata(engineId, updates);
@@ -372,15 +372,20 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * Engines the catalog cannot speak to are reported rather than touched, and an
 	 * engine whose values would not change is never written, so running this over
 	 * the full catalog is cheap and repeatable.
+	 * <p>
+	 * Only an admin syncs it, in an admin operation: an admin reactor or endpoint.
 	 *
+	 * @param user      the signed in admin
 	 * @param engineIds engines to sync, or null/empty for all model engines
 	 * @param force     overwrite stored values instead of only filling gaps
 	 * @param dryRun    report what would change without writing
 	 * @return one result map per engine holding engineId, modelId, catalogModelKey,
 	 *         status, and the list of fields that changed
+	 * @throws IllegalArgumentException when the call is not an admin's
 	 */
-	public static List<Map<String, Object>> syncModelMetadataFromCatalog(Collection<String> engineIds, boolean force,
-			boolean dryRun) {
+	public static List<Map<String, Object>> syncModelMetadataFromCatalog(User user, Collection<String> engineIds,
+			boolean force, boolean dryRun) {
+		ResourceWriteAccess.requireAdmin(user, "sync model metadata from the catalog");
 		List<String> targets = new ArrayList<>();
 		if (engineIds == null || engineIds.isEmpty()) {
 			targets.addAll(SecurityEngineUtils.getAllEngineIds(List.of(IEngine.CATALOG_TYPE.MODEL.toString())));
@@ -515,7 +520,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * that rather than failing, since one unreadable smss should not stop the rest.
 	 */
 	private static String getModelIdFromSmss(String engineId) {
-		Object smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE);
+		Object smssFile = InternalUtility.getEngineSmssPath(engineId);
 		if (smssFile == null) {
 			return null;
 		}
@@ -698,21 +703,6 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		capabilities.put("benchmarks", emptyListIfNull(modelMetadata.get("benchmarks")));
 		capabilities.put("pricing", emptyListIfNull(modelMetadata.get("pricing")));
 		return capabilities;
-	}
-
-	public static void deleteModelMetadata(String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, "DELETE FROM MODELMETADATA WHERE ENGINEID=?",
-					ps -> ps.setString(1, engineId));
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to delete model metadata for engine {}", engineId, e);
-			throw new IllegalArgumentException("Failed to delete model metadata", e);
-		} finally {
-			ModelUsageCost.clearCache(engineId);
-		}
 	}
 
 	/**

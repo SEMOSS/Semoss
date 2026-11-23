@@ -55,6 +55,7 @@ import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.database.upload.AbstractDatabaseUploadFileReactor;
 import prerna.reactor.database.upload.rdbms.RDBMSEngineCreationHelper;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
@@ -100,9 +101,10 @@ public class RdbmsCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Uploads a delimited file (CSV, TSV, etc.) to create a new relational (RDBMS) database or append to an existing one. "
-				+ "Tables, relationships, and foreign keys are built from a user-defined metamodel.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Uploads a delimited file (CSV, TSV, etc.) to create a new relational (RDBMS) database or append to an existing one. "
+						+ "Tables, relationships, and foreign keys are built from a user-defined metamodel.");
 	}
 
 	@Override

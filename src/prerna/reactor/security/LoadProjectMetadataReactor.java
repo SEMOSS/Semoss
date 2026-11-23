@@ -44,6 +44,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.stream.JsonReader;
 
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -91,17 +92,13 @@ public class LoadProjectMetadataReactor extends AbstractSetMetadataReactor {
 			}
 		}
 
-		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to edit");
-		}
-
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityProjectUtils.getAllMetakeys();
 		if (!validMetakeys.containsAll(metadata.keySet())) {
 			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
 
-		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+		SecurityProjectUtils.updateProjectMetadata(this.insight.getUser(), projectId, metadata);
 		UserAuditTrailUtils.recordProjectLifecycle(this.insight.getUser(), AuditEventType.PROJECT_METADATA_UPDATE,
 				projectId, null, Map.of("changedFields", new ArrayList<>(metadata.keySet())));
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
@@ -111,8 +108,8 @@ public class LoadProjectMetadataReactor extends AbstractSetMetadataReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Define metadata on a project through a JSON file";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Define metadata on a project through a JSON file");
 	}
 
 }

@@ -27,11 +27,7 @@
  *******************************************************************************/
 package prerna.io.connector.ms.teams;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -55,6 +51,7 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
 import prerna.security.HttpHelperUtility;
 
 /**
@@ -108,12 +105,6 @@ public class MicrosoftTeamsHelper {
 	 * Graph recommends a resumable upload session for anything larger than 4MB.
 	 */
 	private static final long SIMPLE_UPLOAD_MAX_BYTES = 4L * 1024L * 1024L;
-
-	/**
-	 * Upload session chunk size. Graph requires every chunk except the last to be a
-	 * multiple of 320 KiB.
-	 */
-	private static final int UPLOAD_CHUNK_BYTES = 320 * 1024 * 10;
 
 	/**
 	 * Utility class constructor intentionally hidden.
@@ -289,14 +280,9 @@ public class MicrosoftTeamsHelper {
 				url = String.format(PATH_CHILDREN, driveId, folderId, relativePath);
 			}
 
-			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
-			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
 			List<Map<String, Object>> items = new ArrayList<>();
-			for (Map<String, Object> item : getValueList(response)) {
+			for (Map<String, Object> item : MicrosoftTeamsMessageHelper.getPagedValues(accessToken, url, limit)) {
 				items.add(toDriveItemMap(item, driveId));
-				if (limit > 0 && items.size() >= limit) {
-					break;
-				}
 			}
 			return items;
 		} catch (Exception e) {
@@ -324,7 +310,9 @@ public class MicrosoftTeamsHelper {
 	 *                    directory
 	 * @return map containing the item {@code id}, the item {@code name}, the local
 	 *         {@code filePath} written and {@code success}
-	 * @throws IllegalArgumentException if required inputs are missing or invalid
+	 * @throws IllegalArgumentException if required inputs are missing or invalid,
+	 *                                  or the file is over
+	 *                                  {@link MicrosoftOneDriveHelper#MAX_DOWNLOAD_BYTES}
 	 * @throws IllegalStateException    if directory creation fails or the
 	 *                                  downloaded content is empty
 	 * @throws Exception                if the download or the file write fails
@@ -352,20 +340,7 @@ public class MicrosoftTeamsHelper {
 				throw new IllegalStateException("Microsoft Graph returned no metadata for file id = " + itemId);
 			}
 			Object itemName = metadata.get(NAME);
-
-			// the pre-authenticated download url must be called without the bearer header,
-			// otherwise SharePoint rejects the duplicated credentials
-			byte[] fileBytes;
-			Object preAuthUrl = metadata.get(DOWNLOAD_URL);
-			if (preAuthUrl != null && !preAuthUrl.toString().trim().isEmpty()) {
-				fileBytes = HttpHelperUtility.getRequestBytes(preAuthUrl.toString(), null, null, null, null);
-			} else {
-				String contentUrl = String.format(ITEM_CONTENT, resolvedDriveId.trim(), itemId.trim());
-				fileBytes = HttpHelperUtility.getRequestBytes(contentUrl, headers, null, null, null);
-			}
-			if (fileBytes == null || fileBytes.length == 0) {
-				throw new IllegalStateException("Downloaded file content is empty for file id = " + itemId);
-			}
+			MicrosoftOneDriveHelper.checkDownloadSize(metadata.get(SIZE), String.valueOf(itemName));
 
 			String normalizedFileName = fileName == null ? null : fileName.trim();
 			if ((normalizedFileName == null || normalizedFileName.isEmpty()) && new File(path).isDirectory()
@@ -389,9 +364,19 @@ public class MicrosoftTeamsHelper {
 							"Unable to create destination directory at: " + parent.getAbsolutePath());
 				}
 			}
-			try (FileOutputStream fos = new FileOutputStream(file)) {
-				fos.write(fileBytes);
-				fos.flush();
+
+			// the pre-authenticated download url must be called without the bearer header,
+			// otherwise SharePoint rejects the duplicated credentials
+			long size;
+			Object preAuthUrl = metadata.get(DOWNLOAD_URL);
+			if (preAuthUrl != null && !preAuthUrl.toString().trim().isEmpty()) {
+				size = MicrosoftOneDriveHelper.download(preAuthUrl.toString(), null, file, String.valueOf(itemName));
+			} else {
+				String contentUrl = String.format(ITEM_CONTENT, resolvedDriveId.trim(), itemId.trim());
+				size = MicrosoftOneDriveHelper.download(contentUrl, headers, file, String.valueOf(itemName));
+			}
+			if (size == 0) {
+				throw new IllegalStateException("Downloaded file content is empty for file id = " + itemId);
 			}
 
 			Map<String, Object> result = new HashMap<>();
@@ -494,7 +479,6 @@ public class MicrosoftTeamsHelper {
 	private static String sessionUpload(String accessToken, String driveId, String folderId, String targetPath,
 			String conflictBehavior, String fileName, File file) throws Exception {
 		final String CREATE_SESSION = GRAPH_BASE + "/drives/%s/items/%s:/%s:/createUploadSession";
-		final String CONTENT_RANGE = "Content-Range";
 
 		String sessionUrl = String.format(CREATE_SESSION, driveId, folderId, targetPath);
 		Map<String, Object> item = new HashMap<>();
@@ -511,47 +495,8 @@ public class MicrosoftTeamsHelper {
 		if (sessionJson == null || sessionJson.get(UPLOAD_URL) == null) {
 			throw new IllegalStateException("Microsoft Graph did not return an upload session for file: " + fileName);
 		}
-		String uploadUrl = sessionJson.get(UPLOAD_URL).toString();
-
-		// the upload session url is pre-authenticated, so the bearer header is omitted
-		long totalSize = file.length();
-		long offset = 0;
-		String lastResponse = null;
-		try (InputStream is = new BufferedInputStream(new FileInputStream(file))) {
-			byte[] chunk = new byte[UPLOAD_CHUNK_BYTES];
-			int bytesRead;
-			while ((bytesRead = readChunk(is, chunk)) > 0) {
-				byte[] payload = bytesRead == chunk.length ? chunk : Arrays.copyOf(chunk, bytesRead);
-				Map<String, String> chunkHeaders = new HashMap<>();
-				chunkHeaders.put(CONTENT_RANGE, "bytes " + offset + "-" + (offset + bytesRead - 1) + "/" + totalSize);
-				String chunkResponse = HttpHelperUtility.putRequestBytesBody(uploadUrl, chunkHeaders, payload,
-						ContentType.APPLICATION_OCTET_STREAM, null, null, null);
-				if (chunkResponse != null && !chunkResponse.trim().isEmpty()) {
-					lastResponse = chunkResponse;
-				}
-				offset += bytesRead;
-			}
-		}
-		if (offset != totalSize) {
-			throw new IllegalStateException("Uploaded " + offset + " of " + totalSize + " bytes for file: " + fileName);
-		}
-		return lastResponse;
-	}
-
-	/**
-	 * Fills the buffer as far as the stream allows so that every chunk except the
-	 * last keeps the size Graph requires.
-	 */
-	private static int readChunk(InputStream is, byte[] buffer) throws Exception {
-		int total = 0;
-		while (total < buffer.length) {
-			int read = is.read(buffer, total, buffer.length - total);
-			if (read == -1) {
-				break;
-			}
-			total += read;
-		}
-		return total;
+		// sent the way a OneDrive upload is, which cancels the session when a piece is refused
+		return MicrosoftOneDriveHelper.sendToUploadSession(sessionJson.get(UPLOAD_URL).toString(), file, fileName);
 	}
 
 	/**

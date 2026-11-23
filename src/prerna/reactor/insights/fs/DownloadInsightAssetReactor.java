@@ -30,10 +30,9 @@ package prerna.reactor.insights.fs;
 import java.io.File;
 import java.util.UUID;
 
-import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.om.InsightFile;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -51,12 +50,6 @@ public class DownloadInsightAssetReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
-		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		String relativeFilePath = this.keyValue.get(this.keysToGet[0]);
 		if (relativeFilePath != null) {
@@ -93,16 +86,10 @@ public class DownloadInsightAssetReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Download a file or directory from within the insight folder";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The relative file path to a file or directory within the insight folder";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Download a file or directory from within the insight folder")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"The relative file path to a file or directory within the insight folder");
 	}
 
 }

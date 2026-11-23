@@ -40,6 +40,7 @@ import prerna.cluster.util.DeleteProjectRunner;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.AuditEventType;
@@ -112,10 +113,11 @@ public class DeleteSkillReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Deletes a skill the user owns, with its workspace refs, after the same checks the reactor makes. Admin-only
-	 * deletion is the caller's to check.
+	 * Deletes a skill the user owns, with its workspace refs, after the same checks
+	 * the reactor makes. Admin-only deletion is the caller's to check.
 	 *
-	 * @throws IllegalArgumentException when the skill is built in, not the user's, or not a skill
+	 * @throws IllegalArgumentException when the skill is built in, not the user's,
+	 *                                  or not a skill
 	 * @throws IllegalStateException    when the delete itself fails
 	 */
 	public static void delete(User user, String skillId) {
@@ -144,7 +146,7 @@ public class DeleteSkillReactor extends AbstractReactor {
 
 		try {
 			ModelInferenceLogsUtils.detachSkillFromAllWorkspaces(skillId);
-			deleteProject(project);
+			deleteProject(user, project);
 			if (ClusterUtil.IS_CLUSTER) {
 				Thread.ofVirtual().start(new DeleteProjectRunner(skillId));
 			}
@@ -156,10 +158,10 @@ public class DeleteSkillReactor extends AbstractReactor {
 				project.getProjectName(), skillId, null, null, null);
 	}
 
-	private static boolean deleteProject(IProject project) {
+	private static boolean deleteProject(User user, IProject project) {
 		String projectId = project.getProjectId();
 		UploadUtilities.removeProjectFromDIHelper(projectId);
-		SecurityProjectUtils.deleteProject(projectId);
+		SecurityProjectUtils.deleteProject(user, projectId);
 		UserTrackingUtils.deleteProject(projectId);
 		try {
 			project.delete();
@@ -170,16 +172,10 @@ public class DeleteSkillReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Deletes a skill: WORKSPACE_RESOURCE__ refs, CONFIG_JSON mirrors, and the underlying skill-project. "
-				+ "Built-in platform skills cannot be deleted";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SKILL_ID.equals(key)) {
-			return "Identifier of the skill to delete (== underlying project id)";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Deletes a skill: WORKSPACE_RESOURCE__ refs, CONFIG_JSON mirrors, and the underlying skill-project. "
+						+ "Built-in platform skills cannot be deleted")
+				.key(SKILL_ID, "Identifier of the skill to delete (== underlying project id)");
 	}
 }

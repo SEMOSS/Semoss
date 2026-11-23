@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -123,16 +124,13 @@ public class MicrosoftTeamsDeleteChannelMessageReactor extends AbstractMicrosoft
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Delete a message, or a reply, that the signed in user posted in a Microsoft Teams channel.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(REPLY_ID)) {
-			return "Optional id of a reply to the message, which is what is deleted when it is given. Deleting the message itself removes its replies as well.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Delete a message, or a reply, that the signed in user posted in a Microsoft Teams channel.")
+				.key(TEAM_ID, TEAM_ID_DESCRIPTION).key(CHANNEL_ID, CHANNEL_ID_DESCRIPTION)
+				.key(MESSAGE_ID, MESSAGE_ID_DESCRIPTION).key(REPLY_ID,
+						"Optional id of a reply to the message, which is what is deleted when it is given. Deleting the message itself removes its replies as well.");
 	}
 
 	@Override

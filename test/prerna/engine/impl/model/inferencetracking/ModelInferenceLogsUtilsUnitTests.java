@@ -370,11 +370,13 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS, PARENT_ROOM_ID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 			verify(engine, atLeastOnce()).getQueryUtil();
 			verify(absQueryUtil, times(2)).setNullableLargeText(eq(ps), eq(4), eq("roomContext"));
-			verify(absQueryUtil).setNullableJson(eq(ps), eq(15), any(HashMap.class), any(Gson.class));
+			verify(ps, times(2)).setString(1, FIXED_UUID.toString());
+			verify(ps, times(2)).setString(2, "roomId");
+			verify(absQueryUtil, times(2)).setNullableJson(eq(ps), eq(15), any(HashMap.class), any(Gson.class));
 
 			verify(ps).setString(16, "parentRoomId");
 			verify(absQueryUtil).setNullableLargeText(eq(ps), eq(4), org.mockito.ArgumentMatchers.isNull());
-			verify(absQueryUtil, times(2)).setNullableJson(eq(ps), eq(15), org.mockito.ArgumentMatchers.isNull(),
+			verify(absQueryUtil).setNullableJson(eq(ps), eq(15), org.mockito.ArgumentMatchers.isNull(),
 					any(Gson.class));
 			verify(conn).rollback();
 
@@ -440,9 +442,12 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void doRecordMessage() throws Exception {
-		when(conn.prepareStatement(
-				"INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
-				.thenReturn(ps);
+		String insertMessage = "INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD,"
+				+ " MESSAGE_TOKENS, INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS,"
+				+ " RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID,"
+				+ " USER_TYPE, BILLED_SOURCE_TYPE, BILLED_SUBJECT_ID, BILLED_SUBJECT_TYPE, COST_MICROS) "
+				+ "\tVALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		when(conn.prepareStatement(insertMessage)).thenReturn(ps);
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 		when(ps.getConnection()).thenReturn(conn);
 
@@ -457,10 +462,11 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(engine, atLeastOnce()).getQueryUtil();
 		verify(absQueryUtil).handleInsertionOfBlob(conn, ps, "messageData", 4);
 		verify(ps, times(18)).setString(anyInt(), anyString());
-		verify(ps, times(16)).setNull(anyInt(), anyInt());
+		verify(ps, times(26)).setNull(anyInt(), anyInt());
 		verify(ps, times(2)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(2)).setDouble(anyInt(), any(Double.class));
 		verify(ps, times(1)).setInt(anyInt(), anyInt());
+		verify(conn, times(2)).prepareStatement(insertMessage);
 		verify(ps, times(2)).executeUpdate();
 		verify(ps, never()).getConnection();
 		verify(conn, atLeastOnce()).getAutoCommit();

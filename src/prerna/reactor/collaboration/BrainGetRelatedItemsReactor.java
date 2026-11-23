@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadFinder;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainGetRelatedItems(threadId=["..."], limit=[10]);
@@ -53,18 +54,11 @@ public class BrainGetRelatedItemsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the owner's other emails, meetings, and chats that belong with a thread, each with the reason "
-				+ "(same topic, same people, same account); never-ingest and muted content is left out";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (LIMIT.equals(key)) {
-			return "Most related N items, default 10, at most 25";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the owner's other emails, meetings, and chats that belong with a thread, each with the reason "
+						+ "(same topic, same people, same account); never-ingest and muted content is left out. Pass a thread "
+						+ "id from SearchMail; read a result with ReadThread")
+				.key(THREAD_ID, "Thread id").key(LIMIT, "Most related N items, default 10, at most 25");
 	}
 }

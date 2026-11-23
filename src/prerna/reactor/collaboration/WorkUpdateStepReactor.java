@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.collaboration.WorkTaskUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkUpdateStep(stepId=["..."], status=["done"], note=["..."]);
@@ -60,22 +61,13 @@ public class WorkUpdateStepReactor extends AbstractWorkTaskReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Changes a step on the owner's list when they say what happened: mark it done, dropped, or "
-				+ "waiting, with a note on the outcome; change its text or due date; or move it under a work item";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		switch (key) {
-		case STEP_ID: return "The step's id, from ListMyWork or GetWork";
-		case STATUS: return "open, waiting, done, or dropped";
-		case TEXT: return "New text";
-		case DUE: return "YYYY-MM-DD";
-		case NOTE: return "Notes or the outcome, e.g. what was decided";
-		case TASK_ID: return "Move it under this work item";
-		case ASSIGNEE_ID: return "Person id when someone else now has to do it";
-		default: return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Changes a step on the owner's list when they say what happened: mark it done, dropped, or "
+						+ "waiting, with a note on the outcome; change its text or due date; or move it under a work item")
+				.key(STEP_ID, "The step's id, from ListMyWork or GetWork")
+				.key(STATUS, "open, waiting, done, or dropped").key(TEXT, "New text").key(DUE, "YYYY-MM-DD")
+				.key(NOTE, "Notes or the outcome, e.g. what was decided").key(TASK_ID, "Move it under this work item")
+				.key(ASSIGNEE_ID, "Person id when someone else now has to do it");
 	}
 }

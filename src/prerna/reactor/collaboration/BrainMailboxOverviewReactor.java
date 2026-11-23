@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainMailOverview;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainMailboxOverview(); or BrainMailboxOverview(days=[30]);
@@ -44,7 +45,8 @@ public class BrainMailboxOverviewReactor extends AbstractCollaborationReactor {
 	public NounMetadata execute() {
 		Integer days = getIntFromKeyOrCurRow(DAYS);
 		try {
-			return mapResult(BrainMailOverview.overview(getUser(), days == null ? BrainMailOverview.DEFAULT_DAYS : days));
+			return mapResult(
+					BrainMailOverview.overview(getUser(), days == null ? BrainMailOverview.DEFAULT_DAYS : days));
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Exception e) {
@@ -53,15 +55,9 @@ public class BrainMailboxOverviewReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Onboarding: Inbox and Sent counts, top senders, and keep-out suggestions from mail headers; stores nothing";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (DAYS.equals(key)) {
-			return "How many days back to look (default " + BrainMailOverview.DEFAULT_DAYS + ")";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Onboarding: Inbox and Sent counts, top senders, and keep-out suggestions from mail headers; stores nothing")
+				.key(DAYS, "How many days back to look (default " + BrainMailOverview.DEFAULT_DAYS + ")");
 	}
 }

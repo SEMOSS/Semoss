@@ -48,8 +48,10 @@ public final class BrainTopicVotes {
 
 	public static final String INSTRUCTIONS = """
 			You help one person set up their work topics from their email. Below are clusters of their email threads,
-			found from who is on each thread, subject wording and dates. Each cluster has an id, its thread count, first and last
-			month, the people who appear most, and example subjects. "outlookFolder", when given, is an Outlook folder
+			found from who is on each thread, subject wording and dates, or from what the messages say. Each cluster has an
+			id, its thread count, first and last month, the people who appear most, and example subjects. "words", when
+			given, are words its messages use far more than the rest of the mail does: they say what the cluster is
+			about even when the subjects differ. "outlookFolder", when given, is an Outlook folder
 			they made whose mail is mostly in this cluster (the path runs from their top folder down);
 			"outlookCategories" are Outlook categories they put on its mail. These are clues to how they sort their
 			work, not answers.
@@ -63,7 +65,8 @@ public final class BrainTopicVotes {
 			(the last part of the path) names the work its mail is about, use that name. Also write "about": one plain sentence, under 25 words, saying what mail belongs in this topic
 			(the project, client or work it covers and what it involves), so someone could sort a new email into it.
 
-			Answer for every cluster id given, once each.
+			Answer for every cluster id given, once each, with JSON only, in exactly this shape:
+			{"clusters": [{"id": "", "kind": "work | not_work | unclear", "name": "", "about": ""}]}
 			""";
 
 	@FunctionalInterface
@@ -192,10 +195,14 @@ public final class BrainTopicVotes {
 		}
 		try {
 			JsonElement root = JsonParser.parseString(text);
-			if (!root.isJsonObject() || !root.getAsJsonObject().keySet().equals(Set.of("clusters"))) {
+			// a model that is not held to the schema may send the list alone, or call "kind" something else
+			JsonElement clusters = root.isJsonArray() ? root
+					: root.isJsonObject() && root.getAsJsonObject().keySet().equals(Set.of("clusters"))
+							? root.getAsJsonObject().get("clusters")
+							: null;
+			if (clusters == null) {
 				return null;
 			}
-			JsonElement clusters = root.getAsJsonObject().get("clusters");
 			if (!clusters.isJsonArray() || clusters.getAsJsonArray().size() != ids.size()) {
 				return null;
 			}
@@ -206,6 +213,11 @@ public final class BrainTopicVotes {
 					return null;
 				}
 				JsonObject row = element.getAsJsonObject();
+				for (String other : List.of("classification", "type")) {
+					if (!row.has("kind") && row.has(other)) {
+						row.add("kind", row.remove(other));
+					}
+				}
 				if (!row.keySet().equals(Set.of("id", "kind", "name", "about"))) {
 					return null;
 				}

@@ -202,7 +202,7 @@ class ModelInferenceLogsJdbcUnitTests {
 			assertTrue(ModelInferenceLogsUtils.userOwnsBatch("u", "batch"));
 			assertFalse(ModelInferenceLogsUtils.userOwnsBatch("other", "batch"));
 			assertEquals(2, ModelInferenceLogsUtils.getUserBatches("u", "model", 10).get(0).get("requestCount"));
-			assertEquals(Map.of("custom", "  prompt  "), ModelInferenceLogsUtils.getBatchInputs("u", "batch"));
+			assertEquals(Map.of("batch.custom", "  prompt  "), ModelInferenceLogsUtils.getBatchInputs("u", "batch"));
 			ModelInferenceLogsUtils.updateBatchInputTokens("batch.custom", 7);
 			db.connection.rollback();
 			assertEquals(7, db.value("SELECT MESSAGE_TOKENS FROM MESSAGE WHERE TRANSACTION_ID='batch.custom'"));

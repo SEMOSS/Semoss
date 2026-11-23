@@ -33,6 +33,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.r.AbstractRFrameReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -147,12 +148,12 @@ public class RunDatabaseDescriptionGeneratorReactor extends AbstractRFrameReacto
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SIZE)) {
-			return "The text column to run the sentiment analysis on";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Generates a short description of a database's purpose from its table and column names, using a GPT-2 text model run in R, and returns it as text.")
+				.key(WORDS,
+						"How many tokens the text model generates, which sets the length of the description; the text is cut at its first full sentence.")
+				.key(SIZE, "The size of the text model to use: small, large or xlarge.");
 	}
 
 }

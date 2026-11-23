@@ -31,11 +31,9 @@ import java.io.File;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
-import prerna.engine.impl.rdbms.RDBMSNativeEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.reactor.database.upload.rdbms.RdbmsUploadReactorUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -43,7 +41,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -78,23 +75,7 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableData
 			throw new IllegalArgumentException("Could not find the specified file to use for importing");
 		}
 		// check security
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create or update a database",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
-
-		// check if input is alias since we are adding ot existing
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
+		User user = requireUser();
 
 		// throw error is user is not owner
 		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {
@@ -115,11 +96,11 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableData
 			if (this.database == null) {
 				throw new IllegalArgumentException("Couldn't find the database " + databaseId + " to append data into");
 			}
-			if (!(this.database instanceof RDBMSNativeEngine)) {
+			if (!(this.database instanceof IRDBMSEngine)) {
 				throw new IllegalArgumentException("Database must be using a relational database");
 			}
 			this.logger.info("Done");
-			RdbmsUploadReactorUtility.deleteRowsFromAllTables((RDBMSNativeEngine) this.database);
+			RdbmsUploadReactorUtility.deleteRowsFromAllTables((IRDBMSEngine) this.database);
 			addToExistingDatabase(filePath);
 			// NO NEED TO SYNC THE METADATA SINCE WE ARE ASSUMING IT IS THE SAME OWL IN THE
 			// REPLACE!
@@ -127,7 +108,7 @@ public class RdbmsReplaceDatabaseUploadTableReactor extends RdbmsUploadTableData
 //			UploadUtilities.updateMetadata(this.engine.getEngineId());
 			this.logger.info("Complete");
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Failed to replace the data in database {}", databaseId, e);
 			this.error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;

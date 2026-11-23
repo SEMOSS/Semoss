@@ -86,8 +86,8 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 import prerna.util.Utility;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -193,10 +193,8 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start()) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
@@ -245,10 +243,8 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start()) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
@@ -290,10 +286,8 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start()) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
@@ -315,7 +309,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testAddEmbeddings() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 
 		Properties testProps = new Properties();
@@ -343,10 +337,8 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start()) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
@@ -369,7 +361,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 
 					// used in addEmbeddings()
 					VectorDatabaseCSVTable vectorCsvTable = mock();
@@ -429,10 +421,8 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path newFilePath = docDirPath.resolve(fileName);
 		Files.createFile(newFilePath);
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start()) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
@@ -465,7 +455,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testNearestNeighborCallHybrid() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 
 		Properties testProps = new Properties();
@@ -494,10 +484,8 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start()) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
@@ -519,7 +507,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 					// used in getEmbeddingsFloat()
 					EmbeddingsModelEngineResponse embeddingRespMock = mock();
 					when(modelEmbedder.embeddings(any(List.class), any(Insight.class), nullable(Map.class)))
@@ -554,7 +542,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testNearestNeighborCallVectorOnly() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 
 		Properties testProps = new Properties();
@@ -584,10 +572,8 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start()) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 
@@ -609,7 +595,7 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 					// used in getEmbeddingsFloat()
 					EmbeddingsModelEngineResponse embeddingRespMock = mock();
 					when(modelEmbedder.embeddings(any(List.class), any(Insight.class), nullable(Map.class)))
@@ -705,10 +691,8 @@ public class WeaviateVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			Files.createFile(newFilePath);
 		}
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class)) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start()) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					MockedStatic<WeaviateClient> wc = Mockito.mockStatic(WeaviateClient.class)) {
 

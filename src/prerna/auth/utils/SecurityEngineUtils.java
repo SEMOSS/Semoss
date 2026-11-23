@@ -35,7 +35,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -51,8 +51,8 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
 import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
@@ -83,8 +83,8 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EmailUtility;
+import prerna.util.InternalUtility;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -98,6 +98,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	private static final String INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this engine's permissions.";
 	private static final String NOT_HIGH_ENOUGH = "The user doesn't have the high enough permissions to modify this users engine permission.";
 	private static final String CANNOT_GIVE_OWNER = "Cannot give owner level access to this engine since you are not currently an owner.";
+	static final String GRANTEES_NEED_OWNER = "Only this engine's owners can change which apps and engines can use "
+			+ "it.";
+	static final String GRANTEE_HAS_NO_ACCESS = "This app or engine does not currently have access to the engine.";
+	static final String GRANTEE_DOES_NOT_EXIST = "This app or engine does not exist.";
+	static final String GRANTEE_WRITE_FAILED = "An error occurred saving this access to the engine";
 	private static final String INSERT_ENGINE = "INSERT INTO ENGINE (ENGINEID, ENGINENAME, ENGINETYPE, ENGINESUBTYPE, "
 			+ "COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, ENGINEDISPLAYNAME) "
 			+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
@@ -121,16 +126,29 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Add an entire database into the security db
-	 * 
-	 * @param engineId
+	 * Adds an engine to the security database from its smss, or updates the type
+	 * and subtype of one that is there already.
+	 *
+	 * <p>
+	 * With a user, a new engine needs the creation rules of
+	 * {@link #addEngine(String, String, String, IEngine.CATALOG_TYPE, String, String, boolean, User)},
+	 * and an engine that is there already needs the user to be able to edit it.
+	 * With no user, the platform registers the engine as its smss describes it,
+	 * which gives no one access to it.
+	 *
+	 * @param engineId the engine
+	 * @param global   whether a new engine is public
+	 * @param user     the signed in user, or null when the platform registers the
+	 *                 engine
+	 * @throws IllegalArgumentException when the user may not add or update the
+	 *                                  engine
 	 */
 	public static void addEngine(String engineId, boolean global, User user) {
 		if (ignoreDatabase(engineId)) {
 			// dont add local master or security db to security db
 			return;
 		}
-		String smssFile = DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE) + "";
+		String smssFile = InternalUtility.getEngineSmssPath(engineId) + "";
 		Properties prop = Utility.loadProperties(smssFile);
 
 		String engineName = prop.getProperty(Constants.ENGINE_ALIAS);
@@ -147,6 +165,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndCost[0];
 		boolean engineExists = containsEngineId(engineId);
 		if (engineExists) {
+			if (user != null) {
+				ResourceWriteAccess.requireEngine(user, engineId, AccessPermissionEnum.EDIT);
+			}
 			updateEngineTypeAndSubType(engineId, engineType, (String) typeAndCost[1]);
 			classLogger.info("Security database already contains engine of type {} with unique id = {}", typeAndCost[0],
 					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
@@ -252,8 +273,30 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		addEngine(engineId, engineName, engineName, engineType, engineSubType, engineCost, global, user);
 	}
 
+	/**
+	 * Adds a new engine to the security database. The engine is not discoverable,
+	 * and the user, when given, is recorded as its creator.
+	 *
+	 * <p>
+	 * A user needs the creation rules: the publisher rule, the admin only rule for
+	 * the engine's type, and for a public engine the admin only rule for making one
+	 * public. With no user, the platform registers the engine, which gives no one
+	 * access to it.
+	 *
+	 * @param engineId          the new engine's id
+	 * @param engineName        its name
+	 * @param engineDisplayName its display name, or blank for its name
+	 * @param engineType        its type
+	 * @param engineSubType     its subtype
+	 * @param engineCost        its cost
+	 * @param global            whether it is public
+	 * @param user              the signed in user who creates it, or null when the
+	 *                          platform registers it
+	 * @throws IllegalArgumentException when the user may not create the engine
+	 */
 	public static void addEngine(String engineId, String engineName, String engineDisplayName,
 			IEngine.CATALOG_TYPE engineType, String engineSubType, String engineCost, boolean global, User user) {
+		ResourceWriteAccess.requireEngineCreation(user, engineType, global);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -308,7 +351,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		});
 	}
 
-	public static void updateEngineTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType,
+	static void updateEngineTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType,
 			String engineSubType) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE ENGINE SET ENGINETYPE=?, ENGINESUBTYPE=? WHERE ENGINEID=?";
@@ -327,29 +370,48 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	public static void addEngineOwner(String engineId, String userId) {
+	/**
+	 * Makes the user who created a new engine its owner, with an OWNER row for each
+	 * of their logins. The engine must be new: created by this user, with no one
+	 * given access to it yet. In an admin operation, or the platform's own work,
+	 * the user is made the owner of any engine.
+	 *
+	 * @param user     the signed in user who created the engine
+	 * @param engineId the engine
+	 * @throws IllegalArgumentException when there is no user, the engine already
+	 *                                  has access given out, or the user did not
+	 *                                  create it
+	 */
+	public static void addEngineOwner(User user, String engineId) {
+		if (user == null) {
+			throw new IllegalArgumentException("A signed in user is needed to own engine " + engineId);
+		}
+		ResourceWriteAccess.requireNewOwner(user, PermissionTargetResource.engine(engineId));
+		Set<String> userIds = new LinkedHashSet<>();
+		for (AuthProvider login : user.getLogins()) {
+			userIds.add(user.getAccessToken(login).getId());
+		}
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user doesn't already exist for this database
-		if (getUserEnginePermission(userId, engineId) != null) {
-			// that means there is already a value
-			throw new IllegalArgumentException("This user already has access to this engine");
-		}
-
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?,?,?,?)";
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, userId);
-				ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
-				ps.setString(parameterIndex++, engineId);
-				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to add engine owner", e);
+		for (String userId : userIds) {
+			if (getUserEnginePermission(userId, engineId) != null) {
+				throw new IllegalArgumentException("This user already has access to this engine");
+			}
+			try {
+				QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, userId);
+					ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
+					ps.setString(parameterIndex++, engineId);
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
+				classLogger.error("Failed to add engine owner", e);
+			}
 		}
+		SecurityModelUsageLimitUtils.markChanged();
 	}
 
 	/**
@@ -527,14 +589,19 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Initialize an engine's markdown metadata without replacing existing content.
+	 * The user needs to be able to edit the engine.
 	 *
+	 * @param user            the signed in user, or null for the platform's own
+	 *                        work
 	 * @param engineId        engine whose metadata should be initialized
 	 * @param defaultMarkdown markdown supplied by the engine implementation
+	 * @throws IllegalArgumentException when the user cannot edit the engine
 	 */
-	public static void setDefaultEngineMarkdown(String engineId, String defaultMarkdown) {
+	public static void setDefaultEngineMarkdown(User user, String engineId, String defaultMarkdown) {
 		if (defaultMarkdown == null || defaultMarkdown.trim().isEmpty()) {
 			return;
 		}
+		ResourceWriteAccess.requireEngine(user, engineId, AccessPermissionEnum.EDIT);
 
 		Map<String, Object> metadata = getAggregateEngineMetadata(engineId, List.of(Constants.MARKDOWN), false);
 		if (hasMetadataValue(metadata.get(Constants.MARKDOWN))) {
@@ -543,7 +610,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		Map<String, Object> defaultMetadata = new HashMap<>();
 		defaultMetadata.put(Constants.MARKDOWN, defaultMarkdown);
-		updateEngineMetadata(engineId, defaultMetadata);
+		updateEngineMetadata(user, engineId, defaultMetadata);
 	}
 
 	private static boolean hasMetadataValue(Object value) {
@@ -743,6 +810,34 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addRelation("ENGINEACCESSREQUEST__REQUEST_USERID", "SMSS_USER__ID", "inner.join");
 		qs.addRelation("ENGINEACCESSREQUEST__REQUEST_TYPE", "SMSS_USER__TYPE", "inner.join");
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * The signed in user's own access request on an engine that waits for a
+	 * decision, made with any of their logins. Asking again replaces it, so there
+	 * is at most one.
+	 *
+	 * @param user     the signed in user
+	 * @param engineId the engine
+	 * @return the request: {@code id}, {@code permission} (the level asked for),
+	 *         {@code comment} and {@code requestedAt} (UTC, ISO 8601); null when the
+	 *         user has none waiting
+	 */
+	public static Map<String, Object> getUserWaitingAccessRequest(User user, String engineId) {
+		return OwnAccessRequests.waiting(OwnAccessRequests.ENGINE, engineId, user);
+	}
+
+	/**
+	 * Withdraws the signed in user's own access request on an engine that waits
+	 * for a decision. The request is kept, marked withdrawn by the user.
+	 *
+	 * @param user     the signed in user
+	 * @param engineId the engine
+	 * @return true when a waiting request was withdrawn, false when the user had
+	 *         none
+	 */
+	public static boolean withdrawUserAccessRequest(User user, String engineId) {
+		return OwnAccessRequests.withdraw(OwnAccessRequests.ENGINE, engineId, user);
 	}
 
 	/**
@@ -1100,15 +1195,25 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Delete all values
-	 * 
-	 * @param engineId
+	 * Deletes an engine's rows from the security database: the engine, who can use
+	 * it, the apps it was given to, preferences, metadata, model metadata, access
+	 * requests and usage limits. The user needs to own the engine; the user who
+	 * created it can also delete it before anyone is given access to it, which is
+	 * how a failed creation is cleaned up.
+	 *
+	 * @param user     the signed in user, or null for the platform's own work
+	 * @param engineId the engine
+	 * @throws IllegalArgumentException when the user may not delete the engine
 	 */
-	public static void deleteEngine(String engineId) {
+	public static void deleteEngine(User user, String engineId) {
+		ResourceWriteAccess.requireEngine(user, engineId, AccessPermissionEnum.OWNER);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE GRANTEEENGINEID=? AND GRANTEEENGINETYPE <> '"
+				+ PermissionSubject.PROJECT_TYPE + "'");
 		deletes.add("DELETE FROM USERENGINEPREFERENCE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
 		deletes.add("DELETE FROM MODELMETADATA WHERE ENGINEID=?");
@@ -1123,11 +1228,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				classLogger.error("Failed to delete engine", e);
 			}
 		}
-		// every model usage limit on the engine: people's, teams', public use and its
-		// total
+		// every model usage limit on the engine: people's, teams', apps', engines',
+		// public use and its total, and the limits other models give the engine
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				SecurityModelUsageLimitUtils.deleteEngineLimits(connection, engineId);
+				SecurityModelUsageLimitUtils.deleteEngineGranteeLimits(connection, engineId);
 				return null;
 			});
 		} catch (RuntimeException e) {
@@ -1139,6 +1245,146 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// read again
 			SecurityModelUsageLimitUtils.markChanged();
 		}
+	}
+
+	/**
+	 * Gives an app or another engine a permission on an engine, or changes the one
+	 * it has, as a permission batch. An app's custom reactors, or the other
+	 * engine's own code, use the permission in place of the signed in user's own,
+	 * so an app can write to a database for people who have no access to it
+	 * themselves, and a vector database can embed with the model it is given.
+	 * Only the engine's owners can, and where only admins give access to the
+	 * engine, only in admin mode
+	 * ({@link SecurityAdminUtils#setEngineGranteePermission}).
+	 *
+	 * @param user              the user giving the access
+	 * @param granteeEngineId   the app or engine given the access
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the engine
+	 * @param permission        the level, READ_ONLY or EDIT
+	 * @param endDate           when the access ends, or null
+	 * @throws IllegalAccessException when the user is not an owner of the engine
+	 */
+	public static void setEngineGranteePermission(User user, String granteeEngineId, String granteeEngineType,
+			String engineId, String permission, String endDate) throws IllegalAccessException {
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
+				List.of(granteePermissionChange(granteeEngineId, granteeEngineType, engineId,
+						new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.bulkAccessManagement(false).keepingModelLimits(), granteeErrorRules(endDate));
+	}
+
+	/**
+	 * Gives an app or another engine a permission on a model with its App Limit or
+	 * Engine Limit, or changes both, as a permission batch. The limit counts the
+	 * calls the app's custom reactors or the engine's own code make to the model
+	 * for people with no grant of their own and no team's grant on it: its shared
+	 * rules for the app or engine as a whole, and its other rules for each person.
+	 * Only the model's owners can.
+	 *
+	 * @param user              the user giving the access
+	 * @param granteeEngineId   the app or engine given the access
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the model
+	 * @param permission        the level, READ_ONLY or EDIT
+	 * @param endDate           when the access ends, or null
+	 * @param usageLimit        the App Limit or Engine Limit, or null for no limit
+	 *                          defined
+	 * @throws IllegalAccessException when the user is not an owner of the model
+	 */
+	public static void setEngineGranteePermission(User user, String granteeEngineId, String granteeEngineType,
+			String engineId, String permission, String endDate, ModelUsageLimit usageLimit)
+			throws IllegalAccessException {
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
+				List.of(granteePermissionChange(granteeEngineId, granteeEngineType, engineId,
+						new PermissionGrant(permission, endDate).withUsageLimit(usageLimit))),
+				PermissionBatchOptions.bulkAccessManagement(false), granteeErrorRules(endDate));
+	}
+
+	/**
+	 * The messages the single methods for an app's or engine's permission throw.
+	 *
+	 * @param endDate the end date given, named when it cannot be read
+	 * @return the rules
+	 */
+	static PermissionErrorRules granteeErrorRules(String endDate) {
+		return new PermissionErrorRules(endDate)
+				.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, GRANTEES_NEED_OWNER)
+				.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING, GRANTEE_DOES_NOT_EXIST)
+				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, GRANTEE_WRITE_FAILED);
+	}
+
+	/**
+	 * The messages the single methods throw when an app's or engine's permission
+	 * is taken away.
+	 *
+	 * @return the rules
+	 */
+	static PermissionErrorRules granteeRemovalErrorRules() {
+		return new PermissionErrorRules()
+				.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, GRANTEES_NEED_OWNER)
+				.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, GRANTEE_HAS_NO_ACCESS)
+				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, GRANTEE_WRITE_FAILED);
+	}
+
+	/**
+	 * Builds the change that leaves an app or another engine with a grant on an
+	 * engine: an add when the engine gives it none now, otherwise a change.
+	 *
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the engine
+	 * @param grant             the level, READ_ONLY or EDIT, the end date and, on a
+	 *                          model, the App Limit or Engine Limit when the grant
+	 *                          gives one
+	 * @return the change
+	 */
+	static PermissionChange granteePermissionChange(String granteeEngineId, String granteeEngineType,
+			String engineId, PermissionGrant grant) {
+		PermissionSubject grantee = PermissionSubject.ofEngine(granteeEngineId, granteeEngineType);
+		String catalogType = PermissionBatchUtils.catalogTypeOf(granteeEngineType);
+		boolean given = granteeEngineId != null && catalogType != null && SecurityEngine2EngineUtils
+				.getGranteePermission(new EngineGrantee(granteeEngineId.trim(), catalogType), engineId) != null;
+		return given ? PermissionChange.change(grantee, grant) : PermissionChange.add(grantee, grant);
+	}
+
+	/**
+	 * Takes away the permission an engine gives an app or another engine, as a
+	 * permission batch. Only the engine's owners can.
+	 *
+	 * @param user              the user taking the access away
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the engine
+	 * @throws IllegalAccessException when the user is not an owner of the engine
+	 */
+	public static void removeEngineGranteePermission(User user, String granteeEngineId, String granteeEngineType,
+			String engineId) throws IllegalAccessException {
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.remove(PermissionSubject.ofEngine(granteeEngineId, granteeEngineType))),
+				PermissionBatchOptions.bulkAccessManagement(false), granteeRemovalErrorRules());
+	}
+
+	/**
+	 * Reads the apps and engines an engine gives a permission to, for the engine's
+	 * editors and owners: each with its subject, the grantee's id, catalog type and
+	 * name (its display name when it has one), and its access, the level, the end
+	 * date and on a model the App Limit or Engine Limit.
+	 *
+	 * @param user     the user asking
+	 * @param engineId the engine
+	 * @return one entry for each app and engine, ordered by catalog type and id
+	 * @throws IllegalAccessException when the user cannot edit the engine
+	 */
+	public static List<Map<String, Object>> getEngineGranteePermissions(User user, String engineId)
+			throws IllegalAccessException {
+		if (engineId == null || engineId.isBlank()) {
+			throw new IllegalArgumentException("The engine id must not be null or blank");
+		}
+		if (!PermissionBatchUtils.canViewEngines(user, engineId.trim(), false)) {
+			throw new IllegalAccessException(
+					"Only this engine's editors and owners can see which apps and engines can use it");
+		}
+		return PermissionBatchUtils.readEngines(engineId.trim());
 	}
 
 	/**
@@ -1193,63 +1439,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Removes a person's access to an engine once it has ended, with the model
-	 * usage limit on it.
-	 *
-	 * @param userId   the person
-	 * @param engineId the engine
-	 */
-	public static void removeExpiredEngineUser(String userId, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
-		// read before the removal, so the audit trail records the limits removed with
-		// it
-		Map<ModelUsageLimitKey, ModelUsageLimit> removedLimits = directLimitsOf(engineId, userId);
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				QueryExecutionUtility.executeUpdate(connection, deleteQuery, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, engineId);
-				});
-				SecurityModelUsageLimitUtils.deleteDirectLimitsWithoutGrant(connection, userId);
-				return null;
-			});
-			SecurityModelUsageLimitUtils.markChanged();
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to remove expired engine user", e);
-			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
-		}
-		UserAuditTrailUtils.recordExpiredPermissionRemoval(getAuditTargetType(engineId), engineId, null, engineId, null,
-				userId);
-		ModelUsageLimitAudit.recordRemovedWithExpiredGrant(engineId, removedLimits);
-	}
-
-	/**
-	 * Reads a person's Direct Limits on a model, on every login type, for the audit
-	 * trail of a removal. A read that fails gives none, so it never stops the
-	 * removal.
-	 *
-	 * @return the person's Direct Limits on the model, by key
-	 */
-	private static Map<ModelUsageLimitKey, ModelUsageLimit> directLimitsOf(String engineId, String userId) {
-		Map<ModelUsageLimitKey, ModelUsageLimit> direct = new LinkedHashMap<>();
-		try {
-			for (Map.Entry<ModelUsageLimitKey, ModelUsageLimit> entry : SecurityModelUsageLimitUtils
-					.getEngineLimits(engineId).entrySet()) {
-				if (entry.getKey().isDirect() && userId.equals(entry.getKey().subjectId())) {
-					direct.put(entry.getKey(), entry.getValue());
-				}
-			}
-		} catch (RuntimeException e) {
-			classLogger.warn("Unable to read the usage limits of an expired grant for the audit trail", e);
-		}
-		return direct;
-	}
-
-	/**
 	 * Set if the engine is public to all users on this instance
 	 * 
 	 * @param user
@@ -1292,31 +1481,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				getAuditTargetType(engineId), engineId, getEngineDisplayNameForId(engineId),
 				Map.of("field", "global", "global", global));
 		return true;
-	}
-
-	/**
-	 * Set a engine to be global
-	 * 
-	 * @param engineId
-	 */
-	public static void setEngineCompletelyGlobal(String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		{
-			String update1 = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
-			try {
-				QueryExecutionUtility.executeUpdate(securityDb, update1, ps -> {
-					int parameterIndex = 1;
-					ps.setBoolean(parameterIndex++, true);
-					ps.setString(parameterIndex++, engineId);
-				});
-				// public use applies only on a public model
-				SecurityModelUsageLimitUtils.markChanged();
-			} catch (RuntimeException e) {
-				throw e;
-			} catch (Exception e) {
-				classLogger.error("Failed to set engine visibility to globally accessible", e);
-			}
-		}
 	}
 
 	/**
@@ -1463,14 +1627,17 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Update the engine metadata Will delete existing values and then perform a
-	 * bulk insert
-	 * 
-	 * @param engineId
-	 * @param insightId
-	 * @param tags
+	 * Replaces the engine's values for the given metadata keys: the existing values
+	 * of each key are deleted and the new ones inserted, in one transaction. The
+	 * user needs to be able to edit the engine.
+	 *
+	 * @param user     the signed in user, or null for the platform's own work
+	 * @param engineId the engine
+	 * @param metadata the values by metadata key
+	 * @throws IllegalArgumentException when the user cannot edit the engine
 	 */
-	public static void updateEngineMetadata(String engineId, Map<String, Object> metadata) {
+	public static void updateEngineMetadata(User user, String engineId, Map<String, Object> metadata) {
+		ResourceWriteAccess.requireEngine(user, engineId, AccessPermissionEnum.EDIT);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
@@ -1992,7 +2159,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
-		qs1.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "engine_tool_app"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBY", "engine_created_by"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__CREATEDBYTYPE", "engine_created_by_type"));
 		qs1.addSelector(new QueryColumnSelector("ENGINE__DATECREATED", "engine_date_created"));
@@ -2385,7 +2551,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "engine_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINETYPE", "engine_type"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINESUBTYPE", "engine_subtype"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "engine_tool_app"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__COST", "engine_cost"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__DISCOVERABLE", "engine_discoverable"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "engine_global"));
@@ -2758,19 +2923,22 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * login provider's, in one transaction: the engines not yet registered are
 	 * added, the person's grants are replaced, and the model usage limits on the
 	 * grants no longer given are removed, all saved together or not at all. The
-	 * limits on the grants kept stay as they are.
+	 * limits on the grants kept stay as they are. Only the platform's own work
+	 * replaces them, inside a platform operation, such as the sync from an external
+	 * permission service when the person signs in.
 	 *
 	 * @param user              the person
 	 * @param enginePermissions each engine's {@code engineId}, {@code engineName},
 	 *                          {@code engineType}, {@code engineSubType} and
 	 *                          {@code permission}
 	 * @return the permissions whose engines were added
-	 * @throws IllegalArgumentException when the permissions cannot be saved;
-	 *                                  nothing is saved, the engines it would add
-	 *                                  included
+	 * @throws IllegalArgumentException when the permissions cannot be saved, or the
+	 *                                  call is not the platform's own work; nothing
+	 *                                  is saved, the engines it would add included
 	 */
 	public static List<Map<String, Object>> updateEngineUserPermissions(User user,
 			List<Map<String, Object>> enginePermissions) throws Exception {
+		ResourceWriteAccess.requirePlatform("replace a person's engine permissions");
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AbstractSqlQueryUtil queryUtil = securityDb.getQueryUtil();
 		List<Map<String, Object>> permissions = enginePermissions == null ? List.of() : enginePermissions;
@@ -2817,25 +2985,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// the grants decide which limits apply, so the cached limits are read again
 		SecurityModelUsageLimitUtils.markChanged();
 		return newEngines;
-	}
-
-	public static void updateEngineToolApp(String engineId, String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				String query = "UPDATE ENGINE SET TOOL_APP = ? WHERE ENGINEID = ?";
-
-				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
-					ps.setString(1, projectId);
-					ps.setString(2, engineId);
-				});
-				return null;
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to update engine legacy tool_app alias", e);
-		}
 	}
 
 	/**

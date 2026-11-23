@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.WorkRoutineRoom;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class WorkListRoutineRunsReactor extends AbstractCollaborationReactor {
@@ -47,17 +48,12 @@ public class WorkListRoutineRunsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the signed-in user's past runs of one routine, newest first: when each started and finished, "
-				+ "whether it was scheduled or run by hand, completed, failed or running, and whether it has output to discuss";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ROUTINE_ID.equals(key)) {
-			return "Routine id: inbox-daily-brief, weekly-meeting-agendas, event-planning, expense-review, or the id of "
-					+ "one of the owner's own routines";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the signed-in user's past runs of one routine, newest first: when each started and finished, "
+						+ "whether it was scheduled or run by hand, completed, failed or running, and whether it has output to discuss")
+				.key(ROUTINE_ID,
+						"Routine id: inbox-daily-brief, weekly-meeting-agendas, event-planning, expense-review, or the id of "
+								+ "one of the owner's own routines");
 	}
 }

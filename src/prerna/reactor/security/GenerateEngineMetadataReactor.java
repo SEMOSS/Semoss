@@ -41,7 +41,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,11 +61,14 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.owl.AbstractOWLEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -433,17 +435,14 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 
 			if (Boolean.TRUE.equals(options.get("includeModelSmssInfo"))) {
 				try {
-					Properties modelInfo = modelEngine.getOrigSmssProp();
-
 					Map<String, Object> filteredInfo = new LinkedHashMap<>();
-
-					String[] keys = { "MODEL", "MODEL_TYPE" };
-
-					for (String k : keys) {
-						String val = modelInfo.getProperty(k);
-						if (val != null) {
-							filteredInfo.put(k, val);
-						}
+					String modelName = modelEngine.getModelName();
+					if (modelName != null) {
+						filteredInfo.put("MODEL", modelName);
+					}
+					ModelTypeEnum modelType = modelEngine.getModelType();
+					if (modelType != null) {
+						filteredInfo.put("MODEL_TYPE", modelType.name());
 					}
 
 					input.put("modelSmssInfo", filteredInfo);
@@ -458,15 +457,15 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 		else if (engine.getCatalogType() == IEngine.CATALOG_TYPE.FUNCTION) {
 			if (Boolean.TRUE.equals(options.get("includeFunctionSmssInfo"))) {
 				try {
-					Properties funcSmssInfo = engine.getOrigSmssProp();
+					IFunctionEngine functionEngine = Utility.getFunctionEngine(engineId);
 					Map<String, Object> filteredInfo = new LinkedHashMap<>();
-
-					String[] keys = { "FUNCTION_DESCRIPTION", "FUNCTION_TYPE" };
-					for (String k : keys) {
-						String val = funcSmssInfo.getProperty(k);
-						if (val != null) {
-							filteredInfo.put(k, val);
-						}
+					String functionDescription = functionEngine.getFunctionDescription();
+					if (functionDescription != null) {
+						filteredInfo.put(IFunctionEngine.DESCRIPTION_KEY, functionDescription);
+					}
+					String functionType = functionEngine.getFunctionType();
+					if (functionType != null) {
+						filteredInfo.put(IFunctionEngine.FUNCTION_TYPE, functionType);
 					}
 
 					input.put("funcSmssInfo", filteredInfo);
@@ -1255,83 +1254,67 @@ public class GenerateEngineMetadataReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Generates or enhances engine metadata using an LLM, based on engine context and configurable options. "
-				+ "User can control what context is sent to the LLM.";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Generates or enhances engine metadata using an LLM, based on engine context and configurable options. "
+						+ "User can control what context is sent to the LLM.")
+				.key(ReactorKeysEnum.ENGINE, "Unique engine identifier for which metadata will be generated.")
+				.key(ReactorKeysEnum.MODEL, "Model engine identifier used to generate metadata.")
+				.key(ReactorKeysEnum.META_KEYS,
+						"List of metadata field names to generate, If not provided, defaults to ['description', 'tags'].")
+				.key(ReactorKeysEnum.OPTIONS, """
+						Optional configuration map that controls how engine metadata is generated.
 
-	}
+						Supported options:
 
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Unique engine identifier for which metadata will be generated.";
-		}
+						1) Database
+						- includeSchema (boolean):
+						  Include database schema details such as tables and columns.
+						- tableSchemaLimit (number):
+						  Max tables to include (default: 5)
+						- columnSchemaLimit (number):
+						  Max columns per table (default: 10)
 
-		if (key.equals(ReactorKeysEnum.MODEL.getKey())) {
-			return "Model engine identifier used to generate metadata.";
-		}
+						2) Vectors
+						- includeVectorFileNames (boolean):
+						  Include vector document file names.
+						- vectorFileLimit (number):
+						  Maximum number of vector file names to include (default: 5).
+						- includeVectorChunks (boolean):
+						  Include sample text chunks from vector documents.
+						- vectorChunkLimit (number):
+						  Maximum number of vector text chunks to include (default: 3).
 
-		if (key.equals(ReactorKeysEnum.META_KEYS.getKey())) {
-			return "List of metadata field names to generate, If not provided, defaults to ['description', 'tags'].";
-		}
+						3) Storages
+						- storagePath (string):
+						  Path in storage to inspect (default to /)
+						- includeStorageFileNames (boolean):
+						  Include storage file names.
+						- storageFileNameLimit (number):
+						  Maximum number of storage file names to include (default: 5).
+						- includeStorageFileContent (boolean):
+						  Copy files locally and read content snippets for context.
+						- storageFileLimit (number):
+						  Max number of files to read content from (default: 3).
+						- storageCharLimit (number):
+						  Max characters to read per file (default: 500).
 
-		if (key.equals(ReactorKeysEnum.OPTIONS.getKey())) {
-			return """
-					Optional configuration map that controls how engine metadata is generated.
+						4) Models
+						- includeModelSmssInfo (boolean):
+						  Include model smss file content(model and model_type).
 
-					Supported options:
+						5) Functions
+						- includeFunctionSmssInfo (boolean):
+						  Include function smss file content(function_type and function_description).
 
-					1) Database
-					- includeSchema (boolean):
-					  Include database schema details such as tables and columns.
-					- tableSchemaLimit (number):
-					  Max tables to include (default: 5)
-					- columnSchemaLimit (number):
-					  Max columns per table (default: 10)
-
-					2) Vectors
-					- includeVectorFileNames (boolean):
-					  Include vector document file names.
-					- vectorFileLimit (number):
-					  Maximum number of vector file names to include (default: 5).
-					- includeVectorChunks (boolean):
-					  Include sample text chunks from vector documents.
-					- vectorChunkLimit (number):
-					  Maximum number of vector text chunks to include (default: 3).
-
-					3) Storages
-					- storagePath (string):
-					  Path in storage to inspect (default to /)
-					- includeStorageFileNames (boolean):
-					  Include storage file names.
-					- storageFileNameLimit (number):
-					  Maximum number of storage file names to include (default: 5).
-					- includeStorageFileContent (boolean):
-					  Copy files locally and read content snippets for context.
-					- storageFileLimit (number):
-					  Max number of files to read content from (default: 3).
-					- storageCharLimit (number):
-					  Max characters to read per file (default: 500).
-
-					4) Models
-					- includeModelSmssInfo (boolean):
-					  Include model smss file content(model and model_type).
-
-					5) Functions
-					- includeFunctionSmssInfo (boolean):
-					  Include function smss file content(function_type and function_description).
-
-					6) User-specific options
-					- useExistingDescription (boolean):
-					  Refine and enhance an existing description instead of generating a new one.
-					- additionalContext (string):
-					  Extra user-provided context to guide metadata generation.
-					- tone (string):
-					  Writing tone for the generated description.
-					  Supported values: neutral | business | scientific (default: neutral).
-					""";
-		}
-
-		return super.getDescriptionForKey(key);
+						6) User-specific options
+						- useExistingDescription (boolean):
+						  Refine and enhance an existing description instead of generating a new one.
+						- additionalContext (string):
+						  Extra user-provided context to guide metadata generation.
+						- tone (string):
+						  Writing tone for the generated description.
+						  Supported values: neutral | business | scientific (default: neutral).
+						""");
 	}
 }

@@ -129,6 +129,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -242,7 +243,7 @@ public class SchedulerDatabaseUtility {
 	private static final String DELETE_JOB_TAGS_QUERY = "DELETE FROM SMSS_JOB_TAGS WHERE JOB_ID=?";
 	private static final String INSERT_JOB_TAGS_QUERY = "INSERT INTO SMSS_JOB_TAGS (JOB_ID, JOB_TAG) VALUES (?,?)";
 
-	// SchedulerStats queries - audit-trail aggregation + worst-job streak
+	// AdminSchedulerStats queries - audit-trail aggregation + worst-job streak
 	private static final String SCHEDULER_AUDIT_STATS_QUERY = """
 			SELECT at.JOB_ID, at.SUCCESS, at.EXECUTION_DELTA, jr.JOB_NAME \
 			FROM SMSS_AUDIT_TRAIL at \
@@ -250,7 +251,7 @@ public class SchedulerDatabaseUtility {
 			WHERE at.EXECUTION_START >= ? \
 			ORDER BY at.JOB_ID, at.EXECUTION_START DESC""";
 
-	// SchedulerStats queries - current Quartz trigger state
+	// AdminSchedulerStats queries - current Quartz trigger state
 	private static final String TRIGGER_STATE_COUNT_QUERY = """
 			SELECT TRIGGER_STATE, COUNT(*) \
 			FROM QRTZ_TRIGGERS \
@@ -342,6 +343,7 @@ public class SchedulerDatabaseUtility {
 		Connection conn = schedulerDb.getConnection();
 		try {
 			createQuartzTables(conn, database, schema);
+			repairQuartzIntegerColumns(conn, database, schema);
 			createSemossTables(conn, database, schema);
 			addConstraints(QUARTZ_PRIMARY_KEYS, conn, database, schema);
 			addConstraints(QUARTZ_FOREIGN_KEYS, conn, database, schema);
@@ -1426,7 +1428,7 @@ public class SchedulerDatabaseUtility {
 
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-		final String INTEGER_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String INTEGER_DATATYPE = queryUtil.getIntegerDataTypeName();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
 		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
 
@@ -1639,6 +1641,40 @@ public class SchedulerDatabaseUtility {
 			}
 		} catch (Exception se) {
 			classLogger.error("Failed to create one or more Quartz scheduler tables: {}", se.getMessage(), se);
+		}
+	}
+
+	/**
+	 * Changes back to INTEGER the Quartz columns that scheduler databases created
+	 * from 2026-09-19 made BOOLEAN. Postgres rejects Quartz's integer write to
+	 * them, so no trigger could be stored there, which also means those tables
+	 * hold no rows; other databases coerce the value, so only Postgres is changed.
+	 *
+	 * @param connection live JDBC connection to the scheduler db
+	 * @param database   database name (used for metadata lookups)
+	 * @param schema     schema name (used for metadata lookups)
+	 */
+	static void repairQuartzIntegerColumns(Connection connection, String database, String schema) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		if (schedulerDb.getQueryUtil().getDbType() != RdbmsTypeEnum.POSTGRES) {
+			return;
+		}
+		String[][] columns = { { QRTZ_TRIGGERS, PRIORITY }, { QRTZ_FIRED_TRIGGERS, PRIORITY },
+				{ QRTZ_SIMPROP_TRIGGERS, INT_PROP_1 }, { QRTZ_SIMPROP_TRIGGERS, INT_PROP_2 } };
+		for (String[] column : columns) {
+			String table = column[0];
+			String name = column[1];
+			// unquoted names are stored lowercase, and pgjdbc reports a boolean column as BIT
+			try (ResultSet rs = connection.getMetaData().getColumns(database, schema, table.toLowerCase(),
+					name.toLowerCase())) {
+				if (rs.next() && (rs.getInt("DATA_TYPE") == Types.BIT || rs.getInt("DATA_TYPE") == Types.BOOLEAN)) {
+					classLogger.info("Changing {}.{} from BOOLEAN to INTEGER", table, name);
+					schedulerDb.insertData("ALTER TABLE " + table + " ALTER COLUMN " + name + " TYPE INTEGER USING "
+							+ name + "::INTEGER");
+				}
+			} catch (Exception e) {
+				classLogger.error("Failed to change {}.{} to INTEGER: {}", table, name, e.getMessage(), e);
+			}
 		}
 	}
 

@@ -29,6 +29,7 @@ package prerna.reactor.guardrail;
 
 import prerna.engine.impl.guardrail.SqlQueryGuardrailEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -65,16 +66,11 @@ public class GetSqlQueryPolicyDefaultsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists the SQL query policy guardrail's built-in identifier rules for a SQL dialect, by policy property";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (DIALECT_KEY.equals(key)) {
-			return "The SQL dialect, such as POSTGRESQL, SQL_SERVER, MYSQL, MARIADB or ORACLE; GENERIC, the default, "
-					+ "holds every dialect's rules";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists the SQL query policy guardrail's built-in identifier rules for a SQL dialect, by policy property")
+				.key(DIALECT_KEY,
+						"The SQL dialect, such as POSTGRESQL, SQL_SERVER, MYSQL, MARIADB or ORACLE; GENERIC, the default, "
+								+ "holds every dialect's rules");
 	}
 }

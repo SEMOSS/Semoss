@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import java.util.Properties;
+
+import prerna.auth.AccessPermissionEnum;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.reactor.IReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -39,10 +42,14 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	// as a result, cannot be a key in the smss file
 	String GUARDRAIL_TYPE = "GUARDRAIL_TYPE";
 
+	/** The setting that names a guardrail's judge model */
+	String MODEL_ENGINE_ID_KEY = "MODEL_ENGINE_ID";
+
 	/**
 	 * 
 	 * @return
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	GuardrailTypeEnum getGuardrailType();
 
 	/**
@@ -52,8 +59,23 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * @return default markdown, or null when the guardrail has no example
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default String getDefaultMarkdown() {
 		return null;
+	}
+
+	/**
+	 * The id of the model a guardrail asks as its judge, its
+	 * {@link #MODEL_ENGINE_ID_KEY} setting, such as a prompt or Jev policy
+	 * guardrail's model.
+	 *
+	 * @return the judge model's id, or null when the guardrail has no judge
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getJudgeModelEngineId() {
+		Properties smssProp = getSmssProp();
+		return smssProp == null ? null : smssProp.getProperty(MODEL_ENGINE_ID_KEY);
 	}
 
 	/**
@@ -62,6 +84,7 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * @param curRow
 	 * @return
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow);
 
 	/**
@@ -77,6 +100,7 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * @return the guardrail decision
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow, IEngine targetEngine) {
 		return execute(ns, curRow);
 	}

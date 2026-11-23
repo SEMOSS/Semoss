@@ -136,6 +136,7 @@ public class GoogleOCRCustomEmbeddingsFunctionEngineUnitTests {
 			CaseInsensitiveProperties gcpProps = new CaseInsensitiveProperties();
 			gcpProps.put(GoogleCloudStorageEngine.GCS_BUCKET_KEY, "gcsBucket");
 			when(cloudStorageEngineMock.getSmssProp()).thenReturn(gcpProps);
+			when(cloudStorageEngineMock.getBucketName()).thenReturn("gcsBucket");
 			when(cloudStorageEngineMock.getStorageType()).thenCallRealMethod();
 			
 			engine.setBasic(true); // skips folder initialization

@@ -362,10 +362,15 @@ def _jump(code, k, jt, jf):
     return _SockFilter(code, jt, jf, k)
 
 
-def _build_seccomp_filter():
+def _build_seccomp_filter(restrict_inet=True):
     """Default-ALLOW filter that denies a fixed blocklist of escape/privilege
-    syscalls with EPERM, and restricts socket() to AF_UNIX (defence in depth on
-    top of the empty netns)."""
+    syscalls with EPERM.
+
+    When restrict_inet is True (the default, used with CLONE_NEWNET) socket()
+    is additionally restricted to AF_UNIX only -- this is defence in depth on
+    top of the empty netns. When restrict_inet is False (used when the worker
+    runs in the host network namespace and needs outbound TCP/UDP), all socket
+    families are permitted and only the escape/privilege blocklist applies."""
     prog = []
     # 1. pin the architecture (prevents x32 / i386 number-aliasing bypass)
     prog.append(_stmt(_BPF_LD | _BPF_W | _BPF_ABS, _OFF_ARCH))
@@ -381,8 +386,10 @@ def _build_seccomp_filter():
     for nr in sorted(set(_BLOCK.values())):
         prog.append(_jump(_BPF_JMP | _BPF_JEQ | _BPF_K, nr, 0, 1))
         prog.append(_stmt(_BPF_RET | _BPF_K, SECCOMP_RET_ERRNO | EPERM))
-    # 4. socket(): allow AF_UNIX only, else EACCES
-    if SYS_socket is not None:
+    # 4. socket(): when in an empty netns, allow AF_UNIX only (else EACCES).
+    #    When the worker shares the host netns (--no-net), skip this rule so
+    #    AF_INET/AF_INET6 calls succeed normally.
+    if restrict_inet and SYS_socket is not None:
         prog.append(_jump(_BPF_JMP | _BPF_JEQ | _BPF_K, SYS_socket, 0, 3))
         prog.append(_stmt(_BPF_LD | _BPF_W | _BPF_ABS, _OFF_ARG0))
         prog.append(_jump(_BPF_JMP | _BPF_JEQ | _BPF_K, AF_UNIX, 1, 0))
@@ -392,12 +399,12 @@ def _build_seccomp_filter():
     return prog
 
 
-def install_seccomp():
+def install_seccomp(restrict_inet=True):
     if AUDIT_ARCH is None:
         sys.stderr.write("WARNING: unknown arch %r -- seccomp filter NOT "
                          "installed\n" % _MACHINE)
         return
-    prog = _build_seccomp_filter()
+    prog = _build_seccomp_filter(restrict_inet=restrict_inet)
     arr = (_SockFilter * len(prog))(*prog)
     fprog = _SockFprog(len(prog), arr)
     # no_new_privs already set in drop_capabilities(); required so an
@@ -411,9 +418,13 @@ def install_seccomp():
 
 def harden(unshare_net_already_done=True):
     """Final, irreversible lockdown of the interpreter.  Call after pivot_root
-    and (optional) net unshare, immediately before running user code / exec."""
+    and (optional) net unshare, immediately before running user code / exec.
+
+    When unshare_net_already_done is True the worker is in an empty network
+    namespace, so socket() is restricted to AF_UNIX only as defence in depth.
+    When False the worker shares the host netns and needs AF_INET/AF_INET6."""
     drop_capabilities()
-    install_seccomp()
+    install_seccomp(restrict_inet=unshare_net_already_done)
 
 
 # ---------------------------------------------------------------------------
@@ -639,17 +650,21 @@ def _self_test():
 # control socket.  (Plumbing is in place; exercised once Java sends commands
 # over the UDS channel -- plan steps 6c/6d.)
 # ===========================================================================
-def _serve_control(jail, inject_roots, control_sock, child_pid):
+def _serve_control(jail, inject_roots, control_sock, child_pid, source_only_roots=()):
     """Supervisor loop: accept line commands from Java and (un)mount projects.
     Protocol (tab-separated, newline-terminated): one reply line per command.
-        INJECT\t<rw|ro>\t<abs_path>   -> OK | ERR <msg>
-        REMOVE\t<abs_path>            -> OK | ERR <msg>
-        PING                          -> PONG
+        INJECT\t<rw|ro>\t<abs_path>             -> OK | ERR <msg>
+        INJECT\t<rw|ro>\t<abs_path>\t<source>   -> OK | ERR <msg>
+        REMOVE\t<abs_path>                      -> OK | ERR <msg>
+        PING                                    -> PONG
     `abs_path` is the real project/asset path; it is bound to the same path
-    inside the jail (mirroring today's symlink). After initialization, dynamic
-    mounts are allowed only when the canonical source resolves under a configured
-    runtime inject-root, normally the SEMOSS home."""
-    source_roots = _canonical_runtime_roots(inject_roots)
+    inside the jail (mirroring today's symlink). With a `source`, that folder is
+    bound at `abs_path` instead: the read-only copy of a project that a user who
+    can only view it gets. After initialization, dynamic mounts are allowed only
+    when the canonical source resolves under a configured runtime inject-root,
+    normally the SEMOSS home, or under a source-only root, the user's chroot
+    folder, and the destination stays under a runtime inject-root."""
+    source_roots = _canonical_runtime_roots(list(inject_roots) + list(source_only_roots))
     destination_roots = _destination_runtime_roots(inject_roots)
     if os.path.exists(control_sock):
         os.unlink(control_sock)
@@ -744,11 +759,12 @@ def _handle_control(jail, source_roots, destination_roots, raw):
         if cmd == "INJECT" and len(parts) >= 3:
             mode = "ro" if parts[1].strip().lower() == "ro" else "rw"
             abs_path = parts[2].strip()
-            if not _under_runtime_root(abs_path, source_roots):
-                return "ERR path not under a runtime inject root: %s" % abs_path
+            source = parts[3].strip() if len(parts) >= 4 and parts[3].strip() else abs_path
+            if not _under_runtime_root(source, source_roots):
+                return "ERR path not under a runtime inject root: %s" % source
             if not _under_mount_destination_root(abs_path, destination_roots):
                 return "ERR destination not under a runtime inject root: %s" % abs_path
-            inject(jail, abs_path, abs_path, mode)
+            inject(jail, source, abs_path, mode)
             return "OK"
         if cmd == "REMOVE" and len(parts) >= 2:
             abs_path = parts[1].strip()
@@ -804,10 +820,11 @@ def _real_mode(args):
     if gaas_args and gaas_args[0] == "--":
         gaas_args = gaas_args[1:]
 
+    _unshare_net = not args.no_net
     child_pid = os.fork()
     if child_pid == 0:
-        enter_jail(jail, inject_roots, unshare_net=not args.no_net)
-        harden()
+        enter_jail(jail, inject_roots, unshare_net=_unshare_net)
+        harden(unshare_net_already_done=_unshare_net)
         if args.exec_cmd:
             # alternate worker runtime (e.g. the node agent worker); the exec
             # target must be visible inside the jail (DEFAULT_RO_PATHS or an
@@ -836,7 +853,8 @@ def _real_mode(args):
 
     try:
         if args.control_socket:
-            _serve_control(jail, inject_roots, args.control_socket, child_pid)
+            _serve_control(jail, inject_roots, args.control_socket, child_pid,
+                           [p for p in args.inject_source_root if p])
         else:
             os.waitpid(child_pid, 0)
     finally:
@@ -861,6 +879,11 @@ def parse_args():
                         "marked a shared mount so mid-session grants propagate "
                         "into the running interpreter (repeatable; normally the "
                         "SEMOSS home)")
+    p.add_argument("--inject-source-root", action="append", default=[],
+                   help="absolute dir a runtime INJECT may also take its source "
+                        "from, such as the user's chroot folder that holds the "
+                        "read-only copy of a project; it is never mounted on its "
+                        "own and is never a destination (repeatable)")
     p.add_argument("--py-folder", default="",
                    help="SEMOSS py/ folder (gaas server code), bound read-only")
     p.add_argument("--insight-folder", default="",

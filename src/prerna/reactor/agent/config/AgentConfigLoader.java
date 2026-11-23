@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.config;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,14 +50,18 @@ import com.google.gson.JsonParser;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.collaboration.BrainProfileUtils;
+import prerna.collaboration.CollaborationDriveFiles;
 import prerna.collaboration.CollaborationMemoryRunHook;
 import prerna.collaboration.CollaborationRunMode;
 import prerna.collaboration.CollaborationSkills;
 import prerna.collaboration.CollaborationUtils;
+import prerna.collaboration.WorkMainTwin;
+import prerna.collaboration.WorkTwinPersona;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
+import prerna.project.api.IProject;
 import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.AppBuilderHarnessConfiguration;
 import prerna.reactor.agent.IAgentHook;
@@ -65,7 +70,11 @@ import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
 import prerna.reactor.agent.skill.SkillProjects;
+import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
+import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.SystemDefaultEngines;
+import prerna.util.Utility;
 
 /**
  * Builds the resolved {@link AgentConfig} for one run.
@@ -161,8 +170,10 @@ public final class AgentConfigLoader {
 		b.authoredPrompt(resolveAuthoredPrompt(room, workspaceId, workspaceRow, cfgJson));
 
 		// Workdir AGENTS.md / CLAUDE.md exact-dir lookup only (no walk-up). Loader
-		// tolerates null workingDir.
-		b.workdirAgentsMd(AgentsMdLoader.discover(workingDir));
+		// tolerates null workingDir. A Collaboration room's folder holds files
+		// downloaded from mail, Teams and OneDrive, so an outsider names them: one
+		// called AGENTS.md there is never instructions.
+		b.workdirAgentsMd(CollaborationUtils.isCollaborationRoom(room) ? null : AgentsMdLoader.discover(workingDir));
 
 		// Selected-engines block: read fresh from the project dependency store
 		// every run so workbench selections are always current and prompt-visible.
@@ -193,6 +204,29 @@ public final class AgentConfigLoader {
 
 		// 6. Working directory
 		b.workingDir(StringUtils.trimToNull(workingDir));
+		User runUser = room.getInsight() != null ? room.getInsight().getUser() : null;
+		b.agentFilesDir(resolveAgentFilesDir(workspaceId, workspaceRow, runUser));
+		// A Digital Twin's rules follow it into every run. A run without a user has no
+		// agent files and nobody's tools, so the mark is not read for it.
+		boolean digitalTwin = workspaceId != null && workspaceRow != null && runUser != null
+				&& SecurityProjectUtils.isDigitalTwin(workspaceId);
+		if (digitalTwin) {
+			b.digitalTwin(true);
+			String twinOwner = SecurityProjectUtils.getProjectCreatorName(workspaceId);
+			b.digitalTwinOwner(twinOwner);
+			// its owner's own chat: the twin is told who it is talking to and may add to its files
+			b.digitalTwinOwnChat(SecurityProjectUtils.isProjectCreator(runUser, workspaceId));
+			// how its owner sounds and decides, unless they have no persona or switched it off for this twin
+			b.digitalTwinPersona(WorkTwinPersona.promptBlock(workspaceId, twinOwner));
+		}
+		// The Collaboration Agent in a person's own chat is their own Digital Twin: it is told its name and how
+		// they think. Not in a routine's unattended run, and not for any other agent in the chat. A sub-agent it
+		// starts runs the same agent in a room with the same options, so its room is left out by its mark: the
+		// harness's depth check alone reads as the root for a sub-agent resumed after a restart.
+		if (runUser != null && Constants.AGENT_COLLABORATION.equals(workspaceId) && CollaborationRunMode.isChat(room)
+				&& room.getOptionsMap().get(AgentSubAgentRegistry.ROOM_OPTION_PARENT_ROOM_ID) == null) {
+			b.mainTwinPrompt(WorkMainTwin.promptBlock(runUser));
+		}
 
 		// CONFIG_JSON budgets override per field; remaining values come from caller
 		// args.
@@ -203,8 +237,7 @@ public final class AgentConfigLoader {
 		b.mcps(resolveMcps(workspaceId, room, cfgJson));
 
 		// Skills follow the same layered merge and are staged later by AgentRunner.
-		b.skills(resolveSkills(workspaceId, room, cfgJson,
-				room.getInsight() != null ? room.getInsight().getUser() : null));
+		b.skills(resolveSkills(workspaceId, room, cfgJson, runUser, digitalTwin));
 
 		// Hooks and subagents currently come from CONFIG_JSON only. resolveHooks
 		// classifies
@@ -212,7 +245,7 @@ public final class AgentConfigLoader {
 		// list,
 		// or both.
 		ResolvedHooks rh = resolveHooks(cfgJson);
-		b.runHooks(withBuiltInRunHooks(room, rh.runHooks));
+		b.runHooks(withBuiltInRunHooks(room, rh.runHooks, digitalTwin));
 		b.toolHooks(rh.toolHooks);
 		b.subagents(resolveSubagents(cfgJson));
 
@@ -241,6 +274,38 @@ public final class AgentConfigLoader {
 			return ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		} catch (Exception e) {
 			logger.warn("AgentConfigLoader: CONFIG_JSON load failed for workspaceId={}: {}", workspaceId,
+					e.getMessage());
+			return null;
+		}
+	}
+
+	/**
+	 * The folder a run reads the agent's own files from: the public assets folder
+	 * of the agent's project. Only that folder, because it is what a user with view
+	 * access to the agent may read; the rest of the project holds its
+	 * configuration. Null when the run has no stored agent or no user, or the agent
+	 * has no such folder.
+	 */
+	private static String resolveAgentFilesDir(String workspaceId, Map<String, Object> workspaceRow, User user) {
+		// load() has already refused a user who cannot view this agent
+		if (workspaceId == null || workspaceRow == null || user == null) {
+			return null;
+		}
+		try {
+			IProject project = Utility.getProject(workspaceId);
+			if (project == null) {
+				return null;
+			}
+			File folder = new File(
+					AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId()),
+					Constants.PUBLIC_ASSETS_FOLDER);
+			if (!folder.isDirectory()) {
+				return null;
+			}
+			logger.info("AgentConfigLoader: agent files for workspaceId={} are read from {}", workspaceId, folder);
+			return folder.getAbsolutePath();
+		} catch (Exception e) {
+			logger.warn("AgentConfigLoader: agent files lookup failed for workspaceId={}: {}", workspaceId,
 					e.getMessage());
 			return null;
 		}
@@ -293,6 +358,9 @@ public final class AgentConfigLoader {
 			// Ordinary document reading uses the shared extraction helper. Managed
 			// presentation workflows perform their own review without this tool.
 			names.add("InspectPptx");
+			// the owner's tasks live in Work items; a chat todo list only competes with them
+			names.add("TodoWrite");
+			names.add("TodoRead");
 		}
 		JSONObject toolPolicy = cfgJson != null ? cfgJson.optJSONObject("tool_policy") : null;
 		JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;
@@ -395,7 +463,7 @@ public final class AgentConfigLoader {
 	 * retain their pinned version when also present in the defaults.
 	 */
 	private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson,
-			User user) {
+			User user, boolean digitalTwin) {
 		List<Map<String, String>> out = new ArrayList<>();
 		Set<String> seen = new LinkedHashSet<>();
 
@@ -465,8 +533,9 @@ public final class AgentConfigLoader {
 			out.add(entry);
 		}
 
-		// the owner's own Collaboration skills they turned on for their assistant, in chats and routines
-		if (user != null && CollaborationRunMode.of(room) != null) {
+		// the owner's own Collaboration skills they turned on for their assistant, in chats and routines;
+		// a Digital Twin is someone else's agent, a guest in the chat, and borrows none of them
+		if (user != null && !digitalTwin && CollaborationRunMode.of(room) != null) {
 			for (String skillId : CollaborationSkills.keepMine(user, BrainProfileUtils.assistantSkills(user))) {
 				if (seen.add(skillId)) {
 					out.add(skillRef(skillId, null));
@@ -818,14 +887,19 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * An owner's chat also reviews its finished runs for memories to suggest, whatever its agent configures; a
-	 * routine's runs are not reviewed.
+	 * An owner's chat also saves the OneDrive copies a finished run changed back over their originals, and reviews
+	 * its finished runs for memories to suggest, whatever its agent configures; a routine's runs get neither. Nor
+	 * does a chat with a Digital Twin: what someone else's agent did there is not written back to the asker's
+	 * OneDrive, learned as their memory or filed under their topics.
 	 */
-	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
-		if (!CollaborationRunMode.isChat(room)) {
+	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured,
+			boolean digitalTwin) {
+		if (digitalTwin || !CollaborationRunMode.isChat(room)) {
 			return configured;
 		}
 		List<IAgentRunHook> hooks = new ArrayList<>(configured);
+		// first, so what it tells the owner is in the chat before the review reads it
+		hooks.add(new CollaborationDriveFiles.AfterRun());
 		hooks.add(new CollaborationMemoryRunHook());
 		return hooks;
 	}

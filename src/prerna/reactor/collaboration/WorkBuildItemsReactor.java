@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.WorkPipeline;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkBuildItems(days=[14], replaceOld=[true]); WorkBuildItems(status=[true]); WorkBuildItems(tidy=[true]);
@@ -60,21 +61,13 @@ public class WorkBuildItemsReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Builds work items from the owner's recent threads in the background; status reports progress";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (DAYS.equals(key)) {
-			return "How many days of threads to read (default 14)";
-		} else if (REPLACE_OLD.equals(key)) {
-			return "true to retire the steps threads made on their own and read every thread again";
-		} else if (STATUS.equals(key)) {
-			return "true to report the last build instead of starting one";
-		} else if (TIDY.equals(key)) {
-			return "true to fold duplicate steps on every open item instead of building";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Builds work items from the owner's recent threads in the background; status reports progress")
+				.key(DAYS, "How many days of threads to read (default 14)")
+				.key(REPLACE_OLD, "true to retire the steps threads made on their own and read every thread again")
+				.key(STATUS, "true to report the last build instead of starting one")
+				.key(TIDY, "true to fold duplicate steps on every open item instead of building");
 	}
 }

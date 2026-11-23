@@ -35,7 +35,6 @@ import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Connection;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -82,7 +81,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.SystemEngineRegistry;
@@ -97,8 +96,6 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminSetPublisher = false;
 	static boolean adminSetExporter = false;
 	static String ADMIN_ADDED_USER = "ADMIN_ADDED_USER";
-	static boolean anonymousUsersEnabled = false;
-	static boolean anonymousUsersUploadData = false;
 
 	static boolean adminOnlyProjectAdd = false;
 	static boolean adminOnlyProjectDelete = false;
@@ -195,23 +192,7 @@ public abstract class AbstractSecurityUtils {
 		// this is to update the bad naming in the security db for type values
 		updateUserTypeEnum();
 
-		Object anonymousUsers = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_ALLOWED);
-		if (anonymousUsers == null) {
-			anonymousUsersEnabled = false;
-		} else {
-			anonymousUsersEnabled = (anonymousUsers instanceof Boolean && ((boolean) anonymousUsers))
-					|| (Boolean.parseBoolean(anonymousUsers.toString()));
-		}
-
-		Object anonymousUsersData = Utility.getDIHelperLocalProperty(Constants.ANONYMOUS_USER_UPLOAD_DATA);
-		if (anonymousUsersData == null) {
-			anonymousUsersUploadData = false;
-		} else {
-			anonymousUsersUploadData = (anonymousUsersData instanceof Boolean && ((boolean) anonymousUsersData))
-					|| (Boolean.parseBoolean(anonymousUsersData.toString()));
-		}
-
-		Object adminSetsPublisher = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_PUBLISHER);
+		Object adminSetsPublisher = InternalUtility.getLocalProperty(Constants.ADMIN_SET_PUBLISHER);
 		if (adminSetsPublisher == null) {
 			adminSetPublisher = false;
 		} else {
@@ -219,7 +200,7 @@ public abstract class AbstractSecurityUtils {
 					|| (Boolean.parseBoolean(adminSetsPublisher.toString()));
 		}
 
-		Object adminSetsExporter = Utility.getDIHelperLocalProperty(Constants.ADMIN_SET_EXPORTER);
+		Object adminSetsExporter = InternalUtility.getLocalProperty(Constants.ADMIN_SET_EXPORTER);
 		if (adminSetsExporter == null) {
 			adminSetExporter = false;
 		} else {
@@ -289,14 +270,6 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyInsightAddAccess = Utility.getApplicationAdminOnlyInsightAddAccess();
 
 		adminOnlyInsightShare = Utility.getApplicationAdminOnlyInsightShare();
-	}
-
-	public static boolean anonymousUsersEnabled() {
-		return anonymousUsersEnabled;
-	}
-
-	public static boolean anonymousUserUploadData() {
-		return anonymousUsersEnabled() && anonymousUsersUploadData;
 	}
 
 	@Deprecated
@@ -823,10 +796,9 @@ public abstract class AbstractSecurityUtils {
 
 			// ENGINE
 			colNames = new String[] { "ENGINEID", "ENGINENAME", "ENGINEDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
-					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", "TOOL_APP", };
+					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "ENGINETYPE", "ENGINESUBTYPE", "COST", };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255,
-					VARCHAR_255 };
+					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255 };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("ENGINE", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -860,6 +832,11 @@ public abstract class AbstractSecurityUtils {
 						classLogger.info("Running sql {}", dropTypeColumn);
 						securityDb.insertData(dropTypeColumn);
 					}
+				}
+				if (allCols.stream().anyMatch("TOOL_APP"::equalsIgnoreCase)) {
+					String dropToolAppColumn = queryUtil.alterTableDropColumn("ENGINE", "TOOL_APP");
+					classLogger.info("Running sql {}", dropToolAppColumn);
+					securityDb.insertData(dropToolAppColumn);
 				}
 
 				// engines with no type are databases, and existing rows get their display name
@@ -1284,13 +1261,13 @@ public abstract class AbstractSecurityUtils {
 			// Type and cost are the main questions -
 			boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
 			colNames = new String[] { "PROJECTID", "PROJECTNAME", "PROJECTDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
-					"IS_TEMPLATE", "CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED", "TYPE", "COST",
-					"CATALOGNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILED",
-					"REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE" };
+					"IS_TEMPLATE", "HAS_CUSTOM_LOGIN", "CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED",
+					"TYPE", "COST", "CATALOGNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
+					"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255,
-					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME,
+					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECT", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -1318,14 +1295,18 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 
-				// existing rows get their display name from their canonical name, and rows with
-				// no template flag are not templates, in one transaction
+				// existing rows get their display name from their canonical name, rows with no
+				// template flag are not templates, and rows with no custom login flag have no
+				// login page of their own, in one transaction
 				QueryExecutionUtility.write(securityDb, connection -> {
 					QueryExecutionUtility.executeUpdate(connection,
 							"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''",
 							QueryExecutionUtility.NO_PARAMETERS);
 					QueryExecutionUtility.executeUpdate(connection,
 							"UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL",
+							ps -> ps.setBoolean(1, false));
+					QueryExecutionUtility.executeUpdate(connection,
+							"UPDATE PROJECT SET HAS_CUSTOM_LOGIN = ? WHERE HAS_CUSTOM_LOGIN IS NULL",
 							ps -> ps.setBoolean(1, false));
 					return null;
 				});
@@ -2309,6 +2290,35 @@ public abstract class AbstractSecurityUtils {
 			// billed to
 			setMissingDatesAdded(securityDb, "GROUPENGINEPERMISSION");
 
+			removeProjectEnginePermissionTable(securityDb, conn, queryUtil, database, schema);
+			colNames = new String[] { "ENGINEID", "ENGINETYPE", "GRANTEEENGINEID", "GRANTEEENGINETYPE", "PERMISSION",
+					"DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("ENGINE2ENGINEPERMISSION", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.tableExists(conn, "ENGINE2ENGINEPERMISSION", database, schema)) {
+					String sql = queryUtil.createTable("ENGINE2ENGINEPERMISSION", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			if (allowIfExistsIndexs || !queryUtil.indexExists(securityDb, "ENGINE2ENGINEPERMISSION_GRANTEE_UNIQUE",
+					"ENGINE2ENGINEPERMISSION", database, schema)) {
+				List<String> granteeColumns = List.of("ENGINEID", "GRANTEEENGINEID", "GRANTEEENGINETYPE");
+				String sql = allowIfExistsIndexs
+						? queryUtil.createIndexIfNotExists("ENGINE2ENGINEPERMISSION_GRANTEE_UNIQUE",
+								"ENGINE2ENGINEPERMISSION", granteeColumns)
+						: queryUtil.createIndex("ENGINE2ENGINEPERMISSION_GRANTEE_UNIQUE", "ENGINE2ENGINEPERMISSION",
+								granteeColumns);
+				sql = sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+
 			// GROUP PROJECT PERMISSION
 			// TODO::: look into how we want to allow user hiding of projects that are
 			// assigned at group lvl
@@ -2494,46 +2504,6 @@ public abstract class AbstractSecurityUtils {
 						classLogger.info("Running sql {}", addColumnSql);
 						securityDb.insertData(addColumnSql);
 					}
-				}
-			}
-
-			// TOKEN
-			colNames = new String[] { "IPADDR", "VAL", "DATEADDED", "CLIENTID" };
-			types = new String[] { VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255 };
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("TOKEN", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				// see if table exists
-				if (!queryUtil.tableExists(conn, "TOKEN", database, schema)) {
-					// make the table
-					String sql = queryUtil.createTable("TOKEN", colNames, types);
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
-				}
-			}
-			// MAKING MODIFICATION FOR ADDING ID COLUMN - 10/03/2022
-			{
-				List<String> allCols = queryUtil.getTableColumns(conn, "TOKEN", database, schema);
-				// this should return in all upper case
-				// ... but sometimes it is not -_- i.e. postgres always lowercases
-				if (!allCols.contains("CLIENTID") && !allCols.contains("clientid")) {
-					String addIdColumn = queryUtil.alterTableAddColumn("TOKEN", "CLIENTID", VARCHAR_255);
-					classLogger.info("Running sql {}", addIdColumn);
-					securityDb.insertData(addIdColumn);
-				}
-			}
-			if (allowIfExistsIndexs) {
-				String sql = queryUtil.createIndexIfNotExists("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR");
-				classLogger.info("Running sql {}", sql);
-				securityDb.insertData(sql);
-			} else {
-				// see if index exists
-				if (!queryUtil.indexExists(securityDb, "TOKEN_IPADDR_INDEX", "TOKEN", database, schema)) {
-					String sql = queryUtil.createIndex("TOKEN_IPADDR_INDEX", "TOKEN", "IPADDR");
-					classLogger.info("Running sql {}", sql);
-					securityDb.insertData(sql);
 				}
 			}
 
@@ -2872,24 +2842,34 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// Insert default row for DEFAULTMODEL into USERMETAKEYS if not exists, in one
-			// transaction
+			// Insert the metakeys the platform defines into USERMETAKEYS, in one
+			// transaction. Each key is inserted only when it is missing, so a key added
+			// in a later release reaches a deployment whose table is already populated,
+			// and a key an admin has reconfigured is left as they set it.
 			{
 				String[] userMetaKeyColNames = colNames;
 				String[] userMetaKeyTypes = types;
+				String[] platformMetakeys = new String[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY,
+						Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, Constants.PLAYGROUND_DEFAULT_INPUT_TEXT_MODEL_KEY,
+						Constants.PLAYGROUND_DEFAULT_CHAT_MODE_KEY, Constants.PLAYGROUND_DEFAULT_CHAT_AGENT_KEY };
 				try {
 					QueryExecutionUtility.write(securityDb, connection -> {
-						Long count = QueryExecutionUtility.queryOne(connection,
-								"select count(*) from " + Constants.USER_METAKEYS, QueryExecutionUtility.NO_PARAMETERS,
-								rs -> rs.getLong(1));
-						if (count != null && count == 0) {
-							int order = 0;
+						List<String> existingKeys = QueryExecutionUtility.queryList(connection,
+								"select METAKEY from " + Constants.USER_METAKEYS, QueryExecutionUtility.NO_PARAMETERS,
+								rs -> rs.getString(1));
+						Integer maxOrder = QueryExecutionUtility.queryOne(connection,
+								"select max(DISPLAYORDER) from " + Constants.USER_METAKEYS,
+								QueryExecutionUtility.NO_PARAMETERS, rs -> {
+									int value = rs.getInt(1);
+									return rs.wasNull() ? null : value;
+								});
+						int order = maxOrder == null ? 0 : maxOrder + 1;
+						for (String metakey : platformMetakeys) {
+							if (existingKeys.contains(metakey)) {
+								continue;
+							}
 							insertRows(connection, queryUtil, Constants.USER_METAKEYS, userMetaKeyColNames,
-									userMetaKeyTypes,
-									new Object[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "single", order++,
-											"select-box", null },
-									new Object[] { Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "single", order++,
-											"select-box", null });
+									userMetaKeyTypes, new Object[] { metakey, "single", order++, "select-box", null });
 						}
 						return null;
 					});
@@ -3149,6 +3129,33 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
+	 * Removes the table that kept the permissions engines gave apps before
+	 * {@code ENGINE2ENGINEPERMISSION} kept them with the permissions engines give
+	 * other engines, together with the App Limits on those permissions. Their
+	 * owners give them again. The limits go first, so a start up that stops between
+	 * the two removes them again on the next start.
+	 *
+	 * @param securityDb the security database
+	 * @param conn       a connection to it
+	 * @param queryUtil  its query utility
+	 * @param database   its database name
+	 * @param schema     its schema
+	 */
+	static void removeProjectEnginePermissionTable(IRDBMSEngine securityDb, Connection conn,
+			AbstractSqlQueryUtil queryUtil, String database, String schema) throws Exception {
+		if (!queryUtil.tableExists(conn, "PROJECTENGINEPERMISSION", database, schema)) {
+			return;
+		}
+		SecurityModelUsageLimitUtils.deleteLimitsOfType(conn, "PROJECT");
+		if (!conn.getAutoCommit()) {
+			conn.commit();
+		}
+		String sql = queryUtil.dropTable("PROJECTENGINEPERMISSION");
+		classLogger.info("Running sql {}", sql);
+		securityDb.removeData(sql);
+	}
+
+	/**
 	 * Gives the rows of a team table with no DATEADDED the current UTC time, so
 	 * every team grant and membership has a place in the order a person's model
 	 * calls are billed to their teams.
@@ -3204,6 +3211,7 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPENGINEPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPMANAGERS", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
+		allValues.put("ENGINE2ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPINSIGHTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPPROJECTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("INSIGHTACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });
@@ -3470,7 +3478,7 @@ public abstract class AbstractSecurityUtils {
 			return true;
 		}
 		// so that way all those Asset apps do not appear a bunch of times
-		String smssFile = DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE) + "";
+		String smssFile = InternalUtility.getEngineSmssPath(databaseId) + "";
 		File smssF = new File(smssFile);
 		if (smssFile != null && smssF.exists() && smssF.isFile()) {
 			Properties prop = Utility.loadProperties(smssFile);
@@ -4263,20 +4271,6 @@ public abstract class AbstractSecurityUtils {
 		ZonedDateTime zdt = ZonedDateTime.parse(endDate);
 		ZonedDateTime gmt = zdt.withZoneSameInstant(ZoneId.of("UTC"));
 		return java.sql.Timestamp.valueOf(gmt.toLocalDateTime());
-	}
-
-	/**
-	 * Check if permission end date has expired
-	 * 
-	 * @param endDate
-	 */
-	public static boolean endDateIsExpired(SemossDate endDate) throws Exception {
-		LocalDateTime currentTime = LocalDateTime.now();
-		if (endDate == null) {
-			return false;
-		}
-		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
-		return formattedEndDate.isBefore(currentTime);
 	}
 
 }

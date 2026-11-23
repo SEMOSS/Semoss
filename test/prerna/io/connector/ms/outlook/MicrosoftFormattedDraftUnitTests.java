@@ -31,17 +31,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 import com.google.gson.Gson;
 
+import prerna.auth.User;
+import prerna.io.connector.mail.AbstractReplyMailReactor.ReplyMailRequest;
+import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.security.HttpHelperUtility;
 
 class MicrosoftFormattedDraftUnitTests {
@@ -123,11 +132,43 @@ class MicrosoftFormattedDraftUnitTests {
 			if (method.equals("postRequestStringBody")) {
 				return "{\"id\":\"created\",\"body\":{\"contentType\":\"html\",\"content\":\"<p>Quote</p>\"}}";
 			}
+			if (method.equals("deleteRequestStringBody")) {
+				assertTrue(invocation.<String>getArgument(0).endsWith("/messages/created"));
+				return "";
+			}
 			return "{\"error\":{\"code\":\"ErrorAccessDenied\",\"message\":\"Cannot update\"}}";
 		})) {
 			assertThrows(IllegalArgumentException.class,
 					() -> new MicrosoftOutlookMailHelper().replyHtmlDraft("token", "source", "<p>Reply</p>", false));
-			assertEquals(List.of("postRequestStringBody", "patchRequestStringBody"), calls);
+			// the half-made draft is deleted rather than left to be sent or retried beside
+			assertEquals(List.of("postRequestStringBody", "patchRequestStringBody", "deleteRequestStringBody"), calls);
+		}
+	}
+
+	@Test
+	void aReplyWhoseFilesCannotBeAddedLeavesNoDraftBehind(@TempDir Path folder) throws Exception {
+		File file = Files.writeString(folder.resolve("notes.txt"), "hello").toFile();
+		List<String> calls = new ArrayList<>();
+		try (MockedStatic<MicrosoftLoginUtils> login = mockStatic(MicrosoftLoginUtils.class);
+				MockedStatic<HttpHelperUtility> http = mockStatic(HttpHelperUtility.class, invocation -> {
+					String url = invocation.getArgument(0);
+					calls.add(invocation.getMethod().getName() + " " + url);
+					if (url.endsWith("/createReply")) {
+						return "{\"id\":\"draft-1\"}";
+					}
+					if (url.endsWith("/attachments")) {
+						return "{\"error\":{\"code\":\"ErrorQuotaExceeded\",\"message\":\"The mailbox is full\"}}";
+					}
+					return "";
+				})) {
+			login.when(() -> MicrosoftLoginUtils.getValidAccessToken(any())).thenReturn("token");
+			ReplyMailRequest request = new ReplyMailRequest("source", "Here you go", false, false, null,
+					List.of(file));
+
+			assertThrows(IllegalArgumentException.class,
+					() -> new MicrosoftOutlookReplyMailReactor().draftReply(mock(User.class), request));
+			assertTrue(calls.get(calls.size() - 1).matches("deleteRequestStringBody .*/messages/draft-1"),
+					calls::toString);
 		}
 	}
 

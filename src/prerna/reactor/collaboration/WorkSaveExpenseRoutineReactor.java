@@ -28,7 +28,10 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.WorkExpenseRoutine;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+import java.util.Map;
 
 public class WorkSaveExpenseRoutineReactor extends AbstractCollaborationReactor {
 	public WorkSaveExpenseRoutineReactor() {
@@ -43,7 +46,10 @@ public class WorkSaveExpenseRoutineReactor extends AbstractCollaborationReactor 
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Opts the signed-in user into expense reviews of the approval requests reaching their inbox, or pauses them";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Opts the signed-in user into expense reviews of the approval requests reaching their inbox, or pauses them")
+				.key("settings", key -> key.type(Map.class).description(
+						"The expense review settings, as a map: enabled (true or false), timezone (an IANA time zone) and recipients (up to 10 email addresses each review is copied to)."));
 	}
 }

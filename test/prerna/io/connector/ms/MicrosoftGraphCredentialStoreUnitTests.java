@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.Mockito.doAnswer;
@@ -51,8 +52,9 @@ import org.mockito.MockedConstruction;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.io.connector.AbstractOAuthTokenFiller;
+import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.util.JdbcTestDatabase;
+import prerna.util.SystemEngineRegistry;
 
 class MicrosoftGraphCredentialStoreUnitTests {
 
@@ -68,8 +70,7 @@ class MicrosoftGraphCredentialStoreUnitTests {
 			assertFalse(MicrosoftGraphCredentialStore.isRefreshable(token));
 			assertThrows(IllegalArgumentException.class, () -> MicrosoftGraphCredentialStore.save(token));
 			token.setProvider(AuthProvider.MICROSOFT);
-			token.removeMetaKey(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
-			token.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, " ");
+			token.setRefresh_token(" ");
 			assertFalse(MicrosoftGraphCredentialStore.isRefreshable(token));
 		}
 	}
@@ -90,8 +91,7 @@ class MicrosoftGraphCredentialStoreUnitTests {
 				assertEquals(1, fillers.constructed().size());
 				AccessToken persisted = MicrosoftGraphCredentialStore.get("account-one");
 				assertEquals("new-access", persisted.getAccess_token());
-				assertEquals("new-refresh", persisted.getMetaValues(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY)
-						.iterator().next());
+				assertEquals("new-refresh", persisted.getRefresh_token());
 				assertEquals(renewed.getStartTime() + renewed.getExpires_in() * 1000L,
 						persisted.getStartTime() + persisted.getExpires_in() * 1000L);
 				assertEquals("mail@example.test", persisted.getEmail());
@@ -135,6 +135,34 @@ class MicrosoftGraphCredentialStoreUnitTests {
 	}
 
 	@Test
+	void turningBackgroundAccessOffWhileItRenewsKeepsItOff() throws Exception {
+		try (var db = database(); var users = users()) {
+			MicrosoftGraphCredentialStore.save(token("old-access", "old-refresh", -1000L));
+			try (var fillers = mockConstruction(MicrosoftTokenFiller.class,
+					(filler, context) -> when(filler.refreshAccessToken(any(), anyMap())).thenAnswer(call -> {
+						// the owner turns background access off while Microsoft renews the sign-in
+						SecurityExternalConnectorsUtils.deleteMicrosoftGraphCredential("account-one");
+						return token("new-access", "new-refresh", 3_600_000L);
+					}))) {
+				MicrosoftGraphCredentialStore.accessToken("account-one");
+				assertNull(MicrosoftGraphCredentialStore.get("account-one"));
+				assertEquals(0, db.count("MS_GRAPH_CREDENTIAL"));
+			}
+		}
+	}
+
+	@Test
+	void renewalSavesThroughAPackageAllowedToUseTheSecurityDatabase() {
+		// JdbcTestDatabase mocks the registry, which skips its caller check, so this
+		// runs the real one. No security
+		// database is loaded here, so a save that passes the check fails only for want
+		// of one.
+		assumeFalse(SystemEngineRegistry.isSecurityDbLoaded());
+		assertThrows(IllegalStateException.class,
+				() -> MicrosoftGraphCredentialStore.update(token("new-access", "new-refresh", 3_600_000L)));
+	}
+
+	@Test
 	void absentCredentialCannotStartBackgroundAccess() throws Exception {
 		try (var db = database(); var users = users()) {
 			assertThrows(IllegalArgumentException.class,
@@ -167,7 +195,7 @@ class MicrosoftGraphCredentialStoreUnitTests {
 		token.setId("account-one");
 		token.setEmail("mail@example.test");
 		token.setAccess_token(value);
-		token.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, refresh);
+		token.setRefresh_token(refresh);
 		token.setExpires_in(3600);
 		token.setStartTime(System.currentTimeMillis() - 3_600_000L + remainingMillis);
 		return token;

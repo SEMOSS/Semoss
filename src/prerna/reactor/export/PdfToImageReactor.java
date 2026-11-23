@@ -45,11 +45,11 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 
 public class PdfToImageReactor extends AbstractReactor {
 
@@ -103,7 +103,7 @@ public class PdfToImageReactor extends AbstractReactor {
 				ImageIO.write(image, "png", new File(outputFileName));
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Could not convert {} to images", pdfFilePath, e);
 		}
 
 		NounMetadata retNoun = new NounMetadata(imagesCreated, PixelDataType.CONST_STRING);
@@ -111,21 +111,12 @@ public class PdfToImageReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Generate a separate image for each page in a pdf file.
 				The names of the files generated will be the pdfFileName + "_page_" + pageNumber + ".png"
-				""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "The relative file path of the PDF file";
-		} else if (key.equals(ReactorKeysEnum.SPACE.getKey())) {
-			return "This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).";
-		}
-		return super.getDescriptionForKey(key);
+				""").key(ReactorKeysEnum.FILE_PATH, "The relative file path of the PDF file").key(ReactorKeysEnum.SPACE,
+				"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).");
 	}
 
 }

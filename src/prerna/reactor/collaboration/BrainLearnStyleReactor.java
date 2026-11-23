@@ -28,6 +28,7 @@
 package prerna.reactor.collaboration;
 
 import prerna.collaboration.BrainStyleLearning;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainLearnStyle(); owner-only; follow it with BrainGetJob(kind=["style"])
@@ -43,9 +44,11 @@ public class BrainLearnStyleReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Starts learning how the owner writes from their last 30 days of sent mail and chat messages, "
-				+ "or returns the running job. The result is a pending proposal on the profile that is never used "
-				+ "when drafting until the owner confirms it with BrainSaveProfile";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Starts learning how the owner writes from their last 30 days of sent mail and chat messages, "
+						+ "or returns the running job. The result is a pending proposal on the profile that is never used "
+						+ "when drafting until the owner confirms it with BrainSaveProfile")
+				.noKeys();
 	}
 }

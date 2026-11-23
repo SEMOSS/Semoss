@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -110,20 +111,14 @@ public class MicrosoftOneDriveListFilesReactor extends AbstractMicrosoftOneDrive
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "List the files and folders inside a OneDrive folder, in the signed in user's own drive or in a drive shared with them.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ITEM_ID)) {
-			return "Optional id of the folder to list. The drive root is listed when omitted.";
-		} else if (key.equals(PATH)) {
-			return "Optional path of the folder to list, relative to the drive root, or relative to the folder the item id names when both are given.";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of items to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
-					+ MAX_LIMIT + ".";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"List the files and folders inside a OneDrive folder, in the signed in user's own drive or in a drive shared with them.")
+				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION)
+				.key(ITEM_ID, "Optional id of the folder to list. The drive root is listed when omitted.")
+				.key(PATH,
+						"Optional path of the folder to list, relative to the drive root, or relative to the folder the item id names when both are given.")
+				.key(ReactorKeysEnum.LIMIT, "Optional maximum number of items to return. Defaults to " + DEFAULT_LIMIT
+						+ " and is capped at " + MAX_LIMIT + ".");
 	}
 }

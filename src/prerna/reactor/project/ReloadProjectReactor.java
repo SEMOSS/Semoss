@@ -39,6 +39,7 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -175,20 +176,14 @@ public class ReloadProjectReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return """
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("""
 				Reload the python files of a project without restarting its python process. Clears the \
 				project modules cached in the project python process and in the python process of the user, \
 				so the next import reads the current .py files. In a cluster every node also clears the \
-				imports in the project python process it has running. The user must be able to edit the project.""";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
-			return "The id of the project to reload. Defaults to the project of the current app context";
-		}
-		return super.getDescriptionForKey(key);
+				imports in the project python process it has running. The user must be able to edit the project.""")
+				.key(ReactorKeysEnum.PROJECT,
+						"The id of the project to reload. Defaults to the project of the current app context");
 	}
 
 }

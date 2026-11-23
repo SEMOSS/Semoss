@@ -41,7 +41,6 @@ from ...usage_ceiling import (
     note_output_stop,
 )
 
-
 class ToolCall(BaseModel):
     name: str
     description: Optional[str] = None
@@ -60,6 +59,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
     # providers whose client supports messages.count_tokens
     _COUNT_TOKENS_PROVIDERS = ("anthropic", "google", "azure")
+
+    # rejected on every model by API version 2026-10-21, which anthropic 2.x uses
+    _SAMPLING_PARAMS = ("temperature", "top_p", "top_k")
 
     def __init__(
         self,
@@ -400,6 +402,15 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             streaming = msg_builder_response.streaming
             self.has_schema = msg_builder_response.has_structured_input
 
+            if self.provider == "bedrock":
+                # shortcut: keeps every Bedrock call on the old API version, since
+                # Bedrock serves 2026-10-21 (anthropic 2.x's default) only for Claude
+                # 4.7 and later; drop it once all Bedrock engines run Claude 4.7+
+                request_config.extra_body = {
+                    **(request_config.extra_body or {}),
+                    "anthropic_version": "bedrock-2023-05-31",
+                }
+
             if self.prompt_caching:
                 if self.provider in ("anthropic", "azure"):
                     request_config.cache_control = self._cache_control()
@@ -446,6 +457,13 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 _cache_creation = (
                     getattr(response.usage, "cache_creation_input_tokens", None) or 0
                 )
+                _thinking_tokens = (
+                    getattr(
+                        getattr(response.usage, "output_tokens_details", None),
+                        "thinking_tokens",
+                        None,
+                    ) or None
+                )
                 return self._parse_tools_call_response(
                     response,
                     prompt_tokens=response.usage.input_tokens
@@ -454,6 +472,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     response_tokens=response.usage.output_tokens,
                     cache_read_tokens=_cache_read,
                     cache_creation_tokens=_cache_creation,
+                    thinking_tokens=_thinking_tokens,
                 )
 
             thinking_text = ""
@@ -463,9 +482,6 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     thinking_text += content.thinking
                 elif hasattr(content, "type") and content.type == "text":
                     response_text += content.text
-
-            if web_search_enabled and inline_citations_enabled:
-                response_text = self._add_inline_citations(response) or response_text
 
             usage = Usage(
                 input_tokens=response.usage.input_tokens,
@@ -477,12 +493,22 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             cache_creation_tokens = (
                 getattr(response.usage, "cache_creation_input_tokens", None) or None
             )
+            thinking_tokens = (
+                getattr(
+                    getattr(response.usage, "output_tokens_details", None),
+                    "thinking_tokens",
+                    None,
+                ) or None
+            )
             # Normalize Anthropic input_tokens (new-only) to total billed, matching OpenAI/Gemini
             total_input_tokens = (
                 usage.input_tokens
                 + (cache_read_tokens or 0)
                 + (cache_creation_tokens or 0)
             )
+
+            if web_search_enabled and inline_citations_enabled:
+                response_text = self._add_inline_citations(response) or response_text
 
             if self.prompt_caching and (cache_read_tokens or cache_creation_tokens):
                 print(
@@ -510,6 +536,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 prompt_tokens=total_input_tokens,
                 cache_read_tokens=cache_read_tokens,
                 cache_creation_tokens=cache_creation_tokens,
+                thinking_tokens=thinking_tokens,
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
@@ -537,6 +564,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         if fit is None or not fit.lowered:
             return
         request_config.max_tokens = fit.max_tokens
+
 
         thinking = request_config.thinking
         if not thinking or thinking.get("type") != "enabled":
@@ -618,6 +646,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         response_tokens: int = 0,
         cache_read_tokens: Optional[int] = None,
         cache_creation_tokens: Optional[int] = None,
+        thinking_tokens: Optional[int] = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
         # preamble text blocks the model emitted alongside the tool_use blocks
@@ -644,6 +673,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                     prompt_tokens=prompt_tokens,
                     cache_read_tokens=cache_read_tokens,
                     cache_creation_tokens=cache_creation_tokens,
+                    thinking_tokens=thinking_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=parts,
@@ -658,6 +688,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             prompt_tokens=prompt_tokens,
             cache_read_tokens=cache_read_tokens,
             cache_creation_tokens=cache_creation_tokens,
+            thinking_tokens=thinking_tokens,
             schemaVersion=2,
             io="OUTPUT",
             parts=text_parts
@@ -678,6 +709,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         output_tokens = 0
         cache_read_tokens: Optional[int] = None
         cache_creation_tokens: Optional[int] = None
+        thinking_tokens: Optional[int] = None
         stop_reason: Optional[str] = None
 
         content_array = []
@@ -905,6 +937,13 @@ class AnthropicTextClient(AbstractTextGenerationClient):
 
                 elif event.type == "message_delta":
                     output_tokens = event.usage.output_tokens
+                    thinking_tokens = (
+                        getattr(
+                            getattr(event.usage, "output_tokens_details", None),
+                            "thinking_tokens",
+                            None,
+                        ) or None
+                    )
                     if getattr(event, "delta", None) and getattr(
                         event.delta, "stop_reason", None
                     ):
@@ -1052,6 +1091,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                         prompt_tokens=total_input_tokens,
                         cache_read_tokens=cache_read_tokens,
                         cache_creation_tokens=cache_creation_tokens,
+                        thinking_tokens=thinking_tokens,
                         schemaVersion=2,
                         io="OUTPUT",
                         parts=parts,
@@ -1065,6 +1105,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 prompt_tokens=total_input_tokens,
                 cache_read_tokens=cache_read_tokens,
                 cache_creation_tokens=cache_creation_tokens,
+                thinking_tokens=thinking_tokens,
                 schemaVersion=2,
                 io="OUTPUT",
                 parts=parts,
@@ -1078,6 +1119,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
             response_tokens=output_tokens,
             cache_read_tokens=cache_read_tokens,
             cache_creation_tokens=cache_creation_tokens,
+            thinking_tokens=thinking_tokens,
             schemaVersion=2,
             io="OUTPUT",
             parts=parts,
@@ -1325,6 +1367,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         lines = []
         for req in requests or []:
             params = dict(req.get("body") or req.get("params") or {})
+            for key in self._SAMPLING_PARAMS:
+                params.pop(key, None)
             # model is set at the job level, not per line
             params.pop("model", None)
             params.setdefault("max_tokens", default_max_tokens)
@@ -1486,6 +1530,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         batch_requests = []
         for req in requests or []:
             params = dict(req.get("body") or req.get("params") or {})
+            for key in self._SAMPLING_PARAMS:
+                params.pop(key, None)
             model = params.pop("model", None) or self.model_settings.model_name
             params.setdefault("max_tokens", default_max_tokens)
             request = Request(

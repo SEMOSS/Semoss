@@ -29,6 +29,7 @@ package prerna.reactor.collaboration;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainRuleUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainDeleteRule(ruleId=["..."]);
@@ -52,15 +53,9 @@ public class BrainDeleteRuleReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Turns off a Brain rule; people it excluded on threads are included again; owner only";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (RULE_ID.equals(key)) {
-			return "Rule id";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Turns off a Brain rule; people it excluded on threads are included again; owner only")
+				.key(RULE_ID, "Rule id");
 	}
 }

@@ -33,6 +33,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.algorithm.api.SemossDataType;
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -139,13 +140,13 @@ public class ToPercentReactor extends AbstractFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SIG_DIGITS)) {
-			return "Indicates the number of significant digits you'd like to keep";
-		} else if (key.equals(BY100)) {
-			return "Indicates if you want to multiply by 100 to get in percent form.";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Rounds the values of a column in the SQL frame to the given number of digits, optionally multiplying by 100 first, and appends a percent sign to each value.")
+				.key(SIG_DIGITS,
+						key -> key.type(Integer.class)
+								.description("Indicates the number of significant digits you'd like to keep"))
+				.key(BY100, key -> key.type(Boolean.class)
+						.description("Indicates if you want to multiply by 100 to get in percent form."));
 	}
 }

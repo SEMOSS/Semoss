@@ -414,23 +414,13 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 
 		// use an iterator to get the instance values from the qs
 		// we will use these instance values to construct a new r data frame
-		IRawSelectWrapper it = null;
-		try {
-			it = frame.query(qs);
+		try (IRawSelectWrapper it = frame.query(qs)) {
 			while (it.hasNext()) {
 				Object[] values = it.next().getRawValues();
 				instanceList.add(values);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to query frame while generating R data.table variable", e);
-		} finally {
-			if (it != null) {
-				try {
-					it.close();
-				} catch (IOException e) {
-					classLogger.error("Failed to close query iterator while generating R data.table variable", e);
-				}
-			}
 		}
 
 		// now that we have the instance values, we can use them to build a string to
@@ -563,7 +553,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			}
 			try {
 				// you only have this if you are logged in
-				if (this.insight.getUser() != null && !this.insight.getUser().isAnonymous()) {
+				if (this.insight.getUser() != null) {
 					userRootPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 					userRootPath = userRootPath.replace('\\', '/');
 					userRootAssignment = "USER_ROOT <- '" + userRootPath.replace("'", "\\'") + "';";
@@ -643,7 +633,7 @@ public abstract class AbstractRJavaTranslator implements IRJavaTranslator {
 			}
 			try {
 				// you only have this if you are logged in
-				if (this.insight.getUser() != null && !this.insight.getUser().isAnonymous()) {
+				if (this.insight.getUser() != null) {
 					userRootPath = AssetUtility.getRootFolderPath(this.insight, AssetUtility.USER_SPACE_KEY, false);
 					userRootPath = userRootPath.replace('\\', '/');
 					userRootAssignment = "USER_ROOT <- '" + userRootPath.replace("'", "\\'") + "';";

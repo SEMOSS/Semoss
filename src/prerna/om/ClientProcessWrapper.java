@@ -37,14 +37,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -62,15 +63,26 @@ import org.apache.logging.log4j.Logger;
 import com.google.common.base.Strings;
 import com.google.gson.GsonBuilder;
 
+import prerna.cluster.util.ClusterUtil;
+import prerna.project.api.IProject;
+import prerna.tcp.SocketServer;
 import prerna.tcp.client.NativePySocketClient;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
+import prerna.util.openshell.OpenShellTransport;
 import prerna.util.PortAllocator;
-import prerna.util.SandboxInjector;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
+import prerna.util.sandbox.ISandbox;
+import prerna.util.sandbox.SandboxEnv;
+import prerna.util.sandbox.SandboxFactory;
+import prerna.util.sandbox.SandboxSettings;
+import prerna.util.sandbox.WorkerHandle;
+import prerna.util.sandbox.WorkerKind;
+import prerna.util.sandbox.WorkerSpec;
+import prerna.util.openshell.TransportedRoots;
 
 public class ClientProcessWrapper {
 
@@ -78,8 +90,8 @@ public class ClientProcessWrapper {
 	private static final Logger pyLogger = LogManager.getLogger(Constants.PY_LOGGER_NAME);
 
 	private static final String ENGINE_OWNED_FLAG = "--engine_owned";
-	private static final String[] NAMESPACE_DEFAULT_RO_PATHS = new String[] { "/usr", "/bin", "/sbin", "/lib",
-			"/lib64", "/lib32", "/libx32", "/etc" };
+	private static final String[] NAMESPACE_DEFAULT_RO_PATHS = new String[] { "/usr", "/bin", "/sbin", "/lib", "/lib64",
+			"/lib32", "/libx32", "/etc" };
 
 	// After spawning a python server process, poll briefly to catch an immediate
 	// crash (import / syntax errors surface within a few ms) without blocking long
@@ -95,19 +107,13 @@ public class ClientProcessWrapper {
 	private static final long SOCKET_CLIENT_READY_WAIT_INTERVAL_MS = 1_000L;
 	private static final long SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS = 60_000L;
 
-	// Fallback classpath entries for the spawned SocketServer worker, used when the
-	// caller does not pass an explicit cp.
-	private static final String[] DEFAULT_CP_ENTRIES = new String[] { "fst-3.0.4-jdk17.jar", "objenesis-3.3.jar",
-			"javassist-3.30.2-GA.jar", "log4j-api-2.25.4.jar", "log4j-core-2.25.4.jar", "gson-2.13.2.jar",
-			"jackson-core-2.22.0.jar", "commons-io-2.21.0.jar", "commons-lang3-3.20.0.jar",
-			"jakarta.ws.rs-api-4.0.0.jar", "netty-handler-4.1.137.Final.jar", "netty-common-4.1.137.Final.jar",
-			"netty-buffer-4.1.137.Final.jar", "netty-transport-4.1.137.Final.jar", "classes" };
-
 	private final ReentrantLock lockCreate = new ReentrantLock();
 	private final ReentrantLock lockDestroy = new ReentrantLock();
 
-	private SocketClient socketClient;
-	private Process process;
+	private volatile SocketClient socketClient;
+	private volatile Process process;
+	private volatile long shutdownCount = 0;
+	private volatile boolean lastShutdownCleansUp = false;
 	private String prefix;
 	private int port;
 	private String venvPath;
@@ -127,7 +133,37 @@ public class ClientProcessWrapper {
 	// the same JSON protocol, so it reuses NativePySocketClient.
 	private boolean nodeServer = false;
 	private SymlinkHelper chrootSymlinkHelper;
-	private String classPath;
+	/** Whose permissions gate write-back; bound by {@code User} when the client is created. */
+	private prerna.auth.User user;
+	// OPENSHELL mode: owns the sandbox + port-forward for this worker's lifetime
+	private OpenShellTransport openshell;
+	/**
+	 * The sandbox belongs to the user, not to this wrapper: shutdown detaches and leaves
+	 * it running, and {@code OpenShellUserSandboxes} decides when it is deleted.
+	 */
+	private boolean openshellUserScoped = false;
+	/**
+	 * One write-back at a time: python blocks, shell commands and teardown all reconcile,
+	 * and two reconciles interleaving over the same root would race their writes.
+	 */
+	private final ReentrantLock fetchBackLock = new ReentrantLock();
+	/**
+	 * Set when a change set was drained from the worker but could not be applied. The
+	 * worker has already forgotten those paths, so only a full capture can recover them.
+	 */
+	private volatile boolean fullCaptureOwed = false;
+	/**
+	 * Project roots written back since they were last published to cluster storage. Pushing
+	 * is what lets another server pull the change, and from there its sandboxes refresh.
+	 */
+	private final Set<String> unpublishedRoots = ConcurrentHashMap.newKeySet();
+	private final Map<String, Long> lastPublished = new ConcurrentHashMap<>();
+	private static final long PUBLISH_INTERVAL_MS = 10_000L;
+	private static final ExecutorService PUBLISHER = Executors.newSingleThreadExecutor(r -> {
+		Thread t = new Thread(r, "openshell-writeback-publisher");
+		t.setDaemon(true);
+		return t;
+	});
 	private boolean debug;
 	private String timeout;
 	private String loggerLevel;
@@ -145,7 +181,7 @@ public class ClientProcessWrapper {
 
 	/**
 	 * Convenience overload of
-	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, String, boolean, String, String, Map)}
+	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, boolean, String, String, Map)}
 	 * that uses an empty thread-logger context.
 	 *
 	 * @param nativePyServer      true to launch the native Python TCP server
@@ -158,8 +194,6 @@ public class ClientProcessWrapper {
 	 * @param venvPath            path to the Python venv executable, or null to use
 	 *                            the configured base Python
 	 * @param serverDirectory     working/scratch directory for the server process
-	 * @param classPath           classpath override for the Java server, or null
-	 *                            for the default
 	 * @param debug               true to attach to an already-running server on the
 	 *                            given port instead of spawning one
 	 * @param timeout             idle timeout in minutes (null/"-1" for none)
@@ -168,10 +202,10 @@ public class ClientProcessWrapper {
 	 *                   becomes ready
 	 */
 	public void createProcessAndClient(boolean nativePyServer, SymlinkHelper chrootSymlinkHelper, int port,
-			String venvPath, String serverDirectory, String classPath, boolean debug, String timeout,
-			String loggerLevel) throws Exception {
-		this.createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath,
-				debug, timeout, loggerLevel, new HashMap<>());
+			String venvPath, String serverDirectory, boolean debug, String timeout, String loggerLevel)
+			throws Exception {
+		this.createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, debug,
+				timeout, loggerLevel, new HashMap<>());
 	}
 
 	/**
@@ -192,8 +226,6 @@ public class ClientProcessWrapper {
 	 * @param venvPath            path to the Python venv executable, or null to use
 	 *                            the configured base Python
 	 * @param serverDirectory     working/scratch directory for the server process
-	 * @param classPath           classpath override for the Java server, or null
-	 *                            for the default
 	 * @param debug               true to attach to an already-running server on the
 	 *                            given port instead of spawning one
 	 * @param timeout             idle timeout in minutes (null/"-1" for none)
@@ -204,13 +236,16 @@ public class ClientProcessWrapper {
 	 *                   becomes ready
 	 */
 	public void createProcessAndClient(boolean nativePyServer, SymlinkHelper chrootSymlinkHelper, int port,
-			String venvPath, String serverDirectory, String classPath, boolean debug, String timeout,
-			String loggerLevel, Map<String, String> threadLoggerCtx) throws Exception {
+			String venvPath, String serverDirectory, boolean debug, String timeout, String loggerLevel,
+			Map<String, String> threadLoggerCtx) throws Exception {
 		lockCreate.lock();
 		try {
+			long shutdownsAtStart = this.shutdownCount;
 			this.nativePyServer = nativePyServer;
+			this.nodeServer = false;
+			this.udsPath = null;
+			this.threadLoggerCtx = threadLoggerCtx;
 			this.chrootSymlinkHelper = chrootSymlinkHelper;
-			this.classPath = classPath;
 			this.port = calculatePort(port);
 			this.venvPath = venvPath;
 			this.serverDirectory = serverDirectory;
@@ -222,99 +257,13 @@ public class ClientProcessWrapper {
 			}
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
-				if (nativePyServer) {
-					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
-						String insightCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
-						Path serverDirectoryPath = Files.createTempDirectory(Paths.get(insightCache), "a");
-						this.serverDirectory = serverDirectoryPath.toString();
-						ClientProcessWrapper.writeLogConfigurationFile(this.serverDirectory);
-
-						// Use the user's chroot folder name as the source identity; the
-						// sandbox launcher shortens it to keep AF_UNIX socket paths valid.
-						String ioDirName = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder()).getFileName()
-								.toString();
-
-						Object[] ret = ClientProcessWrapper.startTCPServerNativePySandbox(this.serverDirectory,
-								this.port + "", this.timeout, this.loggerLevel, ioDirName);
-						this.process = (Process) ret[0];
-						this.prefix = (String) ret[1];
-						this.udsPath = (String) ret[2];
-						this.controlSocketPath = (String) ret[3];
-						this.sandboxIoDir = (String) ret[4];
-						this.sandboxJailDir = (String) ret[5];
-						this.sandboxControlDir = (String) ret[6];
-
-						SandboxInjector injector = new SandboxInjector(this.controlSocketPath);
-						if (!injector.awaitReady(SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS)) {
-							throw new IllegalStateException("Timed out waiting for namespace sandbox control socket");
-						}
-						this.chrootSymlinkHelper.setInjector(injector);
-					} else if (this.chrootSymlinkHelper != null) {
-						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(this.chrootSymlinkHelper.getUserChrootFolder());
-						// we will be creating a fake semoss home in the chrooted directory
-						// so grabbing the current base folder to mock the same pattern
-						String baseFolderPath = Utility.getBaseFolder();
-						// this is the fake semoss home in the chroot
-						Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
-						// create a temp folder where we will start the process for the server
-						Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
-						this.serverDirectory = serverDirectoryPath.toString();
-						// we need to have a relative path to replace the log4j file as it is started
-						// in the chroot world and not the base OS world
-						// .. technically since i'm hard coding above the base folder from rdf_map,
-						// could replace but w/e
-						String relative = chrootPath.relativize(serverDirectoryPath).toString();
-						if (!relative.startsWith("/")) {
-							relative = "/" + relative;
-						}
-						ClientProcessWrapper.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
-
-						Object[] ret = ClientProcessWrapper.startTCPServerNativePyChroot(
-								this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port + "", this.timeout,
-								this.loggerLevel, this.engineOwned);
-						this.process = (Process) ret[0];
-						this.prefix = (String) ret[1];
-					} else {
-						// write the log4j file in the server directory
-						ClientProcessWrapper.writeLogConfigurationFile(this.serverDirectory);
-
-						Object[] ret = ClientProcessWrapper.startTCPServerNativePy(this.serverDirectory, this.port + "",
-								this.venvPath, this.timeout, this.loggerLevel, this.engineOwned);
-						this.process = (Process) ret[0];
-						this.prefix = (String) ret[1];
-					}
-				} else {
-					if (chrootSymlinkHelper != null) {
-						// for a user process - this will be something like /opt/user_id_randomid/
-						Path chrootPath = Paths.get(chrootSymlinkHelper.getUserChrootFolder());
-						// we will be creating a fake semoss home in the chrooted directory
-						// so grabbing the current base folder to mock the same pattern
-						String baseFolderPath = Utility.getBaseFolder();
-						// this is the fake semoss home in the chroot
-						Path chrootBaseFolderPath = Paths.get(chrootPath + baseFolderPath);
-						// create a temp folder where we will start the process for the server
-						Path serverDirectoryPath = Files.createTempDirectory(chrootBaseFolderPath, "a");
-						this.serverDirectory = serverDirectoryPath.toString();
-						// we need to have a relative path to replace the log4j file as it is started
-						// in the chroot world and not the base OS world
-						// .. technically since i'm hard coding above the base folder from rdf_map,
-						// could replace but w/e
-						String relative = chrootPath.relativize(serverDirectoryPath).toString();
-						if (!relative.startsWith("/")) {
-							relative = "/" + relative;
-						}
-						ClientProcessWrapper.writeLogConfigurationFile(chrootBaseFolderPath.toString(), relative);
-
-						this.process = ClientProcessWrapper.startTCPServerChroot(classPath,
-								this.chrootSymlinkHelper.getUserChrootFolder(), relative, this.port + "");
-					} else {
-						// write the log4j file in the server directory
-						ClientProcessWrapper.writeLogConfigurationFile(this.serverDirectory);
-						this.process = ClientProcessWrapper.startTCPServer(classPath, this.serverDirectory,
-								this.port + "");
-					}
-				}
+				// How the worker is jailed is decided in one place, whatever the mode. User-authored
+				// python gets a SymlinkHelper from User.startPythonSocketServerAndClient; engine-owned
+				// workers and Project python pass null and so are never jailed.
+				ISandbox sandbox = SandboxFactory.of(this.chrootSymlinkHelper, this.user);
+				applyWorker(sandbox.spawnWorker(new WorkerSpec(nativePyServer ? WorkerKind.PYTHON : WorkerKind.JAVA,
+						this.port, this.serverDirectory, this.venvPath, this.timeout, this.loggerLevel,
+						this.engineOwned, this.user)));
 			}
 
 			try {
@@ -324,6 +273,9 @@ public class ClientProcessWrapper {
 					this.socketClient = new SocketClient(threadLoggerCtx);
 				}
 				this.socketClient.setCpw(this);
+				classLogger.info(
+						"Connecting socket client: udsPath={} port={} openshell={} nativePyServer={}",
+						this.udsPath, this.port, this.openshell != null, this.nativePyServer);
 				if (this.udsPath != null) {
 					this.socketClient.connectUds(this.udsPath);
 				} else {
@@ -343,23 +295,466 @@ public class ClientProcessWrapper {
 						this.port, e);
 				throw e;
 			}
+			stopIfShutDownWhileStarting(shutdownsAtStart);
+		} finally {
+			lockCreate.unlock();
+		}
+	}
+
+	/** Takes over what a sandbox started: the process, where to connect, and what must be cleaned up. */
+	private void applyWorker(WorkerHandle worker) {
+		this.process = worker.process();
+		this.prefix = worker.prefix();
+		this.udsPath = worker.udsPath();
+		this.port = worker.port();
+		this.serverDirectory = worker.serverDirectory();
+		this.controlSocketPath = worker.controlSocketPath();
+		this.sandboxIoDir = worker.ioDir();
+		this.sandboxJailDir = worker.jailDir();
+		this.sandboxControlDir = worker.controlDir();
+		if (worker.openshell() != null) {
+			this.openshell = worker.openshell();
+			this.openshellUserScoped = worker.userScoped();
+			if (worker.reattached()) {
+				// Another connection may have drained changes this one never applied; start this
+				// connection's write-back from the whole tree.
+				this.fullCaptureOwed = true;
+			}
+		}
+	}
+
+	/**
+	 * Returns the connected socket client, running the starter when there is no
+	 * client yet or the client lost its connection. A lost process is shut down
+	 * first and the starter then starts it from scratch, so the owner's own setup,
+	 * such as an engine's init script, runs again. Starts hold the create lock, so
+	 * callers that arrive together share one process: the ones that waited get the
+	 * client the first one connected.
+	 *
+	 * @param starter starts the process on this wrapper with
+	 *                {@link #createProcessAndClient} and sets it up
+	 * @return the socket client
+	 */
+	public SocketClient getOrStartSocketClient(Runnable starter) {
+		lockCreate.lock();
+		try {
+			SocketClient client = this.socketClient;
+			if (client == null || !client.isConnected()) {
+				if (client != null || this.process != null) {
+					shutdown(false);
+				}
+				starter.run();
+			}
+			return this.socketClient;
 		} finally {
 			lockCreate.unlock();
 		}
 	}
 
 	/**
-	 * Stop the server (best-effort, bounded to 15s) and destroy the process. The
-	 * server stop runs on a virtual thread so a hung process cannot block the
-	 * caller indefinitely. If the port is still held by the OS afterwards it is
-	 * reset to -1 so the next start auto-allocates a fresh one.
+	 * Stops the process that was just started when {@link #shutdown(boolean)} ran
+	 * while it was starting. That shutdown found no client to stop, so without this
+	 * the new process would keep running with no owner.
+	 *
+	 * @param shutdownsAtStart the shutdown count when the start began
+	 * @throws IllegalStateException when the process was stopped
+	 */
+	private void stopIfShutDownWhileStarting(long shutdownsAtStart) {
+		if (this.shutdownCount != shutdownsAtStart) {
+			classLogger.warn("The process on port {} was shut down while it was starting, so it is stopped", this.port);
+			shutdown(this.lastShutdownCleansUp);
+			throw new IllegalStateException("The process was shut down while it was starting");
+		}
+	}
+
+	/**
+	 * Stop the server (best-effort, bounded to 15s) and destroy the process along
+	 * with every process it started. The server stop runs on a virtual thread so a
+	 * hung process cannot block the caller indefinitely. If the port is still held
+	 * by the OS afterwards it is reset to -1 so the next start auto-allocates a
+	 * fresh one. A process that is still starting is stopped once its start
+	 * finishes.
 	 *
 	 * @param cleanUpFolder true to also recursively delete the server scratch
 	 *                      directory and any namespace-sandbox folders
 	 */
+
+	/**
+	 * Reconcile only the files the sandbox worker reports as changed since the last
+	 * snapshot.
+	 *
+	 * <p>
+	 * Cost is proportional to the change: a block that writes three files produces
+	 * three paths and one small tar, instead of a tar per transported root. It falls
+	 * back to {@link #fetchBackTransportedRoots()} whenever the worker's answer cannot
+	 * be trusted — no watcher, the first call after materialise (everything in the tree
+	 * arrived before the watch existed), a kernel queue overflow, or a change set past
+	 * the worker's cap.
+	 *
+	 * @return number of files written back
+	 */
+	public int fetchBackChangedPaths() {
+		if (this.openshell == null || this.chrootSymlinkHelper == null) {
+			return 0;
+		}
+		fetchBackLock.lock();
+		try {
+			return fetchBackChangedPathsLocked();
+		} finally {
+			fetchBackLock.unlock();
+		}
+	}
+
+	private int fetchBackChangedPathsLocked() {
+		Map<String, Object> snapshot = null;
+		if (this.socketClient instanceof NativePySocketClient pyClient) {
+			try {
+				snapshot = pyClient.getFileChanges();
+			} catch (Exception e) {
+				classLogger.warn("Change query failed; falling back to a full reconcile", e);
+			}
+		}
+		// The snapshot is taken even when a full capture is owed: it drains the worker's
+		// pending set, which the full capture is about to cover anyway.
+		if (snapshot == null || this.fullCaptureOwed || truthy(snapshot.get("overflow"))
+				|| truthy(snapshot.get("baseline")) || Boolean.FALSE.equals(snapshot.get("coverage"))) {
+			return fetchBackTransportedRoots();
+		}
+		Object raw = snapshot.get("changes");
+		if (!(raw instanceof List<?> changes) || changes.isEmpty()) {
+			return 0;
+		}
+
+		// Only roots this session transported are eligible, longest first so a nested
+		// root wins over its parent.
+		List<String> roots = new ArrayList<>();
+		for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
+			String normalized = Utility.normalizePath(path);
+			if (TransportedRoots.isUserSpace(normalized) && canWriteBack(normalized)) {
+				roots.add(normalized);
+			}
+		}
+		roots.sort((first, second) -> second.length() - first.length());
+
+		Map<String, List<String>> writes = new HashMap<>();
+		Map<String, List<String>> deletes = new HashMap<>();
+		for (Object entry : changes) {
+			if (!(entry instanceof Map<?, ?> change)) {
+				continue;
+			}
+			Object pathValue = change.get("path");
+			if (pathValue == null) {
+				continue;
+			}
+			String path = Utility.normalizePath(pathValue.toString());
+			String root = null;
+			for (String candidate : roots) {
+				if (path.startsWith(candidate + "/")) {
+					root = candidate;
+					break;
+				}
+			}
+			if (root == null) {
+				continue;
+			}
+			String relative = path.substring(root.length() + 1);
+			boolean delete = "delete".equals(String.valueOf(change.get("op")));
+			(delete ? deletes : writes).computeIfAbsent(root, key -> new ArrayList<>()).add(relative);
+		}
+
+		int total = 0;
+		for (Map.Entry<String, List<String>> group : writes.entrySet()) {
+			try {
+				int written = this.openshell.fetchBackPaths(group.getKey(), group.getValue());
+				if (written > 0) {
+					this.unpublishedRoots.add(group.getKey());
+					total += written;
+				}
+			} catch (Exception e) {
+				// The worker has already dropped these paths from its pending set, so they
+				// would never be reported again: recover them with a full capture next block.
+				this.fullCaptureOwed = true;
+				classLogger.warn("Path fetch-back failed for {}; a full capture is owed", group.getKey(), e);
+			}
+		}
+		int removed = 0;
+		for (Map.Entry<String, List<String>> group : deletes.entrySet()) {
+			for (String relative : group.getValue()) {
+				if (this.openshell.deleteFromHost(group.getKey(), relative)) {
+					this.unpublishedRoots.add(group.getKey());
+					removed++;
+				}
+			}
+		}
+		if (total > 0 || removed > 0) {
+			classLogger.info("Fetch-back wrote {} and removed {} file(s) from {} changed path(s)", total, removed,
+					changes.size());
+		}
+		publishWrittenRoots(false);
+		return total + removed;
+	}
+
+	/**
+	 * Bring host-side changes into the sandbox before a block runs: another user's write-back,
+	 * a cluster pull, an upload in the UI. Without this a sandbox computes on the copy it was
+	 * given at first use for as long as it lives.
+	 */
+	public void refreshTransportedRoots() {
+		if (this.openshell == null || this.chrootSymlinkHelper == null) {
+			return;
+		}
+		fetchBackLock.lock();
+		try {
+			if (this.fullCaptureOwed) {
+				// Unapplied sandbox changes first; a refresh must not overwrite them.
+				fetchBackTransportedRootsLocked();
+			}
+			for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
+				if (!TransportedRoots.isUserSpace(Utility.normalizePath(path))) {
+					continue;
+				}
+				try {
+					this.openshell.refreshFromHost(path);
+				} catch (Exception e) {
+					classLogger.warn("Refresh of {} into the sandbox failed; the sandbox keeps its copy", path, e);
+				}
+			}
+		} finally {
+			fetchBackLock.unlock();
+		}
+	}
+
+	/**
+	 * Push written-back project roots to cluster storage and announce them, so servers that
+	 * have the project loaded pull the change. Batched: a root is pushed at most every ten
+	 * seconds, and whatever is left is pushed when the connection is released.
+	 *
+	 * @param force push everything pending now (teardown)
+	 */
+	private void publishWrittenRoots(boolean force) {
+		if (!ClusterUtil.IS_CLUSTER || this.unpublishedRoots.isEmpty()) {
+			return;
+		}
+		long now = System.currentTimeMillis();
+		for (String root : new ArrayList<>(this.unpublishedRoots)) {
+			String projectId = TransportedRoots.projectIdOf(root);
+			if (projectId == null) {
+				// rooms and user assets have their own sync at logout
+				this.unpublishedRoots.remove(root);
+				continue;
+			}
+			if (!force && now - this.lastPublished.getOrDefault(root, 0L) < PUBLISH_INTERVAL_MS) {
+				continue;
+			}
+			this.unpublishedRoots.remove(root);
+			this.lastPublished.put(root, now);
+			Runnable push = () -> {
+				try {
+					IProject project = Utility.getProject(projectId);
+					if (project != null) {
+						ClusterUtil.pushProjectFolder(project, root);
+						classLogger.info("Published write-back of {} to cluster storage", root);
+					}
+				} catch (Exception e) {
+					this.unpublishedRoots.add(root);
+					classLogger.warn("Could not publish write-back of {}; retrying after the next block", root, e);
+				}
+			};
+			if (force) {
+				push.run();
+			} else {
+				PUBLISHER.submit(push);
+			}
+		}
+	}
+
+	private static boolean truthy(Object value) {
+		if (value instanceof Boolean flag) {
+			return flag;
+		}
+		return value != null && Boolean.parseBoolean(value.toString());
+	}
+
+	/**
+	 * Bind the user whose permissions decide whether a root may be written back.
+	 *
+	 * @param user owner of this process
+	 */
+	public void setUser(prerna.auth.User user) {
+		this.user = user;
+	}
+
+	/**
+	 * User assets are per-user by construction: the folder is {@code Asset__<id>}, where the
+	 * id is the user's own asset project id for one of their logins. Anything else under
+	 * {@code user/} belongs to somebody else and must never be written back.
+	 *
+	 * @param normalized absolute user-asset root
+	 * @return true when the asset belongs to this user
+	 */
+	private boolean isOwnUserAsset(String normalized) {
+		String assetId = TransportedRoots.userAssetIdOf(normalized);
+		if (this.user == null) {
+			classLogger.warn("Refusing write-back into {}: no user is bound to this process", normalized);
+			return false;
+		}
+		try {
+			for (prerna.auth.AuthProvider provider : this.user.getLogins()) {
+				if (assetId.equals(this.user.getAssetProjectId(provider))) {
+					return true;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Could not resolve asset ownership for {}; refusing write-back", normalized, e);
+			return false;
+		}
+		classLogger.warn("Refusing write-back into {}: asset {} does not belong to {}", normalized, assetId,
+				prerna.auth.User.getSingleLogginName(this.user));
+		return false;
+	}
+
+	/**
+	 * A room is writable only by the member who owns it. Rooms are rows in the model
+	 * inference logs database ({@code ROOM.USER_ID}), not insights in this build, and
+	 * sharing grants participation rather than edit rights.
+	 *
+	 * @param normalized absolute room root
+	 * @return true when the session's user owns the room
+	 */
+	private boolean canWriteRoom(String normalized) {
+		String roomId = TransportedRoots.roomIdOf(normalized);
+		if (this.user == null) {
+			classLogger.warn("Refusing write-back into room {}: no user is bound to this process", roomId);
+			return false;
+		}
+		try {
+			// A login can be any of the providers the user authenticated with; the room was
+			// created under one of them.
+			for (prerna.auth.AuthProvider provider : this.user.getLogins()) {
+				prerna.auth.AccessToken token = this.user.getAccessToken(provider);
+				if (token != null && prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils
+						.doCheckRoomExistsForUser(roomId, token.getId())) {
+					return true;
+				}
+			}
+			classLogger.warn("Refusing write-back into room {}: user {} does not own it", roomId,
+					prerna.auth.User.getSingleLogginName(this.user));
+			return false;
+		} catch (Exception e) {
+			classLogger.warn("Could not resolve ownership of room {}; refusing write-back", roomId, e);
+			return false;
+		}
+	}
+
+	/**
+	 * A read-only member must not be able to modify a project through the sandbox: the
+	 * worker runs outside the platform's permission checks, so without this gate a
+	 * read-only user could write a file with {@code Py()} and have it published to the
+	 * project folder. Every root is decided by its own space: projects on the platform
+	 * permission lookup, rooms on {@code ROOM.USER_ID} in the model-inference-logs
+	 * database, user assets on the caller's own asset project id.
+	 *
+	 * @param normalized absolute transported root
+	 * @return true when write-back into this root is allowed
+	 */
+	private boolean canWriteBack(String normalized) {
+		if (TransportedRoots.isRoom(normalized)) {
+			return canWriteRoom(normalized);
+		}
+		if (TransportedRoots.isUserAsset(normalized)) {
+			return isOwnUserAsset(normalized);
+		}
+		String projectId = TransportedRoots.projectIdOf(normalized);
+		if (projectId == null) {
+			classLogger.warn("Refusing write-back into {}: unrecognised root space", normalized);
+			return false;
+		}
+		if (this.user == null) {
+			classLogger.warn("Refusing write-back into {}: no user is bound to this process", normalized);
+			return false;
+		}
+		try {
+			// The same check SymlinkHelper.symlinkProject uses to grant the project
+			// read-write: write-back must never answer that question differently.
+			boolean allowed = prerna.auth.utils.SecurityProjectUtils.userCanEditProject(this.user, projectId);
+			if (!allowed) {
+				classLogger.warn("Refusing write-back into {}: user {} cannot edit project {}", normalized,
+						prerna.auth.User.getSingleLogginName(this.user), projectId);
+			}
+			return allowed;
+		} catch (Exception e) {
+			// Fail closed: an unresolvable permission is not a licence to write.
+			classLogger.warn("Could not resolve permission for {}; refusing write-back", normalized, e);
+			return false;
+		}
+	}
+
+	/**
+	 * Reconcile the sandbox copies of this session's transported roots back onto the
+	 * host, so a file written by {@code Py()} or a shell command is visible to the
+	 * platform (asset browser, MCP generators, git) without waiting for logout.
+	 *
+	 * <p>
+	 * Called at the execution boundary. Throttled: a REPL that runs many small blocks
+	 * must not tar its roots per call, and the reconcile itself skips files that are
+	 * identical or where the sandbox copy is older.
+	 *
+	 * @return number of files written back
+	 */
+	public int fetchBackTransportedRoots() {
+		if (this.openshell == null || this.chrootSymlinkHelper == null) {
+			return 0;
+		}
+		fetchBackLock.lock();
+		try {
+			return fetchBackTransportedRootsLocked();
+		} finally {
+			fetchBackLock.unlock();
+		}
+	}
+
+	private int fetchBackTransportedRootsLocked() {
+		int total = 0;
+		boolean failed = false;
+		for (String path : this.chrootSymlinkHelper.getTransportedPaths()) {
+			String normalized = Utility.normalizePath(path);
+			// Only the user-facing roots. Engine and runtime trees are never written by
+			// user code, and pulling them back would waste a tar per block.
+			if (!TransportedRoots.isUserSpace(normalized) || !canWriteBack(normalized)) {
+				continue;
+			}
+			try {
+				int written = this.openshell.fetchBack(path);
+				if (written > 0) {
+					this.unpublishedRoots.add(normalized);
+				}
+				total += written;
+			} catch (Exception e) {
+				failed = true;
+				classLogger.warn("Fetch-back failed for {}; retrying with a full capture next block", path, e);
+			}
+		}
+		this.fullCaptureOwed = failed;
+		publishWrittenRoots(false);
+		return total;
+	}
+
 	public void shutdown(boolean cleanUpFolder) {
 		lockDestroy.lock();
 		try {
+			this.lastShutdownCleansUp = cleanUpFolder;
+			this.shutdownCount++;
+			// OPENSHELL: the last reconcile must run while the sandbox is still alive. A
+			// session-scoped worker is the sandbox's main process, so stopping the socket
+			// below ends the sandbox, and a capture attempted after that finds it Completed.
+			if (this.openshell != null) {
+				try {
+					fetchBackTransportedRoots();
+					publishWrittenRoots(true);
+				} catch (Exception e) {
+					classLogger.warn("Fetch-back before sandbox teardown failed for port {}", this.port, e);
+				}
+			}
 			if (this.socketClient != null && this.socketClient.isConnected()) {
 				try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
@@ -406,9 +801,29 @@ public class ClientProcessWrapper {
 			// you know what, always try this...
 			if (this.process != null) {
 				try {
+					for (ProcessHandle child : this.process.descendants().toList()) {
+						child.destroy();
+					}
 					this.process.destroy();
 				} catch (Exception e) {
 					classLogger.error("Failed to destroy isolated analytics process for port {}", this.port, e);
+				}
+			}
+			// OPENSHELL: the worker lives in the sandbox, not in this JVM's process
+			// tree. A user-scoped sandbox is only detached from (the `stop` above closed
+			// this connection, not the persistent worker); a session-scoped one is
+			// deleted, and the gateway delete is authoritative.
+			if (this.openshell != null) {
+				try {
+					if (this.openshellUserScoped) {
+						this.openshell.detach();
+					} else {
+						this.openshell.close();
+					}
+				} catch (Exception e) {
+					classLogger.error("Failed to close OpenShell executor sandbox for port {}", this.port, e);
+				} finally {
+					this.openshell = null;
 				}
 			}
 		} finally {
@@ -463,23 +878,28 @@ public class ClientProcessWrapper {
 	/**
 	 * Re-run {@link #createProcessAndClient} with the same settings used on the
 	 * last start, reusing the existing venv path. Used to revive a dropped
-	 * connection.
+	 * connection. The new process gets a fresh port, unless this wrapper attaches
+	 * to a debug server on a fixed port, so the client cannot reach an old process
+	 * that still holds the last port.
 	 *
 	 * @throws Exception if the process cannot be restarted or the socket client
 	 *                   never becomes ready
 	 */
 	public void reconnect() throws Exception {
+		int reconnectPort = this.debug ? this.port : -1;
 		if (nodeServer) {
-			createNodeProcessAndClient(port, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
+			createNodeProcessAndClient(reconnectPort, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
 			return;
 		}
-		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug,
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, reconnectPort, venvPath, serverDirectory, debug,
 				timeout, loggerLevel, threadLoggerCtx);
 	}
 
 	/**
 	 * Re-run {@link #createProcessAndClient} with the same settings as the last
-	 * start, but resolving the Python executable from the given venv engine.
+	 * start, but resolving the Python executable from the given venv engine. Like
+	 * {@link #reconnect()}, the new process gets a fresh port unless this wrapper
+	 * attaches to a debug server.
 	 *
 	 * @param venvEngineId id of the venv engine whose Python executable to use, or
 	 *                     null to use the configured base Python
@@ -487,13 +907,14 @@ public class ClientProcessWrapper {
 	 *                   never becomes ready
 	 */
 	public void reconnect(String venvEngineId) throws Exception {
+		int reconnectPort = this.debug ? this.port : -1;
 		if (nodeServer) {
 			// venvs do not apply to the node worker
-			createNodeProcessAndClient(port, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
+			createNodeProcessAndClient(reconnectPort, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
 			return;
 		}
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
-		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug,
+		createProcessAndClient(nativePyServer, chrootSymlinkHelper, reconnectPort, venvPath, serverDirectory, debug,
 				timeout, loggerLevel, threadLoggerCtx);
 	}
 
@@ -510,6 +931,36 @@ public class ClientProcessWrapper {
 		}
 
 		return port;
+	}
+
+	/**
+	 * @return the OpenShell sandbox this wrapper's worker runs in, or null outside
+	 *         OPENSHELL mode or before it started
+	 */
+	public String getOpenShellSandboxName() {
+		OpenShellTransport current = this.openshell;
+		return current == null ? null : current.getSandboxName();
+	}
+
+	/**
+	 * @return whether this wrapper's worker runs in an OpenShell sandbox
+	 */
+	public boolean isOpenShell() {
+		return this.openshell != null;
+	}
+
+	/**
+	 * Makes a file the host just wrote readable by the worker. Outside OpenShell the worker
+	 * shares the host's files, so the path is returned as it is. Takes no lock: it runs on the
+	 * socket reader thread, and the write-back waits on a reply that only that thread can read.
+	 *
+	 * @param hostPath the file the engine worker wrote on the host
+	 * @return the path the worker should open
+	 * @throws IOException when the file could not be sent into the sandbox
+	 */
+	public String deliverResultFile(String hostPath) throws IOException {
+		OpenShellTransport current = this.openshell;
+		return current == null ? hostPath : current.pushScratchFile(Paths.get(hostPath));
 	}
 
 	/**
@@ -590,6 +1041,15 @@ public class ClientProcessWrapper {
 	}
 
 	/**
+	 * Returns the Python executable of the virtual environment the process runs in.
+	 *
+	 * @return the path to the venv Python executable, or null for the base Python
+	 */
+	public String getVenvPath() {
+		return this.venvPath;
+	}
+
+	/**
 	 * @return the working/scratch directory for the server process
 	 */
 	public String getServerDirectory() {
@@ -607,18 +1067,13 @@ public class ClientProcessWrapper {
 	 * Spawn the Java {@code SocketServer} worker process (via a generated starter
 	 * script), applying the configured memory and ulimit settings.
 	 *
-	 * @param cp            classpath to use, or null for the built-in default jar
-	 *                      list
 	 * @param insightFolder working directory for the process
 	 * @param port          port to bind, or null to omit the port argument
 	 * @return the spawned process, or null if it failed to start
 	 */
-	public static Process startTCPServer(String cp, String insightFolder, String port) {
+	public static Process startTCPServer(String insightFolder, String port) {
 		Process thisProcess = null;
-		if (cp == null) {
-			cp = getDefaultCP();
-		}
-		String specificPath = Utility.getCP(cp, insightFolder);
+		String specificPath = InternalUtility.getCP(insightFolder);
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
@@ -638,10 +1093,6 @@ public class ClientProcessWrapper {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
-				tcpWorker = prerna.tcp.SocketServer.class.getName();
-			}
 			List<String> commands = new ArrayList<>();
 			String finalDir = insightFolder.replace("\\", "/");
 			commands.add(java);
@@ -653,8 +1104,8 @@ public class ClientProcessWrapper {
 			if (xms != null && xmx != null) {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
 			}
-			Collections.addAll(commands, memory + " -cp", specificPath, tcpWorker, finalDir,
-					DIHelper.getInstance().getRDFMapFileLocation());
+			Collections.addAll(commands, memory + " -cp", specificPath, SocketServer.class.getName(), finalDir,
+					InternalUtility.getRDFMapFileLocation());
 			if (port != null) {
 				commands.add(port);
 			}
@@ -679,8 +1130,9 @@ public class ClientProcessWrapper {
 			classLogger.info("Starting user process with ::: {}", commands);
 			String[] starterFile = writeStarterFile(commands, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
-			pb.redirectError();
+			pb.redirectErrorStream(true);
 			Process p = pb.start();
+			drainJavaWorkerOutput(p);
 			try {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
 			} catch (InterruptedException ie) {
@@ -697,24 +1149,19 @@ public class ClientProcessWrapper {
 	}
 
 	/**
-	 * Chroot variant of {@link #startTCPServer(String, String, String)}: spawns the
-	 * Java {@code SocketServer} worker inside the given chroot directory via a
-	 * generated starter script.
+	 * Chroot variant of {@link #startTCPServer(String, String)}: spawns the Java
+	 * {@code SocketServer} worker inside the given chroot directory via a generated
+	 * starter script.
 	 *
-	 * @param cp            classpath to use, or null for the built-in default jar
-	 *                      list
 	 * @param chrootDir     the chroot root the process is launched inside
 	 * @param insightFolder working directory for the process (relative to the
 	 *                      chroot)
 	 * @param port          port to bind, or null to omit the port argument
 	 * @return the spawned process, or null if it failed to start
 	 */
-	public static Process startTCPServerChroot(String cp, String chrootDir, String insightFolder, String port) {
+	public static Process startTCPServerChroot(String chrootDir, String insightFolder, String port) {
 		Process thisProcess = null;
-		if (cp == null) {
-			cp = getDefaultCP();
-		}
-		String specificPath = Utility.getCP(cp, insightFolder);
+		String specificPath = InternalUtility.getCP(insightFolder);
 		try {
 			String java = System.getenv(Constants.JAVA_HOME);
 			if (java == null) {
@@ -734,10 +1181,6 @@ public class ClientProcessWrapper {
 			// change the \\
 			java = java.replace("\\", "/");
 
-			String tcpWorker = Utility.getDIHelperProperty(Constants.TCP_WORKER);
-			if (tcpWorker == null || (tcpWorker = tcpWorker.trim()).isEmpty()) {
-				tcpWorker = prerna.tcp.SocketServer.class.getName();
-			}
 			List<String> commands = new ArrayList<>();
 			String finalDir = insightFolder.replace("\\", "/");
 			commands.add(java);
@@ -750,8 +1193,8 @@ public class ClientProcessWrapper {
 				memory = "-Xms" + xms + " -Xmx" + xmx;
 			}
 
-			Collections.addAll(commands, memory + " -cp", specificPath, tcpWorker, finalDir,
-					DIHelper.getInstance().getRDFMapFileLocation());
+			Collections.addAll(commands, memory + " -cp", specificPath, SocketServer.class.getName(), finalDir,
+					InternalUtility.getRDFMapFileLocation());
 			if (port != null) {
 				commands.add(port);
 			}
@@ -776,8 +1219,9 @@ public class ClientProcessWrapper {
 			classLogger.info("Starting user process with ::: {}", commands);
 			String[] starterFile = writeStarterFile(commands, chrootDir, finalDir);
 			ProcessBuilder pb = new ProcessBuilder(starterFile);
-			pb.redirectError();
+			pb.redirectErrorStream(true);
 			Process p = pb.start();
+			drainJavaWorkerOutput(p);
 
 			try {
 				p.waitFor(500, TimeUnit.MILLISECONDS);
@@ -792,6 +1236,30 @@ public class ClientProcessWrapper {
 		}
 
 		return thisProcess;
+	}
+
+	/**
+	 * Drain the Java worker's console output, with its errors merged in, on a
+	 * daemon thread, logging each line. The worker writes its error logs and R's
+	 * console output there, and would block once the pipe buffer fills if nothing
+	 * read it.
+	 *
+	 * @param process the Java worker process
+	 */
+	private static void drainJavaWorkerOutput(Process process) {
+		Thread t = new Thread(() -> {
+			try (BufferedReader r = new BufferedReader(
+					new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+				String line;
+				while ((line = r.readLine()) != null) {
+					classLogger.info("Java worker: {}", line);
+				}
+			} catch (IOException e) {
+				classLogger.debug("Stopped reading the Java worker output: {}", e.getMessage());
+			}
+		});
+		t.setDaemon(true);
+		t.start();
 	}
 
 	/**
@@ -1024,9 +1492,8 @@ public class ClientProcessWrapper {
 				commands.add("PATH=" + sandboxPath);
 			}
 			Collections.addAll(commands, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase,
-					"--insight_folder",
-					finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level", loggerLevel,
-					"--userChrootFolder", chrootDir);
+					"--insight_folder", finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level",
+					loggerLevel, "--userChrootFolder", chrootDir);
 			if (engineOwned) {
 				commands.add(ENGINE_OWNED_FLAG);
 			}
@@ -1081,6 +1548,26 @@ public class ClientProcessWrapper {
 	 */
 	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
 			String loggerLevel, String ioDirName) {
+		return startTCPServerNativePySandbox(insightFolder, port, timeout, loggerLevel, ioDirName, null);
+	}
+
+	/**
+	 * Starts the native Python server inside the namespace sandbox, for a user
+	 * whose chroot folder holds the read-only copies of the projects they can only
+	 * view. The sandbox may mount a folder from there in place of a project's own
+	 * folder.
+	 *
+	 * @param insightFolder    the folder the server starts in
+	 * @param port             the port the server is given
+	 * @param timeout          idle timeout in minutes ("-1" for none)
+	 * @param loggerLevel      log level for the spawned process
+	 * @param ioDirName        name for this worker's io-dir and jail folder
+	 * @param injectSourceRoot the user's chroot folder, or null for none
+	 * @return { Process, prefix, udsPath, controlSocketPath, ioDir, jailDir,
+	 *         controlDir }
+	 */
+	public static Object[] startTCPServerNativePySandbox(String insightFolder, String port, String timeout,
+			String loggerLevel, String ioDirName, String injectSourceRoot) {
 		String prefix = "";
 		Process thisProcess = null;
 		String udsPath = null;
@@ -1137,9 +1624,20 @@ public class ClientProcessWrapper {
 			commands.add(controlSocketPath);
 			commands.add("--inject-root");
 			commands.add(injectRoot);
+			if (!Strings.isNullOrEmpty(injectSourceRoot)) {
+				commands.add("--inject-source-root");
+				commands.add(injectSourceRoot.replace("\\", "/"));
+			}
 			commands.add("--jail-root");
 			commands.add(jailDir);
 			addSandboxPathMounts(commands);
+			// When SANDBOX_ALLOW_NETWORK=true the launcher skips CLONE_NEWNET so
+			// user code can reach external services. Filesystem isolation, capability
+			// drop, and seccomp still apply; only the empty-netns and the AF_UNIX-
+			// only socket restriction are lifted.
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.SANDBOX_ALLOW_NETWORK))) {
+				commands.add("--no-net");
+			}
 			commands.add("--");
 			commands.add("--port");
 			commands.add(port);
@@ -1169,6 +1667,10 @@ public class ClientProcessWrapper {
 
 			classLogger.info("Starting namespace-sandboxed user process with ::: {}", commands);
 			ProcessBuilder pb = new ProcessBuilder(commands);
+			if (SandboxSettings.NAMESPACE_SCRUB_ENV.asBoolean()) {
+				// user code must not read the server's secrets from its environment
+				SandboxEnv.scrub(pb.environment());
+			}
 			if (!sandboxPath.isEmpty()) {
 				pb.environment().put("PATH", sandboxPath);
 			}
@@ -1225,7 +1727,7 @@ public class ClientProcessWrapper {
 	 * Spawn the agent node.js worker (js/gaas_node_worker.js) and connect a socket
 	 * client to it, blocking until the client reports ready. This is the node
 	 * analog of
-	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, String, boolean, String, String, Map)}.
+	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, boolean, String, String, Map)}.
 	 * On non-Windows hosts with {@code SANDBOX_MODE=NAMESPACE} (or legacy
 	 * {@code NSJAIL}) the worker is launched inside its own unprivileged namespace
 	 * jail; otherwise it is launched as a plain child process.
@@ -1245,12 +1747,12 @@ public class ClientProcessWrapper {
 			String loggerLevel, Map<String, String> threadLoggerCtx) throws Exception {
 		lockCreate.lock();
 		try {
+			long shutdownsAtStart = this.shutdownCount;
 			// the node worker speaks the same JSON protocol as the native python
 			// server, so the connection layer below reuses NativePySocketClient
 			this.nativePyServer = true;
 			this.nodeServer = true;
 			this.chrootSymlinkHelper = null;
-			this.classPath = null;
 			this.venvPath = null;
 			this.port = calculatePort(port);
 			this.serverDirectory = serverDirectory;
@@ -1265,25 +1767,9 @@ public class ClientProcessWrapper {
 
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
-				String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
-				boolean namespaceSandbox = !SystemUtils.IS_OS_WINDOWS
-						&& ("NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode));
-				if (namespaceSandbox) {
-					Object[] ret = ClientProcessWrapper.startTCPServerNodeSandbox(this.serverDirectory, this.port + "",
-							this.timeout, this.loggerLevel, null);
-					this.process = (Process) ret[0];
-					this.prefix = (String) ret[1];
-					this.udsPath = (String) ret[2];
-					this.controlSocketPath = (String) ret[3];
-					this.sandboxIoDir = (String) ret[4];
-					this.sandboxJailDir = (String) ret[5];
-					this.sandboxControlDir = (String) ret[6];
-				} else {
-					Object[] ret = ClientProcessWrapper.startTCPServerNode(this.serverDirectory, this.port + "",
-							this.timeout, this.loggerLevel);
-					this.process = (Process) ret[0];
-					this.prefix = (String) ret[1];
-				}
+				// the node worker picks its jail by mode: the namespace jail, or the host
+				applyWorker(SandboxFactory.forNodeWorker().spawnWorker(new WorkerSpec(WorkerKind.NODE, this.port,
+						this.serverDirectory, null, this.timeout, this.loggerLevel, false, null)));
 			}
 
 			try {
@@ -1307,6 +1793,7 @@ public class ClientProcessWrapper {
 				classLogger.error("Failed to initialize socket client for the node worker on port {}", this.port, e);
 				throw e;
 			}
+			stopIfShutDownWhileStarting(shutdownsAtStart);
 		} finally {
 			lockCreate.unlock();
 		}
@@ -1530,6 +2017,9 @@ public class ClientProcessWrapper {
 
 			classLogger.info("Starting namespace-sandboxed node agent process with ::: {}", commands);
 			ProcessBuilder pb = new ProcessBuilder(commands);
+			if (SandboxSettings.NAMESPACE_SCRUB_ENV.asBoolean()) {
+				SandboxEnv.scrub(pb.environment());
+			}
 			File consoleFile = new File(outputFile);
 			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(consoleFile);
 			pb.redirectError(redirector);
@@ -1817,19 +2307,5 @@ public class ClientProcessWrapper {
 		} catch (IOException e) {
 			classLogger.error("Failed to write the log4j2.properties file for the socket server", e);
 		}
-	}
-
-	/**
-	 * Build the fallback worker classpath from {@link #DEFAULT_CP_ENTRIES}.
-	 *
-	 * <p>
-	 * The separator is cosmetic: {@code Utility.getCP} substring-matches jar names
-	 * against this value rather than splitting it, so the same string works on
-	 * Windows and Linux.
-	 *
-	 * @return the default classpath string for the spawned SocketServer worker
-	 */
-	private static String getDefaultCP() {
-		return String.join(";", DEFAULT_CP_ENTRIES);
 	}
 }

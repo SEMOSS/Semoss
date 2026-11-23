@@ -45,7 +45,7 @@ public class SQLGetParamsReactor extends AbstractReactor {
 
 	public static final String QS_WRAPPER = "QS_WRAPPER";
 
-	public SQLGetParamsReactor() { // id _type can be column, column_table, colum_table_operator
+	public SQLGetParamsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ID.getKey(), ReactorKeysEnum.ID_TYPE.getKey() };
 	}
 
@@ -53,7 +53,7 @@ public class SQLGetParamsReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 
-		ITableDataFrame frame = insight.getCurFrame();
+		ITableDataFrame frame = insight.getCurrentFrame();
 		SelectQueryStruct sqs = null;
 		if (frame != null && frame instanceof NativeFrame) {
 			sqs = ((NativeFrame) frame).getQueryStruct();

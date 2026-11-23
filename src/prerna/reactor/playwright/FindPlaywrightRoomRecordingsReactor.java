@@ -58,6 +58,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -100,18 +101,11 @@ public class FindPlaywrightRoomRecordingsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Lists and summarizes Playwright recordings in the current Playground room so the model can identify the closest match before replaying one.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (QUERY.equals(key)) {
-			return "Natural-language description of the recording to find. Leave empty to inspect all recent room recordings.";
-		}
-		if (MAX_CANDIDATES.equals(key)) {
-			return "Maximum recording summaries to return, from 1 to 50. Defaults to 20.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Lists and summarizes Playwright recordings in the current Playground room so the model can identify the closest match before replaying one.")
+				.key(QUERY,
+						"Natural-language description of the recording to find. Leave empty to inspect all recent room recordings.")
+				.key(MAX_CANDIDATES, "Maximum recording summaries to return, from 1 to 50. Defaults to 20.");
 	}
 }

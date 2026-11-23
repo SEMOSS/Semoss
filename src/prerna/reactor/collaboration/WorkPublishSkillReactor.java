@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.CollaborationSkillFiles;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -50,27 +51,22 @@ public class WorkPublishSkillReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public Map<String, String> getMcpToolMetadata() {
-		// saves instructions the owner's agents will follow, so it waits for their approval
+		// saves instructions the owner's agents will follow, so it waits for their
+		// approval
 		Map<String, String> meta = super.getMcpToolMetadata();
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
 		return meta;
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Publishes a skill folder you wrote in this chat's folder as one of the owner's private skills: a "
-				+ "new skill the first time, else the skill it was opened from with OpenSkill. The skill's files "
-				+ "become exactly the folder's. Writing or editing the folder changes nothing for the owner until "
-				+ "this runs, so after any change to a skill's files, call it before saying the change is done. "
-				+ "Before writing one, call "
-				+ "LoadSkill(skill_name=\"collaboration/references/skills/write-a-skill.md\").";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (PATH.equals(key)) {
-			return "The folder, such as " + CollaborationSkillFiles.DRAFTS + "/meeting-digest.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Publishes a skill folder you wrote in this chat's folder as one of the owner's private skills: a "
+						+ "new skill the first time, else the skill it was opened from with OpenSkill. The skill's files "
+						+ "become exactly the folder's. Writing or editing the folder changes nothing for the owner until "
+						+ "this runs, so after any change to a skill's files, call it before saying the change is done. "
+						+ "Before writing one, call "
+						+ "LoadSkill(skill_name=\"collaboration/references/skills/write-a-skill.md\").")
+				.key(PATH, "The folder, such as " + CollaborationSkillFiles.DRAFTS + "/meeting-digest.");
 	}
 }

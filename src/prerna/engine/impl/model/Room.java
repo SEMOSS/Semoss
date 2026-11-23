@@ -694,6 +694,9 @@ public class Room implements Serializable {
 				ToolExecutionContext context = findToolExecutionContext(
 						resolveToolContinuationMessageId(toolCallMessageId));
 				InputMessage original = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
+				if (context.toolResponse.getGoogleInteractions() != null) {
+					return 0;
+				}
 				if (original == null) {
 					return 0;
 				}
@@ -780,7 +783,10 @@ public class Room implements Serializable {
 					toolResultsMessage.setParts(parts);
 					toolResultsMessage.normalizeForWrite();
 				}
+				// A provider tool the model called beside ours is still waiting: the provider runs
+				// it only when the message carrying our results holds nothing else.
 				if (runtimeContext != null && !runtimeContext.isBlank()
+						&& !hasPendingProviderToolCall(context.toolResponse)
 						&& toolResultsMessage.getParts().stream().noneMatch(part -> part instanceof TextMessagePart text
 								&& runtimeContext.equals(text.getText()))) {
 					// TEXT must follow every TOOL_RESULT: provider adapters emit it as trailing
@@ -1006,6 +1012,31 @@ public class Room implements Serializable {
 		}
 	}
 
+	/**
+	 * Whether the provider has yet to run one of its own tools from this response,
+	 * such as a web search the model called together with our tools. The provider
+	 * returns that call unanswered, and its result arrives in a later response.
+	 */
+	private boolean hasPendingProviderToolCall(ResponseMessage toolResponse) {
+		Set<String> pendingIds = new HashSet<>();
+		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
+			if (MessageUtils.isServerToolCall(tc)) {
+				pendingIds.add(String.valueOf(tc.get("id")));
+			}
+		}
+		for (AbstractMessage m : messages) {
+			if (pendingIds.isEmpty()) {
+				break;
+			}
+			for (MessagePart p : m.getParts()) {
+				if (p instanceof ToolResultMessagePart && ((ToolResultMessagePart) p).getToolResult() != null) {
+					pendingIds.remove(((ToolResultMessagePart) p).getToolResult().getToolCallId());
+				}
+			}
+		}
+		return !pendingIds.isEmpty();
+	}
+
 	private boolean allToolCallsAnswered(ResponseMessage toolResponse, int toolResponseIdx, String newToolCallId) {
 		Set<String> allIds = new HashSet<>();
 		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
@@ -1169,6 +1200,16 @@ public class Room implements Serializable {
 	private ResponseMessage buildAssistantResponseFromModelResponse(AskModelEngineResponse llmResponse,
 			IModelEngine modelEngine, AbstractMessage parentMessage) {
 		ResponseMessage response = ResponseMessage.Builder.fromAskModelEngineResponse(llmResponse).build();
+		if (!modelEngine.keepsConversationHistory()) {
+			response.setGoogleInteractions(null);
+		}
+		boolean compatibilityReplay = parentMessage instanceof InputMessage input
+				&& Boolean.TRUE.equals(input.getParamMap().get("google_interactions_replay_available"));
+		if (!compatibilityReplay && llmResponse.getMetadata() != null) {
+			Map<String, Object> publicMetadata = new HashMap<>(llmResponse.getMetadata());
+			publicMetadata.remove("google_interactions");
+			llmResponse.setMetadata(publicMetadata);
+		}
 		String llmMessageId = llmResponse.getMessageId();
 		if (llmMessageId != null && !llmMessageId.isEmpty()) {
 			response.setMessageId(llmMessageId);

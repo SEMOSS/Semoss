@@ -72,6 +72,8 @@ class CollaborationSearchUtilsTest {
 		IRDBMSEngine engine = mock(IRDBMSEngine.class);
 		when(engine.getQueryUtil()).thenReturn(queryUtil);
 		when(engine.getPreparedStatement(anyString())).thenAnswer(call -> connection.prepareStatement(call.getArgument(0)));
+		// reads and writes prepare on the connection itself
+		when(engine.getConnection()).thenReturn(connection);
 		registry = mockStatic(SystemEngineRegistry.class);
 		registry.when(SystemEngineRegistry::getCollaborationDb).thenReturn(engine);
 		users = mockStatic(User.class);

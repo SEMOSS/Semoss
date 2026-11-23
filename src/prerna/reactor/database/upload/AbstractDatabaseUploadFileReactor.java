@@ -28,7 +28,6 @@
 package prerna.reactor.database.upload;
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -36,7 +35,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -93,20 +91,7 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 		}
 		final boolean existing = UploadInputUtility.getExisting(this.store);
 		// check security
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create or update a database",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		// throw error if user is anonymous
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new databases
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
@@ -119,7 +104,6 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 
 		if (existing) {
 			// check if input is alias since we are adding ot existing
-			databaseIdOrName = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseIdOrName);
 			if (!SecurityEngineUtils.userCanEditEngine(user, databaseIdOrName)) {
 				NounMetadata noun = new NounMetadata(
 						"User does not have sufficient priviledges to create or update a database",
@@ -217,10 +201,7 @@ public abstract class AbstractDatabaseUploadFileReactor extends AbstractReactor 
 				}
 			}
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, this.databaseId);
 		}
 
 		ClusterUtil.pushEngine(this.databaseId);

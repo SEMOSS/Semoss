@@ -465,6 +465,13 @@ public final class WorkThreadInsights {
 	// what the model reads: included messages with text, oldest to newest, the newest kept when the budget runs out
 	static List<Map<String, Object>> messages(List<Map<String, Object>> read, Map<String, String> people,
 			String selfId) {
+		return messages(read, people, selfId, null);
+	}
+
+	// Work reads on from its cursor: with cut, the oldest are kept instead, and cut gets the at of the first message
+	// the budget left out
+	static List<Map<String, Object>> messages(List<Map<String, Object>> read, Map<String, String> people,
+			String selfId, List<String> cut) {
 		Map<String, String> personToShort = new HashMap<>();
 		people.forEach((shortId, personId) -> personToShort.put(personId, shortId));
 		List<Map<String, Object>> out = new ArrayList<>();
@@ -472,12 +479,18 @@ public final class WorkThreadInsights {
 			return out;
 		}
 		int left = BUDGET_CHARS;
-		for (int i = read.size() - 1; i >= 0 && left > 0; i--) {
-			Map<String, Object> m = read.get(i);
+		for (int n = 0; n < read.size(); n++) {
+			Map<String, Object> m = read.get(cut == null ? read.size() - 1 - n : n);
 			String text = m.get("text") == null ? "" : String.valueOf(m.get("text")).trim();
 			// excluded people are left out of what Brain writes, as they are of the assistant's context
 			if (Boolean.TRUE.equals(m.get("excluded")) || text.isEmpty()) {
 				continue;
+			}
+			if (left <= 0) {
+				if (cut != null) {
+					cut.add(String.valueOf(m.get("at")));
+				}
+				break;
 			}
 			text = clip(text, Math.min(left, Boolean.TRUE.equals(m.get("history")) ? HISTORY_CHARS : TEXT_CHARS));
 			left -= text.length();
@@ -493,7 +506,7 @@ public final class WorkThreadInsights {
 			}
 			message.put("at", m.get("at"));
 			message.put("text", text);
-			out.add(0, message);
+			out.add(cut == null ? 0 : out.size(), message);
 		}
 		return out;
 	}

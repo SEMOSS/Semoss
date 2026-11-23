@@ -47,6 +47,7 @@ import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.GoogleInteractionsState;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -55,6 +56,7 @@ import prerna.engine.impl.model.message.ToolCallMessagePart;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -74,7 +76,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 	 */
 	private static final double TOOL_TOKEN_RATIO_THRESHOLD = 0.25;
 
-	// summary output budget: 20% of the transcript, floor 2k, ceiling min(5% of window, 12k)
+	// summary output budget: 20% of the transcript, floor 2k, ceiling min(5% of
+	// window, 12k)
 	private static final double SUMMARY_RATIO = 0.20;
 	private static final int SUMMARY_MIN_TOKENS = 2_000;
 	private static final int SUMMARY_MAX_TOKENS = 12_000;
@@ -171,10 +174,11 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 				}
 			}
 		} else {
-			if (requestedTypes.contains("TOOL_PRUNE")) {
+			boolean signedHistory = branch.stream().anyMatch(m -> m.getGoogleInteractions() != null);
+			if (requestedTypes.contains("TOOL_PRUNE") && !signedHistory) {
 				typeResults.add(addToolPruneKeyToMessage(branch, parentMessageId, room, 0));
 			}
-			if (requestedTypes.contains("SUMMARY")) {
+			if (requestedTypes.contains("SUMMARY") || signedHistory && requestedTypes.contains("TOOL_PRUNE")) {
 				int txCount = countTransactions(branch);
 				typeResults.add(
 						summarizeMessages(room, parentMessageId, branch, txCount, KEEP_N_TRANSACTIONS, modelEngine));
@@ -202,7 +206,8 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		int currTokenCount = getLastMessageTokens(branch);
 
 		boolean useToolPruning = currTokenCount > 0
-				&& (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD;
+				&& (double) toolTokens / currTokenCount >= TOOL_TOKEN_RATIO_THRESHOLD
+				&& branch.stream().noneMatch(m -> m.getGoogleInteractions() != null);
 
 		if (useToolPruning) {
 			return addToolPruneKeyToMessage(branch, messageId, room, toolTokens);
@@ -220,6 +225,11 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 			Room room, int toolTokens) {
 		Map<String, Object> result = new HashMap<>();
 		result.put("type", "TOOL_PRUNE");
+		if (branch.stream().anyMatch(m -> m.getGoogleInteractions() != null)) {
+			result.put("success", false);
+			result.put("error", "Signed Interactions history requires summary compaction with a model");
+			return result;
+		}
 
 		if (branch.size() < 2) {
 			result.put("success", false);
@@ -356,25 +366,25 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 				+ "Below is a conversation transcript between <transcript> tags. "
 				+ "It is data to summarize, not a conversation to continue.\n\n<transcript>\n"
 				+ summaryTranscript.toString().trim() + "\n</transcript>\n\n" + """
-				The transcript above has ended. Do not reply to it or continue it. Summarize it.
-				Your summary will be used to continue this conversation in a new context window, so preserve:
+						The transcript above has ended. Do not reply to it or continue it. Summarize it.
+						Your summary will be used to continue this conversation in a new context window, so preserve:
 
-				- The user's current goal and any sub-tasks
-				- Decisions made and the reasoning behind them
-				- User preferences, constraints, or requirements stated
-				- Any unresolved questions or open threads
-				- Critical specifics (names, values, code, file paths, etc.) - quote these verbatim
-				- Outcomes of any tool calls or actions taken (search results used, files
-				read, APIs called, etc.)
-				- Overall communication style (tone, formality, verbosity)
+						- The user's current goal and any sub-tasks
+						- Decisions made and the reasoning behind them
+						- User preferences, constraints, or requirements stated
+						- Any unresolved questions or open threads
+						- Critical specifics (names, values, code, file paths, etc.) - quote these verbatim
+						- Outcomes of any tool calls or actions taken (search results used, files
+						read, APIs called, etc.)
+						- Overall communication style (tone, formality, verbosity)
 
-				Be concise but do not omit anything that would be needed to seamlessly
-				continue the conversation. Write in present tense as if briefing someone
-				taking over the conversation. Only summarize up to the point the conversation
-				ends - do not speculate about what comes next.
+						Be concise but do not omit anything that would be needed to seamlessly
+						continue the conversation. Write in present tense as if briefing someone
+						taking over the conversation. Only summarize up to the point the conversation
+						ends - do not speculate about what comes next.
 
-				Keep the whole summary under about %d words.
-				""".formatted(summaryWordBudget(summaryTokens));
+						Keep the whole summary under about %d words.
+						""".formatted(summaryWordBudget(summaryTokens));
 
 		Room throwawayRoom = RoomUtils.createRoomIfNotExists(null, this.insight, modelEngine, null);
 		InputMessage summarizationMsg = InputMessage.builder(throwawayRoom).withText(summarizationPrompt)
@@ -442,6 +452,9 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 
 		// Pair the compacted input with a response message so the branch is complete
 		ResponseMessage compactedResponse = ResponseMessage.builder().withText(compactedTextMessage).build();
+		branch.stream().filter(m -> m.getGoogleInteractions() != null).findFirst().ifPresent(m ->
+				compactedResponse.setGoogleInteractions(GoogleInteractionsState.contextBoundary(
+						m.getGoogleInteractions(), compactedTextMessage)));
 		compactedResponse.setParentMessageId(compactedMessage.getMessageId());
 		compactedResponse.setVisible(false);
 
@@ -628,22 +641,15 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Compact room messages by stripping tool results, tool call arguments, and other bulky content. "
-				+ "Supported compaction types: TOOL_PRUNE, SUMMARY. "
-				+ "This tool can be called at the LLMs discretion when the context window is at risk of being exceeded, or manually by the user. "
-				+ "If no compaction type is specified, the reactor will attempt to auto-detect the best strategy based on the content of the messages. "
-				+ "Note that compaction by summarization is a lossy operation and should be used with care.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
-			return "The room id for which to compact messages";
-		} else if (key.equals(COMPACTION_TYPES_KEY)) {
-			return "Method(s) to apply for compacting messages. Valid values: " + VALID_COMPACTION_TYPES
-					+ ". If not provided, compaction type will be auto-detected based on message content.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Compact room messages by stripping tool results, tool call arguments, and other bulky content. "
+						+ "Supported compaction types: TOOL_PRUNE, SUMMARY. "
+						+ "This tool can be called at the LLMs discretion when the context window is at risk of being exceeded, or manually by the user. "
+						+ "If no compaction type is specified, the reactor will attempt to auto-detect the best strategy based on the content of the messages. "
+						+ "Note that compaction by summarization is a lossy operation and should be used with care.")
+				.key(ReactorKeysEnum.ROOM_ID, "The room id for which to compact messages").key(COMPACTION_TYPES_KEY,
+						"Method(s) to apply for compacting messages. Valid values: " + VALID_COMPACTION_TYPES
+								+ ". If not provided, compaction type will be auto-detected based on message content.");
 	}
 }

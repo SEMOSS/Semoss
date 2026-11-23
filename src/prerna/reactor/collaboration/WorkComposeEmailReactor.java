@@ -43,6 +43,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
@@ -72,7 +73,8 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		// the saved signature is added on save, so a copy the agent typed would show twice
+		// the saved signature is added on save, so a copy the agent typed would show
+		// twice
 		String message = BrainDraftFormat.withoutTypedSignature(user, getString(MESSAGE));
 		String openEmailId = getString(OPEN_EMAIL_ID);
 		String replyTo = getString(REPLY_TO);
@@ -80,7 +82,8 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 		if (!isBlank(forward) && !isBlank(replyTo)) {
 			throw new IllegalArgumentException("Pass replyTo or forward, not both");
 		}
-		// a change to the open email passes only the fields that change; a forward may have no note
+		// a change to the open email passes only the fields that change; a forward may
+		// have no note
 		if (isBlank(message) && isBlank(openEmailId) && isBlank(forward)) {
 			throw new IllegalArgumentException("Must pass the email as message");
 		}
@@ -90,29 +93,37 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 					isBlank(replyTo) ? forward : replyTo);
 			if (source != null) {
 				out.put("sourceMessage", source);
-				if (!isBlank(replyTo)) replyTo = (String) source.get("id");
-				else forward = (String) source.get("id");
+				if (!isBlank(replyTo))
+					replyTo = (String) source.get("id");
+				else
+					forward = (String) source.get("id");
 			}
 		}
 		GenRowStruct files = this.store.getGenRowStruct(ATTACHMENTS);
 		if (files != null && !files.isEmpty()) {
-			if (this.insight.getRoomId() == null) throw new IllegalArgumentException("Open the email's room first.");
+			if (this.insight.getRoomId() == null)
+				throw new IllegalArgumentException("Open the email's room first.");
 			List<String> paths = new ArrayList<>();
 			for (int i = 0; i < files.size(); i++) {
 				Object value = files.getNoun(i).getValue();
-				if (!(value instanceof String)) throw new IllegalArgumentException("Attachments must be room-relative file paths.");
+				if (!(value instanceof String))
+					throw new IllegalArgumentException("Attachments must be room-relative file paths.");
 				paths.add((String) value);
 			}
 			try {
 				out.put(ATTACHMENTS, EmailAttachmentFiles.snapshot(this.insight.getInsightFolder(), paths));
 			} catch (IOException e) {
-				throw new IllegalArgumentException("An attachment could not be prepared. Check that every file exists in this room.", e);
+				throw new IllegalArgumentException(
+						"An attachment could not be prepared. Check that every file exists in this room.", e);
 			}
 		}
 		out.put("shown", true);
-		out.put("mode", !isBlank(replyTo) ? "reply" : !isBlank(forward) ? "forward" : !isBlank(openEmailId) ? "edit" : "new");
-		if (!isBlank(replyTo)) out.put(REPLY_TO, replyTo.trim());
-		if (!isBlank(forward)) out.put(FORWARD, forward.trim());
+		out.put("mode",
+				!isBlank(replyTo) ? "reply" : !isBlank(forward) ? "forward" : !isBlank(openEmailId) ? "edit" : "new");
+		if (!isBlank(replyTo))
+			out.put(REPLY_TO, replyTo.trim());
+		if (!isBlank(forward))
+			out.put(FORWARD, forward.trim());
 		out.put("note", "The email is in the owner's email editor, where they can edit it. Nothing was saved or "
 				+ "sent; SendEmail sends it once they press Send.");
 		return mapResult(out);
@@ -129,14 +140,19 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 		String roomId = this.insight.getRoomId();
 		Room room = roomId == null ? null : RoomUtils.getOrLoadRoom(roomId, this.insight);
 		Map<String, Object> options = room == null ? null : room.getOptionsMap();
-		// Topic and home chats can answer Brain mail without importing its thread into the chat.
+		// Topic and home chats can answer Brain mail without importing its thread into
+		// the chat.
 		if (options == null || !(options.get(CollaborationUtils.ROOM_OPTION_SOURCE) instanceof Map<?, ?> source)
 				|| !"email".equals(source.get("channel")) || !(source.get("messages") instanceof List<?> messages)
-				|| messages.stream().noneMatch(value -> value instanceof Map<?, ?> email && id.equals(email.get("id")))) {
+				|| messages.stream()
+						.noneMatch(value -> value instanceof Map<?, ?> email && id.equals(email.get("id")))) {
 			Map<String, Object> email = CollaborationUtils.isAssistantRoom(room)
-					? BrainThreadMessages.composeSource(user, id) : null;
-			if (email != null) return email;
-			throw new IllegalArgumentException("The " + key + " email is not included in this chat or available in your Brain. " + retry);
+					? BrainThreadMessages.composeSource(user, id)
+					: null;
+			if (email != null)
+				return email;
+			throw new IllegalArgumentException(
+					"The " + key + " email is not included in this chat or available in your Brain. " + retry);
 		}
 		try {
 			String token = MicrosoftLoginUtils.getValidAccessToken(user);
@@ -177,54 +193,46 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Write an email for the owner and open it in their email editor, where they review, edit, and send it. "
-				+ "Before authoring or rewriting message, call GetWritingStyle and read its result, then write the email text. "
-				+ "Use it to write a new email, reply to or forward one, or change the email they have open, passing only the fields "
-				+ "that change. It saves and sends nothing.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ATTACHMENTS.equals(key)) {
-			return "Optional array of files in this room's working directory, using relative paths such as hello.txt. "
-					+ "Adds files to the email's attachment list for the owner to review; existing attachments stay. "
-					+ "Use openEmailId to attach to the open email without changing its text. At most " + EmailAttachmentFiles.MAX_FILES + " files, "
-					+ (EmailAttachmentFiles.maxBytes() / (1024 * 1024)) + " MB total per call. "
-					+ "Never pass absolute paths. Nothing is sent until the owner presses Send.";
-		} else if (MESSAGE.equals(key)) {
-			return "The whole email in plain text, greeting to sign-off, written as the owner. No Markdown. "
-					+ "For a forward, the short note above the forwarded email. Required, except for a forward or "
-					+ "when openEmailId is set and the text does not change.";
-		} else if (TO.equals(key)) {
-			return "Optional recipients, as one comma separated value: the whole new list. Use only addresses from the "
-					+ "Work context, FindPerson, or the owner; never guess one, leave it empty instead. Leave it out for "
-					+ "a reply, which goes to whoever Outlook replies to, unless the owner asks to change who gets it. "
-					+ "Required for a forward.";
-		} else if (CC.equals(key)) {
-			return "Optional recipients to copy, as one comma separated value: the whole new list. Same address rules "
-					+ "as to; leave it out for a reply unless the owner asks to change it.";
-		} else if (BCC.equals(key)) {
-			return "Optional recipients to blind copy, as one comma separated value.";
-		} else if (SUBJECT.equals(key)) {
-			return "Optional subject line of a new email, saying what it is about. Never start it with Re: or Fwd:. "
-					+ "A reply or forward keeps its thread's subject; Outlook adds RE: or FW:.";
-		} else if (REPLY_TO.equals(key)) {
-			return "Use \"selected\" to reply to the email selected in the current Work context; SEMOSS supplies its exact id. "
-					+ "In the owner's assistant chat, prefer emailRef (email:...) from ReadThread over its long Outlook id. "
-					+ "An exact native email id from the Work context or Chat threads is also accepted. "
-					+ "Delegation rooms must use selected or an exact native id included in their context. "
-					+ "Topic and home chats can reply to accessible Brain emails without adding the thread to the chat. "
-					+ "The reply stays in that email's thread. Leave it out for a new email.";
-		} else if (FORWARD.equals(key)) {
-			return "Use \"selected\" to forward the selected email. In the owner's assistant chat, prefer emailRef (email:...) from ReadThread. "
-					+ "An exact native email id from the context is also accepted; delegation rooms must use selected or an included native id. Outlook includes "
-					+ "that email and its attachments below the note, so do not copy its text into message. Set to. "
-					+ "Leave it out unless the owner asks to forward.";
-		} else if (OPEN_EMAIL_ID.equals(key)) {
-			return "Optional id of the email the owner has open (openEmail.id in the Work context), to change it. "
-					+ "Fields left out keep their current values. Leave it out to start a separate email.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Write an email for the owner and open it in their email editor, where they review, edit, and send it. "
+						+ "Before authoring or rewriting message, call GetWritingStyle and read its result, then write the email text. "
+						+ "Use it to write a new email, reply to or forward one, or change the email they have open, passing only the fields "
+						+ "that change. It saves and sends nothing.")
+				.key(MESSAGE, "The whole email in plain text, greeting to sign-off, written as the owner. No Markdown. "
+						+ "For a forward, the short note above the forwarded email. Required, except for a forward or "
+						+ "when openEmailId is set and the text does not change.")
+				.key(TO, "Optional recipients, as one comma separated value: the whole new list. Use only addresses from the "
+						+ "Work context, FindPerson, or the owner; never guess one, leave it empty instead. Leave it out for "
+						+ "a reply, which goes to whoever Outlook replies to, unless the owner asks to change who gets it. "
+						+ "Required for a forward.")
+				.key(CC, "Optional recipients to copy, as one comma separated value: the whole new list. Same address rules "
+						+ "as to; leave it out for a reply unless the owner asks to change it.")
+				.key(BCC, "Optional recipients to blind copy, as one comma separated value.")
+				.key(SUBJECT,
+						"Optional subject line of a new email, saying what it is about. Never start it with Re: or Fwd:. "
+								+ "A reply or forward keeps its thread's subject; Outlook adds RE: or FW:.")
+				.key(REPLY_TO,
+						"Use \"selected\" to reply to the email selected in the current Work context; SEMOSS supplies its exact id. "
+								+ "In the owner's assistant chat, prefer emailRef (email:...) from ReadThread over its long Outlook id. "
+								+ "An exact native email id from the Work context or Chat threads is also accepted. "
+								+ "Delegation rooms must use selected or an exact native id included in their context. "
+								+ "Topic and home chats can reply to accessible Brain emails without adding the thread to the chat. "
+								+ "The reply stays in that email's thread. Leave it out for a new email.")
+				.key(FORWARD,
+						"Use \"selected\" to forward the selected email. In the owner's assistant chat, prefer emailRef (email:...) from ReadThread. "
+								+ "An exact native email id from the context is also accepted; delegation rooms must use selected or an included native id. Outlook includes "
+								+ "that email and its attachments below the note, so do not copy its text into message. Set to. "
+								+ "Leave it out unless the owner asks to forward.")
+				.key(OPEN_EMAIL_ID,
+						"Optional id of the email the owner has open (openEmail.id in the Work context), to change it. "
+								+ "Fields left out keep their current values. Leave it out to start a separate email.")
+				.key(ATTACHMENTS,
+						"Optional array of files in this room's working directory, using relative paths such as hello.txt. "
+								+ "Adds files to the email's attachment list for the owner to review; existing attachments stay. "
+								+ "Use openEmailId to attach to the open email without changing its text. At most "
+								+ EmailAttachmentFiles.MAX_FILES + " files, "
+								+ (EmailAttachmentFiles.maxBytes() / (1024 * 1024)) + " MB total per call. "
+								+ "Never pass absolute paths. Nothing is sent until the owner presses Send.");
 	}
 }

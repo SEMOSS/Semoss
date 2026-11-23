@@ -40,8 +40,8 @@ import prerna.engine.api.IRDFDatabase;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -62,14 +62,7 @@ public abstract class AbstractSparqlQueryReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to run this operation",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
+		User user = requireUser();
 
 		organizeKeys();
 		String sparqlQuery = getDecodedQuery();
@@ -163,20 +156,11 @@ public abstract class AbstractSparqlQueryReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Execute a SPARQL SELECT query against an RDF database";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.DATABASE.getKey())) {
-			return "The database id";
-		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Limits the number of rows retrieved";
-		} else if (key.equals("raw")) {
-			return "When true, returns the full URI or literal representation for each binding instead of the processed instance name";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Execute a SPARQL SELECT query against an RDF database")
+				.key(ReactorKeysEnum.DATABASE, "The database id")
+				.key(ReactorKeysEnum.LIMIT, "Limits the number of rows retrieved").key("raw",
+						"When true, returns the full URI or literal representation for each binding instead of the processed instance name");
 	}
 
 }

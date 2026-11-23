@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.collaboration.WorkTaskUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkListMyWork(status=["open"], topicId=["..."], includeSuggested=[false]);
@@ -54,26 +55,13 @@ public class WorkListMyWorkReactor extends AbstractWorkTaskReactor {
 	}
 
 	@Override
-	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		return INCLUDE_SUGGESTED.equals(key) ? MCP_KEY_TYPE.BOOLEAN : super.getKeyTypeForMCP(key);
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "The owner's to-do list: their open work items (outcomes they are driving), each with its open steps, plus loose steps that belong to no work item. "
-				+ "Use it when the owner asks what is on their plate, for their to-do list, or what they owe someone. "
-				+ "It does not list mail waiting on a reply; use SearchMail for that";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (STATUS.equals(key)) {
-			return "open (default), done, or all";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Only work items under this topic";
-		} else if (INCLUDE_SUGGESTED.equals(key)) {
-			return "Also list the steps Brain pulled from mail that no work item holds yet; they are often noise";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"The owner's to-do list: their open work items (outcomes they are driving), each with its open steps, plus loose steps that belong to no work item. "
+						+ "Use it when the owner asks what is on their plate, for their to-do list, or what they owe someone. "
+						+ "It does not list mail waiting on a reply; use SearchMail for that")
+				.key(STATUS, "open (default), done, or all").key(TOPIC_ID, "Only work items under this topic")
+				.key(INCLUDE_SUGGESTED, key -> key.type(Boolean.class).description(
+						"Also list the steps Brain pulled from mail that no work item holds yet; they are often noise"));
 	}
 }

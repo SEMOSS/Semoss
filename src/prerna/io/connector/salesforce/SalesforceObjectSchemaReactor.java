@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -68,16 +69,11 @@ public class SalesforceObjectSchemaReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Fetches Salesforce object metadata. When no object is provided, it returns object API names; when an object is provided, it returns that object's field API names.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (SOBJECT_NAME.equals(key)) {
-			return "Optional Salesforce object API name (for example, Account). Leave blank to list all objects.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Fetches Salesforce object metadata. When no object is provided, it returns object API names; when an object is provided, it returns that object's field API names.")
+				.key(SOBJECT_NAME,
+						"Optional Salesforce object API name (for example, Account). Leave blank to list all objects.");
 	}
 
 }

@@ -61,10 +61,7 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null) {
-			throw new IllegalArgumentException("You are not properly logged in");
-		}
+		User user = requireUser();
 
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 
@@ -75,7 +72,8 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 			roomOptions = new HashMap<>();
 		}
 		try (var ignored = RoomMessageStore.acquireOptionsLock(room)) {
-			// Preserve server-owned state while serializing settings updates with tool loads.
+			// Preserve server-owned state while serializing settings updates with tool
+			// loads.
 			preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR);
 			preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
 			for (String key : CollaborationUtils.SERVER_OWNED_ROOM_OPTIONS) {

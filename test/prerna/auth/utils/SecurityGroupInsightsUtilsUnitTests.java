@@ -131,6 +131,60 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 	}
 
 	///
+	/// team grants count only on the insight they are on
+	///
+
+	@Test
+	void userGroupCanViewInsight_onlyTheInsightSharedWithTheTeam() throws Exception {
+		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User member = teamMemberOnProjectWithTwoInsights(owner);
+		SecurityGroupInsightsUtils.addInsightGroupPermission(owner, "groupId1", "CUSTOM", "pid1", "iid1", "READ_ONLY",
+				null);
+
+		assertTrue(SecurityGroupInsightsUtils.userGroupCanViewInsight(member, "pid1", "iid1"));
+		assertTrue(SecurityInsightUtils.userCanViewInsight(member, "pid1", "iid1"));
+		assertFalse(SecurityGroupInsightsUtils.userGroupCanEditInsight(member, "pid1", "iid1"));
+		assertFalse(SecurityGroupInsightsUtils.userGroupCanViewInsight(member, "pid1", "iid2"));
+	}
+
+	@Test
+	void userGroupCanEditInsight_onlyTheInsightSharedWithTheTeam() throws Exception {
+		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User member = teamMemberOnProjectWithTwoInsights(owner);
+		SecurityGroupInsightsUtils.addInsightGroupPermission(owner, "groupId1", "CUSTOM", "pid1", "iid1", "EDIT", null);
+
+		assertTrue(SecurityGroupInsightsUtils.userGroupCanEditInsight(member, "pid1", "iid1"));
+		assertFalse(SecurityGroupInsightsUtils.userGroupIsOwner(member, "pid1", "iid1"));
+		assertFalse(SecurityGroupInsightsUtils.userGroupCanEditInsight(member, "pid1", "iid2"));
+	}
+
+	@Test
+	void userGroupCanEditInsight_theStrongestOfTheUsersTeamsCounts() throws Exception {
+		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User member = teamMemberOnProjectWithTwoInsights(owner);
+		UnitTestSecurityAuthUtils.createGroup(owner, "groupId2", "CUSTOM");
+		UnitTestSecurityAuthUtils.addUserTokenToGroup(member, "groupId2", "CUSTOM");
+		UnitTestSecurityAuthUtils.addUserToGroup(owner, "groupId2", member.getAccessToken(AuthProvider.NATIVE).getId(),
+				member.getPrimaryLogin().getLabel());
+		SecurityGroupInsightsUtils.addInsightGroupPermission(owner, "groupId1", "CUSTOM", "pid1", "iid1", "READ_ONLY",
+				null);
+		SecurityGroupInsightsUtils.addInsightGroupPermission(owner, "groupId2", "CUSTOM", "pid1", "iid1", "EDIT", null);
+
+		assertTrue(SecurityGroupInsightsUtils.userGroupCanEditInsight(member, "pid1", "iid1"));
+	}
+
+	@Test
+	void userGroupIsOwner_onlyTheInsightSharedWithTheTeam() throws Exception {
+		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User member = teamMemberOnProjectWithTwoInsights(owner);
+		SecurityGroupInsightsUtils.addInsightGroupPermission(owner, "groupId1", "CUSTOM", "pid1", "iid1", "OWNER",
+				null);
+
+		assertTrue(SecurityGroupInsightsUtils.userGroupIsOwner(member, "pid1", "iid1"));
+		assertFalse(SecurityGroupInsightsUtils.userGroupIsOwner(member, "pid1", "iid2"));
+	}
+
+	///
 	/// getBestInsightPermission
 	///
 
@@ -198,6 +252,15 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 
 		Integer permission = SecurityGroupInsightsUtils.getBestInsightPermission(user2, "pid1", "iid1");
 		assertNull(permission);
+	}
+
+	@Test
+	void testGetBestInsightPermissionTeamOnly() throws Exception {
+		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User member = teamMemberOnProjectWithTwoInsights(owner);
+		SecurityGroupInsightsUtils.addInsightGroupPermission(owner, "groupId1", "CUSTOM", "pid1", "iid1", "EDIT", null);
+
+		assertEquals(2, SecurityGroupInsightsUtils.getBestInsightPermission(member, "pid1", "iid1"));
 	}
 
 	///
@@ -447,43 +510,6 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 	}
 
 	///
-	/// removeExpiredInsightGroupPermission
-	///
-
-	@Test
-	void testRemoveExpiredInsightGroupPermission_NoPermission() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
-		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
-		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
-
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> SecurityGroupInsightsUtils
-				.removeExpiredInsightGroupPermission("groupId1", "CUSTOM", "pid1", "iid1"));
-		assertEquals(
-				"Attempting to modify group permission for a user who does not currently have access to the insight",
-				e.getMessage());
-	}
-
-	@Test
-	void testRemoveExpiredInsightGroupPermission() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
-		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
-		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
-
-		// Use a past date for expiration
-		String endDate = ZonedDateTime.now().minusDays(2).toString();
-		SecurityGroupInsightsUtils.addInsightGroupPermission(user, "groupId1", "CUSTOM", "pid1", "iid1", "EDIT",
-				endDate);
-
-		SecurityGroupInsightsUtils.removeExpiredInsightGroupPermission("groupId1", "CUSTOM", "pid1", "iid1");
-
-		assertNull(SecurityGroupInsightsUtils.getGroupInsightPermission("groupId1", "CUSTOM", "pid1", "iid1"));
-	}
-
-	///
 	/// getGroupsWithAccessToInsight and getAvailableGroupsForInsight
 	///
 
@@ -525,5 +551,19 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 		assertEquals("Only this insight's owners can change which teams have access to it.", own.getMessage());
 		assertThrows(IllegalArgumentException.class,
 				() -> SecurityGroupInsightsUtils.getNumGroupsWithAccessToInsight(admin, " ", "iid1"));
+	}
+
+	private static User teamMemberOnProjectWithTwoInsights(User owner) throws Exception {
+		UnitTestSecurityAuthUtils.createGroup(owner, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.addUserTokenToGroup(owner, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", owner);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid2", "insight2", "grid");
+
+		User member = UnitTestSecurityAuthUtils.createUser("notadmin", false);
+		UnitTestSecurityAuthUtils.addUserTokenToGroup(member, "groupId1", "CUSTOM");
+		UnitTestSecurityAuthUtils.addUserToGroup(owner, "groupId1", member.getAccessToken(AuthProvider.NATIVE).getId(),
+				member.getPrimaryLogin().getLabel());
+		return member;
 	}
 }

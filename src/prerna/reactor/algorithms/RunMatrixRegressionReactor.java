@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.algorithms;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -48,13 +47,13 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.frame.AbstractFrameReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 
 public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 
@@ -144,7 +143,7 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 			rowData = setValuesInOlsAndCorr(ols, it, numCols, numRows, missingVal, logger);
 			logger.info("Done iterating through data to determine regression");
 		} catch (Exception e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Could not read the frame data for the regression", e);
 		}
 
 		if (rowData == null) {
@@ -228,22 +227,12 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 		math.setFunction(QueryFunctionHelper.COUNT);
 		qs.addSelector(math);
 
-		IRawSelectWrapper countIt = null;
-		try {
-			countIt = frame.query(qs);
+		try (IRawSelectWrapper countIt = frame.query(qs)) {
 			while (countIt.hasNext()) {
 				return ((Number) countIt.next().getValues()[0]).intValue();
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			if (countIt != null) {
-				try {
-					countIt.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
-				}
-			}
+			classLogger.error("Could not count the rows of the frame for the regression", e);
 		}
 		return 0;
 	}
@@ -330,14 +319,11 @@ public class RunMatrixRegressionReactor extends AbstractFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(X_COLUMNS)) {
-			return "x variable input";
-		} else if (key.equals(Y_COLUMN)) {
-			return "y variable input";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Fits a linear regression of one frame column on one or more others and returns scatterplot matrix data with the coefficients, R squared, residual sum of squares and each column's correlation with the y column.")
+				.key(ReactorKeysEnum.DEFAULT_VALUE_KEY, key -> key.type(Double.class)).key(Y_COLUMN, "y variable input")
+				.key(X_COLUMNS, key -> key.list(String.class).description("x variable input"));
 	}
 }
 

@@ -43,7 +43,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRDBMSEngine;
@@ -87,12 +86,6 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 		int numError = 0;
 
 		if (rdbmsId == null) {
-			// we will run for all the insights
-			// so you need to be the app owner
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-
 			if (!SecurityProjectUtils.userIsOwner(this.insight.getUser(), projectId)) {
 				throw new IllegalArgumentException(
 						"User must be an owner of the app to update all the app mosfet files");
@@ -148,12 +141,6 @@ public class MakeInsightMosfetReactor extends AbstractInsightReactor {
 						GitUtils.getDateMessage("Writing new " + mosfet.getInsightName() + " mosfet file"));
 			}
 		} else {
-			// need edit access to the insight
-			// override is assumed to be true
-			if (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-
 			if (!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, rdbmsId)) {
 				throw new IllegalArgumentException("User does not have permission to edit this insight");
 			}

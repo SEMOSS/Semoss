@@ -42,7 +42,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.common.io.Files;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -95,20 +94,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 
 	protected NounMetadata doExecute() {
 		this.logger = getLogger(CLASS_NAME);
-		User user = this.insight.getUser();
-		if (user == null) {
-			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a database",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
-			SemossPixelException err = new SemossPixelException(noun);
-			err.setContinueThreadOfExecution(false);
-			throw err;
-		}
-
-		if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-			if (this.insight.getUser().isAnonymous()) {
-				throwAnonymousUserError();
-			}
-		}
+		User user = requireUser();
 
 		// throw error is user doesn't have rights to publish new databases
 		if (AbstractSecurityUtils.adminSetPublisher() && !SecurityQueryUtils.userIsPublisher(this.insight.getUser())) {
@@ -120,8 +106,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		this.databaseName = UploadInputUtility.getEngineNameOrId(this.store,
-				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
+		this.databaseName = this.keyValue.get(UploadInputUtility.CATALOG_NAME);
 		try {
 			// make a new id
 			this.databaseId = UUID.randomUUID().toString();
@@ -146,7 +131,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			UploadUtilities.updateMetadata(this.databaseId, user);
 			this.logger.info("Complete");
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create database {} ({})", this.databaseName, this.databaseId, e);
 			this.error = true;
 			if (e instanceof SemossPixelException) {
 				throw (SemossPixelException) e;
@@ -165,10 +150,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			}
 		}
 
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
-		}
+		SecurityEngineUtils.addEngineOwner(user, this.databaseId);
 
 		ClusterUtil.pushEngine(this.databaseId);
 
@@ -256,11 +238,9 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 
 		this.logger.info(stepCounter + ". Start generating database tables...");
 
-		DatabaseUpdateMetadata dbUpdateMeta = null;
-		WriteOWLEngine owlEngine = null;
-		try {
-			dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) database, newMetamodel, logger);
-			owlEngine = dbUpdateMeta.getOwlEngine();
+		DatabaseUpdateMetadata dbUpdateMeta = AbstractSqlQueryUtil.performDatabaseAdditions((IRDBMSEngine) database,
+				newMetamodel, logger);
+		try (WriteOWLEngine owlEngine = dbUpdateMeta.getOwlEngine()) {
 			String errorMessages = dbUpdateMeta.getCombinedErrors();
 			if (!errorMessages.isEmpty()) {
 				throw new IllegalArgumentException(errorMessages);
@@ -270,12 +250,8 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			try {
 				owlEngine.export();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to export the OWL of new database {}", this.databaseId, e);
 				throw new IllegalArgumentException("Error occurred savig the metadata file with the executed changes");
-			}
-		} finally {
-			if (owlEngine != null) {
-				owlEngine.close();
 			}
 		}
 

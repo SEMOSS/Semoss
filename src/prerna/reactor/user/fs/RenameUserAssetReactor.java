@@ -30,17 +30,20 @@ package prerna.reactor.user.fs;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONObject;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
@@ -49,19 +52,14 @@ public class RenameUserAssetReactor extends AbstractReactor {
 
 	public RenameUserAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-
 		User user = this.insight.getUser();
-		// check if user is logged in
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		IProject project = user.getAssetProject();
 		if (project == null) {
@@ -85,17 +83,19 @@ public class RenameUserAssetReactor extends AbstractReactor {
 		String versionGitFolder = AssetUtility.getUserAssetVersionFolder(project.getProjectName(),
 				project.getProjectId());
 		String assetFolder = AssetUtility.getUserAssetFolder(project.getProjectName(), project.getProjectId());
+
+		SavedAsset savedAsset = FileSystemUtil.renameAsset(assetFolder, currentFileName, newFileName,
+				getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false));
+
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "rename: Renaming " + currentFileName + " to " + newFileName;
+			comment = "rename: Renaming " + currentFileName + " to " + savedAsset.savedPath();
 		}
-
-		FileSystemUtil.renameAsset(assetFolder, currentFileName, newFileName);
 
 		// handle pushing to git and the cloud
 
 		List<String> toAdd = new ArrayList<>();
-		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + newFileName);
+		toAdd.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + savedAsset.savedPath());
 
 		List<String> toRemove = new ArrayList<>();
 		toRemove.add(Constants.ASSETS_FOLDER + DIR_SEPARATOR + currentFileName);
@@ -112,25 +112,28 @@ public class RenameUserAssetReactor extends AbstractReactor {
 		// handle synchronization to the cloud
 		ClusterUtil.pushUserAsset(project.getProjectId());
 
-		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		return retNoun;
+		return FileSystemUtil.savedAssetsAsNounMetadata(List.of(savedAsset));
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Rename a file or directory in the user's assets folder";
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
+		return properties;
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.";
-		} else if (key.equals(ReactorKeysEnum.NEW_VALUE.getKey())) {
-			return "The new name for the file or directory. This cannot be an name for an existing file or directory and has the same character restrictions you would expect on typical file system.";
-		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {
-			return "Comment to add while saving the files within the git repository for the user's asset project";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Rename a file or directory in the user's assets folder").key(
+				ReactorKeysEnum.FILE_PATH,
+				"Names of the file(s) to save. This relative path should assume the prefix of '/version/assets/' and not include the prefix in the string value.")
+				.key(ReactorKeysEnum.NEW_VALUE,
+						"The new path for the file or directory, with the same character restrictions you would expect on a typical file system. When something already exists there, override decides whether it is replaced or the entry gets the next copy number.")
+				.key(ReactorKeysEnum.COMMENT_KEY,
+						"Comment to add while saving the files within the git repository for the user's asset project")
+				.key(ReactorKeysEnum.OVERRIDE,
+						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_KEEP_DESCRIPTION))
+				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
 	}
 
 }

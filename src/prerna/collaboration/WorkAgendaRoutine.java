@@ -71,6 +71,16 @@ public final class WorkAgendaRoutine {
 		return WorkRoutine.run(KIND, insight);
 	}
 
+	/** Run now's run, which runNow fires on the scheduler: on any day, and recorded as started by hand. */
+	public static Map<String, Object> runManual(Insight insight) {
+		return WorkRoutine.run(KIND, insight, null, true);
+	}
+
+	/** Starts the agendas now, off the schedule, on the routine's own job. */
+	public static void runNow(User user) {
+		WorkRoutine.runNow(KIND, user, null, "WorkRunAgendaRoutine(manual=[true]);");
+	}
+
 	static Map<String, Object> validate(Map<String, Object> input) {
 		return WorkRoutine.validate(KIND, input);
 	}

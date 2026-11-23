@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
 
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.unoserver.Unoserver;
 
 public class LiveInspectionCheck {
@@ -56,7 +56,7 @@ public class LiveInspectionCheck {
 			Files.copy(repo.resolve("test/prerna/util/pptx/fixtures").resolve(name), root.resolve(name),
 					java.nio.file.StandardCopyOption.REPLACE_EXISTING);
 		}
-		DIHelper.getInstance().loadCoreProp(repo.resolve("RDF_Map.prop").toString());
+		InternalUtility.loadCoreProp(repo.resolve("RDF_Map.prop").toString());
 		Unoserver uno = new Unoserver();
 		var renderer = new PptxRenderService(new PptxRenderService.Converter() {
 			@Override

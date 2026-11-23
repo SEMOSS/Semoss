@@ -28,6 +28,7 @@
 package prerna.io.connector.ms.teams;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -36,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -128,7 +130,8 @@ public class MicrosoftTeamsUploadFileReactor extends AbstractMicrosoftReactor {
 	 * path that climbs above its root, which is the same guard the insight asset
 	 * reactors use. Stripping a leading slash afterwards keeps an absolute path
 	 * from being read as one, so it resolves under the insight folder like any
-	 * other relative path.
+	 * other relative path, and {@link Utility#resolveContainedFile} refuses a
+	 * symbolic link that leads out of the folder.
 	 * </p>
 	 *
 	 * @param requestedPath path relative to the insight folder
@@ -137,9 +140,6 @@ public class MicrosoftTeamsUploadFileReactor extends AbstractMicrosoftReactor {
 	 *                              readable file
 	 */
 	private File resolveInsightFile(String requestedPath) {
-		String insightFolder = this.insight.getInsightFolder();
-		File insightFolderFile = new File(insightFolder);
-
 		String relativePath;
 		try {
 			relativePath = Utility.normalizePath(requestedPath.trim());
@@ -154,34 +154,26 @@ public class MicrosoftTeamsUploadFileReactor extends AbstractMicrosoftReactor {
 			throw new SemossPixelException("File path is required to upload to a Microsoft Teams channel.");
 		}
 
-		File sourceFile = new File(insightFolderFile, relativePath);
-		if (!sourceFile.exists() || !sourceFile.isFile()) {
+		try {
+			return Utility.resolveContainedFile(this.insight.getInsightFolder(), relativePath).toFile();
+		} catch (IOException | IllegalArgumentException e) {
 			throw new SemossPixelException("No file exists in the insight folder at: " + relativePath);
 		}
-		return sourceFile;
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Upload a file from the insight folder into a Microsoft Teams channel.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(TEAM_ID)) {
-			return "Microsoft Teams team ID that owns the channel.";
-		} else if (key.equals(CHANNEL_ID)) {
-			return "Microsoft Teams channel ID to upload into.";
-		} else if (key.equals(ReactorKeysEnum.NAME.getKey())) {
-			return "Optional name to assign to the uploaded file in the channel. The source file name is used when omitted.";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "Path of the file to upload, relative to the insight folder.";
-		} else if (key.equals(FOLDER_PATH)) {
-			return "Optional folder path relative to the channel root folder. The file lands in the channel root folder when omitted.";
-		} else if (key.equals(CONFLICT_BEHAVIOR)) {
-			return "Optional behavior when a file of the same name exists: fail, rename or replace. Defaults to rename.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description("Upload a file from the insight folder into a Microsoft Teams channel.")
+				.key(TEAM_ID, "Microsoft Teams team ID that owns the channel.")
+				.key(CHANNEL_ID, "Microsoft Teams channel ID to upload into.")
+				.key(ReactorKeysEnum.NAME,
+						"Optional name to assign to the uploaded file in the channel. The source file name is used when omitted.")
+				.key(ReactorKeysEnum.FILE_PATH, "Path of the file to upload, relative to the insight folder.")
+				.key(FOLDER_PATH,
+						"Optional folder path relative to the channel root folder. The file lands in the channel root folder when omitted.")
+				.key(CONFLICT_BEHAVIOR,
+						"Optional behavior when a file of the same name exists: fail, rename or replace. Defaults to rename.");
 	}
 
 	@Override

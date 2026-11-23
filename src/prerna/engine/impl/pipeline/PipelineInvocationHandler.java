@@ -63,7 +63,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
@@ -97,6 +99,7 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.tcp.client.ResponseTimeoutException;
 import prerna.usertracking.GuardrailAudit;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZoneIdTypeAdapter;
@@ -140,6 +143,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private static final String GUARDRAIL_ACTION_MASK = "MASK";
 	private static final String GUARDRAIL_ACTION_BLOCK = "BLOCK";
 	private static final String GUARDRAIL_ACTION_RESPOND = "RESPOND";
+	private static final String GUARDRAIL_ACTION_TIMEOUT = "TIMEOUT";
+
+	/**
+	 * The engines whose guardrail checks are running on this thread. A call one of
+	 * those checks makes back into its own engine, such as to a judge model that is
+	 * also the guarded engine, runs without the engine's pipeline, so a check never
+	 * runs itself again.
+	 */
+	private static final ThreadLocal<Set<String>> ENGINES_RUNNING_CHECKS = new ThreadLocal<>();
 
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
 	private final Map<String, Pipeline> pipelinesMap = new HashMap<>();
@@ -156,6 +168,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private final String engineId;
 	private final String engineName;
 	private final IEngine.CATALOG_TYPE catalogType;
+	/** The engine, as {@link EngineCallPermission} names the engine answering a call */
+	private final EngineGrantee answering;
+	private final boolean forPlatformUse;
 	private final String engineType;
 	private final String engineSubType;
 
@@ -169,11 +184,28 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param jsonFile
 	 */
 	public PipelineInvocationHandler(IEngine realEngine, File jsonFile) {
+		this(realEngine, jsonFile, false);
+	}
+
+	/**
+	 * Builds the handler of a proxy, saying whether the proxy is handed out for the
+	 * platform's own use: a feature that uses an engine a platform setting names,
+	 * for every user of the feature, whether or not they have access to the engine.
+	 * The access check lets the platform's own calls on such a proxy through, and
+	 * still checks a project's custom code.
+	 *
+	 * @param realEngine     the engine the proxy stands for
+	 * @param jsonFile       the engine's pipeline file, or null
+	 * @param forPlatformUse true when the proxy is for the platform's own use
+	 */
+	PipelineInvocationHandler(IEngine realEngine, File jsonFile, boolean forPlatformUse) {
+		this.forPlatformUse = forPlatformUse;
 		// Capture realEngine in a closure - not accessible via reflection
 		this.engineInvoker = (method, args) -> method.invoke(realEngine, args);
 		this.engineId = realEngine.getEngineId();
 		this.engineName = realEngine.getEngineName();
 		this.catalogType = realEngine.getCatalogType();
+		this.answering = new EngineGrantee(this.engineId, this.catalogType == null ? null : this.catalogType.name());
 		this.engineType = this.catalogType.name();
 		this.engineSubType = realEngine.getCatalogSubType(realEngine.getSmssProp());
 
@@ -191,9 +223,72 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		parseAndLoadPipelines(pipelineJson);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		EngineGrantee grantee = EngineAccessGuard.check(this.engineId, this.catalogType, this.forPlatformUse, method,
+				args);
+		EngineCallPermission.State previous = EngineCallPermission.begin(this.answering, grantee);
+		try {
+			return invokeWithPipeline(method, args);
+		} finally {
+			EngineCallPermission.restore(previous);
+		}
+	}
+
+	/**
+	 * Reads the arguments a pipeline reactor hands back as the value of its result,
+	 * each under its name.
+	 *
+	 * @param value the value of the reactor's result
+	 * @return the arguments by name, in the order the reactor gave them
+	 * @throws IllegalStateException when the reactor handed back no arguments
+	 */
+	private static Map<String, Object> argumentsOf(Object value) {
+		return namedValues(value, "A pipeline reactor returned no arguments");
+	}
+
+	/**
+	 * Reads what a pipeline reactor found, which it leaves among its arguments:
+	 * whether the call passes, whether content was masked, and the response to
+	 * answer with in place of the engine's.
+	 *
+	 * @param arguments the arguments the reactor handed back
+	 * @return what the reactor found
+	 * @throws IllegalStateException when the reactor left no result
+	 */
+	private static Map<String, Object> interimResultOf(Map<String, Object> arguments) {
+		return namedValues(arguments.get(PipelineReactorUtils.INTERIM_RESULT), "A pipeline reactor returned no result");
+	}
+
+	/**
+	 * Reads a map a pipeline reactor handed back as values by name.
+	 *
+	 * @param value   what the reactor handed back
+	 * @param missing what to say when it is not a map
+	 * @return the values by name, in the order the reactor gave them
+	 * @throws IllegalStateException when the value is not a map
+	 */
+	private static Map<String, Object> namedValues(Object value, String missing) {
+		if (!(value instanceof Map<?, ?> given)) {
+			throw new IllegalStateException(missing);
+		}
+		Map<String, Object> values = new LinkedHashMap<>();
+		for (Map.Entry<?, ?> entry : given.entrySet()) {
+			values.put(String.valueOf(entry.getKey()), entry.getValue());
+		}
+		return values;
+	}
+
+	/**
+	 * Passes a call the access check let through on to the engine, with the
+	 * engine's pipeline and its audit log around it.
+	 *
+	 * @param method the interface method being called
+	 * @param args   the call's arguments, or null
+	 * @return what the engine returned
+	 * @throws Throwable what the engine or its pipeline threw
+	 */
+	private Object invokeWithPipeline(Method method, Object[] args) throws Throwable {
 		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
 			try {
 				return this.engineInvoker.invoke(method, args);
@@ -228,9 +323,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				newMdc.put(SemossLogUtils.PROJECT_NAME, insight.getContextProjectName());
 				newMdc.put(SemossLogUtils.ROOM_ID, insight.getRoomId());
 			}
+			// the request context has no user off a browser request (pooled threads, jobs,
+			// routine steps): name the
+			// caller from the call's own insight so the audit log shows who it was
+			callerContext(newMdc, contextInsight(args));
 		}
 
 		boolean success = true;
+		Set<String> enginesRunningChecks = ENGINES_RUNNING_CHECKS.get();
+		boolean calledFromOwnCheck = enginesRunningChecks != null && enginesRunningChecks.contains(this.engineId);
 
 		try (CloseableThreadContext.Instance ctc = CloseableThreadContext.putAll(newMdc)) {
 			Object result = null;
@@ -238,16 +339,19 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			// Every call but an @IgnoreEngineLogging one is refused here for a locked
 			// out user or a closed room, whether or not the method has checks, and
 			// before any check runs, so a refused call costs no guardrail calls
-			if (!this.hitLimits.isEmpty()) {
+			if (!calledFromOwnCheck && !this.hitLimits.isEmpty()) {
 				Insight insight = contextInsight(args);
 				this.hitLimits.refuseIfLockedOrRoomClosed(guardedCall(method, args, insight, keepInputOutput), insight,
 						callerOf(insight));
 			}
 
 			// Find the correct pipeline for the called method
-			Pipeline specificPipeline = this.pipelinesMap.get(methodName);
-			if (specificPipeline == null) {
-				specificPipeline = this.pipelinesMap.get("*");
+			Pipeline specificPipeline = null;
+			if (!calledFromOwnCheck) {
+				specificPipeline = this.pipelinesMap.get(methodName);
+				if (specificPipeline == null) {
+					specificPipeline = this.pipelinesMap.get("*");
+				}
 			}
 
 			List<IInputReactor> inputPipelines = null;
@@ -326,20 +430,27 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					reactor.setNounStore(inputNouns);
 
 					Instant start = Instant.now();
-					NounMetadata resultNoun = reactor.execute();
+					NounMetadata resultNoun;
+					try {
+						resultNoun = runCheck(reactor);
+					} catch (ResponseTimeoutException e) {
+						logEngineCall(engineSpecificLogger, start, Instant.now(), false,
+								serializeAuditPayload(method, args, null, false), e.getMessage(),
+								reactor.getClass().getSimpleName(), null, null, null, GUARDRAIL_ACTION_TIMEOUT);
+						throw e;
+					}
 					Instant end = Instant.now();
 
 					// Reactors return a NounMetadata whose value is the
 					// updated processedArguments map
-					processedArguments = (Map<String, Object>) resultNoun.getValue();
+					processedArguments = argumentsOf(resultNoun.getValue());
 
 					// Fold any argument rewrites (e.g. PII masking) back into the args
 					// array so they (a) survive the next input reactor's mapArguments
 					// reseed and (b) are passed to the real engine method below.
 					args = unmapArguments(method, processedArguments);
 
-					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
-							.get(PipelineReactorUtils.INTERIM_RESULT);
+					Map<String, Object> resultMap = interimResultOf(processedArguments);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
 					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
 					String cannedResponse = (String) resultMap.get(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE);
@@ -456,13 +567,20 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					reactor.setNounStore(outputNouns);
 
 					Instant start = Instant.now();
-					NounMetadata resultNoun = reactor.execute();
+					NounMetadata resultNoun;
+					try {
+						resultNoun = runCheck(reactor);
+					} catch (ResponseTimeoutException e) {
+						logEngineCall(engineSpecificLogger, start, Instant.now(), false,
+								serializeAuditPayload(method, args, result, true), e.getMessage(), null,
+								reactor.getClass().getSimpleName(), null, null, GUARDRAIL_ACTION_TIMEOUT);
+						throw e;
+					}
 					Instant end = Instant.now();
 
-					processedArguments = (Map<String, Object>) resultNoun.getValue();
+					processedArguments = argumentsOf(resultNoun.getValue());
 
-					Map<String, Object> resultMap = (Map<String, Object>) processedArguments
-							.get(PipelineReactorUtils.INTERIM_RESULT);
+					Map<String, Object> resultMap = interimResultOf(processedArguments);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
 					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
 					String guardrailAction = masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
@@ -498,6 +616,33 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			}
 
 			return result;
+		}
+	}
+
+	/**
+	 * Run one of this engine's guardrail checks, with the engine marked as running
+	 * its checks on this thread, so that a call the check makes back into this
+	 * engine runs without the pipeline instead of running the check again.
+	 *
+	 * @param reactor the check to run
+	 * @return the check's result
+	 */
+	private NounMetadata runCheck(IReactor reactor) {
+		Set<String> running = ENGINES_RUNNING_CHECKS.get();
+		if (running == null) {
+			running = new HashSet<>();
+			ENGINES_RUNNING_CHECKS.set(running);
+		}
+		boolean marked = running.add(this.engineId);
+		try {
+			return reactor.execute();
+		} finally {
+			if (marked) {
+				running.remove(this.engineId);
+				if (running.isEmpty()) {
+					ENGINES_RUNNING_CHECKS.remove();
+				}
+			}
 		}
 	}
 
@@ -544,7 +689,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 */
 	private static Pair<String, String> callerOf(Insight insight) {
 		User user = insight == null ? null : insight.getUser();
-		if (user == null || user.isAnonymous() || user.getPrimaryLogin() == null) {
+		if (user == null || user.getPrimaryLogin() == null) {
 			return null;
 		}
 		return User.getPrimaryUserIdAndTypePair(user);
@@ -734,29 +879,33 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	}
 
 	/**
-	 * 
-	 * @param pipelineFile
-	 * @return
+	 * Read an engine's pipeline configuration. A missing file is an engine with no
+	 * guardrails, since a new engine names its pipeline.json before any guardrail
+	 * is configured. A file that exists but cannot be read holds guardrails that
+	 * cannot be applied, so the engine is refused rather than run without them.
+	 *
+	 * @param pipelineFile the engine's pipeline.json
+	 * @return the file's contents, or an empty string when there is no file
+	 * @throws IllegalStateException when the file exists but cannot be read
 	 */
 	private static String getJsonData(File pipelineFile) {
 		if (pipelineFile == null || !pipelineFile.exists() || !pipelineFile.isFile()) {
 			return "";
 		}
-		String jsonString = null;
 		try {
-			jsonString = FileUtils.readFileToString(pipelineFile, "UTF-8");
+			return FileUtils.readFileToString(pipelineFile, "UTF-8");
 		} catch (IOException e) {
-			classLogger.error(
-					"Unable to read pipeline configuration file '{}'; pipeline interceptors will not be loaded.",
-					pipelineFile.getAbsolutePath(), e);
+			classLogger.error("Unable to read pipeline configuration file '{}': {}", pipelineFile.getAbsolutePath(),
+					e.getMessage(), e);
+			throw new IllegalStateException(
+					"Unable to read the guardrail configuration for this engine, so it will not run without its guardrails",
+					e);
 		}
-		return jsonString;
 	}
 
 	private static boolean isEngineLoggerConfigured() {
 		try {
-			LoggerContext context = (LoggerContext) LogManager.getContext(false);
-			Configuration config = context.getConfiguration();
+			Configuration config = ((LoggerContext) LogManager.getContext(false)).getConfiguration();
 			LoggerConfig engineLoggerConfig = config.getLoggerConfig("EngineLogger");
 			return engineLoggerConfig != null && "EngineLogger".equals(engineLoggerConfig.getName());
 		} catch (Exception e) {
@@ -926,8 +1075,8 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	/**
 	 * Engine methods such as database execQuery do not carry an Insight argument.
 	 * In that case, recover the current insight from ThreadStore so an
-	 * authorization guardrail evaluates the actual caller rather than an anonymous
-	 * context.
+	 * authorization guardrail evaluates the actual caller rather than a context
+	 * with no user.
 	 */
 	private void setContextInsight(IReactor reactor, Object[] args) {
 		reactor.setInsight(contextInsight(args));
@@ -940,6 +1089,32 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param args the call's arguments
 	 * @return the insight, or null when there is none
 	 */
+	static void callerContext(Map<String, String> mdc, Insight insight) {
+		// fills user id, type and name when the context lacks them or has the UNKNOWN
+		// placeholder
+		User user = insight == null ? null : insight.getUser();
+		if (user == null || user.getPrimaryLogin() == null) {
+			return;
+		}
+		AccessToken token = user.getPrimaryLoginToken();
+		if (token == null || token.getId() == null) {
+			return;
+		}
+		if (missing(mdc.get(SemossLogUtils.USER_ID))) {
+			mdc.put(SemossLogUtils.USER_ID, token.getId());
+			mdc.put(SemossLogUtils.USER_TYPE, token.getProvider().getLabel());
+		}
+		String name = token.getResolvedDisplayName();
+		if (name != null && token.getId().equals(mdc.get(SemossLogUtils.USER_ID))
+				&& missing(mdc.get(SemossLogUtils.USER_NAME))) {
+			mdc.put(SemossLogUtils.USER_NAME, name);
+		}
+	}
+
+	private static boolean missing(String value) {
+		return value == null || value.isBlank() || "UNKNOWN".equals(value);
+	}
+
 	private static Insight contextInsight(Object[] args) {
 		if (args != null) {
 			for (Object arg : args) {

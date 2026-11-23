@@ -31,9 +31,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationService;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -57,10 +57,7 @@ public class CreateAppNotificationReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
 		organizeKeys();
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
+		User user = requireUser();
 
 		String notificationId = NotificationService.createAppAnnouncement(user,
 				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()), this.keyValue.get(TITLE),
@@ -73,7 +70,12 @@ public class CreateAppNotificationReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Create an announcement for all users of an app";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Create an announcement for all users of an app")
+				.key(ReactorKeysEnum.PROJECT,
+						"The id of the app project the announcement is for. The user must be able to edit the project.")
+				.key(TITLE, "The title of the announcement, at most 255 characters.")
+				.key(ReactorKeysEnum.MESSAGE, "The body text of the announcement.").key(PRIORITY,
+						"The priority of the announcement: LOW, NORMAL, HIGH or URGENT, in any case. Defaults to NORMAL.");
 	}
 }

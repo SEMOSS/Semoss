@@ -29,6 +29,7 @@ package prerna.reactor.qs;
 
 import org.json.JSONObject;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
@@ -42,16 +43,17 @@ public class SqlQueryReactor extends AbstractSqlQueryReactor {
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
-			return """
-					One or more SQL statements to execute. Multiple statements are parsed, \
-					checked for database access, executed in order, and returned as an ordered result array. \
-					For convenience, instead of escaping quotes or backslashes you can wrap \
-					the input within "<encode>your_text</encode>" and the system will encode it for you.
-					""";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().key("commit", key -> key.type(Boolean.class).description(
+				"When true, commits after each statement that changes data; defaults to false. It is not used with transaction=true, which commits the whole script once."))
+				.key(ReactorKeysEnum.LIMIT, key -> key.type(Integer.class))
+				.key("timeout", key -> key.type(Integer.class)).key("transaction", key -> key.type(Boolean.class))
+				.key(ReactorKeysEnum.QUERY_KEY, """
+						One or more SQL statements to execute. Multiple statements are parsed, \
+						checked for database access, executed in order, and returned as an ordered result array. \
+						For convenience, instead of escaping quotes or backslashes you can wrap \
+						the input within "<encode>your_text</encode>" and the system will encode it for you.
+						""");
 	}
 
 	@Override

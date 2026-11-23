@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.Map;
 
 import prerna.collaboration.WorkTaskUtils;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // WorkLinkRoomItem(taskId=["..."], roomId=["..."]);
@@ -49,18 +50,10 @@ public class WorkLinkRoomItemReactor extends AbstractWorkTaskReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Sets the chat room the owner works a work item in; the room's assistant then sees the item";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (TASK_ID.equals(key)) {
-			return "The work item's id";
-		}
-		if (ROOM_ID.equals(key)) {
-			return "The owner's chat room id";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition()
+				.description(
+						"Sets the chat room the owner works a work item in; the room's assistant then sees the item")
+				.key(TASK_ID, "The work item's id").key(ROOM_ID, "The owner's chat room id");
 	}
 }

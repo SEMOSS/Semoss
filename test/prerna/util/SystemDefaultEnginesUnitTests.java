@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
+import java.util.Properties;
 
 import org.junit.jupiter.api.Test;
 
@@ -149,5 +150,31 @@ class SystemDefaultEnginesUnitTests {
 	void unknownAgentsReceiveNothing() {
 		assertTrue(SystemDefaultEngines.getSystemAgentSkills("not-an-agent").isEmpty());
 		assertTrue(SystemDefaultEngines.getSystemAgentMCPs("not-an-agent").isEmpty());
+	}
+
+	/** Web search needs a SearXNG service, so it is cataloged only where RDF_Map turns it on. */
+	@Test
+	void webSearchIsCatalogedOnlyWhenRdfMapEnablesIt() {
+		Properties rdfMap = DIHelper.getInstance().getCoreProp();
+		String before = rdfMap.getProperty(Constants.WEB_SEARCH_ENABLED);
+		try {
+			rdfMap.remove(Constants.WEB_SEARCH_ENABLED);
+			assertFalse(SystemDefaultEngines.getSystemMCPs().contains(Constants.MCP_WEB_SEARCH));
+			rdfMap.setProperty(Constants.WEB_SEARCH_ENABLED, "false");
+			assertFalse(SystemDefaultEngines.getSystemMCPs().contains(Constants.MCP_WEB_SEARCH));
+
+			rdfMap.setProperty(Constants.WEB_SEARCH_ENABLED, "true ");
+			List<String> enabled = SystemDefaultEngines.getSystemMCPs();
+			assertTrue(enabled.contains(Constants.MCP_WEB_SEARCH));
+			assertTrue(enabled.contains(Constants.MCP_PIXABAY), "turning web search on keeps the other platform MCPs");
+			assertFalse(SystemDefaultEngines.getCollaborationMCPs().contains(Constants.MCP_WEB_SEARCH),
+					"collaboration does not get web search yet");
+		} finally {
+			if (before == null) {
+				rdfMap.remove(Constants.WEB_SEARCH_ENABLED);
+			} else {
+				rdfMap.setProperty(Constants.WEB_SEARCH_ENABLED, before);
+			}
+		}
 	}
 }

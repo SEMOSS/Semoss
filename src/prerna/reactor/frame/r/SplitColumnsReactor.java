@@ -31,6 +31,7 @@ import java.util.List;
 
 import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.r.RDataTable;
+import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -190,12 +191,11 @@ public class SplitColumnsReactor extends AbstractRFrameReactor {
 	///////////////////////// KEYS /////////////////////////////////////
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SEARCH_TYPE)) {
-			return "The type of search: Regex or an Exact Match";
-		} else {
-			return super.getDescriptionForKey(key);
-		}
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Splits each given column of the R frame on a delimiter into new columns, keeping the original columns. The delimiter is read as a regular expression unless search asks for an exact match.")
+				.key(ReactorKeysEnum.COLUMNS, key -> key.list(String.class))
+				.key(SEARCH_TYPE, "The type of search: Regex or an Exact Match");
 	}
 
 }

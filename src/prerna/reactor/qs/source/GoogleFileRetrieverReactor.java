@@ -100,7 +100,9 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor {
 			throw new IllegalArgumentException("Illegal file type");
 		}
 		File outputFile = new File(filePath);
-		try (BufferedReader br = HttpHelperUtility.getHttpStream(url_str, accessToken, params, true);
+		try (BufferedReader br = HttpHelperUtility.getRequestReader(HttpHelperUtility.getSystemClient(),
+				HttpHelperUtility.withQueryParameters(url_str, params),
+				Map.of("Authorization", "Bearer " + accessToken));
 				BufferedWriter target = new BufferedWriter(new FileWriter(outputFile));) {
 			String data = null;
 			while ((data = br.readLine()) != null) {

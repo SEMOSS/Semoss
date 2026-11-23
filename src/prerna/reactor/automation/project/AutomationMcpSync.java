@@ -44,9 +44,9 @@ import org.json.JSONObject;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
@@ -122,7 +122,7 @@ public final class AutomationMcpSync {
 			document.put("_meta", new JSONObject().put("last_modified_date",
 					LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE)));
 			Files.writeString(output, document.toString(4), StandardCharsets.UTF_8);
-			MCPUtility.addMCPTag(project);
+			MCPUtility.addMCPTag(user, project);
 		} catch (Exception e) {
 			classLogger.warn("Unable to synchronize automation MCP tools for project {}", projectId, e);
 		}
@@ -389,10 +389,12 @@ public final class AutomationMcpSync {
 				values.put(definition.nodeType().getType());
 			}
 		}
-		return stringProperty("""
-				The typed action to add. control.if and control.jev are standalone routing nodes with an ordered \
-				config.clauses array. control.jev requires a TYPESAFE engine. Use questionType=choice for arbitrary described routes, or questionType=noul for exactly two described routes with explicit boolean answer values. Route edges use case:<stable-route-id>; the fallback edge uses else. Add each case child and the final else child in later calls using \
-				afterNodeId and branchPort.""").put("enum", values);
+		return stringProperty(
+				"""
+						The typed action to add. control.if and control.jev are standalone routing nodes with an ordered \
+						config.clauses array. control.jev requires a TYPESAFE engine. Use questionType=choice for arbitrary described routes, or questionType=noul for exactly two described routes with explicit boolean answer values. Route edges use case:<stable-route-id>; the fallback edge uses else. Add each case child and the final else child in later calls using \
+						afterNodeId and branchPort.""")
+				.put("enum", values);
 	}
 
 	private static String description(String definitionJson) {

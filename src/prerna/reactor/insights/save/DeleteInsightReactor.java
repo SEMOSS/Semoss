@@ -45,7 +45,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
@@ -77,9 +76,6 @@ public class DeleteInsightReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = this.insight.getUser();
-		if (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous()) {
-			throwAnonymousUserError();
-		}
 
 		organizeKeys();
 		GenRowStruct projectGrs = this.store.getGenRowStruct(this.keysToGet[0]);
@@ -87,7 +83,6 @@ public class DeleteInsightReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must define the project to delete the insights from");
 		}
 		String projectId = projectGrs.get(0).toString();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException(
 					"Project " + projectId + " does not exist or user does not have access to the project");
@@ -163,7 +158,7 @@ public class DeleteInsightReactor extends AbstractReactor {
 			}
 
 			// now delete from security db
-			SecurityInsightUtils.deleteInsight(projectId, insightId);
+			SecurityInsightUtils.deleteInsight(this.insight.getUser(), projectId, insightId);
 
 			// now delete from user tracking db
 			UserTrackingUtils.deleteInsight(insightId, projectId);

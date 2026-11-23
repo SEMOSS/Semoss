@@ -34,6 +34,7 @@ import java.util.Map;
 
 import org.eclipse.jgit.api.Git;
 
+import prerna.reactor.ReactorDefinition;
 import prerna.util.git.GitBranchUtils.GitBranchInfo;
 import prerna.util.git.GitCommonUtils.GitHeadState;
 
@@ -90,8 +91,8 @@ public abstract class AbstractGitBranchesReactor extends AbstractGitWorktreeReac
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "This reactor returns the local and remote branches for " + this.target.getLabelWithArticle()
-				+ "'s git repository";
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("This reactor returns the local and remote branches for "
+				+ this.target.getLabelWithArticle() + "'s git repository");
 	}
 }

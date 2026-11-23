@@ -27,11 +27,17 @@
  *******************************************************************************/
 package prerna.io.connector.google.gmail;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import prerna.auth.User;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.io.connector.mail.AbstractGetMailReactor;
 import prerna.io.connector.mail.MailApp;
+import prerna.io.connector.mail.MailInlineImages;
 import prerna.io.connector.mail.MailMessage;
+import prerna.util.ValueUtils;
 
 /**
  * Reads one message in full from the signed in user's own Gmail mailbox, with
@@ -52,7 +58,49 @@ public class GoogleGmailGetMailReactor extends AbstractGetMailReactor {
 	@Override
 	protected MailMessage getMail(User user, GetMailRequest request) throws Exception {
 		GoogleGmailHelper gmail = new GoogleGmailHelper(GoogleLoginUtils.getValidAccessToken(user));
-		return GoogleGmailMessageMapper.toMailMessage(gmail.getMessage(request.id()), accountEmail(user),
+		Map<String, Object> message = gmail.getMessage(request.id());
+		MailMessage mail = GoogleGmailMessageMapper.toMailMessage(message, accountEmail(user),
 				request.includeAttachments(), request.includeDisplayBody(), request.includeReplyRecipients(), false);
+		Map<String, Object> displayBody = mail.displayBody();
+		if (request.readsInlineImages() && displayBody != null && "html".equals(displayBody.get("contentType"))) {
+			// the display body was built for this read alone, so its pictures join it
+			displayBody.putAll(MailInlineImages.collect(String.valueOf(displayBody.get("content")),
+					inlinePictures(gmail, request.id(), message)));
+		}
+		return mail;
+	}
+
+	/**
+	 * The pictures a message's body can show by content id, each read only if the
+	 * body names it: from the part itself when Gmail sent its bytes along, or else
+	 * with the attachment download.
+	 *
+	 * @param gmail     the Gmail calls
+	 * @param messageId the message
+	 * @param message   the message as Gmail returned it in full
+	 * @return the pictures to offer {@link MailInlineImages#collect}
+	 */
+	private static List<MailInlineImages.Candidate> inlinePictures(GoogleGmailHelper gmail, String messageId,
+			Map<String, Object> message) {
+		List<MailInlineImages.Candidate> candidates = new ArrayList<>();
+		for (Map<?, ?> part : GoogleGmailMessageMapper.contentIdParts(message)) {
+			Map<?, ?> body = part.get("body") instanceof Map<?, ?> map ? map : Map.of();
+			candidates.add(new MailInlineImages.Candidate(GoogleGmailMessageMapper.contentId(part),
+					ValueUtils.toStringOrNull(part.get("mimeType")),
+					body.get("size") instanceof Number size ? size.longValue() : null, () -> {
+						byte[] bytes = GoogleGmailMessageMapper.inlineBytes(part);
+						if (bytes == null) {
+							String attachmentId = GoogleGmailMessageMapper.attachmentId(part);
+							Map<String, Object> attachment = attachmentId == null ? null
+									: gmail.getAttachment(messageId, attachmentId);
+							if (attachment == null || attachment.get("data") == null) {
+								return null;
+							}
+							bytes = GoogleGmailMessageMapper.decode(attachment.get("data").toString());
+						}
+						return new MailInlineImages.Picture(null, bytes);
+					}));
+		}
+		return candidates;
 	}
 }

@@ -62,6 +62,11 @@ public final class WorkItemUtils {
 	public static final Set<String> CLOSED_REASONS = Set.of("replied", "responded", "deleted", "by_owner", "by_agent",
 			"expired", "kept_out", "automated", NO_RESPONSE_NEEDED);
 
+	// DEDUPE_KEY prefix of an item raised by a machine notice that needs the owner (a ticket assigned to them, an
+	// approval waiting on them). Its thread is automated like any machine mail, so the item is kept where
+	// automated threads' items are hidden or dismissed
+	public static final String NOTICE_KEY = "notice:";
+
 	public static final String YOU = BrainProfileUtils.YOU;
 	public static final String BRAIN = "brain";
 	public static final String ASSISTANT = "assistant";
@@ -402,22 +407,25 @@ public final class WorkItemUtils {
 					1, 0), rs -> new String[] { rs.getString(1), rs.getString(2), rs.getString(3) }, ownerId,
 					ownerType, threadId, OPEN, WAITING, SNOOZED);
 			if (active == null) {
-				String[] closed = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
-						"SELECT STATUS, CLOSED_REASON FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				Object[] closed = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
+						"SELECT STATUS, CLOSED_REASON, RECEIVED_AT FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 								+ "AND THREAD_ID = ? ORDER BY RECEIVED_AT DESC, ITEM_ID",
-						1, 0), rs -> new String[] { rs.getString(1), rs.getString(2) }, ownerId, ownerType, threadId);
+						1, 0), rs -> new Object[] { rs.getString(1), rs.getString(2), rs.getTimestamp(3) }, ownerId,
+						ownerType, threadId);
 				if (closed == null) {
 					return createFromIngest(ownerId, ownerType, item);
 				}
-				// done or dismissed: a thanks or an update is context, not new work
-				if (!ask) {
+				// done or dismissed: a thanks or an update is context, not new work; nor is the message the closed item
+				// came from, read again under the new id Outlook gives it when it is moved
+				if (!ask || Objects.equals(closed[2],
+						CollaborationDbUtils.toTimestamp(item.get("receivedAt"), "receivedAt"))) {
 					result.put("skipped", "closed");
 					return result;
 				}
 				// a new ask after a closed one says so, so it doesn't read as a duplicate
 				Map<String, Object> followUp = new LinkedHashMap<>(item);
 				List<Object> reasons = new ArrayList<>();
-				reasons.add(followUp(closed[0], closed[1]));
+				reasons.add(followUp((String) closed[0], (String) closed[1]));
 				if (item.get("reasons") instanceof List<?> given) {
 					reasons.addAll(given);
 				}
@@ -523,6 +531,13 @@ public final class WorkItemUtils {
 				"message deleted");
 	}
 
+	// a result the owner's routine mailed them: nothing Brain raised on its thread was anyone's ask (what the owner
+	// or the assistant added there stays)
+	public static List<String> dismissForRoutineResult(String ownerId, String ownerType, String threadId) {
+		return closeWhere(ownerId, ownerType, " AND THREAD_ID = ? AND ORIGIN = ?", List.of(threadId, BRAIN),
+				DISMISSED, "automated", "a routine's own result");
+	}
+
 	// a keep-out rule now covers these senders: dismiss what they raised (only on the topic's threads when topicId
 	// is set, for a topic ignore), remembering the rule
 	public static List<String> dismissForRule(String ownerId, String ownerType, List<String> personIds, String topicId,
@@ -582,9 +597,18 @@ public final class WorkItemUtils {
 		if (threadIds.isEmpty()) {
 			return List.of();
 		}
+		List<Object> params = new ArrayList<>(threadIds);
+		params.add(NOTICE_KEY + "%");
 		return closeWhere(ownerId, ownerType,
-				" AND THREAD_ID IN (" + String.join(", ", Collections.nCopies(threadIds.size(), "?")) + ")",
-				new ArrayList<>(threadIds), DISMISSED, "automated", "sender is automated");
+				" AND THREAD_ID IN (" + String.join(", ", Collections.nCopies(threadIds.size(), "?")) + ")"
+						+ " AND (DEDUPE_KEY IS NULL OR DEDUPE_KEY NOT LIKE ?)",
+				params, DISMISSED, "automated", "sender is automated");
+	}
+
+	// a later notice says the ticket is closed, approved or cancelled: the item it raised is done
+	public static List<String> closeNotice(String ownerId, String ownerType, String ticket) {
+		return closeWhere(ownerId, ownerType, " AND DEDUPE_KEY = ?", new ArrayList<>(List.of(NOTICE_KEY + ticket)), DONE,
+				"responded", "the system says it is closed");
 	}
 
 	// snoozed items whose time has come go back to open
@@ -859,11 +883,13 @@ public final class WorkItemUtils {
 		}
 		if (Boolean.parseBoolean(String.valueOf(filter.get("hideMuted")))) {
 			// muted, or automated (by the classifier or by sender typing after the item was
-			// made)
+			// made); an item a machine notice raised stays, it is the reason that notice is shown at all
 			where.append(" AND NOT EXISTS (SELECT 1 FROM BRAIN_THREAD mt WHERE mt.OWNER_ID = w.OWNER_ID "
-					+ "AND mt.OWNER_TYPE = w.OWNER_TYPE AND mt.THREAD_ID = w.THREAD_ID AND (mt.MUTED = ? OR mt.AUTOMATED = ?))");
+					+ "AND mt.OWNER_TYPE = w.OWNER_TYPE AND mt.THREAD_ID = w.THREAD_ID AND (mt.MUTED = ? OR "
+					+ "(mt.AUTOMATED = ? AND (w.DEDUPE_KEY IS NULL OR w.DEDUPE_KEY NOT LIKE ?))))");
 			params.add(true);
 			params.add(true);
+			params.add(NOTICE_KEY + "%");
 		}
 		Timestamp closedSince = CollaborationDbUtils.toTimestamp(filter.get("closedSince"), "closedSince");
 		if (closedSince != null) {

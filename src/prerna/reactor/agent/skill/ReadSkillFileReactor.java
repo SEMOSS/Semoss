@@ -35,6 +35,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.PixelDataType;
@@ -113,22 +114,16 @@ public class ReadSkillFileReactor extends AbstractReactor {
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Returns the entire contents of one file in a skill's content folder. Pass a filePath exactly as "
-				+ "ListSkillFiles reports it, for example 'SKILL.md' or 'references/palette.md'. Defaults to the "
-				+ "current project when 'project' is not supplied.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.FILE_PATH.getKey().equals(key)) {
-			return "Path of the file to read, relative to the skill's content folder - the same value "
-					+ "ListSkillFiles returns (for example 'SKILL.md' or 'references/palette.md').";
-		}
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
-			return "Optional. Id of the skill project the file belongs to. Defaults to the current project "
-					+ "context. Requires view access to the project.";
-		}
-		return super.getDescriptionForKey(key);
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description(
+				"Returns the entire contents of one file in a skill's content folder. Pass a filePath exactly as "
+						+ "ListSkillFiles reports it, for example 'SKILL.md' or 'references/palette.md'. Defaults to the "
+						+ "current project when 'project' is not supplied.")
+				.key(ReactorKeysEnum.PROJECT,
+						"Optional. Id of the skill project the file belongs to. Defaults to the current project "
+								+ "context. Requires view access to the project.")
+				.key(ReactorKeysEnum.FILE_PATH,
+						"Path of the file to read, relative to the skill's content folder - the same value "
+								+ "ListSkillFiles returns (for example 'SKILL.md' or 'references/palette.md').");
 	}
 }

@@ -46,7 +46,6 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
@@ -60,7 +59,6 @@ import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
@@ -98,23 +96,18 @@ class ExportAuditTest {
 		IProject project = mock(IProject.class);
 		when(project.getProjectName()).thenReturn("Planner");
 		when(project.getProjectType()).thenReturn(IProject.PROJECT_TYPE.CODE);
-		DIHelper helper = mock(DIHelper.class);
-		when(helper.getProperty(Constants.BASE_FOLDER)).thenReturn(this.directory.toString());
 		reactor.setInsight(insight);
 		reactor.setNounStore(store(ReactorKeysEnum.PROJECT.getKey(), "project-1"));
 
 		try (var security = mockStatic(SecurityProjectUtils.class);
 				var admins = mockStatic(SecurityAdminUtils.class);
-				var dihelper = mockStatic(DIHelper.class);
 				var utility = mockStatic(Utility.class);
 				var assets = mockStatic(AssetUtility.class);
 				var zips = mockStatic(ZipUtils.class);
 				var agents = mockStatic(AgentProjectArchiveUtils.class);
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "project-1"))
-					.thenReturn("project-1");
 			security.when(() -> SecurityProjectUtils.userIsOwner(user, "project-1")).thenReturn(true);
-			dihelper.when(DIHelper::getInstance).thenReturn(helper);
+			utility.when(() -> Utility.getDIHelperProperty(Constants.BASE_FOLDER)).thenReturn(this.directory.toString());
 			utility.when(() -> Utility.getProject("project-1")).thenReturn(project);
 			utility.when(() -> Utility.normalizePath(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
 			assets.when(() -> AssetUtility.getProjectAssetsFolder("Planner", "project-1"))
@@ -146,14 +139,12 @@ class ExportAuditTest {
 		store.makeGenRowStruct("keepGit").add("true", PixelDataType.CONST_STRING);
 		reactor.setNounStore(store);
 
-		try (var queries = mockStatic(SecurityQueryUtils.class);
-				var engines = mockStatic(SecurityEngineUtils.class);
+		try (var engines = mockStatic(SecurityEngineUtils.class);
 				var admins = mockStatic(SecurityAdminUtils.class);
 				var utility = mockStatic(Utility.class);
 				var folders = mockStatic(EngineUtility.class);
 				var zips = mockStatic(ZipUtils.class);
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
-			queries.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "engine-1")).thenReturn("engine-1");
 			engines.when(() -> SecurityEngineUtils.userIsOwner(user, "engine-1")).thenReturn(true);
 			utility.when(() -> Utility.getEngine("engine-1")).thenReturn(engine);
 			utility.when(() -> Utility.normalizePath(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
