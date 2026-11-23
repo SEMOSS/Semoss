@@ -66,8 +66,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
 
 /**
- * A person's persona for their Digital Twins against an in-memory H2 Collaboration schema: what is kept, which twin's
- * prompt gets it, and what a data reset leaves.
+ * A person's persona against an in-memory H2 Collaboration schema: what is kept, which twin's prompt gets it, what
+ * their own assistant is given, and what a data reset leaves.
  */
 class WorkTwinPersonaDbUnitTests {
 
@@ -293,6 +293,154 @@ class WorkTwinPersonaDbUnitTests {
 		assertNull(text("INTERVIEW_JSON"));
 		assertNotNull(WorkTwinPersona.block(ownerId, ownerType, "twin-2", "Robin Reyes"));
 		assertEquals(List.of(TWIN), WorkTwinPersona.get(user).get("offTwins"));
+	}
+
+	@Test
+	void theOwnersAssistantGetsTheSectionsADraftReadsUntilItIsSwitchedOff() throws Exception {
+		CollaborationDbUtils.initialized = true;
+		// no persona yet: nothing to write with, and the switch reads as on
+		assertNull(WorkTwinPersona.forAssistant(user));
+		assertEquals(true, WorkTwinPersona.get(user).get("assistant"));
+
+		Map<String, Object> all = new LinkedHashMap<>();
+		for (String key : WorkTwinPersona.SECTIONS.keySet()) {
+			all.put(key, "About " + key + ".");
+		}
+		WorkTwinPersona.save(user, all);
+		String text = WorkTwinPersona.forAssistant(user);
+		assertNotNull(text);
+		// what a draft reads, in reading order, under titles that call them "the owner"
+		int at = -1;
+		for (String section : List.of("### In short\nAbout short.", "### Voice\nAbout voice.",
+				"### Where the owner stands\nAbout stands.", "### With different people\nAbout people.",
+				"### Leave to the owner\nAbout limits.", "### Sounds like the owner\nAbout examples.")) {
+			int next = text.indexOf(section);
+			assertTrue(next > at, section + " in " + text);
+			at = next;
+		}
+		// how they decide and what they check stay with their twins
+		assertFalse(text.contains("About decide."), text);
+		assertFalse(text.contains("About review."), text);
+		// it is the text of a tool's result, never a twin's section of a prompt
+		assertFalse(text.contains("## Persona of"), text);
+		assertFalse(text.contains("Digital Twin"), text);
+
+		assertEquals(Map.of("enabled", false), WorkTwinPersona.setAssistant(user, false));
+		WorkTwinPersona.setAssistant(user, false);
+		assertEquals(false, WorkTwinPersona.get(user).get("assistant"));
+		assertNull(WorkTwinPersona.forAssistant(user));
+		// their twins still answer with it
+		assertNotNull(WorkTwinPersona.block(ownerId, ownerType, TWIN, "Robin Reyes"));
+
+		assertEquals(Map.of("enabled", true), WorkTwinPersona.setAssistant(user, true));
+		assertEquals(true, WorkTwinPersona.get(user).get("assistant"));
+		assertNotNull(WorkTwinPersona.forAssistant(user));
+		assertEquals(1, count("BRAIN_PERSONA"));
+	}
+
+	@Test
+	void theOwnersOwnTwinThinksWithTheSectionsItUsesUntilItIsSwitchedOff() throws Exception {
+		CollaborationDbUtils.initialized = true;
+		assertNull(WorkTwinPersona.forMainTwin(user));
+		assertNull(WorkTwinPersona.forMainTwin(null));
+		// only a section it does not think with holds text
+		WorkTwinPersona.save(user, Map.of("voice", "Direct."));
+		assertNull(WorkTwinPersona.forMainTwin(user));
+
+		Map<String, Object> all = new LinkedHashMap<>();
+		for (String key : WorkTwinPersona.SECTIONS.keySet()) {
+			all.put(key, "About " + key + ".");
+		}
+		WorkTwinPersona.save(user, all);
+		String text = WorkTwinPersona.forMainTwin(user);
+		assertNotNull(text);
+		assertTrue(text.startsWith("## How the owner thinks\n"), text);
+		// who they are, how they decide, what they check, their standing answers and what is left to them
+		int at = -1;
+		for (String section : List.of("### In short\nAbout short.", "### How the owner decides\nAbout decide.",
+				"### What the owner checks when reviewing work\nAbout review.",
+				"### Where the owner stands\nAbout stands.", "### Leave to the owner\nAbout limits.")) {
+			int next = text.indexOf(section);
+			assertTrue(next > at, section + " in " + text);
+			at = next;
+		}
+		// how they sound stays with what a draft reads
+		for (String key : List.of("voice", "people", "examples")) {
+			assertFalse(text.contains("About " + key + "."), text);
+		}
+
+		// one switch covers how their own twin thinks and how it writes for them
+		WorkTwinPersona.setAssistant(user, false);
+		assertNull(WorkTwinPersona.forMainTwin(user));
+		assertNull(WorkTwinPersona.forAssistant(user));
+		WorkTwinPersona.setAssistant(user, true);
+		assertEquals(text, WorkTwinPersona.forMainTwin(user));
+
+		// a persona that cannot be read is a chat without it, never a failed chat
+		sql("DROP TABLE BRAIN_PERSONA");
+		assertNull(WorkTwinPersona.forMainTwin(user));
+		// Collaboration is off: nothing is read
+		CollaborationDbUtils.initialized = false;
+		assertNull(WorkTwinPersona.forMainTwin(user));
+	}
+
+	@Test
+	void theAssistantCanBeSwitchedOffBeforeThereIsAPersona() throws Exception {
+		CollaborationDbUtils.initialized = true;
+		// on is what someone with no row has, so switching it on writes nothing
+		WorkTwinPersona.setAssistant(user, true);
+		assertEquals(0, count("BRAIN_PERSONA"));
+		WorkTwinPersona.setAssistant(user, false);
+		assertEquals(false, WorkTwinPersona.get(user).get("exists"));
+		WorkTwinPersona.save(user, Map.of("voice", "Direct."));
+		assertNull(WorkTwinPersona.forAssistant(user));
+		assertNotNull(WorkTwinPersona.block(ownerId, ownerType, TWIN, "Robin Reyes"));
+	}
+
+	@Test
+	void theAssistantWritesWithoutAPersonaWhenThereIsNoneItCanRead() throws Exception {
+		WorkTwinPersona.save(user, Map.of("decide", "Quality wins."));
+		// Collaboration is off: nothing is read
+		assertNull(WorkTwinPersona.forAssistant(user));
+		CollaborationDbUtils.initialized = true;
+		assertNull(WorkTwinPersona.forAssistant(null));
+		// only a section a draft does not read holds text
+		assertNull(WorkTwinPersona.forAssistant(user));
+		WorkTwinPersona.save(user, Map.of("voice", "Direct."));
+		assertTrue(WorkTwinPersona.forAssistant(user).endsWith("### Voice\nDirect."));
+
+		// it is the signed-in person's own: nobody else is given it
+		AccessToken token = new AccessToken();
+		token.setId("someone-else");
+		token.setProvider(AuthProvider.NATIVE);
+		User other = new User();
+		other.setAccessToken(token);
+		assertNull(WorkTwinPersona.forAssistant(other));
+
+		// a row that cannot be read is a draft without a persona, never a failed draft
+		sql("UPDATE BRAIN_PERSONA SET BRIEF_JSON = '{not json' WHERE OWNER_ID = ?", ownerId);
+		assertNull(WorkTwinPersona.forAssistant(user));
+		sql("DROP TABLE BRAIN_PERSONA");
+		assertNull(WorkTwinPersona.forAssistant(user));
+	}
+
+	@Test
+	void theAssistantsSwitchSurvivesADeleteAndADataReset() throws Exception {
+		WorkTwinPersona.save(user, Map.of("voice", "Direct."));
+		WorkTwinPersona.setAssistant(user, false);
+		assertEquals(false, WorkTwinPersona.delete(user).get("assistant"));
+
+		// written again, it does not come back on for their assistant
+		WorkTwinPersona.save(user, Map.of("voice", "Direct."));
+		try (MockedStatic<WorkRoutineRoom> rooms = mockStatic(WorkRoutineRoom.class);
+				MockedStatic<BrainMailWebhook> webhook = mockStatic(BrainMailWebhook.class)) {
+			BrainResetUtils.resetMyData(user);
+		}
+		assertEquals(false, WorkTwinPersona.get(user).get("assistant"));
+		CollaborationDbUtils.initialized = true;
+		assertNull(WorkTwinPersona.forAssistant(user));
+		WorkTwinPersona.setAssistant(user, true);
+		assertNotNull(WorkTwinPersona.forAssistant(user));
 	}
 
 	// how many 50-character lines of a section's own text the block holds

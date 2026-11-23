@@ -583,14 +583,12 @@ public final class HumanDelegationService {
 		for (String file : files) {
 			Path real;
 			try {
-				real = root.resolve(file).normalize().toRealPath();
+				real = Utility.resolveContainedFile(root.toString(), file);
 			} catch (IOException e) {
 				throw new IllegalArgumentException("File not found in this room: " + file
 						+ ". Use the path relative to the room folder, as a file listing shows it.");
-			}
-			// Real paths defeat ../ and symlinks that point outside the room.
-			if (!real.startsWith(root) || !Files.isRegularFile(real)) {
-				throw new IllegalArgumentException("Not a file in this room: " + file);
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException("Not a file in this room: " + file, e);
 			}
 			long size;
 			try {

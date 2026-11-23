@@ -150,7 +150,7 @@ A project's custom code needs the method's level, and the `projectCode` level wh
 - the signed in user holds it on the engine, or
 - the engine gave the app a permission that covers it; see [giving an app or an engine a permission on an engine](#giving-an-app-or-an-engine-a-permission-on-an-engine).
 
-On its own project, a project's custom code has `EDIT`.
+On its own project, a project's custom code has `EDIT`. A task a custom reactor submits to a `SignedInTasks` executor runs as the user who submitted it, so its calls are checked the same way; see [work on other threads](project_reactor_sandbox.md#work-on-other-threads).
 
 Guarded by [SandboxEngineAccessUnitTests](../../test/prerna/util/SandboxEngineAccessUnitTests.java), which loads a class through the project sandbox and has it call an engine behind the real proxy:
 
@@ -364,7 +364,7 @@ The platform runs these operations:
 | `catalog engines and projects` | `AbstractFileWatcher.run` | A watcher thread cataloging the smss files in its folder, at start up and when a new one appears |
 | `cluster sync` | `ClusterSyncCloudClient`, which wraps the client `ClusterUtil.getCentralStorageClient()` returns, and `ClusterSyncMethod.apply` | Every push and pull of an engine's or project's files to and from the cluster's cloud storage, whoever's request set it off, and the changes another node published, applied on the listener thread. Guarded by `getCentralStorageClient_runsEachCallAsAPlatformOperation` in [ClusterUtilUnitTests](../../test/prerna/cluster/util/ClusterUtilUnitTests.java) |
 | `github sync` | Monolith `GitHubService`, the webhook's sync task | Pulling a project from GitHub after a push to its tracked branch |
-| `publish portal` | Monolith `PublicHomeCheckFilter` | Publishing a project's portal and serving its files to a visitor who passed the filter's checks; a public project is served with no session |
+| `publish portal` | Monolith `PublicHomeCheckFilter` | Publishing a project's portal and serving its files to a visitor who passed the filter's checks; a project with its own login page is served to signed out visitors |
 | `login count` | Monolith `CACTrackingUtil` | Counting a login in the tracking database the platform keeps for itself |
 
 Work the platform does for a user on another thread is not a platform operation: the thread carries that user (`ThreadStore.setUser`), so the user's permissions are checked there as on the request. The inference log worker, the Java worker's engine requests, agent room naming, background frame caching, the Git reactors' cluster push and Collaboration's import of new mail from a Microsoft Graph notification, which runs as each mailbox owner in turn, all do.

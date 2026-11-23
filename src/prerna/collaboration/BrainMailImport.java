@@ -231,6 +231,8 @@ public final class BrainMailImport {
 		Run run;
 		String selfId;
 		String managerPersonId;
+		// who the org chart says to follow; kept so the suggestions can be redone once Teams chats are in
+		Map<String, String> org = new HashMap<>();
 		synchronized (CollaborationDbUtils.ownerLock(BrainSync.INGEST_LOCK, ownerId, ownerType)) {
 			run = new Run(ownerId, ownerType, false);
 			selfId = run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"),
@@ -239,7 +241,7 @@ public final class BrainMailImport {
 			importMail(job, run, mail, 16, 40);
 			job.step("threads", 42);
 			run.refreshThreads();
-			managerPersonId = people(user, source, job, run, selfId, myAddress);
+			managerPersonId = people(user, source, job, run, selfId, myAddress, org);
 		}
 		found(user, job, ownerId, ownerType, selfId, managerPersonId);
 		job.count("mailReady", true);
@@ -253,6 +255,8 @@ public final class BrainMailImport {
 				job.step("ranking", 96);
 				run.refreshThreads();
 				BrainPeopleRanking.rank(ownerId, ownerType, selfId, domain(myAddress));
+				// Teams chats change who is strongest, so who to follow is worked out again
+				job.count("followSuggested", BrainFollow.suggest(ownerId, ownerType, selfId, org));
 			}
 		}
 		CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, SOURCE);
@@ -263,7 +267,7 @@ public final class BrainMailImport {
 
 	// directory facts, then ranking and who to follow: manager, reports, peers, and two-way mail
 	private static String people(User user, BrainMailHeaderSource source, CollaborationJobUtils.Job job, Run run,
-			String selfId, String myAddress) throws Exception {
+			String selfId, String myAddress, Map<String, String> org) throws Exception {
 		String ownerId = run.ownerId;
 		String ownerType = run.ownerType;
 		// the directory first: who is a colleague, a shared mailbox or a list is a
@@ -290,7 +294,6 @@ public final class BrainMailImport {
 		if (managerPersonId != null) {
 			job.count("managerPersonId", managerPersonId);
 		}
-		Map<String, String> org = new HashMap<>();
 		if (managerPersonId != null) {
 			org.put(managerPersonId, "Your manager");
 		}

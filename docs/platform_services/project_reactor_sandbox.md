@@ -45,7 +45,7 @@ Guarded by [SandboxBlockedClassesUnitTests](../../test/prerna/util/SandboxBlocke
 | Sockets and servers | `java.net.Socket`, `ServerSocket`, `DatagramSocket`, `MulticastSocket`, the socket and datagram channels in `java.nio.channels`, `javax.net.*`, `java.util.logging.SocketHandler`, `com.sun.net.httpserver.*`, `javax.print.*`, and `java.net.NetworkInterface`, which lists the host's network interfaces | `socketsAreBlocked` |
 | HTTP clients other than the platform helper | `java.net.http.*`, `java.net.URLConnection`, `HttpURLConnection`, `JarURLConnection`, `javax.net.ssl.HttpsURLConnection` | `httpClientsOtherThanThePlatformHelperAreBlocked` |
 | Hooks into every HTTP call of the JVM | `java.net.ProxySelector`, `Authenticator`, `CookieHandler`, `CookieManager`, `ResponseCache`, `javax.net.ssl.SSLContext`, `HostnameVerifier` | `hooksIntoEveryHttpCallOfTheJvmAreBlocked` |
-| Threads and thread pools | `java.lang.Thread`, `java.util.concurrent.ThreadPoolExecutor`, `ScheduledThreadPoolExecutor`, `ForkJoinPool` | `threadsAndThreadPoolsAreBlocked` |
+| Threads and thread pools | `java.lang.Thread`, `java.util.concurrent.ThreadPoolExecutor`, `ScheduledThreadPoolExecutor`, `ForkJoinPool`; work runs on other threads through `SignedInTasks.newExecutor()` and `newVirtualThreadExecutor()`, see [work on other threads](#work-on-other-threads) | `threadsAndThreadPoolsAreBlocked` |
 | Mail transports | `jakarta.mail.Transport`, `Store`, `Service`, `Folder`; mail is sent through `EmailUtility` | `mailIsSentThroughThePlatformHelper` |
 | Java deserialization | `java.io.ObjectInputStream` | `javaDeserializationIsBlocked` |
 
@@ -116,7 +116,7 @@ With `CHROOT_ENABLE` on, every file a project's code opens is inside the user's 
 | A project class that extends a class that opens a file by name follows the rule in its constructor | `aSubclassThatOpensAFileByNameGetsThePathRule` |
 | A zip or jar file opened as a file system by its address, `FileSystems.newFileSystem(uri, env)` with a `jar:file:` address, is the one inside the user's folder; any other address is refused | `aZipFileSystemOpenedByItsAddressIsTheOneInsideTheUsersFolder` |
 | A project class cannot extend `java.io.File` | `aProjectClassCannotExtendFile` |
-| File work happens on the thread that runs the reactor. With `CHROOT_ENABLE` on, a thread that does not carry the user's folder, such as one from an executor or a parallel stream, cannot open files | `withChrootOnAThreadWithoutTheUsersFolderCannotOpenFiles` |
+| File work happens on the thread that runs the reactor and in the tasks it submits to a `SignedInTasks` executor, which carry the user's folder. With `CHROOT_ENABLE` on, a thread that does not carry the user's folder, such as one from `Executors` or a parallel stream, cannot open files | `withChrootOnAThreadWithoutTheUsersFolderCannotOpenFiles`, `withChrootOnATaskSubmittedToASignedInExecutorOpensFilesInTheUsersFolder` |
 | `java.util.logging.FileHandler` cannot be used | `logFilesAreWrittenByThePlatform` in `SandboxBlockedClassesUnitTests` |
 | With `CHROOT_ENABLE` off, as on a developer machine, a reactor opens files exactly as named, and the platform logs a warning that this would typically require `CHROOT_ENABLE` for security | `withChrootOffAReactorStillRunsAndThePlatformWarns`, `withNoUsersFolderAFileOpenedByNameIsTheOneNamed` |
 
@@ -227,6 +227,22 @@ A custom reactor works for the user who runs it, on the request it serves, with 
 | The signed in user cannot be changed or built: the calls that set who a user is are refused, `User`, `AccessToken` and `Insight` cannot be extended, and a JSON mapper builds none of them | `theSignedInUserCannotBeChanged`, `aClassWithRefusedCallsCannotBeExtended` in `SandboxReplacedCallsUnitTests`, `gsonDoesNotReachIntoAPlatformObjectOrBuildOne`, `aJacksonMapperDoesNotReachIntoAPlatformObjectOrBuildOne` in `SandboxJsonUnitTests` |
 | An engine object a custom reactor creates or extends and calls itself reaches other engines with the user's permission or the app's; see [engine access](engine_access.md#who-is-acting) | `anEngineObjectACustomReactorDrivesItselfActsAsItsProject` in `SandboxEngineAccessUnitTests` |
 
+## Work on other threads
+
+A project's custom code runs work on other threads, such as one model call per document, through [SignedInTasks](../../src/prerna/util/SignedInTasks.java). `SignedInTasks.newExecutor()` returns an `ExecutorService` whose tasks run on platform threads the server shares, and `SignedInTasks.newVirtualThreadExecutor()` one whose tasks run on virtual threads, for many tasks at once that spend their time waiting, such as model calls; see [running work in parallel](../how-to-guides/writing_custom_reactors.md#running-work-in-parallel) for an example. Guarded by [SignedInTasksUnitTests](../../test/prerna/util/SignedInTasksUnitTests.java).
+
+| Rule | Test |
+| --- | --- |
+| A task runs as the user signed in on the thread that submits it, with that thread's insight, session, route and job, its log context and the user's folder, so its engine calls and files follow the same rules as the reactor's own | `aTaskRunsAsTheUserSignedInOnTheThreadThatSubmitsIt`, `aTaskCarriesTheLogContextAndTheUsersFolder`, `withChrootOnATaskSubmittedToASignedInExecutorOpensFilesInTheUsersFolder` in `SandboxFilesUnitTests` |
+| A task runs as the user who submits it, whoever started the executor | `aTaskRunsAsTheUserWhoSubmitsItNotTheOneWhoStartedTheExecutor` |
+| An executor starts, and takes a task, only on a thread with a signed in user | `anExecutorStartsOnlyForASignedInUser`, `aTaskSubmittedWithNoSignedInUserIsRefused` |
+| A thread keeps nothing of a task once the task ends | `aThreadKeepsNothingOnceItsTaskEnds` |
+| Every rule above holds for both executors, and a virtual thread executor's tasks run on virtual threads | each test runs for both executors; `aTaskRunsAsTheUserSignedInOnTheThreadThatSubmitsIt` checks the kind of thread |
+| A platform thread executor runs up to 16 of its tasks at once (`SignedInTasks.PLATFORM_PARALLEL`) and a virtual thread executor up to 256 (`VIRTUAL_PARALLEL`). Either holds up to 1024 more (`MOST_WAITING`), in the order they were submitted, and closing it waits for every one | `anExecutorRunsAtMostItsParallelTasksAtOnceAndClosingWaitsForEveryTask`, `anExecutorHoldsAtMostItsLimitOfWaitingTasks` |
+| The server runs up to 64 tasks at once on platform threads (`PLATFORM_THREADS`), with up to 1024 more waiting for one (`MOST_QUEUED`), and up to 4096 on virtual threads (`VIRTUAL_THREADS`). Past that, a new executor's task is refused, and an executor already running holds its next task until one of its own ends | `aFullServerRefusesANewExecutorsTaskAndHoldsOneForAnExecutorAlreadyRunning`, `aServerRunningAllItsVirtualThreadsRefusesANewExecutorsTaskAndHoldsOneForAnExecutorAlreadyRunning` |
+| `shutdownNow` interrupts the running tasks and cancels the waiting ones | `shutdownNowInterruptsTheRunningTasksAndCancelsTheWaitingOnes` |
+| A task's failure comes back from its `Future` | `aTaskThatFailsHandsItsFailureToItsFuture` |
+
 ## Jars and platform packages
 
 | Rule | Test |
@@ -253,6 +269,7 @@ A custom reactor works for the user who runs it, on the request it serves, with 
 | XML from a web address | Fetch the text with `HttpHelperUtility`, then parse it from a `StringReader` |
 | An email | [EmailUtility](../../src/prerna/util/EmailUtility.java) |
 | A wait between attempts | `TimeUnit.MILLISECONDS.sleep(...)` |
+| Work on other threads, such as model calls in parallel | `SignedInTasks.newVirtualThreadExecutor()` or `newExecutor()`, an `ExecutorService` whose tasks run as the signed in user; see [work on other threads](#work-on-other-threads) |
 | A library the platform has | Name it as usual; the project gets the shared class or its own sandboxed copy |
 | An Excel workbook with a password, `.xls` or `.xlsx` | `WorkbookFactory.create(file, password)`, or the form that takes an `InputStream`. POI holds the password only while that call opens the workbook |
 | Cell values formatted for a locale | `new DataFormatter(locale)`, which formats with that locale for that formatter only |

@@ -49,7 +49,6 @@ import org.json.JSONObject;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 /**
  * Function engine that runs a web search against the Brave Search API and hands
@@ -152,7 +151,6 @@ public class BraveSearchFunctionEngine extends AbstractFunctionEngine {
 		while (this.endpoint.endsWith("/")) {
 			this.endpoint = this.endpoint.substring(0, this.endpoint.length() - 1);
 		}
-		Utility.checkIfValidDomain(this.endpoint);
 
 		this.count = clampCount(NumberUtils.toInt(smssProp.getProperty(COUNT_KEY), this.count));
 		this.snippetLength = Math.max(0,

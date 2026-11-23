@@ -82,12 +82,12 @@ public final class ResourceAuditReadService {
 	private static final Set<AuditEventType> PROJECT_EVENTS = EnumSet.of(AuditEventType.PROJECT_CREATE,
 			AuditEventType.PROJECT_UPDATE, AuditEventType.PROJECT_RENAME, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE,
 			AuditEventType.PROJECT_GLOBAL_UPDATE, AuditEventType.PROJECT_DISCOVERABLE_UPDATE,
-			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_METADATA_UPDATE,
-			AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_DELETE, AuditEventType.PROJECT_UPLOAD,
-			AuditEventType.PROJECT_REPLACE, AuditEventType.PROJECT_EXPORT, AuditEventType.WORKSPACE_CREATE,
-			AuditEventType.WORKSPACE_UPDATE, AuditEventType.WORKSPACE_DELETE, AuditEventType.SKILL_CREATE,
-			AuditEventType.SKILL_UPDATE, AuditEventType.SKILL_DELETE, AuditEventType.AUTOMATION_CREATE,
-			AuditEventType.AUTOMATION_UPDATE);
+			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE,
+			AuditEventType.PROJECT_METADATA_UPDATE, AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_DELETE,
+			AuditEventType.PROJECT_UPLOAD, AuditEventType.PROJECT_REPLACE, AuditEventType.PROJECT_EXPORT,
+			AuditEventType.WORKSPACE_CREATE, AuditEventType.WORKSPACE_UPDATE, AuditEventType.WORKSPACE_DELETE,
+			AuditEventType.SKILL_CREATE, AuditEventType.SKILL_UPDATE, AuditEventType.SKILL_DELETE,
+			AuditEventType.AUTOMATION_CREATE, AuditEventType.AUTOMATION_UPDATE);
 	/**
 	 * A usage limit set, changed or removed on a model; its owners set them, so
 	 * they see the limits
@@ -118,14 +118,16 @@ public final class ResourceAuditReadService {
 	private static final Set<AuditEventType> SETTING_DETAIL_EVENTS = EnumSet.of(AuditEventType.PROJECT_UPDATE,
 			AuditEventType.PROJECT_RENAME, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE,
 			AuditEventType.PROJECT_GLOBAL_UPDATE, AuditEventType.PROJECT_DISCOVERABLE_UPDATE,
-			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_METADATA_UPDATE,
-			AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_REPLACE, AuditEventType.ENGINE_UPDATE,
-			AuditEventType.ENGINE_RENAME, AuditEventType.ENGINE_DISPLAY_NAME_UPDATE,
-			AuditEventType.ENGINE_GLOBAL_UPDATE, AuditEventType.ENGINE_DISCOVERABLE_UPDATE,
-			AuditEventType.ENGINE_METADATA_UPDATE, AuditEventType.ENGINE_VISIBILITY_UPDATE);
+			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE,
+			AuditEventType.PROJECT_METADATA_UPDATE, AuditEventType.PROJECT_BLOCKS_UPDATE,
+			AuditEventType.PROJECT_REPLACE, AuditEventType.ENGINE_UPDATE, AuditEventType.ENGINE_RENAME,
+			AuditEventType.ENGINE_DISPLAY_NAME_UPDATE, AuditEventType.ENGINE_GLOBAL_UPDATE,
+			AuditEventType.ENGINE_DISCOVERABLE_UPDATE, AuditEventType.ENGINE_METADATA_UPDATE,
+			AuditEventType.ENGINE_VISIBILITY_UPDATE);
 
 	private static final List<String> SETTING_TEXT_FIELDS = List.of("field", "name", "displayName", "source", "mode");
-	private static final List<String> SETTING_FLAG_FIELDS = List.of("global", "discoverable", "template", "visibility");
+	private static final List<String> SETTING_FLAG_FIELDS = List.of("global", "discoverable", "template", "customLogin",
+			"visibility");
 
 	/**
 	 * Lists of names only: metadata keys, or the parts of an app that were saved
