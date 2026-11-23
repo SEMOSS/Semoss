@@ -229,6 +229,10 @@ public class MyProjectsReactor extends AbstractReactor {
 		itemProperties.put("project_created_by_type",
 				new JSONObject().put("type", "string").put("description", "Auth type of creator, e.g. NATIVE"));
 
+		itemProperties.put("digital_twin_owner_name",
+				new JSONObject().put("type", new JSONArray().put("string").put("null")).put("description",
+						"Display name of the person represented when filtering by digital_twin, if known."));
+
 		itemProperties.put("permission",
 				new JSONObject().put("type", "integer").put("enum", new JSONArray().put(1).put(2).put(3))
 						.put("description", "User's permission level: 1=Owner, 2=Editor, 3=ReadOnly"));
@@ -244,6 +248,9 @@ public class MyProjectsReactor extends AbstractReactor {
 
 		itemProperties.put("project_is_template", new JSONObject().put("type", "boolean").put("description",
 				"Whether viewers may clone the project as a template"));
+
+		itemProperties.put("project_has_custom_login", new JSONObject().put("type", "boolean").put("description",
+				"Whether the project's portal has its own login page, so it is served to signed out visitors"));
 
 		itemProperties.put("project_favorite",
 				new JSONObject().put("type", "integer").put("enum", new JSONArray().put(0).put(1)).put("description",

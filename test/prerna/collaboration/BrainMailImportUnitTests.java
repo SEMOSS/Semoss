@@ -45,4 +45,16 @@ class BrainMailImportUnitTests {
 		assertEquals("x".repeat(254), cut);
 		assertFalse(Character.isHighSurrogate(cut.charAt(cut.length() - 1)));
 	}
+
+	@Test
+	void mailSentForSomeoneByTheirOwnOrganisationIsNotBulk() {
+		// an assistant or delegate writing for a colleague
+		assertFalse(BrainMailImport.sentByService("dana.assistant@adatum.com", "dana@adatum.com"));
+		assertFalse(BrainMailImport.sentByService("ea@mail.adatum.com", "dana@adatum.com"));
+		// a mailing service sending for a company
+		assertEquals(true, BrainMailImport.sentByService("bounce@sendgrid.net", "news@adatum.com"));
+		// no separate sender, or the same one
+		assertFalse(BrainMailImport.sentByService(null, "dana@adatum.com"));
+		assertFalse(BrainMailImport.sentByService("dana@adatum.com", "dana@adatum.com"));
+	}
 }

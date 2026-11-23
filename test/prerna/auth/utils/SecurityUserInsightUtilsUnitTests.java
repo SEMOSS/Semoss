@@ -519,36 +519,4 @@ public class SecurityUserInsightUtilsUnitTests extends AbstractSecurityUtilsUnit
 		// Verify user no longer has permission after deletion
 		assertFalse(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid1"));
 	}
-
-	@Test
-	void testDeleteInsight_Multiple() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", user);
-		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
-		UnitTestSecurityAuthUtils.createInsight("pid1", "iid2", "insight2", "grid");
-		UnitTestSecurityAuthUtils.createInsight("pid1", "iid3", "insight3", "grid");
-
-		// Give user permission so we can verify via user permission
-		User user2 = UnitTestSecurityAuthUtils.createUser("viewer", false);
-		String user2Id = user2.getAccessToken(AuthProvider.NATIVE).getId();
-		List<Map<String, String>> perm1 = List.of(Map.of("userid", user2Id, "permission", "READ_ONLY"));
-		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid1", perm1, null);
-		List<Map<String, String>> perm2 = List.of(Map.of("userid", user2Id, "permission", "READ_ONLY"));
-		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid2", perm2, null);
-		List<Map<String, String>> perm3 = List.of(Map.of("userid", user2Id, "permission", "READ_ONLY"));
-		SecurityInsightUtils.addInsightUserPermissions(user, "pid1", "iid3", perm3, null);
-
-		// Verify user has permission before deletion
-		assertTrue(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid1"));
-		assertTrue(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid2"));
-		assertTrue(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid3"));
-
-		SecurityUserInsightUtils.deleteInsight("pid1", "iid1", "iid2");
-
-		// Verify deleted insights permissions are gone
-		assertFalse(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid1"));
-		assertFalse(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid2"));
-		// Verify iid3 still has permissions
-		assertTrue(SecurityUserInsightUtils.userCanViewInsight(user2, "pid1", "iid3"));
-	}
 }

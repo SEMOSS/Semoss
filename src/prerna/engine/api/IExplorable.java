@@ -61,7 +61,7 @@ public interface IExplorable {
 
 	// sets the owl
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setOwlFilePath(String owlFilePath);
 
 	// get the position file used to paint the metamodel
@@ -110,12 +110,12 @@ public interface IExplorable {
 	// adds property to be associated with explorable
 	// REFAC: Check
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void addProperty(String key, String value);
 
 	// get property
 	@IgnoreEngineLogging
-	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	String getProperty(String key);
 
 	/**

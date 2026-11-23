@@ -90,6 +90,7 @@ import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
+import prerna.util.SandboxedClassLoading;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
@@ -153,11 +154,26 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Check if the user is an admin
-	 * 
-	 * @param userId String representing the id of the user to check
+	 * Whether the user acts as an admin now. An admin acts as one in the platform's
+	 * own reactors and endpoints. While a project's custom code is on the call
+	 * stack the answer is no, so a custom reactor an admin runs, and every pixel it
+	 * runs through its insight, has the admin's own permissions only.
+	 *
+	 * @param user the signed in user
+	 * @return true when the user is an admin and no project's custom code is acting
 	 */
 	public static Boolean userIsAdmin(User user) {
+		return storedAsAdmin(user) && !SandboxedClassLoading.projectCodeIsOnTheStack();
+	}
+
+	/**
+	 * Whether the security database records the user as an admin, whoever is acting
+	 * on the thread.
+	 *
+	 * @param user the signed in user
+	 * @return true when the user is an admin
+	 */
+	static boolean storedAsAdmin(User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
@@ -1272,8 +1288,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean otherLoginsRemain;
 		try {
-			otherLoginsRemain = !QueryExecutionUtility.queryList(securityDb,
-					"SELECT TYPE FROM SMSS_USER WHERE ID=? AND TYPE<>?", ps -> {
+			otherLoginsRemain = !QueryExecutionUtility
+					.queryList(securityDb, "SELECT TYPE FROM SMSS_USER WHERE ID=? AND TYPE<>?", ps -> {
 						ps.setString(1, userIdToDelete);
 						ps.setString(2, userTypeToDelete);
 					}, rs -> rs.getString(1)).isEmpty();
@@ -1420,8 +1436,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user publisher privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as a publisher");
 		}
-		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, userType, null,
-				Map.of("publisher", isPublisher), null);
+		auditUserAdmin(null, AuditEventType.USER_ROLE_UPDATE, userId, userType, null, Map.of("publisher", isPublisher),
+				null);
 	}
 
 	/**
@@ -1913,6 +1929,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "DISCOVERABLE", "project_discoverable"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "IS_TEMPLATE", "project_is_template"));
+		qs.addSelector(new QueryColumnSelector(projectPrefix + "HAS_CUSTOM_LOGIN", "project_has_custom_login"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
@@ -2052,6 +2069,60 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Sets the display name of any engine in the security database, where catalog
+	 * listings, page headers and search read it.
+	 *
+	 * @param engineId    the engine
+	 * @param displayName the new display name
+	 * @throws IllegalArgumentException when the name is blank or cannot be saved
+	 */
+	public void setEngineDisplayName(String engineId, String displayName) {
+		if (displayName == null || displayName.isBlank()) {
+			throw new IllegalArgumentException("Display name cannot be null or blank.");
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE ENGINE SET ENGINEDISPLAYNAME=? WHERE ENGINEID=?",
+					ps -> {
+						ps.setString(1, displayName);
+						ps.setString(2, engineId);
+					});
+		} catch (Exception e) {
+			classLogger.error("Failed to update the display name of engine {}", engineId, e);
+			throw new IllegalArgumentException("An error occurred updating the engine display name");
+		}
+		auditEngineChange(AuditEventType.ENGINE_DISPLAY_NAME_UPDATE, engineId,
+				Map.of("field", "displayName", "displayName", displayName));
+	}
+
+	/**
+	 * Sets the display name of any project in the security database, where catalog
+	 * listings, page headers and search read it.
+	 *
+	 * @param projectId   the project
+	 * @param displayName the new display name
+	 * @throws IllegalArgumentException when the name is blank or cannot be saved
+	 */
+	public void setProjectDisplayName(String projectId, String displayName) {
+		if (displayName == null || displayName.isBlank()) {
+			throw new IllegalArgumentException("Display name cannot be null or blank.");
+		}
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET PROJECTDISPLAYNAME=? WHERE PROJECTID=?",
+					ps -> {
+						ps.setString(1, displayName);
+						ps.setString(2, projectId);
+					});
+		} catch (Exception e) {
+			classLogger.error("Failed to update the display name of project {}", projectId, e);
+			throw new IllegalArgumentException("An error occurred updating the project display name");
+		}
+		auditProjectChange(AuditEventType.PROJECT_DISPLAY_NAME_UPDATE, projectId,
+				Map.of("field", "displayName", "displayName", displayName));
+	}
+
+	/**
 	 * Set if project should be public or not
 	 * 
 	 * @param projectId
@@ -2112,6 +2183,26 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		auditProjectChange(AuditEventType.PROJECT_TEMPLATE_UPDATE, projectId,
 				Map.of("field", "template", "template", isTemplate));
 		return true;
+	}
+
+	/**
+	 * Sets whether a project has a login page of its own in its portal, as an
+	 * admin. With it, the portal is served to signed out visitors so they can sign
+	 * in there. A Digital Twin never has one, since it is shared with named people
+	 * only.
+	 *
+	 * @param projectId      the project
+	 * @param hasCustomLogin whether the project has its own login page
+	 * @throws IllegalArgumentException when the project is a Digital Twin, or does
+	 *                                  not exist
+	 */
+	public void setProjectCustomLogin(String projectId, boolean hasCustomLogin) {
+		if (hasCustomLogin) {
+			SecurityProjectUtils.requireNotDigitalTwin(projectId);
+		}
+		SecurityProjectUtils.updateProjectCustomLogin(projectId, hasCustomLogin);
+		auditProjectChange(AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE, projectId,
+				Map.of("field", "customLogin", "customLogin", hasCustomLogin));
 	}
 
 	/**
@@ -2376,8 +2467,8 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 			// rows with no level are no access, so those projects are added
 			Set<String> current = new HashSet<>(getProjectIdsUserCanUse(userId));
 			// a Digital Twin is left out: its owner names the people who can use it
-			current.addAll(SecurityProjectUtils
-					.getProjectIdsWithMetaValue(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
+			current.addAll(
+					SecurityProjectUtils.getProjectIdsWithMetaValue(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, "true"));
 			for (String projectId : SecurityProjectUtils.getAllProjectIds()) {
 				if (!current.contains(projectId)) {
 					batches.add(new PermissionBatch(PermissionTargetResource.project(projectId),
@@ -2693,77 +2784,75 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Gives a project a permission on an engine, or changes the one it has, in
-	 * admin mode, as a permission batch. The project's custom reactors use the
-	 * permission in place of the signed in user's own.
+	 * Gives an app or another engine a permission on an engine, or changes the one
+	 * it has, in admin mode, as a permission batch. An app's custom reactors, or
+	 * the other engine's own code, use the permission in place of the signed in
+	 * user's own.
 	 *
-	 * @param projectId  the project
-	 * @param engineId   the engine
-	 * @param permission the level, READ_ONLY or EDIT
-	 * @param user       the admin
-	 * @param endDate    when the access ends, or null
+	 * @param granteeEngineId   the app or engine given the access
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the engine
+	 * @param permission        the level, READ_ONLY or EDIT
+	 * @param user              the admin
+	 * @param endDate           when the access ends, or null
 	 */
-	public void setEngineProjectPermission(String projectId, String engineId, String permission, User user,
-			String endDate) {
+	public void setEngineGranteePermission(String granteeEngineId, String granteeEngineType, String engineId,
+			String permission, User user, String endDate) {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
-				List.of(SecurityEngineUtils.projectPermissionChange(projectId, engineId,
+				List.of(SecurityEngineUtils.granteePermissionChange(granteeEngineId, granteeEngineType, engineId,
 						new PermissionGrant(permission, endDate))),
 				PermissionBatchOptions.bulkAccessManagement(true).keepingModelLimits(),
-				projectErrorRules(endDate));
+				SecurityEngineUtils.granteeErrorRules(endDate));
 	}
 
 	/**
-	 * Gives a project a permission on a model with its App Limit, or changes both,
-	 * in admin mode, as a permission batch.
+	 * Gives an app or another engine a permission on a model with its App Limit or
+	 * Engine Limit, or changes both, in admin mode, as a permission batch.
 	 *
-	 * @param projectId  the project
-	 * @param engineId   the model
-	 * @param permission the level, READ_ONLY or EDIT
-	 * @param user       the admin
-	 * @param endDate    when the access ends, or null
-	 * @param usageLimit the App Limit, or null for no limit defined
+	 * @param granteeEngineId   the app or engine given the access
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the model
+	 * @param permission        the level, READ_ONLY or EDIT
+	 * @param user              the admin
+	 * @param endDate           when the access ends, or null
+	 * @param usageLimit        the App Limit or Engine Limit, or null for no limit
+	 *                          defined
 	 */
-	public void setEngineProjectPermission(String projectId, String engineId, String permission, User user,
-			String endDate, ModelUsageLimit usageLimit) {
+	public void setEngineGranteePermission(String granteeEngineId, String granteeEngineType, String engineId,
+			String permission, User user, String endDate, ModelUsageLimit usageLimit) {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
-				List.of(SecurityEngineUtils.projectPermissionChange(projectId, engineId,
+				List.of(SecurityEngineUtils.granteePermissionChange(granteeEngineId, granteeEngineType, engineId,
 						new PermissionGrant(permission, endDate).withUsageLimit(usageLimit))),
-				PermissionBatchOptions.bulkAccessManagement(true), projectErrorRules(endDate));
-	}
-
-	private static PermissionErrorRules projectErrorRules(String endDate) {
-		return new PermissionErrorRules(endDate)
-				.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING, SecurityEngineUtils.APP_DOES_NOT_EXIST)
-				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, SecurityEngineUtils.APP_WRITE_FAILED);
+				PermissionBatchOptions.bulkAccessManagement(true), SecurityEngineUtils.granteeErrorRules(endDate));
 	}
 
 	/**
-	 * Takes away the permission an engine gives a project, in admin mode, as a
-	 * permission batch.
+	 * Takes away the permission an engine gives an app or another engine, in admin
+	 * mode, as a permission batch.
 	 *
-	 * @param projectId the project
-	 * @param engineId  the engine
-	 * @param user      the admin
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @param engineId          the engine
+	 * @param user              the admin
 	 */
-	public void removeEngineProjectPermission(String projectId, String engineId, User user) {
+	public void removeEngineGranteePermission(String granteeEngineId, String granteeEngineType, String engineId,
+			User user) {
 		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
-				List.of(PermissionChange.remove(PermissionSubject.ofProject(projectId))),
-				PermissionBatchOptions.bulkAccessManagement(true),
-				new PermissionErrorRules()
-						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, SecurityEngineUtils.APP_HAS_NO_ACCESS)
-						.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, SecurityEngineUtils.APP_WRITE_FAILED));
+				List.of(PermissionChange.remove(PermissionSubject.ofEngine(granteeEngineId, granteeEngineType))),
+				PermissionBatchOptions.bulkAccessManagement(true), SecurityEngineUtils.granteeRemovalErrorRules());
 	}
 
 	/**
-	 * Reads the projects an engine gives a permission to, in admin mode: each with
-	 * its subject, the project's id and name (its display name when it has one),
-	 * and its access, the level, the end date and on a model the App Limit.
+	 * Reads the apps and engines an engine gives a permission to, in admin mode:
+	 * each with its subject, the grantee's id, catalog type and name (its display
+	 * name when it has one), and its access, the level, the end date and on a model
+	 * the App Limit or Engine Limit.
 	 *
 	 * @param engineId the engine
-	 * @return one entry for each project, ordered by project id
+	 * @return one entry for each app and engine, ordered by catalog type and id
 	 * @throws IllegalArgumentException when the engine does not exist
 	 */
-	public List<Map<String, Object>> getEngineProjectPermissions(String engineId) {
+	public List<Map<String, Object>> getEngineGranteePermissions(String engineId) {
 		if (engineId == null || engineId.isBlank()) {
 			throw new IllegalArgumentException("The engine id must not be null or blank");
 		}
@@ -2771,7 +2860,7 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 		if (!SecurityEngineUtils.engineExists(id)) {
 			throw new IllegalArgumentException("Engine " + id + " does not exist");
 		}
-		return PermissionBatchUtils.readProjects(id);
+		return PermissionBatchUtils.readEngines(id);
 	}
 
 	/**

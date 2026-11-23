@@ -1261,13 +1261,13 @@ public abstract class AbstractSecurityUtils {
 			// Type and cost are the main questions -
 			boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
 			colNames = new String[] { "PROJECTID", "PROJECTNAME", "PROJECTDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
-					"IS_TEMPLATE", "CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED", "TYPE", "COST",
-					"CATALOGNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILED",
-					"REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE" };
+					"IS_TEMPLATE", "HAS_CUSTOM_LOGIN", "CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED",
+					"TYPE", "COST", "CATALOGNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE",
+					"REACTORSCOMPILED", "REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255,
-					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME,
+					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECT", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -1295,14 +1295,18 @@ public abstract class AbstractSecurityUtils {
 					}
 				}
 
-				// existing rows get their display name from their canonical name, and rows with
-				// no template flag are not templates, in one transaction
+				// existing rows get their display name from their canonical name, rows with no
+				// template flag are not templates, and rows with no custom login flag have no
+				// login page of their own, in one transaction
 				QueryExecutionUtility.write(securityDb, connection -> {
 					QueryExecutionUtility.executeUpdate(connection,
 							"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''",
 							QueryExecutionUtility.NO_PARAMETERS);
 					QueryExecutionUtility.executeUpdate(connection,
 							"UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL",
+							ps -> ps.setBoolean(1, false));
+					QueryExecutionUtility.executeUpdate(connection,
+							"UPDATE PROJECT SET HAS_CUSTOM_LOGIN = ? WHERE HAS_CUSTOM_LOGIN IS NULL",
 							ps -> ps.setBoolean(1, false));
 					return null;
 				});
@@ -2286,20 +2290,33 @@ public abstract class AbstractSecurityUtils {
 			// billed to
 			setMissingDatesAdded(securityDb, "GROUPENGINEPERMISSION");
 
-			colNames = new String[] { "PROJECTID", "ENGINEID", "PERMISSION", "DATEADDED", "ENDDATE",
-					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
-			types = new String[] { VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
+			removeProjectEnginePermissionTable(securityDb, conn, queryUtil, database, schema);
+			colNames = new String[] { "ENGINEID", "ENGINETYPE", "GRANTEEENGINEID", "GRANTEEENGINETYPE", "PERMISSION",
+					"DATEADDED", "ENDDATE", "PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
 			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists("PROJECTENGINEPERMISSION", colNames, types);
+				String sql = queryUtil.createTableIfNotExists("ENGINE2ENGINEPERMISSION", colNames, types);
 				classLogger.info("Running sql {}", sql);
 				securityDb.insertData(sql);
 			} else {
-				if (!queryUtil.tableExists(conn, "PROJECTENGINEPERMISSION", database, schema)) {
-					String sql = queryUtil.createTable("PROJECTENGINEPERMISSION", colNames, types);
+				if (!queryUtil.tableExists(conn, "ENGINE2ENGINEPERMISSION", database, schema)) {
+					String sql = queryUtil.createTable("ENGINE2ENGINEPERMISSION", colNames, types);
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}
+			}
+			if (allowIfExistsIndexs || !queryUtil.indexExists(securityDb, "ENGINE2ENGINEPERMISSION_GRANTEE_UNIQUE",
+					"ENGINE2ENGINEPERMISSION", database, schema)) {
+				List<String> granteeColumns = List.of("ENGINEID", "GRANTEEENGINEID", "GRANTEEENGINETYPE");
+				String sql = allowIfExistsIndexs
+						? queryUtil.createIndexIfNotExists("ENGINE2ENGINEPERMISSION_GRANTEE_UNIQUE",
+								"ENGINE2ENGINEPERMISSION", granteeColumns)
+						: queryUtil.createIndex("ENGINE2ENGINEPERMISSION_GRANTEE_UNIQUE", "ENGINE2ENGINEPERMISSION",
+								granteeColumns);
+				sql = sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
 			}
 
 			// GROUP PROJECT PERMISSION
@@ -2833,9 +2850,8 @@ public abstract class AbstractSecurityUtils {
 				String[] userMetaKeyColNames = colNames;
 				String[] userMetaKeyTypes = types;
 				String[] platformMetakeys = new String[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY,
-						Constants.DEFAULT_CODE_GENERATION_MODEL_KEY,
-						Constants.PLAYGROUND_DEFAULT_INPUT_TEXT_MODEL_KEY, Constants.PLAYGROUND_DEFAULT_CHAT_MODE_KEY,
-						Constants.PLAYGROUND_DEFAULT_CHAT_AGENT_KEY };
+						Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, Constants.PLAYGROUND_DEFAULT_INPUT_TEXT_MODEL_KEY,
+						Constants.PLAYGROUND_DEFAULT_CHAT_MODE_KEY, Constants.PLAYGROUND_DEFAULT_CHAT_AGENT_KEY };
 				try {
 					QueryExecutionUtility.write(securityDb, connection -> {
 						List<String> existingKeys = QueryExecutionUtility.queryList(connection,
@@ -2853,8 +2869,7 @@ public abstract class AbstractSecurityUtils {
 								continue;
 							}
 							insertRows(connection, queryUtil, Constants.USER_METAKEYS, userMetaKeyColNames,
-									userMetaKeyTypes,
-									new Object[] { metakey, "single", order++, "select-box", null });
+									userMetaKeyTypes, new Object[] { metakey, "single", order++, "select-box", null });
 						}
 						return null;
 					});
@@ -3114,6 +3129,33 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
+	 * Removes the table that kept the permissions engines gave apps before
+	 * {@code ENGINE2ENGINEPERMISSION} kept them with the permissions engines give
+	 * other engines, together with the App Limits on those permissions. Their
+	 * owners give them again. The limits go first, so a start up that stops between
+	 * the two removes them again on the next start.
+	 *
+	 * @param securityDb the security database
+	 * @param conn       a connection to it
+	 * @param queryUtil  its query utility
+	 * @param database   its database name
+	 * @param schema     its schema
+	 */
+	static void removeProjectEnginePermissionTable(IRDBMSEngine securityDb, Connection conn,
+			AbstractSqlQueryUtil queryUtil, String database, String schema) throws Exception {
+		if (!queryUtil.tableExists(conn, "PROJECTENGINEPERMISSION", database, schema)) {
+			return;
+		}
+		SecurityModelUsageLimitUtils.deleteLimitsOfType(conn, "PROJECT");
+		if (!conn.getAutoCommit()) {
+			conn.commit();
+		}
+		String sql = queryUtil.dropTable("PROJECTENGINEPERMISSION");
+		classLogger.info("Running sql {}", sql);
+		securityDb.removeData(sql);
+	}
+
+	/**
 	 * Gives the rows of a team table with no DATEADDED the current UTC time, so
 	 * every team grant and membership has a place in the order a person's model
 	 * calls are billed to their teams.
@@ -3169,7 +3211,7 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPENGINEPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPMANAGERS", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
-		allValues.put("PROJECTENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
+		allValues.put("ENGINE2ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPINSIGHTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPPROJECTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("INSIGHTACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });

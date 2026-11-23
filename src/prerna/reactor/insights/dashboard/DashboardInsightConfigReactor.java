@@ -40,6 +40,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.utils.SecurityInsightUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -115,7 +116,7 @@ public class DashboardInsightConfigReactor extends AbstractReactor {
 				newInsight.setRJavaTranslator(sharedR);
 			}
 			InsightStore.getInstance().put(newInsight);
-			InsightStore.getInstance().addToSessionHash(getSessionId(), newInsight.getInsightId());
+			InsightStore.getInstance().addToSessionHash(ThreadStore.getSessionId(), newInsight.getInsightId());
 			insightMap.put("newId", newInsight.getInsightId());
 
 			// add to list

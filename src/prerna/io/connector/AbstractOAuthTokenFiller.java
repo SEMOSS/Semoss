@@ -76,8 +76,6 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 	protected static final SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
 	private static final String UTF8 = StandardCharsets.UTF_8.name();
 
-	public static final String REFRESH_TOKEN_KEY = "refresh_token";
-
 	// fallback redirect/callback URL used when {prefix}redirect_uri is not
 	// configured; supplied per request by the unified login endpoint
 	private String defaultRedirectUri = null;

@@ -95,6 +95,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 		CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
 		when(engine.getSmssProp()).thenReturn(caseInsensitiveProperties);
 		when(engine.getCatalogSubType(new Properties())).thenReturn("");
+		when(engine.getCatalogSubType()).thenReturn("");
 
 		String sessionId = "sessionId";
 		String roomId = "roomId";
@@ -192,6 +193,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 		CaseInsensitiveProperties caseInsensitiveProperties = new CaseInsensitiveProperties();
 		when(engine.getSmssProp()).thenReturn(caseInsensitiveProperties);
 		when(engine.getCatalogSubType(new Properties())).thenReturn("");
+		when(engine.getCatalogSubType()).thenReturn("");
 
 		String sessionId = "sessionId";
 		String roomId = "roomId";
@@ -283,6 +285,7 @@ public class ModelEngineInferenceLogsWorkerUnitTests {
 
 		when(engine.getSmssProp()).thenReturn(new CaseInsensitiveProperties());
 		when(engine.getCatalogSubType(new Properties())).thenReturn("");
+		when(engine.getCatalogSubType()).thenReturn("");
 
 		String sessionId = "sessionId";
 		String roomId = "roomId";

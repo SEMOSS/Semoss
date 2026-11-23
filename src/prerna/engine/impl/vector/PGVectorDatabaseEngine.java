@@ -67,6 +67,7 @@ import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
@@ -299,18 +300,18 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 							+ this.embedderEngineId);
 		}
 
-		Properties modelProperties = modelEngine.getSmssProp();
-		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
+		String modelName = modelEngine.getModelName();
+		if (modelName == null || modelName.isBlank()) {
 			throw new IllegalArgumentException("Embedder engine exists but does not contain key " + Constants.MODEL);
 		}
 
-		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
-		this.smssProp.put(IModelEngine.MODEL_TYPE, modelProperties.getProperty(IModelEngine.MODEL_TYPE));
-		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
-			this.smssProp.put(Constants.MAX_TOKENS, "None");
-		} else {
-			this.smssProp.put(Constants.MAX_TOKENS, modelProperties.getProperty(Constants.MAX_TOKENS));
+		this.smssProp.put(Constants.MODEL, modelName);
+		ModelTypeEnum modelType = modelEngine.getModelType();
+		if (modelType != null) {
+			this.smssProp.put(IModelEngine.MODEL_TYPE, modelType.name());
 		}
+		long modelMaxTokens = modelEngine.getMaxTokens();
+		this.smssProp.put(Constants.MAX_TOKENS, modelMaxTokens > 0 ? String.valueOf(modelMaxTokens) : "None");
 
 		// model engine responsible for creating keywords
 		this.keywordGeneratorEngineId = this.smssProp.getProperty(Constants.KEYWORD_ENGINE_ID);

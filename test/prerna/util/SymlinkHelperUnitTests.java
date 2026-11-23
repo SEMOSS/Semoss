@@ -45,6 +45,8 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.PosixFilePermission;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
@@ -57,6 +59,7 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.util.sandbox.SandboxTransporter;
 
 /**
  * How a project reaches a user's chroot. A user who can edit the project works
@@ -353,6 +356,50 @@ class SymlinkHelperUnitTests {
 			String pyFolder = appRoot.toRealPath().resolve("version/assets/py").toString();
 			assertDoesNotThrow(() -> helper.symlinkFolder(pyFolder));
 			assertThrows(IllegalStateException.class, () -> helper.symlinkProject(user, PROJECT_ID));
+		} finally {
+			DIHelper.getInstance().setCoreProp(saved);
+		}
+	}
+
+	@Test
+	void theInsightCacheEveryUserSharesIsNeverSentToAnOpenShellSandbox() throws IOException {
+		Path base = Files.createDirectories(this.folder.toRealPath().resolve("semosshome"));
+		Path cache = Files.createDirectories(base.resolve("InsightCache"));
+		Path insightFolder = Files.createDirectories(cache.resolve("session-id/insight-id"));
+		Files.createDirectories(base.resolve(Constants.PY_BASE_FOLDER));
+		Path chroot = this.folder.toRealPath().resolve("chroot-user");
+		Properties saved = DIHelper.getInstance().getCoreProp();
+		Properties settings = new Properties();
+		settings.setProperty(Constants.BASE_FOLDER, base.toString());
+		settings.setProperty(Constants.INSIGHT_CACHE_DIR, cache.toString());
+		settings.setProperty(Constants.SANDBOX_MODE, Constants.SANDBOX_MODE_OPENSHELL);
+		DIHelper.getInstance().setCoreProp(settings);
+		List<String> sent = new ArrayList<>();
+		try (MockedStatic<ChrootTemplate> template = Mockito.mockStatic(ChrootTemplate.class)) {
+			SymlinkHelper helper = new SymlinkHelper(chroot.toString(), new User());
+			helper.symlinkFolder(base.toString());
+			helper.symlinkFolder(insightFolder.toString());
+			// folders asked for before the sandbox exists are sent when it starts
+			helper.setTransport(new SandboxTransporter() {
+				@Override
+				public boolean transport(String absPath) {
+					return transport(absPath, false);
+				}
+
+				@Override
+				public boolean transport(String absPath, boolean viewOnly) {
+					return sent.add(absPath);
+				}
+
+				@Override
+				public boolean close() {
+					return true;
+				}
+			});
+
+			assertFalse(sent.contains(cache.toString()), "the whole insight cache was sent");
+			assertFalse(sent.contains(base.toString()), "a folder that holds the insight cache was sent");
+			assertTrue(sent.contains(insightFolder.toString()), "a granted insight folder was not sent");
 		} finally {
 			DIHelper.getInstance().setCoreProp(saved);
 		}

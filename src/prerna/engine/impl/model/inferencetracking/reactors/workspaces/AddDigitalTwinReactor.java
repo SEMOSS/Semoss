@@ -28,12 +28,9 @@
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
 import java.util.List;
-import java.util.Map;
 
-import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.project.api.IProject;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -44,7 +41,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * {@link AddWorkspaceReactor} makes one, that answers from copies of emails,
  * chats and files its owner adds to its files. It is marked
  * ({@link SecurityProjectUtils#DIGITAL_TWIN_METAKEY}) so it can only ever be
- * shared with named people. A user has one.
+ * shared with named people. A user may create multiple twins.
  *
  * <pre>
  * AddDigitalTwin(name, description, systemPrompt, mcp, prompts, skills, useDefaultAgentTools)
@@ -55,23 +52,11 @@ public class AddDigitalTwinReactor extends AddWorkspaceReactor {
 	@Override
 	public NounMetadata execute() {
 		User user = requireUser();
-		// shortcut: two creates sent at once can both pass this check and leave two
-		// twins, each still shared with named people only; lock per user if that
-		// ever happens
-		boolean hasTwin = !SecurityProjectUtils
-				.getUserProjectList(user, List.of(IProject.PROJECT_TYPE.WORKSPACE.name()), null, false,
-						Map.of(SecurityProjectUtils.DIGITAL_TWIN_METAKEY, List.of("true")), null, null, null, null,
-						null, false, List.of(AccessPermissionEnum.OWNER.getId()), User.getUserIdAndType(user))
-				.isEmpty();
-		if (hasTwin) {
-			return getError("You already have a Digital Twin");
-		}
-
 		NounMetadata created = super.execute();
 		if (created.getNounType() != PixelDataType.ERROR) {
 			// shortcut: if this write fails the new agent stays, as an ordinary private
 			// agent; delete it here if that ever happens
-			SecurityProjectUtils.markDigitalTwin((String) created.getValue());
+			SecurityProjectUtils.markDigitalTwin(user, (String) created.getValue());
 		}
 		return created;
 	}
@@ -81,7 +66,7 @@ public class AddDigitalTwinReactor extends AddWorkspaceReactor {
 		return super.getReactorDefinition()
 				.description("Create the calling user's Digital Twin: an agent that answers from copies of emails, "
 						+ "chats and files its owner adds to its files, and that can only be shared with named "
-						+ "people. A user has one.")
+						+ "people. A user may create multiple twins.")
 				.key(NAME,
 						"The twin's name. It starts with a letter and holds letters, numbers, spaces, hyphens "
 								+ "and underscores.")

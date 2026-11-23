@@ -477,6 +477,7 @@ public final class BrainTopicMatches {
 						ownerId, ownerType, threadId, topicId, BrainProfileUtils.YOU, 100, true, BrainProfileUtils.YOU,
 						now);
 			}
+			BrainTopicUtils.learnPeople(conn, ownerId, ownerType, threadId, topicId);
 			List<Object> params = new ArrayList<>(List.of(topicId, ownerId, ownerType, threadId, WorkItemUtils.BRAIN));
 			params.addAll(from);
 			params.addAll(List.of(ownerId, ownerType, "linkTopicId", WorkItemUtils.YOU));

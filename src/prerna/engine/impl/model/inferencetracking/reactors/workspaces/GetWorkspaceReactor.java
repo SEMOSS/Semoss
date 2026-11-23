@@ -42,12 +42,14 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.WorkTwinFiles;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.PlatformAgentTools;
 import prerna.reactor.agent.skill.SkillProjects;
@@ -63,10 +65,11 @@ public class GetWorkspaceReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(GetWorkspaceReactor.class);
 
 	private static final String CLASS_NAME = GetWorkspaceReactor.class.getName();
+	private static final String INCLUDE_TWIN_FILE_ACCESS = "includeDigitalTwinFileAccess";
 
 	// To get workspaces without resources, call MyProjects w/ type as workspace
 	public GetWorkspaceReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey() };
+		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), INCLUDE_TWIN_FILE_ACCESS };
 		this.keyRequired = new int[] { 1, 0 };
 	}
 
@@ -104,6 +107,18 @@ public class GetWorkspaceReactor extends AbstractReactor {
 
 		if (!currentlyActive || !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
 			throw new IllegalArgumentException("User unauthorized to perform this operation");
+		}
+
+		if (Boolean.parseBoolean(this.keyValue.get(INCLUDE_TWIN_FILE_ACCESS))) {
+			String access = "read";
+			try {
+				if (WorkTwinFiles.canManage(user, workspaceId)) {
+					access = "manage";
+				}
+			} catch (RuntimeException e) {
+				classLogger.warn("Unable to resolve Digital Twin file access for workspace '{}'", workspaceId, e);
+			}
+			current.put("digital_twin_file_access", access);
 		}
 
 		current.put("display_name", SecurityProjectUtils.getProjectDisplayNameForId(workspaceId));
@@ -211,6 +226,15 @@ public class GetWorkspaceReactor extends AbstractReactor {
 		current.put("known_hook_kinds", new ArrayList<>(AgentHookRegistry.knownKinds()));
 
 		return new NounMetadata(current, PixelDataType.MAP);
+	}
+
+	@Override
+	public ReactorDefinition getReactorDefinition() {
+		return super.getReactorDefinition().description("Get an accessible agent workspace and its configuration")
+				.key(INCLUDE_TWIN_FILE_ACCESS, key -> key.type(Boolean.class).description(
+						"Include digital_twin_file_access for the caller. A twin's creator with edit access can manage "
+								+ "its file copies in chat. Other callers receive read access."))
+				.output(Map.class, "The workspace, its agent configuration, and any requested capabilities");
 	}
 
 	/**

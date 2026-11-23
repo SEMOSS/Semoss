@@ -491,7 +491,7 @@ public class MilvusVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties, connection
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 		
 		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
@@ -529,7 +529,7 @@ public class MilvusVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties, connection
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 		IllegalArgumentException e = assertThrows(
 				IllegalArgumentException.class,
@@ -545,7 +545,7 @@ public class MilvusVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties, connection
 
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 
 		try (MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
@@ -636,7 +636,7 @@ public class MilvusVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 		
 		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
@@ -713,7 +713,7 @@ public class MilvusVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		openEngine(tempDir, engine, extraProps); // set initial properties
 		
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		verifyModelProps(engine, testEmbedderId, embedderModel, embedderModelType);
 		
 		try(MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
@@ -970,7 +970,7 @@ public class MilvusVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, embedderModel);
 			embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 			engine.verifyModelProps();
 		}
 	}

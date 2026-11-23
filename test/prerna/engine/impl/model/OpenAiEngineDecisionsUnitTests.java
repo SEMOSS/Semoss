@@ -348,6 +348,7 @@ class OpenAiEngineDecisionsUnitTests {
 		when(engine.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.MODEL);
 		when(engine.getEngineId()).thenReturn("engine");
 		when(engine.getCatalogSubType(any())).thenReturn("OPEN_AI");
+		when(engine.getCatalogSubType()).thenReturn("OPEN_AI");
 	}
 
 	private static Map<?, ?> pythonRequest(TestEngine engine, Insight insight) {
