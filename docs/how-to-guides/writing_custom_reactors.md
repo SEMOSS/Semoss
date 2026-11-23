@@ -276,8 +276,34 @@ As per the `SEMOSS/backend-training` repository's `README.md`:
 -   **Returning DataFrames**: Reactors can create, manipulate, and return `IRawSelectWrapper` objects (which represent data frames or query results). Use `PixelDataType.FRAME` for the return type.
 -   **Interacting with Engines**: Reactors can access database engines, storage engines, etc., via the `this.insight.getProject(<PROJECT_ID>).getEngine(<ENGINE_ID>)` or `Utility.getEngine(engineId)` methods to perform operations.
 -   **Error Handling**: Use standard Java try-catch blocks. Throwing an `IllegalArgumentException` or `SemossPixelException` is common for input validation or operational errors.
--   **Pixel Operations within Reactors**: You can execute further Pixel scripts from within a Reactor using `this.planner.addPixelRecipe(String pixelScript)` and then retrieving results from the `NounStore`.
+-   **Pixel Operations within Reactors**: A reactor runs other reactors with `this.insight.runPixel(String pixel)`. See [calling platform reactors](#calling-platform-reactors).
 -   **Managing State**: Reactors are typically stateless. If state is needed across Reactor calls, store it in the `NounStore` or use SEMOSS's broader state management capabilities (e.g., project or user-level properties if appropriate).
+
+## Calling Platform Reactors
+
+Before writing Java, check whether a platform reactor already does the job. A project's reactors compile on the server against that server's classes, so every internal class they touch, such as `SecurityProjectUtils`, `RoomUtils`, `ModelInferenceLogsUtils` or a reactor class from `prerna.reactor`, ties them to how SEMOSS is built today. When one of those classes is renamed, moved, or changes a signature, the project's reactors stop compiling on the next release, and someone has to refactor them. A reactor's Pixel name and keys are the public API: they are what the UI, the SDKs and the MCP tools call, so they change rarely and with notice.
+
+So, in order of preference:
+
+1.  **No custom Java.** The app calls the platform reactors itself through `@semoss/sdk` (`actions.run(...)`), or a Pixel script chains them.
+2.  **Custom Java that runs Pixel.** When a reactor is needed, for example to combine several calls, check access, or shape a result for an agent, it calls the platform reactors with `this.insight.runPixel(...)`, which returns a `PixelRunner`:
+
+    ```java
+    PixelRunner runner = this.insight.runPixel("GetRoomOptions(roomId=" + new Gson().toJson(roomId) + ");");
+    NounMetadata result = runner.getResults().get(0);
+    List<PixelOperationType> ops = result.getOpType();
+    if (result.getNounType() == PixelDataType.ERROR || (ops != null && ops.contains(PixelOperationType.ERROR))) {
+        throw new IllegalArgumentException(String.valueOf(result.getValue()));
+    }
+    Map<?, ?> options = (Map<?, ?>) result.getValue();
+    ```
+
+3.  **Internal classes**, only for what no reactor offers. Keep those calls in one helper class, say in a comment which reactor would replace them, and ask for that reactor to be added to SEMOSS.
+
+-   **Errors come back as results.** A reactor that fails inside `runPixel` does not throw: its result is a noun of type `PixelDataType.ERROR`. Check every result, as above, so an error message is not read as data.
+-   **Quoting.** Build string arguments with `new Gson().toJson(value)`, which quotes and escapes them, rather than adding quotes by hand around user or model text.
+-   **Who it runs as.** `runPixel` runs as the signed in user on the reactor's insight, with the same permission checks the UI gets.
+-   **Not instantiating reactor classes.** Calling `new SomeReactor().execute()` skips the Pixel parser but still depends on the class's name, package and noun keys; prefer its Pixel name.
 
 ## Using Engines
 
@@ -363,6 +389,7 @@ try (ExecutorService llmExecutor = SignedInTasks.newVirtualThreadExecutor()) {
 
 ## Best Practices
 
+-   **Prefer Platform Reactors**: Call existing reactors through `this.insight.runPixel(...)` instead of SEMOSS internal classes, and write no Java at all when the app can call them directly. See [calling platform reactors](#calling-platform-reactors).
 -   **Clear Naming**: Use descriptive class names. The class name without `Reactor` is the reactor's Pixel name and its MCP tool name.
 -   **Explicit Input Keys**: Define constants for your input keys (`this.keysToGet`) for clarity and maintainability.
 -   **Input Validation**: Always validate inputs within your `execute()` method (type, presence, format). Provide informative error messages.
