@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "id": "94e82b66-61ce-449c-b6c2-b7e1dcbcfb71",
+  "name": "Complete a synthetic task",
+  "description": "Load the seeded task, mark it done, and read the updated title from H2.",
+  "startPath": "",
+  "steps": [
+    { "type": "CLICK", "selector": "[data-testid=\"load-task\"]" },
+    { "type": "ASSERT_TEXT", "selector": "[data-testid=\"task-title\"]", "text": "Synthetic task", "exact": true },
+    { "type": "CLICK", "selector": "[data-testid=\"complete-task\"]" },
+    { "type": "ASSERT_TEXT", "selector": "[data-testid=\"task-title\"]", "text": "Done", "exact": true }
+  ]
+}

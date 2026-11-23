@@ -259,6 +259,65 @@ final class AppTestRuns {
         return selectRecordings(recordings, null, pages);
     }
 
+    static String startIsolated(User actor, String owner, String projectId, String candidateSha, String recordingId) {
+        String runId = UUID.randomUUID().toString();
+        final RegressionPreview preview;
+        try {
+            preview = RegressionPreview.load(actor, projectId, candidateSha, recordingId, runId);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("ISOLATION_UNAVAILABLE: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            throw new IllegalArgumentException("ISOLATION_UNAVAILABLE: The approved H2 regression configuration is invalid", e);
+        }
+        Map<String, Object> pending = AppTestHistory.pending(runId, projectId, List.of(preview.recording()), 1, Instant.now());
+        pending.putAll(preview.provenance());
+        Run run = new Run(owner, pending);
+        Path reports = AppTestRecordings.legacyFolder(projectId).resolve("reports").resolve(ownerDirectory(owner));
+        long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * 1_000_000;
+        register(runId, run);
+        try {
+            WORKERS.execute(() -> {
+                Map<String, Object> result;
+                try {
+                    if (System.nanoTime() >= deadline) {
+                        throw new IOException("The regression run expired in the queue");
+                    }
+                    try (RegressionH2Database database = preview.openDatabase();
+                            RegressionPixelAccess session = preview.openSession(runId, database)) {
+                        preview.ready(runId, session);
+                        result = AppTestRunner.runIsolated(runId, projectId, preview, session, reports, deadline, progress -> {
+                            var snapshot = new LinkedHashMap<>(AppTestHistory.compact(progress));
+                            snapshot.putAll(preview.provenance());
+                            run.result = snapshot;
+                        });
+                    }
+                } catch (Exception | AssertionError failure) {
+                    if (failure instanceof InterruptedException) Thread.currentThread().interrupt();
+                    LOGGER.error("H2 regression run did not finish: project={}, run={}", projectId, runId, failure);
+                    result = isolatedFailure(pending, "The H2 preview, request boundary, or cleanup could not finish. Check the server log using this run ID.");
+                    try {
+                        AppTestRecordings.write(reports.resolve(runId + ".json"), result);
+                    } catch (IOException saveFailure) {
+                        LOGGER.warn("Could not save H2 regression report: run={}", runId, saveFailure);
+                    }
+                }
+                run.result = result;
+            });
+        } catch (RejectedExecutionException e) {
+            run.result = isolatedFailure(pending, "The runner is busy. Try again after an active run finishes.");
+        }
+        return runId;
+    }
+
+    private static Map<String, Object> isolatedFailure(Map<String, Object> pending, String reason) {
+        var result = new LinkedHashMap<>(pending);
+        result.put("status", "ERROR");
+        result.put("finishedAt", Instant.now().toString());
+        result.put("error", "ISOLATION_UNAVAILABLE: " + reason);
+        result.put("tests", List.of());
+        return result;
+    }
+
     static List<Map<String, Object>> selectRecordings(List<Map<String, Object>> recordings, String suite, List<String> pages) {
         if (PLATFORM_SMOKE_SUITE.equals(suite)) {
             return List.of(Map.of("id", PLATFORM_SMOKE_SUITE, "name", "Page visibility smoke check; no workflow coverage",

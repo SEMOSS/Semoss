@@ -38,6 +38,11 @@
           "all": {
             "type": "boolean",
             "description": "Set true only for an intentional full regression run of this app; mutually exclusive with recordingIds and suite. No selection never means all."
+          },
+          "candidateCommitSha": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$",
+            "description": "Replay one approved recording against this Git commit with a fresh H2 database. Requires operator configuration and one recording ID."
           }
         },
         "required": [

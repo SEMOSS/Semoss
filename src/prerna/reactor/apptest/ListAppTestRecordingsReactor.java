@@ -48,6 +48,10 @@ public class ListAppTestRecordingsReactor extends AbstractAppTestReactor {
 		try {
 			Map<String,Object> result = new java.util.LinkedHashMap<>(AppTestRecordings.discover(AppTestRecordings.folder(target)));
             result.put("target", target);
+			String approved = RegressionPreview.approvedRecordingId(target);
+			if (approved != null) {
+				result.put("approvedH2RecordingId", approved);
+			}
 			return new NounMetadata(result,
 					PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (IOException e) {

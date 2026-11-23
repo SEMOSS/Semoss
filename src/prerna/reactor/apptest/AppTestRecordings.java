@@ -60,7 +60,7 @@ final class AppTestRecordings {
 	private static final Pattern TESTID_SELECTOR = Pattern
 			.compile("^(?:[a-zA-Z][a-zA-Z0-9-]*)?\\[data-test(?:id)?=\"(?:[^\"\\\\]|\\\\.)+\"\\]$");
 	static final int MAX_RECORDINGS = 25;
-	private static final int MAX_BYTES = 256_000;
+    static final int MAX_BYTES = 256_000;
 
 	private AppTestRecordings() { }
 

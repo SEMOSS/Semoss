@@ -30,12 +30,20 @@ package prerna.reactor.qs;
 import org.json.JSONObject;
 
 import prerna.reactor.ReactorDefinition;
+import prerna.reactor.apptest.RegressionPixelAccess;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Executes a SQL query against a database.
  */
 public class SqlQueryReactor extends AbstractSqlQueryReactor {
+
+	@Override
+	public NounMetadata execute() {
+		NounMetadata regression = RegressionPixelAccess.query(this.insight);
+		return regression == null ? super.execute() : regression;
+	}
 
 	@Override
 	protected String getDecodedQuery() {

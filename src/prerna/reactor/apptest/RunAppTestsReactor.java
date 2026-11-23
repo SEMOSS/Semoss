@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
 import prerna.om.ThreadStore;
 import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -51,10 +52,11 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 	static final String REPEAT = "repeat";
 	static final String RECORDING_IDS = "recordingIds";
 	static final String ALL = "all";
+	static final String CANDIDATE_SHA = "candidateCommitSha";
 
 	public RunAppTestsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO, REPEAT, RECORDING_IDS, ALL };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO, REPEAT, RECORDING_IDS, ALL, CANDIDATE_SHA };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -67,7 +69,8 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 		String scenario = getString(SCENARIO);
 		Object configuredCookie = InternalUtility.getLocalProperty(Constants.SESSION_ID_KEY);
 		String cookieName = configuredCookie == null ? "JSESSIONID" : String.valueOf(configuredCookie);
-		String owner = AppTestRuns.ownerOf(requireUser());
+		User actor = requireUser();
+		String owner = AppTestRuns.ownerOf(actor);
 		int repeat = 1;
 		String repeatValue = getString(REPEAT);
 		if (repeatValue != null && !repeatValue.isBlank()) {
@@ -81,7 +84,21 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 			}
 		}
 
-		String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName, repeat, getNounAsStringList(RECORDING_IDS), getBoolean(ALL, false));
+		List<String> recordingIds = getNounAsStringList(RECORDING_IDS);
+		boolean all = getBoolean(ALL, false);
+		String candidateSha = getString(CANDIDATE_SHA);
+		String runId;
+		if (candidateSha != null || this.store.getGenRowStruct(CANDIDATE_SHA) != null) {
+			if (all || (suite != null && !suite.isBlank()) || (scenario != null && !scenario.isBlank())
+					|| (pages != null && !pages.isEmpty()) || repeat != 1
+					|| recordingIds == null || recordingIds.size() != 1) {
+				throw new IllegalArgumentException("H2 regression requires exactly one approved recording ID and one candidate SHA");
+			}
+			runId = AppTestRuns.startIsolated(actor, owner, projectId, candidateSha, recordingIds.getFirst());
+		} else {
+			runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(),
+					cookieName, repeat, recordingIds, all);
+		}
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("runId", runId);
@@ -89,6 +106,10 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 		result.put("status", AppTestRuns.get(owner, runId).get("status"));
 		result.put("scope", AppTestRuns.PLATFORM_SMOKE_SUITE.equals(suite) ? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSIONS");
 		result.put("maxFixAttempts", AppTestRuns.maxFixAttempts());
+		if (candidateSha != null) {
+			result.put("mode", "ISOLATED_H2");
+			result.put(CANDIDATE_SHA, candidateSha);
+		}
 		if (repeat > 1) result.put("repeat", repeat);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
@@ -112,6 +133,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 				.key(RECORDING_IDS, k -> k.list(String.class).description("Explicit recording UUIDs returned by ListAppTestRecordings for this app. Read only selected files. Mutually exclusive with suite and all=true."))
 				.key(ALL, k -> k.type(Boolean.class).description("Set true only for an intentional full regression run of this app. Mutually exclusive with recordingIds and suite; omission never selects all tests."))
 				.key(SCENARIO, "Development fixture only, requires APP_TEST_ALLOW_MOCKS=true; never verifies an app.")
+				.key(CANDIDATE_SHA, "Full candidate Git SHA for operator-enabled H2 regression. Requires one approved recording ID.")
 				.key(REPEAT, k -> k.type(Integer.class).description("Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY."))
 				.output(Map.class, "Run id, explicit target, initial status and maximum repair attempts");
 	}
