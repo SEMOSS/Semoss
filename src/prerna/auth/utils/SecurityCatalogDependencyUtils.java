@@ -841,6 +841,44 @@ public class SecurityCatalogDependencyUtils extends AbstractSecurityUtils {
 		return normalizeLinks(QueryExecutionUtility.flushRsToMap(securityDb, qs));
 	}
 
+	/** The fields of an item a user who cannot see it must not be sent */
+	private static final String[] PRIVATE_DEPENDENCY_KEYS = { "catalog_name", "description", "tags",
+			"catalog_subtype", "catalog_date_created" };
+
+	/**
+	 * Whether a dependency is private to the user: they have no permission on it,
+	 * directly or through a team, and it is neither public nor discoverable.
+	 *
+	 * @param node a dependency as {@link #getDependencyDetails(String, User, boolean)}
+	 *             returns it
+	 * @return true when the user may not see what it is
+	 */
+	public static boolean isPrivateDependency(Map<String, Object> node) {
+		return node.get("permission") == null && node.get("group_permission") == null
+				&& !Boolean.TRUE.equals(node.get("catalog_global"))
+				&& !Boolean.TRUE.equals(node.get("catalog_discoverable"));
+	}
+
+	/**
+	 * Removes what a dependency is (its name, description, tags, subtype and date
+	 * created) when it is private to the user, and marks every dependency with
+	 * is_private. Its id and type stay, since the owner's links name them and a
+	 * save of the owner's manual dependencies sends them back.
+	 *
+	 * @param node a dependency, changed in place
+	 * @return the same map
+	 */
+	public static Map<String, Object> redactPrivateDependency(Map<String, Object> node) {
+		boolean isPrivate = isPrivateDependency(node);
+		if (isPrivate) {
+			for (String key : PRIVATE_DEPENDENCY_KEYS) {
+				node.remove(key);
+			}
+		}
+		node.put("is_private", isPrivate);
+		return node;
+	}
+
 	/**
 	 * Whether a user can view each dependency of a catalog item, all the way down
 	 *

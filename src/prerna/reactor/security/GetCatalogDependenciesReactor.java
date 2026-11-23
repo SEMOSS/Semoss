@@ -162,6 +162,8 @@ public class GetCatalogDependenciesReactor extends AbstractReactor {
 				engine.put("dependencies", reachableChildren);
 			}
 
+			// a dependency the user cannot see is sent as its id and type only
+			SecurityCatalogDependencyUtils.redactPrivateDependency(engine);
 			engines.add(engine);
 		}
 

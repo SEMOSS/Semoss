@@ -184,6 +184,49 @@ public class SecurityCatalogDependencyUtilsUnitTests extends AbstractSecurityUti
 		assertEquals(List.of("function1"), ids(SecurityCatalogDependencyUtils.getDependencies("automation1")));
 	}
 
+	private static Map<String, Object> dependencyNode(Integer permission, Integer groupPermission, Boolean global,
+			Boolean discoverable) {
+		Map<String, Object> node = new HashMap<>();
+		node.put("catalog_id", "db1");
+		node.put("catalog_type", "DATABASE");
+		node.put("catalog_name", "Payroll");
+		node.put("description", "Salaries");
+		node.put("tags", "hr");
+		node.put("catalog_subtype", "H2_DB");
+		node.put("catalog_date_created", "2026-01-01");
+		node.put("permission", permission);
+		node.put("group_permission", groupPermission);
+		node.put("catalog_global", global);
+		node.put("catalog_discoverable", discoverable);
+		return node;
+	}
+
+	@Test
+	void redactPrivateDependency_removesWhatAPrivateItemIs() {
+		Map<String, Object> node = SecurityCatalogDependencyUtils
+				.redactPrivateDependency(dependencyNode(null, null, false, false));
+		assertEquals(Boolean.TRUE, node.get("is_private"));
+		assertEquals("db1", node.get("catalog_id"));
+		assertEquals("DATABASE", node.get("catalog_type"));
+		for (String key : List.of("catalog_name", "description", "tags", "catalog_subtype",
+				"catalog_date_created")) {
+			assertFalse(node.containsKey(key), key);
+		}
+	}
+
+	@Test
+	void redactPrivateDependency_keepsItemsTheUserCanSee() {
+		List<Map<String, Object>> visible = List.of(dependencyNode(null, null, false, true),
+				dependencyNode(null, null, true, false), dependencyNode(3, null, false, false),
+				dependencyNode(null, 2, false, false));
+		for (Map<String, Object> node : visible) {
+			SecurityCatalogDependencyUtils.redactPrivateDependency(node);
+			assertEquals(Boolean.FALSE, node.get("is_private"));
+			assertEquals("Payroll", node.get("catalog_name"));
+			assertEquals("Salaries", node.get("description"));
+		}
+	}
+
 	@Test
 	void syncAutomaticDependencies_replacesOnlyItsOwnRoles() {
 		UnitTestSecurityAuthUtils.createEngine("guardrail1", "Guardrail", IEngine.CATALOG_TYPE.GUARDRAIL, owner);
