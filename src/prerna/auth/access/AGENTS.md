@@ -247,6 +247,9 @@ describes the check that reads it.
 
 ## Digital Twins
 
+This section is about the Digital Twins a person shares. A person's own Digital
+Twin is not one of them and has its own bullet at the end.
+
 A Digital Twin is an agent that holds copies of its owner's emails, chats and
 files, so it is shared with named people only, by its owners and in admin mode
 alike. It is a project with the server-only metadata key
@@ -287,7 +290,8 @@ uploaded project's metadata file or a metadata reactor sends.
   `HarnessToolExecutor.twinRefusal` refuses the same tools by name, since a
   tool left off the list can still be called. It starts from the general
   harness prompt, is told the name of the person chatting and nothing
-  Collaboration keeps for them (no profile, memories or routine preferences),
+  Collaboration keeps for them (no profile, memories, routine preferences, or
+  the name and persona sections of their own Digital Twin),
   gets none of their assistant skills, and no after-run hook runs, so nothing
   from the chat is learned or filed in their account. The one exception is
   the file tools of its owner's own chat, below. Do not hand a twin a tool that
@@ -307,9 +311,10 @@ uploaded project's metadata file or a metadata reactor sends.
   its owner's approval. Both reactors resolve the twin from the chat and
   require its creator to retain edit access. The approval is bound to the room
   and twin that requested it. Removing a copy leaves the source in place.
-- **Its owner's persona.** A person keeps one persona for their twins
-  (`WorkTwinPersona`, table `BRAIN_PERSONA`): how they sound, how they decide
-  and what a twin must leave to them. Only its owner reads or writes it
+- **Its owner's persona.** A person keeps one persona (`WorkTwinPersona`,
+  table `BRAIN_PERSONA`): how they sound, how they decide and what a twin must
+  leave to them. The twins they share are given it, and so is their own
+  Digital Twin, below. Only its owner reads or writes it
   (`WorkGetTwinPersona`, `WorkSaveTwinPersona`, `WorkDeleteTwinPersona`); the
   people a twin is shared with never get it from a reactor, though a twin can
   be talked into quoting what it was told. `AgentConfigLoader` puts it on the
@@ -321,24 +326,49 @@ uploaded project's metadata file or a metadata reactor sends.
   it off there (`WorkSetTwinPersona`, creator only). Any failure to read it
   means a run without it, never a failed run. Do not put it into the twin's
   own instructions: whoever is chatting can replace those through their room.
-  The same persona also reaches its owner's own assistant, and only theirs:
+  The same persona also reaches runs made as its owner, and only as them, by
+  two paths that one switch turns off (`WorkSetAssistantPersona`).
   `GetWritingStyle` (`BrainGetWritingStyleReactor`) adds the sections a draft
   reads (`WorkTwinPersona.forAssistant`) to its result for the signed-in
-  person, unless they switched that off (`WorkSetAssistantPersona`). A twin is
-  a guest and is never handed that tool, so the persona of whoever is chatting
-  cannot reach a twin.
+  person, whichever agent calls it in their Collaboration chat or routine. And
+  the prompt of their own chat with the Collaboration Agent, their own Digital
+  Twin below, gets the sections it thinks with
+  (`WorkTwinPersona.forMainTwin`). A shared twin is a guest and is never handed
+  that tool or that section, so the persona of whoever is chatting cannot
+  reach it.
 - **Avatars.** Where `COLLAB_AVATAR_GENERATION_ENABLED` is true,
   `WorkGenerateTwinAvatar` makes avatar options with the image model in
   `COLLAB_AVATAR_ENGINE_ID` for anyone in Collaboration, with no catalog check
   on that model: it takes no engine key, so nobody chooses the model, and the
   model's usage limits still apply. Do not add an engine key to it. The reactor
   refuses when the setting is off; hiding the button is not the check.
+- **A person's own Digital Twin.** Every person in Collaboration has one, and it
+  is none of the above: not a project, no mark, nothing to share. It is the
+  seeded Collaboration Agent (`Constants.AGENT_COLLABORATION`) as that person
+  sees it in their own chats, under a name and a picture they choose
+  (`WorkMainTwin`, columns `TWIN_NAME` and `TWIN_IMAGE` of `BRAIN_PERSONA`).
+  Both are kept per owner id and login type, and are read (`BrainGetSettings`,
+  key `mainTwin`) and written (`WorkSaveMainTwin`) for the signed-in person
+  only, in admin mode alike: no reactor takes another person's id. At chat time
+  `AgentConfigLoader` sets `AgentConfig.getMainTwinPrompt` only when the run
+  has a user, the agent is the Collaboration Agent, the room is that person's
+  chat (`CollaborationRunMode.isChat`) and it is not a sub-agent's room
+  (`AgentSubAgentRegistry.ROOM_OPTION_PARENT_ROOM_ID`), and the harness adds it
+  at the root of the run, after the agent's and the room's instructions: who it is
+  (`CollaborationPrompts.mainTwin`), then the persona sections it thinks with.
+  No other agent in the chat, no unattended routine run, no sub-agent and no
+  shared twin gets it. A name or a persona that cannot be read is left out,
+  never a failed run. Do not mark it as a twin, which would take its tools
+  away, and do not hand its name or persona sections to any other run.
 
 `test/prerna/auth/utils/DigitalTwinUnitTests` covers these, with
 `AgentPromptCompositionUnitTests` for the chat-time rules,
 `TwinGuestUnitTests` for the tools a twin is refused,
-`WorkIndexTwinFilesReactorUnitTests` for who may run the index and
-`WorkTwinFilesUnitTests` for the placeholders and the owner's own chat.
+`WorkIndexTwinFilesReactorUnitTests` for who may run the index,
+`WorkTwinFilesUnitTests` for the placeholders and the owner's own chat, and
+`WorkMainTwinDbUnitTests`, `WorkSaveMainTwinReactorUnitTests`,
+`WorkTwinPersonaDbUnitTests` and `SemossAgentPromptUnitTests` for a person's
+own Digital Twin.
 
 ## Who can call it
 

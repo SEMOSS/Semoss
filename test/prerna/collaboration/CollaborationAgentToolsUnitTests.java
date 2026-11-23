@@ -29,6 +29,7 @@ package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
 import java.lang.reflect.Method;
@@ -40,6 +41,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import prerna.auth.AuthProvider;
+import prerna.auth.User;
+import prerna.engine.impl.model.Room;
 import prerna.io.connector.ConnectorScopeAccess;
 import prerna.reactor.agent.mcp.MCPUtility;
 
@@ -56,7 +59,7 @@ class CollaborationAgentToolsUnitTests {
 	@Test
 	void everyDedicatedToolHasAViewAndItsOwnApprovalSchema() throws Exception {
 		List<Map<String, Object>> tools = allDefinitions();
-		assertEquals(59, tools.size());
+		assertEquals(60, tools.size());
 		for (Map<String, Object> value : tools) {
 			JSONObject tool = new JSONObject(value);
 			JSONObject meta = tool.getJSONObject("_meta");
@@ -87,6 +90,27 @@ class CollaborationAgentToolsUnitTests {
 	}
 
 	@Test
+	void orgChartIsAnAutomaticNativeToolOnlyInTheOwnersRootChat() {
+		Room room = new Room();
+		room.setProjectId(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		User user = mock(User.class);
+		try (MockedStatic<BrainMemoryUtils> memory = mockStatic(BrainMemoryUtils.class)) {
+			JSONObject tool = new JSONObject(CollaborationAgentTools.definitions(room, user, true).stream()
+					.filter(t -> "ShowOrgChart".equals(t.get("name"))).findFirst().orElseThrow());
+			JSONObject meta = tool.getJSONObject("_meta");
+			assertEquals("WorkShowOrgChart", meta.getString(MCPUtility.SMSS_FUNCTION_NAME));
+			assertEquals(MCPUtility.MCPExecution.AUTO.getValue(), meta.getString(MCPUtility.SMSS_MCP_EXECUTION));
+			assertEquals("org-chart", meta.getJSONObject(MCPUtility.SMSS_MCP_UI).getString(MCPUtility.UI_COMPONENT));
+			assertEquals("inline", meta.getJSONObject(MCPUtility.SMSS_MCP_UI).getString(MCPUtility.UI_DISPLAY_LOCATION));
+			assertTrue(CollaborationAgentTools.definitions(room, user, false).stream()
+					.noneMatch(t -> "ShowOrgChart".equals(t.get("name"))));
+			room.setOptionsMap(Map.of(CollaborationUtils.ROOM_OPTION_ROUTINE, true));
+			assertTrue(CollaborationAgentTools.definitions(room, user, true).stream()
+					.noneMatch(t -> "ShowOrgChart".equals(t.get("name"))));
+		}
+	}
+
+	@Test
 	void changingRoutinePreferencesWaitsForTheOwnerSoAnUnattendedRoutineNeverGetsIt() throws Exception {
 		for (Map<String, Object> value : allDefinitions()) {
 			JSONObject tool = new JSONObject(value);
@@ -111,7 +135,7 @@ class CollaborationAgentToolsUnitTests {
 			scopes.when(() -> ConnectorScopeAccess.requestsAnyScope(AuthProvider.MICROSOFT,
 					List.of("OnlineMeetingTranscript.Read.All"))).thenReturn(true);
 			List<Map<String, Object>> tools = allDefinitions();
-			assertEquals(60, tools.size());
+			assertEquals(61, tools.size());
 			JSONObject tool = new JSONObject(tools.stream()
 					.filter(value -> "GetMeetingTranscript".equals(value.get("name"))).findFirst().orElseThrow());
 			// a read, so it runs without waiting for the owner and a routine keeps it
