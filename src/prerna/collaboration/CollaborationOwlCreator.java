@@ -818,6 +818,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ASSIGNEE", VARCHAR_50),
 				Pair.with("ASKED_BY", VARCHAR_50),
 				Pair.with("ADDRESSING_JSON", CLOB_DATATYPE_NAME),
+				// only to attend a meeting, call or event on DUE_AT: nothing to do once that day has passed
+				Pair.with("ATTEND", BOOLEAN_DATATYPE_NAME),
 				Pair.with("TOPIC_ID", VARCHAR_50),
 				// evidence, new_step, new_task, closes, waiting_on, update or drop, and what it pointed at
 				Pair.with("RESULT", VARCHAR_20),

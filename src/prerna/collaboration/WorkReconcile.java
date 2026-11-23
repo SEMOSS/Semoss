@@ -113,8 +113,9 @@ public final class WorkReconcile {
 			under other topics are listed only when a candidate's thread feeds them, and a candidate joins one \
 			only through feeds.
 
-			When the topic is "(no topic)" the candidates come from threads not filed anywhere: make a new item \
-			only from candidates of one thread, and leave the rest loose.
+			When the topic is "(no topic)" the candidates come from threads not filed anywhere, a mixed bag: make \
+			a new item from candidates of one thread, or of several threads only when they are plainly about the \
+			same client, release, event or deliverable, and leave the rest loose.
 
 			The same ask often comes from two threads in different words ("Widen the chat window" and "Allow \
 			the chat window to widen"): mark the later one same_as the earlier one.
@@ -126,7 +127,13 @@ public final class WorkReconcile {
 
 			Then group the leftovers. A work item is one outcome someone is driving, named as a short \
 			outcome ("Ship the 6.0.0 release", "Remediate the container scan findings", "Fix the chat \
-			UI issues"). Fixes and changes to the same product area or feature are one outcome. Make a new \
+			UI issues"). The title says what gets done in 4 to 9 words: never only a person's name, a meeting's \
+			name, or the conversation it came from ("Onboard the new backend engineer", not "Sam questions and \
+			updates" or "Weekly check-in"). A conversation is not an outcome: asks from one chat that serve \
+			different outcomes go to different items, or stay loose. Leftovers from different threads about the \
+			same client, release, event or deliverable are one outcome; when an existing item already covers it \
+			they are new_step on that item, not a new item. \
+			Fixes and changes to the same product area or feature are one outcome. Make a new \
 			item when two or more leftovers serve the same outcome, with at most 8 of them; when more than 8 \
 			fit, split by area. Do not put asks with different outcomes together just to tidy up: a leftover \
 			that shares no outcome with another stays loose, but most of a busy topic's tasks belong to a \
@@ -148,9 +155,12 @@ public final class WorkReconcile {
 			A work item is one outcome someone is driving, named as a short outcome ("Fix the chat UI issues", \
 			"Ship the 6.0.0 release", "Hire for the open positions"). Changes to the same product area, \
 			feature, release or hiring need are one outcome. Each item has 2 to 8 tasks; when more fit, split \
-			by area. Tasks from one thread often share an outcome; tasks from different threads share one only \
-			when they are about the same deliverable, product, client or release. A task that shares an \
-			outcome with no other task stays loose, and when unsure leave it loose.
+			by area. Tasks from one thread often share an outcome, but a conversation is not an outcome: tasks \
+			from one thread that serve different outcomes go to different items or stay loose. Tasks from \
+			different threads share an outcome when they are about the same deliverable, product, client, event \
+			or release. A task that shares an outcome with no other task stays loose, and when unsure leave it \
+			loose. The title says what gets done in 4 to 9 words: never only a person's name, a meeting's name, \
+			or the conversation it came from.
 
 			Answer with JSON only: {"items": [{"title": "", "tasks": [""]}], "loose": [""]}
 			Every task appears once, in one item or in loose.
@@ -1197,7 +1207,12 @@ public final class WorkReconcile {
 		Map<String, Object> params = new LinkedHashMap<>();
 		params.put("temperature", 0);
 		params.put("schema", schema);
-		String effort = Utility.getDIHelperProperty(Constants.COLLAB_WORK_REASONING_EFFORT);
+		// grouping is where judgement matters, so it may think harder than reading and tidying do
+		String effort = TIDY_INSTRUCTIONS.equals(instructions) ? null
+				: Utility.getDIHelperProperty(Constants.COLLAB_WORK_GROUP_EFFORT);
+		if (effort == null || effort.isBlank()) {
+			effort = Utility.getDIHelperProperty(Constants.COLLAB_WORK_REASONING_EFFORT);
+		}
 		if (effort != null && !effort.isBlank()) {
 			params.put("effort", effort.trim());
 		}
