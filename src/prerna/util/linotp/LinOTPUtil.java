@@ -82,6 +82,17 @@ public class LinOTPUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(LinOTPUtil.class);
 
+	private static final String SKIP_HOSTNAME_VERIFY_KEY = "linotp_skip_hostname_verify";
+
+	// host names are checked unless the admin opts out in social.properties
+	private static CloseableHttpClient newClient(SocialPropertiesUtil socialData) {
+		if (Boolean.parseBoolean(socialData.getProperty(SKIP_HOSTNAME_VERIFY_KEY, "false"))) {
+			classLogger.warn("{} is true so the LinOTP server's host name is not checked", SKIP_HOSTNAME_VERIFY_KEY);
+			return HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build();
+		}
+		return HttpClients.createDefault();
+	}
+
 	/**
 	 * 
 	 * @param request
@@ -184,8 +195,7 @@ public class LinOTPUtil {
 
 			// first, request for challenge request using user pin
 			// Create HTTP request via ssl port (https) and pass post parameters
-			try (CloseableHttpClient httpclient = HttpClients.custom()
-					.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build()) {
+			try (CloseableHttpClient httpclient = newClient(socialData)) {
 				HttpPost httpPost = new HttpPost(requestURL);
 				List<NameValuePair> nvps = new ArrayList<NameValuePair>();
 				nvps.add(new BasicNameValuePair("user", username));
@@ -259,8 +269,7 @@ public class LinOTPUtil {
 		} else {
 			// subsequent challenge request with otp
 			// Create HTTP request via ssl port (https) and pass post parameters
-			try (CloseableHttpClient httpclient = HttpClients.custom()
-					.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build()) {
+			try (CloseableHttpClient httpclient = newClient(socialData)) {
 				HttpPost httpPost = new HttpPost(requestURL);
 				HttpSession session = request.getSession();
 				username = (String) session.getAttribute(LINOTP_USERNAME);
@@ -445,8 +454,7 @@ public class LinOTPUtil {
 		context.setCookieStore(cstore);
 
 		// Create HTTP request via ssl port (https) and pass post parameters
-		try (CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-				.build()) {
+		try (CloseableHttpClient httpclient = newClient(socialData)) {
 			HttpPost httpPost = new HttpPost(requestURL);
 
 			List<NameValuePair> nvps = new ArrayList<NameValuePair>();
