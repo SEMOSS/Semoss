@@ -927,6 +927,19 @@ class BrainSyncDbUnitTests {
 			assertEquals(3, count("BRAIN_MESSAGE"));
 			assertEquals(3, count("BRAIN_THREAD_TOPIC"));
 
+			sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, " + BrainRuleUtils.valueColumn()
+					+ ", CREATED_AT) "
+					+ "VALUES (?, ?, 'blocked-sender', 'never_sender', 'noreply@uber.com', CURRENT_TIMESTAMP)",
+					ownerId, ownerType);
+			prerna.sablecc2.om.execptions.SemossPixelException blocked = assertThrows(
+					prerna.sablecc2.om.execptions.SemossPixelException.class,
+					() -> BrainAgentEdits.editTopic(user, null, "Uber", null, null, null, null, null, null, null,
+							List.of("G4")));
+			assertEquals("NEVER_INGEST", ((Map<?, ?>) blocked.getNoun().getValue()).get("code"));
+			assertEquals(3, count("BRAIN_MESSAGE"));
+			sql("DELETE FROM BRAIN_RULE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = 'blocked-sender'",
+					ownerId, ownerType);
+
 			// an id the mailbox does not have, or mail that cannot come in, stops the call
 			// before the topic is made
 			assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, null, null, "Lyft", null,

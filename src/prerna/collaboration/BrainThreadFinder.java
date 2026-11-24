@@ -244,6 +244,19 @@ public final class BrainThreadFinder {
 		return search(owner.getValue0(), owner.getValue1(), null, query, person, from, to, limit, user, false);
 	}
 
+	/** Restricted mailbox matches for a search, separate from the normal Brain results. */
+	public static Map<String, Object> restrictedMail(User user, List<String> topics, String query, String person,
+			String from, String to) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		Timestamp after = CollaborationDbUtils.toTimestamp(from, "from");
+		Timestamp before = CollaborationDbUtils.toTimestamp(to, "to");
+		if (before != null && to.trim().length() == 10) {
+			before = Timestamp.valueOf(before.toLocalDateTime().plusDays(1));
+		}
+		return BrainRestrictedMailSearch.search(user, owner.getValue0(), owner.getValue1(), topics, query, person,
+				after, before);
+	}
+
 	// topics null means every thread; message text is searched only inside topics
 	private static Map<String, Object> search(String ownerId, String ownerType, List<String> topics, String query,
 			String person, String from, String to, Integer limit, User user, boolean bodies) {
@@ -669,7 +682,7 @@ public final class BrainThreadFinder {
 	}
 
 	// the words the body search may use to find and show passages: without the filler of a question
-	private static List<String> bodyTokens(String query) {
+	static List<String> bodyTokens(String query) {
 		List<String> out = new ArrayList<>(tokens(query));
 		out.removeIf(QUESTION_WORDS::contains);
 		return out;

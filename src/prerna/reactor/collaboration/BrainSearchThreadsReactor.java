@@ -67,8 +67,9 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 		String topic = getString(TOPIC);
 		// a topic limits the search to the threads in it
 		if ((topicId != null && !topicId.isBlank()) || (topic != null && !topic.isBlank())) {
-			return mapResult(BrainThreadFinder.searchTopic(user, topicId, topic, getString(QUERY), getString(PERSON),
-					getString(FROM), getString(TO), getIntFromKeyOrCurRow(LIMIT)));
+			Map<String, Object> result = BrainThreadFinder.searchTopic(user, topicId, topic, getString(QUERY),
+					getString(PERSON), getString(FROM), getString(TO), getIntFromKeyOrCurRow(LIMIT));
+			return mapResult(withRestricted(user, result, List.of((String) result.get("topicId"))));
 		}
 		// in a chat about topics the search stays in them, unless the assistant asks for everything
 		if (!Boolean.TRUE.equals(getBoolean(ALL_TOPICS))) {
@@ -78,11 +79,18 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 						getString(PERSON), getString(FROM), getString(TO), getIntFromKeyOrCurRow(LIMIT));
 				result = new LinkedHashMap<>(result);
 				result.put("scope", "this chat's topics; pass allTopics to search all of the owner's mail");
-				return mapResult(result);
+				return mapResult(withRestricted(user, result, chatTopics));
 			}
 		}
-		return mapResult(BrainThreadFinder.searchAll(user, getString(QUERY), getString(PERSON), getString(FROM),
-				getString(TO), getIntFromKeyOrCurRow(LIMIT)));
+		return mapResult(withRestricted(user, BrainThreadFinder.searchAll(user, getString(QUERY), getString(PERSON),
+				getString(FROM), getString(TO), getIntFromKeyOrCurRow(LIMIT)), null));
+	}
+
+	private Map<String, Object> withRestricted(User user, Map<String, Object> result, List<String> topics) {
+		Map<String, Object> output = new LinkedHashMap<>(result);
+		output.put("restrictedMail", BrainThreadFinder.restrictedMail(user, topics, getString(QUERY),
+				getString(PERSON), getString(FROM), getString(TO)));
+		return output;
 	}
 
 	// the topics of the chat this runs in; none outside an owner's chat, or when the chat has no topic yet
@@ -111,7 +119,8 @@ public class BrainSearchThreadsReactor extends AbstractCollaborationReactor {
 						+ "picks the passages that answer the question, so ask in a full sentence with the question's own "
 						+ "words; a match shows the quoted passage, who wrote it, and how sure the model is. In a chat that has topics it looks "
 						+ "inside them unless allTopics is set. Read a match with BrainGetThreadMessages. Never-ingest and "
-						+ "muted content is left out")
+						+ "muted content is left out of normal results. restrictedMail reports matching restricted "
+						+ "mail separately, without exposing never-ingest content; its status says how far the check went")
 				.key(TOPIC_ID, "Only threads in this topic, by id from ListTopics")
 				.key(TOPIC, "Only threads in this topic, by name, when the id is not known; must match one topic")
 				.key(QUERY, "Optional. The owner's question exactly as asked, as a whole sentence and not shortened to "

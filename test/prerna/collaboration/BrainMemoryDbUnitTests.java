@@ -37,6 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -84,6 +85,7 @@ import prerna.reactor.collaboration.BrainEditTopicReactor;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.SystemEngineRegistry;
@@ -906,6 +908,28 @@ class BrainMemoryDbUnitTests {
 	}
 
 	@Test
+	void editTopicRefusesAnEmailCoveredByANeverIngestRule() throws Exception {
+		topic("t-acme", "Acme");
+		person("p-blocked", "Blocked Person", true);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT) "
+				+ "VALUES (?, ?, 'th-blocked', 'email', 'Subject')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, "
+				+ "DECISION) VALUES (?, ?, 'key-blocked', 'th-blocked', 'graph-blocked', 'p-blocked', 'ingested')",
+				ownerId, ownerType);
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, PERSON_ID, CREATED_AT) "
+				+ "VALUES (?, ?, 'rule-blocked', 'exclude_everywhere', 'p-blocked', CURRENT_TIMESTAMP)", ownerId,
+				ownerType);
+		for (String ref : List.of("graph-blocked", "email:key-blocked")) {
+			SemossPixelException error = assertThrows(SemossPixelException.class,
+					() -> BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null,
+							List.of(ref)));
+			assertEquals("NEVER_INGEST", ((Map<?, ?>) error.getNoun().getValue()).get("code"));
+			assertTrue(error.getMessage().contains("never-ingest"));
+		}
+		assertTrue(topicThreads("t-acme").isEmpty());
+	}
+
+	@Test
 	void aTopicSearchFindsTheAutomatedMailFiledInIt() throws Exception {
 		topic("t-uber", "Uber");
 		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT, MUTED, AUTOMATED, "
@@ -942,6 +966,102 @@ class BrainMemoryDbUnitTests {
 		assertFalse(gate.allows("th-1", null, listed("Blocked@Evil.com", "f-inbox", false)));
 		assertFalse(gate.allows("th-1", null, listed("someone@acme.com", "f-inbox", true)));
 		assertFalse(gate.allows("th-1", null, listed("someone@acme.com", "f-deleted", false)));
+	}
+
+	@Test
+	void restrictedSearchReportsReasonsWithoutExposingNeverIngestContent() throws Exception {
+		topic("t-acme", "Acme");
+		person("p-ignored", "Ignored Person", false);
+		sql("INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, KIND, VALUE_NORM) "
+				+ "VALUES (?, ?, 'p-ignored', 'email', 'ignored@example.com')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, PERSON_ID, TOPIC_ID, CREATED_AT) "
+				+ "VALUES (?, ?, 'ignore', 'exclude_topic', 'p-ignored', 't-acme', CURRENT_TIMESTAMP)", ownerId,
+				ownerType);
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, " + BrainRuleUtils.valueColumn()
+				+ ", CREATED_AT) VALUES (?, ?, 'never', 'never_sender', 'blocked@example.com', CURRENT_TIMESTAMP)",
+				ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, MUTED) "
+				+ "VALUES (?, ?, 'th-muted', 'email:muted-conversation', 'email', TRUE)", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE) "
+				+ "VALUES (?, ?, 'th-muted', 't-acme', 'you')", ownerId, ownerType);
+		BrainMessageSource source = mock(BrainMessageSource.class);
+		Map<String, Object> blocked = new LinkedHashMap<>(listed("blocked@example.com", "inbox", false));
+		blocked.put("id", "blocked");
+		blocked.put("subject", "Private subject");
+		Map<String, Object> ignored = new LinkedHashMap<>(listed("ignored@example.com", "inbox", false));
+		ignored.put("id", "ignored");
+		ignored.put("subject", "Ignored subject");
+		Map<String, Object> muted = new LinkedHashMap<>(listed("other@example.com", "inbox", false));
+		muted.put("id", "muted");
+		muted.put("conversationId", "muted-conversation");
+		muted.put("subject", "Muted subject");
+		when(source.search(eq(user), any(), eq(true), any(), any(), eq(100)))
+				.thenReturn(List.of(blocked, ignored, muted));
+		try (MockedStatic<BrainMessageSource> current = mockStatic(BrainMessageSource.class)) {
+			current.when(BrainMessageSource::current).thenReturn(source);
+			Map<String, Object> result = BrainThreadFinder.restrictedMail(user, List.of("t-acme"), "contract", null,
+					null, null);
+			assertEquals("searched", result.get("status"));
+			List<?> items = (List<?>) result.get("items");
+			assertEquals(3, items.size());
+			Map<?, ?> first = (Map<?, ?>) items.get(0);
+			assertEquals("NEVER_INGEST", first.get("code"));
+			assertEquals("unknown", first.get("topicMatch"));
+			assertFalse(first.containsKey("subject"));
+			assertEquals("IGNORED", ((Map<?, ?>) items.get(1)).get("code"));
+			assertEquals("THREAD_MUTED", ((Map<?, ?>) items.get(2)).get("code"));
+			assertEquals("linked", ((Map<?, ?>) items.get(2)).get("topicMatch"));
+		}
+	}
+
+	@Test
+	void restrictedSearchHonorsDatesAndDoesNotIncludeThreadsLinkedOnlyToOtherTopics() throws Exception {
+		topic("t-requested", "Requested");
+		topic("t-other", "Other");
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, " + BrainRuleUtils.valueColumn()
+				+ ", CREATED_AT) VALUES (?, ?, 'mute', 'mute_sender', 'muted@example.com', CURRENT_TIMESTAMP)",
+				ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE) "
+				+ "VALUES (?, ?, 'th-other', 'email:other', 'email')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE) "
+				+ "VALUES (?, ?, 'th-other', 't-other', 'you')", ownerId, ownerType);
+		Map<String, Object> other = new LinkedHashMap<>(listed("muted@example.com", "inbox", false));
+		other.put("id", "other");
+		other.put("conversationId", "other");
+		other.put("receivedDateTime", "2026-01-02T00:00:00Z");
+		Map<String, Object> old = new LinkedHashMap<>(listed("muted@example.com", "inbox", false));
+		old.put("id", "old");
+		old.put("receivedDateTime", "2025-12-01T00:00:00Z");
+		Map<String, Object> unknown = new LinkedHashMap<>(listed("muted@example.com", "inbox", false));
+		unknown.put("id", "unknown");
+		unknown.put("receivedDateTime", "2026-01-02T00:00:00Z");
+		BrainMessageSource source = mock(BrainMessageSource.class);
+		when(source.search(eq(user), any(), eq(true), any(), any(), eq(100)))
+				.thenReturn(List.of(other, old, unknown));
+		try (MockedStatic<BrainMessageSource> current = mockStatic(BrainMessageSource.class)) {
+			current.when(BrainMessageSource::current).thenReturn(source);
+			Map<String, Object> result = BrainThreadFinder.restrictedMail(user, List.of("t-requested"), "contract",
+					null, "2026-01-01", "2026-01-03");
+			List<?> items = (List<?>) result.get("items");
+			assertEquals(1, items.size());
+			Map<?, ?> item = (Map<?, ?>) items.get(0);
+			assertEquals("unknown", item.get("messageId"));
+			assertEquals("unknown", item.get("topicMatch"));
+			assertEquals("SENDER_MUTED", item.get("code"));
+		}
+	}
+
+	@Test
+	void restrictedSearchReportsMailboxFailure() throws Exception {
+		BrainMessageSource source = mock(BrainMessageSource.class);
+		when(source.search(eq(user), any(), eq(true), any(), any(), eq(100)))
+				.thenThrow(new IllegalStateException("Mailbox unavailable"));
+		try (MockedStatic<BrainMessageSource> current = mockStatic(BrainMessageSource.class)) {
+			current.when(BrainMessageSource::current).thenReturn(source);
+			Map<String, Object> result = BrainThreadFinder.restrictedMail(user, null, "contract", null, null, null);
+			assertEquals("unavailable", result.get("status"));
+			assertEquals(List.of(), result.get("items"));
+		}
 	}
 
 	@Test

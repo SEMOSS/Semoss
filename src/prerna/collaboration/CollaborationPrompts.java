@@ -147,6 +147,9 @@ public final class CollaborationPrompts {
 			it says partial or scanned_recent, say that message text was only partly searched. When it says \
 			unavailable, message text was not searched: tell the owner so and what bodySearch.note says is \
 			needed, such as signing in to Microsoft again. \
+			When restrictedMail reports matches, explain each confirmed reason without claiming that an item with \
+			topicMatch unknown belongs to the topic. Never infer a restriction from an empty result; mention when \
+			the restricted-mail check was partial or unavailable. \
 			RelatedThreads lists mail that belongs with a thread you already have.
 			- Give only dates and facts that a quoted passage states. When passages disagree or change over time, \
 			list each with who wrote it and when, and say which is newest. Never work a date out from other clues, \
@@ -191,7 +194,8 @@ public final class CollaborationPrompts {
 			mutes it, or marks it not automated. EditTopic renames a topic, edits its description, adds or \
 			removes its people, or adds or deletes a note; with no topicId or \
 			topic it creates a topic from name. Its addEmails puts emails in the topic: any email the owner \
-			has can go in, by its threadId from SearchMail or its id from ListM365Mail. \
+			has can go in by its threadId from SearchMail or its id from ListM365Mail, unless a global \
+			never-ingest rule blocks it. \
 			Both wait for the owner to approve, so \
 			one call can hold several changes. Use them when the owner asks, such as "untag that" or "add \
 			Rose to this topic", and not otherwise.
