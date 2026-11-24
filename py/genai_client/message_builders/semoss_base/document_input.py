@@ -34,6 +34,27 @@ DOCUMENT_FORMATS = {
 }
 
 
+def attached_file_text(name: str, text: str, notice: str = "") -> str:
+    """Present an attachment's text to the model under its file name.
+
+    The name is quoted so embedded newlines cannot alter the header, and the
+    header states that the full text follows. The contents remain ordinary
+    user input.
+
+    Args:
+        name: The attachment's file name.
+        text: The attachment's full text.
+        notice: Extra header lines, each starting with a newline.
+
+    Returns:
+        The labeled text sent to the model in place of the attachment.
+    """
+    return (
+        f"Attached file: {json.dumps(name, ensure_ascii=False)}\n"
+        f"The full text of this file is included below.{notice}\n\n{text}"
+    )
+
+
 class DocumentInputError(ValueError):
     """An attachment could not be delivered without losing its contents."""
 
@@ -289,9 +310,7 @@ class DocumentInputProcessor:
                 f"\nExtraction note: {document.pictures} image(s) were not visually "
                 "analyzed. Extracted text does not preserve the visual layout."
             )
-        # Encode the filename as a quoted label so embedded newlines cannot alter
-        # the attachment header. The contents remain ordinary user input.
-        return f"Attached file: {json.dumps(name, ensure_ascii=False)}{notice}\n\n{document.text}"
+        return attached_file_text(name, document.text, notice)
 
     def _extract(
         self, raw: bytes, extension: str, scope: str | None

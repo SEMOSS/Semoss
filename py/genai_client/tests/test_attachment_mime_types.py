@@ -109,7 +109,11 @@ def test_text_attachments_are_serialized_for_the_provider(provider, mime, filena
             "file_data": f"data:text/plain;base64,{PAYLOAD}",
         }
     elif provider == "chat-completion":
-        assert part == {"type": "text", "text": f"Attached file: {filename}\n\n{TEXT}"}
+        assert part == {
+            "type": "text",
+            "text": f'Attached file: "{filename}"\n'
+            f"The full text of this file is included below.\n\n{TEXT}",
+        }
     elif provider == "anthropic":
         assert part == {
             "type": "document",
