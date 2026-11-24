@@ -86,7 +86,7 @@ public class LinOTPUtil {
 
 	// host names are checked unless the admin opts out in social.properties
 	private static CloseableHttpClient newClient(SocialPropertiesUtil socialData) {
-		if (Boolean.parseBoolean(socialData.getProperty(SKIP_HOSTNAME_VERIFY_KEY, "false"))) {
+		if (Boolean.parseBoolean(socialData.getProperty(SKIP_HOSTNAME_VERIFY_KEY, "false").trim())) {
 			classLogger.warn("{} is true so the LinOTP server's host name is not checked", SKIP_HOSTNAME_VERIFY_KEY);
 			return HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE).build();
 		}
