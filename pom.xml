@@ -3483,6 +3483,10 @@
 					<groupId>org.jetbrains.kotlin</groupId>
 					<artifactId>kotlin-stdlib-jdk8</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.jetbrains.kotlin</groupId>
+					<artifactId>kotlin-stdlib-common</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- jars added to shade-dependencies -->
