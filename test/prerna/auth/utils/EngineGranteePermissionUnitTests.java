@@ -52,6 +52,7 @@ import org.mockito.MockedStatic;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.access.EngineGrantee;
+import prerna.auth.access.GranteePermissionQuery;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.ModelUsageLimitRule;
@@ -68,6 +69,7 @@ import prerna.auth.access.PermissionTargetResource;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.usage.ModelUsageCost;
+import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -88,6 +90,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 	private static final String VECTOR_ID = "ordersvectors";
 	private static final String APP = PermissionSubject.PROJECT_TYPE;
 	private static final String VECTOR = IEngine.CATALOG_TYPE.VECTOR.name();
+	private static final String SKILL_ID = "ordersskill";
+	private static final String AGENT_ID = "ordersagent";
 
 	private IRDBMSEngine securityDb;
 	private List<String> tables = new ArrayList<>();
@@ -120,6 +124,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 		UnitTestSecurityAuthUtils.createProject(APP_ID, "orders app", stranger);
 		UnitTestSecurityAuthUtils.createProject(OTHER_APP_ID, "other app", stranger);
 		UnitTestSecurityAuthUtils.createEngine(VECTOR_ID, "orders vectors", IEngine.CATALOG_TYPE.VECTOR, stranger);
+		UnitTestSecurityAuthUtils.createProjectOfType(SKILL_ID, "orders skill", "SKILL", owner);
+		UnitTestSecurityAuthUtils.createProjectOfType(AGENT_ID, "orders agent", "WORKSPACE", stranger);
 	}
 
 	@AfterEach
@@ -135,7 +141,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 
 		assertEquals(AccessPermissionEnum.EDIT.getId(),
 				SecurityEngine2EngineUtils.getGranteePermission(EngineGrantee.ofApp(APP_ID), ENGINE_ID));
-		assertEquals(AccessPermissionEnum.EDIT, SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(APP_ID), ENGINE_ID));
+		assertEquals(AccessPermissionEnum.EDIT,
+				SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(APP_ID), ENGINE_ID));
 	}
 
 	@Test
@@ -178,8 +185,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 	@Test
 	void onlyAnOwnerOfTheEngineGivesAnAppAPermission() {
 		for (User notAnOwner : List.of(editor, reader, stranger, admin)) {
-			IllegalAccessException refusal = assertThrows(IllegalAccessException.class,
-					() -> SecurityEngineUtils.setEngineGranteePermission(notAnOwner, APP_ID, APP, ENGINE_ID, "EDIT", null));
+			IllegalAccessException refusal = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils
+					.setEngineGranteePermission(notAnOwner, APP_ID, APP, ENGINE_ID, "EDIT", null));
 			assertEquals(SecurityEngineUtils.GRANTEES_NEED_OWNER, refusal.getMessage());
 		}
 		assertNull(SecurityEngine2EngineUtils.getGranteePermission(EngineGrantee.ofApp(APP_ID), ENGINE_ID));
@@ -198,10 +205,10 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 
 	@Test
 	void someoneWhoIsNotAnOwnerLearnsNothingAboutTheApp() {
-		IllegalAccessException missingApp = assertThrows(IllegalAccessException.class,
-				() -> SecurityEngineUtils.setEngineGranteePermission(editor, "no-such-app", APP, ENGINE_ID, "EDIT", null));
-		IllegalAccessException missingEngine = assertThrows(IllegalAccessException.class,
-				() -> SecurityEngineUtils.setEngineGranteePermission(editor, APP_ID, APP, "no-such-engine", "EDIT", null));
+		IllegalAccessException missingApp = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils
+				.setEngineGranteePermission(editor, "no-such-app", APP, ENGINE_ID, "EDIT", null));
+		IllegalAccessException missingEngine = assertThrows(IllegalAccessException.class, () -> SecurityEngineUtils
+				.setEngineGranteePermission(editor, APP_ID, APP, "no-such-engine", "EDIT", null));
 
 		assertEquals(SecurityEngineUtils.GRANTEES_NEED_OWNER, missingApp.getMessage());
 		assertEquals(SecurityEngineUtils.GRANTEES_NEED_OWNER, missingEngine.getMessage());
@@ -243,8 +250,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 
 	@Test
 	void aLevelThatIsNotOneOfTheLevelsIsRefused() {
-		assertThrows(IllegalArgumentException.class,
-				() -> SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, ENGINE_ID, "everything", null));
+		assertThrows(IllegalArgumentException.class, () -> SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID,
+				APP, ENGINE_ID, "everything", null));
 		assertThrows(IllegalArgumentException.class,
 				() -> SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, ENGINE_ID, null, null));
 		assertNull(SecurityEngine2EngineUtils.getGranteePermission(EngineGrantee.ofApp(APP_ID), ENGINE_ID));
@@ -252,8 +259,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 
 	@Test
 	void anAppThatDoesNotExistIsRefused() {
-		IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
-				() -> SecurityEngineUtils.setEngineGranteePermission(owner, "no-such-app", APP, ENGINE_ID, "EDIT", null));
+		IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class, () -> SecurityEngineUtils
+				.setEngineGranteePermission(owner, "no-such-app", APP, ENGINE_ID, "EDIT", null));
 
 		assertEquals(SecurityEngineUtils.GRANTEE_DOES_NOT_EXIST, refusal.getMessage());
 	}
@@ -273,7 +280,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 		SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, MODEL_ID, "READ_ONLY", null,
 				appLimit(1_000, 100));
 
-		ModelUsageLimit saved = SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.grantee(MODEL_ID, APP_ID, APP));
+		ModelUsageLimit saved = SecurityModelUsageLimitUtils
+				.getLimit(ModelUsageLimitKey.grantee(MODEL_ID, APP_ID, APP));
 		assertEquals(2, saved.getRules().size());
 		assertEquals(Set.of(Counts.SHARED, Counts.EACH_PERSON),
 				Set.of(saved.getRules().get(0).getCounts(), saved.getRules().get(1).getCounts()));
@@ -290,7 +298,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 
 		SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, MODEL_ID, "EDIT", null);
 
-		assertEquals(AccessPermissionEnum.EDIT, SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(APP_ID), MODEL_ID));
+		assertEquals(AccessPermissionEnum.EDIT,
+				SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(APP_ID), MODEL_ID));
 		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.grantee(MODEL_ID, APP_ID, APP)));
 	}
 
@@ -331,9 +340,9 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 
 	@Test
 	void anAppsLimitThatCannotBeDefinedIsRefused() {
-		ModelUsageLimit twoRulesForTheSameThing = ModelUsageLimit.of(List.of(
-				new ModelUsageLimitRule(Metric.TOKENS, 1_000L, Window.DAY, Counts.SHARED),
-				new ModelUsageLimitRule(Metric.TOKENS, 2_000L, Window.DAY, Counts.SHARED)));
+		ModelUsageLimit twoRulesForTheSameThing = ModelUsageLimit
+				.of(List.of(new ModelUsageLimitRule(Metric.TOKENS, 1_000L, Window.DAY, Counts.SHARED),
+						new ModelUsageLimitRule(Metric.TOKENS, 2_000L, Window.DAY, Counts.SHARED)));
 		PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(MODEL_ID),
 				List.of(PermissionChange.add(PermissionSubject.ofEngine(APP_ID, APP),
 						new PermissionGrant("READ_ONLY", null).withUsageLimit(twoRulesForTheSameThing))));
@@ -343,27 +352,27 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 	}
 
 	@Test
-	void anAppIsGivenAPermissionOnlyOnAnEngine() {
-		PermissionBatch batch = new PermissionBatch(PermissionTargetResource.project(OTHER_APP_ID),
-				List.of(PermissionChange.add(PermissionSubject.ofEngine(APP_ID, APP), new PermissionGrant("EDIT", null))));
+	void anAppIsGivenAPermissionOnAnotherApp() throws Exception {
+		SecurityProjectUtils.setProjectGranteePermission(stranger, APP_ID, APP, OTHER_APP_ID, "EDIT", null);
 
-		assertEquals(PermissionProblem.ErrorCode.NOT_WELL_FORMED, problemOf(stranger, batch).getErrorCode());
+		assertEquals(AccessPermissionEnum.EDIT,
+				SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(APP_ID), OTHER_APP_ID, true));
+		assertNull(SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(OTHER_APP_ID), APP_ID, true));
 	}
 
 	@Test
 	void anAppIsInABatchOnce() {
-		PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(ENGINE_ID),
-				List.of(PermissionChange.add(PermissionSubject.ofEngine(APP_ID, APP), new PermissionGrant("EDIT", null)),
-						PermissionChange.add(PermissionSubject.ofEngine(APP_ID, APP),
-								new PermissionGrant("READ_ONLY", null))));
+		PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(ENGINE_ID), List.of(
+				PermissionChange.add(PermissionSubject.ofEngine(APP_ID, APP), new PermissionGrant("EDIT", null)),
+				PermissionChange.add(PermissionSubject.ofEngine(APP_ID, APP), new PermissionGrant("READ_ONLY", null))));
 
 		assertEquals(PermissionProblem.ErrorCode.DUPLICATE, problemOf(owner, batch).getErrorCode());
 	}
 
 	@Test
 	void anEndDateThatCannotBeReadIsRefused() {
-		assertThrows(IllegalArgumentException.class, () -> SecurityEngineUtils.setEngineGranteePermission(owner,
-				APP_ID, APP, ENGINE_ID, "EDIT", "the end of the month"));
+		assertThrows(IllegalArgumentException.class, () -> SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID,
+				APP, ENGINE_ID, "EDIT", "the end of the month"));
 		assertNull(SecurityEngine2EngineUtils.getGranteePermission(EngineGrantee.ofApp(APP_ID), ENGINE_ID));
 	}
 
@@ -395,8 +404,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 
 	@Test
 	void aBatchThatAddsAnAppTwiceInARowIsRefusedTheSecondTime() throws Exception {
-		PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(ENGINE_ID),
-				List.of(PermissionChange.add(PermissionSubject.ofEngine(APP_ID, APP), new PermissionGrant("EDIT", null))));
+		PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(ENGINE_ID), List
+				.of(PermissionChange.add(PermissionSubject.ofEngine(APP_ID, APP), new PermissionGrant("EDIT", null))));
 		SecurityAccessPermissionBatchUtils.saveBatches(owner, List.of(batch));
 
 		assertEquals(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS, problemOf(owner, batch).getErrorCode());
@@ -431,11 +440,214 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 	}
 
 	@Test
-	void aProjectsPermissionsHaveNoApps() throws Exception {
+	void aProjectThatGivesNoPermissionListsNoApps() throws Exception {
 		Map<String, Object> permissions = SecurityAccessPermissionBatchUtils.getPermissions(stranger,
 				PermissionTargetResource.project(APP_ID));
 
-		assertFalse(permissions.containsKey("engines"));
+		assertEquals(List.of(), permissions.get("engines"));
+		assertEquals(true, ((Map<?, ?>) permissions.get("allowedPermissionChanges")).get("canChangeEngines"));
+	}
+
+	@Test
+	void aSkillsOwnerGivesAnAgentAPermissionOnTheSkill() throws Exception {
+		SecurityProjectUtils.setProjectGranteePermission(owner, AGENT_ID, APP, SKILL_ID, "READ_ONLY", null);
+
+		assertEquals(AccessPermissionEnum.READ_ONLY,
+				SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(AGENT_ID), SKILL_ID, true));
+		assertNull(SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(AGENT_ID), SKILL_ID, false));
+		assertTrue(SecurityEngineAccessUtils.givesAGranteePermission(SKILL_ID, true));
+		assertFalse(SecurityEngineAccessUtils.givesAGranteePermission(SKILL_ID, false));
+	}
+
+	@Test
+	void onlyAProjectsOwnerGivesOrTakesAwayItsPermission() throws Exception {
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(owner, SKILL_ID, "editorid", "EDIT");
+		for (User notAnOwner : List.of(editor, reader, stranger, admin)) {
+			IllegalAccessException refusal = assertThrows(IllegalAccessException.class, () -> SecurityProjectUtils
+					.setProjectGranteePermission(notAnOwner, AGENT_ID, APP, SKILL_ID, "READ_ONLY", null));
+			assertEquals(SecurityProjectUtils.PROJECT_GRANTEES_NEED_OWNER, refusal.getMessage());
+		}
+		SecurityProjectUtils.setProjectGranteePermission(owner, AGENT_ID, APP, SKILL_ID, "READ_ONLY", null);
+
+		assertThrows(IllegalAccessException.class,
+				() -> SecurityProjectUtils.removeProjectGranteePermission(editor, AGENT_ID, APP, SKILL_ID));
+		SecurityProjectUtils.removeProjectGranteePermission(owner, AGENT_ID, APP, SKILL_ID);
+		assertNull(SecurityEngine2EngineUtils.getGranteePermission(EngineGrantee.ofApp(AGENT_ID), SKILL_ID, true));
+	}
+
+	@Test
+	void aProjectIsNeverGivenAPermissionOnItselfAndItsGrantsHaveNoLimits() {
+		PermissionBatch itself = new PermissionBatch(PermissionTargetResource.project(SKILL_ID),
+				List.of(PermissionChange.add(PermissionSubject.ofEngine(SKILL_ID, APP),
+						new PermissionGrant("READ_ONLY", null))));
+		PermissionBatch withALimit = new PermissionBatch(PermissionTargetResource.project(SKILL_ID),
+				List.of(PermissionChange.add(PermissionSubject.ofEngine(AGENT_ID, APP),
+						new PermissionGrant("READ_ONLY", null).withUsageLimit(appLimit(1_000, 100)))));
+
+		PermissionProblem onItself = problemOf(owner, itself);
+		assertEquals(PermissionProblem.ErrorCode.NOT_WELL_FORMED, onItself.getErrorCode());
+		assertEquals("A project cannot be given a permission on itself", onItself.getMessage());
+		assertEquals(PermissionProblem.ErrorCode.INVALID_USAGE_LIMIT, problemOf(owner, withALimit).getErrorCode());
+	}
+
+	@Test
+	void aProjectGivesAccessToAppsAndAgentsOnlyAndAnEnginesRowCanStillBeRemoved() {
+		PermissionBatch engineOnASkill = new PermissionBatch(PermissionTargetResource.project(SKILL_ID),
+				List.of(PermissionChange.add(PermissionSubject.ofEngine(VECTOR_ID, VECTOR),
+						new PermissionGrant("READ_ONLY", null))));
+		PermissionBatch removeIt = new PermissionBatch(PermissionTargetResource.project(SKILL_ID),
+				List.of(PermissionChange.remove(PermissionSubject.ofEngine(VECTOR_ID, VECTOR))));
+
+		PermissionProblem refused = problemOf(owner, engineOnASkill);
+		assertEquals(PermissionProblem.ErrorCode.NOT_WELL_FORMED, refused.getErrorCode());
+		assertEquals(PermissionBatchUtils.PROJECTS_GIVE_APPS_ONLY, refused.getMessage());
+		assertNull(
+				SecurityEngine2EngineUtils.getGranteePermission(new EngineGrantee(VECTOR_ID, VECTOR), SKILL_ID, true));
+		assertEquals(PermissionProblem.ErrorCode.NO_ACCESS, problemOf(owner, removeIt).getErrorCode());
+	}
+
+	@Test
+	void anAppOrEngineIsGivenAccessOnlyToAnEngineOrAProject() throws Exception {
+		UnitTestSecurityAuthUtils.createInsight(APP_ID, "ordersinsight", "orders insight", "grid");
+		UnitTestSecurityAuthUtils.createGroup(admin, "ordersteam", SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE);
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(admin);
+
+		for (PermissionTargetResource target : List.of(PermissionTargetResource.insight(APP_ID, "ordersinsight"),
+				PermissionTargetResource.team("ordersteam"), PermissionTargetResource.teamManagers("ordersteam"))) {
+			for (PermissionSubject grantee : List.of(PermissionSubject.ofEngine(AGENT_ID, APP),
+					PermissionSubject.ofEngine(VECTOR_ID, VECTOR))) {
+				PermissionBatch batch = new PermissionBatch(target,
+						List.of(PermissionChange.add(grantee, new PermissionGrant("READ_ONLY", null))));
+				PermissionBatchException refusal = assertThrows(PermissionBatchException.class,
+						() -> SecurityAccessPermissionBatchUtils.saveBatches(adminUtils, admin, List.of(batch)));
+
+				assertEquals(1, refusal.getProblems().size());
+				PermissionProblem problem = refusal.getProblems().get(0);
+				assertEquals(PermissionProblem.ErrorCode.NOT_WELL_FORMED, problem.getErrorCode());
+				assertEquals("An app or engine can be given access only to an engine or a project",
+						problem.getMessage());
+			}
+		}
+	}
+
+	@Test
+	void anAdminGivesAnAgentAPermissionOnAProjectInAdminMode() {
+		SecurityAdminUtils adminUtils = SecurityAdminUtils.getInstance(admin);
+
+		adminUtils.setProjectGranteePermission(AGENT_ID, APP, SKILL_ID, "EDIT", admin, null);
+		assertEquals(AccessPermissionEnum.EDIT,
+				SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(AGENT_ID), SKILL_ID, true));
+		assertEquals(1, adminUtils.getProjectGranteePermissions(SKILL_ID).size());
+
+		adminUtils.removeProjectGranteePermission(AGENT_ID, APP, SKILL_ID, admin);
+		assertNull(SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(AGENT_ID), SKILL_ID, true));
+		IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
+				() -> adminUtils.getProjectGranteePermissions("no-such-project"));
+		assertEquals("Project no-such-project does not exist", refusal.getMessage());
+	}
+
+	@Test
+	void aProjectsPermissionsListItsAgentsAndTheAgentSeesTheProjectItCanUse() throws Exception {
+		SecurityProjectUtils.setProjectGranteePermission(owner, AGENT_ID, APP, SKILL_ID, "READ_ONLY", null);
+
+		List<?> grantees = (List<?>) SecurityAccessPermissionBatchUtils
+				.getPermissions(owner, PermissionTargetResource.project(SKILL_ID)).get("engines");
+		List<?> accessToEngines = (List<?>) SecurityAccessPermissionBatchUtils
+				.getPermissions(stranger, PermissionTargetResource.project(AGENT_ID)).get("accessToEngines");
+
+		assertEquals(1, grantees.size());
+		Map<?, ?> agent = (Map<?, ?>) ((Map<?, ?>) grantees.get(0)).get("subject");
+		assertEquals(AGENT_ID, agent.get("id"));
+		assertEquals("WORKSPACE", agent.get("subtype"));
+		assertEquals(1, accessToEngines.size());
+		Map<?, ?> skill = (Map<?, ?>) ((Map<?, ?>) accessToEngines.get(0)).get("target");
+		assertEquals("PROJECT", skill.get("resourceType"));
+		assertEquals(SKILL_ID, skill.get("id"));
+		assertEquals("PROJECT", skill.get("type"));
+		assertEquals("SKILL", skill.get("subtype"));
+		assertEquals("orders skill", skill.get("name"));
+	}
+
+	@Test
+	void deletingAProjectRemovesThePermissionsItGave() throws Exception {
+		SecurityProjectUtils.setProjectGranteePermission(owner, AGENT_ID, APP, SKILL_ID, "READ_ONLY", null);
+
+		SecurityProjectUtils.deleteProject(owner, SKILL_ID);
+
+		assertNull(SecurityEngine2EngineUtils.getGranteePermission(EngineGrantee.ofApp(AGENT_ID), SKILL_ID, true));
+	}
+
+	@Test
+	void theGrantsPageListsThePermissionsOnWhatTheUserCanEditAndOnEverythingInAdminMode() throws Exception {
+		SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, ENGINE_ID, "EDIT", null);
+		SecurityEngineUtils.setEngineGranteePermission(owner, AGENT_ID, APP, MODEL_ID, "READ_ONLY", null,
+				appLimit(1_000, 100));
+		SecurityProjectUtils.setProjectGranteePermission(owner, AGENT_ID, APP, SKILL_ID, "READ_ONLY", null);
+
+		Map<String, Object> forTheOwner = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(owner,
+				GranteePermissionQuery.all());
+		Map<String, Object> forTheEditor = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(editor,
+				GranteePermissionQuery.all());
+		Map<String, Object> forTheReader = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(reader,
+				GranteePermissionQuery.all());
+		Map<String, Object> inAdminMode = SecurityAccessPermissionBatchUtils
+				.getAllGranteePermissions(SecurityAdminUtils.getInstance(admin), admin, GranteePermissionQuery.all());
+
+		assertEquals(3, forTheOwner.get("total"));
+		assertEquals(1, forTheEditor.get("total"));
+		assertEquals(false, ((Map<?, ?>) ((List<?>) forTheEditor.get("grants")).get(0)).get("canChange"));
+		assertEquals(0, forTheReader.get("total"));
+		assertEquals(3, inAdminMode.get("total"));
+		Map<?, ?> modelGrant = ((List<?>) forTheOwner.get("grants")).stream().map(grant -> (Map<?, ?>) grant)
+				.filter(grant -> MODEL_ID.equals(((Map<?, ?>) grant.get("target")).get("id"))).findFirst()
+				.orElseThrow();
+		assertEquals(true, modelGrant.get("canChange"));
+		assertNotNull(((Map<?, ?>) modelGrant.get("access")).get("usageLimit"));
+	}
+
+	@Test
+	void theGrantsPageFiltersByTypeAndTextAndPages() throws Exception {
+		SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, ENGINE_ID, "EDIT", null);
+		SecurityEngineUtils.setEngineGranteePermission(owner, AGENT_ID, APP, MODEL_ID, "READ_ONLY", null);
+		SecurityProjectUtils.setProjectGranteePermission(owner, AGENT_ID, APP, SKILL_ID, "READ_ONLY", null);
+
+		Map<String, Object> skills = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(owner,
+				new GranteePermissionQuery(null, null, "skill", null, null, 0, 0));
+		Map<String, Object> agents = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(owner,
+				new GranteePermissionQuery(null, null, null, null, "WORKSPACE", 0, 0));
+		Map<String, Object> searched = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(owner,
+				new GranteePermissionQuery("ORDERS APP", null, null, null, null, 0, 0));
+		Map<String, Object> firstPage = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(owner,
+				new GranteePermissionQuery(null, null, null, null, null, 2, 0));
+
+		assertEquals(1, skills.get("total"));
+		assertEquals(2, agents.get("total"));
+		assertEquals(1, searched.get("total"));
+		assertEquals(3, firstPage.get("total"));
+		assertEquals(2, ((List<?>) firstPage.get("grants")).size());
+	}
+
+	@Test
+	void theGrantsPageSplitsWhatProjectsAndEnginesUseByTheKindOfEachSide() throws Exception {
+		SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, ENGINE_ID, "EDIT", null);
+		SecurityEngineUtils.setEngineGranteePermission(owner, VECTOR_ID, VECTOR, MODEL_ID, "READ_ONLY", null);
+		SecurityProjectUtils.setProjectGranteePermission(owner, AGENT_ID, APP, SKILL_ID, "READ_ONLY", null);
+
+		Map<String, Object> projectsUsingProjects = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(owner,
+				new GranteePermissionQuery(null, "PROJECT", null, "PROJECT", null, 0, 0));
+		Map<String, Object> projectsUsingEngines = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(owner,
+				new GranteePermissionQuery(null, "engine", null, "project", null, 0, 0));
+		Map<String, Object> enginesUsingEngines = SecurityAccessPermissionBatchUtils.getAllGranteePermissions(owner,
+				new GranteePermissionQuery(null, "ENGINE", null, "ENGINE", null, 0, 0));
+
+		assertEquals(1, projectsUsingProjects.get("total"));
+		assertEquals(1, projectsUsingEngines.get("total"));
+		assertEquals(1, enginesUsingEngines.get("total"));
+		assertEquals(VECTOR_ID,
+				((Map<?, ?>) ((Map<?, ?>) ((List<?>) enginesUsingEngines.get("grants")).get(0)).get("subject"))
+						.get("id"));
+		assertThrows(IllegalArgumentException.class,
+				() -> new GranteePermissionQuery(null, "FOLDER", null, null, null, 0, 0));
 	}
 
 	@Test
@@ -512,9 +724,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 
 	@Test
 	void anEngineNamedWithAnotherCatalogTypeIsRefused() {
-		IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class,
-				() -> SecurityEngineUtils.setEngineGranteePermission(owner, VECTOR_ID, "MODEL", MODEL_ID, "READ_ONLY",
-						null));
+		IllegalArgumentException refusal = assertThrows(IllegalArgumentException.class, () -> SecurityEngineUtils
+				.setEngineGranteePermission(owner, VECTOR_ID, "MODEL", MODEL_ID, "READ_ONLY", null));
 
 		assertEquals(SecurityEngineUtils.GRANTEE_DOES_NOT_EXIST, refusal.getMessage());
 		assertNull(SecurityEngine2EngineUtils.getGranteePermission(new EngineGrantee(VECTOR_ID, "MODEL"), MODEL_ID));
@@ -523,8 +734,9 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 	@Test
 	void aGranteeWithNoCatalogTypeIsRefused() {
 		for (String type : new String[] { null, "", "WIDGET" }) {
-			PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(MODEL_ID), List.of(
-					PermissionChange.add(PermissionSubject.ofEngine(VECTOR_ID, type), new PermissionGrant("EDIT", null))));
+			PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(MODEL_ID),
+					List.of(PermissionChange.add(PermissionSubject.ofEngine(VECTOR_ID, type),
+							new PermissionGrant("EDIT", null))));
 
 			assertEquals(PermissionProblem.ErrorCode.NOT_WELL_FORMED, problemOf(owner, batch).getErrorCode());
 		}
@@ -532,9 +744,8 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 
 	@Test
 	void anEngineIsNeverGivenAPermissionOnItself() {
-		PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(MODEL_ID),
-				List.of(PermissionChange.add(PermissionSubject.ofEngine(MODEL_ID, "MODEL"),
-						new PermissionGrant("READ_ONLY", null))));
+		PermissionBatch batch = new PermissionBatch(PermissionTargetResource.engine(MODEL_ID), List.of(PermissionChange
+				.add(PermissionSubject.ofEngine(MODEL_ID, "MODEL"), new PermissionGrant("READ_ONLY", null))));
 
 		PermissionProblem problem = problemOf(owner, batch);
 		assertEquals(PermissionProblem.ErrorCode.NOT_WELL_FORMED, problem.getErrorCode());
@@ -576,11 +787,103 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 		Map<?, ?> vectors = (Map<?, ?>) ((Map<?, ?>) engines.get(1)).get("subject");
 		assertEquals(APP, app.get("type"));
 		assertEquals("orders app", app.get("name"));
-		assertFalse(app.containsKey("subtype"));
+		assertEquals("APP", app.get("subtype"));
 		assertEquals(VECTOR, vectors.get("type"));
 		assertEquals(VECTOR_ID, vectors.get("id"));
 		assertEquals("orders vectors", vectors.get("name"));
 		assertTrue(vectors.containsKey("subtype"));
+	}
+
+	@Test
+	void anAppsPermissionsListTheEnginesThatGiveItAPermission() throws Exception {
+		SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, ENGINE_ID, "EDIT", null);
+		SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, MODEL_ID, "READ_ONLY", null,
+				appLimit(1_000, 100));
+
+		Map<String, Object> permissions = SecurityAccessPermissionBatchUtils.getPermissions(stranger,
+				PermissionTargetResource.project(APP_ID));
+
+		List<?> accessToEngines = (List<?>) permissions.get("accessToEngines");
+		assertEquals(2, accessToEngines.size());
+		Map<?, ?> database = (Map<?, ?>) accessToEngines.get(0);
+		Map<?, ?> databaseTarget = (Map<?, ?>) database.get("target");
+		assertEquals("ENGINE", databaseTarget.get("resourceType"));
+		assertEquals(ENGINE_ID, databaseTarget.get("id"));
+		assertEquals("DATABASE", databaseTarget.get("type"));
+		assertEquals("orders", databaseTarget.get("name"));
+		assertTrue(databaseTarget.containsKey("subtype"));
+		assertEquals("EDIT", ((Map<?, ?>) database.get("access")).get("level"));
+		assertNull(((Map<?, ?>) database.get("access")).get("usageLimit"));
+		Map<?, ?> model = (Map<?, ?>) accessToEngines.get(1);
+		assertEquals(MODEL_ID, ((Map<?, ?>) model.get("target")).get("id"));
+		assertEquals("MODEL", ((Map<?, ?>) model.get("target")).get("type"));
+		assertEquals("READ_ONLY", ((Map<?, ?>) model.get("access")).get("level"));
+		assertEquals(2, ((ModelUsageLimit) ((Map<?, ?>) model.get("access")).get("usageLimit")).getRules().size());
+		assertEquals(true, ((Map<?, ?>) permissions.get("allowedPermissionChanges")).get("canViewAccessToEngines"));
+		assertEquals(List.of(), permissions.get("engines"));
+	}
+
+	@Test
+	void anEnginesPermissionsListTheEnginesThatGiveItAPermissionApartFromTheOnesItGivesOne() throws Exception {
+		SecurityEngineUtils.setEngineGranteePermission(owner, VECTOR_ID, VECTOR, MODEL_ID, "READ_ONLY", null);
+
+		Map<String, Object> vectors = SecurityAccessPermissionBatchUtils.getPermissions(stranger,
+				PermissionTargetResource.engine(VECTOR_ID));
+		Map<String, Object> model = SecurityAccessPermissionBatchUtils.getPermissions(owner,
+				PermissionTargetResource.engine(MODEL_ID));
+
+		List<?> accessToEngines = (List<?>) vectors.get("accessToEngines");
+		assertEquals(1, accessToEngines.size());
+		Map<?, ?> target = (Map<?, ?>) ((Map<?, ?>) accessToEngines.get(0)).get("target");
+		assertEquals(MODEL_ID, target.get("id"));
+		assertEquals("MODEL", target.get("type"));
+		assertEquals(List.of(), vectors.get("engines"));
+		assertEquals(1, ((List<?>) model.get("engines")).size());
+		assertEquals(List.of(), model.get("accessToEngines"));
+	}
+
+	@Test
+	void aPermissionGivenToAnEngineIsNotListedForAnAppWithTheSameId() throws Exception {
+		try (PlatformOperation operation = PlatformOperation.begin("an app registered from its smss")) {
+			SecurityProjectUtils.addProject(VECTOR_ID, "vectors app", "APP", null, false, null);
+			SecurityProjectUtils.addProjectOwner(stranger, VECTOR_ID);
+		}
+		SecurityEngineUtils.setEngineGranteePermission(owner, VECTOR_ID, VECTOR, MODEL_ID, "READ_ONLY", null);
+
+		Map<String, Object> app = SecurityAccessPermissionBatchUtils.getPermissions(stranger,
+				PermissionTargetResource.project(VECTOR_ID));
+
+		assertEquals(List.of(), app.get("accessToEngines"));
+	}
+
+	@Test
+	void onlyTheEditorsAndOwnersOfAnAppOrEngineSeeTheEnginesThatGiveItAPermission() throws Exception {
+		SecurityEngineUtils.setEngineGranteePermission(owner, APP_ID, APP, ENGINE_ID, "EDIT", null);
+		SecurityEngineUtils.setEngineGranteePermission(owner, ENGINE_ID, "DATABASE", OTHER_ENGINE_ID, "READ_ONLY",
+				null);
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(stranger, APP_ID, "editorid", "EDIT");
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(stranger, APP_ID, "readerid", "READ_ONLY");
+
+		Map<String, Object> appForTheEditor = SecurityAccessPermissionBatchUtils.getPermissions(editor,
+				PermissionTargetResource.project(APP_ID));
+		Map<String, Object> appForTheReader = SecurityAccessPermissionBatchUtils.getPermissions(reader,
+				PermissionTargetResource.project(APP_ID));
+		Map<String, Object> appInAdminMode = SecurityAccessPermissionBatchUtils
+				.getPermissions(SecurityAdminUtils.getInstance(admin), admin, PermissionTargetResource.project(APP_ID));
+		Map<String, Object> engineForTheEditor = SecurityAccessPermissionBatchUtils.getPermissions(editor,
+				PermissionTargetResource.engine(ENGINE_ID));
+		Map<String, Object> engineForTheReader = SecurityAccessPermissionBatchUtils.getPermissions(reader,
+				PermissionTargetResource.engine(ENGINE_ID));
+
+		assertEquals(1, ((List<?>) appForTheEditor.get("accessToEngines")).size());
+		assertEquals(1, ((List<?>) appInAdminMode.get("accessToEngines")).size());
+		assertEquals(1, ((List<?>) engineForTheEditor.get("accessToEngines")).size());
+		assertEquals(List.of(), appForTheReader.get("accessToEngines"));
+		assertEquals(List.of(), engineForTheReader.get("accessToEngines"));
+		assertEquals(false,
+				((Map<?, ?>) appForTheReader.get("allowedPermissionChanges")).get("canViewAccessToEngines"));
+		assertEquals(false,
+				((Map<?, ?>) engineForTheReader.get("allowedPermissionChanges")).get("canViewAccessToEngines"));
 	}
 
 	@Test
@@ -617,15 +920,15 @@ class EngineGranteePermissionUnitTests extends AbstractSecurityUtilsUnitTestsSet
 			AbstractSecurityUtils.removeProjectEnginePermissionTable(securityDb, conn, securityDb.getQueryUtil(),
 					securityDb.getDatabase(), securityDb.getSchema());
 
-			assertFalse(securityDb.getQueryUtil().tableExists(conn, "PROJECTENGINEPERMISSION",
-					securityDb.getDatabase(), securityDb.getSchema()));
+			assertFalse(securityDb.getQueryUtil().tableExists(conn, "PROJECTENGINEPERMISSION", securityDb.getDatabase(),
+					securityDb.getSchema()));
 		} finally {
 			if (securityDb.isConnectionPooling()) {
 				conn.close();
 			}
 		}
-		assertEquals(0, QueryExecutionUtility.queryList(securityDb,
-				"SELECT ID FROM MODELUSAGELIMIT WHERE LIMITTYPE = 'PROJECT'", ps -> {
+		assertEquals(0, QueryExecutionUtility
+				.queryList(securityDb, "SELECT ID FROM MODELUSAGELIMIT WHERE LIMITTYPE = 'PROJECT'", ps -> {
 				}, rs -> rs.getString(1)).size());
 		assertNotNull(SecurityModelUsageLimitUtils.getLimit(ModelUsageLimitKey.grantee(MODEL_ID, APP_ID, APP)));
 	}

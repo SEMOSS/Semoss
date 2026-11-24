@@ -105,7 +105,7 @@ What validating a batch finds (built while saving; saving works from these)
 
 | Target resource type | Id | Subjects | Grant | Table |
 |---|---|---|---|---|
-| `PROJECT` | project id | people, teams | level and end date | `PROJECTPERMISSION`, `GROUPPROJECTPERMISSION` |
+| `PROJECT` | project id | people, teams, apps, agents and engines | level and end date; an app's, agent's or engine's level is `READ_ONLY` or `EDIT` | `PROJECTPERMISSION`, `GROUPPROJECTPERMISSION`, `ENGINE2ENGINEPERMISSION` |
 | `ENGINE` | engine id | people, teams, apps and other engines; on a model also its public use and its total | level, end date, and on a model a usage limit for people, teams, apps and engines; only a usage limit for public use and the total; an app's or engine's level is `READ_ONLY` or `EDIT` | `ENGINEPERMISSION`, `GROUPENGINEPERMISSION`, `ENGINE2ENGINEPERMISSION`, and `MODELUSAGELIMIT` for the limits |
 | `INSIGHT` | insight id, with `projectId` | people, teams | level and end date | `USERINSIGHTPERMISSION`, `GROUPINSIGHTPERMISSION` |
 | `TEAM` | custom group id | people only | end date only | `CUSTOMGROUPASSIGNMENT` |
@@ -134,10 +134,10 @@ What validating a batch finds (built while saving; saving works from these)
   date. Making a model public is still `setEngineGlobal`.
 - A team's grant on an engine keeps its `DATEADDED` when its level changes,
   since the order the teams are billed in depends on it.
-- An `ENGINE` subject is taken only on an `ENGINE` target. Its type is the
-  grantee's catalog type, `PROJECT` for an app. It takes `ADD`, `CHANGE` and
-  `REMOVE`, a level of `READ_ONLY` or `EDIT`, never `OWNER`, an end date, and on a
-  model a usage limit.
+- An `ENGINE` subject is taken only on an `ENGINE` or a `PROJECT` target. Its
+  type is the grantee's catalog type, `PROJECT` for an app or an agent. It takes
+  `ADD`, `CHANGE` and `REMOVE`, a level of `READ_ONLY` or `EDIT`, never
+  `OWNER`, an end date, and on a model a usage limit.
 
 ## Who can make a change
 
@@ -181,24 +181,27 @@ Where those permissions come from, as
 
 Admin mode allows every change the batch's shape and the current rows allow.
 
-## An app's or engine's permission on an engine
+## An app's, agent's or engine's permission on an engine or project
 
-An engine can give an app, which is a project, or another engine a permission.
-An app's custom reactors use it in place of the signed in user's own, so an app
-can insert into a database or add a file to a storage engine for people who
-have no access to that engine themselves. Another engine's own code uses it the
-same way: a vector database embeds with the model that gives it a permission, a
-guardrail asks the judge model that gives it one, and a model runs the guardrail
-on its pipeline that gives it one. `docs/platform_services/engine_access.md`
-describes the check that reads it.
+An engine or a project can give an app, an agent (both projects) or an engine a
+permission. An app's custom reactors use it in place of the signed in user's
+own, so an app can insert into a database or add a file to a storage engine for
+people who have no access to that engine themselves. An agent's runs use it the
+same way, so an agent loads a skill or calls a model its users cannot open
+(`AgentRunOperation`). Another engine's own code uses it too: a vector database
+embeds with the model that gives it a permission, a guardrail asks the judge
+model that gives it one, and a model runs the guardrail on its pipeline that
+gives it one. `docs/platform_services/engine_access.md` describes the check
+that reads it.
 
-- The change is an `ENGINE` subject on an `ENGINE` target: the grantee's id and
-  its catalog type (`PermissionSubject.ofEngine(id, type)`, with
-  `PermissionSubject.PROJECT_TYPE` for an app), with a level of `READ_ONLY` or
-  `EDIT` and an optional end date. The type is read ignoring case and must be a
-  catalog type. A grantee is never an owner of an engine, so the engine's
-  settings stay with its owners, and an engine is never given a permission on
-  itself. The one exception is a proxy vector database, which opens a copy of
+- The change is an `ENGINE` subject on an `ENGINE` or `PROJECT` target: the
+  grantee's id and its catalog type (`PermissionSubject.ofEngine(id, type)`,
+  with `PermissionSubject.PROJECT_TYPE` for an app or an agent), with a level of
+  `READ_ONLY` or `EDIT` and an optional end date. The type is read ignoring case
+  and must be a catalog type. A grantee is never an owner of an engine or a
+  project, so their settings stay with their owners, and an engine or project is
+  never given a permission on itself. A project's grant carries no usage limit
+  (`INVALID_USAGE_LIMIT`). The one exception is a proxy vector database, which opens a copy of
   its target with the target's settings when the target gives it Editor
   (`ProxyVectorDatabaseEngine.requireEditorOnTarget`).
 - On a model, the grant carries the grantee's limit in `usageLimit`, validated
@@ -216,32 +219,64 @@ describes the check that reads it.
   anyone with a grant. The single methods that take no limit keep the one the
   grantee has (`keepingModelLimits()`). Removing the grant, or deleting the
   grantee, removes the limit.
-- Only the engine's owners, directly or through a team, and admin mode make the
-  change (`PermissionAllowedChanges.canChangeEngines`). Where only admins give
-  access to the engine, only admin mode adds an app or engine.
+- Only the owners of the engine or project, directly or through a team, and
+  admin mode make the change (`PermissionAllowedChanges.canChangeEngines`).
+  Where only admins give access to the engine or project, only admin mode adds
+  an app, agent or engine.
 - An add needs an app, or an engine of the catalog type given, that exists and
-  has no permission on the engine yet; a change or a removal needs one that has.
+  has no permission on the target yet; a change or a removal needs one that has.
 - The row is in `ENGINE2ENGINEPERMISSION` (`ENGINEID` and `ENGINETYPE`, the
-  engine giving it and its catalog type, and `GRANTEEENGINEID` and
-  `GRANTEEENGINETYPE`), one for each engine and grantee, kept unique by an
-  index, with who gave it and when. A change keeps the date it was first given.
-  Deleting the engine removes the rows it gave and was given; deleting a project
-  removes the rows it was given as an app.
+  target giving it and its type, an engine's catalog type or `PROJECT`, and
+  `GRANTEEENGINEID` and `GRANTEEENGINETYPE`), one for each target and grantee,
+  kept unique by an index, with who gave it and when. A row with no
+  `ENGINETYPE` is an engine's. Every read and write names the target's kind
+  (`PermissionBatchUtils.granteeTargetCondition`,
+  `SecurityEngine2EngineUtils.targetKey`), so an engine and a project with the
+  same id never share a grant. A change keeps the date it was first given.
+  Deleting an engine or a project removes the rows it gave and was given.
 - The single methods are `SecurityEngineUtils.setEngineGranteePermission`,
-  `removeEngineGranteePermission` and `getEngineGranteePermissions`, with their
-  admin mode versions on `SecurityAdminUtils`. Monolith's
-  `/auth/engine` and `/auth/admin/engine` endpoints of the same names call
-  them, as its endpoints for people and teams call theirs.
-- `getPermissions` on an engine returns its apps and engines as `engines`, each
-  with its `subject` (`category` `ENGINE`, `id`, `type`, `name`, the display
-  name when it has one, and an engine's `subtype`) and `access` (`level`,
+  `removeEngineGranteePermission` and `getEngineGranteePermissions`, and
+  `SecurityProjectUtils.setProjectGranteePermission`,
+  `removeProjectGranteePermission` and `getProjectGranteePermissions`, with
+  their admin mode versions on `SecurityAdminUtils`. Monolith's `/auth/engine`,
+  `/auth/project`, `/auth/admin/engine` and `/auth/admin/project` endpoints of
+  the same names call them, as its endpoints for people and teams call theirs.
+- `getPermissions` on an engine or a project returns its apps, agents and
+  engines as `engines`, each with its `subject` (`category` `ENGINE`, `id`,
+  `type`, `name`, the display name when it has one, and `subtype`, an engine's
+  subtype or a project's type, `WORKSPACE` for an agent) and `access` (`level`,
   `endDate`, `usageLimit`), and `allowedPermissionChanges.canViewEngines` and
-  `canChangeEngines`. Only the engine's editors and owners, and admin mode, see
-  them (`PermissionBatchUtils.canViewEngines`); anyone else gets an empty list.
+  `canChangeEngines`. Only the editors and owners of the engine or project, and
+  admin mode, see them (`PermissionBatchUtils.canViewEngines`); anyone else
+  gets an empty list.
+- `getPermissions` on a project or an engine returns `accessToEngines`, the
+  other side of `engines`: the engines and projects that give the app, agent or
+  engine a permission, each with its `target` (`resourceType` `ENGINE` or
+  `PROJECT`, `id`, `type`, `PROJECT` for a project, `name`, the display name
+  when it has one, and `subtype`, a project's type for a project) and `access`
+  (`level`, `endDate`, and on a model the `usageLimit` it gives), read by
+  `SecurityEngine2EngineUtils.getEnginesGivingAccessTo`. It is changed only on
+  the engine or project that gives it. The app's or engine's editors and owners, and admin
+  mode, see it (`PermissionBatchUtils.canViewAccessToEngines`,
+  `allowedPermissionChanges.canViewAccessToEngines`); anyone else gets an empty
+  list.
+- `SecurityAccessPermissionBatchUtils.getAllGranteePermissions` reads every
+  grant on the engines and projects the user can edit, or on all of them in
+  admin mode, for the Resource Delegated Access and All Resource Delegated Access pages
+  in Settings
+  (`PermissionBatchUtils.readAllGrants`): `grants`, each with `target`,
+  `subject`, `access` and `canChange` (true for the target's owners and in admin
+  mode), and `total`, for a `GranteePermissionQuery`: `search`, each side's
+  kind (`targetKind`, `granteeKind`: `PROJECT` or `ENGINE`, so projects using
+  projects, projects using engines and engines using engines list apart) and
+  type (`targetType`, `granteeType`), and the page (`limit`, `offset`). Monolith serves it at
+  `/auth/permissionBatch/getAllGranteePermissions` and
+  `/auth/admin/permissionBatch/getAllGranteePermissions`. Changes from that
+  page are ordinary batches, one for each target.
 - The engine proxy reads the permissions in effect through
-  `SecurityEngineAccessUtils.getGranteePermission`, which keeps them for 30
-  seconds and reads them again when `SecurityModelUsageLimitUtils.version()`
-  changes, as it does after every save.
+  `SecurityEngineAccessUtils.getGranteePermission(grantee, targetId, project)`,
+  which keeps them for 30 seconds and reads them again when
+  `SecurityModelUsageLimitUtils.version()` changes, as it does after every save.
 
 `test/prerna/auth/utils/EngineGranteePermissionUnitTests` covers these.
 
@@ -771,8 +806,9 @@ Tests live in `test/prerna/auth/utils`:
 - `SecurityModelUsageLimitUtilsUnitTests`: how limits are stored, one row for
   each key, and which one applies, on the security database's own tables.
 - `EffectivePermissionUtilsUnitTests`: the effective access view.
-- `EngineGranteePermissionUnitTests`: an app's or engine's permission on an
-  engine: who gives it, what it can be, how it is saved, read and cleaned up.
+- `EngineGranteePermissionUnitTests`: an app's, agent's or engine's permission
+  on an engine or project: who gives it, what it can be, how it is saved, read,
+  listed on the Resource Delegated Access pages and cleaned up.
 - `SecurityEngineAccessUtilsUnitTests`: what the engine proxy's check reads.
 
 `test/prerna/auth/access/ModelUsagePathViewUnitTests` covers the path view, in

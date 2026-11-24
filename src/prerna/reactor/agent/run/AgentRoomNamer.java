@@ -39,8 +39,10 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.pipeline.AgentRunOperation;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.AgentUseAccess;
 import prerna.util.Utility;
 
 /**
@@ -78,9 +80,8 @@ public final class AgentRoomNamer {
 	}
 
 	/**
-	 * Names the room from the run's initial user input on a background daemon
-	 * thread. Returns immediately; the agent run proceeds regardless of the naming
-	 * outcome.
+	 * Names the room from the run's initial user input on a virtual thread. Returns
+	 * immediately; the agent run proceeds regardless of the naming outcome.
 	 *
 	 * @param roomId  room to name
 	 * @param input   the user's original request for this run
@@ -88,29 +89,33 @@ public final class AgentRoomNamer {
 	 *                null/blank the name falls back to the truncated input
 	 * @param userId  owner user id on the ROOM row
 	 * @param insight caller insight used for the one-off model ask
+	 * @param agentId the agent the run is for, or null; when the person may use it
+	 *                ({@link AgentUseAccess#mayUseAgent}), the title is asked with
+	 *                the permissions it was given, so a model given to the agent
+	 *                names the room too
 	 */
-	public static void nameRoomAsync(String roomId, String input, String modelId, String userId, Insight insight) {
+	public static void nameRoomAsync(String roomId, String input, String modelId, String userId, Insight insight,
+			String agentId) {
 		if (roomId == null || roomId.trim().isEmpty() || input == null || input.trim().isEmpty() || userId == null
 				|| userId.trim().isEmpty()) {
 			return;
 		}
-		Thread namer = new Thread(() -> {
+		Thread.ofVirtual().name("agent-room-namer-" + roomId).start(() -> {
 			try {
 				if (insight != null) {
 					ThreadStore.setInsightId(insight.getInsightId());
 					ThreadStore.setUser(insight.getUser());
 				}
-				nameRoom(roomId, input, modelId, userId, insight);
+				nameRoom(roomId, input, modelId, userId, insight, agentId);
 			} catch (Exception e) {
 				logger.warn("AgentRoomNamer: room rename failed for room='{}' - run unaffected: {}", roomId,
 						e.getMessage(), e);
 			}
-		}, "agent-room-namer-" + roomId);
-		namer.setDaemon(true);
-		namer.start();
+		});
 	}
 
-	private static void nameRoom(String roomId, String input, String modelId, String userId, Insight insight) {
+	private static void nameRoom(String roomId, String input, String modelId, String userId, Insight insight,
+			String agentId) {
 		String defaultName = truncate(input.trim(), DEFAULT_NAME_CHAR_LIMIT);
 
 		// Skip the model call entirely when the room already carries a custom name.
@@ -119,7 +124,7 @@ public final class AgentRoomNamer {
 			return;
 		}
 
-		String title = generateTitle(roomId, input, modelId, userId, insight);
+		String title = generateTitle(roomId, input, modelId, userId, insight, agentId);
 		if (title == null || title.trim().isEmpty()) {
 			title = defaultName;
 		}
@@ -135,40 +140,45 @@ public final class AgentRoomNamer {
 	 * One-off title generation mirroring GenerateRoomNameReactor: use_history off
 	 * and appendToHistory=false so nothing is written back to the room. Runs
 	 * against a detached Room instance so the shared room lock held by the run's
-	 * own asks is never touched.
+	 * own asks is never touched. The model is asked as the person, with the
+	 * permissions the agent was given when the person may use the agent.
 	 *
 	 * @return cleaned title, or {@code null} when generation is unavailable or
 	 *         fails
 	 */
-	private static String generateTitle(String roomId, String input, String modelId, String userId, Insight insight) {
+	private static String generateTitle(String roomId, String input, String modelId, String userId, Insight insight,
+			String agentId) {
 		if (modelId == null || modelId.trim().isEmpty()) {
 			return null;
 		}
 		try {
-			IModelEngine modelEngine = Utility.getModel(modelId);
-			if (modelEngine == null) {
-				return null;
-			}
 			Room detached = ModelInferenceLogsUtils.getRoomById(roomId, userId);
 			if (detached == null) {
 				return null;
 			}
 			detached.setInsight(insight);
+			User user = insight == null ? null : insight.getUser();
+			try (AgentRunOperation agentRun = AgentUseAccess.beginAgentRun(user, detached, agentId)) {
+				IModelEngine modelEngine = Utility.getModel(modelId);
+				if (modelEngine == null) {
+					return null;
+				}
 
-			Map<String, Object> paramMap = new HashMap<>();
-			paramMap.put("use_history", false);
+				Map<String, Object> paramMap = new HashMap<>();
+				paramMap.put("use_history", false);
 
-			InputMessage inputMsg = InputMessage.builder(detached)
-					.withText(TITLE_INSTRUCTION + "\n\n" + truncate(input, PROMPT_CHAR_LIMIT))
-					.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+				InputMessage inputMsg = InputMessage.builder(detached)
+						.withText(TITLE_INSTRUCTION + "\n\n" + truncate(input, PROMPT_CHAR_LIMIT))
+						.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
-			ResponseMessage response = detached.ask(inputMsg, modelEngine, null, false);
-			String raw = response == null ? null : response.getContent();
-			if (raw == null || raw.trim().isEmpty()) {
-				return null;
+				ResponseMessage response = detached.ask(inputMsg, modelEngine, null, false);
+				String raw = response == null ? null : response.getContent();
+				if (raw == null || raw.trim().isEmpty()) {
+					return null;
+				}
+				String title = raw.trim().replaceAll("^[\"']+|[\"']+$", "").replaceAll("\\s+", " ").trim();
+				return truncate(title, DEFAULT_NAME_CHAR_LIMIT);
 			}
-			String title = raw.trim().replaceAll("^[\"']+|[\"']+$", "").replaceAll("\\s+", " ").trim();
-			return truncate(title, DEFAULT_NAME_CHAR_LIMIT);
 		} catch (Exception e) {
 			logger.warn("AgentRoomNamer: title generation failed for room='{}', falling back to truncated input: {}",
 					roomId, e.getMessage());

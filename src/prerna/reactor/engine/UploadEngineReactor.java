@@ -200,6 +200,14 @@ public class UploadEngineReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
+		try {
+			AbstractSecurityUtils.requireNoProjectWithId(engineId);
+		} catch (IllegalArgumentException e) {
+			cleanUpFolders(randomTempUnzipF);
+			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
 		// do we have any other checks we want to make based on the SMSS
 		// let us do it now
@@ -279,8 +287,7 @@ public class UploadEngineReactor extends AbstractReactor {
 		}
 
 		try {
-			InternalUtility.setEngineSmssPath(engineId,
-					finalEngineSmss.getAbsolutePath());
+			InternalUtility.setEngineSmssPath(engineId, finalEngineSmss.getAbsolutePath());
 			if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
 				logger.info(step + ") Synchronizing database structure");
 				InternalUtility.synchronizeEngineMetadata(engineId);

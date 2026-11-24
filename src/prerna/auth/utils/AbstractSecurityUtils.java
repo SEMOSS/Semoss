@@ -726,8 +726,8 @@ public abstract class AbstractSecurityUtils {
 			final String VARCHAR_500 = "VARCHAR(500)";
 
 			// 2021-08-06
-			// on h2 when you renmae a column it doens't update/change anything on the index
-			// name
+			// on h2 when you renmae a column it doens't update/change anything on the
+			// index name
 			// also had some invalid indexes on certain tables
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.dropIndexIfExists("INSIGHT_ENGINEID_INDEX", "INSIGHT");
@@ -1055,10 +1055,8 @@ public abstract class AbstractSecurityUtils {
 
 			// MODELUSAGELIMITRULE
 			// the rules of a model usage limit; LIMITWINDOW, since WINDOW is a reserved
-			// word
-			// in postgres; WINDOWLENGTH is how many minutes or hours a minute or hour
-			// window
-			// is, null for 1
+			// word in postgres; WINDOWLENGTH is how many minutes or hours a minute or hour
+			// window is, null for 1
 			colNames = new String[] { "LIMITID", "METRIC", "AMOUNT", "LIMITWINDOW", "WINDOWLENGTH", "COUNTS" };
 			types = new String[] { VARCHAR_255, VARCHAR_20, "BIGINT", VARCHAR_20, INTEGER_DATATYPE_NAME, VARCHAR_20 };
 			if (allowIfExistsTable) {
@@ -2286,8 +2284,7 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			// every team grant has a date, which orders the teams a person's model calls
-			// are
-			// billed to
+			// are billed to
 			setMissingDatesAdded(securityDb, "GROUPENGINEPERMISSION");
 
 			removeProjectEnginePermissionTable(securityDb, conn, queryUtil, database, schema);
@@ -3466,6 +3463,34 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		return exists;
+	}
+
+	/**
+	 * Refuses the id of a new engine when a project already has it, so an engine
+	 * and a project never share an id.
+	 *
+	 * @param engineId the new engine's id
+	 * @throws IllegalArgumentException when a project has the id
+	 */
+	public static void requireNoProjectWithId(String engineId) {
+		if (containsProjectId(engineId)) {
+			throw new IllegalArgumentException(
+					"A project already has the id " + engineId + ". An engine cannot have the same id as a project.");
+		}
+	}
+
+	/**
+	 * Refuses the id of a new project when an engine already has it, so a project
+	 * and an engine never share an id.
+	 *
+	 * @param projectId the new project's id
+	 * @throws IllegalArgumentException when an engine has the id
+	 */
+	public static void requireNoEngineWithId(String projectId) {
+		if (containsEngineId(projectId)) {
+			throw new IllegalArgumentException(
+					"An engine already has the id " + projectId + ". A project cannot have the same id as an engine.");
+		}
 	}
 
 	public static boolean ignoreDatabase(String databaseId) {
