@@ -43,7 +43,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public abstract class AbstractReplyMailReactor extends AbstractDraftDeliveryReactor {
 
 	private static final String[] KEYS = { ID, BODY, REPLY_ALL, AS_DRAFT, HTML, OVERRIDE_RECIPIENTS, TO, CC,
-			ATTACHMENTS };
+			SUBJECT, ATTACHMENTS };
 
 	/**
 	 * A reply the caller wrote.
@@ -56,12 +56,21 @@ public abstract class AbstractReplyMailReactor extends AbstractDraftDeliveryReac
 	 * @param recipients  exactly who the reply goes to, or null for whoever the
 	 *                    reply goes to on its own
 	 * @param attachments the files to attach
+	 * @param subject     the subject to give the reply, or null to keep the one it
+	 *                    is answering
 	 */
 	public record ReplyMailRequest(String id, String body, boolean html, boolean replyAll, MailRecipients recipients,
-			List<File> attachments) {
+			List<File> attachments, String subject) {
 
 		public ReplyMailRequest {
 			attachments = attachments == null ? List.of() : List.copyOf(attachments);
+			subject = subject == null || subject.isBlank() ? null : subject.trim();
+		}
+
+		/** A reply that keeps the subject of the message it answers. */
+		public ReplyMailRequest(String id, String body, boolean html, boolean replyAll, MailRecipients recipients,
+				List<File> attachments) {
+			this(id, body, html, replyAll, recipients, attachments, null);
 		}
 	}
 
@@ -103,7 +112,7 @@ public abstract class AbstractReplyMailReactor extends AbstractDraftDeliveryReac
 						"At least one recipient in " + TO + " or " + CC + " is required to send a reply to chosen recipients.");
 			}
 			ReplyMailRequest request = new ReplyMailRequest(id, body, readBoolean(HTML, false), replyAll, recipients,
-					readInsightFiles(ATTACHMENTS));
+					readInsightFiles(ATTACHMENTS), readString(SUBJECT));
 			ComposedMail draft = draftReply(this.insight.getUser(), request);
 
 			Map<String, Object> output = new LinkedHashMap<>();
@@ -140,6 +149,8 @@ public abstract class AbstractReplyMailReactor extends AbstractDraftDeliveryReac
 		case OVERRIDE_RECIPIENTS:
 			return "Optional boolean to send to exactly the to and cc lists passed, including empty lists, instead "
 					+ "of whoever the reply goes to on its own. Defaults to false.";
+		case SUBJECT:
+			return "Optional subject for the reply. Omit it to keep the subject of the message being answered.";
 		case TO:
 			return "Recipients when overrideRecipients is true, as a list of email addresses.";
 		case CC:

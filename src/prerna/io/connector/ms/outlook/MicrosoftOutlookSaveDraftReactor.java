@@ -87,7 +87,7 @@ public class MicrosoftOutlookSaveDraftReactor extends AbstractSaveDraftReactor {
 	protected ComposedMail saveReply(User user, ReplyMailRequest request) throws Exception {
 		// Outlook only finds a message in the signed in user's own mailbox, so an id from elsewhere cannot be answered
 		ReplyMailRequest resolved = new ReplyMailRequest(outlookId(user, request.id()), request.body(), request.html(),
-				request.replyAll(), request.recipients(), request.attachments());
+				request.replyAll(), request.recipients(), request.attachments(), request.subject());
 		// into the folder chosen in Collaboration settings, when there is one
 		return MicrosoftOutlookDraftFolder.place(user, MicrosoftOutlookReplyMailReactor.draftReplyFor(user, resolved));
 	}
