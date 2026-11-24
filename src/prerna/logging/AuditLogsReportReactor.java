@@ -115,16 +115,17 @@ public class AuditLogsReportReactor extends AbstractReactor {
 
 		List<String> methodNames = getListFromSearchParam(searchMap, SemossLogUtils.METHOD_NAME);
 		List<String> engineTypes = getListFromSearchParam(searchMap, SemossLogUtils.ENGINE_TYPE);
+		List<String> accessReasons = getListFromSearchParam(searchMap, SemossLogUtils.ACCESS_REASON);
 		String searchTerm = getString(map, "searchTerm");
 
 		List<LogActivityRecord> result = Collections.emptyList();
 		long totalCount = 0;
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId, limit, offset, methodNames, engineTypes, searchTerm);
+					roomId, sessionId, limit, offset, methodNames, engineTypes, accessReasons, searchTerm);
 			// Get total record count
 			totalCount = AuditLogsDbUtils.getAuditLogsCount(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId, methodNames, engineTypes, searchTerm);
+					roomId, sessionId, methodNames, engineTypes, accessReasons, searchTerm);
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 		}

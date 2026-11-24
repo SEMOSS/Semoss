@@ -55,6 +55,7 @@ import org.mockito.Mockito;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.access.EngineGrantee;
+import prerna.auth.access.UserAccess;
 import prerna.auth.utils.SecurityEngineAccessUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -594,7 +595,7 @@ class EngineAccessGuardUnitTests {
 		IRDBMSEngine engine = StubEngines.database(ENGINE);
 
 		assertDoesNotThrow(engine::delete);
-		this.access.verify(() -> SecurityEngineAccessUtils.getUserPermission(any(), anyString(), anyBoolean()),
+		this.access.verify(() -> SecurityEngineAccessUtils.getUserAccess(any(), anyString(), anyBoolean()),
 				Mockito.never());
 	}
 
@@ -683,7 +684,8 @@ class EngineAccessGuardUnitTests {
 	}
 
 	private void userHolds(String id, boolean project, AccessPermissionEnum level) {
-		this.access.when(() -> SecurityEngineAccessUtils.getUserPermission(this.user, id, project)).thenReturn(level);
+		this.access.when(() -> SecurityEngineAccessUtils.getUserAccess(this.user, id, project))
+				.thenReturn(level == null ? null : UserAccess.direct(level));
 	}
 
 	private void engineHolds(String engineId, EngineGrantee grantee, AccessPermissionEnum level) {

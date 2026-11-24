@@ -407,7 +407,7 @@ End to end, with the run begun through `AgentUseAccess.beginAgentRun`, the real 
 
 [SecurityEngineAccessUtils](../../src/prerna/auth/utils/SecurityEngineAccessUtils.java) reads the security database for the check:
 
-- a user's level is their highest grant in effect, given to them directly or to a team they are in, or `READ_ONLY` on a public engine or project (`SecurityEngineUtils.getCurrentUserEngineLevel`, `SecurityProjectUtils.getCurrentUserProjectLevel`);
+- a user's level is their highest grant in effect, given to them directly or to a team they are in, or `READ_ONLY` on a public engine or project (`SecurityEngineUtils.getCurrentUserEngineLevel`, `SecurityProjectUtils.getCurrentUserProjectLevel`), and the same query says where it comes from: their own grant, the team whose grant gives the highest level, with its id and type, or the engine or project being public (`getUserAccess`, a [UserAccess](../../src/prerna/auth/access/UserAccess.java)); when their own grant and a team's give the same level, it is their own;
 - an app's, agent's or engine's permission is its row in `ENGINE2ENGINEPERMISSION`, for the engine or the project called, while it has not ended;
 - whether an engine is public, for an engine's read of it.
 
@@ -418,6 +418,7 @@ Guarded by [SecurityEngineAccessUtilsUnitTests](../../test/prerna/auth/utils/Sec
 | Rule | Test |
 | --- | --- |
 | A user's level on an engine is their highest grant | `aUsersLevelOnAnEngineIsTheirHighestGrant` |
+| A user's access says whether it is their own grant, a team's grant or public | `aUsersAccessSaysWhetherItIsTheirOwnGrantATeamsGrantOrPublic` |
 | Everyone can view a public engine | `everyoneCanViewAPublicEngine` |
 | A user's level on a project is read from the project's own grants | `aUsersLevelOnAProjectIsReadFromTheProjectsOwnGrants` |
 | No user and no id hold nothing | `noUserAndNoIdHoldNothing` |
@@ -426,6 +427,44 @@ Guarded by [SecurityEngineAccessUtilsUnitTests](../../test/prerna/auth/utils/Sec
 | An engine or project is listed while the security database has it | `anEngineOrProjectIsListedWhileTheSecurityDatabaseHasIt` |
 | The platform reads a discoverable engine or project for anyone | `thePlatformReadsADiscoverableEngineForAnyone`, `thePlatformReadsADiscoverableProjectForAnyone` |
 | The platform reads a project for a user given one of its insights, or with a public insight | `thePlatformReadsAProjectForAUserGivenOneOfItsInsights`, `thePlatformReadsAProjectWithAPublicInsightForAnyone` |
+
+## Why a call went through, on the Activity Log
+
+The access check says why it lets each call through ([EngineAccessDecision](../../src/prerna/engine/impl/pipeline/EngineAccessDecision.java)), and every row an engine or project call writes to the Activity Log (`AUDIT_LOGS`) carries it: `ACCESS_REASON`, a short name, and `ACCESS_DETAILS`, JSON with the specifics. Calls made for a person and the platform's own work both carry one; rows written before the columns existed have none.
+
+| Reason | When | Details |
+| --- | --- | --- |
+| `DIRECT` | The person's own grant covers the call | `level` |
+| `TEAM` | A team's grant gives the person's highest level | `level`, `teamId`, `teamType` |
+| `PUBLIC` | The engine or project is public and the call only reads it | `level` |
+| `DELEGATED` | The engine or project gave an app, an agent or another engine a permission that covers the call | `level`, `granteeId`, `granteeType`, `via` (`APP_CODE`, `AGENT_RUN` or `ENGINE_CODE`), and `callingEngineId` when an engine's own code made the call |
+| `OWN_PROJECT` | An app's custom code calls its own project | `appId` |
+| `INSIGHT` | The platform reads a project through one of its insights the person can open | |
+| `DISCOVERABLE` | The platform reads a discoverable engine or project | |
+| `ADMIN` | An admin, while an admin reactor or endpoint is acting | |
+| `PLATFORM` | The platform's own work | `rule`: `LOADING`, `PLATFORM_USE`, `PLATFORM_OPERATION` (with `operation`, its name), `ENGINE_ITSELF`, `PROJECT_ENGINE`, `VENV` or `BEING_CREATED_OR_DELETED` |
+| `REFUSED` | Nothing let the call through | `levelNeeded`, `via` (`APP_CODE`, `AGENT_RUN`, `ENGINE_CODE` or `PLATFORM`), `appId`, `agentId`, `callingEngineId`, and `attempt` |
+
+A refused call is a failed row with reason `REFUSED` and nothing of what was sent: its request and response read as not tracked. [EngineAccessRefusals](../../src/prerna/engine/impl/pipeline/EngineAccessRefusals.java) counts the refusals of each person on each engine or project in a session (per day for a call with no session), and `attempt` on the row is that count. The first refusal in a session also records an `AUTHORIZATION_DENIED` audit event on the engine or project with the method, the details above and what was sent, which the audit trail keeps sanitized like the details of every event (each text value at most 2,000 characters, secrets scrubbed), with `requestLength`, the length of the request as sent. A resource's Audit Trail tab lists only the events its owners see, which leaves refusals out, so only admins read them, on the Audit Trail page. Methods the Activity Log never keeps (`@IgnoreEngineLogging`) are neither logged nor counted when refused.
+
+The Activity Log filters by reason (`accessReason` in `AuditLogsReport`'s `search`, and a filter option list of the same name), and its CSV and PDF exports carry the reason and details.
+
+Guarded by [EngineAccessReasonUnitTests](../../test/prerna/engine/impl/pipeline/EngineAccessReasonUnitTests.java) and [AuditLogsJDBCAppenderUnitTests](../../test/prerna/logging/AuditLogsJDBCAppenderUnitTests.java):
+
+| Rule | Test |
+| --- | --- |
+| The user's own grant says DIRECT with its level | `theUsersOwnGrantSaysDirectWithItsLevel` |
+| A team's grant says TEAM with the team | `aTeamsGrantSaysTeamWithTheTeam` |
+| A public engine says PUBLIC | `aPublicEngineSaysPublic` |
+| An agent's run says DELEGATED with the agent | `anAgentsRunSaysDelegatedWithTheAgent` |
+| An engine's own code using its permission says DELEGATED with the calling engine | `anEnginesOwnCodeUsingItsPermissionSaysDelegatedWithTheCallingEngine` |
+| The platform's own work says PLATFORM with what it was | `thePlatformsOwnWorkSaysPlatformWithWhatItWas`, `anEngineBeingCreatedOrDeletedSaysPlatform` |
+| A read through the platform says DISCOVERABLE or INSIGHT | `aReadThroughThePlatformSaysDiscoverableOrInsight` |
+| An admin in an admin class says ADMIN | `anAdminInAnAdminClassSaysAdmin` |
+| A refusal carries the level needed and who made the call | `aRefusalCarriesTheLevelNeededAndWhoMadeTheCall` |
+| A method of Object is not checked and carries no reason | `aMethodOfObjectIsNotChecked` |
+| A logged call's row carries its reason and details | `aLoggedCallsRowCarriesItsReasonAndDetails`, `aRowKeepsWhyTheCallWasAllowedAndTheDetails` |
+| A refused call logs a failed row with nothing sent, and only the first in a session is audited | `aRefusedCallLogsAFailedRowWithNothingSentAndOnlyTheFirstInASessionIsAudited` |
 
 ## Engines the platform uses for everyone
 

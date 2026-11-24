@@ -59,6 +59,7 @@ import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionProblem;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
+import prerna.auth.access.UserAccess;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -936,18 +937,34 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return the level, or null when the user has no access to the engine
 	 */
 	public static AccessPermissionEnum getCurrentUserEngineLevel(User user, String engineId) {
+		UserAccess access = getCurrentUserEngineAccess(user, engineId);
+		return access == null ? null : access.level();
+	}
+
+	/**
+	 * The user's access on the engine now, as {@link #getCurrentUserEngineLevel}
+	 * reads it, and where it comes from: their own grant, the team whose grant
+	 * gives the highest level, or the engine being public.
+	 *
+	 * @param user     the user
+	 * @param engineId the engine
+	 * @return the access, or null when the user has no access to the engine
+	 */
+	public static UserAccess getCurrentUserEngineAccess(User user, String engineId) {
 		if (user == null) {
 			return null;
 		}
-		Integer levelId = CurrentPermissionLevel.ofOrNull(user, PermissionTargetResource.engine(engineId));
-		if (levelId != null) {
+		CurrentPermissionLevel.CurrentLevel current = CurrentPermissionLevel.levelOfOrNull(user,
+				PermissionTargetResource.engine(engineId));
+		if (current != null) {
 			for (AccessPermissionEnum level : AccessPermissionEnum.values()) {
-				if (level.getId() == levelId) {
-					return level;
+				if (level.getId() == current.levelId()) {
+					return current.teamId() == null ? UserAccess.direct(level)
+							: UserAccess.team(level, current.teamId(), current.teamType());
 				}
 			}
 		}
-		return engineIsGlobal(engineId) ? AccessPermissionEnum.READ_ONLY : null;
+		return engineIsGlobal(engineId) ? UserAccess.publicRead() : null;
 	}
 
 	/**

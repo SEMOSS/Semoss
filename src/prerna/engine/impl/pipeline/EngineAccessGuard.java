@@ -31,6 +31,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +43,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.access.EngineGrantee;
+import prerna.auth.access.UserAccess;
 import prerna.auth.utils.SecurityEngineAccessUtils;
 import prerna.engine.api.EngineAccess;
 import prerna.engine.api.IEngine;
@@ -52,7 +54,6 @@ import prerna.om.ThreadStore;
 import prerna.reactor.IReactor;
 import prerna.reactor.interceptor.IInputReactor;
 import prerna.reactor.interceptor.IOutputReactor;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.InternalUtility;
 import prerna.util.SandboxedClassLoading;
 import prerna.util.Utility;
@@ -169,7 +170,8 @@ final class EngineAccessGuard {
 	}
 
 	/**
-	 * Refuses a call the caller has no permission for.
+	 * Refuses a call the caller has no permission for, and says why a call it lets
+	 * through may be made.
 	 *
 	 * @param engineId       the id of the engine or project the proxy stands for
 	 * @param catalogType    its catalog type, {@code PROJECT} for a project
@@ -177,29 +179,29 @@ final class EngineAccessGuard {
 	 *                       own use
 	 * @param method         the interface method being called
 	 * @param args           the call's arguments, or null
-	 * @return the app or engine making the call, when the call is an app's custom
-	 *         code's or an engine's own code's and the engine gives that app or
-	 *         engine a permission; null for every other call
-	 * @throws SemossPixelException if the call is not allowed
+	 * @return why the call may be made, and the app or engine making it when the
+	 *         call is an app's custom code's or an engine's own code's and the
+	 *         engine gives that app or engine a permission
+	 * @throws EngineAccessRefusedException if the call is not allowed
 	 */
-	static EngineGrantee check(String engineId, IEngine.CATALOG_TYPE catalogType, boolean forPlatformUse, Method method,
-			Object[] args) {
+	static EngineAccessDecision check(String engineId, IEngine.CATALOG_TYPE catalogType, boolean forPlatformUse,
+			Method method, Object[] args) {
 		boolean project = catalogType == IEngine.CATALOG_TYPE.PROJECT;
 		// Methods of Object, such as toString, are not checked, and neither is a JVM
 		// without the security database: the Java worker's engines send each call back
 		// to the server, which checks it there
 		if (method.getDeclaringClass() == Object.class || !SecurityEngineAccessUtils.isSecurityDatabaseLoaded()) {
-			return null;
+			return EngineAccessDecision.UNCHECKED;
 		}
 		RequiredLevels levels = REQUIRED_LEVELS.computeIfAbsent(method, EngineAccessGuard::requiredLevelsOf);
 
 		User user = ThreadStore.getUser();
-		AccessPermissionEnum held = user == null ? null
-				: SecurityEngineAccessUtils.getUserPermission(user, engineId, project);
+		UserAccess access = user == null ? null : SecurityEngineAccessUtils.getUserAccess(user, engineId, project);
+		AccessPermissionEnum held = access == null ? null : access.level();
 		// The user holds the higher of the method's two levels, so the call goes
 		// through whoever makes it, without reading the call stack
 		if (covers(held, levels.forProjectCode())) {
-			return project ? null : granteeMakingTheCall(engineId);
+			return EngineAccessDecision.person(access, project ? null : granteeMakingTheCall(engineId));
 		}
 
 		AccessPermissionEnum required = levels.forEveryCall();
@@ -211,7 +213,7 @@ final class EngineAccessGuard {
 		}
 		// The user holds the level this call needs
 		if (covers(held, required)) {
-			return project ? null : granteeMakingTheCall(engineId);
+			return EngineAccessDecision.person(access, project ? null : granteeMakingTheCall(engineId));
 		}
 
 		Caller caller = Caller.fromStack();
@@ -224,50 +226,74 @@ final class EngineAccessGuard {
 			}
 			// The engine or project gives the app a permission that covers the call, or
 			// the call is on the app's own project
-			if (covers(projectPermission(caller.projectId(), engineId, project), required)) {
-				return project ? null : EngineGrantee.ofApp(caller.projectId());
+			AccessPermissionEnum appLevel = projectPermission(caller.projectId(), engineId, project);
+			if (covers(appLevel, required)) {
+				if (project && engineId.equals(caller.projectId())) {
+					return EngineAccessDecision.of(EngineAccessReason.OWN_PROJECT, "appId", caller.projectId());
+				}
+				EngineGrantee app = EngineGrantee.ofApp(caller.projectId());
+				return EngineAccessDecision.delegated(appLevel, app, EngineAccessDecision.VIA_APP_CODE, null,
+						project ? null : app);
 			}
 			// Neither the user nor the app may make the call
 			throw refused(engineId, project, method, required, user, caller);
 		}
-		// The platform loading an engine or project, a proxy handed out for the
-		// platform's own use, or the platform's own work for no user
-		if (caller.kind() == CallerKind.ENGINE_LOADER || forPlatformUse || PlatformOperation.covering() != null) {
-			return null;
+		// The platform loading an engine or project
+		if (caller.kind() == CallerKind.ENGINE_LOADER) {
+			return EngineAccessDecision.of(EngineAccessReason.PLATFORM, "rule", "LOADING");
+		}
+		// A proxy handed out for the platform's own use
+		if (forPlatformUse) {
+			return EngineAccessDecision.of(EngineAccessReason.PLATFORM, "rule", "PLATFORM_USE");
+		}
+		// The platform's own work for no user, inside a platform operation
+		String operation = PlatformOperation.covering();
+		if (operation != null) {
+			return new EngineAccessDecision(EngineAccessReason.PLATFORM, null,
+					Map.of("rule", "PLATFORM_OPERATION", "operation", operation));
 		}
 		String agentId = AgentRunOperation.runningAgent();
 		boolean engineIsCalling = caller.kind() == CallerKind.ENGINE && !project;
 		if (engineIsCalling) {
 			EngineGrantee calling = caller.engine();
 			// The engine called gives the calling engine a permission that covers the call
-			if (calling != null && !calling.isApp()
-					&& covers(SecurityEngineAccessUtils.getGranteePermission(calling, engineId, false), required)) {
-				return calling;
+			AccessPermissionEnum engineLevel = calling == null || calling.isApp() ? null
+					: SecurityEngineAccessUtils.getGranteePermission(calling, engineId, false);
+			if (covers(engineLevel, required)) {
+				return EngineAccessDecision.delegated(engineLevel, calling, EngineAccessDecision.VIA_ENGINE_CODE,
+						calling, calling);
 			}
 			// The engine called gives the app whose custom code made the calling engine's
 			// call a permission that covers the level the app's own code needs
-			if (covers(projectPermission(caller.originAppId(), engineId, false), levels.forProjectCode())) {
-				return EngineGrantee.ofApp(caller.originAppId());
+			AccessPermissionEnum originLevel = projectPermission(caller.originAppId(), engineId, false);
+			if (covers(originLevel, levels.forProjectCode())) {
+				EngineGrantee app = EngineGrantee.ofApp(caller.originAppId());
+				return EngineAccessDecision.delegated(originLevel, app, EngineAccessDecision.VIA_APP_CODE, calling,
+						app);
 			}
 			// The engine called gives the agent whose run is going on this thread a
 			// permission that covers the call
-			if (covers(agentPermission(agentId, engineId, false), required)) {
-				return EngineGrantee.ofApp(agentId);
+			AccessPermissionEnum agentLevel = agentPermission(agentId, engineId, false);
+			if (covers(agentLevel, required)) {
+				EngineGrantee agent = EngineGrantee.ofApp(agentId);
+				return EngineAccessDecision.delegated(agentLevel, agent, EngineAccessDecision.VIA_AGENT_RUN, calling,
+						agent);
 			}
 			// The engine calls itself, the engine answering is a project, the engine
 			// called is a venv engine, or the method only reads a public engine
-			if (passesWithoutAGrant(calling, engineId, catalogType, required)) {
-				return null;
+			EngineAccessDecision withoutAGrant = withoutAGrant(calling, engineId, catalogType, required);
+			if (withoutAGrant != null) {
+				return withoutAGrant;
 			}
 		}
 		// A pooled thread names its user through the insight or room of the call, read
 		// only when no project's custom code is anywhere on the stack
 		if (user == null && !PlatformOperation.projectCodeIsOnTheStack()) {
 			user = signedInUser(args);
-			held = user == null ? null : SecurityEngineAccessUtils.getUserPermission(user, engineId, project);
+			access = user == null ? null : SecurityEngineAccessUtils.getUserAccess(user, engineId, project);
 			// The user of the call holds the level this call needs
-			if (covers(held, required)) {
-				return null;
+			if (access != null && covers(access.level(), required)) {
+				return EngineAccessDecision.person(access, null);
 			}
 		}
 		// The platform made the call for no user, outside a platform operation
@@ -277,23 +303,29 @@ final class EngineAccessGuard {
 		// The engine or project gives the agent whose run the platform is doing on this
 		// thread a permission that covers the call; on a model the agent's App Limit
 		// then counts it
-		if (!engineIsCalling && covers(agentPermission(agentId, engineId, project), required)) {
-			return project ? null : EngineGrantee.ofApp(agentId);
+		AccessPermissionEnum agentLevel = engineIsCalling ? null : agentPermission(agentId, engineId, project);
+		if (covers(agentLevel, required)) {
+			EngineGrantee agent = EngineGrantee.ofApp(agentId);
+			return EngineAccessDecision.delegated(agentLevel, agent, EngineAccessDecision.VIA_AGENT_RUN, null,
+					project ? null : agent);
 		}
 		// Anyone may read a discoverable engine or project, or a project with an
 		// insight they can open, through the platform
 		if (!engineIsCalling && required == AccessPermissionEnum.READ_ONLY
 				&& SecurityEngineAccessUtils.isReadableThroughPlatform(user, engineId, project)) {
-			return null;
+			return EngineAccessDecision.of(
+					project && !SecurityEngineAccessUtils.isDiscoverable(engineId, true) ? EngineAccessReason.INSIGHT
+							: EngineAccessReason.DISCOVERABLE,
+					null, null);
 		}
 		// The engine or project is being created or deleted, so the security database
 		// does not list it
 		if (!SecurityEngineAccessUtils.isListed(engineId, project)) {
-			return null;
+			return EngineAccessDecision.of(EngineAccessReason.PLATFORM, "rule", "BEING_CREATED_OR_DELETED");
 		}
 		// An admin, while an admin reactor or endpoint is acting
 		if (SecurityEngineAccessUtils.isAdmin(user) && AdminOperation.isRunning()) {
-			return null;
+			return EngineAccessDecision.of(EngineAccessReason.ADMIN, null, null);
 		}
 		// Nothing lets the call through
 		throw refused(engineId, project, method, required, user, caller);
@@ -367,8 +399,8 @@ final class EngineAccessGuard {
 	}
 
 	/**
-	 * Whether an engine's call to another engine goes through with no permission
-	 * the other engine gives it: the engine calls itself, the engine answering is a
+	 * Lets an engine's call to another engine through with no permission the other
+	 * engine gives it when the engine calls itself, the engine answering is a
 	 * project, whose own code is the platform's, the other engine is a venv engine,
 	 * which only hands out where its Python runs, or the method needs READ_ONLY and
 	 * the other engine is public, as everyone may read it.
@@ -378,17 +410,24 @@ final class EngineAccessGuard {
 	 * @param engineId    the engine called
 	 * @param catalogType its catalog type
 	 * @param required    the level the call needs
-	 * @return whether the call goes through
+	 * @return why the call goes through, or null when it needs a permission
 	 */
-	private static boolean passesWithoutAGrant(EngineGrantee calling, String engineId, IEngine.CATALOG_TYPE catalogType,
-			AccessPermissionEnum required) {
-		if (calling != null && (calling.isApp() || engineId.equals(calling.engineId()))) {
-			return true;
+	private static EngineAccessDecision withoutAGrant(EngineGrantee calling, String engineId,
+			IEngine.CATALOG_TYPE catalogType, AccessPermissionEnum required) {
+		if (calling != null && calling.isApp()) {
+			return EngineAccessDecision.of(EngineAccessReason.PLATFORM, "rule", "PROJECT_ENGINE");
+		}
+		if (calling != null && engineId.equals(calling.engineId())) {
+			return EngineAccessDecision.of(EngineAccessReason.PLATFORM, "rule", "ENGINE_ITSELF");
 		}
 		if (catalogType == IEngine.CATALOG_TYPE.VENV) {
-			return true;
+			return EngineAccessDecision.of(EngineAccessReason.PLATFORM, "rule", "VENV");
 		}
-		return required == AccessPermissionEnum.READ_ONLY && SecurityEngineAccessUtils.isPublic(engineId);
+		if (required == AccessPermissionEnum.READ_ONLY && SecurityEngineAccessUtils.isPublic(engineId)) {
+			return EngineAccessDecision.of(EngineAccessReason.PUBLIC, "level",
+					AccessPermissionEnum.READ_ONLY.getPermission());
+		}
+		return null;
 	}
 
 	private static boolean covers(AccessPermissionEnum held, AccessPermissionEnum required) {
@@ -534,7 +573,25 @@ final class EngineAccessGuard {
 				&& LOADERS.contains(frame.getMethodName());
 	}
 
-	private static SemossPixelException refused(String engineId, boolean project, Method method,
+	private static void putIfPresent(Map<String, Object> details, String key, String value) {
+		if (value != null) {
+			details.put(key, value);
+		}
+	}
+
+	/**
+	 * The refusal of a call, which is logged here and recorded by the proxy: the
+	 * message the caller gets, and the level the call needed and who made it.
+	 *
+	 * @param engineId the engine or project called
+	 * @param project  whether it is a project
+	 * @param method   the method called
+	 * @param required the level the call needed
+	 * @param user     the signed in user, or null
+	 * @param caller   who was acting
+	 * @return the refusal to throw
+	 */
+	private static EngineAccessRefusedException refused(String engineId, boolean project, Method method,
 			AccessPermissionEnum required, User user, Caller caller) {
 		String kind = project ? "Project " : "Engine ";
 		String level = required.getPermission();
@@ -549,29 +606,42 @@ final class EngineAccessGuard {
 					caller.engine() == null ? null : caller.engine().engineId(), caller.originAppId(),
 					AgentRunOperation.runningAgent(), caller.className());
 		}
+		String agentId = AgentRunOperation.runningAgent();
+		boolean engineIsCalling = caller.kind() == CallerKind.ENGINE && !project;
+		Map<String, Object> details = new LinkedHashMap<>();
+		details.put("levelNeeded", level);
+		details.put("via", caller.kind() == CallerKind.PROJECT_CODE ? EngineAccessDecision.VIA_APP_CODE
+				: engineIsCalling ? EngineAccessDecision.VIA_ENGINE_CODE
+						: agentId != null ? EngineAccessDecision.VIA_AGENT_RUN : EngineAccessDecision.VIA_PLATFORM);
+		putIfPresent(details, "appId",
+				caller.kind() == CallerKind.PROJECT_CODE ? caller.projectId() : caller.originAppId());
+		putIfPresent(details, "callingEngineId", caller.engine() == null ? null : caller.engine().engineId());
+		putIfPresent(details, "agentId", caller.kind() == CallerKind.PROJECT_CODE ? null : agentId);
 		if (caller.kind() == CallerKind.PROJECT_CODE && user == null) {
-			return new SemossPixelException(
-					"A custom reactor needs a signed in user to call " + method.getName() + " on " + kind + engineId);
+			return new EngineAccessRefusedException(
+					"A custom reactor needs a signed in user to call " + method.getName() + " on " + kind + engineId,
+					details);
 		}
 		if (caller.kind() == CallerKind.PROJECT_CODE) {
-			return new SemossPixelException(kind + engineId + " does not exist or neither the user nor the app has "
-					+ level + " permission on it, which a custom reactor needs to call " + method.getName());
+			return new EngineAccessRefusedException(
+					kind + engineId + " does not exist or neither the user nor the app has " + level
+							+ " permission on it, which a custom reactor needs to call " + method.getName(),
+					details);
 		}
-		String agentId = AgentRunOperation.runningAgent();
 		String agent = agentId == null ? "" : " nor agent " + agentId + ", whose run made the call,";
-		if (caller.kind() == CallerKind.ENGINE && !project) {
+		if (engineIsCalling) {
 			String calling = caller.engine() == null ? "the calling engine" : "engine " + caller.engine().engineId();
 			String app = caller.originAppId() == null ? ""
 					: " nor app " + caller.originAppId() + ", whose custom reactor made the call,";
-			return new SemossPixelException(kind + engineId + " does not exist or neither the user nor " + calling + app
-					+ agent + " has " + level + " permission on it");
+			return new EngineAccessRefusedException(kind + engineId + " does not exist or neither the user nor "
+					+ calling + app + agent + " has " + level + " permission on it", details);
 		}
 		if (agentId != null) {
-			return new SemossPixelException(kind + engineId + " does not exist or neither the user" + agent + " has "
-					+ level + " permission on it");
+			return new EngineAccessRefusedException(kind + engineId + " does not exist or neither the user" + agent
+					+ " has " + level + " permission on it", details);
 		}
-		return new SemossPixelException(
-				kind + engineId + " does not exist or user does not have " + level + " permission on it");
+		return new EngineAccessRefusedException(
+				kind + engineId + " does not exist or user does not have " + level + " permission on it", details);
 	}
 
 	/**

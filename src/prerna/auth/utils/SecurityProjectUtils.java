@@ -65,6 +65,7 @@ import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionProblem;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
+import prerna.auth.access.UserAccess;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -1469,18 +1470,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return the level, or null when the user has no access to the project
 	 */
 	public static AccessPermissionEnum getCurrentUserProjectLevel(User user, String projectId) {
+		UserAccess access = getCurrentUserProjectAccess(user, projectId);
+		return access == null ? null : access.level();
+	}
+
+	/**
+	 * The user's access on the project now, as {@link #getCurrentUserProjectLevel}
+	 * reads it, and where it comes from: their own grant, the team whose grant
+	 * gives the highest level, or the project being public.
+	 *
+	 * @param user      the user
+	 * @param projectId the project
+	 * @return the access, or null when the user has no access to the project
+	 */
+	public static UserAccess getCurrentUserProjectAccess(User user, String projectId) {
 		if (user == null) {
 			return null;
 		}
-		Integer levelId = CurrentPermissionLevel.ofOrNull(user, PermissionTargetResource.project(projectId));
-		if (levelId != null) {
+		CurrentPermissionLevel.CurrentLevel current = CurrentPermissionLevel.levelOfOrNull(user,
+				PermissionTargetResource.project(projectId));
+		if (current != null) {
 			for (AccessPermissionEnum level : AccessPermissionEnum.values()) {
-				if (level.getId() == levelId) {
-					return level;
+				if (level.getId() == current.levelId()) {
+					return current.teamId() == null ? UserAccess.direct(level)
+							: UserAccess.team(level, current.teamId(), current.teamType());
 				}
 			}
 		}
-		return projectIsGlobal(projectId) ? AccessPermissionEnum.READ_ONLY : null;
+		return projectIsGlobal(projectId) ? UserAccess.publicRead() : null;
 	}
 
 	/**
