@@ -240,9 +240,8 @@ public final class AgentRunner {
 		agentParamMap = userContent.params();
 		// One-agent-per-room is enforced by AgentRunRegistry, which every caller goes
 		// through: AgentRunQueueLoop claims the room before dispatching here and
-		// releases
-		// it when the run settles or is cancelled. Claiming again here would be a
-		// second lock on the same invariant, and the two could disagree.
+		// releases it when the run settles or is cancelled. Claiming again here would
+		// be a second lock on the same invariant, and the two could disagree.
 		IModelEngine modelEngine = null;
 		String runtimeModelId = engineIdFallback != null ? engineIdFallback.trim() : null;
 		boolean hasRuntimeModel = runtimeModelId != null && !runtimeModelId.isEmpty();

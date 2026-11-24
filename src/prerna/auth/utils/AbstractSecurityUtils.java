@@ -726,8 +726,8 @@ public abstract class AbstractSecurityUtils {
 			final String VARCHAR_500 = "VARCHAR(500)";
 
 			// 2021-08-06
-			// on h2 when you renmae a column it doens't update/change anything on the index
-			// name
+			// on h2 when you renmae a column it doens't update/change anything on the
+			// index name
 			// also had some invalid indexes on certain tables
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.dropIndexIfExists("INSIGHT_ENGINEID_INDEX", "INSIGHT");
@@ -1055,10 +1055,8 @@ public abstract class AbstractSecurityUtils {
 
 			// MODELUSAGELIMITRULE
 			// the rules of a model usage limit; LIMITWINDOW, since WINDOW is a reserved
-			// word
-			// in postgres; WINDOWLENGTH is how many minutes or hours a minute or hour
-			// window
-			// is, null for 1
+			// word in postgres; WINDOWLENGTH is how many minutes or hours a minute or hour
+			// window is, null for 1
 			colNames = new String[] { "LIMITID", "METRIC", "AMOUNT", "LIMITWINDOW", "WINDOWLENGTH", "COUNTS" };
 			types = new String[] { VARCHAR_255, VARCHAR_20, "BIGINT", VARCHAR_20, INTEGER_DATATYPE_NAME, VARCHAR_20 };
 			if (allowIfExistsTable) {
@@ -2286,8 +2284,7 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 			// every team grant has a date, which orders the teams a person's model calls
-			// are
-			// billed to
+			// are billed to
 			setMissingDatesAdded(securityDb, "GROUPENGINEPERMISSION");
 
 			removeProjectEnginePermissionTable(securityDb, conn, queryUtil, database, schema);

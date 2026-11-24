@@ -928,14 +928,11 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 
 		// Step 2: in admin mode, does the target exist? Admin mode gives every
-		// permission
-		// without reading the target, so this is where a missing project, engine or
-		// insight is caught; a team is read with its permissions in step 3. Outside
-		// admin
-		// mode a missing target simply gives no permission in step 3, so someone
-		// without
-		// access cannot tell a missing project or team from one they are not allowed
-		// to change, and learns nothing about the people in the batch.
+		// permission without reading the target, so this is where a missing project,
+		// engine or insight is caught; a team is read with its permissions in step 3.
+		// Outside admin mode a missing target simply gives no permission in step 3, so
+		// someone without access cannot tell a missing project or team from one they
+		// are not allowed to change, and learns nothing about the people in the batch.
 		if (options.isAdminMode() && options.checksTargetExists() && !targetExists(target)) {
 			validation.block(PermissionProblem.ErrorCode.INVALID_TARGET, notFoundMessage(target));
 			return validation;
