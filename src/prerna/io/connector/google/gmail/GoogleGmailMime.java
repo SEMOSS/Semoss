@@ -117,10 +117,10 @@ final class GoogleGmailMime {
 		setRecipients(message, Message.RecipientType.TO, to);
 		setRecipients(message, Message.RecipientType.CC, cc);
 		setRecipients(message, Message.RecipientType.BCC, bcc);
-		message.setSubject(subject == null ? "" : subject, "UTF-8");
+		message.setSubject(subject == null ? "" : oneLine(subject), "UTF-8");
 		if (inReplyTo != null && !inReplyTo.isBlank()) {
-			message.setHeader("In-Reply-To", inReplyTo);
-			message.setHeader("References", references == null || references.isBlank() ? inReplyTo : references);
+			message.setHeader("In-Reply-To", oneLine(inReplyTo));
+			message.setHeader("References", oneLine(references == null || references.isBlank() ? inReplyTo : references));
 		}
 
 		String text = body == null ? "" : body;
@@ -145,7 +145,7 @@ final class GoogleGmailMime {
 				for (CarriedFile file : carried) {
 					InternetHeaders headers = new InternetHeaders();
 					headers.addHeader("Content-Type",
-							file.contentType() == null ? "application/octet-stream" : file.contentType());
+							file.contentType() == null ? "application/octet-stream" : oneLine(file.contentType()));
 					headers.addHeader("Content-Transfer-Encoding", "base64");
 					MimeBodyPart part = new MimeBodyPart(headers, Base64.getMimeEncoder().encode(file.bytes()));
 					part.setFileName(file.name());
@@ -166,6 +166,11 @@ final class GoogleGmailMime {
 	 * @param subject the subject being answered
 	 * @return the subject of the reply, which does not gain a second Re:
 	 */
+	// a header value read from a received message may not carry a line break into the one that is written
+	private static String oneLine(String value) {
+		return value.replaceAll("[\\r\\n\\x00]+", " ").trim();
+	}
+
 	static String replySubject(String subject) {
 		String original = subject == null ? "" : subject.trim();
 		return original.toLowerCase(Locale.ROOT).startsWith("re:") ? original : "Re: " + original;
