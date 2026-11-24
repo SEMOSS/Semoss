@@ -78,18 +78,28 @@ public class SemossClassLoader extends ClassLoader {
 	 * InternalUtility holds the helpers that act with the platform's authority,
 	 * EngineProxyFactory and PipelineInvocationHandler build the proxy that checks
 	 * every call to an engine, PlatformOperation marks the platform's own work,
-	 * which that check lets through, and InsightStore holds every open insight of
-	 * every user, with the user it belongs to. LocalMasterConceptIdHash,
-	 * SystemProjectSeeder and SystemDatabaseSchemaUtils work on the system
-	 * databases for the platform's own start up.
+	 * which that check lets through, AgentRunOperation marks an agent's run, whose
+	 * calls the check lets use the agent's permissions, and InsightStore holds
+	 * every open insight of every user, with the user it belongs to.
+	 * LocalMasterConceptIdHash, SystemProjectSeeder and SystemDatabaseSchemaUtils
+	 * work on the system databases for the platform's own start up.
+	 * EngineCloneUtility copies any engine, with its stored secrets,
+	 * InsightsRDBMSUtils opens any app's insights database, and EngineSyncUtility
+	 * and ProjectSyncUtility close any open engine, hold the lock that loads an
+	 * engine or a project, and keep every engine's cached metamodel, all for the
+	 * reactors that check the user first. AbstractFileWatcher and the smss watchers
+	 * that extend it, ProjectWatcher, SMSSWebWatcher and SMSSNoInitEngineWatcher,
+	 * load and register every engine and project the server finds at start up.
 	 */
 	private static final Set<String> BLOCKED_PLATFORM_CLASSES = Set.of("prerna.util.DIHelper",
 			"prerna.util.SystemEngineRegistry", "prerna.security.SecretRedactor", "prerna.util.InternalUtility",
 			"prerna.engine.impl.pipeline.EngineProxyFactory", "prerna.engine.impl.pipeline.PipelineInvocationHandler",
 			"prerna.engine.impl.pipeline.PlatformOperation", "prerna.engine.impl.pipeline.EngineCallPermission",
-			"prerna.om.InsightStore",
+			"prerna.engine.impl.pipeline.AgentRunOperation", "prerna.om.InsightStore",
 			"prerna.util.LocalMasterConceptIdHash", "prerna.util.SystemProjectSeeder",
-			"prerna.util.SystemDatabaseSchemaUtils");
+			"prerna.util.SystemDatabaseSchemaUtils", "prerna.util.EngineCloneUtility", "prerna.util.InsightsRDBMSUtils",
+			"prerna.util.EngineSyncUtility", "prerna.util.ProjectSyncUtility", "prerna.util.AbstractFileWatcher",
+			"prerna.util.ProjectWatcher", "prerna.util.SMSSWebWatcher", "prerna.util.SMSSNoInitEngineWatcher");
 
 	/**
 	 * Platform packages project reactor code can never use, as name prefixes: the
@@ -102,11 +112,10 @@ public class SemossClassLoader extends ClassLoader {
 	 * internal name prefixes: the security database, the local master, the
 	 * scheduler, themes, user tracking, prompts, notifications, collaboration, the
 	 * audit logs and the model inference logs. Their static methods read and write
-	 * the database for whoever calls them, and the reactors and endpoints that
-	 * call them check the user first. Project reactor code reaches the system
-	 * databases through those reactors and through
-	 * {@link prerna.auth.CustomReactorSecurity}, so it cannot call a static method
-	 * of these classes or extend one.
+	 * the database for whoever calls them, and the reactors and endpoints that call
+	 * them check the user first. Project reactor code reaches the system databases
+	 * through those reactors and through {@link prerna.auth.CustomReactorSecurity},
+	 * so it cannot call a static method of these classes or extend one.
 	 */
 	private static final List<String> SYSTEM_DATABASE_PACKAGES = List.of("prerna/auth/utils/", "prerna/usertracking/",
 			"prerna/theme/", "prerna/masterdatabase/", "prerna/engine/logging/",
@@ -132,14 +141,14 @@ public class SemossClassLoader extends ClassLoader {
 
 	/**
 	 * How the name of a security utility method starts when project reactor code
-	 * can still call it directly: each answers a question about what a user may
-	 * do, or about a rule an admin set, and changes nothing. These direct calls are
+	 * can still call it directly: each answers a question about what a user may do,
+	 * or about a rule an admin set, and changes nothing. These direct calls are
 	 * deprecated in custom reactors, which ask
 	 * {@link prerna.auth.CustomReactorSecurity} instead, and the compile output
 	 * says so beside each one.
 	 */
-	private static final List<String> ACCESS_QUESTION_PREFIXES = List.of("userCan", "userIs", "userHas",
-			"userGroupCan", "userGroupIs", "adminOnly", "adminSet");
+	private static final List<String> ACCESS_QUESTION_PREFIXES = List.of("userCan", "userIs", "userHas", "userGroupCan",
+			"userGroupIs", "adminOnly", "adminSet");
 
 	/**
 	 * The method of {@link prerna.auth.CustomReactorSecurity} a custom reactor
@@ -239,8 +248,8 @@ public class SemossClassLoader extends ClassLoader {
 	 * changes them, since the engine access check reads the user from there. The
 	 * session id is refused as well: it is all a browser needs to act as the user.
 	 */
-	private static final Set<String> THREAD_STORE_CHANGES = Set.of("setUser", "setThreadMapObject",
-			"getTheadMapObject", "getSessionId", "setInsightId", "setSessionId", "setRouteId", "setJobId", "setSchedulerMode",
+	private static final Set<String> THREAD_STORE_CHANGES = Set.of("setUser", "setThreadMapObject", "getTheadMapObject",
+			"getSessionId", "setInsightId", "setSessionId", "setRouteId", "setJobId", "setSchedulerMode",
 			"setLocalHostname", "setLocalProtocol", "setLocalPort", "setContextProjectIdOverride",
 			"setContextProjectNameOverride", "clearContextProjectOverride", "remove");
 
@@ -248,38 +257,41 @@ public class SemossClassLoader extends ClassLoader {
 	 * Calls project reactor code cannot make, by owner then method name. Each is
 	 * replaced with a call that throws, whichever platform class the call names it
 	 * through, and a project class cannot extend an owner or a class that inherits
-	 * from one.
-	 * They load native code (load, loadLibrary), open a network connection
-	 * (URL.getContent), change something for every user of the JVM (its standard
-	 * streams, URL handlers, security providers, registered JDBC drivers, time zone
-	 * and locale), change who the signed in user is or which request the thread
-	 * serves, or hand out the SAX1 parser under a SAX parser. They look up a host
-	 * name or probe an address, which sends a request of the project's choosing to
-	 * a name server or a host (InetAddress), or put a handler or filter of the
-	 * project's on the JVM's own logging, which then sees what every user's work
-	 * logs, or take the platform's off (the java.util.logging Logger and
+	 * from one. They load native code (load, loadLibrary), open a network
+	 * connection (URL.getContent), change something for every user of the JVM (its
+	 * standard streams, URL handlers, security providers, registered JDBC drivers,
+	 * time zone and locale), change who the signed in user is or which request the
+	 * thread serves, or hand out the SAX1 parser under a SAX parser. They look up a
+	 * host name or probe an address, which sends a request of the project's
+	 * choosing to a name server or a host (InetAddress), or put a handler or filter
+	 * of the project's on the JVM's own logging, which then sees what every user's
+	 * work logs, or take the platform's off (the java.util.logging Logger and
 	 * LogManager). The calls each shared library cannot make are listed in its
 	 * sandbox class and added here.
 	 */
-	private static final Map<String, Set<String>> BLOCKED_CALLS = withLibraryRules(Map.ofEntries(
-			Map.entry("java/lang/System", Set.of("load", "loadLibrary", "setIn", "setOut", "setErr")),
-			Map.entry("java/lang/Runtime", Set.of("load", "loadLibrary")),
-			Map.entry("java/net/URL", Set.of("getContent", "setURLStreamHandlerFactory")),
-			Map.entry("java/security/Security",
-					Set.of("addProvider", "insertProviderAt", "removeProvider", "setProperty")),
-			Map.entry("java/sql/DriverManager",
-					Set.of("registerDriver", "deregisterDriver", "setLogWriter", "setLogStream")),
-			Map.entry("java/util/TimeZone", Set.of("setDefault")),
-			Map.entry("java/net/InetAddress", Set.of("getByName", "getAllByName", "isReachable")),
-			Map.entry("java/util/logging/Logger", Set.of("addHandler", "removeHandler", "setFilter", "setParent")),
-			Map.entry("java/util/logging/LogManager", Set.of("reset", "readConfiguration", "updateConfiguration")),
-			Map.entry("java/util/Locale", Set.of("setDefault")), Map.entry("prerna/om/Insight", Set.of("setUser")),
-			Map.entry("prerna/om/ThreadStore", THREAD_STORE_CHANGES),
-			Map.entry("prerna/auth/User",
-					Set.of("setAccessToken", "setGlobalAccessToken", "dropAccessToken", "setPrimaryLogin")),
-			Map.entry("prerna/auth/AccessToken", IDENTITY_SETTERS),
-			Map.entry("prerna/auth/ReadOnlyAccessToken", IDENTITY_SETTERS),
-			Map.entry("javax/xml/parsers/SAXParser", Set.of("getParser"))),
+	private static final Map<String, Set<String>> BLOCKED_CALLS = withLibraryRules(
+			Map.ofEntries(Map.entry("java/lang/System", Set.of("load", "loadLibrary", "setIn", "setOut", "setErr")),
+					Map.entry("java/lang/Runtime", Set.of("load", "loadLibrary")),
+					Map.entry("java/net/URL", Set.of("getContent", "setURLStreamHandlerFactory")),
+					Map.entry("java/security/Security",
+							Set.of("addProvider", "insertProviderAt", "removeProvider", "setProperty")),
+					Map.entry(
+							"java/sql/DriverManager",
+							Set.of("registerDriver", "deregisterDriver", "setLogWriter", "setLogStream")),
+					Map.entry("java/util/TimeZone", Set.of("setDefault")),
+					Map.entry("java/net/InetAddress", Set.of("getByName", "getAllByName", "isReachable")),
+					Map.entry("java/util/logging/Logger",
+							Set.of("addHandler", "removeHandler", "setFilter", "setParent")),
+					Map.entry("java/util/logging/LogManager",
+							Set.of("reset", "readConfiguration", "updateConfiguration")),
+					Map.entry("java/util/Locale", Set.of("setDefault")),
+					Map.entry("prerna/om/Insight", Set.of("setUser")),
+					Map.entry("prerna/om/ThreadStore", THREAD_STORE_CHANGES),
+					Map.entry("prerna/auth/User",
+							Set.of("setAccessToken", "setGlobalAccessToken", "dropAccessToken", "setPrimaryLogin")),
+					Map.entry("prerna/auth/AccessToken", IDENTITY_SETTERS),
+					Map.entry("prerna/auth/ReadOnlyAccessToken", IDENTITY_SETTERS),
+					Map.entry("javax/xml/parsers/SAXParser", Set.of("getParser"))),
 			List.of(SandboxedLog4j.BLOCKED_CALLS, SandboxedHikari.BLOCKED_CALLS, SandboxedJackson.BLOCKED_CALLS,
 					SandboxedPdfBox.BLOCKED_CALLS, SandboxedPoi.BLOCKED_CALLS));
 
@@ -331,17 +343,18 @@ public class SemossClassLoader extends ClassLoader {
 	 * other library on the platform classpath that a project class names is loaded
 	 * as the project's own sandboxed copy.
 	 */
-	private static final List<String> SHARED_LIBRARY_PACKAGES = concat(List.of(List.of("org.json.", "org.javatuples."),
-			SandboxedJackson.SHARED_PACKAGES, SandboxedPoi.SHARED_PACKAGES, SandboxedPdfBox.SHARED_PACKAGES,
-			SandboxedMail.SHARED_PACKAGES));
+	private static final List<String> SHARED_LIBRARY_PACKAGES = concat(
+			List.of(List.of("org.json.", "org.javatuples."), SandboxedJackson.SHARED_PACKAGES,
+					SandboxedPoi.SHARED_PACKAGES, SandboxedPdfBox.SHARED_PACKAGES, SandboxedMail.SHARED_PACKAGES));
 
 	/**
 	 * Library packages shared without their sub-packages, whose other packages hold
 	 * the library's internals: Gson, which needs no other rule, and the log4j API
 	 * and HikariCP, listed in their sandbox classes.
 	 */
-	private static final Set<String> SHARED_LIBRARY_EXACT_PACKAGES = union(List.of(Set.of("com.google.gson",
-			"com.google.gson.annotations", "com.google.gson.reflect", "com.google.gson.stream"),
+	private static final Set<String> SHARED_LIBRARY_EXACT_PACKAGES = union(List.of(
+			Set.of("com.google.gson", "com.google.gson.annotations", "com.google.gson.reflect",
+					"com.google.gson.stream"),
 			SandboxedLog4j.SHARED_EXACT_PACKAGES, SandboxedHikari.SHARED_EXACT_PACKAGES));
 
 	/**
@@ -379,8 +392,8 @@ public class SemossClassLoader extends ClassLoader {
 
 	/**
 	 * Internal name of the sandbox class whose static methods stand in for class
-	 * loading: finding a class by name, handing out a loader, and creating a
-	 * loader for local jars.
+	 * loading: finding a class by name, handing out a loader, and creating a loader
+	 * for local jars.
 	 */
 	private static final String SANDBOX_CLASS_LOADING = "prerna/util/SandboxedClassLoading";
 
@@ -404,11 +417,10 @@ public class SemossClassLoader extends ClassLoader {
 	 * only the calls the sandbox itself writes into a class reach them.
 	 */
 	private static final Set<String> SANDBOX_CLASSES = Set.of(SANDBOX, SANDBOX_XML, SANDBOX_CLASS_LOADING,
-			"prerna/util/SemossClassLoader",
-			PROJECT_JAR_CLASS_LOADER, "prerna/util/SemossJarClassLoader", SANDBOXED_CLASS_LOADER,
-			SandboxedPdfBox.INTERNAL_NAME, SandboxedHikari.INTERNAL_NAME, SandboxedJackson.INTERNAL_NAME,
-			SandboxedJackson3.INTERNAL_NAME, SandboxedGson.INTERNAL_NAME, "prerna/util/SandboxedLog4j",
-			"prerna/util/SandboxedPoi", "prerna/util/SandboxedMail");
+			"prerna/util/SemossClassLoader", PROJECT_JAR_CLASS_LOADER, "prerna/util/SemossJarClassLoader",
+			SANDBOXED_CLASS_LOADER, SandboxedPdfBox.INTERNAL_NAME, SandboxedHikari.INTERNAL_NAME,
+			SandboxedJackson.INTERNAL_NAME, SandboxedJackson3.INTERNAL_NAME, SandboxedGson.INTERNAL_NAME,
+			"prerna/util/SandboxedLog4j", "prerna/util/SandboxedPoi", "prerna/util/SandboxedMail");
 
 	/**
 	 * The JSON mapper classes that read and set an object's members by reflection,
@@ -552,10 +564,10 @@ public class SemossClassLoader extends ClassLoader {
 					Map.of("newSchema(Ljava/net/URL;)Ljavax/xml/validation/Schema;", 0)),
 			Map.entry("org/w3c/dom/ls/LSSerializer", Map.of("writeToURI(Lorg/w3c/dom/Node;Ljava/lang/String;)Z", 1)),
 			Map.entry("org/w3c/dom/ls/LSOutput", Map.of("setSystemId(Ljava/lang/String;)V", 0)),
-			Map.entry("java/nio/file/FileSystems",
-					Map.of("newFileSystem(Ljava/net/URI;Ljava/util/Map;)Ljava/nio/file/FileSystem;", 0,
-							"newFileSystem(Ljava/net/URI;Ljava/util/Map;Ljava/lang/ClassLoader;)Ljava/nio/file/FileSystem;",
-							0)));
+			Map.entry("java/nio/file/FileSystems", Map.of(
+					"newFileSystem(Ljava/net/URI;Ljava/util/Map;)Ljava/nio/file/FileSystem;", 0,
+					"newFileSystem(Ljava/net/URI;Ljava/util/Map;Ljava/lang/ClassLoader;)Ljava/nio/file/FileSystem;",
+					0)));
 
 	/**
 	 * Name prefixes of the JDK classes outside {@code java.*}.
@@ -569,8 +581,8 @@ public class SemossClassLoader extends ClassLoader {
 	 * and are not opened. Those arguments are left as they are, and the path that
 	 * results is checked where it is used.
 	 */
-	private static final Set<String> PATH_ARITHMETIC_CLASSES = Set.of("java/nio/file/Path", "java/nio/file/Paths",
-			FILE, "java/net/URL");
+	private static final Set<String> PATH_ARITHMETIC_CLASSES = Set.of("java/nio/file/Path", "java/nio/file/Paths", FILE,
+			"java/net/URL");
 
 	/**
 	 * The File methods that read or change the file system. The file they are
@@ -588,18 +600,20 @@ public class SemossClassLoader extends ClassLoader {
 	 * that read or write a file for their caller, and the shared library methods
 	 * that open a file by name, listed in their sandbox classes.
 	 */
-	private static final Map<String, Map<String, Integer>> PATH_TEXT_ARGUMENTS = withLibraryRules(Map.ofEntries(
-			Map.entry("java/io/FileInputStream", Map.of("<init>", 0)),
-			Map.entry("java/io/FileOutputStream", Map.of("<init>", 0)),
-			Map.entry("java/io/FileReader", Map.of("<init>", 0)), Map.entry("java/io/FileWriter", Map.of("<init>", 0)),
-			Map.entry("java/io/RandomAccessFile", Map.of("<init>", 0)),
-			Map.entry("java/io/PrintWriter", Map.of("<init>", 0)),
-			Map.entry("java/io/PrintStream", Map.of("<init>", 0)),
-			Map.entry("java/util/Formatter", Map.of("<init>", 0)),
-			Map.entry("java/util/zip/ZipFile", Map.of("<init>", 0)),
-			Map.entry("java/util/jar/JarFile", Map.of("<init>", 0)),
-			Map.entry("prerna/util/Utility", Map.of("writeResultToFile", 0, "writeResultToJson", 0, "writeWorkbook", 1,
-					"folderHasAnyFiles", 0, "folderIsNotEmpty", 0, "getUniqueFilePath", 0))),
+	private static final Map<String, Map<String, Integer>> PATH_TEXT_ARGUMENTS = withLibraryRules(
+			Map.ofEntries(Map.entry("java/io/FileInputStream", Map.of("<init>", 0)),
+					Map.entry("java/io/FileOutputStream", Map.of("<init>", 0)),
+					Map.entry("java/io/FileReader", Map.of("<init>", 0)),
+					Map.entry("java/io/FileWriter", Map.of("<init>", 0)),
+					Map.entry("java/io/RandomAccessFile", Map.of("<init>", 0)),
+					Map.entry("java/io/PrintWriter", Map.of("<init>", 0)),
+					Map.entry("java/io/PrintStream", Map.of("<init>", 0)),
+					Map.entry("java/util/Formatter", Map.of("<init>", 0)),
+					Map.entry("java/util/zip/ZipFile", Map.of("<init>", 0)),
+					Map.entry("java/util/jar/JarFile", Map.of("<init>", 0)),
+					Map.entry("prerna/util/Utility",
+							Map.of("writeResultToFile", 0, "writeResultToJson", 0, "writeWorkbook", 1,
+									"folderHasAnyFiles", 0, "folderIsNotEmpty", 0, "getUniqueFilePath", 0))),
 			List.of(SandboxedPoi.PATH_TEXT_ARGUMENTS, SandboxedPdfBox.PATH_TEXT_ARGUMENTS,
 					SandboxedMail.PATH_TEXT_ARGUMENTS));
 
@@ -645,8 +659,8 @@ public class SemossClassLoader extends ClassLoader {
 			Map.entry("java/io/File",
 					Set.of("<init>", "getParentFile", "getParent", "getAbsolutePath", "getCanonicalPath", "toPath")),
 			Map.entry("java/io/FileInputStream", Set.of("<init>")),
-			Map.entry("java/io/FileOutputStream", Set.of("<init>")), Map.entry("prerna/util/Utility",
-					Set.of("getDIHelperProperty", "loadProperties")));
+			Map.entry("java/io/FileOutputStream", Set.of("<init>")),
+			Map.entry("prerna/util/Utility", Set.of("getDIHelperProperty", "loadProperties")));
 
 	private String folder = null;
 
@@ -945,8 +959,8 @@ public class SemossClassLoader extends ClassLoader {
 	 * True for a platform class that requires an admin: by convention its name
 	 * starts with {@code Admin}, such as the admin reactors and the admin
 	 * endpoints, plus SecurityAdminUtils. Project reactor code can never use one,
-	 * and an admin has more than their own permissions on an engine only while
-	 * one is acting.
+	 * and an admin has more than their own permissions on an engine only while one
+	 * is acting.
 	 *
 	 * @param name fully-qualified class name
 	 * @return true if only an admin may use the class
@@ -1034,8 +1048,8 @@ public class SemossClassLoader extends ClassLoader {
 	 * Jackson 3 mapper.
 	 *
 	 * @param internalName the internal name of the class a call names, or null
-	 * @return the internal name of the mapper class, or null for a class that is
-	 *         no mapper
+	 * @return the internal name of the mapper class, or null for a class that is no
+	 *         mapper
 	 */
 	static String jsonMapperBase(String internalName) {
 		if (internalName == null) {
@@ -1088,8 +1102,8 @@ public class SemossClassLoader extends ClassLoader {
 	 * True for a platform class that works on a system database directly.
 	 *
 	 * @param internalName the internal name of a class
-	 * @return true if project reactor code cannot call its static methods or
-	 *         extend it
+	 * @return true if project reactor code cannot call its static methods or extend
+	 *         it
 	 */
 	static boolean isSystemDatabaseClass(String internalName) {
 		int nested = internalName.indexOf('$');
@@ -1107,8 +1121,8 @@ public class SemossClassLoader extends ClassLoader {
 
 	/**
 	 * True for a static call project reactor code cannot make: a method of a class
-	 * that works on a system database directly. The security utilities still
-	 * answer the questions whose names start with one of
+	 * that works on a system database directly. The security utilities still answer
+	 * the questions whose names start with one of
 	 * {@link #ACCESS_QUESTION_PREFIXES}, which are deprecated in custom reactors.
 	 *
 	 * @param owner the internal name of the class the call names
@@ -1142,8 +1156,8 @@ public class SemossClassLoader extends ClassLoader {
 	/**
 	 * One line the compile output adds about a call in a project class.
 	 *
-	 * @param source  the source file of the class, as a path from the package
-	 *                root, such as {@code custom/reactors/CheckReactor.java}
+	 * @param source  the source file of the class, as a path from the package root,
+	 *                such as {@code custom/reactors/CheckReactor.java}
 	 * @param line    the line of the call, or 0 when the class has no line numbers
 	 * @param refused true when the call throws when it runs, false when it is
 	 *                deprecated
@@ -1221,13 +1235,16 @@ public class SemossClassLoader extends ClassLoader {
 		String instead = replacement == null ? null : "; call CustomReactorSecurity." + replacement + " instead";
 		if (isRefusedSystemDatabaseCall(owner, name)) {
 			return new CompileNotice(source, line, true,
-					call + " is not available to custom reactors and throws when it runs" + (instead == null
-							? "; the platform's reactors, run through Pixel, read and change this data"
-							: instead));
+					call + " is not available to custom reactors and throws when it runs"
+							+ (instead == null
+									? "; the platform's reactors, run through Pixel, read and change this data"
+									: instead));
 		}
-		return new CompileNotice(source, line, false, call + " is deprecated in custom reactors" + (instead == null
-				? "; CustomReactorSecurity answers the permission questions custom reactors ask"
-				: instead));
+		return new CompileNotice(source, line, false,
+				call + " is deprecated in custom reactors"
+						+ (instead == null
+								? "; CustomReactorSecurity answers the permission questions custom reactors ask"
+								: instead));
 	}
 
 	/**
@@ -1266,8 +1283,8 @@ public class SemossClassLoader extends ClassLoader {
 
 	/**
 	 * The superclasses of a class the platform loads, as internal names, nearest
-	 * first. The class is looked at without being initialized. A class the
-	 * platform cannot load, such as a project's own, has none.
+	 * first. The class is looked at without being initialized. A class the platform
+	 * cannot load, such as a project's own, has none.
 	 *
 	 * @param internalName the internal name of the class
 	 * @return its superclasses
@@ -1726,9 +1743,9 @@ public class SemossClassLoader extends ClassLoader {
 		public void visit(int version, int access, String name, String signature, String superName,
 				String[] interfaces) {
 			refuseSandboxClass(superName);
-			if (superName != null && (inheritsBlockedCalls(superName) || FILE.equals(superName)
-					|| isSystemDatabaseClass(superName) || superName.startsWith(QUERY_WRAPPER_PACKAGE)
-					|| jsonMapperBase(superName) != null)) {
+			if (superName != null
+					&& (inheritsBlockedCalls(superName) || FILE.equals(superName) || isSystemDatabaseClass(superName)
+							|| superName.startsWith(QUERY_WRAPPER_PACKAGE) || jsonMapperBase(superName) != null)) {
 				throw new SecurityException(
 						"Extending " + superName.replace('/', '.') + " is not permitted in project reactors");
 			}
@@ -1952,9 +1969,9 @@ public class SemossClassLoader extends ClassLoader {
 	 * Java compilers always emit
 	 * {@code NEW T; DUP; [push args]; INVOKESPECIAL T.<init>}. We suppress the
 	 * {@code NEW} and its companion {@code DUP}, then at {@code INVOKESPECIAL} time
-	 * we emit {@code INVOKESTATIC SandboxedJavaExecution.factory(args)} instead. The
-	 * factory returns an already-initialized instance, leaving the stack in exactly
-	 * the same state as the original sequence would have.
+	 * we emit {@code INVOKESTATIC SandboxedJavaExecution.factory(args)} instead.
+	 * The factory returns an already-initialized instance, leaving the stack in
+	 * exactly the same state as the original sequence would have.
 	 *
 	 * <p>
 	 * Nesting (e.g. {@code new FileInputStream(new File("x"))}) is handled
@@ -2323,8 +2340,8 @@ public class SemossClassLoader extends ClassLoader {
 					super.visitInsn(argType.getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
 				}
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "blockSystemMutation", "()V", false);
-				// setProperty returns String, clearProperty returns String, setProperties is
-				// void
+				// setProperty returns String, clearProperty returns String,
+				// setProperties is void
 				if (!descriptor.endsWith(")V")) {
 					super.visitInsn(Opcodes.ACONST_NULL);
 				}

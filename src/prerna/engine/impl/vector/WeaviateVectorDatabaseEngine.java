@@ -378,11 +378,11 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			String documentName = Paths.get(sourceName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(
-					this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents",
+			File documentFile = storedDocumentToRemove(new File(
+					this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents"),
 					documentName);
 			try {
-				if (documentFile.exists()) {
+				if (documentFile != null) {
 					FileUtils.forceDelete(documentFile);
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}
@@ -517,8 +517,8 @@ public class WeaviateVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			Map<String, Object> fileInfo = new HashMap<>();
 			fileInfo.put("fileName", fileName);
 
-			File thisF = new File(documentsDir, fileName);
-			if (thisF.exists() && thisF.isFile()) {
+			File thisF = AbstractVectorDatabaseEngine.storedDocument(documentsDir, fileName);
+			if (thisF != null && thisF.isFile()) {
 				long fileSizeInBytes = thisF.length();
 				double fileSizeInMB = (double) fileSizeInBytes / (1024);
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

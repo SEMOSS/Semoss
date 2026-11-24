@@ -50,6 +50,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.io.connector.ConnectorGuards;
 import prerna.security.HttpHelperUtility;
 import prerna.util.ValueUtils;
 
@@ -185,7 +186,8 @@ public class MicrosoftGraphDriveClient {
 		if (version != null) {
 			Object preAuthUrl = version.get(DOWNLOAD_URL);
 			if (preAuthUrl != null && !preAuthUrl.toString().trim().isEmpty()) {
-				bytes = HttpHelperUtility.getRequestBytes(preAuthUrl.toString(), null, null, null, null);
+				bytes = HttpHelperUtility.getRequestBytes(ConnectorGuards.requirePreAuthenticated(preAuthUrl.toString()),
+						null, null, null, null);
 			}
 		}
 		if (bytes == null) {
@@ -206,7 +208,10 @@ public class MicrosoftGraphDriveClient {
 		List<Map<String, Object>> collected = new ArrayList<>();
 		String nextUrl = url;
 		while (nextUrl != null) {
-			String response = HttpHelperUtility.getRequest(nextUrl, authHeaders(), null, null, null);
+			// a nextLink comes back in the response, and the request carries the token
+			String response = HttpHelperUtility.getRequest(
+					ConnectorGuards.requireUnder(nextUrl, MicrosoftTokenFiller.MS_GRAPH_BASE_API), authHeaders(), null,
+					null, null);
 			Map<String, Object> json = parseObject(response);
 			if (json == null) {
 				break;
@@ -320,11 +325,12 @@ public class MicrosoftGraphDriveClient {
 		Object preAuthUrl = item.get(DOWNLOAD_URL);
 		byte[] bytes;
 		if (preAuthUrl != null && !preAuthUrl.toString().trim().isEmpty()) {
-			bytes = HttpHelperUtility.getRequestBytes(preAuthUrl.toString(), null, null, null, null);
+			bytes = HttpHelperUtility.getRequestBytes(ConnectorGuards.requirePreAuthenticated(preAuthUrl.toString()), null,
+					null, null, null);
 		} else {
 			Object itemId = item.get(ID);
 			String contentUrl = itemId != null
-					? GRAPH_BASE + "/drives/" + this.driveId + "/items/" + itemId.toString().trim() + "/content"
+					? itemIdUrl(itemId.toString()) + "/content"
 					: itemUrl(relativePath) + "/content";
 			bytes = HttpHelperUtility.getRequestBytes(contentUrl, authHeaders(), null, null, null);
 		}
@@ -393,7 +399,7 @@ public class MicrosoftGraphDriveClient {
 		if (sessionJson == null || sessionJson.get(UPLOAD_URL) == null) {
 			throw new IllegalStateException("Graph did not return an upload session for path: " + relativePath);
 		}
-		String uploadUrl = sessionJson.get(UPLOAD_URL).toString();
+		String uploadUrl = ConnectorGuards.requirePreAuthenticated(sessionJson.get(UPLOAD_URL).toString());
 
 		// the upload session url is pre-authenticated, so no bearer header is sent
 		long totalSize = localFile.length();
@@ -584,7 +590,7 @@ public class MicrosoftGraphDriveClient {
 		if (ValueUtils.isBlank(itemId)) {
 			throw new IllegalArgumentException("An item id is required.");
 		}
-		return GRAPH_BASE + "/drives/" + this.driveId + "/items/" + itemId.trim();
+		return GRAPH_BASE + "/drives/" + ConnectorGuards.segment(this.driveId) + "/items/" + ConnectorGuards.segment(itemId);
 	}
 
 	private Map<String, String> authHeaders() {
