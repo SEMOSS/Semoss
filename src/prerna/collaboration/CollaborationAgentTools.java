@@ -267,12 +267,14 @@ public final class CollaborationAgentTools {
 	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365
 	// mail after Brain's own search, calendar changes, Teams channels and their
 	// files,
-	// Teams live search, one Teams chat or message by id, skills, Brain edits, and
-	// listing or managing routines
+	// Teams live search and one chat or message by id, skills, Brain edits, and
+	// listing or managing routines. ListChats and ListChatMessages are always visible
+	// but SOURCE_NOTES and descriptions guide the model to SearchMail and ReadThread first.
 	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill", "CreateEvent", "UpdateEvent",
 			"DeleteEvent", "RespondToEvent", "ListChannels", "ListChannelFiles", "DownloadChannelFile",
-			"UploadChannelFile", "GetChat", "GetChatMessage", "SearchTeamsMessages", "ListMySkills", "OpenSkill",
-			"PublishSkill", "UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines", "ManageRoutine");
+			"UploadChannelFile", "GetChat", "GetChatMessage", "SearchTeamsMessages", "ListChats", "ListChatMessages",
+			"ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines",
+			"ManageRoutine");
 	// what the chat card calls a tool when its words alone would not say it
 	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat", "UseSkillInAssistant",
 			"Digital Twin Skills", "SaveToDigitalTwin", "Add a File to This Twin", "RemoveFromDigitalTwin",
@@ -302,8 +304,12 @@ public final class CollaborationAgentTools {
 				"[Live: Teams chats as they are now. SearchMail + ReadThread read them from Brain first. Use ListChats to list all current chats or check unread status directly.]");
 		notes.put("ListChatMessages",
 				"[Live: messages from a Teams chat by chatId, newest first. SearchMail + ReadThread cover this from Brain. Use ListChatMessages as a fallback for stale Teams chats (refresh=true only applies to email threads).]");
+		notes.put("GetChat",
+				"[Live: one Teams chat by id from Graph directly. SearchMail + ReadThread cover this from Brain. Use GetChat to fetch a specific chat's details when needed].");
+		notes.put("GetChatMessage",
+				"[Live: one message from a Teams chat by id from Graph directly. SearchMail + ReadThread cover this from Brain. Use GetChatMessage to fetch a specific message when needed].");
 		notes.put("SearchTeamsMessages",
-				"[Live: searches Teams messages live, outside Brain; never-ingest rules do NOT apply. Use after SearchMail finds nothing.]");
+				"[Live: searches Teams messages live, outside Brain; never-ingest rules do NOT apply. Use after SearchMail finds nothing].");
 		notes.put("ListM365Mail",
 				"[Microsoft 365, direct: Outlook as it is now, outside Brain. Brain's never-ingest rules "
 						+ "and exclusions do NOT apply here, and mail Brain has not classified can show up. Use it after "
