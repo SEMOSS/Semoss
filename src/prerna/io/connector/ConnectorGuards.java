@@ -1,8 +1,11 @@
 package prerna.io.connector;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Locale;
 
@@ -30,11 +33,17 @@ public final class ConnectorGuards {
 	 * @throws IllegalArgumentException when the link is anywhere else
 	 */
 	public static String requireUnder(String link, String base) {
-		if (link != null && link.startsWith(base + "/")) {
+		if (link != null) {
 			try {
-				URI parsed = new URI(link);
-				if (parsed.getHost() != null && parsed.getHost().equalsIgnoreCase(new URI(base).getHost())
-						&& parsed.getUserInfo() == null) {
+				URI parsed = new URI(link.trim());
+				URI root = new URI(base);
+				String basePath = root.getRawPath() == null ? "" : root.getRawPath();
+				String linkPath = parsed.getRawPath() == null ? "" : parsed.getRawPath();
+				// scheme and host compare case-insensitively, the path must be below the base path
+				if (parsed.getScheme() != null && parsed.getScheme().equalsIgnoreCase(root.getScheme())
+						&& parsed.getHost() != null && parsed.getHost().equalsIgnoreCase(root.getHost())
+						&& effectivePort(parsed) == effectivePort(root) && parsed.getUserInfo() == null
+						&& linkPath.startsWith(basePath + "/")) {
 					return link;
 				}
 			} catch (URISyntaxException e) {
@@ -104,13 +113,55 @@ public final class ConnectorGuards {
 	 * @throws IllegalArgumentException when the path would leave the folder
 	 */
 	public static Path resolveWithin(Path root, String relative) {
+		if (relative == null || relative.isBlank()) {
+			throw new IllegalArgumentException("Not a file name inside the destination: " + relative);
+		}
 		Path base = root.toAbsolutePath().normalize();
+		try {
+			// real path of the nearest existing part, so a root that is not created yet still compares true
+			Path existingRoot = base;
+			while (existingRoot != null && !Files.exists(existingRoot)) {
+				existingRoot = existingRoot.getParent();
+			}
+			if (existingRoot != null) {
+				base = existingRoot.toRealPath().resolve(existingRoot.relativize(base)).normalize();
+			}
+		} catch (IOException e) {
+			throw new IllegalArgumentException("The destination cannot be resolved: " + root, e);
+		}
 		Path target = base.resolve(relative.replace('\\', '/')).normalize();
-		if (!target.startsWith(base) || target.equals(base)) {
+		if (!target.startsWith(base) || target.equals(base) || escapesThroughLink(base, target)) {
 			classLogger.warn("Refused a remote file name that leaves {}", base);
 			throw new IllegalArgumentException("Not a file name inside the destination: " + relative);
 		}
 		return target;
+	}
+
+	// a symlink below the root must not carry the write outside it
+	private static boolean escapesThroughLink(Path base, Path target) {
+		Path existing = target;
+		while (existing != null && !Files.exists(existing, LinkOption.NOFOLLOW_LINKS)) {
+			existing = existing.getParent();
+		}
+		if (existing == null) {
+			return true;
+		}
+		if (!existing.startsWith(base)) {
+			// nothing under the root exists yet
+			return false;
+		}
+		try {
+			return !existing.toRealPath().startsWith(base);
+		} catch (IOException e) {
+			return true;
+		}
+	}
+
+	private static int effectivePort(URI uri) {
+		if (uri.getPort() >= 0) {
+			return uri.getPort();
+		}
+		return "http".equalsIgnoreCase(uri.getScheme()) ? 80 : 443;
 	}
 
 	private static String hostOf(String link) {

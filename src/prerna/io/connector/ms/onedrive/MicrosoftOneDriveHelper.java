@@ -1291,6 +1291,9 @@ public class MicrosoftOneDriveHelper {
 	 * write outside the destination.
 	 */
 	public static String baseName(String name) {
+		if (name == null) {
+			throw new IllegalArgumentException("Not a file name: null");
+		}
 		String base = name.replace('\\', '/');
 		base = base.substring(base.lastIndexOf('/') + 1).trim();
 		if (base.isEmpty() || base.equals(".") || base.equals("..")) {
