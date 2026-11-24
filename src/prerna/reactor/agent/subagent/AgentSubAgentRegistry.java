@@ -106,12 +106,9 @@ public final class AgentSubAgentRegistry {
 	private final Map<String, RootSpawnContext> rootContextByJobId = new ConcurrentHashMap<>();
 
 	// childJobId -> root context snapshot for that child's tree. Populated on spawn
-	// so
-	// that descendants can find the shared budget counter even after the root
-	// harness has
-	// called unregisterRoot (e.g. "spawn now, wait later" flows where the root run
-	// returns
-	// before all children finish their own spawning).
+	// so that descendants can find the shared budget counter even after the root
+	// harness has called unregisterRoot (e.g. "spawn now, wait later" flows where
+	// the root run returns before all children finish their own spawning).
 	private final Map<String, RootSpawnContext> rootCtxByChildJobId = new ConcurrentHashMap<>();
 
 	private AgentSubAgentRegistry() {
@@ -184,9 +181,8 @@ public final class AgentSubAgentRegistry {
 		}
 
 		// Pixel-initiated spawns (parentMeta == null) bypass SemossAgentHarness and
-		// never
-		// call registerRoot. Auto-register defaults keyed by the caller's job ID so
-		// maxSubagentsPerRun is tracked for these callers too.
+		// never call registerRoot. Auto-register defaults keyed by the caller's job ID
+		// so maxSubagentsPerRun is tracked for these callers too.
 		if (rootCtx == null && req.parentJobId != null && !req.parentJobId.isBlank()) {
 			registerRoot(req.parentJobId, policy);
 			rootCtx = lookupRootContextForJob(req.parentJobId);

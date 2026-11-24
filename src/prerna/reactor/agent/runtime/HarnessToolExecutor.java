@@ -412,9 +412,8 @@ final class HarnessToolExecutor {
 		AskModelEngineResponse<?> modelResp;
 		if (tc.rawToolName.equals(ctx.getAgentConfig().getResultTool())) {
 			// Persist the tool result and a matching assistant message through Room's
-			// existing
-			// prebuilt-response path. Coverage and verdict cannot be rewritten by the
-			// reviewer.
+			// existing prebuilt-response path. Coverage and verdict cannot be rewritten by
+			// the reviewer.
 			modelResp = ctx.getRoom().addToolExecutionResult(tc.toolCallId, tc.rawToolName, outcome.content,
 					tc.toolParams, new HashMap<>(paramMap), parentMsgId, ctx.getModelEngine(), ctx.getInsight(),
 					outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR, ResponseMessage.text(outcome.content));
@@ -513,8 +512,7 @@ final class HarnessToolExecutor {
 	}
 
 	// Fire all configured pre-tool hooks. Each hook is isolated so a thrower does
-	// not
-	// skip the remaining hooks or abort the tool dispatch.
+	// not skip the remaining hooks or abort the tool dispatch.
 	private static void fireBeforeTool(List<IToolHook> hooks, AgentRunContext ctx, ParsedToolCall tc, int currentIter) {
 		if (hooks == null || hooks.isEmpty()) {
 			return;
@@ -821,11 +819,10 @@ final class HarnessToolExecutor {
 			functionGrs.add(new NounMetadata(rawToolName, PixelDataType.CONST_STRING));
 			reactor.getNounStore().addNoun(ReactorKeysEnum.FUNCTION.getKey(), functionGrs);
 
-			// Always attach paramValues - RunMCPToolReactor declares it required, so
-			// no-arg
+			// Always attach paramValues - RunMCPToolReactor declares it required, so no-arg
 			// tools (ListSkill, TodoRead, ...) would otherwise blow up with "Required
-			// input(s)
-			// missing: paramValues". Pass an empty map when the model sent no args.
+			// input(s) missing: paramValues". Pass an empty map when the model sent no
+			// args.
 			GenRowStruct paramGrs = new GenRowStruct();
 			paramGrs.add(
 					new NounMetadata(params != null ? params : java.util.Collections.emptyMap(), PixelDataType.MAP));
@@ -909,9 +906,9 @@ final class HarnessToolExecutor {
 			this.toolCallId = String.valueOf(toolCall.get("id"));
 			this.rawToolName = String.valueOf(toolCall.get("name"));
 			// Providers vary: Anthropic uses "input" (Map), OpenAI/Responses-style uses
-			// "arguments"
-			// which can arrive as a Map OR as a JSON-encoded String. Mirror the parsing in
-			// AskToolModelEngineResponse so we don't drop string-encoded payloads.
+			// "arguments" which can arrive as a Map OR as a JSON-encoded String. Mirror the
+			// parsing in AskToolModelEngineResponse so we don't drop string-encoded
+			// payloads.
 			Object argsObj = toolCall.get("arguments");
 			if (argsObj == null) {
 				argsObj = toolCall.get("input");

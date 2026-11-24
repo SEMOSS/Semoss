@@ -2549,9 +2549,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// Detect circular dependency - if we're already visiting this node, there's a
 		// cycle. Every node in the visiting set has already had its own
-		// hasViewPermission
-		// checked, so the back-edge doesn't introduce any new permission requirement.
-		// Return true to avoid poisoning the result for all nodes in the cycle.
+		// hasViewPermission checked, so the back-edge doesn't introduce any new
+		// permission requirement. Return true to avoid poisoning the result for all
+		// nodes in the cycle.
 		if (visiting.contains(engineId)) {
 			return true;
 		}

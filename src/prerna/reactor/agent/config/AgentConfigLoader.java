@@ -245,10 +245,8 @@ public final class AgentConfigLoader {
 		b.skills(resolveSkills(workspaceId, room, cfgJson, runUser, digitalTwin));
 
 		// Hooks and subagents currently come from CONFIG_JSON only. resolveHooks
-		// classifies
-		// each entry by interface so a hook can land on the run-hook list, tool-hook
-		// list,
-		// or both.
+		// classifies each entry by interface so a hook can land on the run-hook list,
+		// tool-hook list, or both.
 		ResolvedHooks rh = resolveHooks(cfgJson);
 		b.runHooks(withBuiltInRunHooks(room, rh.runHooks, digitalTwin));
 		b.toolHooks(rh.toolHooks);
