@@ -98,7 +98,7 @@ final class AppTestRunner {
 		}
 	}
 
-	private static boolean sameOrigin(URI left, URI right) {
+	static boolean sameOrigin(URI left, URI right) {
 		return left.getScheme().equalsIgnoreCase(String.valueOf(right.getScheme()))
 				&& left.getHost().equalsIgnoreCase(String.valueOf(right.getHost()))
 				&& port(left) == port(right);
@@ -150,7 +150,7 @@ final class AppTestRunner {
 					Map<String, Object> recording = recordings.get(index);
 					tests.set(index, pendingTest(recording, "RUNNING"));
 					progress.accept(progressReport(runId, target, tests, startedAt));
-					tests.set(index, replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat, runId, owner, target, database, portal));
+					tests.set(index, replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat, runId, owner, target, database, portal, playwright.request()));
 					progress.accept(progressReport(runId, target, tests, startedAt));
 				}
 			}
@@ -201,7 +201,7 @@ final class AppTestRunner {
 
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> replay(Browser browser, URI root, String sessionId, String cookieName,
-			Map<String, Object> recording, long deadline, AppTestEnvironment testEnvironment) {
+			Map<String, Object> recording, long deadline, AppTestEnvironment testEnvironment, com.microsoft.playwright.APIRequest requests) {
 		Instant startedAt = Instant.now();
 		Map<String, Object> test = new LinkedHashMap<>();
 		test.put("id", recording.get("id"));
@@ -230,7 +230,7 @@ final class AppTestRunner {
 			context.addInitScript(DISABLE_ANIMATIONS);
 			Instant fixedTime = fixedTime();
 			if (fixedTime != null) context.clock().install(new Clock.InstallOptions().setTime(fixedTime.toString()));
-            if (testEnvironment != null) configureTestBrowser(context, root, testEnvironment, unsafeNavigation);
+            if (testEnvironment != null) configureTestBrowser(context, root, testEnvironment, unsafeNavigation, requests, deadline);
             else {
 				String modulePath = root.getPath().substring(0, root.getPath().indexOf("/public_home/"));
 				context.addCookies(List.of(new Cookie(cookieName, sessionId).setDomain(root.getHost())
@@ -420,19 +420,21 @@ final class AppTestRunner {
             Object value = page.evaluate("() => window.__semossTestViolations?.splice(0,10) ?? []");
             if (value instanceof List<?> values) for (Object entry : values) {
                 if (entry instanceof Map<?,?> item) environment.blockedRequest("REQUEST", String.valueOf(item.get("url")), "browser",
-                        "TEST_PREVIEW_CSP_BLOCKED".equals(item.get("code")) ? "TEST_PREVIEW_CSP_BLOCKED" : "TEST_PREVIEW_ENDPOINT_UNSUPPORTED");
+                        List.of("TEST_PREVIEW_CSP_BLOCKED", "TEST_PREVIEW_STATIC_ASSET_FAILED").contains(item.get("code")) ? String.valueOf(item.get("code")) : "TEST_PREVIEW_ENDPOINT_UNSUPPORTED");
             }
         } catch (RuntimeException ignored) { /* A failed document may already be gone; network failures are retained separately. */ }
     }
 
     private static void configureTestBrowser(BrowserContext context, URI root, AppTestEnvironment environment,
-            AtomicBoolean denied) {
-        context.setOffline(true);
+            AtomicBoolean denied, com.microsoft.playwright.APIRequest requests, long deadline) {
+        AtomicInteger staticRequests = new AtomicInteger();
         context.routeWebSocket("**/*", socket -> {
             environment.blockedRequest("WEBSOCKET", socket.url(), "websocket", "TEST_PREVIEW_ENDPOINT_UNSUPPORTED");
             denied.set(true); socket.close();
         });
         URI module = root.resolve("../../../");
+        URI applicationModule = root.resolve("../../../../../../");
+        String modulePath = applicationModule.getPath().replaceAll("/$", "");
         context.route("**/*", route -> {
             String code = "TEST_PREVIEW_ENDPOINT_UNSUPPORTED";
             try {
@@ -452,13 +454,32 @@ final class AppTestRunner {
                 } else if ("GET".equals(route.request().method()) && module.resolve("api/config").getPath().equals(path)) {
                     route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(200)
                             .setContentType("application/json").setBody(new com.google.gson.Gson().toJson(environment.sdkConfig())));
-                } else if ("GET".equals(route.request().method()) && (insideApp(root, url.toString()) || path.startsWith(module.resolve("sdk/").getPath()))) {
+                } else if ("GET".equals(route.request().method()) && insideApp(root, url.toString())) {
                     String relative = path.substring(module.getPath().length());
-                    AppTestEnvironment.Asset asset = environment.asset(relative, "");
+                    AppTestEnvironment.Asset asset = environment.asset(relative, modulePath);
                     if (asset == null) { code = "TEST_PREVIEW_ASSET_MISSING"; throw new IllegalArgumentException(); }
                     route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(200)
                             .setContentType(asset.contentType()).setBodyBytes(asset.bytes())
-                            .setHeaders(Map.of("Content-Security-Policy", environment.contentSecurityPolicy("http://semoss-app-test.invalid"))));
+                            .setHeaders(Map.of("Content-Security-Policy", environment.contentSecurityPolicy(applicationModule.toString().replaceAll("/$", "")))));
+                } else if (AppTestStaticAssets.allows(root, url, route.request().method()) && !route.request().isNavigationRequest()) {
+                    code = "TEST_PREVIEW_STATIC_ASSET_FAILED";
+                    if (staticRequests.incrementAndGet() > 256 || System.nanoTime() >= deadline) throw new IllegalArgumentException();
+                    // A new request context per download carries no user/browser cookies, credentials or prior Set-Cookie.
+                    com.microsoft.playwright.APIRequestContext download = requests.newContext(
+                            new com.microsoft.playwright.APIRequest.NewContextOptions().setTimeout(Math.max(100, Math.min(8_000, (deadline-System.nanoTime())/1_000_000.0)))
+                                    .setExtraHTTPHeaders(Map.of("Accept", "*/*")));
+                    try {
+                        var response = download.get(url.toString(), com.microsoft.playwright.options.RequestOptions.create().setMaxRedirects(0));
+                        if (response.status() >= 300 && response.status() < 400) {
+                            code = "TEST_PREVIEW_STATIC_REDIRECT_BLOCKED"; throw new IllegalArgumentException();
+                        }
+                        if (response.status() == 404) { code = "TEST_PREVIEW_ASSET_MISSING"; throw new IllegalArgumentException(); }
+                        String type = response.headers().get("content-type");
+                        if (!response.ok() || !AppTestStaticAssets.validContentType(url.toString(), type)) throw new IllegalArgumentException();
+                        byte[] content = response.body();
+                        if (content.length > AppTestStaticAssets.MAX_BYTES) throw new IllegalArgumentException();
+                        route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(200).setContentType(type).setBodyBytes(content));
+                    } finally { download.dispose(); }
                 } else if ("GET".equals(route.request().method()) && "/favicon.ico".equals(path)) {
                     route.fulfill(new com.microsoft.playwright.Route.FulfillOptions().setStatus(404));
                 } else throw new IllegalArgumentException();
@@ -471,14 +492,14 @@ final class AppTestRunner {
 
     private static Map<String, Object> replayRepeated(Browser browser, URI root, String sessionId, String cookieName,
             Map<String, Object> recording, long deadline, int repeat, String runId, String owner, String target,
-            AppTestEnvironment.Definition database, AppTestEnvironment.Portal portal) {
+            AppTestEnvironment.Definition database, AppTestEnvironment.Portal portal, com.microsoft.playwright.APIRequest requests) {
         List<Map<String, Object>> outcomes = new ArrayList<>();
         for (int i = 0; i < Math.max(1, repeat); i++) {
             var definition = AppTestPlayback.variables(recording, runId, i + 1);
-            if (database == null) outcomes.add(replay(browser, root, sessionId, cookieName, definition, deadline, null));
+            if (database == null) outcomes.add(replay(browser, root, sessionId, cookieName, definition, deadline, null, requests));
             else {
                 try (AppTestEnvironment environment = AppTestEnvironment.open(owner, target, database, portal, false)) {
-                    outcomes.add(replay(browser, environment.root(), null, null, definition, deadline, environment));
+                    outcomes.add(replay(browser, environment.root(root), null, null, definition, deadline, environment, requests));
                 } catch (java.io.IOException | java.sql.SQLException | RuntimeException failure) {
                     var failed = pendingTest(recording, "ERROR");
                     failed.put("classification", "TEST_DATABASE_SETUP_FAILED");

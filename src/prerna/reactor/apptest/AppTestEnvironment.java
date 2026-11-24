@@ -81,7 +81,6 @@ public final class AppTestEnvironment implements AutoCloseable {
     private static final org.apache.logging.log4j.Logger LOGGER = org.apache.logging.log4j.LogManager.getLogger(AppTestEnvironment.class);
 
     private static boolean shuttingDown;
-    private static volatile Map<String,byte[]> sdkAssets = Map.of();
     private static final java.util.concurrent.ScheduledExecutorService REAPER = Executors.newSingleThreadScheduledExecutor(task -> {
             Thread thread = new Thread(task, "app-test-environment-cleanup");
             thread.setDaemon(true);
@@ -97,29 +96,10 @@ public final class AppTestEnvironment implements AutoCloseable {
 
     /** Validated immutable inputs shared by a run; every replay still creates its own database. */
     record Definition(String sourceEngineId, String schemaSql, String seedSql, String fixtureHash) { }
-    record Portal(Map<String, byte[]> assets, String hash, Map<String,String> publicJson, Map<String,byte[]> sdk) {
-        Portal(Map<String,byte[]> assets, String hash) { this(assets, hash, Map.of(), Map.of()); }
-        Portal(Map<String,byte[]> assets, String hash, Map<String,String> publicJson) { this(assets, hash, publicJson, Map.of()); }
+    record Portal(Map<String, byte[]> assets, String hash, Map<String,String> publicJson) {
+        Portal(Map<String,byte[]> assets, String hash) { this(assets, hash, Map.of()); }
     }
 
-    /** Called by Monolith at startup with the deployed frontend's fixed SDK directory, never an app-supplied path. */
-    public static void loadPlatformSdk(Path directory) throws IOException {
-        Map<String,byte[]> snapshot = new java.util.TreeMap<>();
-        int size = 0;
-        if (directory != null && Files.isDirectory(directory)) {
-            Path sdkRoot = directory.toRealPath();
-            try (var paths = Files.walk(sdkRoot)) {
-                for (Path path : paths.filter(Files::isRegularFile).toList()) {
-                    String name = sdkRoot.relativize(path).toString().replace('\\', '/');
-                    if (!(name.endsWith(".js") || name.endsWith(".mjs") || name.endsWith(".css")) || name.startsWith(".") || name.contains("/.")) continue;
-                    if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) || snapshot.size() >= 256 || Files.size(path) > 16 * 1024 * 1024 - size)
-                        throw new IOException("Platform SDK snapshot exceeds limits or contains a symlink");
-                    byte[] content = Files.readAllBytes(path); size += content.length; snapshot.put(name, content);
-                }
-            }
-        }
-        sdkAssets = Map.copyOf(snapshot);
-    }
     public record Asset(byte[] bytes, String contentType) { }
 
     private final String id = UUID.randomUUID().toString();
@@ -272,9 +252,7 @@ public final class AppTestEnvironment implements AutoCloseable {
                 digest.update(name.getBytes(StandardCharsets.UTF_8)); digest.update((byte)0);
                 digest.update(content.getBytes(StandardCharsets.UTF_8));
             });
-            Map<String,byte[]> sdk = sdkAssets;
-            new java.util.TreeMap<>(sdk).forEach((name, content) -> { digest.update(("sdk/" + name).getBytes(StandardCharsets.UTF_8)); digest.update((byte)0); digest.update(content); });
-            return new Portal(Map.copyOf(assets), HexFormat.of().formatHex(digest.digest()), Map.copyOf(publicJson), sdk);
+            return new Portal(Map.copyOf(assets), HexFormat.of().formatHex(digest.digest()), Map.copyOf(publicJson));
         } catch (java.security.NoSuchAlgorithmException impossible) { throw new IllegalStateException(impossible); }
     }
 
@@ -311,7 +289,9 @@ public final class AppTestEnvironment implements AutoCloseable {
     }
 
     String basePath() { return ENDPOINT + id + "/" + access.secret() + "/"; }
-    URI root() { return AppTestRunner.appRoot("http://semoss-app-test.invalid/" + basePath(), projectId); }
+    URI root(URI applicationRoot) {
+        return AppTestRunner.appRoot(applicationRoot.resolve("../../../").resolve(basePath()).toString(), projectId);
+    }
     String failure() { return access.lastFailure(); }
     String failureCode() { return access.diagnostics.code(); }
     void phase(String phase) { access.diagnostics.phase(phase); }
@@ -392,18 +372,17 @@ public final class AppTestEnvironment implements AutoCloseable {
 
     public String contentSecurityPolicy(String modulePath) {
         String base = modulePath + "/" + basePath();
-        return "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-                + "img-src 'self' data:; font-src 'self'; connect-src " + base + "api/; "
-                + "frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; worker-src 'none'";
+        String statics = AppTestStaticAssets.sources(modulePath);
+        String portal = base + "public_home/" + projectId + "/portals/";
+        return "default-src 'none'; script-src 'unsafe-inline' " + portal + " " + statics
+                + "; style-src 'unsafe-inline' " + portal + " " + statics
+                + "; img-src data: " + portal + " " + statics + "; font-src data: " + portal + " " + statics
+                + "; connect-src " + base + "api/ " + portal + " " + statics
+                + "; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; worker-src 'none'";
     }
 
     /** Serve the immutable build, with an SPA fallback only for extensionless navigation routes. */
     public Asset asset(String path, String modulePath) {
-        if (path.startsWith("sdk/")) {
-            String name = path.substring(4);
-            byte[] bytes = portal.sdk.get(name);
-            return bytes == null ? null : new Asset(bytes, mime(name));
-        }
         String prefix = "public_home/" + projectId + "/portals/";
         if (!path.startsWith(prefix)) throw new IllegalArgumentException("The preview path belongs to a different app");
         String name = path.substring(prefix.length());
@@ -422,13 +401,13 @@ public final class AppTestEnvironment implements AutoCloseable {
             String html = new String(content, StandardCharsets.UTF_8)
                     .replaceAll("(?is)<script\\b[^>]*\\bid=[\"']semoss-env[\"'][^>]*>.*?</script>", "")
                     .replaceAll("(?is)<base\\b[^>]*>", "");
-            // Rewrite the platform-owned SDK import map to the immutable preview-local copy.
+            // Use the same public SDK URL as ordinary published portals, without filesystem discovery.
             var document = org.jsoup.Jsoup.parse(html);
             document.outputSettings().prettyPrint(false);
             var importMap = document.getElementById("semoss-sdk-importmap");
-            if (importMap != null) importMap.html(JSON.toJson(Map.of("imports", Map.of("@semoss/sdk", base + "sdk/index.mjs"))));
+            if (importMap != null) importMap.html(JSON.toJson(Map.of("imports", Map.of("@semoss/sdk", AppTestStaticAssets.sdkEntry()))));
             else if (document.selectFirst("script[type=importmap]") == null)
-                document.head().prepend("<script type=\"importmap\">" + JSON.toJson(Map.of("imports", Map.of("@semoss/sdk", base + "sdk/index.mjs"))) + "</script>");
+                document.head().prepend("<script type=\"importmap\">" + JSON.toJson(Map.of("imports", Map.of("@semoss/sdk", AppTestStaticAssets.sdkEntry()))) + "</script>");
             html = document.html();
             String injection = "<base href=\"" + root + "\"><script id=\"semoss-env\" type=\"application/json\">" + env + "</script>"
                     + "<script>" + bootstrap(base, root) + "</script>";
@@ -440,15 +419,26 @@ public final class AppTestEnvironment implements AutoCloseable {
     }
 
     private static String bootstrap(String base, String root) {
-        // Apps with older SDKs may set MODULE themselves. Rewrite only known SDK URLs; other API traffic is blocked.
-        return "(()=>{window.__semossTestBlocked=false;window.__semossTestViolations=[];const blocked=(url,code)=>{window.__semossTestBlocked=true;if(window.__semossTestViolations.length<10)window.__semossTestViolations.push({url,code})};document.addEventListener('securitypolicyviolation',e=>blocked(e.blockedURI,'TEST_PREVIEW_CSP_BLOCKED'));const base=" + JSON.toJson(base) + ",root=" + JSON.toJson(root) + ";"
-                + "const rewrite=u=>{const p=new URL(u,location.href);"
-                + "if(p.pathname.endsWith('/api/engine/runPixel'))return base+'api/engine/runPixel';"
-                + "if(p.pathname.endsWith('/api/config'))return base+'api/config';"
-                + "if(p.pathname.includes('/api/')){blocked(p.href,'TEST_PREVIEW_ENDPOINT_UNSUPPORTED');throw Error('UNSUPPORTED_TEST_DATABASE_OPERATION: This API is unavailable in the test preview');}"
-                + "return u;};"
-                + "const f=window.fetch;window.fetch=(u,o)=>{try{return f.call(window,u instanceof Request?new Request(rewrite(u.url),u):rewrite(String(u)),o)}catch(e){return Promise.reject(e)}};"
-                + "const x=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u,...a){return x.call(this,m,rewrite(String(u)),...a)};"
+        return "(()=>{window.__semossTestBlocked=false;window.__semossTestViolations=[];"
+                + "const blocked=(url,code)=>{window.__semossTestBlocked=true;if(window.__semossTestViolations.length<10)window.__semossTestViolations.push({url,code})};"
+                + "document.addEventListener('securitypolicyviolation',e=>blocked(e.blockedURI,'TEST_PREVIEW_CSP_BLOCKED'));"
+                + "document.addEventListener('error',e=>{const url=e.target?.src||e.target?.href;if(url)blocked(url,'TEST_PREVIEW_STATIC_ASSET_FAILED')},true);"
+                + "const base=" + JSON.toJson(base) + ",root=" + JSON.toJson(root)
+                + ",statics=" + JSON.toJson(AppTestStaticAssets.roots()) + ",extensions=" + JSON.toJson(AppTestStaticAssets.EXTENSIONS) + ";"
+                + "const isStatic=(p,m)=>m==='GET'&&p.origin===location.origin&&!p.username&&!p.password&&!p.pathname.includes('//')"
+                + "&&/^[A-Za-z0-9_./@~-]+$/.test(p.pathname)&&!p.pathname.split('/').some(s=>s==='.'||s==='..'||s.toLowerCase()==='api')"
+                + "&&statics.some(s=>p.pathname.startsWith(s))&&extensions.includes(p.pathname.split('.').pop().toLowerCase());"
+                + "const rewrite=(u,m)=>{const p=new URL(u,location.href);"
+                + "if(m==='POST'&&p.pathname.endsWith('/api/engine/runPixel'))return base+'api/engine/runPixel';"
+                + "if(m==='GET'&&p.pathname.endsWith('/api/config'))return base+'api/config';"
+                + "if(p.origin===location.origin&&p.pathname.startsWith(base)&&m==='GET')return u;"
+                + "if(isStatic(p,m))return u;"
+                + "blocked(p.href,'TEST_PREVIEW_ENDPOINT_UNSUPPORTED');throw Error('UNSUPPORTED_TEST_DATABASE_OPERATION: This request is unavailable in the test preview');};"
+                + "const f=window.fetch;window.fetch=(u,o)=>{try{const m=String(o?.method||(u instanceof Request?u.method:'GET')).toUpperCase();"
+                + "const original=u instanceof Request?u.url:String(u),url=rewrite(original,m);"
+                + "const options=isStatic(new URL(original,location.href),m)?{...o,credentials:'omit',redirect:'error',referrerPolicy:'no-referrer',headers:{Accept:'*/*'}}:o;"
+                + "return f.call(window,u instanceof Request?new Request(url,u):url,options)}catch(e){return Promise.reject(e)}};"
+                + "const x=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u,...a){return x.call(this,m,rewrite(String(u),String(m).toUpperCase()),...a)};"
                 + "document.addEventListener('click',e=>{const a=e.target.closest?.('a[href]');if(!a)return;const h=a.getAttribute('href');"
                 + "if(h?.startsWith('/')&&!h.startsWith('//')&&!h.startsWith(root)){e.preventDefault();location.href=root+h.slice(1)}});"
                 + "})();";

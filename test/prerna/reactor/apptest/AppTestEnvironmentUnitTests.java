@@ -128,24 +128,20 @@ class AppTestEnvironmentUnitTests {
         }
     }
 
-    @Test void snapshotsSharedSdkLocallyAndRewritesOnlyThePlatformImportMap() throws Exception {
-        Path sdk = Files.createDirectory(temporary.resolve("sdk"));
-        Files.writeString(sdk.resolve("index.mjs"), "export const marker='original SDK';");
+    @Test void usesThePublicPlatformSdkUrlWithoutLoadingFrontendFiles() throws Exception {
         Path portalFolder = Files.createDirectory(temporary.resolve("portals"));
-        Files.writeString(portalFolder.resolve("index.html"), "<html><head><script id=\"semoss-sdk-importmap\" type=\"importmap\">{\"imports\":{\"@semoss/sdk\":\"/frontend/libs/sdk/dist/index.mjs\"}}</script></head><body>App</body></html>");
-        AppTestEnvironment.loadPlatformSdk(sdk);
-        try {
-            var portal = AppTestEnvironment.portal(portalFolder);
-            Files.writeString(sdk.resolve("index.mjs"), "changed");
-            var fixture = new AppTestEnvironment.Definition("source", SCHEMA, SEED, "fixture");
-            try (var environment = AppTestEnvironment.open("NATIVE:editor", "app", fixture, portal, false)) {
-                String html = new String(environment.asset("public_home/app/portals/", "/Monolith").bytes(), StandardCharsets.UTF_8);
-                assertTrue(html.contains("sdk/index.mjs"));
-                assertFalse(html.contains("/frontend/libs/sdk/dist/"));
-                assertEquals("export const marker='original SDK';", new String(environment.asset("sdk/index.mjs", "").bytes(), StandardCharsets.UTF_8));
-                assertNull(environment.asset("sdk/../private.js", ""));
-            }
-        } finally { AppTestEnvironment.loadPlatformSdk(null); }
+        Files.writeString(portalFolder.resolve("index.html"), "<html><head><script id=\"semoss-sdk-importmap\" type=\"importmap\">{\"imports\":{\"@semoss/sdk\":\"/old/frontend/index.mjs\"}}</script></head><body>App</body></html>");
+        var portal = AppTestEnvironment.portal(portalFolder);
+        var fixture = new AppTestEnvironment.Definition("source", SCHEMA, SEED, "fixture");
+        try (var environment = AppTestEnvironment.open("NATIVE:editor", "app", fixture, portal, false)) {
+            String html = new String(environment.asset("public_home/app/portals/", "/Monolith").bytes(), StandardCharsets.UTF_8);
+            assertTrue(html.contains(AppTestStaticAssets.sdkEntry()));
+            assertFalse(html.contains("/old/frontend/"));
+            assertFalse(html.contains(environment.basePath() + "sdk/"));
+            String policy = environment.contentSecurityPolicy("https://example.test/Monolith");
+            assertTrue(policy.contains("https://example.test" + AppTestStaticAssets.roots().getFirst()));
+            assertFalse(policy.contains("script-src 'self'"));
+        }
     }
 
     @Test void retainsFirstDiagnosticAndRedactsCapabilitiesQueriesAndSqlValues() throws Exception {

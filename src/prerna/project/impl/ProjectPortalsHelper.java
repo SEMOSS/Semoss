@@ -344,7 +344,7 @@ public class ProjectPortalsHelper {
 	 * serves as static content on the same origin as the portal, so the module and
 	 * the page it is imported from always come from the same deployment.
 	 */
-	private static String resolveSdkEntryUrl() {
+	public static String resolveSdkEntryUrl() {
 		String route = Utility.getApplicationOptionalRoutePath();
 		String routePrefix = (route == null || route.isEmpty()) ? "" : "/" + route;
 		return routePrefix + "/" + Utility.getFEWebAppName() + SDK_DIST_PATH + SDK_ENTRY_FILE;

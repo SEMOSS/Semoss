@@ -103,7 +103,7 @@ class AppTestDatabaseReplayUnitTests {
     @Test void reportsMissingStartupAssetsBeforeAttributingAWorkflowStep() {
         var fixture = new AppTestEnvironment.Definition("source", SCHEMA, SEED, "fixture");
         var portal = new AppTestEnvironment.Portal(Map.of("index.html", "<html><head><script src='./assets/missing.js?token=private-value'></script></head><body>App</body></html>".getBytes(StandardCharsets.UTF_8)), "portal");
-        var result = AppTestRunner.run(UUID.randomUUID().toString(), "app", URI.create("http://semoss-app-test.invalid/"), null, null,
+        var result = AppTestRunner.run(UUID.randomUUID().toString(), "app", AppTestRunner.appRoot("http://semoss-app-test.invalid/", "app"), null, null,
                 List.of(recording("Startup", "", List.of(Map.of("type", "ASSERT_VISIBLE", "selector", "body")))), temporary,
                 System.nanoTime()+30_000_000_000L, 1, progress->{}, "NATIVE:editor", fixture, portal);
         var test = (Map<?,?>)((List<?>)result.get("tests")).getFirst();
@@ -120,7 +120,7 @@ class AppTestDatabaseReplayUnitTests {
     private Map<String,Object> run(List<Map<String,Object>> tests, int repeat) {
         var definition = new AppTestEnvironment.Definition("source", SCHEMA, SEED, "fixture");
         var portal = new AppTestEnvironment.Portal(Map.of("index.html", HTML.getBytes(StandardCharsets.UTF_8)), "portal");
-        return AppTestRunner.run(UUID.randomUUID().toString(), "app", URI.create("http://semoss-app-test.invalid/"),
+        return AppTestRunner.run(UUID.randomUUID().toString(), "app", AppTestRunner.appRoot("http://semoss-app-test.invalid/", "app"),
                 null, null, tests, temporary, System.nanoTime() + 90_000_000_000L, repeat, progress -> {},
                 "NATIVE:editor", definition, portal);
     }

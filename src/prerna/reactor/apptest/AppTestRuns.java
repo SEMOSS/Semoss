@@ -165,9 +165,7 @@ final class AppTestRuns {
         AppTestEnvironment.Portal portal;
         try { portal = database == null ? null : AppTestEnvironment.portal(projectId); }
         catch (IOException failure) { throw new IllegalArgumentException("TEST_PREVIEW_UNAVAILABLE: " + failure.getMessage(), failure); }
-        URI root = database == null
-                ? AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId)
-                : AppTestRunner.appRoot("http://semoss-app-test.invalid/", projectId);
+        URI root = AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId);
         List<Map<String, Object>> selected = recordings;
         long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * replays * 1_000_000;
         pending.putAll(AppTestHistory.pending(runId, projectId, selected, replays, Instant.now()));

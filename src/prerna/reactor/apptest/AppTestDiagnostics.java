@@ -53,6 +53,8 @@ final class AppTestDiagnostics {
             case "TEST_PREVIEW_ASSET_MISSING" -> "Asset is absent from the test snapshot. Check the build and relative asset paths.";
             case "TEST_PREVIEW_EXTERNAL_REQUEST" -> "Request is outside this preview. Bundle dependencies locally or use supported preview APIs.";
             case "TEST_PREVIEW_CSP_BLOCKED" -> "The preview content policy blocked this resource.";
+            case "TEST_PREVIEW_STATIC_ASSET_FAILED" -> "The platform static asset could not load. Check that its normal URL serves the expected file without authentication.";
+            case "TEST_PREVIEW_STATIC_REDIRECT_BLOCKED" -> "The platform asset URL redirected; redirects are not followed into ordinary APIs or sign-in flows.";
             case "TEST_PREVIEW_REQUEST_TOO_LARGE" -> "SDK request exceeds the preview size limit.";
             case "TEST_PREVIEW_REQUEST_INVALID" -> "Malformed preview request. Use the SDK URL-encoded request format.";
             default -> "This endpoint or request method is unavailable in the test preview.";
