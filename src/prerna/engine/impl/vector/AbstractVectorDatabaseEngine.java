@@ -496,6 +496,15 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				+ INDEXED_FOLDER_NAME);
 	}
 
+	// the stored copy of a listed document, or null unless its name is a plain file name directly inside the documents folder
+	public static File storedDocument(File documentsDir, String fileName) {
+		if (fileName == null || fileName.isEmpty()) {
+			return null;
+		}
+		File file = new File(documentsDir, fileName);
+		return documentsDir.equals(file.getParentFile()) ? file : null;
+	}
+
 	/**
 	 * 
 	 * @param indexClass

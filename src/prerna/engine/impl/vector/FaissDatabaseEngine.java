@@ -693,8 +693,8 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			for (String fileName : sources) {
 				Map<String, Object> fileInfo = new HashMap<>();
 				fileInfo.put("fileName", fileName);
-				File thisF = new File(documentsDir, fileName);
-				if (thisF.exists() && thisF.isFile()) {
+				File thisF = AbstractVectorDatabaseEngine.storedDocument(documentsDir, fileName);
+				if (thisF != null && thisF.isFile()) {
 					long fileSizeInBytes = thisF.length();
 					double fileSizeInMB = (double) fileSizeInBytes / (1024);
 					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
