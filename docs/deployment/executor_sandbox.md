@@ -319,6 +319,32 @@ requests.get(url, params={"appid": secret("OPENWEATHER_API_KEY")})
 - The value property can later come from the secret store, which overlays the same properties.
 - All code in one user's sandbox runs as that user, so any app the user has loaded can use the
   placeholders of another app they have loaded, at that app's hosts. Isolation is per user.
+- Pass the value whole, as a header or query value. A value the code transforms first, such as a
+  password given to `requests`' `auth=(user, password)`, is base64 encoded before it leaves and
+  the supervisor never sees the placeholder; store the whole `Basic ...` header value instead.
+
+### In the fakechroot and namespace jails
+
+The same `.smss` and the same `secret()` call work in the other sandbox modes, with one
+difference: **the code gets the value itself**. Those jails have no supervisor in the request path,
+so nothing can swap a placeholder or hold the value to its hosts. The hosts are still required and
+checked for form, so the project moves to OpenShell unchanged, but they are not enforced.
+
+- When a user's jail loads the project ([JailSecrets](../../src/prerna/util/sandbox/JailSecrets.java),
+  called from `SymlinkHelper` where OpenShell's transporter would broker them), its secrets are
+  written to `<user chroot>/<BaseFolder>/sandbox-secrets/secrets.json`, by project key, owner-only
+  (`0700` folder, `0600` file). A project with no secrets writes nothing.
+- fakechroot: the file is at `<BaseFolder>/sandbox-secrets/secrets.json` inside the user's chroot.
+  namespace: the launcher mounts that folder read-only at the same path; other users' chroot
+  folders are not in the jail.
+- `secret()` reads that file first (the SEMOSS home is the folder its `py` folder is in) and
+  OpenShell's placeholder file after it. In a jail the OpenShell path is in the shared insight
+  cache, which other users can write to, so it never takes precedence.
+- Every user who can load the app can read its secret values from Python, and use them anywhere
+  the jail's network reaches. Use OpenShell where that matters.
+- A changed value is written on the next load of the project and reaches code already running,
+  since `secret()` re-reads the file. A user who loses access keeps the values in their chroot
+  folder until it is removed, as OpenShell keeps a provider attached until the sandbox goes.
 
 ## Workstations (BaseFolder is not /opt/semosshome)
 

@@ -86,8 +86,9 @@ sandbox, which is separate from the user-code jail).
 | `OPENSHELL_WORKER_MAX_CLIENTS` | `16` | Connections one user's worker serves at once |
 
 Per-project secrets are not server settings. They are `SANDBOX_SECRETS` and `SANDBOX_SECRET_<NAME>`
-in the project's own `.smss`; see [executor_sandbox.md](executor_sandbox.md). The shared sandbox
-registry uses the `REDIS_*` keys.
+in the project's own `.smss`; see [executor_sandbox.md](executor_sandbox.md#app-secrets). They work in
+every sandbox mode: OpenShell brokers them as placeholders, and the fakechroot and namespace jails
+hand the code the values themselves. The shared sandbox registry uses the `REDIS_*` keys.
 
 ### Agent CLI sandbox
 

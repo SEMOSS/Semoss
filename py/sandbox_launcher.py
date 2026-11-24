@@ -431,6 +431,49 @@ def harden(unshare_net_already_done=True):
 # supervisor inject/remove primitives (run in the supervisor, which still holds
 # CAP_SYS_ADMIN-in-userns and can see the backing store).
 # ---------------------------------------------------------------------------
+# read-only staging mounts behind injected destinations, by destination
+_RO_STAGES = {}
+
+# the flags a mount made in a user namespace may not drop when it is remounted
+_LOCKED_FLAGS = (
+    (os.ST_NOSUID, 0x2), (os.ST_NODEV, 0x4), (os.ST_NOEXEC, 0x8),
+    (os.ST_NOATIME, 0x400), (os.ST_NODIRATIME, 0x800), (os.ST_RELATIME, 1 << 21),
+)
+
+
+def _read_only_stage(src, dst):
+    """A private, read-only bind of `src`, made before anything is bound at the
+    destination. The flags of a mount are not propagated when they change, so
+    remounting the destination read-only after the bind would leave the
+    interpreter's copy of it writable; a copy made from a read-only mount is
+    read-only from the start."""
+    stage = tempfile.mkdtemp(prefix="sbx-ro-")
+    try:
+        _chk(_mount(src, stage, "", MS_BIND | MS_REC), "stage %s" % dst)
+        st = os.statvfs(stage)
+        keep = 0
+        for st_flag, ms_flag in _LOCKED_FLAGS:
+            if st.f_flag & st_flag:
+                keep |= ms_flag
+        _chk(_mount("none", stage, "", MS_BIND | MS_REMOUNT | MS_RDONLY | keep),
+             "read-only %s" % dst)
+    except OSError:
+        _umount2(stage, MNT_DETACH)
+        shutil.rmtree(stage, ignore_errors=True)
+        raise
+    return stage
+
+
+def _drop_stage(dst):
+    stage = _RO_STAGES.pop(dst, None)
+    if stage:
+        _umount2(stage, MNT_DETACH)
+        try:
+            os.rmdir(stage)
+        except OSError:
+            pass
+
+
 def inject(jail, src, dst, mode="rw"):
     """Bind `src` to `jail + dst` so it propagates into the running interpreter
     (where it appears at `dst`). `dst` must live under a shared inject-root.
@@ -441,15 +484,24 @@ def inject(jail, src, dst, mode="rw"):
     if not os.path.isdir(src):
         raise OSError(2, "no such source to inject: %s" % src)
     os.makedirs(tgt, exist_ok=True)
-    _chk(_mount(src, tgt, "", MS_BIND | MS_REC), "inject %s" % dst)
-    if mode == "ro":
-        _mount("none", tgt, "", MS_BIND | MS_REMOUNT | MS_REC | MS_RDONLY)
+    if mode != "ro":
+        _chk(_mount(src, tgt, "", MS_BIND | MS_REC), "inject %s" % dst)
+        return
+    stage = _read_only_stage(src, dst)
+    try:
+        _chk(_mount(stage, tgt, "", MS_BIND | MS_REC), "inject %s" % dst)
+    except OSError:
+        _RO_STAGES[dst] = stage
+        _drop_stage(dst)
+        raise
+    _RO_STAGES[dst] = stage
 
 
 def remove(jail, dst):
     tgt = jail + dst
     if os.path.ismount(tgt):
         _chk(_umount2(tgt, MNT_DETACH), "remove %s" % dst)
+    _drop_stage(dst)
 
 
 # ===========================================================================
@@ -472,6 +524,7 @@ def _self_test():
     work = tempfile.mkdtemp(prefix="sbx-selftest-")
     backing = os.path.join(work, "backing")
     for proj, content in [("projectB", "B_DATA"), ("projectC", "C_DATA"),
+                          ("projectD", "D_DATA"),
                           ("otherUser_secret", "SHOULD_NOT_LEAK")]:
         os.makedirs(os.path.join(backing, proj))
         with open(os.path.join(backing, proj, "data.csv"), "w") as f:
@@ -526,6 +579,14 @@ def _self_test():
                     emit("READ_OK %s=%s" % (p, body[:200]))
                 except Exception as ex:
                     emit("READ_FAIL %s (%s)" % (p, type(ex).__name__))
+            elif line.startswith("WRITE "):
+                p = line[6:]
+                try:
+                    with open(p, "w") as f:
+                        f.write("CHANGED")
+                    emit("WRITE_OK %s" % p)
+                except OSError as ex:
+                    emit("WRITE_FAIL %s errno=%d" % (p, ex.errno))
             elif line == "EGRESS":
                 # AF_INET socket must be refused by seccomp (EACCES); even if it
                 # were not, the empty netns has no route.
@@ -619,6 +680,15 @@ def _self_test():
     P(recv() == "READ_OK /projects/projectC/data.csv=C_DATA",
       "interpreter reads newly-granted projectC without restart")
 
+    print("--- read-only grant: the interpreter's copy of the mount is read-only ---")
+    inject(jail, os.path.join(backing, "projectD"), "/projects/projectD", "ro")
+    send("READ /projects/projectD/data.csv")
+    P(recv() == "READ_OK /projects/projectD/data.csv=D_DATA",
+      "interpreter reads read-only projectD")
+    send("WRITE /projects/projectD/data.csv")
+    P(recv() == "WRITE_FAIL /projects/projectD/data.csv errno=30",
+      "interpreter cannot write to read-only projectD (EROFS)")
+
     send("READ /projects/otherUser_secret/data.csv")
     P(recv().startswith("READ_FAIL"), "un-injected project still invisible")
     send("LIST")
@@ -637,6 +707,8 @@ def _self_test():
     send("EXIT")
     recv()
     os.waitpid(pid, 0)
+    for dst in list(_RO_STAGES):
+        _drop_stage(dst)
     shutil.rmtree(work, ignore_errors=True)
 
     ok = all(results)
@@ -698,6 +770,8 @@ def _serve_control(jail, inject_roots, control_sock, child_pid, source_only_root
             os.unlink(control_sock)
         except OSError:
             pass
+        for dst in list(_RO_STAGES):
+            _drop_stage(dst)
 
 
 def _under_runtime_root(path, runtime_roots):

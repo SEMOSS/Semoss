@@ -124,7 +124,7 @@ public final class OpenShellSecrets {
 	}
 
 	/** One declared secret. */
-	record Declared(String name, List<String> hosts) {
+	public record Declared(String name, List<String> hosts) {
 	}
 
 	/**
@@ -187,7 +187,7 @@ public final class OpenShellSecrets {
 	}
 
 	/** The declared secrets, skipping (with a warning) any entry that is not well formed. */
-	static List<Declared> parse(String projectId, String json) {
+	public static List<Declared> parse(String projectId, String json) {
 		List<Declared> declared = new ArrayList<>();
 		if (json == null || json.trim().isEmpty()) {
 			return declared;
@@ -222,7 +222,7 @@ public final class OpenShellSecrets {
 	}
 
 	/** The project's key in credential names and the placeholder file: its first 8 id characters. */
-	static String projectKey(String projectId) {
+	public static String projectKey(String projectId) {
 		String compact = projectId.toLowerCase().replaceAll("[^a-z0-9]", "");
 		return compact.length() >= 8 ? compact.substring(0, 8) : String.format("%-8s", compact).replace(' ', '0');
 	}
