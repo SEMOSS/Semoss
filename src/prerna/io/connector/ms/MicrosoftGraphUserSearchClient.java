@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.IAccessTokenFiller;
 import prerna.security.HttpHelperUtility;
 import prerna.util.SocialPropertiesUtil;
@@ -236,7 +237,8 @@ public class MicrosoftGraphUserSearchClient {
 						+ "/members/microsoft.graph.user?" + String.join("&", queryParams);
 			}
 		} else {
-			uri = nextLink;
+			// a nextLink may come from a caller, and the request carries the token
+			uri = ConnectorGuards.requireUnder(nextLink, MicrosoftTokenFiller.MS_GRAPH_BASE_API);
 		}
 		return uri;
 	}

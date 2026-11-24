@@ -54,6 +54,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ConnectorPage;
 import prerna.io.connector.ConnectorTimes;
 import prerna.io.connector.calendar.AbstractRespondToEventReactor;
@@ -754,7 +755,9 @@ public class MicrosoftCalendarHelper {
 	}
 
 	private static String get(String url, String accessToken, boolean textBody) {
-		return HttpHelperUtility.getRequest(url, headers(accessToken, textBody), null, null, null);
+		// a nextLink comes back in the response, and the request carries the token
+		return HttpHelperUtility.getRequest(ConnectorGuards.requireUnder(url, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
+				headers(accessToken, textBody), null, null, null);
 	}
 
 	/**
