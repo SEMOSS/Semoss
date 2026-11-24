@@ -29,6 +29,9 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -496,13 +499,34 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				+ INDEXED_FOLDER_NAME);
 	}
 
-	// the stored copy of a listed document, or null unless its name is a plain file name directly inside the documents folder
+	// the stored copy of a listed document, or null unless it is an existing regular file directly inside the documents folder
 	public static File storedDocument(File documentsDir, String fileName) {
-		if (fileName == null || fileName.isEmpty()) {
+		if (documentsDir == null || fileName == null || fileName.isEmpty() || ".".equals(fileName)
+				|| "..".equals(fileName) || fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0
+				|| fileName.indexOf('\0') >= 0) {
 			return null;
 		}
-		File file = new File(documentsDir, fileName);
-		return documentsDir.equals(file.getParentFile()) ? file : null;
+		try {
+			Path realDir = documentsDir.toPath().toRealPath();
+			Path candidate = realDir.resolve(fileName);
+			// the real path rules out a link that leads out of the folder
+			if (!Files.isRegularFile(candidate) || !realDir.equals(candidate.toRealPath().getParent())) {
+				return null;
+			}
+			return new File(documentsDir, fileName);
+		} catch (IOException | InvalidPathException e) {
+			return null;
+		}
+	}
+
+	// the stored copy to delete with a removed document, or null (logged) when there is none to delete safely
+	protected static File storedDocumentToRemove(File documentsDir, String documentName) {
+		File file = storedDocument(documentsDir, documentName);
+		if (file == null) {
+			classLogger.warn("Not deleting a stored copy of '{}': it is missing or not a file directly in the documents folder",
+					documentName);
+		}
+		return file;
 	}
 
 	/**

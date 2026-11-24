@@ -459,9 +459,9 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 
 			try {
-				File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass
-						+ FILE_SEPARATOR + "documents", document);
-				if (documentFile.exists() && documentFile.isFile()) {
+				File documentFile = storedDocumentToRemove(new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR
+						+ indexClass + FILE_SEPARATOR + "documents"), documentName);
+				if (documentFile != null) {
 					FileUtils.forceDelete(documentFile);
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}

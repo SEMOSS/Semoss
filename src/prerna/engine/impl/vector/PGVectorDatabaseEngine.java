@@ -603,8 +603,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			for (String document : sourceNames) {
 				String documentName = Paths.get(document).getFileName().toString();
 				// remove the physical documents
-				File documentFile = new File(DOCUMENT_FOLDER, documentName);
-				if (documentFile.exists()) {
+				File documentFile = AbstractVectorDatabaseEngine.storedDocumentToRemove(new File(DOCUMENT_FOLDER), documentName);
+				if (documentFile != null) {
 					FileUtils.forceDelete(documentFile);
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}

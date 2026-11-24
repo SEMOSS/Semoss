@@ -312,9 +312,9 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<String> filesToRemoveFromCloud = new ArrayList<>();
 		for (String name : fileNames) {
 			String documentName = Paths.get(name).getFileName().toString();
-			File documentFile = new File(DOCUMENT_FOLDER, documentName);
+			File documentFile = storedDocumentToRemove(new File(DOCUMENT_FOLDER), documentName);
 
-			if (documentFile.exists()) {
+			if (documentFile != null) {
 				try {
 					FileUtils.forceDelete(documentFile);
 				} catch (IOException e) {
