@@ -85,7 +85,7 @@
 		<graphstream.version>2.0</graphstream.version>
 		<jai.imageio.version>1.4.0</jai.imageio.version>
 		<hadoop.version>3.3.6</hadoop.version>
-		<asm.version>9.11</asm.version>
+		<asm.version>9.11.1</asm.version>
 		<!-- JUnit 6: jupiter and platform share one version line -->
 		<junit.version>6.0.0</junit.version>
 	</properties>
