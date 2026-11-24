@@ -57,6 +57,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -359,43 +360,64 @@ public final class ZipUtils {
 	 * @throws IOException  if the zip cannot be read or an entry cannot be written
 	 */
 	public static Map<String, List<String>> unzip(String zipFilePath, String destination) throws IOException {
+		Budget budget = new Budget();
+		try {
+			return unzip(zipFilePath, destination, budget);
+		} catch (IOException | RuntimeException e) {
+			budget.undo(e);
+			throw e;
+		}
+	}
+
+	// extracts under a shared budget; the caller rolls back on failure
+	private static Map<String, List<String>> unzip(String zipFilePath, String destination, Budget budget)
+			throws IOException {
 		Path zip = Paths.get(Utility.normalizePath(zipFilePath));
 		try (ZipFile zipIn = new ZipFile(zip.toFile())) {
-			Extraction extraction = new Extraction(zip, destination, zipIn.size());
-			try {
-				Enumeration<? extends ZipEntry> entries = zipIn.entries();
-				while (entries.hasMoreElements()) {
-					ZipEntry entry = entries.nextElement();
-					String entryPath = relativeEntryPath(entry);
-					if (!entryPath.isEmpty()) {
-						extraction.extract(zipIn, entry, extraction.resolve(entryPath, entry));
-					}
+			Extraction extraction = new Extraction(zip, destination, zipIn.size(), budget);
+			Enumeration<? extends ZipEntry> entries = zipIn.entries();
+			while (entries.hasMoreElements()) {
+				ZipEntry entry = entries.nextElement();
+				String entryPath = relativeEntryPath(entry);
+				if (!entryPath.isEmpty()) {
+					extraction.extract(zipIn, entry, extraction.resolve(entryPath, entry));
 				}
-			} catch (IOException | RuntimeException e) {
-				extraction.undo(e);
-				throw e;
 			}
 		}
 		return listFilesInZip(Paths.get(zipFilePath));
 	}
 
-	// unzip, then unzip each zip it held beside itself (limited depth); returns the absolute paths of the files that are not zips
+	// unzip, then unzip each zip it held into its own new folder beside it (limited depth, one shared budget and rollback);
+	// returns the absolute paths of the files that are not zips
 	public static List<String> unzipNested(String zipFilePath, String destination) throws IOException {
-		return unzipNested(zipFilePath, destination, 0);
+		Budget budget = new Budget();
+		try {
+			return unzipNested(zipFilePath, destination, 0, budget);
+		} catch (IOException | RuntimeException e) {
+			budget.undo(e);
+			throw e;
+		}
 	}
 
-	private static List<String> unzipNested(String zipFilePath, String destination, int depth) throws IOException {
+	private static List<String> unzipNested(String zipFilePath, String destination, int depth, Budget budget)
+			throws IOException {
 		if (depth > MAX_NESTED_ZIP_DEPTH) {
 			throw new ZipException("The zip holds more than " + MAX_NESTED_ZIP_DEPTH + " levels of zips");
 		}
 		Path folder = Paths.get(destination).toAbsolutePath().normalize();
 		List<String> files = new ArrayList<>();
-		for (String relative : unzip(zipFilePath, destination).get("FILE")) {
+		for (String relative : unzip(zipFilePath, destination, budget).get("FILE")) {
 			Path extracted = folder.resolve(relative).normalize();
 			String name = extracted.getFileName().toString();
-			if (name.toLowerCase().endsWith(".zip")) {
+			if (name.toLowerCase(Locale.ROOT).endsWith(".zip")) {
 				String base = name.substring(0, name.length() - ".zip".length());
-				files.addAll(unzipNested(extracted.toString(), extracted.resolveSibling(base).toString(), depth + 1));
+				if (base.length() > 100) {
+					base = base.substring(0, 100);
+				}
+				// a new folder so a sibling named like the zip, or a file named ".zip", never collides
+				Path nested = Files.createTempDirectory(extracted.getParent(), (base.isEmpty() ? "zip" : base) + "-");
+				budget.created.add(nested);
+				files.addAll(unzipNested(extracted.toString(), nested.toString(), depth + 1, budget));
 			} else {
 				files.add(extracted.toString().replace('\\', '/'));
 			}
@@ -428,7 +450,8 @@ public final class ZipUtils {
 		Map<String, String> topLevelNames = new LinkedHashMap<>();
 		Path zip = Paths.get(Utility.normalizePath(zipFilePath));
 		try (ZipFile zipIn = new ZipFile(zip.toFile())) {
-			Extraction extraction = new Extraction(zip, destination, zipIn.size());
+			Budget budget = new Budget();
+			Extraction extraction = new Extraction(zip, destination, zipIn.size(), budget);
 			try {
 				Enumeration<? extends ZipEntry> entries = zipIn.entries();
 				while (entries.hasMoreElements()) {
@@ -456,7 +479,7 @@ public final class ZipUtils {
 					extraction.extract(zipIn, entry, extraction.resolve(extractedPath, entry));
 				}
 			} catch (IOException | RuntimeException e) {
-				extraction.undo(e);
+				budget.undo(e);
 				throw e;
 			}
 		}
@@ -542,9 +565,8 @@ public final class ZipUtils {
 
 		private final Path folder;
 		private final long zipSize;
-		private final long maxExtractedBytes;
 		private final long maxCompressionRatio;
-		private final List<Path> created = new ArrayList<>();
+		private final Budget budget;
 		private final Set<Path> checkedDirectories = new HashSet<>();
 		private long extractedBytes = 0;
 
@@ -558,17 +580,13 @@ public final class ZipUtils {
 		 * @throws IOException if the zip has too many entries or the folder cannot be
 		 *                     created
 		 */
-		private Extraction(Path zip, String destination, int entryCount) throws IOException {
-			long maxEntries = limit(ZIP_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);
-			if (entryCount > maxEntries) {
-				throw new ZipException("The zip has " + entryCount + " entries, more than the " + maxEntries
-						+ " this server extracts (" + ZIP_MAX_ENTRIES + ")");
-			}
+		private Extraction(Path zip, String destination, int entryCount, Budget budget) throws IOException {
+			this.budget = budget;
+			budget.addEntries(entryCount);
 			Path requested = Paths.get(destination);
 			Files.createDirectories(requested);
 			this.folder = requested.toRealPath();
 			this.zipSize = Math.max(Files.size(zip), 1);
-			this.maxExtractedBytes = limit(ZIP_MAX_EXTRACTED_BYTES, DEFAULT_MAX_EXTRACTED_BYTES);
 			this.maxCompressionRatio = limit(ZIP_MAX_COMPRESSION_RATIO, DEFAULT_MAX_COMPRESSION_RATIO);
 			this.checkedDirectories.add(this.folder);
 		}
@@ -596,7 +614,7 @@ public final class ZipUtils {
 		 * @param path the file or folder created
 		 */
 		private void created(Path path) {
-			created.add(path);
+			budget.created.add(path);
 		}
 
 		/**
@@ -629,7 +647,7 @@ public final class ZipUtils {
 				deleteQuietly(part);
 			}
 			if (!existed) {
-				created.add(target);
+				budget.created.add(target);
 			}
 		}
 
@@ -646,11 +664,7 @@ public final class ZipUtils {
 			int read;
 			while ((read = in.read(buffer)) != -1) {
 				extractedBytes += read;
-				if (extractedBytes > maxExtractedBytes) {
-					throw new ZipException(
-							"The zip expands to more than " + FileUtils.byteCountToDisplaySize(maxExtractedBytes)
-									+ ", the most this server extracts (" + ZIP_MAX_EXTRACTED_BYTES + ")");
-				}
+				budget.addBytes(read);
 				if (extractedBytes > RATIO_CHECK_FLOOR && extractedBytes / zipSize > maxCompressionRatio) {
 					throw new ZipException("The zip expands to more than " + maxCompressionRatio
 							+ " times its size, the most this server extracts (" + ZIP_MAX_COMPRESSION_RATIO + ")");
@@ -690,20 +704,40 @@ public final class ZipUtils {
 			}
 			for (Path next : missing) {
 				Files.createDirectory(next);
-				created.add(next);
+				budget.created.add(next);
 			}
 			checkedDirectories.add(directory);
 		}
+	}
 
-		/**
-		 * Removes the files and folders this extraction created, newest first, after it
-		 * failed.
-		 *
-		 * @param cause why the extraction failed
-		 */
+	// what one call may extract in total across all its zips (nested ones included), and what it created, for rollback
+	private static final class Budget {
+
+		private final long maxEntries = limit(ZIP_MAX_ENTRIES, DEFAULT_MAX_ENTRIES);
+		private final long maxBytes = limit(ZIP_MAX_EXTRACTED_BYTES, DEFAULT_MAX_EXTRACTED_BYTES);
+		private final List<Path> created = new ArrayList<>();
+		private long entries = 0;
+		private long bytes = 0;
+
+		private void addEntries(int count) throws ZipException {
+			entries += count;
+			if (entries > maxEntries) {
+				throw new ZipException("The zip has " + entries + " entries, more than the " + maxEntries
+						+ " this server extracts (" + ZIP_MAX_ENTRIES + ")");
+			}
+		}
+
+		private void addBytes(long count) throws ZipException {
+			bytes += count;
+			if (bytes > maxBytes) {
+				throw new ZipException("The zip expands to more than " + FileUtils.byteCountToDisplaySize(maxBytes)
+						+ ", the most this server extracts (" + ZIP_MAX_EXTRACTED_BYTES + ")");
+			}
+		}
+
+		// removes what was created, newest first, after a failure
 		private void undo(Exception cause) {
-			classLogger.warn("Removing what was extracted into '{}' after the extraction failed: {}", folder,
-					cause.getMessage());
+			classLogger.warn("Removing what was extracted after the extraction failed: {}", cause.getMessage());
 			for (int i = created.size() - 1; i >= 0; i--) {
 				deleteQuietly(created.get(i));
 			}

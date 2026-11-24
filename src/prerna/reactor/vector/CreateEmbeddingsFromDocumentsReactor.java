@@ -30,9 +30,12 @@ package prerna.reactor.vector;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -227,7 +230,10 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				}
 				if (isZipFile(filePath)) {
 					File zipFileExtractFolder = new File(rootFolder, PATH_TO_UNZIP_FILES);
-					validFiles.addAll(ZipUtils.unzipNested(filePath, zipFileExtractFolder.getAbsolutePath()));
+					zipFileExtractFolder.mkdirs();
+					// each zip gets its own folder so zips with the same file names never overwrite each other
+					Path zipDir = Files.createTempDirectory(zipFileExtractFolder.toPath(), "zip-");
+					validFiles.addAll(ZipUtils.unzipNested(filePath, zipDir.toString()));
 				} else {
 					validFiles.add(filePath);
 				}
@@ -246,7 +252,7 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 
 		if (dotIndex > 0 && dotIndex < filePath.length() - 1) {
 			// Extract the extension and convert it to lower case
-			String extension = filePath.substring(dotIndex + 1).toLowerCase();
+			String extension = filePath.substring(dotIndex + 1).toLowerCase(Locale.ROOT);
 
 			return extension.equals("zip");
 		} else {
