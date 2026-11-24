@@ -46,6 +46,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
@@ -502,7 +503,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	@Override
 	public byte[] photo(User user, String path) throws Exception {
 		// User.Read covers the owner's own photo, anyone else's needs User.ReadBasic.All or more; 404 when none is set
-		return HttpHelperUtility.getRequestBytes(BASE + path,
+		return HttpHelperUtility.getRequestBytes(
+				ConnectorGuards.requireUnder(BASE + path, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
 				MicrosoftLoginUtils.getBearerHeader(MicrosoftLoginUtils.getValidAccessToken(user)), null, null, null);
 	}
 
@@ -612,7 +614,9 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	private static Map<String, Object> get(String token, String url) throws Exception {
-		return CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url,
+		// a nextLink comes back in the response, and the request carries the token
+		return CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(
+				ConnectorGuards.requireUnder(url, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
 				MicrosoftLoginUtils.getBearerHeader(token), null, null, null, TIMEOUT));
 	}
 
