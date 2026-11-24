@@ -60,12 +60,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import jakarta.activation.FileDataSource;
+import prerna.auth.User;
+import prerna.om.ThreadStore;
 
 /**
  * One test per rule that keeps the files a project's custom reactors open
@@ -325,10 +328,37 @@ class SandboxFilesUnitTests {
 		assertTrue(calls.indexOf(SANDBOXED_PATH) < calls.indexOf(owner + "." + name), calls.toString());
 	}
 
+	@Test
+	void aZipFileSystemOpenedByItsAddressIsTheOneInsideTheUsersFolder() throws Throwable {
+		Path zipOutside = this.outside.resolveSibling("outside.zip");
+		try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(zipOutside))) {
+			zip.putNextEntry(new ZipEntry("entry.txt"));
+			zip.write("outside".getBytes(StandardCharsets.UTF_8));
+			zip.closeEntry();
+		}
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe().method("open", mv -> {
+			mv.visitFieldInsn(Opcodes.GETSTATIC, "prerna/util/SandboxProbe", "heldObject", "Ljava/lang/Object;");
+			mv.visitTypeInsn(Opcodes.CHECKCAST, "java/net/URI");
+			mv.visitTypeInsn(Opcodes.NEW, "java/util/HashMap");
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/util/HashMap", "<init>", "()V", false);
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/nio/file/FileSystems", "newFileSystem",
+					"(Ljava/net/URI;Ljava/util/Map;)Ljava/nio/file/FileSystem;", false);
+		}).bytes());
+		SandboxedJavaExecution.setSandboxRootForCurrentThread(this.root.toString());
+		try {
+			SandboxProbe.heldObject = java.net.URI.create("jar:" + zipOutside.toUri());
+			assertThrows(java.io.IOException.class, () -> SandboxProbe.run(probe, "open"));
+			SandboxProbe.heldObject = java.net.URI.create("http://example.com/archive.zip");
+			assertThrows(SecurityException.class, () -> SandboxProbe.run(probe, "open"));
+		} finally {
+			SandboxProbe.heldObject = null;
+		}
+	}
+
 	@ParameterizedTest
-	@CsvSource({ "org/apache/poi/xssf/usermodel/XSSFWorkbook", "org/apache/poi/hslf/usermodel/HSLFSlideShow",
-			"jakarta/activation/MimetypesFileTypeMap", "jakarta/activation/MailcapCommandMap",
-			"java/io/FileInputStream", "java/io/FileOutputStream" })
+	@CsvSource({ "org/apache/poi/xssf/usermodel/XSSFWorkbook", "jakarta/activation/MimetypesFileTypeMap",
+			"jakarta/activation/MailcapCommandMap", "java/io/FileInputStream", "java/io/FileOutputStream" })
 	void aSubclassThatOpensAFileByNameGetsThePathRule(String superName) {
 		byte[] subclass = new SandboxProbe("custom/sandbox/Opener", superName)
 				.constructor("(Ljava/lang/String;)V", mv -> {
@@ -367,6 +397,43 @@ class SandboxFilesUnitTests {
 
 		assertEquals(this.root.resolve("notes.txt"), ((File) SandboxProbe.run(probe, "run")).toPath());
 		assertInstanceOf(SecurityException.class, onAnotherThread.get());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "newExecutor", "newVirtualThreadExecutor" })
+	void withChrootOnATaskSubmittedToASignedInExecutorOpensFilesInTheUsersFolder(String newExecutor)
+			throws Throwable {
+		DIHelper.getInstance().getCoreProp().setProperty(Constants.CHROOT_ENABLE, "true");
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe().method("inFolder", newFile("notes.txt"))
+				.method("run", mv -> {
+					mv.visitMethodInsn(Opcodes.INVOKESTATIC, "prerna/util/SignedInTasks", newExecutor,
+							"()Ljava/util/concurrent/ExecutorService;", false);
+					mv.visitInsn(Opcodes.DUP);
+					mv.visitInvokeDynamicInsn("call", "()Ljava/util/concurrent/Callable;",
+							new Handle(Opcodes.H_INVOKESTATIC, "java/lang/invoke/LambdaMetafactory", "metafactory",
+									"(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;"
+											+ "Ljava/lang/invoke/MethodType;Ljava/lang/invoke/MethodType;"
+											+ "Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)"
+											+ "Ljava/lang/invoke/CallSite;",
+									false),
+							Type.getType("()Ljava/lang/Object;"), new Handle(Opcodes.H_INVOKESTATIC,
+									SandboxProbe.INTERNAL_NAME, "inFolder", "()Ljava/lang/Object;", false),
+							Type.getType("()Ljava/lang/Object;"));
+					mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/concurrent/ExecutorService", "submit",
+							"(Ljava/util/concurrent/Callable;)Ljava/util/concurrent/Future;", true);
+					mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/concurrent/Future", "get",
+							"()Ljava/lang/Object;", true);
+					mv.visitInsn(Opcodes.SWAP);
+					mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "java/util/concurrent/ExecutorService", "close", "()V",
+							true);
+				}).bytes());
+		SandboxedJavaExecution.setSandboxRootForCurrentThread(this.root.toString());
+		ThreadStore.setUser(new User());
+		try {
+			assertEquals(this.root.resolve("notes.txt"), ((File) SandboxProbe.run(probe, "run")).toPath());
+		} finally {
+			ThreadStore.remove();
+		}
 	}
 
 	@Test

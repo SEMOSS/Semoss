@@ -41,6 +41,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
@@ -110,7 +113,6 @@ import prerna.project.impl.ProjectHelper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
-import prerna.security.UrlAccessRules;
 
 /**
  * The Utility class contains a variety of miscellaneous functions implemented
@@ -220,13 +222,6 @@ public final class Utility {
 			return null;
 		}
 		return DIHelper.getInstance().getProperty(prop);
-	}
-
-	public static Object getDIHelperLocalProperty(String prop) {
-		if (DIHelper.getInstance() == null) {
-			return null;
-		}
-		return DIHelper.getInstance().getLocalProp(prop);
 	}
 
 	/**
@@ -956,7 +951,8 @@ public final class Utility {
 					// so if a different thread was waiting for the project to load,
 					// it doesn't go through this process again
 					if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
-						return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+						return EngineProxyFactory
+								.createGuardedProject((IProject) DIHelper.getInstance().getProjectProperty(projectId));
 					}
 
 					// If in a clustered environment, then pull the project first
@@ -1845,6 +1841,49 @@ public final class Utility {
 		normalizedString = normalizedString.replace("\\", "/");
 
 		return normalizedString;
+	}
+
+	/**
+	 * Resolves a file inside a folder and returns the real location of the file.
+	 * The file path must be relative to the folder. Both the folder and the file
+	 * are resolved to their real locations, so neither a {@code ..} segment nor a
+	 * symbolic link inside the folder can reach a file outside it.
+	 *
+	 * @param folderPath   the folder the file must be in
+	 * @param relativePath the file, relative to the folder
+	 * @return the real location of the file
+	 * @throws IOException              when the folder or the file cannot be found
+	 * @throws IllegalArgumentException when either path is blank, or the file path
+	 *                                  is absolute, leads outside the folder or
+	 *                                  names something other than a regular file
+	 */
+	public static Path resolveContainedFile(String folderPath, String relativePath) throws IOException {
+		if (folderPath == null || folderPath.isBlank()) {
+			throw new IllegalArgumentException("The folder must not be blank");
+		}
+		if (relativePath == null || relativePath.isBlank()) {
+			throw new IllegalArgumentException("The file path must not be blank");
+		}
+
+		Path reference = Path.of(relativePath);
+		if (reference.isAbsolute()) {
+			throw new IllegalArgumentException("The file path " + relativePath + " must be relative to its folder");
+		}
+
+		Path root = Path.of(folderPath).toAbsolutePath().normalize().toRealPath();
+		Path candidate = root.resolve(reference).normalize();
+		if (!candidate.startsWith(root)) {
+			throw new IllegalArgumentException("The file path " + relativePath + " is outside its folder");
+		}
+
+		Path file = candidate.toRealPath();
+		if (!file.startsWith(root)) {
+			throw new IllegalArgumentException("The file path " + relativePath + " links outside its folder");
+		}
+		if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+			throw new IllegalArgumentException("The file path " + relativePath + " is not a file");
+		}
+		return file;
 	}
 
 	/**
@@ -3106,19 +3145,6 @@ public final class Utility {
 	 */
 	public static boolean isNullValue(Object obj) {
 		return (Objects.isNull(obj) || (obj instanceof Double && Double.isNaN((Double) obj)));
-	}
-
-	/**
-	 * Checks a URL against the blacklist ({@link Constants#BLACK_LIST_DOMAINS}) and
-	 * the whitelist ({@link Constants#WHITE_LIST_DOMAINS}) of
-	 * {@link UrlAccessRules}. With neither list configured every URL passes.
-	 *
-	 * @param urlString the URL whose host should be validated
-	 * @throws IllegalArgumentException when the URL is malformed, has no host, or
-	 *                                  the lists do not allow its host
-	 */
-	public static void checkIfValidDomain(String urlString) {
-		UrlAccessRules.checkUrl(urlString);
 	}
 
 	/**

@@ -341,6 +341,9 @@ public class ResponseMessage extends AbstractMessage {
 			// Persist only display attribution, not arbitrary provider metadata. The
 			// selected modelId remains the router for room restoration and follow-ups.
 			Map<String, Object> metadata = llmResponse.getMetadata();
+			if (metadata != null) {
+				builder.message.setGoogleInteractions(metadata.get(GoogleInteractionsState.KEY));
+			}
 			if (metadata != null && metadata.get(ModelRouterEngine.METADATA_ROUTED_ENGINE_ID) instanceof String id
 					&& !id.isBlank()) {
 				Map<String, Object> routing = new HashMap<>();

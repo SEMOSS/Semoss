@@ -71,15 +71,17 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.InsightAdministrator;
+import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.notifications.NotificationDbUtils;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
 import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
+import prerna.util.InternalUtility;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -106,8 +108,8 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	@AfterEach
 	void cleanup() throws SQLException {
 		for (String projectId : stagedProjects) {
-			DIHelper.getInstance().removeProjectProperty(projectId);
-			DIHelper.getInstance().removeProjectProperty(projectId + "_" + Constants.STORE);
+			DIHelperTestUtils.removeLoadedProject(projectId);
+			DIHelperTestUtils.removeProjectSmssPath(projectId);
 		}
 		stagedProjects.clear();
 		ThreadStore.remove();
@@ -948,7 +950,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		assertTrue(SecurityProjectUtils.projectExists("testProjectId"));
 
-		SecurityProjectUtils.deleteProject("testProjectId");
+		SecurityProjectUtils.deleteProject(user, "testProjectId");
 
 		assertFalse(SecurityProjectUtils.projectExists("testProjectId"));
 	}
@@ -1119,7 +1121,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put("description", "Test description");
 
-		SecurityProjectUtils.updateProjectMetadata("testProjectId", metadata);
+		SecurityProjectUtils.updateProjectMetadata(user, "testProjectId", metadata);
 
 		// Verify project still exists after update
 		assertTrue(SecurityProjectUtils.projectExists("testProjectId"));
@@ -1703,21 +1705,6 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
-	/// deleteInsightsFromProjectForRecreation
-	///
-
-	@Test
-	void testDeleteInsightsFromProjectForRecreation() {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "insight1", "Insight One", "grid");
-
-		// Just verify no exception is thrown
-		SecurityProjectUtils.deleteInsightsFromProjectForRecreation("testProjectId");
-		assertTrue(SecurityProjectUtils.projectExists("testProjectId"));
-	}
-
-	///
 	/// setProjectCompletelyGlobal
 	///
 
@@ -1728,7 +1715,11 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		assertFalse(SecurityProjectUtils.projectIsGlobal("testProjectId"));
 
-		SecurityProjectUtils.setProjectCompletelyGlobal("testProjectId");
+		assertThrows(IllegalArgumentException.class,
+				() -> SecurityProjectUtils.setProjectCompletelyGlobal("testProjectId"));
+		try (PlatformOperation operation = PlatformOperation.begin("test seeding")) {
+			SecurityProjectUtils.setProjectCompletelyGlobal("testProjectId");
+		}
 
 		assertTrue(SecurityProjectUtils.projectIsGlobal("testProjectId"));
 	}
@@ -2247,13 +2238,13 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		ThreadStore.setUser(user);
 		UnitTestSecurityAuthUtils.createProject("exported", "exportedName", user);
-		SecurityInsightUtils.addInsight("exported", "insightId", "insightName", true, "grid", false, -1, null, null,
+		SecurityInsightUtils.addInsight(user, "exported", "insightId", "insightName", true, "grid", false, -1, null, null,
 				false, List.of("AddPanel(0);"), null);
-		SecurityInsightUtils.updateInsightTags("exported", "insightId", List.of("tagged"));
+		SecurityInsightUtils.updateInsightTags(user, "exported", "insightId", List.of("tagged"));
 		stageLoadedProject("exported");
 		Path folder = Files.createDirectories(dbDir.resolve("exported_" + UUID.randomUUID()));
 
-		File databaseFile = SecurityProjectUtils.createInsightsDatabase("exported", folder.toString());
+		File databaseFile = SecurityProjectUtils.createInsightsDatabase(user, "exported", folder.toString());
 
 		assertTrue(databaseFile.isFile());
 		try (IRDBMSEngine exported = InsightsRDBMSUtils.generateInsightsDatabase("exported", RdbmsTypeEnum.H2_DB,
@@ -2272,7 +2263,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		ThreadStore.setUser(user);
 		UnitTestSecurityAuthUtils.createProject("exported", "exportedName", user);
-		SecurityInsightUtils.addInsight("exported", "insightId", "insightName", true, "grid", false, -1, null, null,
+		SecurityInsightUtils.addInsight(user, "exported", "insightId", "insightName", true, "grid", false, -1, null, null,
 				false, List.of("AddPanel(0);"), null);
 		QueryExecutionUtility.executeUpdate(securityDb, "UPDATE INSIGHT SET RECIPE=? WHERE INSIGHTID=?", ps -> {
 			ps.setString(1, "{not a recipe");
@@ -2282,7 +2273,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		Path folder = Files.createDirectories(dbDir.resolve("exported_" + UUID.randomUUID()));
 
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> SecurityProjectUtils.createInsightsDatabase("exported", folder.toString()));
+				() -> SecurityProjectUtils.createInsightsDatabase(user, "exported", folder.toString()));
 		assertEquals("Error occured creating the insights database", e.getMessage());
 		assertFalse(new File(folder.toFile(), "insights_database.mv.db").exists());
 	}
@@ -2294,7 +2285,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	private void stageLoadedProject(String projectId) {
 		IRDBMSEngine insightsDb = mock(IRDBMSEngine.class);
 		when(insightsDb.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
-		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
+		InternalUtility.setLoadedProject(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
 	}
 
@@ -2323,7 +2314,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		props.setProperty(Constants.PROJECT_ALIAS, projectId + "Name");
 		props.setProperty(Constants.PROJECT_ENUM_TYPE, projectType.name());
 		Path smss = UnitTestSecurityAuthUtils.createSmssFileFromProps(props, folder, projectId + ".smss");
-		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smss.toString());
+		InternalUtility.setProjectSmssPath(projectId, smss.toString());
 		stagedProjects.add(projectId);
 	}
 
@@ -2345,7 +2336,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 					null, false, null);
 			admin.updateInsightTags(insightId, List.of(insightName + "Tag"));
 		}
-		DIHelper.getInstance().setProjectProperty(projectId, loadedProject(projectId, insightsDb));
+		InternalUtility.setLoadedProject(projectId, loadedProject(projectId, insightsDb));
 		stagedProjects.add(projectId);
 
 		Properties props = new Properties();
@@ -2353,7 +2344,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		props.setProperty(Constants.PROJECT_ALIAS, projectId + "Name");
 		props.setProperty(Constants.RELOAD_INSIGHTS, String.valueOf(reloadInsights));
 		Path smss = UnitTestSecurityAuthUtils.createSmssFileFromProps(props, folder, projectId + ".smss");
-		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smss.toString());
+		InternalUtility.setProjectSmssPath(projectId, smss.toString());
 		return smss;
 	}
 

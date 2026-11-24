@@ -45,11 +45,13 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.pipeline.AgentRunOperation;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentHarnessRegistry;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.AgentUseAccess;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.exceptions.AgentMaxSpawnDepthException;
 import prerna.reactor.agent.exceptions.AgentSpawnBudgetExhaustedException;
@@ -82,6 +84,11 @@ public final class AgentSubAgentRegistry {
 	private static final String DEFAULT_HARNESS_TYPE = "semoss";
 	static final int MAX_SUBAGENT_LABEL_LENGTH = 80;
 	private static final String ROOM_OPTION_INSTRUCTIONS = "instructions";
+	/**
+	 * The room option every sub-agent's room carries: the room of the run that
+	 * started it.
+	 */
+	public static final String ROOM_OPTION_PARENT_ROOM_ID = "subagent_parent_room_id";
 	private static final String[] ROOM_OPTION_MODEL_KEYS = { "engine", "model", "modelId", "engineId" };
 
 	private static final AgentSubAgentRegistry INSTANCE = new AgentSubAgentRegistry();
@@ -100,12 +107,9 @@ public final class AgentSubAgentRegistry {
 	private final Map<String, RootSpawnContext> rootContextByJobId = new ConcurrentHashMap<>();
 
 	// childJobId -> root context snapshot for that child's tree. Populated on spawn
-	// so
-	// that descendants can find the shared budget counter even after the root
-	// harness has
-	// called unregisterRoot (e.g. "spawn now, wait later" flows where the root run
-	// returns
-	// before all children finish their own spawning).
+	// so that descendants can find the shared budget counter even after the root
+	// harness has called unregisterRoot (e.g. "spawn now, wait later" flows where
+	// the root run returns before all children finish their own spawning).
 	private final Map<String, RootSpawnContext> rootCtxByChildJobId = new ConcurrentHashMap<>();
 
 	private AgentSubAgentRegistry() {
@@ -179,9 +183,8 @@ public final class AgentSubAgentRegistry {
 		}
 
 		// Pixel-initiated spawns (parentMeta == null) bypass SemossAgentHarness and
-		// never
-		// call registerRoot. Auto-register defaults keyed by the caller's job ID so
-		// maxSubagentsPerRun is tracked for these callers too.
+		// never call registerRoot. Auto-register defaults keyed by the caller's job ID
+		// so maxSubagentsPerRun is tracked for these callers too.
 		if (rootCtx == null && req.parentJobId != null && !req.parentJobId.isBlank()) {
 			registerRoot(req.parentJobId, policy);
 			rootCtx = lookupRootContextForJob(req.parentJobId);
@@ -223,6 +226,13 @@ public final class AgentSubAgentRegistry {
 
 			boolean namedSpawn = req.workspaceId != null && !req.workspaceId.trim().isEmpty();
 			boolean namedWorkspaceHasModel = namedSpawn && workspaceHasConfiguredModel(req.workspaceId);
+			List<String> agentChain = AgentUseAccess.subAgentChain(parentRoom, AgentRunOperation.runningAgent(),
+					namedSpawn ? req.workspaceId.trim() : null);
+			if (agentChain.isEmpty()) {
+				clonedOptions.remove(AgentUseAccess.ROOM_OPTION_AGENT_CHAIN);
+			} else {
+				clonedOptions.put(AgentUseAccess.ROOM_OPTION_AGENT_CHAIN, agentChain);
+			}
 
 			// Named spawn: re-seed options.workspace so the child loads its own
 			// CONFIG_JSON.
@@ -276,7 +286,7 @@ public final class AgentSubAgentRegistry {
 			String childRunId = GUID.v7().toUUID().toString();
 			String childRoomId = childRunId;
 			childJobIdForCleanup = childRunId;
-			clonedOptions.put("subagent_parent_room_id", req.parentRoomId);
+			clonedOptions.put(ROOM_OPTION_PARENT_ROOM_ID, req.parentRoomId);
 			if (req.parentJobId != null && !req.parentJobId.isBlank()) {
 				clonedOptions.put("subagent_parent_run_id", req.parentJobId);
 			}

@@ -40,6 +40,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.pipeline.AgentRunOperation;
 import prerna.om.ThreadStore;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
@@ -117,7 +118,8 @@ public class SpawnSubAgentReactor extends AbstractReactor {
 		}
 		if (workspaceId != null) {
 			User user = this.insight != null ? this.insight.getUser() : null;
-			if (user != null && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+			if (user != null && !SecurityProjectUtils.userCanViewProject(user, workspaceId)
+					&& !AgentRunOperation.runningAgentCanUse(workspaceId, true)) {
 				throw new IllegalArgumentException(
 						"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 			}

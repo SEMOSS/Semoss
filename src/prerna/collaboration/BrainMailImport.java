@@ -231,6 +231,8 @@ public final class BrainMailImport {
 		Run run;
 		String selfId;
 		String managerPersonId;
+		// who the org chart says to follow; kept so the suggestions can be redone once Teams chats are in
+		Map<String, String> org = new HashMap<>();
 		synchronized (CollaborationDbUtils.ownerLock(BrainSync.INGEST_LOCK, ownerId, ownerType)) {
 			run = new Run(ownerId, ownerType, false);
 			selfId = run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"),
@@ -239,7 +241,7 @@ public final class BrainMailImport {
 			importMail(job, run, mail, 16, 40);
 			job.step("threads", 42);
 			run.refreshThreads();
-			managerPersonId = people(user, source, job, run, selfId, myAddress);
+			managerPersonId = people(user, source, job, run, selfId, myAddress, org);
 		}
 		found(user, job, ownerId, ownerType, selfId, managerPersonId);
 		job.count("mailReady", true);
@@ -253,6 +255,8 @@ public final class BrainMailImport {
 				job.step("ranking", 96);
 				run.refreshThreads();
 				BrainPeopleRanking.rank(ownerId, ownerType, selfId, domain(myAddress));
+				// Teams chats change who is strongest, so who to follow is worked out again
+				job.count("followSuggested", BrainFollow.suggest(ownerId, ownerType, selfId, org));
 			}
 		}
 		CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, SOURCE);
@@ -263,7 +267,7 @@ public final class BrainMailImport {
 
 	// directory facts, then ranking and who to follow: manager, reports, peers, and two-way mail
 	private static String people(User user, BrainMailHeaderSource source, CollaborationJobUtils.Job job, Run run,
-			String selfId, String myAddress) throws Exception {
+			String selfId, String myAddress, Map<String, String> org) throws Exception {
 		String ownerId = run.ownerId;
 		String ownerType = run.ownerType;
 		// the directory first: who is a colleague, a shared mailbox or a list is a
@@ -290,7 +294,6 @@ public final class BrainMailImport {
 		if (managerPersonId != null) {
 			job.count("managerPersonId", managerPersonId);
 		}
-		Map<String, String> org = new HashMap<>();
 		if (managerPersonId != null) {
 			org.put(managerPersonId, "Your manager");
 		}
@@ -385,6 +388,9 @@ public final class BrainMailImport {
 				Instant window = importWindow(ownerId, ownerType);
 				cutoff = window != null && window.isBefore(since) ? window : since;
 			}
+			if (changed) {
+				dismissMoved(ownerId, ownerType, tree, read);
+			}
 			return new Mail(BrainMailFolders.keep(tree, read), tree, cutoff);
 		}
 		List<Map<String, Object>> headers = new ArrayList<>();
@@ -399,6 +405,30 @@ public final class BrainMailImport {
 			job.count(BrainMailHeaderSource.SENT.equals(folder) ? "sentMessages" : "inboxMessages", read.size());
 		}
 		return new Mail(headers, tree, null);
+	}
+
+	// mail Brain holds that the owner has since deleted or junked (it now sits in a folder Brain skips): the cards it
+	// raised are dismissed. A card's SOURCE_REF is the message's Graph id as stored, which a move changes, so the
+	// stored one is looked up by message key; the id Graph gives it now is dismissed too
+	private static void dismissMoved(String ownerId, String ownerType, BrainMailFolders.Tree tree,
+			List<Map<String, Object>> read) {
+		for (Map<String, Object> header : read) {
+			String folder = header.get("parentFolderId") instanceof String f ? f : null;
+			String messageId = messageId(header);
+			if (messageId == null || Boolean.TRUE.equals(header.get("isDraft")) || !tree.skipped(folder)) {
+				continue;
+			}
+			String stored = CollaborationDbUtils.queryOne("SELECT GRAPH_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND "
+					+ "OWNER_TYPE = ? AND MESSAGE_KEY = ?", rs -> rs.getString(1), ownerId, ownerType,
+					CollaborationDbUtils.deterministicId(ownerId, ownerType, SOURCE, messageId));
+			if (stored == null) {
+				continue;
+			}
+			WorkItemUtils.dismissForMessage(ownerId, ownerType, stored);
+			if (header.get("id") instanceof String now && !now.equals(stored)) {
+				WorkItemUtils.dismissForMessage(ownerId, ownerType, now);
+			}
+		}
 	}
 
 	// what readMail read, through the gate in batches; the caller holds the ingest lock
@@ -836,10 +866,9 @@ public final class BrainMailImport {
 				}
 				upsertParticipant(threadId, personId, entry.getValue(), at);
 			}
-			// Focused Inbox "Other", sent on behalf of another mailbox, or a big mailing
-			String sender = address(header.get("sender"));
+			// Focused Inbox "Other", sent for another mailbox by a mailing service, or a big mailing
 			boolean bulk = "other".equals(header.get("inferenceClassification"))
-					|| (sender != null && !sender.equals(from)) || broadcast || toList(header);
+					|| sentByService(address(header.get("sender")), from) || broadcast || toList(header);
 			// marked in the same batch as the message, so a run cut off after it leaves its steps to the next sync
 			CollaborationDbUtils.update(
 					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ?, MEETING = ?, "
@@ -1135,6 +1164,16 @@ public final class BrainMailImport {
 			}
 		}
 		return false;
+	}
+
+	// sent for the From mailbox by another one outside its organisation: a mailing service. A delegate or an
+	// assistant writing for someone in their own organisation is a person, and their mail is not bulk
+	static boolean sentByService(String sender, String from) {
+		if (sender == null || from == null || sender.equals(from)) {
+			return false;
+		}
+		String senderOrg = BrainOrgDomains.org(domain(sender));
+		return senderOrg == null || !senderOrg.equals(BrainOrgDomains.org(domain(from)));
 	}
 
 	// posted to a mailing list (List-Id, Precedence list): a hint only, people write to lists too

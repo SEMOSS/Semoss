@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -39,6 +40,7 @@ import static org.mockito.ArgumentMatchers.eq;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterEach;
@@ -52,9 +54,13 @@ import org.mockito.Mockito;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
+import prerna.auth.access.UserAccess;
 import prerna.auth.utils.SecurityEngineAccessUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IVenvEngine;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
@@ -62,6 +68,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.SandboxProbe;
 import prerna.util.Utility;
 
 /**
@@ -75,6 +82,7 @@ class EngineAccessGuardUnitTests {
 	private static final String ENGINE = "engine-1";
 	private static final String OTHER_ENGINE = "engine-2";
 	private static final String PROJECT = "project-1";
+	private static final String AGENT = "agent-1";
 
 	private final User user = new User();
 	private MockedStatic<SecurityEngineAccessUtils> access;
@@ -130,16 +138,58 @@ class EngineAccessGuardUnitTests {
 	}
 
 	@Test
-	void thePlatformReadsSettingsAndGetsAConnectionForAUserWhoCanView() {
+	void thePlatformGetsAConnectionAndOneSettingAtATimeForAUserWhoCanView() {
 		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
 		IRDBMSEngine engine = StubEngines.database(ENGINE);
 
-		assertNotNull(engine.getSmssProp());
 		assertDoesNotThrow(engine::getConnection);
-		assertDoesNotThrow(engine::getSmssFilePath);
 		assertDoesNotThrow(() -> engine.getPreparedStatement("select 1"));
 		assertDoesNotThrow(engine::getQueryUtil);
+		assertDoesNotThrow(() -> engine.getCatalogSubType());
+		assertDoesNotThrow(engine::isBigData);
+		assertDoesNotThrow(engine::getPipelineFile);
 		assertDoesNotThrow(engine::close);
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "READ_ONLY", "EDIT" })
+	void onlyAnOwnerReadsTheSettingsOrPicksTheFileTheEngineOpensFrom(AccessPermissionEnum held) {
+		userHolds(ENGINE, false, held);
+		IRDBMSEngine engine = StubEngines.database(ENGINE);
+
+		assertThrows(SemossPixelException.class, engine::getSmssProp);
+		assertThrows(SemossPixelException.class, engine::getOrigSmssProp);
+		assertThrows(SemossPixelException.class, engine::getSmssFilePath);
+		assertThrows(SemossPixelException.class, () -> engine.setSmssProp(new Properties()));
+		assertThrows(SemossPixelException.class, () -> engine.open("other.smss"));
+		assertThrows(SemossPixelException.class, () -> engine.open(new Properties()));
+		assertThrows(SemossPixelException.class, () -> engine.getProperty("PASSWORD"));
+		assertThrows(SemossPixelException.class, engine::getConnectionUrl);
+		assertThrows(SemossPixelException.class, engine::getDataSource);
+	}
+
+	@Test
+	void anOwnerReadsTheSettingsAndPicksTheFileTheEngineOpensFrom() {
+		userHolds(ENGINE, false, AccessPermissionEnum.OWNER);
+		IRDBMSEngine engine = StubEngines.database(ENGINE);
+
+		assertNotNull(engine.getSmssProp());
+		assertDoesNotThrow(engine::getSmssFilePath);
+		assertDoesNotThrow(() -> engine.open("other.smss"));
+		assertDoesNotThrow(engine::getConnectionUrl);
+	}
+
+	@Test
+	void anEditorReloadsTheEngineAndChangesOnlyTheSettingsEditorsChange() {
+		IRDBMSEngine engine = StubEngines.database(ENGINE);
+
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		assertThrows(SemossPixelException.class, engine::reload);
+		assertThrows(SemossPixelException.class, () -> engine.updateSetting(IEngine.PIPELINE, "pipeline.json"));
+
+		userHolds(ENGINE, false, AccessPermissionEnum.EDIT);
+		assertDoesNotThrow(engine::reload);
+		assertDoesNotThrow(() -> engine.updateSetting(IEngine.PIPELINE, "pipeline.json"));
 	}
 
 	@Test
@@ -329,7 +379,8 @@ class EngineAccessGuardUnitTests {
 		IRDBMSEngine engine = StubEngines.database(ENGINE);
 
 		assertDoesNotThrow(engine::getEngineId);
-		assertDoesNotThrow(engine::getSmssProp);
+		assertDoesNotThrow(() -> engine.getCatalogSubType());
+		assertThrows(SemossPixelException.class, engine::getSmssProp);
 		assertThrows(SemossPixelException.class, () -> engine.insertData("insert into t values (1)"));
 		assertThrows(SemossPixelException.class, engine::delete);
 	}
@@ -366,13 +417,134 @@ class EngineAccessGuardUnitTests {
 	}
 
 	@Test
-	void anEngineCallingTheEngineConfiguredOnItGoesThrough() {
+	void anEngineCallingAnEngineThatGaveItNothingIsRefused() {
 		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
 		IRDBMSEngine configured = StubEngines.database(OTHER_ENGINE);
 		IRDBMSEngine engine = StubEngines.database(ENGINE, Map.of("getSchema", configured::getEngineName));
 
-		assertThrows(SemossPixelException.class, configured::getEngineName);
+		SemossPixelException refusal = assertThrows(SemossPixelException.class, engine::getSchema);
+
+		assertTrue(refusal.getMessage().contains("engine " + ENGINE), refusal.getMessage());
+	}
+
+	@Test
+	void anEngineCallsAnEngineThatGaveItAPermissionThatCoversTheMethod() {
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		engineHolds(OTHER_ENGINE, new EngineGrantee(ENGINE, "DATABASE"), AccessPermissionEnum.READ_ONLY);
+		AtomicReference<EngineGrantee> seenByTheConfiguredEngine = new AtomicReference<>();
+		IRDBMSEngine configured = StubEngines.database(OTHER_ENGINE, Map.of("getSchema", () -> {
+			seenByTheConfiguredEngine.set(EngineCallPermission.granteeMakingTheCall());
+			return null;
+		}));
+		IRDBMSEngine reads = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			configured.getSchema();
+			return null;
+		}));
+		IRDBMSEngine deletes = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			configured.delete();
+			return null;
+		}));
+
+		assertDoesNotThrow(reads::getSchema);
+		assertEquals(new EngineGrantee(ENGINE, "DATABASE"), seenByTheConfiguredEngine.get());
+		assertThrows(SemossPixelException.class, deletes::getSchema);
+		assertThrows(SemossPixelException.class, configured::getSchema);
+		assertNull(EngineCallPermission.granteeMakingTheCall());
+	}
+
+	@Test
+	void anEngineThatGaveAnotherEditorStillKeepsItsSettings() {
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		engineHolds(OTHER_ENGINE, new EngineGrantee(ENGINE, "DATABASE"), AccessPermissionEnum.EDIT);
+		IRDBMSEngine configured = StubEngines.database(OTHER_ENGINE);
+		IRDBMSEngine readsOneSetting = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			configured.getCatalogSubType();
+			return null;
+		}));
+		IRDBMSEngine readsTheSettings = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			configured.getSmssProp();
+			return null;
+		}));
+
+		assertDoesNotThrow(readsOneSetting::getSchema);
+		assertThrows(SemossPixelException.class, readsTheSettings::getSchema);
+	}
+
+	@Test
+	void aPermissionGivenToAnAppDoesNotCoverAnEngineWithTheSameId() {
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		engineHolds(OTHER_ENGINE, EngineGrantee.ofApp(ENGINE), AccessPermissionEnum.EDIT);
+		IRDBMSEngine configured = StubEngines.database(OTHER_ENGINE);
+		IRDBMSEngine engine = StubEngines.database(ENGINE, Map.of("getSchema", configured::getEngineName));
+
+		assertThrows(SemossPixelException.class, engine::getSchema);
+	}
+
+	@Test
+	void anEngineCallingAnEngineTheUserCanUseGoesThrough() {
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		userHolds(OTHER_ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		IRDBMSEngine configured = StubEngines.database(OTHER_ENGINE);
+		IRDBMSEngine engine = StubEngines.database(ENGINE, Map.of("getSchema", configured::getEngineName));
+
 		assertEquals("Stub " + OTHER_ENGINE, engine.getSchema());
+	}
+
+	@Test
+	void anEngineCallingItselfGoesThrough() {
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		IRDBMSEngine itself = StubEngines.database(ENGINE);
+		IRDBMSEngine engine = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			itself.delete();
+			return null;
+		}));
+
+		assertDoesNotThrow(engine::getSchema);
+	}
+
+	@Test
+	void anEngineReadsAPublicEngineWithNoPermission() {
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		this.access.when(() -> SecurityEngineAccessUtils.isPublic(OTHER_ENGINE)).thenReturn(true);
+		IRDBMSEngine configured = StubEngines.database(OTHER_ENGINE);
+		IRDBMSEngine reads = StubEngines.database(ENGINE, Map.of("getSchema", configured::getEngineName));
+		IRDBMSEngine deletes = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			configured.delete();
+			return null;
+		}));
+
+		assertEquals("Stub " + OTHER_ENGINE, reads.getSchema());
+		assertThrows(SemossPixelException.class, deletes::getSchema);
+	}
+
+	@Test
+	void anEngineUsesAVenvEngineWithNoPermission() {
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		IVenvEngine venv = StubEngines.venv(OTHER_ENGINE);
+		IRDBMSEngine engine = StubEngines.database(ENGINE, Map.of("getSchema", venv::pathToExecutable));
+
+		assertDoesNotThrow(engine::getSchema);
+		assertThrows(SemossPixelException.class, venv::pathToExecutable);
+	}
+
+	@Test
+	void anEngineOpeningCallsAnotherEngineAsItself() {
+		IRDBMSEngine configured = StubEngines.database(OTHER_ENGINE);
+		try (MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
+			utility.when(() -> Utility.getDatabase(eq(ENGINE))).thenAnswer(loading -> {
+				try (EngineCallPermission.Opening opening = EngineCallPermission.opening(ENGINE, "DATABASE")) {
+					SandboxProbe.heldObject = configured;
+					SandboxProbe.readHeldEngineSettingsAsAPlatformEngine();
+					return configured;
+				} finally {
+					SandboxProbe.heldObject = null;
+				}
+			});
+
+			assertThrows(SemossPixelException.class, () -> Utility.getDatabase(ENGINE));
+			engineHolds(OTHER_ENGINE, new EngineGrantee(ENGINE, "DATABASE"), AccessPermissionEnum.OWNER);
+			assertDoesNotThrow(() -> Utility.getDatabase(ENGINE));
+		}
 	}
 
 	@Test
@@ -423,12 +595,109 @@ class EngineAccessGuardUnitTests {
 		IRDBMSEngine engine = StubEngines.database(ENGINE);
 
 		assertDoesNotThrow(engine::delete);
-		this.access.verify(() -> SecurityEngineAccessUtils.getUserPermission(any(), anyString(), anyBoolean()),
+		this.access.verify(() -> SecurityEngineAccessUtils.getUserAccess(any(), anyString(), anyBoolean()),
 				Mockito.never());
 	}
 
+	@Test
+	void anAgentRunCallsAnEngineThatGaveTheAgentAPermission() {
+		AtomicReference<EngineGrantee> seenByTheEngine = new AtomicReference<>();
+		IRDBMSEngine engine = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			seenByTheEngine.set(EngineCallPermission.granteeMakingTheCall());
+			return null;
+		}));
+		engineHolds(ENGINE, EngineGrantee.ofApp(AGENT), AccessPermissionEnum.READ_ONLY);
+
+		assertThrows(SemossPixelException.class, engine::getSchema);
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			assertDoesNotThrow(engine::getSchema);
+			assertEquals(EngineGrantee.ofApp(AGENT), seenByTheEngine.get());
+			SemossPixelException refusal = assertThrows(SemossPixelException.class, engine::delete);
+			assertTrue(refusal.getMessage().contains("agent " + AGENT), refusal.getMessage());
+		}
+		assertThrows(SemossPixelException.class, engine::getSchema);
+	}
+
+	@Test
+	void anAgentRunReadsAProjectThatGaveTheAgentAPermission() {
+		IProject project = StubEngines.project(PROJECT);
+		projectHolds(PROJECT, EngineGrantee.ofApp(AGENT), AccessPermissionEnum.READ_ONLY);
+
+		assertThrows(SemossPixelException.class, project::getProjectName);
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			assertDoesNotThrow(project::getProjectName);
+		}
+	}
+
+	@Test
+	void aPermissionGivenToAnAgentOnAnEngineDoesNotCoverAProjectWithTheSameId() {
+		IProject project = StubEngines.project(PROJECT);
+		engineHolds(PROJECT, EngineGrantee.ofApp(AGENT), AccessPermissionEnum.READ_ONLY);
+
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			assertThrows(SemossPixelException.class, project::getProjectName);
+		}
+	}
+
+	@Test
+	void anEngineCallInsideAnAgentRunCountsTheAgentAsTheAppBehindIt() {
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		AtomicReference<EngineGrantee> seenByTheConfiguredEngine = new AtomicReference<>();
+		IRDBMSEngine configured = StubEngines.database(OTHER_ENGINE, Map.of("getSchema", () -> {
+			seenByTheConfiguredEngine.set(EngineCallPermission.granteeMakingTheCall());
+			return null;
+		}));
+		IRDBMSEngine engine = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			configured.getSchema();
+			return null;
+		}));
+		engineHolds(OTHER_ENGINE, EngineGrantee.ofApp(AGENT), AccessPermissionEnum.READ_ONLY);
+
+		assertThrows(SemossPixelException.class, engine::getSchema);
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			assertDoesNotThrow(engine::getSchema);
+		}
+		assertEquals(EngineGrantee.ofApp(AGENT), seenByTheConfiguredEngine.get());
+	}
+
+	@Test
+	void anAgentRunEndsWhenItIsClosedAndAnInnerRunPutsBackTheOuterOne() {
+		try (AgentRunOperation outer = AgentRunOperation.begin(AGENT)) {
+			try (AgentRunOperation inner = AgentRunOperation.begin("agent-2")) {
+				assertEquals("agent-2", AgentRunOperation.runningAgent());
+			}
+			assertEquals(AGENT, AgentRunOperation.runningAgent());
+		}
+		assertNull(AgentRunOperation.runningAgent());
+		assertThrows(IllegalArgumentException.class, () -> AgentRunOperation.begin(" "));
+	}
+
+	@Test
+	void anAgentRunIsNotCarriedToAThreadItStarts() throws Exception {
+		AtomicReference<String> seenOnTheThread = new AtomicReference<>("not read");
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			Thread thread = new Thread(() -> seenOnTheThread.set(AgentRunOperation.runningAgent()));
+			thread.start();
+			thread.join();
+		}
+		assertNull(seenOnTheThread.get());
+	}
+
 	private void userHolds(String id, boolean project, AccessPermissionEnum level) {
-		this.access.when(() -> SecurityEngineAccessUtils.getUserPermission(this.user, id, project)).thenReturn(level);
+		this.access.when(() -> SecurityEngineAccessUtils.getUserAccess(this.user, id, project))
+				.thenReturn(level == null ? null : UserAccess.direct(level));
+	}
+
+	private void engineHolds(String engineId, EngineGrantee grantee, AccessPermissionEnum level) {
+		this.access.when(() -> SecurityEngineAccessUtils.givesAGranteePermission(engineId, false)).thenReturn(true);
+		this.access.when(() -> SecurityEngineAccessUtils.getGranteePermission(grantee, engineId, false))
+				.thenReturn(level);
+	}
+
+	private void projectHolds(String projectId, EngineGrantee grantee, AccessPermissionEnum level) {
+		this.access.when(() -> SecurityEngineAccessUtils.givesAGranteePermission(projectId, true)).thenReturn(true);
+		this.access.when(() -> SecurityEngineAccessUtils.getGranteePermission(grantee, projectId, true))
+				.thenReturn(level);
 	}
 
 	private static boolean allowed(Executable call) {

@@ -91,6 +91,7 @@ import prerna.query.querystruct.selectors.QueryTypedColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.security.SessionIds;
 import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -852,8 +853,8 @@ public class ModelInferenceLogsUtils {
 			String userId, String userName, String userEmail, String agentType, String agentId, Boolean isActive,
 			String projectId, String projectName, Map<String, Object> options) {
 
-		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType,
-				agentId, isActive, projectId, projectName, null, null, null);
+		doCreateNewConversation(insightId, roomId, roomName, roomContext, userId, userName, userEmail, agentType,
+				agentId, isActive, projectId, projectName, null, options, null);
 	}
 
 	/**
@@ -1131,7 +1132,7 @@ public class ModelInferenceLogsUtils {
 	 * @param reponseTime   model response time
 	 * @param agentId       agent/model id
 	 * @param insightId     insight id
-	 * @param sessionId     session id
+	 * @param sessionId     session id; the table keeps its hash
 	 * @param userId        user id
 	 * @param userName      user display name
 	 * @param userEmail     user email
@@ -1298,7 +1299,7 @@ public class ModelInferenceLogsUtils {
 					ps.setString(index++, agentId);
 					ps.setString(index++, insightId);
 					ps.setString(index++, roomId);
-					ps.setString(index++, sessionId);
+					ps.setString(index++, SessionIds.hash(sessionId));
 					ps.setString(index++, userId);
 					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userName);
 					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userEmail);

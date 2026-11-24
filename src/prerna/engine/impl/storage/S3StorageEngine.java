@@ -224,6 +224,11 @@ public class S3StorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
+	public String getBucketName() {
+		return this.smssProp == null ? null : this.smssProp.getProperty(S3_BUCKET_KEY);
+	}
+
+	@Override
 	public List<String> list(String path) throws Exception {
 		List<Map<String, Object>> details = listDetails(path);
 		List<String> fileList = new ArrayList<>(details.size());

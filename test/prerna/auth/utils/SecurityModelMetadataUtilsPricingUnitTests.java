@@ -56,6 +56,7 @@ import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
+import prerna.engine.impl.pipeline.PlatformOperation;
 
 /**
  * Checks the rules on a model's prices: only its owners change them, admins too,
@@ -192,7 +193,9 @@ class SecurityModelMetadataUtilsPricingUnitTests {
 		catalog.when(() -> StaticModelMetadataCatalog.getStaticDefaults("test-model"))
 				.thenAnswer(call -> new LinkedHashMap<>(withoutPrices));
 
-		SecurityModelMetadataUtils.syncModelMetadataFromCatalog(List.of(MODEL), true, false);
+		try (PlatformOperation operation = PlatformOperation.begin("test catalog sync")) {
+			SecurityModelMetadataUtils.syncModelMetadataFromCatalog(null, List.of(MODEL), true, false);
+		}
 
 		assertEquals(4L, outputRate());
 		assertEquals("OPENAI", SecurityModelMetadataUtils.getModelMetadata(MODEL).get("modelProvider"));
@@ -203,7 +206,9 @@ class SecurityModelMetadataUtilsPricingUnitTests {
 		catalog.when(() -> StaticModelMetadataCatalog.getStaticDefaults("test-model"))
 				.thenAnswer(call -> new LinkedHashMap<>(Map.of(Constants.PRICING, CATALOG_PRICES)));
 
-		SecurityModelMetadataUtils.syncModelMetadataFromCatalog(List.of(MODEL), true, false);
+		try (PlatformOperation operation = PlatformOperation.begin("test catalog sync")) {
+			SecurityModelMetadataUtils.syncModelMetadataFromCatalog(null, List.of(MODEL), true, false);
+		}
 
 		assertEquals(8L, outputRate());
 	}

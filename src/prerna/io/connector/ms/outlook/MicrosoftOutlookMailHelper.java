@@ -1103,7 +1103,10 @@ public class MicrosoftOutlookMailHelper {
 	 */
 	private List<Map<String, Object>> listConversation(String accessToken, String mailbox, MessageQuery query) {
 		StringBuilder url = new StringBuilder(userPath(mailbox));
-		url.append("/messages?$select=").append(query.includeBody ? CONVERSATION_FIELDS : MESSAGE_FIELDS_NO_BODY);
+		// isDraft, since a thread is read from every folder: an unsent reply is listed with it, and whoever saves the
+		// thread somewhere others can read has to be able to leave it out
+		url.append("/messages?$select=").append(query.includeBody ? CONVERSATION_FIELDS : MESSAGE_FIELDS_NO_BODY)
+				.append(",isDraft");
 		url.append("&$top=").append(Math.max(1, query.top));
 		// a quote inside an OData string is written twice
 		String conversationId = query.conversationId.replace("'", "''");

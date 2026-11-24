@@ -48,7 +48,6 @@ import org.openrdf.model.vocabulary.RDFS;
 import com.google.common.io.Files;
 
 import prerna.algorithm.api.SemossDataType;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -226,10 +225,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				}
 			}
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, this.databaseId);
 		}
 
 		ClusterUtil.pushEngine(this.databaseId);

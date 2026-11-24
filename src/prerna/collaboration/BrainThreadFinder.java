@@ -509,7 +509,7 @@ public final class BrainThreadFinder {
 		return ids;
 	}
 
-	private static String selfPersonId(String ownerId, String ownerType) {
+	static String selfPersonId(String ownerId, String ownerType) {
 		return CollaborationDbUtils.queryOne("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 				+ "AND RELATIONSHIP = ?", rs -> rs.getString(1), ownerId, ownerType, "self");
 	}

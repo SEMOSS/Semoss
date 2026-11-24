@@ -61,6 +61,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         safety_settings: Optional[dict] = None,
         batch_region: Optional[str] = None,
         gcp_batch_region: Optional[str] = None,
+        generation_api: str = "generate_content",
         **kwargs,
     ):
         super().__init__(
@@ -81,6 +82,10 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             batch_region=batch_region or gcp_batch_region,
         )
         self.google_client = GoogleClient(config=self.client_config).genai_client
+        if generation_api not in {"generate_content", "interactions"}:
+            raise ValueError("generation_api must be generate_content or interactions")
+        self.generation_api = generation_api
+        self._interactions_client = None
         self.video_client = GoogleGenAiVideoClient(parent_client=self)
 
         self.safety_settings = safety_settings
@@ -119,6 +124,19 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             if self.model_settings.model_type == "video":
                 return self.video_client.ask_call(semoss_messages=semoss_messages)
+
+            # A room keeps its protocol across engine setting changes. Existing
+            # unsigned conversations stay on GenerateContent until a new context.
+            native_history = any(
+                m.google_interactions is not None for m in semoss_messages
+            )
+            existing_history = any(m.io == "OUTPUT" for m in semoss_messages)
+            if native_history or (
+                self.generation_api == "interactions" and not existing_history
+            ):
+                from .google_interactions import ask_interactions
+
+                return ask_interactions(self, semoss_messages, inline_citations_enabled)
 
             try:
                 response = GoogleGenAIMessageBuilder().build_messages(

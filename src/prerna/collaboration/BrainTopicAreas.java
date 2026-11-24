@@ -58,7 +58,8 @@ final class BrainTopicAreas {
 			event, a month, a date or a person. Write "about": one plain sentence, under 25 words, saying what mail belongs
 			in the area.
 
-			Use every topic id exactly once.
+			Use every topic id exactly once. Answer with JSON only, in exactly this shape:
+			{"areas": [{"name": "", "about": "", "topics": ["id", "id"]}]}
 			""";
 
 	// folder: the path of the Outlook folder the topic was found from, null when it was discovered

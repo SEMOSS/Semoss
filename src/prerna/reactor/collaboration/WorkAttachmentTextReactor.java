@@ -38,8 +38,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.poi.EncryptedDocumentException;
 
 import prerna.io.connector.mail.AttachmentText;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Utility;
 
 // WorkAttachmentText(filePath=["/plan.docx"]);
 // A file the owner attached in the composer reaches the model as this text copy, since most providers reject
@@ -66,7 +66,7 @@ public class WorkAttachmentTextReactor extends AbstractCollaborationReactor {
 		Path file;
 		try {
 			root = Path.of(this.insight.getInsightFolder()).toRealPath();
-			file = MCPUtility.resolveContainedMcpFile(root.toString(), path.replaceFirst("^/+", ""));
+			file = Utility.resolveContainedFile(root.toString(), path.replaceFirst("^/+", ""));
 		} catch (IOException | IllegalArgumentException e) {
 			throw new IllegalArgumentException("No file at " + path + " in this chat.", e);
 		}

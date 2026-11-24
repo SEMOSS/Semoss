@@ -36,6 +36,7 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.security.UrlAccessRules;
 import prerna.util.Utility;
 
 /**
@@ -94,10 +95,8 @@ public class RemoteBrowserUrlSafetyValidator {
 			throw new IllegalArgumentException("URL must contain a valid host");
 		}
 
-		// Enforce the shared, configurable domain whitelist
-		// (Constants.WHITE_LIST_DOMAINS).
-		// No-op when no whitelist is configured; the SSRF checks below always apply.
-		Utility.checkIfValidDomain(rawUrl.trim());
+		// Enforce the shared, configurable domain whitelist + blacklist
+		UrlAccessRules.checkUrl(rawUrl.trim());
 
 		// Check the literal hostname
 		for (Pattern p : BLOCKED_HOST_PATTERNS) {

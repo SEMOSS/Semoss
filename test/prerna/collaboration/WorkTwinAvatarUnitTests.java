@@ -277,6 +277,15 @@ class WorkTwinAvatarUnitTests {
 		assertTrue(List.of(WorkTwinAvatar.LOOKS).stream().anyMatch(any::contains));
 	}
 
+	// people called the first set's toy figures with dot faces and no nose "lego"
+	@Test
+	void everyLookDrawsAWholeFace() {
+		for (String look : WorkTwinAvatar.LOOKS) {
+			assertTrue(look.contains(" nose") && look.contains("eyebrows"), look);
+			assertFalse(look.contains("no nose") || look.contains("dot"), look);
+		}
+	}
+
 	@Test
 	void theLookAskedForIsTheOneTheModelIsSent() throws IOException {
 		answer(media(picture(64, 64, "png")));

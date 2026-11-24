@@ -40,6 +40,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.security.SessionIds;
 import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -299,8 +300,10 @@ public class UserTrackingUtils {
 	}
 
 	/**
-	 * Registers a user login/session with the configured user tracker. No-op when
-	 * user tracking is disabled; logs and skips if no tracker is available.
+	 * Registers a user login/session with the configured user tracker, which keeps
+	 * the session's hash ({@link SessionIds#hash(String)}), never the session id.
+	 * No-op when user tracking is disabled; logs and skips if no tracker is
+	 * available.
 	 *
 	 * @param sessionId the HTTP session id
 	 * @param ip        the originating client IP
@@ -317,10 +320,11 @@ public class UserTrackingUtils {
 		if (ut == null) {
 			classLogger.error("Could not find user tracker. User Session/IP Data will not be saved.");
 		} else {
+			String sessionHash = SessionIds.hash(sessionId);
 			try {
-				ut.registerLogin(sessionId, ip, user, ap);
+				ut.registerLogin(sessionHash, ip, user, ap);
 			} catch (Exception e) {
-				classLogger.error("Failed to register login user tracking for session {}", sessionId, e);
+				classLogger.error("Failed to register login user tracking for session {}", sessionHash, e);
 			}
 		}
 
@@ -329,8 +333,9 @@ public class UserTrackingUtils {
 	}
 
 	/**
-	 * Marks the given session as ended with the configured user tracker. No-op when
-	 * user tracking is disabled.
+	 * Marks the given session as ended with the configured user tracker, found by
+	 * the session's hash, as it was registered. No-op when user tracking is
+	 * disabled.
 	 *
 	 * @param sessionId the HTTP session id that ended
 	 */
@@ -342,7 +347,7 @@ public class UserTrackingUtils {
 		if (ut == null) {
 			throw new IllegalArgumentException("Could not find user tracker.");
 		}
-		ut.registerLogout(sessionId);
+		ut.registerLogout(SessionIds.hash(sessionId));
 	}
 
 	// End of User tracking methods

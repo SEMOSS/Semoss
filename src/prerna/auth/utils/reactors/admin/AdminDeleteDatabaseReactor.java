@@ -128,7 +128,7 @@ public class AdminDeleteDatabaseReactor extends AbstractReactor {
 		UploadUtilities.removeEngineFromDIHelper(engineId);
 		DeleteFromMasterDB remover = new DeleteFromMasterDB();
 		remover.deleteEngineRDBMS(engineId);
-		SecurityEngineUtils.deleteEngine(engineId);
+		SecurityEngineUtils.deleteEngine(this.insight.getUser(), engineId);
 		UserTrackingUtils.deleteEngine(engineId);
 
 		try {

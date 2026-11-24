@@ -56,7 +56,8 @@ public class WorkGenerateTwinAvatarReactor extends AbstractCollaborationReactor 
 		return super.getReactorDefinition().description(
 				"Makes one cartoon avatar option for the signed-in user's Digital Twin with the image model set in "
 						+ "RDF_Map: from their own Microsoft profile photo, or from the description when one is "
-						+ "passed. Nothing is saved; the caller uploads the option it keeps as the twin's image")
+						+ "passed. Nothing is saved; the caller uploads the option it keeps as the image of a twin "
+						+ "they share, or saves it as the picture of their own Digital Twin (WorkSaveMainTwin)")
 				.key(DESCRIPTION, "How the avatar should look, up to 500 characters. Leave out to use the profile photo")
 				.key(VARIANT, key -> key.type(Integer.class).description(
 						"Which look to draw. Any whole number: it is counted round the looks there are, so "

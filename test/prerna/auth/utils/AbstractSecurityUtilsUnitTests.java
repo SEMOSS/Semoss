@@ -71,7 +71,8 @@ import prerna.query.interpreters.sql.ParameterizedSqlInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.DIHelperTestUtils;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -443,6 +444,19 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 	}
 
 	@Test
+	void testInitialize_backfillsProjectCustomLoginFlagsAsOff() throws Exception {
+		execute("INSERT INTO PROJECT (PROJECTID, PROJECTNAME, GLOBAL) VALUES (?,?,?)", "publicproject", "name1", true);
+		execute("INSERT INTO PROJECT (PROJECTID, PROJECTNAME) VALUES (?,?)", "privateproject", "name2");
+
+		AbstractSecurityUtils.initialize();
+
+		assertEquals(Boolean.FALSE,
+				queryValue("SELECT HAS_CUSTOM_LOGIN FROM PROJECT WHERE PROJECTID=?", "publicproject"));
+		assertEquals(Boolean.FALSE,
+				queryValue("SELECT HAS_CUSTOM_LOGIN FROM PROJECT WHERE PROJECTID=?", "privateproject"));
+	}
+
+	@Test
 	void testInitialize_projectBackfillFailureRollsBackTheDisplayNames() throws Exception {
 		securityDb.insertData("ALTER TABLE PROJECT ADD CONSTRAINT TEST_REFUSE_TEMPLATE CHECK "
 				+ "(IS_TEMPLATE IS NULL OR PROJECTNAME <> 'refused')");
@@ -680,12 +694,12 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		properties.setProperty(Constants.IS_ASSET_APP, "true");
 		UnitTestSecurityAuthUtils.createSmssFileFromProps(properties, databaseFolder, "test.smss");
 		String smssFile = databaseFolder + File.separator + "test.smss";
-		DIHelper.getInstance().setEngineProperty("test_" + Constants.STORE, smssFile);
+		InternalUtility.setEngineSmssPath("test", smssFile);
 
 		assertTrue(AbstractSecurityUtils.ignoreDatabase("test"));
 
 		// teardown this test
-		DIHelper.getInstance().removeEngineProperty("test_" + Constants.STORE);
+		DIHelperTestUtils.removeEngineSmssPath("test");
 	}
 
 	@Test

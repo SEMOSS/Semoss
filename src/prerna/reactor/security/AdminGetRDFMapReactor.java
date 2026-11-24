@@ -38,7 +38,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 
 public class AdminGetRDFMapReactor extends AbstractReactor {
 
@@ -59,7 +59,7 @@ public class AdminGetRDFMapReactor extends AbstractReactor {
 
 		StringBuilder currentRDFMapPropContent = null;
 		try {
-			currentRDFMapPropContent = DIHelper.getInstance().getConcealedRDFMapContents();
+			currentRDFMapPropContent = InternalUtility.getConcealedRDFMapContents();
 		} catch (IOException e) {
 			classLogger.error("Could not read the RDF_Map.prop file", e);
 			throw new IllegalArgumentException(

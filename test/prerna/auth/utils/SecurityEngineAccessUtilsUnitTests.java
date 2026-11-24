@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +41,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import prerna.auth.AccessPermissionEnum;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
+import prerna.auth.access.UserAccess;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.util.SystemEngineRegistry;
 
@@ -105,6 +109,27 @@ class SecurityEngineAccessUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	}
 
 	@Test
+	void aUsersAccessSaysWhetherItIsTheirOwnGrantATeamsGrantOrPublic() throws Exception {
+		AdminSecurityGroupUtils.getInstance(admin).addGroup(admin, "ordersteam",
+				SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE, "the orders team");
+		UnitTestSecurityAuthUtils.addUserToGroup(admin, "ordersteam", "strangerid", AuthProvider.NATIVE.getLabel());
+		UnitTestSecurityAuthUtils.addUserToGroup(admin, "ordersteam", "editorid", AuthProvider.NATIVE.getLabel());
+		SecurityGroupEngineUtils.addEngineGroupPermission(owner, "ordersteam",
+				SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE, ENGINE_ID, "EDIT",
+				ZonedDateTime.now().plusDays(2).toString());
+
+		assertEquals(UserAccess.direct(AccessPermissionEnum.OWNER),
+				SecurityEngineAccessUtils.getUserAccess(owner, ENGINE_ID, false));
+		assertEquals(
+				UserAccess.team(AccessPermissionEnum.EDIT, "ordersteam", SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE),
+				SecurityEngineAccessUtils.getUserAccess(stranger, ENGINE_ID, false));
+		assertEquals(UserAccess.direct(AccessPermissionEnum.EDIT),
+				SecurityEngineAccessUtils.getUserAccess(editor, ENGINE_ID, false));
+		assertEquals(UserAccess.publicRead(), SecurityEngineAccessUtils.getUserAccess(reader, PUBLIC_ENGINE_ID, false));
+		assertNull(SecurityEngineAccessUtils.getUserAccess(reader, PROJECT_ID, true));
+	}
+
+	@Test
 	void everyoneCanViewAPublicEngine() {
 		assertEquals(AccessPermissionEnum.READ_ONLY,
 				SecurityEngineAccessUtils.getUserPermission(stranger, PUBLIC_ENGINE_ID, false));
@@ -126,8 +151,9 @@ class SecurityEngineAccessUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		assertNull(SecurityEngineAccessUtils.getUserPermission(owner, "no-such-engine", false));
 		assertFalse(SecurityEngineAccessUtils.isAdmin(null));
 		assertFalse(SecurityEngineAccessUtils.isReadableThroughPlatform(null, ENGINE_ID, false));
-		assertNull(SecurityEngineAccessUtils.getProjectPermission(null, ENGINE_ID));
-		assertNull(SecurityEngineAccessUtils.getProjectPermission(PROJECT_ID, null));
+		assertNull(SecurityEngineAccessUtils.getGranteePermission(null, ENGINE_ID));
+		assertNull(SecurityEngineAccessUtils.getGranteePermission(EngineGrantee.ofApp(PROJECT_ID), null));
+		assertNull(SecurityEngineAccessUtils.getGranteePermission(new EngineGrantee(PROJECT_ID, null), ENGINE_ID));
 	}
 
 	@Test
@@ -165,7 +191,7 @@ class SecurityEngineAccessUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 		assertFalse(SecurityEngineAccessUtils.isListed(ENGINE_ID, true));
 		assertFalse(SecurityEngineAccessUtils.isListed(null, false));
 
-		SecurityEngineUtils.deleteEngine(ENGINE_ID);
+		SecurityEngineUtils.deleteEngine(owner, ENGINE_ID);
 		assertFalse(SecurityEngineAccessUtils.isListed(ENGINE_ID, false));
 	}
 

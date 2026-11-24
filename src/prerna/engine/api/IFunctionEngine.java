@@ -29,6 +29,7 @@ package prerna.engine.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.function.FunctionParameter;
@@ -78,6 +79,18 @@ public interface IFunctionEngine extends IEngine {
 	@IgnoreEngineLogging
 	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getFunctionDescription();
+
+	/**
+	 * The function's type, its {@link #FUNCTION_TYPE} setting.
+	 *
+	 * @return the function type, or null when its settings name none
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getFunctionType() {
+		Properties smssProp = getSmssProp();
+		return smssProp == null ? null : smssProp.getProperty(FUNCTION_TYPE);
+	}
 
 	/**
 	 * 

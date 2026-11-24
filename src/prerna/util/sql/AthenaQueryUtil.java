@@ -29,13 +29,17 @@ package prerna.util.sql;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import prerna.engine.impl.CaseInsensitiveProperties;
 
 public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 
 	private String region;
-	private String accessKey;
-	private String secretKey;
+	@JsonIgnore
+	private transient String accessKey;
+	@JsonIgnore
+	private transient String secretKey;
 	private String output;
 
 	AthenaQueryUtil() {
@@ -131,11 +135,13 @@ public class AthenaQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	@JsonIgnore
 	public String getUsername() {
 		return this.accessKey;
 	}
 
 	@Override
+	@JsonIgnore
 	public String getPassword() {
 		return this.secretKey;
 	}

@@ -343,6 +343,7 @@ class PptxInspectionUnitTests {
                     .thenReturn(Map.of("inputModalities", List.of("TEXT", "IMAGE")));
             utility.when(() -> prerna.util.Utility.getModel(engineId)).thenReturn(model);
             utility.when(() -> prerna.util.Utility.getDIHelperProperty(SemossPptxInspector.DEFAULT_MODEL_PROPERTY)).thenReturn("deployment-default");
+            utility.when(() -> prerna.util.Utility.resolveContainedFile(anyString(), anyString())).thenCallRealMethod();
             rooms.when(() -> prerna.engine.impl.model.RoomUtils.createRoomForStatelessAsk(anyString(), eq(insight), eq(model),
                     anyString(), isNull(), isNull(), isNull(), isNull(), eq("parent-room"))).thenReturn(room);
             JSONObject result = SemossPptxInspector.inspect(root,

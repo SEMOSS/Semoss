@@ -152,6 +152,7 @@ public final class AgentRunService {
 	}
 
 	private AgentRunHandle submitNewRun(String runId, AgentRunRequest request, boolean ownsUser) {
+		request = request.withNormalizedUserContent();
 		String userId = resolveUserId(request.getInsight());
 		// A guardrail, the room's user or an admin closed it; no agent runs in it
 		// again.

@@ -40,13 +40,15 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
+import prerna.auth.access.UserAccess;
 import prerna.util.SystemEngineRegistry;
 
 /**
  * What the engine proxy asks the security database before it lets a call to an
  * engine or project method through: the signed in user's permission, whether
- * they are an admin, and the permission an engine gives a project for its
- * custom reactors.
+ * they are an admin, whether an engine is public, and the permission an engine
+ * gives an app for its custom reactors or another engine for its own code.
  *
  * <p>
  * The proxy asks on every call, so the answers are kept for a short time. They
@@ -64,10 +66,14 @@ public final class SecurityEngineAccessUtils {
 			.expireAfterWrite(KEPT_FOR).build();
 	private static final Cache<String, Boolean> LISTED = Caffeine.newBuilder().expireAfterWrite(KEPT_FOR)
 			.maximumSize(10_000).build();
+	private static final Cache<String, Boolean> PUBLIC = Caffeine.newBuilder().expireAfterWrite(KEPT_FOR)
+			.maximumSize(10_000).build();
+	private static final Cache<String, Boolean> DISCOVERABLE = Caffeine.newBuilder().expireAfterWrite(KEPT_FOR)
+			.maximumSize(10_000).build();
 	private static final Object RELOAD_LOCK = new Object();
 
 	private static volatile long answersVersion = Long.MIN_VALUE;
-	private static volatile ProjectPermissions projectPermissions;
+	private static volatile GranteePermissions granteePermissions;
 
 	private SecurityEngineAccessUtils() {
 	}
@@ -94,13 +100,27 @@ public final class SecurityEngineAccessUtils {
 	 * @return the level, or null when the user has no access
 	 */
 	public static AccessPermissionEnum getUserPermission(User user, String id, boolean project) {
+		UserAccess access = getUserAccess(user, id, project);
+		return access == null ? null : access.level();
+	}
+
+	/**
+	 * The access the user holds on an engine or project now, as
+	 * {@link #getUserPermission} reads it, and where it comes from: their own
+	 * grant, a team's grant, or the engine or project being public.
+	 *
+	 * @param user    the signed in user
+	 * @param id      the engine or project id
+	 * @param project true when the id is a project's
+	 * @return the access, or null when the user has no access
+	 */
+	public static UserAccess getUserAccess(User user, String id, boolean project) {
 		if (user == null || id == null) {
 			return null;
 		}
-		return answersOf(user).levels
-				.computeIfAbsent(key(id, project),
-						key -> Optional.ofNullable(project ? SecurityProjectUtils.getCurrentUserProjectLevel(user, id)
-								: SecurityEngineUtils.getCurrentUserEngineLevel(user, id)))
+		return answersOf(user).levels.computeIfAbsent(key(id, project),
+				key -> Optional.ofNullable(project ? SecurityProjectUtils.getCurrentUserProjectAccess(user, id)
+						: SecurityEngineUtils.getCurrentUserEngineAccess(user, id)))
 				.orElse(null);
 	}
 
@@ -145,7 +165,7 @@ public final class SecurityEngineAccessUtils {
 		UserAnswers answers = answersOf(user);
 		Boolean admin = answers.admin;
 		if (admin == null) {
-			admin = Boolean.TRUE.equals(SecurityAdminUtils.userIsAdmin(user));
+			admin = SecurityAdminUtils.storedAsAdmin(user);
 			answers.admin = admin;
 		}
 		return admin;
@@ -169,47 +189,109 @@ public final class SecurityEngineAccessUtils {
 	}
 
 	/**
-	 * The permission an engine gives a project now, which the project's custom
-	 * reactors use in place of the signed in user's own. One that has ended does
-	 * not count.
-	 *
-	 * @param projectId the project whose custom code is calling
-	 * @param engineId  the engine
-	 * @return the level, or null when the engine gives the project none
-	 */
-	public static AccessPermissionEnum getProjectPermission(String projectId, String engineId) {
-		if (projectId == null || engineId == null) {
-			return null;
-		}
-		Map<String, AccessPermissionEnum> ofEngine;
-		try {
-			ofEngine = projectPermissions().byEngine.get(engineId);
-		} catch (IllegalStateException e) {
-			classLogger.error("The permissions engines give to projects could not be read, so project {} is given "
-					+ "none on engine {}", projectId, engineId, e);
-			return null;
-		}
-		return ofEngine == null ? null : ofEngine.get(projectId);
-	}
-
-	/**
-	 * Whether an engine gives any project a permission now. Most engines give none,
-	 * and the engine proxy looks for the app making a call only on one that does.
+	 * Whether an engine is public, so everyone may read it.
 	 *
 	 * @param engineId the engine
-	 * @return whether some project holds a permission on the engine that is in
-	 *         effect
+	 * @return whether the engine is public
 	 */
-	public static boolean givesAProjectPermission(String engineId) {
+	public static boolean isPublic(String engineId) {
 		if (engineId == null) {
 			return false;
 		}
+		refreshIfChanged();
+		return PUBLIC.get(engineId, SecurityEngineUtils::engineIsGlobal);
+	}
+
+	/**
+	 * Whether an engine or project is discoverable, which tells a read the platform
+	 * made for a user with no permission on it apart from a project read through
+	 * one of its insights.
+	 *
+	 * @param id      the engine or project id
+	 * @param project true when the id is a project's
+	 * @return whether it is discoverable
+	 */
+	public static boolean isDiscoverable(String id, boolean project) {
+		if (id == null) {
+			return false;
+		}
+		refreshIfChanged();
+		return DISCOVERABLE.get(key(id, project), key -> project ? SecurityProjectUtils.projectIsDiscoverable(id)
+				: SecurityEngineUtils.engineIsDiscoverable(id));
+	}
+
+	/**
+	 * The permission an engine gives an app or another engine now, which the app's
+	 * custom reactors, or the other engine's own code, use in place of the signed
+	 * in user's own. One that has ended does not count.
+	 *
+	 * @param grantee  the app whose custom code is calling, or the engine whose own
+	 *                 code is
+	 * @param engineId the engine
+	 * @return the level, or null when the engine gives the grantee none
+	 */
+	public static AccessPermissionEnum getGranteePermission(EngineGrantee grantee, String engineId) {
+		return getGranteePermission(grantee, engineId, false);
+	}
+
+	/**
+	 * The permission an engine or a project gives an app or an engine now, which
+	 * the app's custom reactors, its agent runs, or the engine's own code, use in
+	 * place of the signed in user's own. One that has ended does not count.
+	 *
+	 * @param grantee  the app or agent, or the engine whose own code is calling
+	 * @param targetId the engine or project
+	 * @param project  whether the target is a project
+	 * @return the level, or null when the target gives the grantee none
+	 */
+	public static AccessPermissionEnum getGranteePermission(EngineGrantee grantee, String targetId, boolean project) {
+		if (grantee == null || grantee.engineId() == null || grantee.engineType() == null || targetId == null) {
+			return null;
+		}
+		Map<EngineGrantee, AccessPermissionEnum> ofTarget;
 		try {
-			Map<String, AccessPermissionEnum> ofEngine = projectPermissions().byEngine.get(engineId);
-			return ofEngine != null && !ofEngine.isEmpty();
+			ofTarget = granteePermissions().byTarget.get(SecurityEngine2EngineUtils.targetKey(targetId, project));
 		} catch (IllegalStateException e) {
-			classLogger.error("The permissions engines give to projects could not be read, so engine {} is taken "
-					+ "to give none", engineId, e);
+			classLogger.error(
+					"The permissions engines and projects give to apps and engines could not be read, so "
+							+ "{} {} is given none on {} {}",
+					grantee.engineType(), grantee.engineId(), project ? "project" : "engine", targetId, e);
+			return null;
+		}
+		return ofTarget == null ? null : ofTarget.get(grantee);
+	}
+
+	/**
+	 * Whether an engine gives any app or other engine a permission now. Most
+	 * engines give none, and the engine proxy looks for the app or engine making a
+	 * call only on one that does.
+	 *
+	 * @param engineId the engine
+	 * @return whether some app or engine holds a permission on the engine that is
+	 *         in effect
+	 */
+	public static boolean givesAGranteePermission(String engineId) {
+		return givesAGranteePermission(engineId, false);
+	}
+
+	/**
+	 * Whether an engine or a project gives any app or engine a permission now.
+	 *
+	 * @param targetId the engine or project
+	 * @param project  whether it is a project
+	 * @return whether some app or engine holds a permission on it that is in effect
+	 */
+	public static boolean givesAGranteePermission(String targetId, boolean project) {
+		if (targetId == null) {
+			return false;
+		}
+		try {
+			Map<EngineGrantee, AccessPermissionEnum> ofTarget = granteePermissions().byTarget
+					.get(SecurityEngine2EngineUtils.targetKey(targetId, project));
+			return ofTarget != null && !ofTarget.isEmpty();
+		} catch (IllegalStateException e) {
+			classLogger.error("The permissions engines and projects give to apps and engines could not be read, so "
+					+ "{} {} is taken to give none", project ? "project" : "engine", targetId, e);
 			return false;
 		}
 	}
@@ -230,24 +312,26 @@ public final class SecurityEngineAccessUtils {
 				if (version != answersVersion) {
 					USER_ANSWERS.invalidateAll();
 					LISTED.invalidateAll();
+					PUBLIC.invalidateAll();
+					DISCOVERABLE.invalidateAll();
 					answersVersion = version;
 				}
 			}
 		}
 	}
 
-	private static ProjectPermissions projectPermissions() {
+	private static GranteePermissions granteePermissions() {
 		long version = SecurityModelUsageLimitUtils.version();
 		long now = System.nanoTime();
-		ProjectPermissions current = projectPermissions;
+		GranteePermissions current = granteePermissions;
 		if (current != null && current.version == version && now - current.readAt < KEPT_FOR.toNanos()) {
 			return current;
 		}
 		synchronized (RELOAD_LOCK) {
-			current = projectPermissions;
+			current = granteePermissions;
 			if (current == null || current.version != version || now - current.readAt >= KEPT_FOR.toNanos()) {
-				current = new ProjectPermissions(version, now, SecurityProjectEngineUtils.getPermissionsInEffect());
-				projectPermissions = current;
+				current = new GranteePermissions(version, now, SecurityEngine2EngineUtils.getPermissionsInEffect());
+				granteePermissions = current;
 			}
 			return current;
 		}
@@ -257,24 +341,25 @@ public final class SecurityEngineAccessUtils {
 	 * The answers kept for one signed in user, until they are read again.
 	 */
 	private static final class UserAnswers {
-		private final Map<String, Optional<AccessPermissionEnum>> levels = new ConcurrentHashMap<>();
+		private final Map<String, Optional<UserAccess>> levels = new ConcurrentHashMap<>();
 		private final Map<String, Boolean> platformReads = new ConcurrentHashMap<>();
 		private volatile Boolean admin;
 	}
 
 	/**
-	 * Every permission an engine gives a project, as read at one time.
+	 * Every permission an engine or a project gives an app or an engine, as read at
+	 * one time, by target ({@link SecurityEngine2EngineUtils#targetKey}).
 	 */
-	private static final class ProjectPermissions {
+	private static final class GranteePermissions {
 		private final long version;
 		private final long readAt;
-		private final Map<String, Map<String, AccessPermissionEnum>> byEngine;
+		private final Map<String, Map<EngineGrantee, AccessPermissionEnum>> byTarget;
 
-		private ProjectPermissions(long version, long readAt,
-				Map<String, Map<String, AccessPermissionEnum>> byEngine) {
+		private GranteePermissions(long version, long readAt,
+				Map<String, Map<EngineGrantee, AccessPermissionEnum>> byTarget) {
 			this.version = version;
 			this.readAt = readAt;
-			this.byEngine = byEngine;
+			this.byTarget = byTarget;
 		}
 	}
 

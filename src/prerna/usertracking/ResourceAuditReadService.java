@@ -82,12 +82,12 @@ public final class ResourceAuditReadService {
 	private static final Set<AuditEventType> PROJECT_EVENTS = EnumSet.of(AuditEventType.PROJECT_CREATE,
 			AuditEventType.PROJECT_UPDATE, AuditEventType.PROJECT_RENAME, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE,
 			AuditEventType.PROJECT_GLOBAL_UPDATE, AuditEventType.PROJECT_DISCOVERABLE_UPDATE,
-			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_METADATA_UPDATE,
-			AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_DELETE, AuditEventType.PROJECT_UPLOAD,
-			AuditEventType.PROJECT_REPLACE, AuditEventType.PROJECT_EXPORT, AuditEventType.WORKSPACE_CREATE,
-			AuditEventType.WORKSPACE_UPDATE, AuditEventType.WORKSPACE_DELETE, AuditEventType.SKILL_CREATE,
-			AuditEventType.SKILL_UPDATE, AuditEventType.SKILL_DELETE, AuditEventType.AUTOMATION_CREATE,
-			AuditEventType.AUTOMATION_UPDATE);
+			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE,
+			AuditEventType.PROJECT_METADATA_UPDATE, AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_DELETE,
+			AuditEventType.PROJECT_UPLOAD, AuditEventType.PROJECT_REPLACE, AuditEventType.PROJECT_EXPORT,
+			AuditEventType.WORKSPACE_CREATE, AuditEventType.WORKSPACE_UPDATE, AuditEventType.WORKSPACE_DELETE,
+			AuditEventType.SKILL_CREATE, AuditEventType.SKILL_UPDATE, AuditEventType.SKILL_DELETE,
+			AuditEventType.AUTOMATION_CREATE, AuditEventType.AUTOMATION_UPDATE);
 	/**
 	 * A usage limit set, changed or removed on a model; its owners set them, so
 	 * they see the limits
@@ -118,14 +118,16 @@ public final class ResourceAuditReadService {
 	private static final Set<AuditEventType> SETTING_DETAIL_EVENTS = EnumSet.of(AuditEventType.PROJECT_UPDATE,
 			AuditEventType.PROJECT_RENAME, AuditEventType.PROJECT_DISPLAY_NAME_UPDATE,
 			AuditEventType.PROJECT_GLOBAL_UPDATE, AuditEventType.PROJECT_DISCOVERABLE_UPDATE,
-			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_METADATA_UPDATE,
-			AuditEventType.PROJECT_BLOCKS_UPDATE, AuditEventType.PROJECT_REPLACE, AuditEventType.ENGINE_UPDATE,
-			AuditEventType.ENGINE_RENAME, AuditEventType.ENGINE_DISPLAY_NAME_UPDATE,
-			AuditEventType.ENGINE_GLOBAL_UPDATE, AuditEventType.ENGINE_DISCOVERABLE_UPDATE,
-			AuditEventType.ENGINE_METADATA_UPDATE, AuditEventType.ENGINE_VISIBILITY_UPDATE);
+			AuditEventType.PROJECT_TEMPLATE_UPDATE, AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE,
+			AuditEventType.PROJECT_METADATA_UPDATE, AuditEventType.PROJECT_BLOCKS_UPDATE,
+			AuditEventType.PROJECT_REPLACE, AuditEventType.ENGINE_UPDATE, AuditEventType.ENGINE_RENAME,
+			AuditEventType.ENGINE_DISPLAY_NAME_UPDATE, AuditEventType.ENGINE_GLOBAL_UPDATE,
+			AuditEventType.ENGINE_DISCOVERABLE_UPDATE, AuditEventType.ENGINE_METADATA_UPDATE,
+			AuditEventType.ENGINE_VISIBILITY_UPDATE);
 
 	private static final List<String> SETTING_TEXT_FIELDS = List.of("field", "name", "displayName", "source", "mode");
-	private static final List<String> SETTING_FLAG_FIELDS = List.of("global", "discoverable", "template", "visibility");
+	private static final List<String> SETTING_FLAG_FIELDS = List.of("global", "discoverable", "template", "customLogin",
+			"visibility");
 
 	/**
 	 * Lists of names only: metadata keys, or the parts of an app that were saved
@@ -429,9 +431,11 @@ public final class ResourceAuditReadService {
 			var object = JsonParser.parseString(value).getAsJsonObject();
 			var safe = new JsonObject();
 			// Who the access was given to or taken from: a team (groupId, groupType), a
-			// person (granteeId, granteeType), or an app given a permission on an engine
-			// (granteeProjectId)
-			for (String key : List.of("groupId", "groupType", "granteeId", "granteeType", "granteeProjectId")) {
+			// person (granteeId, granteeType), or an app or engine given a permission on
+			// an engine (granteeEngineId, granteeEngineType, and granteeProjectId on
+			// events that name an app by its project id)
+			for (String key : List.of("groupId", "groupType", "granteeId", "granteeType", "granteeEngineId",
+					"granteeEngineType", "granteeProjectId")) {
 				var item = object.get(key);
 				// Kept only when it is a short piece of text, as an id or a type is
 				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
@@ -568,7 +572,8 @@ public final class ResourceAuditReadService {
 		try {
 			var object = JsonParser.parseString(value).getAsJsonObject();
 			var safe = new JsonObject();
-			for (String key : List.of("limitType", "groupId", "groupType", "projectId")) {
+			for (String key : List.of("limitType", "groupId", "groupType", "granteeEngineId", "granteeEngineType",
+					"projectId")) {
 				var item = object.get(key);
 				if (item != null && item.isJsonPrimitive() && item.getAsJsonPrimitive().isString()
 						&& item.getAsString().length() <= 255) {

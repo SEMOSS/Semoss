@@ -98,7 +98,30 @@ public final class SandboxProbe {
 	 * @param interfaces   the internal names of the interfaces it implements
 	 */
 	SandboxProbe(String internalName, String superName, String[] interfaces) {
-		this.writer.visit(Opcodes.V21, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null, superName,
+		this(Opcodes.V21, internalName, superName, interfaces);
+	}
+
+	/**
+	 * Starts an empty probe class compiled for an older Java, as a library built
+	 * for that Java would be.
+	 *
+	 * @param version the class file version, such as {@link Opcodes#V1_1}
+	 */
+	SandboxProbe(int version) {
+		this(version, INTERNAL_NAME, "java/lang/Object", new String[0]);
+	}
+
+	/**
+	 * Starts an empty class with its own class file version, name, superclass and
+	 * interfaces.
+	 *
+	 * @param version      the class file version
+	 * @param internalName the class's internal name
+	 * @param superName    the internal name of the class it extends
+	 * @param interfaces   the internal names of the interfaces it implements
+	 */
+	private SandboxProbe(int version, String internalName, String superName, String[] interfaces) {
+		this.writer.visit(version, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, internalName, null, superName,
 				interfaces);
 	}
 
@@ -355,6 +378,16 @@ public final class SandboxProbe {
 	}
 
 	/**
+	 * Reads the held engine's settings from the code of a platform engine class,
+	 * the way a platform engine reads the engine configured on it.
+	 *
+	 * @return the held engine's settings
+	 */
+	public static Object readHeldEngineSettingsAsAPlatformEngine() {
+		return PlatformEngine.settingsOfTheHeldEngine();
+	}
+
+	/**
 	 * Runs one method of a loaded probe class.
 	 *
 	 * @param probe  the sandboxed class
@@ -393,6 +426,23 @@ public final class SandboxProbe {
 			}
 		}, 0);
 		return calls;
+	}
+
+	/**
+	 * An engine class of the platform, whose code reads the held engine as an
+	 * engine reads the one configured on it.
+	 */
+	public abstract static class PlatformEngine implements IEngine {
+
+		/**
+		 * The settings of the held engine, read from this engine class's own code.
+		 *
+		 * @return the settings
+		 */
+		public static Object settingsOfTheHeldEngine() {
+			return ((IEngine) heldObject).getSmssProp();
+		}
+
 	}
 
 	/**

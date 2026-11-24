@@ -51,7 +51,6 @@ import com.google.gson.GsonBuilder;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.StreamingOutput;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.date.SemossDate;
 import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
@@ -81,7 +80,6 @@ import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
 import prerna.util.gson.NumberAdapter;
-import prerna.util.gson.SemossDateAdapter;
 import prerna.util.insight.InsightUtility;
 
 public class PixelStreamUtility {
@@ -91,7 +89,6 @@ public class PixelStreamUtility {
 	private static Gson getPanelGson() {
 		return new GsonBuilder().disableHtmlEscaping().excludeFieldsWithModifiers(Modifier.STATIC)
 				.registerTypeAdapter(Double.class, new NumberAdapter())
-				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 				.registerTypeAdapter(InsightPanel.class, new InsightPanelAdapter(true))
 				.registerTypeAdapter(InsightSheet.class, new InsightSheetAdapter()).create();
 	}

@@ -36,7 +36,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -146,12 +145,9 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 			guardrail.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(guardrailId, guardrailName, guardrail, smssFile);
 			SecurityEngineUtils.addEngine(guardrailId, global, user);
-			SecurityEngineUtils.setDefaultEngineMarkdown(guardrailId, guardrail.getDefaultMarkdown());
+			SecurityEngineUtils.setDefaultEngineMarkdown(user, guardrailId, guardrail.getDefaultMarkdown());
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(guardrailId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, guardrailId);
 
 			ClusterUtil.pushEngine(guardrailId);
 			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.GUARDRAIL_CREATE, AuditTargetType.GUARDRAIL,

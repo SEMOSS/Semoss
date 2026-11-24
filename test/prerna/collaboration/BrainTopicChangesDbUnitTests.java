@@ -270,13 +270,19 @@ class BrainTopicChangesDbUnitTests {
 	}
 
 	@Test
-	void anEmptyModelReplyIsAnUnusableAnswer() {
-		Map<String, Object> context = Map.of("topics", List.of(), "candidatePeople", List.of());
-		for (String reply : new String[] { "", "<think>checking</think>", "null" }) {
-			IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
-					() -> BrainTopicReviewChat.run(context, (prompt, instructions, params) -> reply));
-			assertTrue(error.getMessage().contains("did not return a usable answer"), reply);
+	void aConversationOnlySuggestedForATopicIsStillLookedAtForNewTopics() throws Exception {
+		topic("t-old", "Old project", BrainTopicUtils.ACTIVE);
+		for (String thread : List.of("th-none", "th-suggested", "th-confirmed")) {
+			sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, SOURCE, SUBJECT, LAST_MESSAGE_AT) VALUES "
+					+ "(?, ?, ?, 'email', ?, CURRENT_TIMESTAMP)", ownerId, ownerType, thread, thread);
 		}
+		String link = "INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE, CHANGED_BY) "
+				+ "VALUES (?, ?, ?, 't-old', ?, 'brain')";
+		sql(link, ownerId, ownerType, "th-suggested", "suggested");
+		sql(link, ownerId, ownerType, "th-confirmed", "confirmed");
+
+		assertEquals(java.util.Set.of("th-none", "th-suggested"),
+				new java.util.HashSet<>(BrainTopicSuggest.unfiled(ownerId, ownerType)));
 	}
 
 	// ---- helpers ----

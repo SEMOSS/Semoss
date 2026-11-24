@@ -72,7 +72,6 @@ import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.engine.impl.model.usage.ModelUsageRequest;
 import prerna.om.Insight;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
@@ -907,9 +906,9 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		try {
 			IModelEngine classifierEngine = resolveEngine(this.classifierEngineId);
 			trace.put("classifier_engine_name", classifierEngine.getDisplayName());
-			Properties properties = classifierEngine.getSmssProp();
-			if (properties != null && properties.getProperty(Constants.MODEL) != null) {
-				trace.put("classifier_model", properties.getProperty(Constants.MODEL));
+			String classifierModel = classifierEngine.getModelName();
+			if (classifierModel != null) {
+				trace.put("classifier_model", classifierModel);
 			}
 			String routeName;
 			if (classifierEngine instanceof ITypeSafeEngine decisionClassifier) {

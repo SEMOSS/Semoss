@@ -52,6 +52,7 @@ import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.NotebookExecution;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
+import prerna.util.openshell.OpenShellSecrets;
 
 /**
  * Contract for SEMOSS project engines and their project-scoped resources.
@@ -66,6 +67,11 @@ public interface IProject extends IEngine, IMCP {
 	String MCP_ENDPOINT = "MCP_ENDPOINT";
 	String MCP_AUTH_SCHEME = "MCP_AUTH_SCHEME";
 	String MCP_AUTH_TOKEN = "MCP_AUTH_TOKEN";
+	
+	String MCP_CLIENT_REQUEST_TIMEOUT_SECONDS = "MCP_CLIENT_REQUEST_TIMEOUT_SECONDS";
+	String MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS = "MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS";
+	String MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS = "MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS";
+	String MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB = "MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB";
 
 	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
 	String BLOCK_FILE_NAME = "blocks.json";
@@ -469,6 +475,32 @@ public interface IProject extends IEngine, IMCP {
 	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default String getRemoteMCPAuthScheme() {
 		return null;
+	}
+
+	/**
+	 * The project's sandbox secrets: its {@link OpenShellSecrets#SECRETS_PROP}
+	 * declaration and each {@link OpenShellSecrets#VALUE_PROP_PREFIX} value, and no
+	 * other setting. The platform hands them to the project's sandbox for everyone
+	 * who can open the project; a project's custom code reads them only for its
+	 * owners, as it does the rest of its settings.
+	 *
+	 * @return a copy holding only the sandbox secret settings, empty when there are
+	 *         none
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
+	default Properties getSandboxSecretSettings() {
+		Properties sandboxSecrets = new Properties();
+		Properties smssProp = getSmssProp();
+		if (smssProp == null) {
+			return sandboxSecrets;
+		}
+		for (String key : smssProp.stringPropertyNames()) {
+			if (key.equals(OpenShellSecrets.SECRETS_PROP) || key.startsWith(OpenShellSecrets.VALUE_PROP_PREFIX)) {
+				sandboxSecrets.setProperty(key, smssProp.getProperty(key));
+			}
+		}
+		return sandboxSecrets;
 	}
 
 }
