@@ -426,7 +426,7 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 			transfers.add(() -> {
 				try {
 					byte[] bytes = this.driveClient.downloadBytes(item, remotePath);
-					Path target = localDirectory.resolve(relative);
+					Path target = ConnectorGuards.resolveWithin(localDirectory, relative);
 					if (target.getParent() != null) {
 						Files.createDirectories(target.getParent());
 					}
@@ -512,7 +512,7 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 			String remotePath = MicrosoftGraphDriveClient.joinPath(storageFolder, relative);
 			transfers.add(() -> {
 				try {
-					Path target = localRoot.resolve(relative);
+					Path target = ConnectorGuards.resolveWithin(localRoot, relative);
 					if (needsDownload(target, item)) {
 						byte[] bytes = this.driveClient.downloadBytes(item, remotePath);
 						if (target.getParent() != null) {
@@ -676,7 +676,7 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 				versionId);
 		Object itemName = item.get(MicrosoftGraphDriveClient.NAME);
 		String fileName = itemName != null ? itemName.toString() : baseName(normalized);
-		Path target = localDirectory.resolve(fileName);
+		Path target = ConnectorGuards.resolveWithin(localDirectory, fileName);
 		Files.write(target, bytes);
 		classLogger.info("Downloaded version {} of '{}' to {}", versionId, normalized, target);
 	}

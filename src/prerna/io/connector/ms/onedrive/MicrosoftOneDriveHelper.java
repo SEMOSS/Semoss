@@ -1290,7 +1290,7 @@ public class MicrosoftOneDriveHelper {
 	 * Teams attachment's that its sender chose, may carry "../" and would otherwise
 	 * write outside the destination.
 	 */
-	static String baseName(String name) {
+	public static String baseName(String name) {
 		String base = name.replace('\\', '/');
 		base = base.substring(base.lastIndexOf('/') + 1).trim();
 		if (base.isEmpty() || base.equals(".") || base.equals("..")) {

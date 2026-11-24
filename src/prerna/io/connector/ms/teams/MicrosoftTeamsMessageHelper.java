@@ -1285,7 +1285,8 @@ public class MicrosoftTeamsMessageHelper {
 	 * The file a download is written to in a directory.
 	 */
 	private static File target(String destination, String fileName) {
-		File file = new File(Paths.get(destination, fileName).toString());
+		// only the base name is honored, so a name carrying separators cannot leave the destination
+		File file = new File(Paths.get(destination, MicrosoftOneDriveHelper.baseName(fileName)).toString());
 		File parent = file.getParentFile();
 		if (parent != null && !parent.exists() && !parent.mkdirs()) {
 			throw new IllegalStateException("Unable to create destination directory at: " + parent.getAbsolutePath());
