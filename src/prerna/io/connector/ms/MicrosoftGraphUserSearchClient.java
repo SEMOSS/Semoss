@@ -129,7 +129,7 @@ public class MicrosoftGraphUserSearchClient {
 			filter += " and userType eq 'Member'";
 			path = "/v1.0/users";
 		} else {
-			path = "/v1.0/groups/" + groupId + "/members/microsoft.graph.user";
+			path = "/v1.0/groups/" + ConnectorGuards.segment(groupId) + "/members/microsoft.graph.user";
 		}
 		List<String> queryParams = new ArrayList<>();
 		queryParams.add("$filter=" + URLEncoder.encode(filter, StandardCharsets.UTF_8.toString()));
@@ -233,7 +233,8 @@ public class MicrosoftGraphUserSearchClient {
 						java.nio.charset.StandardCharsets.UTF_8.toString()));
 				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/users?" + String.join("&", queryParams);
 			} else {
-				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/groups/" + groupId
+				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/groups/"
+						+ ConnectorGuards.segment(groupId)
 						+ "/members/microsoft.graph.user?" + String.join("&", queryParams);
 			}
 		} else {
