@@ -380,7 +380,13 @@ def test_picture_notice_and_filename_are_in_text():
         return_value=ExtractedDocument("Readable text", pictures=2)
     )
     prepared = processor.prepare(messages(), settings())
-    assert "2 image(s) were not visually analyzed" in prepared[0].parts[1].text
+    assert prepared[0].parts[1].text == (
+        'Attached file: "report.pdf"\n'
+        "The full text of this file is included below.\n"
+        "Extraction note: 2 image(s) were not visually analyzed. "
+        "Extracted text does not preserve the visual layout.\n\n"
+        "Readable text"
+    )
 
 
 def test_client_setting_is_consumed_and_not_sent_to_sdk_or_provider(monkeypatch):
