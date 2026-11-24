@@ -88,6 +88,16 @@ public class SemossLogUtils {
 	public static final String BILLED_SOURCE_TYPE = "billedSourceType";
 	public static final String BILLED_SUBJECT_ID = "billedSubjectId";
 	public static final String BILLED_SUBJECT_TYPE = "billedSubjectType";
+	/**
+	 * Why the access check let the call through, or REFUSED for a call it refused,
+	 * such as DIRECT, TEAM or DELEGATED; null on rows written before it was kept
+	 */
+	public static final String ACCESS_REASON = "accessReason";
+	/**
+	 * The specifics behind the access reason, as JSON: the level, the team, or the
+	 * app, agent or engine whose permission let the call through
+	 */
+	public static final String ACCESS_DETAILS = "accessDetails";
 	public static final String REQUEST_START_TIME = "requestStartTime";
 	public static final String RESPONSE_END_TIME = "responseEndTime";
 

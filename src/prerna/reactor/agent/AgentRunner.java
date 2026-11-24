@@ -30,6 +30,7 @@ package prerna.reactor.agent;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,6 +50,7 @@ import prerna.engine.api.ModelCapabilityEnum;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.pipeline.AgentRunOperation;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
@@ -59,6 +61,8 @@ import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.reactor.agent.skill.SkillStager;
+import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
@@ -236,12 +240,12 @@ public final class AgentRunner {
 		agentParamMap = userContent.params();
 		// One-agent-per-room is enforced by AgentRunRegistry, which every caller goes
 		// through: AgentRunQueueLoop claims the room before dispatching here and
-		// releases
-		// it when the run settles or is cancelled. Claiming again here would be a
-		// second lock on the same invariant, and the two could disagree.
+		// releases it when the run settles or is cancelled. Claiming again here would
+		// be a second lock on the same invariant, and the two could disagree.
 		IModelEngine modelEngine = null;
 		String runtimeModelId = engineIdFallback != null ? engineIdFallback.trim() : null;
-		if (runtimeModelId != null && !runtimeModelId.isEmpty()) {
+		boolean hasRuntimeModel = runtimeModelId != null && !runtimeModelId.isEmpty();
+		if (hasRuntimeModel && personCanViewModel(insight, runtimeModelId)) {
 			validateSelectedModel(insight, runtimeModelId);
 			modelEngine = Utility.getModel(runtimeModelId);
 			if (modelEngine == null) {
@@ -256,10 +260,11 @@ public final class AgentRunner {
 		// names the room and shows as the user's message; the model still gets input
 		String userText = userText(agentParamMap, input);
 		Room room = preloadedRoom != null ? preloadedRoom
-				: (modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userText)
+				: (hasRuntimeModel ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, userText)
 						: RoomUtils.getOrLoadRoom(roomId, insight));
 		room.setInsight(insight);
-		// before anything reads the room's mode: the owner following up in a routine's room makes it their chat
+		// before anything reads the room's mode: the owner following up in a routine's
+		// room makes it their chat
 		CollaborationUtils.handOverRoutineRoom(room, runId);
 
 		Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
@@ -277,124 +282,133 @@ public final class AgentRunner {
 		}
 		String effectiveWorkspaceId = explicitWorkspaceId != null ? explicitWorkspaceId
 				: extractWorkspaceIdFromOptionField(room.getOptionsMap().get("workspace"));
-
-		String modelId = resolveModelId(room, runtimeModelId, effectiveWorkspaceId);
-		if (modelId == null || modelId.trim().isEmpty()) {
-			throw new IllegalArgumentException("No model engine found for room '" + roomId + "'. "
-					+ "Set MODEL_ID on the room, pass engine= to the reactor, or set model_id on the "
-					+ "workspace/agent config (CONFIG_JSON).");
-		}
-		logger.debug("AgentRunner: room={} resolved modelId={}", roomId, modelId);
-		validateSelectedModel(insight, modelId);
-
-		if (modelEngine == null || !modelId.equals(modelEngine.getEngineId())) {
-			modelEngine = Utility.getModel(modelId);
-		}
-		if (modelEngine == null) {
-			throw new IllegalArgumentException(
-					"Could not load model engine '" + modelId + "' for room '" + roomId + "'");
-		}
-		room.setModelId(modelId);
-
-		insight.setRoomForInsight(room);
-
-		AgentRunTarget target = resolveWorkingTarget(room, insight, params, effectiveWorkspaceId);
-		String filePath = target.getWorkingDirectory();
-		if (filePath != null && !filePath.trim().isEmpty()) {
-			params.put(FILE_PATH_PARAM_KEY, filePath);
-		}
-		// Older configuration reads "project"; bridge an explicit project space.
-		if (target.isProject() && ValueUtils.trimToNull(params.get(PARAM_SPACE)) != null) {
-			params.put(PARAM_PROJECT, target.getProjectId());
-		}
-
-		SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
-
-		// Resolve the shared agent config once for all harnesses.
-		AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
-				maxReflections, explicitWorkspaceId);
-
+		AgentRunOperation agentRun = AgentUseAccess.beginAgentRun(insight == null ? null : insight.getUser(), room,
+				effectiveWorkspaceId);
 		try {
-			SkillStager.stage(filePath, agentConfig.getSkills());
-		} catch (Exception e) {
-			logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
-		}
 
-		AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
-				.userId(room.getUserId()).input(input).userText(userText).runId(runId).sandboxPolicy(sandboxPolicy)
-				.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls).spawnDepth(resolveSpawnDepth())
-				.resumeMode(resumeMode).agentTarget(target).agentConfig(agentConfig).build();
+			String modelId = resolveModelId(room, runtimeModelId, effectiveWorkspaceId);
+			if (modelId == null || modelId.trim().isEmpty()) {
+				throw new IllegalArgumentException("No model engine found for room '" + roomId + "'. "
+						+ "Set MODEL_ID on the room, pass engine= to the reactor, or set model_id on the "
+						+ "workspace/agent config (CONFIG_JSON).");
+			}
+			logger.debug("AgentRunner: room={} resolved modelId={}", roomId, modelId);
+			validateSelectedModel(insight, modelId);
 
-		IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
-		logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
-		if (hasMediaInput(ctx) && !harness.supportsMediaInput()) {
-			throw new IllegalArgumentException(
-					"RunAgent media input is not supported for harnessType='" + harness.getName() + "'");
-		}
-		if (!resumeMode && ctx.getSpawnDepth() == 0) {
-			AgentRoomNamer.nameRoomAsync(roomId, userText, modelId, room.getUserId(), insight);
-		}
+			if (modelEngine == null || !modelId.equals(modelEngine.getEngineId())) {
+				modelEngine = Utility.getModel(modelId);
+			}
+			if (modelEngine == null) {
+				throw new IllegalArgumentException(
+						"Could not load model engine '" + modelId + "' for room '" + roomId + "'");
+			}
+			room.setModelId(modelId);
 
-		// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
-		List<IAgentRunHook> hooks = ctx.getAgentConfig().getRunHooks();
-		WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
-		AgentHarnessResult result = null;
-		try {
-			// Lifecycle: onRoomCreation - observation-only, exceptions swallowed
-			for (IAgentRunHook h : hooks) {
-				try {
-					h.onRoomCreation(ctx);
-				} catch (Exception hookEx) {
-					logger.warn("AgentRunner: onRoomCreation hook {} threw - logging and continuing",
-							h.getClass().getSimpleName(), hookEx);
+			insight.setRoomForInsight(room);
+
+			AgentRunTarget target = resolveWorkingTarget(room, insight, params, effectiveWorkspaceId);
+			String filePath = target.getWorkingDirectory();
+			if (filePath != null && !filePath.trim().isEmpty()) {
+				params.put(FILE_PATH_PARAM_KEY, filePath);
+			}
+			// Older configuration reads "project"; bridge an explicit project space.
+			if (target.isProject() && ValueUtils.trimToNull(params.get(PARAM_SPACE)) != null) {
+				params.put(PARAM_PROJECT, target.getProjectId());
+			}
+
+			SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
+
+			// Resolve the shared agent config once for all harnesses.
+			AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
+					maxReflections, explicitWorkspaceId);
+
+			try {
+				reportSkillsNotLoaded(runId, SkillStager.stage(filePath, agentConfig.getSkills(), insight.getUser()));
+			} catch (Exception e) {
+				logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
+			}
+
+			AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
+					.userId(room.getUserId()).input(input).userText(userText).runId(runId).sandboxPolicy(sandboxPolicy)
+					.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls).spawnDepth(resolveSpawnDepth())
+					.resumeMode(resumeMode).agentTarget(target).agentConfig(agentConfig).build();
+
+			IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
+			logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
+			if (hasMediaInput(ctx) && !harness.supportsMediaInput()) {
+				throw new IllegalArgumentException(
+						"RunAgent media input is not supported for harnessType='" + harness.getName() + "'");
+			}
+			if (!resumeMode && ctx.getSpawnDepth() == 0) {
+				AgentRoomNamer.nameRoomAsync(roomId, userText, modelId, room.getUserId(), insight,
+						agentRun == null ? null : agentRun.getAgentId());
+			}
+
+			// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
+			List<IAgentRunHook> hooks = ctx.getAgentConfig().getRunHooks();
+			WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
+			AgentHarnessResult result = null;
+			try {
+				// Lifecycle: onRoomCreation - observation-only, exceptions swallowed
+				for (IAgentRunHook h : hooks) {
+					try {
+						h.onRoomCreation(ctx);
+					} catch (Exception hookEx) {
+						logger.warn("AgentRunner: onRoomCreation hook {} threw - logging and continuing",
+								h.getClass().getSimpleName(), hookEx);
+					}
+				}
+				// Lifecycle: beforeRun - veto point, exceptions abort the run
+				for (IAgentRunHook h : hooks) {
+					h.beforeRun(ctx);
+				}
+				// Lifecycle: afterAgentInit - observation-only, exceptions swallowed
+				for (IAgentRunHook h : hooks) {
+					try {
+						h.afterAgentInit(ctx);
+					} catch (Exception hookEx) {
+						logger.warn("AgentRunner: afterAgentInit hook {} threw - logging and continuing",
+								h.getClass().getSimpleName(), hookEx);
+					}
+				}
+				result = harness.execute(ctx);
+			} finally {
+				AgentHarnessResult finalResult = result;
+				// Lifecycle: afterRun - observation-only, exceptions swallowed
+				for (IAgentRunHook h : hooks) {
+					try {
+						h.afterRun(ctx, finalResult);
+					} catch (Exception hookEx) {
+						logger.warn("AgentRunner: afterRun hook {} threw - logging and continuing",
+								h.getClass().getSimpleName(), hookEx);
+					}
+				}
+				// Lifecycle: beforeAgentDeInit - last chance before overlay is restored
+				for (IAgentRunHook h : hooks) {
+					try {
+						h.beforeAgentDeInit(ctx, finalResult);
+					} catch (Exception hookEx) {
+						logger.warn("AgentRunner: beforeAgentDeInit hook {} threw - logging and continuing",
+								h.getClass().getSimpleName(), hookEx);
+					}
+				}
+				restoreWorkspaceOverlay(room, wsOverlay);
+				if (ClusterUtil.IS_CLUSTER) {
+					try {
+						target.pushToCluster();
+					} catch (Exception e) {
+						logger.warn("AgentRunner: post-agent target push failed for target={}", target, e);
+					}
+					pushRoomAfterRun(roomId);
 				}
 			}
-			// Lifecycle: beforeRun - veto point, exceptions abort the run
-			for (IAgentRunHook h : hooks) {
-				h.beforeRun(ctx);
-			}
-			// Lifecycle: afterAgentInit - observation-only, exceptions swallowed
-			for (IAgentRunHook h : hooks) {
-				try {
-					h.afterAgentInit(ctx);
-				} catch (Exception hookEx) {
-					logger.warn("AgentRunner: afterAgentInit hook {} threw - logging and continuing",
-							h.getClass().getSimpleName(), hookEx);
-				}
-			}
-			result = harness.execute(ctx);
+
+			return result;
 		} finally {
-			AgentHarnessResult finalResult = result;
-			// Lifecycle: afterRun - observation-only, exceptions swallowed
-			for (IAgentRunHook h : hooks) {
-				try {
-					h.afterRun(ctx, finalResult);
-				} catch (Exception hookEx) {
-					logger.warn("AgentRunner: afterRun hook {} threw - logging and continuing",
-							h.getClass().getSimpleName(), hookEx);
-				}
-			}
-			// Lifecycle: beforeAgentDeInit - last chance before overlay is restored
-			for (IAgentRunHook h : hooks) {
-				try {
-					h.beforeAgentDeInit(ctx, finalResult);
-				} catch (Exception hookEx) {
-					logger.warn("AgentRunner: beforeAgentDeInit hook {} threw - logging and continuing",
-							h.getClass().getSimpleName(), hookEx);
-				}
-			}
-			restoreWorkspaceOverlay(room, wsOverlay);
-			if (ClusterUtil.IS_CLUSTER) {
-				try {
-					target.pushToCluster();
-				} catch (Exception e) {
-					logger.warn("AgentRunner: post-agent target push failed for target={}", target, e);
-				}
-				pushRoomAfterRun(roomId);
+			if (agentRun != null) {
+				agentRun.close();
 			}
 		}
-
-		return result;
 	}
 
 	/**
@@ -418,11 +432,54 @@ public final class AgentRunner {
 		}
 	}
 
+	/**
+	 * Shows each attached skill the run could not load as a failed step of the run,
+	 * started and then failed with the reason as its error, so the person sees it
+	 * rather than a skill silently missing.
+	 *
+	 * @param runId   the run
+	 * @param skipped the skills staging left out
+	 */
+	private static void reportSkillsNotLoaded(String runId, List<SkillStager.SkillNotLoaded> skipped) {
+		if (runId == null || skipped == null) {
+			return;
+		}
+		for (SkillStager.SkillNotLoaded skill : skipped) {
+			Map<String, Object> arguments = new LinkedHashMap<>();
+			arguments.put("skill_id", skill.skillId());
+			String itemId = "skill-not-loaded-" + skill.skillId();
+			AgentRunStreamService.get().publishToolStarted(runId, AgentStreamItems.toolItem(itemId, "load_skill",
+					"Skill Not Loaded", arguments, null, AgentStreamItems.TOOL_RUNNING));
+			Map<String, Object> item = AgentStreamItems.toolItem(itemId, "load_skill", "Skill Not Loaded", arguments,
+					null, AgentStreamItems.TOOL_FAILED);
+			item.put("error", skill.reason());
+			AgentRunStreamService.get().publishToolCompleted(runId, item);
+		}
+	}
+
+	private static boolean personCanViewModel(Insight insight, String modelId) {
+		return insight != null && insight.getUser() != null
+				&& SecurityEngineUtils.userCanViewEngine(insight.getUser(), modelId);
+	}
+
+	/**
+	 * Requires a model the run can use: the person can view it, or the running
+	 * agent was given it, and it is a model that generates text.
+	 *
+	 * @param insight the run's insight, whose user is the person
+	 * @param modelId the model
+	 * @throws IllegalArgumentException when neither the person nor the agent can
+	 *                                  use the model, when it is not a model, or
+	 *                                  when it does not generate text
+	 */
 	private static void validateSelectedModel(Insight insight, String modelId) {
 		if (insight == null || insight.getUser() == null || modelId == null
-				|| !SecurityEngineUtils.userCanViewEngine(insight.getUser(), modelId)
-				|| SecurityEngineUtils.getEngineType(modelId) != IEngine.CATALOG_TYPE.MODEL) {
-			throw new IllegalArgumentException("Model engine was not found or is not accessible");
+				|| !(SecurityEngineUtils.userCanViewEngine(insight.getUser(), modelId)
+						|| AgentRunOperation.runningAgentCanUse(modelId, false))) {
+			throw new IllegalArgumentException("You do not have access to model " + modelId);
+		}
+		if (SecurityEngineUtils.getEngineType(modelId) != IEngine.CATALOG_TYPE.MODEL) {
+			throw new IllegalArgumentException("Engine " + modelId + " is not a model");
 		}
 
 		Map<String, Object> metadata = SecurityModelMetadataUtils.getModelMetadata(modelId);
@@ -430,7 +487,8 @@ public final class AgentRunner {
 		String capability = capabilityValue == null ? null : String.valueOf(capabilityValue).trim();
 		if (capability != null && !capability.isEmpty()
 				&& !ModelCapabilityEnum.TEXT_GENERATION.name().equalsIgnoreCase(capability)) {
-			throw new IllegalArgumentException("Model engine was not found or is not accessible");
+			throw new IllegalArgumentException(
+					"Model " + modelId + " does not generate text, so an agent cannot " + "run on it");
 		}
 	}
 
@@ -519,7 +577,6 @@ public final class AgentRunner {
 	 * which may be (a) absent, (b) a primitive id string, or (c) a
 	 * {@code {workspace_id, name}} map.
 	 */
-	@SuppressWarnings("unchecked")
 	private static String extractWorkspaceIdFromOptionField(Object workspaceField) {
 		if (workspaceField == null) {
 			return null;
@@ -528,8 +585,8 @@ public final class AgentRunner {
 			String s = ((String) workspaceField).trim();
 			return s.isEmpty() ? null : s;
 		}
-		if (workspaceField instanceof Map) {
-			Object id = ((Map<String, Object>) workspaceField).get("workspace_id");
+		if (workspaceField instanceof Map<?, ?> workspace) {
+			Object id = workspace.get("workspace_id");
 			if (id == null) {
 				return null;
 			}
@@ -838,7 +895,6 @@ public final class AgentRunner {
 	 * build a DIHelper-backed default via
 	 * {@code AgentSandboxConfig.defaultPolicy(...)}.
 	 */
-	@SuppressWarnings("unchecked")
 	private static SandboxPolicy buildSandboxPolicyFromParams(Map<String, Object> params) {
 		Object readsObj = params.remove(PARAM_SANDBOX_READS);
 		Object writesObj = params.remove(PARAM_SANDBOX_WRITES);
@@ -849,15 +905,15 @@ public final class AgentRunner {
 		}
 
 		SandboxPolicyBuilder b = SandboxPolicy.builder();
-		if (readsObj instanceof java.util.List) {
-			for (Object p : (java.util.List<Object>) readsObj) {
+		if (readsObj instanceof List<?> reads) {
+			for (Object p : reads) {
 				if (p != null) {
 					b.withRead(String.valueOf(p));
 				}
 			}
 		}
-		if (writesObj instanceof java.util.List) {
-			for (Object p : (java.util.List<Object>) writesObj) {
+		if (writesObj instanceof List<?> writes) {
+			for (Object p : writes) {
 				if (p != null) {
 					b.withReadWrite(String.valueOf(p));
 				}
@@ -891,7 +947,6 @@ public final class AgentRunner {
 	 * @param workspaceId effective workspace id for this run (may be null); used to
 	 *                    look up the CONFIG_JSON default in tier 4.
 	 */
-	@SuppressWarnings("unchecked")
 	private static String resolveModelId(Room room, String runtimeOverride, String workspaceId) {
 		// Tier 1: explicit runtime engine= param wins.
 		if (runtimeOverride != null && !runtimeOverride.trim().isEmpty()) {

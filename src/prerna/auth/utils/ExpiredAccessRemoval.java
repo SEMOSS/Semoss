@@ -94,8 +94,8 @@ public final class ExpiredAccessRemoval {
 		/** A team's access to an engine: engine id, team id, team type */
 		TEAM_ON_ENGINE("GROUPENGINEPERMISSION", true, "ENGINEID", "ID", "TYPE"),
 		/**
-		 * An app's or another engine's access to an engine: engine id, the grantee's
-		 * id, its catalog type
+		 * An app's or an engine's access to an engine or a project: the target's id,
+		 * the grantee's id, its catalog type
 		 */
 		ENGINE_ON_ENGINE("ENGINE2ENGINEPERMISSION", true, "ENGINEID", "GRANTEEENGINEID", "GRANTEEENGINETYPE"),
 		/** A person's access to a project: project id, user id */
@@ -351,9 +351,17 @@ public final class ExpiredAccessRemoval {
 					.action(UserAuditTrailUtils.PERMISSION_EXPIRED_ACTION).status(AuditStatus.SUCCESS).systemActor();
 			Map<String, Object> details = new LinkedHashMap<>();
 			switch (table) {
-			case USER_ON_ENGINE, TEAM_ON_ENGINE, ENGINE_ON_ENGINE ->
+			case USER_ON_ENGINE, TEAM_ON_ENGINE ->
 				event.target(SecurityEngineUtils.getAuditTargetType(key.get(0)), key.get(0), null).context(null,
 						key.get(0), null, null);
+			case ENGINE_ON_ENGINE -> {
+				if (!SecurityEngineUtils.engineExists(key.get(0)) && SecurityProjectUtils.projectExists(key.get(0))) {
+					event.target(AuditTargetType.PROJECT, key.get(0), null).context(key.get(0), null, null, null);
+				} else {
+					event.target(SecurityEngineUtils.getAuditTargetType(key.get(0)), key.get(0), null).context(null,
+							key.get(0), null, null);
+				}
+			}
 			case USER_ON_PROJECT, TEAM_ON_PROJECT ->
 				event.target(AuditTargetType.PROJECT, key.get(0), null).context(key.get(0), null, null, null);
 			case USER_ON_INSIGHT, TEAM_ON_INSIGHT ->
