@@ -195,6 +195,15 @@ public class UploadProjectReactor extends AbstractReactor {
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
+			try {
+				AbstractSecurityUtils.requireNoEngineWithId(projectId);
+			} catch (IllegalArgumentException e) {
+				cleanUpFolders(randomTempUnzipF);
+				SemossPixelException exception = new SemossPixelException(
+						NounMetadata.getErrorNounMessage(e.getMessage()));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 
 			logger.info("{}) Done", step);
 			step++;
@@ -249,8 +258,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		}
 
 		try {
-			InternalUtility.setProjectSmssPath(projectId,
-					finalProjectSmssF.getAbsolutePath());
+			InternalUtility.setProjectSmssPath(projectId, finalProjectSmssF.getAbsolutePath());
 
 			// ensure PROJECT_DISPLAY_NAME is present in the smss file
 			// if not present, seed it from PROJECT_ALIAS so the file stays consistent

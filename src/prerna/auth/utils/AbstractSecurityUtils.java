@@ -3468,6 +3468,34 @@ public abstract class AbstractSecurityUtils {
 		return exists;
 	}
 
+	/**
+	 * Refuses the id of a new engine when a project already has it, so an engine
+	 * and a project never share an id.
+	 *
+	 * @param engineId the new engine's id
+	 * @throws IllegalArgumentException when a project has the id
+	 */
+	public static void requireNoProjectWithId(String engineId) {
+		if (containsProjectId(engineId)) {
+			throw new IllegalArgumentException(
+					"A project already has the id " + engineId + ". An engine cannot have the same id as a project.");
+		}
+	}
+
+	/**
+	 * Refuses the id of a new project when an engine already has it, so a project
+	 * and an engine never share an id.
+	 *
+	 * @param projectId the new project's id
+	 * @throws IllegalArgumentException when an engine has the id
+	 */
+	public static void requireNoEngineWithId(String projectId) {
+		if (containsEngineId(projectId)) {
+			throw new IllegalArgumentException(
+					"An engine already has the id " + projectId + ". A project cannot have the same id as an engine.");
+		}
+	}
+
 	public static boolean ignoreDatabase(String databaseId) {
 		// dont add default semoss databases to security
 		if (SystemDefaultEngines.getDatabaseIgnoreSecurity().contains(databaseId)) {

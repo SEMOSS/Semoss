@@ -100,10 +100,9 @@ public final class SecurityEngineAccessUtils {
 		if (user == null || id == null) {
 			return null;
 		}
-		return answersOf(user).levels
-				.computeIfAbsent(key(id, project),
-						key -> Optional.ofNullable(project ? SecurityProjectUtils.getCurrentUserProjectLevel(user, id)
-								: SecurityEngineUtils.getCurrentUserEngineLevel(user, id)))
+		return answersOf(user).levels.computeIfAbsent(key(id, project),
+				key -> Optional.ofNullable(project ? SecurityProjectUtils.getCurrentUserProjectLevel(user, id)
+						: SecurityEngineUtils.getCurrentUserEngineLevel(user, id)))
 				.orElse(null);
 	}
 
@@ -196,18 +195,34 @@ public final class SecurityEngineAccessUtils {
 	 * @return the level, or null when the engine gives the grantee none
 	 */
 	public static AccessPermissionEnum getGranteePermission(EngineGrantee grantee, String engineId) {
-		if (grantee == null || grantee.engineId() == null || grantee.engineType() == null || engineId == null) {
+		return getGranteePermission(grantee, engineId, false);
+	}
+
+	/**
+	 * The permission an engine or a project gives an app or an engine now, which
+	 * the app's custom reactors, its agent runs, or the engine's own code, use in
+	 * place of the signed in user's own. One that has ended does not count.
+	 *
+	 * @param grantee  the app or agent, or the engine whose own code is calling
+	 * @param targetId the engine or project
+	 * @param project  whether the target is a project
+	 * @return the level, or null when the target gives the grantee none
+	 */
+	public static AccessPermissionEnum getGranteePermission(EngineGrantee grantee, String targetId, boolean project) {
+		if (grantee == null || grantee.engineId() == null || grantee.engineType() == null || targetId == null) {
 			return null;
 		}
-		Map<EngineGrantee, AccessPermissionEnum> ofEngine;
+		Map<EngineGrantee, AccessPermissionEnum> ofTarget;
 		try {
-			ofEngine = granteePermissions().byEngine.get(engineId);
+			ofTarget = granteePermissions().byTarget.get(SecurityEngine2EngineUtils.targetKey(targetId, project));
 		} catch (IllegalStateException e) {
-			classLogger.error("The permissions engines give to apps and engines could not be read, so {} {} is "
-					+ "given none on engine {}", grantee.engineType(), grantee.engineId(), engineId, e);
+			classLogger.error(
+					"The permissions engines and projects give to apps and engines could not be read, so "
+							+ "{} {} is given none on {} {}",
+					grantee.engineType(), grantee.engineId(), project ? "project" : "engine", targetId, e);
 			return null;
 		}
-		return ofEngine == null ? null : ofEngine.get(grantee);
+		return ofTarget == null ? null : ofTarget.get(grantee);
 	}
 
 	/**
@@ -220,15 +235,27 @@ public final class SecurityEngineAccessUtils {
 	 *         in effect
 	 */
 	public static boolean givesAGranteePermission(String engineId) {
-		if (engineId == null) {
+		return givesAGranteePermission(engineId, false);
+	}
+
+	/**
+	 * Whether an engine or a project gives any app or engine a permission now.
+	 *
+	 * @param targetId the engine or project
+	 * @param project  whether it is a project
+	 * @return whether some app or engine holds a permission on it that is in effect
+	 */
+	public static boolean givesAGranteePermission(String targetId, boolean project) {
+		if (targetId == null) {
 			return false;
 		}
 		try {
-			Map<EngineGrantee, AccessPermissionEnum> ofEngine = granteePermissions().byEngine.get(engineId);
-			return ofEngine != null && !ofEngine.isEmpty();
+			Map<EngineGrantee, AccessPermissionEnum> ofTarget = granteePermissions().byTarget
+					.get(SecurityEngine2EngineUtils.targetKey(targetId, project));
+			return ofTarget != null && !ofTarget.isEmpty();
 		} catch (IllegalStateException e) {
-			classLogger.error("The permissions engines give to apps and engines could not be read, so engine {} is "
-					+ "taken to give none", engineId, e);
+			classLogger.error("The permissions engines and projects give to apps and engines could not be read, so "
+					+ "{} {} is taken to give none", project ? "project" : "engine", targetId, e);
 			return false;
 		}
 	}
@@ -283,19 +310,19 @@ public final class SecurityEngineAccessUtils {
 	}
 
 	/**
-	 * Every permission an engine gives an app or another engine, as read at one
-	 * time.
+	 * Every permission an engine or a project gives an app or an engine, as read at
+	 * one time, by target ({@link SecurityEngine2EngineUtils#targetKey}).
 	 */
 	private static final class GranteePermissions {
 		private final long version;
 		private final long readAt;
-		private final Map<String, Map<EngineGrantee, AccessPermissionEnum>> byEngine;
+		private final Map<String, Map<EngineGrantee, AccessPermissionEnum>> byTarget;
 
 		private GranteePermissions(long version, long readAt,
-				Map<String, Map<EngineGrantee, AccessPermissionEnum>> byEngine) {
+				Map<String, Map<EngineGrantee, AccessPermissionEnum>> byTarget) {
 			this.version = version;
 			this.readAt = readAt;
-			this.byEngine = byEngine;
+			this.byTarget = byTarget;
 		}
 	}
 
