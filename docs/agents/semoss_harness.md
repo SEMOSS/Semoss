@@ -6,7 +6,7 @@ The native harness, registered as `semoss`, executes an agent request using SEMO
 
 ## What happens during a run
 
-1. **Resolve context.** Load the room, select and authorize the model, resolve the agent workspace and file target, load configuration, and stage attached skills.
+1. **Resolve context.** Load the room's context, authorize the agent workspace, select and authorize the model, resolve the file target, load configuration, and stage attached skills.
 2. **Prepare the harness.** Apply default-tool policy, collect explicit and room/workspace tools, expose eligible subagent tools, and compose the system prompt.
 3. **Call the model.** Send the user turn through `Room.ask(...)` with model context and tool schemas. Supported current-turn media is included in this initial request.
 4. **Execute tools.** Dispatch requested tools, record results, and continue the model. Tool batches can run concurrently; consumers should not assume model-listed tool order guarantees serialized effects.

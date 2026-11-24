@@ -364,6 +364,12 @@ try (AgentRunOperation run = AgentRunOperation.begin(agentId)) {
 }
 ```
 
+A run that names a workspace, explicitly or through its room, checks access to
+that agent before selecting or checking the model. A workspace that is missing,
+is not an agent, or the person may not use fails with
+`You do not have access to workspace <id>`. The server log includes the run, room
+and workspace ids. A run with no workspace continues on the person's own permissions.
+
 Inside it, a call the person's own access does not cover goes through when the engine or project called gave the agent a permission that covers the call's level (`value`). This covers the platform's Java code on the run's thread: loading the agent's model and skills, the tools the harness runs, and the engines those calls reach, where an engine's call counts the agent as the app behind it. On a model a call that goes through this way counts against the agent's App Limit.
 
 [AgentRunOperation](../../src/prerna/engine/impl/pipeline/AgentRunOperation.java) belongs to the run's thread:
