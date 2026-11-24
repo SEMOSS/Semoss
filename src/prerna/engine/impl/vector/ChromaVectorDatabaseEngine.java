@@ -402,4 +402,4 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		return VectorDatabaseTypeEnum.CHROMA;
 	}
 
-}
+}
