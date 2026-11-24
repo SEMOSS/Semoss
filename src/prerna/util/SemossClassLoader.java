@@ -83,6 +83,13 @@ public class SemossClassLoader extends ClassLoader {
 	 * every open insight of every user, with the user it belongs to.
 	 * LocalMasterConceptIdHash, SystemProjectSeeder and SystemDatabaseSchemaUtils
 	 * work on the system databases for the platform's own start up.
+	 * EngineCloneUtility copies any engine, with its stored secrets,
+	 * InsightsRDBMSUtils opens any app's insights database, and EngineSyncUtility
+	 * and ProjectSyncUtility close any open engine, hold the lock that loads an
+	 * engine or a project, and keep every engine's cached metamodel, all for the
+	 * reactors that check the user first. AbstractFileWatcher and the smss watchers
+	 * that extend it, ProjectWatcher, SMSSWebWatcher and SMSSNoInitEngineWatcher,
+	 * load and register every engine and project the server finds at start up.
 	 */
 	private static final Set<String> BLOCKED_PLATFORM_CLASSES = Set.of("prerna.util.DIHelper",
 			"prerna.util.SystemEngineRegistry", "prerna.security.SecretRedactor", "prerna.util.InternalUtility",
@@ -90,7 +97,9 @@ public class SemossClassLoader extends ClassLoader {
 			"prerna.engine.impl.pipeline.PlatformOperation", "prerna.engine.impl.pipeline.EngineCallPermission",
 			"prerna.engine.impl.pipeline.AgentRunOperation", "prerna.om.InsightStore",
 			"prerna.util.LocalMasterConceptIdHash", "prerna.util.SystemProjectSeeder",
-			"prerna.util.SystemDatabaseSchemaUtils");
+			"prerna.util.SystemDatabaseSchemaUtils", "prerna.util.EngineCloneUtility", "prerna.util.InsightsRDBMSUtils",
+			"prerna.util.EngineSyncUtility", "prerna.util.ProjectSyncUtility", "prerna.util.AbstractFileWatcher",
+			"prerna.util.ProjectWatcher", "prerna.util.SMSSWebWatcher", "prerna.util.SMSSNoInitEngineWatcher");
 
 	/**
 	 * Platform packages project reactor code can never use, as name prefixes: the
@@ -2331,8 +2340,8 @@ public class SemossClassLoader extends ClassLoader {
 					super.visitInsn(argType.getSize() == 2 ? Opcodes.POP2 : Opcodes.POP);
 				}
 				super.visitMethodInsn(Opcodes.INVOKESTATIC, SANDBOX, "blockSystemMutation", "()V", false);
-				// setProperty returns String, clearProperty returns String, setProperties is
-				// void
+				// setProperty returns String, clearProperty returns String,
+				// setProperties is void
 				if (!descriptor.endsWith(")V")) {
 					super.visitInsn(Opcodes.ACONST_NULL);
 				}
