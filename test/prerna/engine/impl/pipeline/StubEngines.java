@@ -37,6 +37,8 @@ import java.util.concurrent.Callable;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IVenvEngine;
@@ -114,6 +116,20 @@ public final class StubEngines {
 	}
 
 	/**
+	 * A model with no proxy around it, as the platform keeps a loaded engine. A
+	 * test that puts it where loaded engines are kept gets it back from
+	 * {@code Utility.getModel} behind the real proxy, with the pipeline its
+	 * settings name when an answer for {@code getSmssProp} gives one.
+	 *
+	 * @param id      the engine id
+	 * @param answers what a method does, by method name
+	 * @return the engine itself
+	 */
+	public static IModelEngine unguardedModel(String id, Map<String, Callable<Object>> answers) {
+		return stub(IModelEngine.class, id, IEngine.CATALOG_TYPE.MODEL, answers, IEngine.class);
+	}
+
+	/**
 	 * A model behind the proxy the platform hands out for its own use.
 	 *
 	 * @param id the engine id
@@ -122,6 +138,20 @@ public final class StubEngines {
 	public static IModelEngine platformModel(String id) {
 		IModelEngine engine = stub(IModelEngine.class, id, IEngine.CATALOG_TYPE.MODEL, Map.of(), IEngine.class);
 		return EngineProxyFactory.createPlatformModelEngine(engine);
+	}
+
+	/**
+	 * A guardrail behind the engine proxy, some of whose methods run the test's own
+	 * code.
+	 *
+	 * @param id      the engine id
+	 * @param answers what a method does, by method name
+	 * @return the proxy
+	 */
+	public static IGuardrailReactorFunctionEngine guardrail(String id, Map<String, Callable<Object>> answers) {
+		IGuardrailReactorFunctionEngine engine = stub(IGuardrailReactorFunctionEngine.class, id,
+				IEngine.CATALOG_TYPE.GUARDRAIL, answers, IEngine.class, IFunctionEngine.class);
+		return (IGuardrailReactorFunctionEngine) EngineProxyFactory.createGuardedFunctionEngine(engine);
 	}
 
 	/**
@@ -167,8 +197,8 @@ public final class StubEngines {
 			default -> emptyValue(method.getReturnType());
 			};
 		};
-		return type.cast(Proxy.newProxyInstance(IEngine.class.getClassLoader(), interfaces.toArray(new Class<?>[0]),
-				handler));
+		return type.cast(
+				Proxy.newProxyInstance(IEngine.class.getClassLoader(), interfaces.toArray(new Class<?>[0]), handler));
 	}
 
 	private static Object emptyValue(Class<?> type) {

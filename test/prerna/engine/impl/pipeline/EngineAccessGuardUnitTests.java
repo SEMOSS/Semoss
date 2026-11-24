@@ -81,6 +81,7 @@ class EngineAccessGuardUnitTests {
 	private static final String ENGINE = "engine-1";
 	private static final String OTHER_ENGINE = "engine-2";
 	private static final String PROJECT = "project-1";
+	private static final String AGENT = "agent-1";
 
 	private final User user = new User();
 	private MockedStatic<SecurityEngineAccessUtils> access;
@@ -597,13 +598,104 @@ class EngineAccessGuardUnitTests {
 				Mockito.never());
 	}
 
+	@Test
+	void anAgentRunCallsAnEngineThatGaveTheAgentAPermission() {
+		AtomicReference<EngineGrantee> seenByTheEngine = new AtomicReference<>();
+		IRDBMSEngine engine = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			seenByTheEngine.set(EngineCallPermission.granteeMakingTheCall());
+			return null;
+		}));
+		engineHolds(ENGINE, EngineGrantee.ofApp(AGENT), AccessPermissionEnum.READ_ONLY);
+
+		assertThrows(SemossPixelException.class, engine::getSchema);
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			assertDoesNotThrow(engine::getSchema);
+			assertEquals(EngineGrantee.ofApp(AGENT), seenByTheEngine.get());
+			SemossPixelException refusal = assertThrows(SemossPixelException.class, engine::delete);
+			assertTrue(refusal.getMessage().contains("agent " + AGENT), refusal.getMessage());
+		}
+		assertThrows(SemossPixelException.class, engine::getSchema);
+	}
+
+	@Test
+	void anAgentRunReadsAProjectThatGaveTheAgentAPermission() {
+		IProject project = StubEngines.project(PROJECT);
+		projectHolds(PROJECT, EngineGrantee.ofApp(AGENT), AccessPermissionEnum.READ_ONLY);
+
+		assertThrows(SemossPixelException.class, project::getProjectName);
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			assertDoesNotThrow(project::getProjectName);
+		}
+	}
+
+	@Test
+	void aPermissionGivenToAnAgentOnAnEngineDoesNotCoverAProjectWithTheSameId() {
+		IProject project = StubEngines.project(PROJECT);
+		engineHolds(PROJECT, EngineGrantee.ofApp(AGENT), AccessPermissionEnum.READ_ONLY);
+
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			assertThrows(SemossPixelException.class, project::getProjectName);
+		}
+	}
+
+	@Test
+	void anEngineCallInsideAnAgentRunCountsTheAgentAsTheAppBehindIt() {
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		AtomicReference<EngineGrantee> seenByTheConfiguredEngine = new AtomicReference<>();
+		IRDBMSEngine configured = StubEngines.database(OTHER_ENGINE, Map.of("getSchema", () -> {
+			seenByTheConfiguredEngine.set(EngineCallPermission.granteeMakingTheCall());
+			return null;
+		}));
+		IRDBMSEngine engine = StubEngines.database(ENGINE, Map.of("getSchema", () -> {
+			configured.getSchema();
+			return null;
+		}));
+		engineHolds(OTHER_ENGINE, EngineGrantee.ofApp(AGENT), AccessPermissionEnum.READ_ONLY);
+
+		assertThrows(SemossPixelException.class, engine::getSchema);
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			assertDoesNotThrow(engine::getSchema);
+		}
+		assertEquals(EngineGrantee.ofApp(AGENT), seenByTheConfiguredEngine.get());
+	}
+
+	@Test
+	void anAgentRunEndsWhenItIsClosedAndAnInnerRunPutsBackTheOuterOne() {
+		try (AgentRunOperation outer = AgentRunOperation.begin(AGENT)) {
+			try (AgentRunOperation inner = AgentRunOperation.begin("agent-2")) {
+				assertEquals("agent-2", AgentRunOperation.runningAgent());
+			}
+			assertEquals(AGENT, AgentRunOperation.runningAgent());
+		}
+		assertNull(AgentRunOperation.runningAgent());
+		assertThrows(IllegalArgumentException.class, () -> AgentRunOperation.begin(" "));
+	}
+
+	@Test
+	void anAgentRunIsNotCarriedToAThreadItStarts() throws Exception {
+		AtomicReference<String> seenOnTheThread = new AtomicReference<>("not read");
+		try (AgentRunOperation run = AgentRunOperation.begin(AGENT)) {
+			Thread thread = new Thread(() -> seenOnTheThread.set(AgentRunOperation.runningAgent()));
+			thread.start();
+			thread.join();
+		}
+		assertNull(seenOnTheThread.get());
+	}
+
 	private void userHolds(String id, boolean project, AccessPermissionEnum level) {
 		this.access.when(() -> SecurityEngineAccessUtils.getUserPermission(this.user, id, project)).thenReturn(level);
 	}
 
 	private void engineHolds(String engineId, EngineGrantee grantee, AccessPermissionEnum level) {
-		this.access.when(() -> SecurityEngineAccessUtils.givesAGranteePermission(engineId)).thenReturn(true);
-		this.access.when(() -> SecurityEngineAccessUtils.getGranteePermission(grantee, engineId)).thenReturn(level);
+		this.access.when(() -> SecurityEngineAccessUtils.givesAGranteePermission(engineId, false)).thenReturn(true);
+		this.access.when(() -> SecurityEngineAccessUtils.getGranteePermission(grantee, engineId, false))
+				.thenReturn(level);
+	}
+
+	private void projectHolds(String projectId, EngineGrantee grantee, AccessPermissionEnum level) {
+		this.access.when(() -> SecurityEngineAccessUtils.givesAGranteePermission(projectId, true)).thenReturn(true);
+		this.access.when(() -> SecurityEngineAccessUtils.getGranteePermission(grantee, projectId, true))
+				.thenReturn(level);
 	}
 
 	private static boolean allowed(Executable call) {

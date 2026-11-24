@@ -45,11 +45,13 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.pipeline.AgentRunOperation;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentHarnessRegistry;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.AgentUseAccess;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.exceptions.AgentMaxSpawnDepthException;
 import prerna.reactor.agent.exceptions.AgentSpawnBudgetExhaustedException;
@@ -81,7 +83,10 @@ public final class AgentSubAgentRegistry {
 
 	private static final String DEFAULT_HARNESS_TYPE = "semoss";
 	private static final String ROOM_OPTION_INSTRUCTIONS = "instructions";
-	/** The room option every sub-agent's room carries: the room of the run that started it. */
+	/**
+	 * The room option every sub-agent's room carries: the room of the run that
+	 * started it.
+	 */
 	public static final String ROOM_OPTION_PARENT_ROOM_ID = "subagent_parent_room_id";
 	private static final String[] ROOM_OPTION_MODEL_KEYS = { "engine", "model", "modelId", "engineId" };
 
@@ -223,6 +228,13 @@ public final class AgentSubAgentRegistry {
 
 			boolean namedSpawn = req.workspaceId != null && !req.workspaceId.trim().isEmpty();
 			boolean namedWorkspaceHasModel = namedSpawn && workspaceHasConfiguredModel(req.workspaceId);
+			List<String> agentChain = AgentUseAccess.subAgentChain(parentRoom, AgentRunOperation.runningAgent(),
+					namedSpawn ? req.workspaceId.trim() : null);
+			if (agentChain.isEmpty()) {
+				clonedOptions.remove(AgentUseAccess.ROOM_OPTION_AGENT_CHAIN);
+			} else {
+				clonedOptions.put(AgentUseAccess.ROOM_OPTION_AGENT_CHAIN, agentChain);
+			}
 
 			// Named spawn: re-seed options.workspace so the child loads its own
 			// CONFIG_JSON.

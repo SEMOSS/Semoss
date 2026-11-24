@@ -57,6 +57,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
@@ -113,6 +114,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	private static final String INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this project's permissions.";
 	private static final String NOT_HIGH_ENOUGH = "The user doesn't have the high enough permissions to modify this users project permission.";
+	static final String PROJECT_GRANTEES_NEED_OWNER = "Only this project's owners can change which apps and engines "
+			+ "can use it.";
+	static final String PROJECT_GRANTEE_HAS_NO_ACCESS = "This app or engine does not currently have access to the "
+			+ "project.";
+	static final String PROJECT_GRANTEE_WRITE_FAILED = "An error occurred saving this access to the project";
 	private static final String INSERT_PROJECT = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, "
 			+ "DISCOVERABLE, IS_TEMPLATE, HAS_CUSTOM_LOGIN, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, "
 			+ "PROJECTDISPLAYNAME) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -186,11 +192,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param global    whether the project is public, for a project not yet
 	 *                  registered or reloaded
 	 * @param user      the signed in user, recorded as the creator of a project not
-	 *                  yet registered: creating one needs the creation rules, and
-	 *                  reloading one needs the user to be able to edit it; or null
-	 *                  when the platform registers the project from its smss, which
-	 *                  gives no one access to it
+	 *                  yet registered: creating one needs the creation rules and an
+	 *                  id no engine has, and reloading one needs the user to be
+	 *                  able to edit it; or null when the platform registers the
+	 *                  project from its smss, which gives no one access to it
 	 * @throws IllegalArgumentException when the user may not create or reload the
+	 *                                  project, or an engine has the id of a new
 	 *                                  project
 	 * @throws Exception                when the insights database cannot be opened
 	 */
@@ -221,6 +228,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (user != null && projectExists) {
 			ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		} else if (user != null) {
+			requireNoEngineWithId(projectId);
 			ResourceWriteAccess.requireProjectCreation(user, IProject.PROJECT_TYPE.fromSmss(prop), global);
 		}
 
@@ -478,7 +486,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * <p>
 	 * A user needs the creation rules: the publisher rule, the admin only rule for
 	 * the project's type, and for a public project the admin only rule for making
-	 * one public. With no user, the platform registers the project, which gives no
+	 * one public. A user, admins included, never creates a project with the id of
+	 * an engine. With no user, the platform registers the project, which gives no
 	 * one access to it.
 	 *
 	 * @param projectId          the new project's id
@@ -490,10 +499,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param isTemplate         whether it is a template
 	 * @param user               the signed in user who creates it, or null when the
 	 *                           platform registers it
-	 * @throws IllegalArgumentException when the user may not create the project
+	 * @throws IllegalArgumentException when the user may not create the project, or
+	 *                                  an engine has its id
 	 */
 	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
 			String projectCost, boolean global, boolean isTemplate, User user) {
+		if (user != null) {
+			requireNoEngineWithId(projectId);
+		}
 		ResourceWriteAccess.requireProjectCreation(user, projectTypeOf(projectType), global);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
@@ -1706,6 +1719,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?");
 		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE GRANTEEENGINEID=? AND GRANTEEENGINETYPE='"
 				+ PermissionSubject.PROJECT_TYPE + "'");
+		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE ENGINEID=? AND ENGINETYPE='"
+				+ PermissionSubject.PROJECT_TYPE + "'");
 		for (String deleteQuery : deletes) {
 			try {
 				QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> ps.setString(1, projectId));
@@ -1727,6 +1742,121 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			SecurityModelUsageLimitUtils.markChanged();
 		}
+	}
+
+	/**
+	 * Gives an app or an agent a permission on a project, or changes the one it
+	 * has, as a permission batch. An app's custom reactors or an agent's runs use
+	 * the permission in place of the signed in user's own, so an agent can use a
+	 * skill its users cannot open, or an app can work with another app. A project
+	 * gives access to apps and agents only, never to an engine. Only the project's
+	 * owners can, and where only admins give access to the project, only in admin
+	 * mode ({@link SecurityAdminUtils#setProjectGranteePermission}).
+	 *
+	 * @param user              the user giving the access
+	 * @param granteeEngineId   the app or agent given the access
+	 * @param granteeEngineType its catalog type, {@code PROJECT}
+	 * @param projectId         the project
+	 * @param permission        the level, READ_ONLY or EDIT
+	 * @param endDate           when the access ends, or null
+	 * @throws IllegalAccessException when the user is not an owner of the project
+	 */
+	public static void setProjectGranteePermission(User user, String granteeEngineId, String granteeEngineType,
+			String projectId, String permission, String endDate) throws IllegalAccessException {
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
+				List.of(projectGranteePermissionChange(granteeEngineId, granteeEngineType, projectId,
+						new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.bulkAccessManagement(false), projectGranteeErrorRules(endDate));
+	}
+
+	/**
+	 * Takes away the permission a project gives an app, an agent or an engine, as a
+	 * permission batch. Only the project's owners can.
+	 *
+	 * @param user              the user taking the access away
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app or an
+	 *                          agent
+	 * @param projectId         the project
+	 * @throws IllegalAccessException when the user is not an owner of the project
+	 */
+	public static void removeProjectGranteePermission(User user, String granteeEngineId, String granteeEngineType,
+			String projectId) throws IllegalAccessException {
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.remove(PermissionSubject.ofEngine(granteeEngineId, granteeEngineType))),
+				PermissionBatchOptions.bulkAccessManagement(false), projectGranteeRemovalErrorRules());
+	}
+
+	/**
+	 * Reads the apps, agents and engines a project gives a permission to, for the
+	 * project's editors and owners: each with its subject, the grantee's id,
+	 * catalog type, name (its display name when it has one) and subtype (an app's
+	 * project type or an engine's subtype), and its access, the level and the end
+	 * date.
+	 *
+	 * @param user      the user asking
+	 * @param projectId the project
+	 * @return one entry for each app and engine, ordered by catalog type and id
+	 * @throws IllegalAccessException when the user cannot edit the project
+	 */
+	public static List<Map<String, Object>> getProjectGranteePermissions(User user, String projectId)
+			throws IllegalAccessException {
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("The project id must not be null or blank");
+		}
+		String id = projectId.trim();
+		if (!PermissionBatchUtils.canViewEngines(user, PermissionTargetResource.project(id), false)) {
+			throw new IllegalAccessException(
+					"Only this project's editors and owners can see which apps and engines can use it");
+		}
+		return PermissionBatchUtils.readProjectGrantees(id);
+	}
+
+	/**
+	 * The messages the single methods for a permission a project gives throw.
+	 *
+	 * @param endDate the end date given, named when it cannot be read
+	 * @return the rules
+	 */
+	static PermissionErrorRules projectGranteeErrorRules(String endDate) {
+		return new PermissionErrorRules(endDate)
+				.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, PROJECT_GRANTEES_NEED_OWNER)
+				.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING,
+						SecurityEngineUtils.GRANTEE_DOES_NOT_EXIST)
+				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, PROJECT_GRANTEE_WRITE_FAILED);
+	}
+
+	/**
+	 * The messages the single methods throw when the permission a project gives is
+	 * taken away.
+	 *
+	 * @return the rules
+	 */
+	static PermissionErrorRules projectGranteeRemovalErrorRules() {
+		return new PermissionErrorRules()
+				.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, PROJECT_GRANTEES_NEED_OWNER)
+				.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, PROJECT_GRANTEE_HAS_NO_ACCESS)
+				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, PROJECT_GRANTEE_WRITE_FAILED);
+	}
+
+	/**
+	 * Builds the change that leaves an app, an agent or an engine with a grant on a
+	 * project: an add when the project gives it none now, otherwise a change.
+	 *
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app or an
+	 *                          agent
+	 * @param projectId         the project
+	 * @param grant             the level, READ_ONLY or EDIT, and the end date
+	 * @return the change
+	 */
+	static PermissionChange projectGranteePermissionChange(String granteeEngineId, String granteeEngineType,
+			String projectId, PermissionGrant grant) {
+		PermissionSubject grantee = PermissionSubject.ofEngine(granteeEngineId, granteeEngineType);
+		String catalogType = PermissionBatchUtils.catalogTypeOf(granteeEngineType);
+		boolean given = granteeEngineId != null && catalogType != null && SecurityEngine2EngineUtils
+				.getGranteePermission(new EngineGrantee(granteeEngineId.trim(), catalogType), projectId, true) != null;
+		return given ? PermissionChange.change(grantee, grant) : PermissionChange.add(grantee, grant);
 	}
 
 	/**

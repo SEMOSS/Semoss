@@ -63,9 +63,11 @@ import prerna.auth.utils.SecurityEngineAccessUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IExplorable;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.pipeline.AdminEngineCalls;
+import prerna.engine.impl.pipeline.AgentRunOperation;
 import prerna.engine.impl.pipeline.EngineCallPermission;
 import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.engine.impl.pipeline.StubEngines;
@@ -73,7 +75,11 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.interceptor.IInputReactor;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
@@ -89,6 +95,7 @@ class SandboxEngineAccessUnitTests {
 	private static final String ENGINE = "engine-1";
 	private static final String APP = "app-1";
 	private static final String OTHER_APP = "app-2";
+	private static final String GUARDRAIL = "guardrail-1";
 
 	private final User user = new User();
 	private MockedStatic<SecurityEngineAccessUtils> access;
@@ -281,16 +288,16 @@ class SandboxEngineAccessUnitTests {
 		}).bytes(), APP);
 
 		assertThrows(SemossPixelException.class, () -> SandboxProbe.run(probe, "run"));
-		assertDoesNotThrow(
-				() -> SandboxProbe.runAsPlatform(((IRDBMSEngine) SandboxProbe.heldObject)::getQueryUtil));
+		assertDoesNotThrow(() -> SandboxProbe.runAsPlatform(((IRDBMSEngine) SandboxProbe.heldObject)::getQueryUtil));
 	}
 
 	@Test
 	void anEngineObjectACustomReactorDrivesItselfActsAsItsProject() throws Throwable {
 		Class<?> probe = SandboxProbe.load(this.folder,
-				new SandboxProbe().method("run", mv -> mv.visitMethodInsn(Opcodes.INVOKESTATIC,
-						"prerna/util/SandboxProbe$PlatformEngine", "settingsOfTheHeldEngine", "()Ljava/lang/Object;",
-						false)).bytes(),
+				new SandboxProbe().method("run",
+						mv -> mv.visitMethodInsn(Opcodes.INVOKESTATIC, "prerna/util/SandboxProbe$PlatformEngine",
+								"settingsOfTheHeldEngine", "()Ljava/lang/Object;", false))
+						.bytes(),
 				APP);
 
 		assertThrows(SemossPixelException.class, SandboxProbe::readHeldEngineSettingsAsAPlatformEngine);
@@ -310,11 +317,14 @@ class SandboxEngineAccessUnitTests {
 
 	@Test
 	void aPlatformOperationNeverCoversPlatformCodeACustomReactorRuns() throws Throwable {
-		Class<?> probe = SandboxProbe.load(this.folder,
-				new SandboxProbe().method("run", mv -> mv.visitMethodInsn(Opcodes.INVOKESTATIC,
-						"prerna/util/SandboxProbe", "readHeldEngineInAPlatformOperation", "()Ljava/lang/Object;", false))
-						.bytes(),
-				APP);
+		Class<?> probe = SandboxProbe
+				.load(this.folder,
+						new SandboxProbe()
+								.method("run",
+										mv -> mv.visitMethodInsn(Opcodes.INVOKESTATIC, "prerna/util/SandboxProbe",
+												"readHeldEngineInAPlatformOperation", "()Ljava/lang/Object;", false))
+								.bytes(),
+						APP);
 
 		assertThrows(SemossPixelException.class, () -> SandboxProbe.run(probe, "run"));
 		try (PlatformOperation operation = PlatformOperation.begin("cluster sync")) {
@@ -328,11 +338,14 @@ class SandboxEngineAccessUnitTests {
 	@Test
 	void anAdminOperationNeverRunsUnderACustomReactor() throws Throwable {
 		this.access.when(() -> SecurityEngineAccessUtils.isAdmin(this.user)).thenReturn(true);
-		Class<?> probe = SandboxProbe.load(this.folder,
-				new SandboxProbe().method("run", mv -> mv.visitMethodInsn(Opcodes.INVOKESTATIC,
-						"prerna/util/SandboxProbe", "readHeldEngineThroughAnAdminClass", "()Ljava/lang/Object;", false))
-						.bytes(),
-				APP);
+		Class<?> probe = SandboxProbe
+				.load(this.folder,
+						new SandboxProbe()
+								.method("run",
+										mv -> mv.visitMethodInsn(Opcodes.INVOKESTATIC, "prerna/util/SandboxProbe",
+												"readHeldEngineThroughAnAdminClass", "()Ljava/lang/Object;", false))
+								.bytes(),
+						APP);
 
 		assertThrows(SemossPixelException.class, () -> SandboxProbe.run(probe, "run"));
 		assertEquals("Stub " + ENGINE, SandboxProbe.readHeldEngineThroughAnAdminClass());
@@ -358,6 +371,26 @@ class SandboxEngineAccessUnitTests {
 		userHolds(OTHER_APP, true, AccessPermissionEnum.READ_ONLY);
 		assertEquals(OTHER_APP, callAs(APP, IProject.class, "getProjectId"));
 		assertThrows(SemossPixelException.class, () -> callAs(APP, IProject.class, "getProjectProperties"));
+	}
+
+	@Test
+	void aCustomReactorReadsAnotherProjectItsAppWasGivenAccessTo() throws Throwable {
+		SandboxProbe.heldObject = StubEngines.project(OTHER_APP);
+
+		assertThrows(SemossPixelException.class, () -> callAs(APP, IProject.class, "getProjectName"));
+
+		projectHolds(OTHER_APP, EngineGrantee.ofApp(APP), AccessPermissionEnum.READ_ONLY);
+		assertEquals("Stub " + OTHER_APP, callAs(APP, IProject.class, "getProjectName"));
+		assertThrows(SemossPixelException.class, () -> callAs(APP, IProject.class, "getProjectProperties"));
+	}
+
+	@Test
+	void aCustomReactorInsideAnAgentRunDoesNotUseTheAgentsPermission() {
+		engineHolds(ENGINE, EngineGrantee.ofApp("agent-1"), AccessPermissionEnum.READ_ONLY);
+
+		try (AgentRunOperation run = AgentRunOperation.begin("agent-1")) {
+			assertThrows(SemossPixelException.class, () -> callAs(APP, IEngine.class, "getEngineId"));
+		}
 	}
 
 	@Test
@@ -411,6 +444,85 @@ class SandboxEngineAccessUnitTests {
 		userHolds("configured-on-the-model", false, AccessPermissionEnum.READ_ONLY);
 
 		assertDoesNotThrow(() -> callAs(APP, IModelEngine.class, "getContextWindow"));
+	}
+
+	@Test
+	void aGuardrailOnAModelsPipelineGoesThroughOnThePermissionItGivesTheModel() throws Throwable {
+		AtomicReference<EngineGrantee> seenByTheGuardrail = new AtomicReference<>();
+		IGuardrailReactorFunctionEngine guardrail = StubEngines.guardrail(GUARDRAIL, Map.of("execute", () -> {
+			seenByTheGuardrail.set(EngineCallPermission.granteeMakingTheCall());
+			return null;
+		}));
+		SandboxProbe.heldObject = StubEngines.model(ENGINE, Map.of("getContextWindow", () -> {
+			new GuardrailCheck(guardrail).execute();
+			return 0;
+		}));
+		appHolds(APP, AccessPermissionEnum.READ_ONLY);
+
+		SemossPixelException refusal = assertThrows(SemossPixelException.class,
+				() -> callAs(APP, IModelEngine.class, "getContextWindow"));
+		assertTrue(refusal.getMessage().contains("Engine " + GUARDRAIL), refusal.getMessage());
+		assertTrue(refusal.getMessage().contains("engine " + ENGINE), refusal.getMessage());
+		assertTrue(refusal.getMessage().contains("app " + APP), refusal.getMessage());
+
+		engineHolds(GUARDRAIL, new EngineGrantee(ENGINE, "MODEL"), AccessPermissionEnum.READ_ONLY);
+		assertDoesNotThrow(() -> callAs(APP, IModelEngine.class, "getContextWindow"));
+		assertEquals(new EngineGrantee(ENGINE, "MODEL"), seenByTheGuardrail.get());
+	}
+
+	@Test
+	void aGuardrailOnAModelsPipelineGoesThroughOnThePermissionItGivesTheAppBehindTheModel() throws Throwable {
+		AtomicReference<EngineGrantee> seenByTheGuardrail = new AtomicReference<>();
+		IGuardrailReactorFunctionEngine guardrail = StubEngines.guardrail(GUARDRAIL, Map.of("execute", () -> {
+			seenByTheGuardrail.set(EngineCallPermission.granteeMakingTheCall());
+			return null;
+		}));
+		SandboxProbe.heldObject = StubEngines.model(ENGINE, Map.of("getContextWindow", () -> {
+			new GuardrailCheck(guardrail).execute();
+			return 0;
+		}));
+		appHolds(APP, AccessPermissionEnum.READ_ONLY);
+
+		engineHolds(GUARDRAIL, EngineGrantee.ofApp(OTHER_APP), AccessPermissionEnum.READ_ONLY);
+		assertThrows(SemossPixelException.class, () -> callAs(APP, IModelEngine.class, "getContextWindow"));
+
+		engineHolds(GUARDRAIL, EngineGrantee.ofApp(APP), AccessPermissionEnum.READ_ONLY);
+		assertDoesNotThrow(() -> callAs(APP, IModelEngine.class, "getContextWindow"));
+		assertEquals(EngineGrantee.ofApp(APP), seenByTheGuardrail.get());
+	}
+
+	@Test
+	void theAppBehindAnEnginesCallNeedsTheLevelItsOwnCodeNeeds() throws Throwable {
+		IRDBMSEngine configured = StubEngines.database("configured-on-the-model");
+		SandboxProbe.heldObject = StubEngines.model(ENGINE, Map.of("getContextWindow", () -> {
+			configured.getConnection();
+			return 0;
+		}));
+		appHolds(APP, AccessPermissionEnum.READ_ONLY);
+
+		engineHolds("configured-on-the-model", EngineGrantee.ofApp(APP), AccessPermissionEnum.READ_ONLY);
+		assertThrows(SemossPixelException.class, () -> callAs(APP, IModelEngine.class, "getContextWindow"));
+
+		engineHolds("configured-on-the-model", EngineGrantee.ofApp(APP), AccessPermissionEnum.EDIT);
+		assertDoesNotThrow(() -> callAs(APP, IModelEngine.class, "getContextWindow"));
+	}
+
+	@Test
+	void theAppIsLeftOutOfAnEnginesCallWhenAReactorTheUserRunsIsBetweenThem() throws Throwable {
+		IGuardrailReactorFunctionEngine guardrail = StubEngines.guardrail(GUARDRAIL, Map.of());
+		IModelEngine model = StubEngines.model(ENGINE, Map.of("getContextWindow", () -> {
+			new GuardrailCheck(guardrail).execute();
+			return 0;
+		}));
+		Runnable runsAReactor = () -> new UsesTheModel(model).execute();
+		SandboxProbe.heldObject = runsAReactor;
+		userHolds(ENGINE, false, AccessPermissionEnum.READ_ONLY);
+		engineHolds(GUARDRAIL, EngineGrantee.ofApp(APP), AccessPermissionEnum.READ_ONLY);
+
+		assertThrows(SemossPixelException.class, () -> callAs(APP, Runnable.class, "run"));
+
+		engineHolds(GUARDRAIL, new EngineGrantee(ENGINE, "MODEL"), AccessPermissionEnum.READ_ONLY);
+		assertDoesNotThrow(() -> callAs(APP, Runnable.class, "run"));
 	}
 
 	@Test
@@ -490,8 +602,15 @@ class SandboxEngineAccessUnitTests {
 	}
 
 	private void engineHolds(String engineId, EngineGrantee grantee, AccessPermissionEnum level) {
-		this.access.when(() -> SecurityEngineAccessUtils.givesAGranteePermission(engineId)).thenReturn(true);
-		this.access.when(() -> SecurityEngineAccessUtils.getGranteePermission(grantee, engineId)).thenReturn(level);
+		this.access.when(() -> SecurityEngineAccessUtils.givesAGranteePermission(engineId, false)).thenReturn(true);
+		this.access.when(() -> SecurityEngineAccessUtils.getGranteePermission(grantee, engineId, false))
+				.thenReturn(level);
+	}
+
+	private void projectHolds(String projectId, EngineGrantee grantee, AccessPermissionEnum level) {
+		this.access.when(() -> SecurityEngineAccessUtils.givesAGranteePermission(projectId, true)).thenReturn(true);
+		this.access.when(() -> SecurityEngineAccessUtils.getGranteePermission(grantee, projectId, true))
+				.thenReturn(level);
 	}
 
 	/**
@@ -543,8 +662,8 @@ class SandboxEngineAccessUnitTests {
 	}
 
 	private static Method method(Class<?> type, String name) {
-		for (Class<?> candidate : new Class<?>[] { type, IRDBMSEngine.class, IDatabaseEngine.class,
-				IExplorable.class, IModelEngine.class, IEngine.class }) {
+		for (Class<?> candidate : new Class<?>[] { type, IRDBMSEngine.class, IDatabaseEngine.class, IExplorable.class,
+				IModelEngine.class, IEngine.class }) {
 			for (Method method : candidate.getMethods()) {
 				if (method.getName().equals(name)) {
 					return method;
@@ -573,6 +692,45 @@ class SandboxEngineAccessUnitTests {
 				Type.getType("()Ljava/lang/Object;"),
 				new Handle(Opcodes.H_INVOKEINTERFACE, engine, "getSmssProp", "()Ljava/util/Properties;", true),
 				Type.getType("()Ljava/util/Properties;"));
+	}
+
+	/**
+	 * A check on a model's pipeline that asks a guardrail, as
+	 * {@code GenericGuardrailInputReactor} does.
+	 */
+	private static final class GuardrailCheck extends AbstractReactor implements IInputReactor {
+
+		private final IGuardrailReactorFunctionEngine guardrail;
+
+		private GuardrailCheck(IGuardrailReactorFunctionEngine guardrail) {
+			this.guardrail = guardrail;
+		}
+
+		@Override
+		public NounMetadata execute() {
+			this.guardrail.execute(null, null);
+			return new NounMetadata(true, PixelDataType.BOOLEAN);
+		}
+
+	}
+
+	/**
+	 * A reactor of the platform that asks a model, as a pixel a custom reactor runs
+	 * through its insight does.
+	 */
+	private static final class UsesTheModel extends AbstractReactor {
+
+		private final IModelEngine model;
+
+		private UsesTheModel(IModelEngine model) {
+			this.model = model;
+		}
+
+		@Override
+		public NounMetadata execute() {
+			return new NounMetadata(this.model.getContextWindow(), PixelDataType.CONST_INT);
+		}
+
 	}
 
 	private static void queryUtilSupplier(MethodVisitor mv) {
