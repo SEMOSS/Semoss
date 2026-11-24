@@ -29,14 +29,11 @@ package prerna.reactor.vector;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,6 +55,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.ZipUtils;
 
 public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 
@@ -162,91 +160,36 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	}
 
 	/**
-	 * @param insightFolder
+	 * @param rootFolder
 	 * @param validFiles
 	 * @param invalidFiles
-	 * @return
 	 * @throws IOException
 	 */
-	private void getFiles(String insightFolder, List<String> validFiles, List<String> invalidFiles) throws IOException {
+	private void getFiles(String rootFolder, List<String> validFiles, List<String> invalidFiles) throws IOException {
 		GenRowStruct grs = this.store.getGenRowStruct(this.keysToGet[1]);
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
-				String filePath = insightFolder + "/" + grs.get(i).toString();
+				String relativePath = grs.get(i).toString().replace('\\', '/').replaceFirst("^/+", "");
+				// the file must be inside the insight or project space
+				String filePath;
+				try {
+					filePath = Utility.resolveContainedFile(rootFolder, relativePath).toString();
+				} catch (IOException e) {
+					throw new IllegalArgumentException("File path for " + relativePath + " does not exist.");
+				}
 				if (isZipFile(filePath)) {
-					String zipFileLocation = filePath.replace('\\', '/');
-					File zipFileExtractFolder = new File(insightFolder, PATH_TO_UNZIP_FILES);
-					unzipAndFilter(zipFileLocation, zipFileExtractFolder.getAbsolutePath(), validFiles, invalidFiles);
+					File zipFileExtractFolder = new File(rootFolder, PATH_TO_UNZIP_FILES);
+					for (String extracted : ZipUtils.unzipNested(filePath, zipFileExtractFolder.getAbsolutePath())) {
+						if (isSupportedFileType(extracted)) {
+							validFiles.add(extracted);
+						}
+					}
+				} else if (isSupportedFileType(filePath)) {
+					validFiles.add(filePath);
 				} else {
-					// String filePath = destDirectory + File.separator + entry.getName();
-					if (isSupportedFileType(filePath)) {
-						validFiles.add(filePath);
-					} else {
-						invalidFiles.add(filePath);
-					}
+					invalidFiles.add("/" + relativePath);
 				}
-			}
-		}
-	}
-
-	/**
-	 * Recursively go through all the zips, directories and files in a zip file and
-	 * save the paths of valid file types
-	 * 
-	 * @param zipFilePath
-	 * @param destDirectory
-	 * @param validFiles
-	 * @param invalidFiles
-	 * @throws IOException
-	 */
-	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles,
-			List<String> invalidFiles) throws IOException {
-		File destDir = new File(Utility.normalizePath(destDirectory));
-		if (!destDir.exists()) {
-			destDir.mkdir();
-		}
-
-		try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(Utility.normalizePath(zipFilePath)))) {
-			ZipEntry entry = zipIn.getNextEntry();
-
-			while (entry != null) {
-				String filePath = destDirectory + "/" + entry.getName();
-				if (!entry.isDirectory() && isSupportedFileType(filePath)) {
-					if (isSupportedFileType(filePath)) {
-						extractFile(zipIn, filePath);
-						validFiles.add(filePath);
-					} else {
-						invalidFiles.add(filePath);
-					}
-				} else if (entry.isDirectory()) {
-					File dir = new File(Utility.normalizePath(filePath));
-					dir.mkdirs();
-				} else if (isZipFile(filePath)) {
-					// Handle nested zip file
-					this.extractFile(zipIn, filePath);
-
-					// Check if the entry is not in the root directory
-					String parentPath = null;
-					if (filePath.contains("/")) { // ZIP entries use "/" as a separator
-						parentPath = filePath.substring(0, filePath.lastIndexOf('/'));
-					}
-
-					// Extract the last part of the path (file name + extension)
-					String fileNameWithExtension = filePath.contains("/")
-							? filePath.substring(filePath.lastIndexOf('/') + 1)
-							: filePath;
-
-					// Remove the extension
-					String baseName = fileNameWithExtension.contains(".")
-							? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.'))
-							: fileNameWithExtension;
-
-					unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles);
-				}
-
-				zipIn.closeEntry();
-				entry = zipIn.getNextEntry();
 			}
 		}
 	}
@@ -263,22 +206,6 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 		}
 
 		return AssetUtility.getRootFolderPath(this.insight, space, false);
-	}
-
-	/**
-	 * 
-	 * @param zipIn
-	 * @param filePath
-	 * @throws IOException
-	 */
-	private void extractFile(ZipInputStream zipIn, String filePath) throws IOException {
-		try (FileOutputStream fos = new FileOutputStream(Utility.normalizePath(filePath))) {
-			byte[] buffer = new byte[1024];
-			int bytesRead;
-			while ((bytesRead = zipIn.read(buffer)) != -1) {
-				fos.write(buffer, 0, bytesRead);
-			}
-		}
 	}
 
 	/**

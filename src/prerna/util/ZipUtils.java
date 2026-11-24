@@ -98,6 +98,9 @@ public final class ZipUtils {
 	 */
 	public static final String ZIP_MAX_ENTRIES = "ZIP_MAX_ENTRIES";
 
+	// how many zips inside zips unzipNested will open
+	public static final int MAX_NESTED_ZIP_DEPTH = 5;
+
 	/**
 	 * RDF_Map key for the most bytes a zip may expand to when extracted, counted as
 	 * they are written rather than from the sizes the zip declares. Defaults to 20
@@ -374,6 +377,30 @@ public final class ZipUtils {
 			}
 		}
 		return listFilesInZip(Paths.get(zipFilePath));
+	}
+
+	// unzip, then unzip each zip it held beside itself (limited depth); returns the absolute paths of the files that are not zips
+	public static List<String> unzipNested(String zipFilePath, String destination) throws IOException {
+		return unzipNested(zipFilePath, destination, 0);
+	}
+
+	private static List<String> unzipNested(String zipFilePath, String destination, int depth) throws IOException {
+		if (depth > MAX_NESTED_ZIP_DEPTH) {
+			throw new ZipException("The zip holds more than " + MAX_NESTED_ZIP_DEPTH + " levels of zips");
+		}
+		Path folder = Paths.get(destination).toAbsolutePath().normalize();
+		List<String> files = new ArrayList<>();
+		for (String relative : unzip(zipFilePath, destination).get("FILE")) {
+			Path extracted = folder.resolve(relative).normalize();
+			String name = extracted.getFileName().toString();
+			if (name.toLowerCase().endsWith(".zip")) {
+				String base = name.substring(0, name.length() - ".zip".length());
+				files.addAll(unzipNested(extracted.toString(), extracted.resolveSibling(base).toString(), depth + 1));
+			} else {
+				files.add(extracted.toString().replace('\\', '/'));
+			}
+		}
+		return files;
 	}
 
 	/**
