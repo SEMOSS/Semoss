@@ -253,7 +253,8 @@ public final class BrainTopicBrief {
 			return "";
 		}
 		StringBuilder out = new StringBuilder(
-				"\nLinked Microsoft 365 folders: the agent lists and reads files from these by default. "
+				"\nLinked Microsoft 365 folders: the owner linked these to this topic because they contain "
+						+ "relevant files for this topic's work. The agent lists and reads files from these by default. "
 						+ "To list files, call ListDriveFiles for a OneDrive link, or ListChannelFiles for Teams. "
 						+ "Availability is marked 'ok' or 'unavailable' (access lost):");
 		for (Map<String, Object> link : links.subList(0, Math.min(links.size(), MAX_ITEMS))) {
