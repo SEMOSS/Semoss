@@ -42,6 +42,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
+import prerna.auth.access.GranteePermissionQuery;
 import prerna.auth.access.ModelUsageLimitPath;
 import prerna.auth.access.ModelUsageLimitPath.Reason;
 import prerna.auth.access.ModelUsageLimitPath.Step;
@@ -187,15 +188,25 @@ public final class SecurityAccessPermissionBatchUtils {
 	 *         ({@code canGiveAuthorAccess}), change which groups have access
 	 *         ({@code canChangeTeams}), and whether only admins can give people
 	 *         access ({@code addsAreAdminOnly}). An engine's grants carry their
-	 *         {@code usageLimit}. On a model the result adds {@code publicUse}
-	 *         ({@code isPublic} and {@code usageLimit}), {@code modelTotal}
-	 *         ({@code usageLimit}), {@code costLimitsAvailable}, {@code price} (the
-	 *         price entry its cost is worked out with, or null), and
-	 *         {@code allowedPermissionChanges} adds {@code limitLevels} (the levels
-	 *         whose usage limits the user may change: all three for owners, none
-	 *         for anyone else) and {@code canChangeModelLimits} (whether the user
-	 *         may set any usage limit: people's, team limits, the public use limit
-	 *         and the total, for owners only)
+	 *         {@code usageLimit}. On an engine the result adds {@code engines}: the
+	 *         apps and engines it gives a permission to, each with its
+	 *         {@code subject} and {@code access}, for its editors and owners
+	 *         ({@code canViewEngines}), and whether the user can change them
+	 *         ({@code canChangeEngines}). On a project or an engine the result adds
+	 *         {@code accessToEngines}: the engines that give the app or the engine
+	 *         a permission, each with its {@code target} (the engine giving it,
+	 *         with its type, name and subtype) and {@code access}, for the app's or
+	 *         engine's editors and owners ({@code canViewAccessToEngines}); the
+	 *         permission is changed on the engine that gives it. On a model the
+	 *         result adds {@code publicUse} ({@code isPublic} and
+	 *         {@code usageLimit}), {@code modelTotal} ({@code usageLimit}),
+	 *         {@code costLimitsAvailable}, {@code price} (the price entry its cost
+	 *         is worked out with, or null), and {@code allowedPermissionChanges}
+	 *         adds {@code limitLevels} (the levels whose usage limits the user may
+	 *         change: all three for owners, none for anyone else) and
+	 *         {@code canChangeModelLimits} (whether the user may set any usage
+	 *         limit: people's, team limits, the public use limit and the total, for
+	 *         owners only)
 	 * @throws IllegalAccessException when the user cannot view the target, or
 	 *                                cannot manage the group
 	 */
@@ -214,6 +225,36 @@ public final class SecurityAccessPermissionBatchUtils {
 			PermissionTargetResource target) throws IllegalAccessException {
 		requireAdmin(adminUtils);
 		return PermissionBatchUtils.readPermissions(user, target, true);
+	}
+
+	/**
+	 * Every permission an engine or a project gives an app, an agent or an engine,
+	 * on the engines and projects the user can edit, for the page that lists them
+	 * all: each with its {@code target}, {@code subject}, {@code access} and
+	 * {@code canChange}, true for the target's owners. A grant on a model carries
+	 * its App Limit or Engine Limit.
+	 *
+	 * @param user  the user
+	 * @param query the search, each side's kind and type, and the page
+	 * @return {@code grants} and {@code total}
+	 */
+	public static Map<String, Object> getAllGranteePermissions(User user, GranteePermissionQuery query) {
+		return PermissionBatchUtils.readAllGrants(user, false, query);
+	}
+
+	/**
+	 * {@link #getAllGranteePermissions(User, GranteePermissionQuery)} in admin
+	 * mode, on every engine and project, each one changeable.
+	 *
+	 * @param adminUtils the admin utilities, which prove the user is an admin
+	 * @param user       the admin
+	 * @param query      the search, each side's kind and type, and the page
+	 * @return {@code grants} and {@code total}
+	 */
+	public static Map<String, Object> getAllGranteePermissions(SecurityAdminUtils adminUtils, User user,
+			GranteePermissionQuery query) {
+		requireAdmin(adminUtils);
+		return PermissionBatchUtils.readAllGrants(user, true, query);
 	}
 
 	/**

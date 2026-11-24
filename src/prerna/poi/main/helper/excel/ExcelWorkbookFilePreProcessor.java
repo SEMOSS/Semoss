@@ -40,7 +40,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.util.IOUtils;
 
 import com.github.pjfanning.xlsx.StreamingReader;
 
@@ -53,11 +52,6 @@ import prerna.util.Utility;
 public class ExcelWorkbookFilePreProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(ExcelWorkbookFilePreProcessor.class);
-
-	static {
-		// limit to 1GB excels
-		IOUtils.setByteArrayMaxOverride(1024 * 1024 * 1024);
-	}
 
 	private Workbook workbook = null;
 	private FileInputStream sourceFile = null;
@@ -82,7 +76,7 @@ public class ExcelWorkbookFilePreProcessor {
 	 * Parses an Excel workbook and prepares sheet preprocessors.
 	 *
 	 * @param fileLocation workbook path
-	 * @param password optional workbook password
+	 * @param password     optional workbook password
 	 */
 	public void parse(String fileLocation, String password) {
 		this.fileLocation = fileLocation;

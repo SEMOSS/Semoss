@@ -2864,6 +2864,65 @@ public final class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Gives an app or an agent a permission on any project, or changes the one it
+	 * has, in admin mode, as a permission batch. An app's custom reactors or an
+	 * agent's runs use the permission in place of the signed in user's own. A
+	 * project gives access to apps and agents only, never to an engine.
+	 *
+	 * @param granteeEngineId   the app or agent given the access
+	 * @param granteeEngineType its catalog type, {@code PROJECT}
+	 * @param projectId         the project
+	 * @param permission        the level, READ_ONLY or EDIT
+	 * @param user              the admin
+	 * @param endDate           when the access ends, or null
+	 */
+	public void setProjectGranteePermission(String granteeEngineId, String granteeEngineType, String projectId,
+			String permission, User user, String endDate) {
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(SecurityProjectUtils.projectGranteePermissionChange(granteeEngineId, granteeEngineType,
+						projectId, new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.bulkAccessManagement(true),
+				SecurityProjectUtils.projectGranteeErrorRules(endDate));
+	}
+
+	/**
+	 * Takes away the permission a project gives an app, an agent or an engine, in
+	 * admin mode, as a permission batch.
+	 *
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app or an
+	 *                          agent
+	 * @param projectId         the project
+	 * @param user              the admin
+	 */
+	public void removeProjectGranteePermission(String granteeEngineId, String granteeEngineType, String projectId,
+			User user) {
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.remove(PermissionSubject.ofEngine(granteeEngineId, granteeEngineType))),
+				PermissionBatchOptions.bulkAccessManagement(true),
+				SecurityProjectUtils.projectGranteeRemovalErrorRules());
+	}
+
+	/**
+	 * Reads the apps, agents and engines a project gives a permission to, in admin
+	 * mode: each with its subject and its access, the level and the end date.
+	 *
+	 * @param projectId the project
+	 * @return one entry for each app and engine, ordered by catalog type and id
+	 * @throws IllegalArgumentException when the project does not exist
+	 */
+	public List<Map<String, Object>> getProjectGranteePermissions(String projectId) {
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("The project id must not be null or blank");
+		}
+		String id = projectId.trim();
+		if (!SecurityProjectUtils.projectExists(id)) {
+			throw new IllegalArgumentException("Project " + id + " does not exist");
+		}
+		return PermissionBatchUtils.readProjectGrantees(id);
+	}
+
+	/**
 	 * Takes a person's access to an engine away in admin mode, as a permission
 	 * batch.
 	 *

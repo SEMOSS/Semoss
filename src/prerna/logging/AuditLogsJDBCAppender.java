@@ -85,6 +85,7 @@ public class AuditLogsJDBCAppender extends AbstractBatchingJdbcAppender {
 			Column.text("INPUT_REACTOR_NAME", TEXT_LENGTH), Column.text("OUTPUT_REACTOR_NAME", TEXT_LENGTH),
 			Column.text("GUARDRAIL_ACTION", TEXT_LENGTH), Column.text("BILLED_SOURCE_TYPE", TEXT_LENGTH),
 			Column.text("BILLED_SUBJECT_ID", TEXT_LENGTH), Column.text("BILLED_SUBJECT_TYPE", TEXT_LENGTH),
+			Column.text("ACCESS_REASON", TEXT_LENGTH), Column.of("ACCESS_DETAILS", ColumnType.CLOB),
 			Column.of("MESSAGE", ColumnType.CLOB), Column.of("REQUEST", ColumnType.CLOB),
 			Column.of("RESPONSE", ColumnType.CLOB), Column.of("NUMBER_OF_TOKENS_IN_PROMPT", ColumnType.INTEGER),
 			Column.of("NUMBER_OF_TOKENS_IN_RESPONSE", ColumnType.INTEGER),
@@ -112,7 +113,8 @@ public class AuditLogsJDBCAppender extends AbstractBatchingJdbcAppender {
 			Map.entry("GUARDRAIL_ACTION", SemossLogUtils.GUARDRAIL_ACTION),
 			Map.entry("BILLED_SOURCE_TYPE", SemossLogUtils.BILLED_SOURCE_TYPE),
 			Map.entry("BILLED_SUBJECT_ID", SemossLogUtils.BILLED_SUBJECT_ID),
-			Map.entry("BILLED_SUBJECT_TYPE", SemossLogUtils.BILLED_SUBJECT_TYPE));
+			Map.entry("BILLED_SUBJECT_TYPE", SemossLogUtils.BILLED_SUBJECT_TYPE),
+			Map.entry("ACCESS_REASON", SemossLogUtils.ACCESS_REASON));
 
 	private final String engineId;
 	private volatile boolean customDatabaseReady = false;
@@ -150,6 +152,7 @@ public class AuditLogsJDBCAppender extends AbstractBatchingJdbcAppender {
 		put(values, "MESSAGE", event.getMessage().getFormattedMessage());
 		put(values, "REQUEST", text(SemossLogUtils.REQUEST, contextData, message));
 		put(values, "RESPONSE", text(SemossLogUtils.RESPONSE, contextData, message));
+		put(values, "ACCESS_DETAILS", text(SemossLogUtils.ACCESS_DETAILS, contextData, message));
 		put(values, "NUMBER_OF_TOKENS_IN_PROMPT",
 				integer(SemossLogUtils.NUMBER_OF_TOKENS_IN_PROMPT, contextData, message));
 		put(values, "NUMBER_OF_TOKENS_IN_RESPONSE",

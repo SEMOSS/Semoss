@@ -63,6 +63,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.AgentUseAccess;
 import prerna.reactor.agent.AppBuilderHarnessConfiguration;
 import prerna.reactor.agent.IAgentHook;
 import prerna.reactor.agent.IAgentRunHook;
@@ -153,7 +154,7 @@ public final class AgentConfigLoader {
 
 		if (workspaceId != null && workspaceRow != null) {
 			User user = room.getInsight() != null ? room.getInsight().getUser() : null;
-			if (user != null && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+			if (user != null && !AgentUseAccess.mayUseAgent(user, room, workspaceId)) {
 				throw new IllegalArgumentException(
 						"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 			}
@@ -214,15 +215,19 @@ public final class AgentConfigLoader {
 			b.digitalTwin(true);
 			String twinOwner = SecurityProjectUtils.getProjectCreatorName(workspaceId);
 			b.digitalTwinOwner(twinOwner);
-			// its owner's own chat: the twin is told who it is talking to and may add to its files
+			// its owner's own chat: the twin is told who it is talking to and may add to
+			// its files
 			b.digitalTwinOwnChat(SecurityProjectUtils.isProjectCreator(runUser, workspaceId));
-			// how its owner sounds and decides, unless they have no persona or switched it off for this twin
+			// how its owner sounds and decides, unless they have no persona or switched it
+			// off for this twin
 			b.digitalTwinPersona(WorkTwinPersona.promptBlock(workspaceId, twinOwner));
 		}
-		// The Collaboration Agent in a person's own chat is their own Digital Twin: it is told its name and how
-		// they think. Not in a routine's unattended run, and not for any other agent in the chat. A sub-agent it
-		// starts runs the same agent in a room with the same options, so its room is left out by its mark: the
-		// harness's depth check alone reads as the root for a sub-agent resumed after a restart.
+		// The Collaboration Agent in a person's own chat is their own Digital Twin: it
+		// is told its name and how they think. Not in a routine's unattended run, and
+		// not for any other agent in the chat. A sub-agent it starts runs the same
+		// agent in a room with the same options, so its room is left out by its mark:
+		// the harness's depth check alone reads as the root for a sub-agent resumed
+		// after a restart.
 		if (runUser != null && Constants.AGENT_COLLABORATION.equals(workspaceId) && CollaborationRunMode.isChat(room)
 				&& room.getOptionsMap().get(AgentSubAgentRegistry.ROOM_OPTION_PARENT_ROOM_ID) == null) {
 			b.mainTwinPrompt(WorkMainTwin.promptBlock(runUser));
@@ -240,10 +245,8 @@ public final class AgentConfigLoader {
 		b.skills(resolveSkills(workspaceId, room, cfgJson, runUser, digitalTwin));
 
 		// Hooks and subagents currently come from CONFIG_JSON only. resolveHooks
-		// classifies
-		// each entry by interface so a hook can land on the run-hook list, tool-hook
-		// list,
-		// or both.
+		// classifies each entry by interface so a hook can land on the run-hook list,
+		// tool-hook list, or both.
 		ResolvedHooks rh = resolveHooks(cfgJson);
 		b.runHooks(withBuiltInRunHooks(room, rh.runHooks, digitalTwin));
 		b.toolHooks(rh.toolHooks);
@@ -330,7 +333,10 @@ public final class AgentConfigLoader {
 		return paths;
 	}
 
-	/** Room override, then workspace configuration, then the Collaboration room default. */
+	/**
+	 * Room override, then workspace configuration, then the Collaboration room
+	 * default.
+	 */
 	static boolean resolveIncludeCurrentTime(Room room, JSONObject cfgJson) {
 		Map<String, Object> options = room == null ? null : room.getOptionsMap();
 		Object runtime = options == null ? null : options.get("runtimeContext");
@@ -351,14 +357,18 @@ public final class AgentConfigLoader {
 		throw new IllegalArgumentException(key + " must be a boolean");
 	}
 
-	/** Combines room defaults with {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
+	/**
+	 * Combines room defaults with
+	 * {@code CONFIG_JSON.tool_policy.default_tools.disabled}.
+	 */
 	private static Set<String> resolveDisabledDefaultTools(Room room, JSONObject cfgJson) {
 		LinkedHashSet<String> names = new LinkedHashSet<>();
 		if (CollaborationUtils.isCollaborationRoom(room)) {
 			// Ordinary document reading uses the shared extraction helper. Managed
 			// presentation workflows perform their own review without this tool.
 			names.add("InspectPptx");
-			// the owner's tasks live in Work items; a chat todo list only competes with them
+			// the owner's tasks live in Work items; a chat todo list only competes with
+			// them
 			names.add("TodoWrite");
 			names.add("TodoRead");
 		}
@@ -458,12 +468,12 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * Builds the skill-ref list from workspace resources, CONFIG_JSON, room options,
-	 * and collaboration defaults, deduped by {@code skill_id}. Explicit references
-	 * retain their pinned version when also present in the defaults.
+	 * Builds the skill-ref list from workspace resources, CONFIG_JSON, room
+	 * options, and collaboration defaults, deduped by {@code skill_id}. Explicit
+	 * references retain their pinned version when also present in the defaults.
 	 */
-	private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson,
-			User user, boolean digitalTwin) {
+	private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson, User user,
+			boolean digitalTwin) {
 		List<Map<String, String>> out = new ArrayList<>();
 		Set<String> seen = new LinkedHashSet<>();
 
@@ -533,8 +543,10 @@ public final class AgentConfigLoader {
 			out.add(entry);
 		}
 
-		// the owner's own Collaboration skills they turned on for their assistant, in chats and routines;
-		// a Digital Twin is someone else's agent, a guest in the chat, and borrows none of them
+		// the owner's own Collaboration skills they turned on for their assistant, in
+		// chats and routines;
+		// a Digital Twin is someone else's agent, a guest in the chat, and borrows none
+		// of them
 		if (user != null && !digitalTwin && CollaborationRunMode.of(room) != null) {
 			for (String skillId : CollaborationSkills.keepMine(user, BrainProfileUtils.assistantSkills(user))) {
 				if (seen.add(skillId)) {
@@ -552,7 +564,8 @@ public final class AgentConfigLoader {
 				}
 			}
 			logger.info("AgentConfigLoader: collaboration skills room={} defaults={} effective={}", room.getId(),
-					SystemDefaultEngines.getCollaborationSkills(), out.stream().map(ref -> ref.get("skill_id")).toList());
+					SystemDefaultEngines.getCollaborationSkills(),
+					out.stream().map(ref -> ref.get("skill_id")).toList());
 		}
 
 		return out;
@@ -887,10 +900,11 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * An owner's chat also saves the OneDrive copies a finished run changed back over their originals, and reviews
-	 * its finished runs for memories to suggest, whatever its agent configures; a routine's runs get neither. Nor
-	 * does a chat with a Digital Twin: what someone else's agent did there is not written back to the asker's
-	 * OneDrive, learned as their memory or filed under their topics.
+	 * An owner's chat also saves the OneDrive copies a finished run changed back
+	 * over their originals, and reviews its finished runs for memories to suggest,
+	 * whatever its agent configures; a routine's runs get neither. Nor does a chat
+	 * with a Digital Twin: what someone else's agent did there is not written back
+	 * to the asker's OneDrive, learned as their memory or filed under their topics.
 	 */
 	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured,
 			boolean digitalTwin) {

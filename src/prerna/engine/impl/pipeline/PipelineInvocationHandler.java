@@ -168,7 +168,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private final String engineId;
 	private final String engineName;
 	private final IEngine.CATALOG_TYPE catalogType;
-	/** The engine, as {@link EngineCallPermission} names the engine answering a call */
+	/**
+	 * The engine, as {@link EngineCallPermission} names the engine answering a call
+	 */
 	private final EngineGrantee answering;
 	private final boolean forPlatformUse;
 	private final String engineType;
@@ -225,14 +227,87 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-		EngineGrantee grantee = EngineAccessGuard.check(this.engineId, this.catalogType, this.forPlatformUse, method,
-				args);
-		EngineCallPermission.State previous = EngineCallPermission.begin(this.answering, grantee);
+		EngineAccessDecision decision;
 		try {
-			return invokeWithPipeline(method, args);
+			decision = EngineAccessGuard.check(this.engineId, this.catalogType, this.forPlatformUse, method, args);
+		} catch (EngineAccessRefusedException refusal) {
+			logRefusal(method, args, refusal);
+			throw refusal;
+		}
+		EngineCallPermission.State previous = EngineCallPermission.begin(this.answering, decision.grantee());
+		try {
+			return invokeWithPipeline(method, args, decision);
 		} finally {
 			EngineCallPermission.restore(previous);
 		}
+	}
+
+	/**
+	 * Logs a call the access check refused on the Activity Log: a failed call with
+	 * reason REFUSED, the level it needed and who made it, and nothing of what was
+	 * sent. The first refusal of the person on the engine or project in a session
+	 * is also recorded on the audit trail with what was sent
+	 * ({@link EngineAccessRefusals}). Methods the log never keeps are skipped, and
+	 * a failure to log is only warned about, so the caller still gets the refusal.
+	 *
+	 * @param method  the method called
+	 * @param args    the call's arguments, or null
+	 * @param refusal the refusal
+	 */
+	private void logRefusal(Method method, Object[] args, EngineAccessRefusedException refusal) {
+		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
+			return;
+		}
+		try {
+			User user = ThreadStore.getUser();
+			if (user == null) {
+				Insight insight = contextInsight(args);
+				user = insight == null ? null : insight.getUser();
+			}
+			int attempt = EngineAccessRefusals.record(user, this.engineId,
+					this.catalogType == IEngine.CATALOG_TYPE.PROJECT, method, args, refusal);
+			try (CloseableThreadContext.Instance ctc = CloseableThreadContext
+					.putAll(callContext(method.getName(), args))) {
+				Instant now = Instant.now();
+				logEngineCall(this.getEngineLogger.get(), refusal.decision(attempt), now, now, false,
+						REQUEST_NOT_TRACKED, RESPONSE_NOT_TRACKED, null, null, null, null, null);
+			}
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not log the refused call to {} on {}", method.getName(), this.engineId, e);
+		}
+	}
+
+	/**
+	 * The logging context of one call to the engine: the current context, with a
+	 * span id that groups the call's guardrail rows, the method, the engine, the
+	 * insight and project the call runs in, and who made the call.
+	 *
+	 * @param methodName the method called
+	 * @param args       the call's arguments, or null
+	 * @return the context, a new map
+	 */
+	private Map<String, String> callContext(String methodName, Object[] args) {
+		Map<String, String> context = new HashMap<>(ThreadContext.getImmutableContext());
+		context.put(SemossLogUtils.SPAN_ID, GUID.v7().toUUID().toString());
+		context.put(SemossLogUtils.METHOD_NAME, methodName);
+		context.put(SemossLogUtils.ENGINE_ID, this.engineId);
+		context.put(SemossLogUtils.ENGINE_NAME, this.engineName);
+		context.put(SemossLogUtils.ENGINE_TYPE, this.engineType);
+		context.put(SemossLogUtils.ENGINE_SUBTYPE, this.engineSubType);
+
+		String insightId = ThreadStore.getInsightId();
+		if (insightId != null) {
+			context.put(SemossLogUtils.INSIGHT_ID, insightId);
+			Insight insight = InsightStore.getInstance().get(insightId);
+			context.put(SemossLogUtils.PROJECT_ID, insight.getContextProjectId());
+			context.put(SemossLogUtils.PROJECT_NAME, insight.getContextProjectName());
+			context.put(SemossLogUtils.ROOM_ID, insight.getRoomId());
+		}
+		// the request context has no user off a browser request (pooled threads, jobs,
+		// routine steps): name the caller from the call's own insight so the audit log
+		// shows who it was
+		callerContext(context, contextInsight(args));
+		return context;
 	}
 
 	/**
@@ -283,12 +358,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * Passes a call the access check let through on to the engine, with the
 	 * engine's pipeline and its audit log around it.
 	 *
-	 * @param method the interface method being called
-	 * @param args   the call's arguments, or null
+	 * @param method   the interface method being called
+	 * @param args     the call's arguments, or null
+	 * @param decision why the access check let the call through, which each row the
+	 *                 call writes to the Activity Log carries
 	 * @return what the engine returned
 	 * @throws Throwable what the engine or its pipeline threw
 	 */
-	private Object invokeWithPipeline(Method method, Object[] args) throws Throwable {
+	private Object invokeWithPipeline(Method method, Object[] args, EngineAccessDecision decision) throws Throwable {
 		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
 			try {
 				return this.engineInvoker.invoke(method, args);
@@ -301,33 +378,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		boolean keepInputOutput = this.keepInputOutput.get();
 
 		String methodName = method.getName();
-
-		// Capture existing MDC values
-		Map<String, String> newMdc = new HashMap<>(ThreadContext.getImmutableContext());
-		// set a span id to group all input/output guardrails together for this engine
-		// method call
-		newMdc.put(SemossLogUtils.SPAN_ID, GUID.v7().toUUID().toString());
-		// store the method name
-		newMdc.put(SemossLogUtils.METHOD_NAME, methodName);
-		{
-			newMdc.put(SemossLogUtils.ENGINE_ID, this.engineId);
-			newMdc.put(SemossLogUtils.ENGINE_NAME, this.engineName);
-			newMdc.put(SemossLogUtils.ENGINE_TYPE, this.engineType);
-			newMdc.put(SemossLogUtils.ENGINE_SUBTYPE, this.engineSubType);
-
-			String insightId = ThreadStore.getInsightId();
-			if (insightId != null) {
-				newMdc.put(SemossLogUtils.INSIGHT_ID, insightId);
-				Insight insight = InsightStore.getInstance().get(insightId);
-				newMdc.put(SemossLogUtils.PROJECT_ID, insight.getContextProjectId());
-				newMdc.put(SemossLogUtils.PROJECT_NAME, insight.getContextProjectName());
-				newMdc.put(SemossLogUtils.ROOM_ID, insight.getRoomId());
-			}
-			// the request context has no user off a browser request (pooled threads, jobs,
-			// routine steps): name the
-			// caller from the call's own insight so the audit log shows who it was
-			callerContext(newMdc, contextInsight(args));
-		}
+		Map<String, String> newMdc = callContext(methodName, args);
 
 		boolean success = true;
 		Set<String> enginesRunningChecks = ENGINES_RUNNING_CHECKS.get();
@@ -397,7 +448,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 						cacheCreationTokens = modelResponse.getNumberOfCacheCreationTokens();
 					}
 
-					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
+					logEngineCall(engineSpecificLogger, decision, start, end, success, request, response, null, null,
 							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null,
 							billedTo(result));
 				}
@@ -434,7 +485,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					try {
 						resultNoun = runCheck(reactor);
 					} catch (ResponseTimeoutException e) {
-						logEngineCall(engineSpecificLogger, start, Instant.now(), false,
+						logEngineCall(engineSpecificLogger, decision, start, Instant.now(), false,
 								serializeAuditPayload(method, args, null, false), e.getMessage(),
 								reactor.getClass().getSimpleName(), null, null, null, GUARDRAIL_ACTION_TIMEOUT);
 						throw e;
@@ -472,7 +523,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 						response = RESPONSE_NOT_TRACKED;
 					}
 
-					logEngineCall(engineSpecificLogger, start, end, pass, request, response,
+					logEngineCall(engineSpecificLogger, decision, start, end, pass, request, response,
 							reactor.getClass().getSimpleName(), null, null, null, guardrailAction);
 					if (guardrailAction != null) {
 						recordGuardrailHitAndCheckLimit(method, args, "INPUT",
@@ -535,7 +586,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 						cacheCreationTokens = modelResponse.getNumberOfCacheCreationTokens();
 					}
 
-					logEngineCall(engineSpecificLogger, start, end, success, request, response, null, null,
+					logEngineCall(engineSpecificLogger, decision, start, end, success, request, response, null, null,
 							tokensInPrompt, tokensInResponse, cacheReadTokens, cacheCreationTokens, null,
 							billedTo(result));
 				}
@@ -571,7 +622,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					try {
 						resultNoun = runCheck(reactor);
 					} catch (ResponseTimeoutException e) {
-						logEngineCall(engineSpecificLogger, start, Instant.now(), false,
+						logEngineCall(engineSpecificLogger, decision, start, Instant.now(), false,
 								serializeAuditPayload(method, args, result, true), e.getMessage(), null,
 								reactor.getClass().getSimpleName(), null, null, GUARDRAIL_ACTION_TIMEOUT);
 						throw e;
@@ -598,7 +649,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 						response = RESPONSE_NOT_TRACKED;
 					}
 
-					logEngineCall(engineSpecificLogger, start, end, pass, request, response, null,
+					logEngineCall(engineSpecificLogger, decision, start, end, pass, request, response, null,
 							reactor.getClass().getSimpleName(), null, null, guardrailAction);
 					if (guardrailAction != null) {
 						recordGuardrailHitAndCheckLimit(method, args, "OUTPUT",
@@ -733,10 +784,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * @param inputReactorName
 	 * @param outputReactorName
 	 */
-	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
-			String request, String response, String inputReactorName, String outputReactorName, Integer tokensInPrompt,
-			Integer tokensInResponse, String guardrailAction) {
-		logEngineCall(engineSpecificLogger, start, end, isSuccess, request, response, inputReactorName,
+	private void logEngineCall(Logger engineSpecificLogger, EngineAccessDecision decision, Instant start, Instant end,
+			Boolean isSuccess, String request, String response, String inputReactorName, String outputReactorName,
+			Integer tokensInPrompt, Integer tokensInResponse, String guardrailAction) {
+		logEngineCall(engineSpecificLogger, decision, start, end, isSuccess, request, response, inputReactorName,
 				outputReactorName, tokensInPrompt, tokensInResponse, null, null, guardrailAction, null);
 	}
 
@@ -792,10 +843,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		return USE_ENGINE_LOGGER ? SemossLogUtils.getEngineLevelLogger() : null;
 	}
 
-	private void logEngineCall(Logger engineSpecificLogger, Instant start, Instant end, Boolean isSuccess,
-			String request, String response, String inputReactorName, String outputReactorName, Integer tokensInPrompt,
-			Integer tokensInResponse, Integer cacheReadTokens, Integer cacheCreationTokens, String guardrailAction,
-			Map<?, ?> billedTo) {
+	private void logEngineCall(Logger engineSpecificLogger, EngineAccessDecision decision, Instant start, Instant end,
+			Boolean isSuccess, String request, String response, String inputReactorName, String outputReactorName,
+			Integer tokensInPrompt, Integer tokensInResponse, Integer cacheReadTokens, Integer cacheCreationTokens,
+			String guardrailAction, Map<?, ?> billedTo) {
 		Logger logger = callLogger(engineSpecificLogger);
 		if (logger != null) {
 			Map<String, Object> auditMap = new HashMap<>();
@@ -825,6 +876,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				putText(auditMap, SemossLogUtils.BILLED_SOURCE_TYPE, billedTo.get("sourceType"));
 				putText(auditMap, SemossLogUtils.BILLED_SUBJECT_ID, billedTo.get("subjectId"));
 				putText(auditMap, SemossLogUtils.BILLED_SUBJECT_TYPE, billedTo.get("subjectType"));
+			}
+			if (decision != null && decision.reason() != null) {
+				auditMap.put(SemossLogUtils.ACCESS_REASON, decision.reason().name());
+				putText(auditMap, SemossLogUtils.ACCESS_DETAILS, decision.detailsJson());
 			}
 			logger.info(auditMap);
 		}
