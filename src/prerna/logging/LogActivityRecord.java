@@ -100,11 +100,20 @@ package prerna.logging;
  *                            ({@code BILLED_SUBJECT_ID}), or {@code null}.
  * @param billedSubjectType   The matching login type or team type
  *                            ({@code BILLED_SUBJECT_TYPE}), or {@code null}.
+ * @param accessReason        Why the access check let the call through, or
+ *                            {@code REFUSED} for a call it refused
+ *                            ({@code ACCESS_REASON}), such as {@code DIRECT},
+ *                            {@code TEAM} or {@code DELEGATED}; {@code null} on
+ *                            rows logged before calls recorded it.
+ * @param accessDetails       The specifics behind the reason, as JSON
+ *                            ({@code ACCESS_DETAILS}): the level, the team, or
+ *                            the app, agent or engine whose permission was
+ *                            used; {@code null} when there are none.
  */
 public record LogActivityRecord(String requestId, String startTime, String endTime, String request, String response,
 		int tokens, long latency, boolean status, String engineName, String engineType, String methodName,
 		String userName, String userId, String sessionId, String spanId, String logTimestamp, String guardrailAction,
 		int cacheReadTokens, int cacheCreationTokens, int promptTokens, int responseTokens, String billedSourceType,
-		String billedSubjectId, String billedSubjectType) {
+		String billedSubjectId, String billedSubjectType, String accessReason, String accessDetails) {
 
 }
