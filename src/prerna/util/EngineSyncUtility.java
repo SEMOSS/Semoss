@@ -28,6 +28,9 @@
 package prerna.util;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,11 +51,11 @@ public class EngineSyncUtility {
 	private static ConcurrentMap<String, ReentrantLock> engineLocks = new ConcurrentHashMap<>();
 
 	// store some database metadata as well
-	public static ConcurrentMap<String, List<Object[]>> databaseStructureCache = new ConcurrentHashMap<>();
-	public static ConcurrentMap<String, Map<String, Object>> metamodelCache = new ConcurrentHashMap<>();
-	public static ConcurrentMap<String, Map<String, List<String>>> metamodelLogicalNamesCache = new ConcurrentHashMap<>();
-	public static ConcurrentMap<String, Map<String, String>> metamodelDescriptionsCache = new ConcurrentHashMap<>();
-	public static ConcurrentMap<String, Map<String, Object>> metamodelPositionsCache = new ConcurrentHashMap<>();
+	private static ConcurrentMap<String, List<Object[]>> databaseStructureCache = new ConcurrentHashMap<>();
+	private static ConcurrentMap<String, Map<String, Object>> metamodelCache = new ConcurrentHashMap<>();
+	private static ConcurrentMap<String, Map<String, List<String>>> metamodelLogicalNamesCache = new ConcurrentHashMap<>();
+	private static ConcurrentMap<String, Map<String, String>> metamodelDescriptionsCache = new ConcurrentHashMap<>();
+	private static ConcurrentMap<String, Map<String, Object>> metamodelPositionsCache = new ConcurrentHashMap<>();
 
 	public static ReentrantLock getEngineLock(String engineId) {
 		engineLocks.putIfAbsent(engineId, new ReentrantLock());
@@ -116,101 +119,108 @@ public class EngineSyncUtility {
 	}
 
 	/**
-	 * Get the database structure cache
-	 * 
-	 * @param engineId
-	 * @return
+	 * Returns the cached structure of a database, as a read-only list.
+	 *
+	 * @param engineId the database
+	 * @return the tables and columns, or null when none are cached
 	 */
 	public static List<Object[]> getDatabaseStructureCache(String engineId) {
 		return databaseStructureCache.get(engineId);
 	}
 
 	/**
-	 * Set the database structure cache
-	 * 
-	 * @param engineId
-	 * @param cacheObj
+	 * Caches the structure of a database. The cache keeps a read-only copy, so a
+	 * later change to the given list does not reach it.
+	 *
+	 * @param engineId the database
+	 * @param cacheObj the tables and columns
 	 */
 	public static void setDatabaseStructureCache(String engineId, List<Object[]> cacheObj) {
-		databaseStructureCache.put(engineId, cacheObj);
+		databaseStructureCache.put(engineId, Collections.unmodifiableList(new ArrayList<>(cacheObj)));
 	}
 
 	/**
-	 * Get the engine metamodel
-	 * 
-	 * @param engineId
-	 * @return
+	 * Returns the cached metamodel of an engine, as a read-only map.
+	 *
+	 * @param engineId the engine
+	 * @return the metamodel, or null when none is cached
 	 */
 	public static Map<String, Object> getMetamodel(String engineId) {
 		return metamodelCache.get(engineId);
 	}
 
 	/**
-	 * Set the engine metamodel
-	 * 
-	 * @param engineId
-	 * @param cacheObj
+	 * Caches the metamodel of an engine. The cache keeps a read-only copy, so a
+	 * later change to the given map does not reach it.
+	 *
+	 * @param engineId the engine
+	 * @param cacheObj the metamodel
 	 */
 	public static void setMetamodel(String engineId, Map<String, Object> cacheObj) {
-		metamodelCache.put(engineId, cacheObj);
+		metamodelCache.put(engineId, Collections.unmodifiableMap(new LinkedHashMap<>(cacheObj)));
 	}
 
 	/**
-	 * Get the engine logical names
-	 * 
-	 * @param engineId
-	 * @return
+	 * Returns the cached logical names of an engine, as a read-only map.
+	 *
+	 * @param engineId the engine
+	 * @return the logical names, or null when none are cached
 	 */
 	public static Map<String, List<String>> getMetamodelLogicalNamesCache(String engineId) {
 		return metamodelLogicalNamesCache.get(engineId);
 	}
 
 	/**
-	 * Set the engine logical names
-	 * 
-	 * @param engineId
-	 * @param cacheObj
+	 * Caches the logical names of an engine. The cache keeps a read-only copy, so a
+	 * later change to the given map does not reach it.
+	 *
+	 * @param engineId the engine
+	 * @param cacheObj the logical names
 	 */
 	public static void setMetamodelLogicalNames(String engineId, Map<String, List<String>> cacheObj) {
-		metamodelLogicalNamesCache.put(engineId, cacheObj);
+		metamodelLogicalNamesCache.put(engineId, Collections.unmodifiableMap(new LinkedHashMap<>(cacheObj)));
 	}
 
 	/**
-	 * Get the engine descriptions
-	 * 
-	 * @param engineId
-	 * @return
+	 * Returns the cached descriptions of an engine, as a read-only map.
+	 *
+	 * @param engineId the engine
+	 * @return the descriptions, or null when none are cached
 	 */
 	public static Map<String, String> getMetamodelDescriptionsCache(String engineId) {
 		return metamodelDescriptionsCache.get(engineId);
 	}
 
 	/**
-	 * Set the engine descriptions
-	 * 
-	 * @param engineId
-	 * @param cacheObj
+	 * Caches the descriptions of an engine. The cache keeps a read-only copy, so a
+	 * later change to the given map does not reach it.
+	 *
+	 * @param engineId the engine
+	 * @param cacheObj the descriptions
 	 */
 	public static void setMetamodelDescriptions(String engineId, Map<String, String> cacheObj) {
-		metamodelDescriptionsCache.put(engineId, cacheObj);
+		metamodelDescriptionsCache.put(engineId, Collections.unmodifiableMap(new LinkedHashMap<>(cacheObj)));
 	}
 
 	/**
-	 * 
-	 * @param engineId
-	 * @return
+	 * Returns the cached metamodel positions of an engine, as a read-only map.
+	 *
+	 * @param engineId the engine
+	 * @return the positions, or null when none are cached
 	 */
 	public static Map<String, Object> getMetamodelPositions(String engineId) {
 		return metamodelPositionsCache.get(engineId);
 	}
 
 	/**
-	 * 
-	 * @param engineId
-	 * @param cacheObj
+	 * Caches the metamodel positions of an engine. The cache keeps a read-only
+	 * copy, so a later change to the given map does not reach it.
+	 *
+	 * @param engineId the engine
+	 * @param cacheObj the positions
 	 */
 	public static void setMetamodelPositions(String engineId, Map<String, Object> cacheObj) {
-		metamodelPositionsCache.put(engineId, cacheObj);
+		metamodelPositionsCache.put(engineId, Collections.unmodifiableMap(new LinkedHashMap<>(cacheObj)));
 	}
 
 	/**
