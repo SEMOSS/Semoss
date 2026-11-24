@@ -137,7 +137,7 @@ final class GoogleGmailMime {
 				for (File file : files) {
 					MimeBodyPart part = new MimeBodyPart();
 					part.attachFile(file);
-					part.setFileName(OutgoingMail.attachmentName(file));
+					part.setFileName(oneLine(OutgoingMail.attachmentName(file)));
 					mixed.addBodyPart(part);
 				}
 			}
@@ -148,7 +148,7 @@ final class GoogleGmailMime {
 							file.contentType() == null ? "application/octet-stream" : oneLine(file.contentType()));
 					headers.addHeader("Content-Transfer-Encoding", "base64");
 					MimeBodyPart part = new MimeBodyPart(headers, Base64.getMimeEncoder().encode(file.bytes()));
-					part.setFileName(file.name());
+					part.setFileName(file.name() == null ? null : oneLine(file.name()));
 					part.setDisposition(Part.ATTACHMENT);
 					mixed.addBodyPart(part);
 				}
