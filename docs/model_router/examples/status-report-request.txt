@@ -1,0 +1,4 @@
+Draft a short weekly status report for the Echo mobile app from these notes and save it as status_report.md. Notes: progress is 85% complete; budget $120k, $84k spent so far; main risks are two engineers on leave (owner Kofi) and scope creep from sales requests; next milestones are Pilot go-live on the 4th and Training sessions on the 27th of next month. Requirements: at most 120 words; exactly three sections titled Summary, Risks and Next steps; state the progress percentage and the remaining budget in dollars (budget minus spent); name Kofi as owner of the first risk; mention both milestones with their dates. A reviewer will score how completely and accurately these requirements are met.
+
+---
+Working instructions: your input files are in your workspace (none). Save the requested result file in the workspace root with exactly the name given. Do not ask questions; complete the task and then stop.

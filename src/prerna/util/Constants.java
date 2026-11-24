@@ -1152,6 +1152,7 @@ public class Constants {
 	public static final String SKILL_PPTX = "pptx";
 	public static final String SKILL_PYTHON = "python";
 	public static final String SKILL_ROOM = "room";
+	public static final String SKILL_ROUTER_PLAYBOOK = "router-playbook";
 	public static final String SKILL_STORAGE = "storage";
 	public static final String SKILL_USER = "user";
 	public static final String SKILL_VECTOR = "vector";
@@ -1167,6 +1168,7 @@ public class Constants {
 	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
 	public static final String MCP_WEB_SEARCH = "web-search";
+	public static final String MCP_ROUTER_TOOLS = "router-tools";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";
@@ -1175,6 +1177,7 @@ public class Constants {
 	public static final String AGENT_NOTEBOOK_ANALYST = "notebook-analyst";
 	public static final String AGENT_OFFICE = "office-agent";
 	public static final String AGENT_PPTX = "pptx-agent";
+	public static final String AGENT_ROUTER_OPTIMIZER = "router-optimizer";
 	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
 	public static final String AGENT_WORKFLOW_AUTOMATION_BUILDER = "workflow-automation-builder";
 }

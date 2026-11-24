@@ -256,6 +256,9 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
 			return "PPTX Reviewer";
 		}
+		if (Constants.AGENT_ROUTER_OPTIMIZER.equals(agentId)) {
+			return "Router Optimizer";
+		}
 		return agentId;
 	}
 
@@ -284,6 +287,9 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
 			return "System agent for visually reviewing saved PowerPoint presentations.";
 		}
+		if (Constants.AGENT_ROUTER_OPTIMIZER.equals(agentId)) {
+			return "System agent that proposes better versions of a self-improving model router from its usage evidence.";
+		}
 		return "";
 	}
 
@@ -310,6 +316,9 @@ public class SystemAgentSeeder {
 		}
 		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
 			return PPTX_REVIEWER_SYSTEM_PROMPT;
+		}
+		if (Constants.AGENT_ROUTER_OPTIMIZER.equals(agentId)) {
+			return ROUTER_OPTIMIZER_SYSTEM_PROMPT;
 		}
 		return "";
 	}
@@ -427,6 +436,20 @@ public class SystemAgentSeeder {
 			// Model ids are deployment-specific. Use the selected/inherited agent model
 			// and an explicit InspectPptx.engine or the deployment's PPTX_VISION_MODEL_ID.
 		}
+
+		if (Constants.AGENT_ROUTER_OPTIMIZER.equals(agentId)) {
+			// runs headless from a schedule: bounded, no delegation, no shell or code execution
+			config.put("use_default_agent_tools", true);
+			config.put("greeting_enabled", false);
+			config.put("subagents", new JSONArray());
+			config.put("hooks", new JSONArray());
+			config.put("budgets", new JSONObject().put("max_turns", 60).put("max_reflections", 0).put("max_seconds", 3600)
+					.put("finishing_turns", 3));
+			config.put("spawn_policy", new JSONObject().put("max_subagent_depth", 0).put("max_subagents_per_run", 0)
+					.put("max_spawns_per_turn", 0));
+			config.put("tool_policy", new JSONObject().put("default_tools", new JSONObject().put("disabled",
+					new JSONArray(List.of("BashCommand", "ExecuteNodeCode", "ExecutePythonCode")))));
+		}
 		return config;
 	}
 
@@ -465,6 +488,12 @@ public class SystemAgentSeeder {
 			Packaged files under .claude/skills/pptx are read-only. Use documented component options or native editable objects for layout fixes. Top-level x,y,w,h and nested geometry:{x,y,w,h} are supported for components. Do not run local rendering commands, install packages, or modify the helper implementation.
 
 			BuildPptx owns the review cycle and final delivery. ExecuteNodeCode and manual reviewer delegation are unavailable in this managed workflow. A source-code edit is not part of the delivered presentation until BuildPptx saves and checks it. The platform reports the actual saved file, check coverage, and any unresolved findings.""";
+
+	/** Short on purpose: the router-playbook skill holds the procedure. */
+	private static final String ROUTER_OPTIMIZER_SYSTEM_PROMPT = """
+			You are the Router Optimizer. You run unattended from a schedule to propose one better version of a self-improving model router. The task names the router engine id.
+
+			Load the router-playbook skill with LoadSkill first and follow it. Use only your tools. Change the live router only by calling ApplyRouterCandidate; it applies a candidate only when the stored evaluation passes the platform's gate and you cannot change it. Never edit the live router any other way. Stop after one candidate per run, and sooner when your turn or time budget is tight. Finish with a one-line summary of the evidence, the candidate and the ApplyRouterCandidate result.""";
 
 	/**
 	 * Keep the documented reviewer prompt in docs/agents/pptx-reviewer-prompt.txt

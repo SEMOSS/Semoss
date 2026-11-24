@@ -92,6 +92,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.reactor.model.RouterReplayWorkspace;
 import prerna.util.ValueUtils;
 
 /**
@@ -233,6 +234,10 @@ public class SemossAgentHarness implements IAgentHarness {
 				&& SecurityProjectUtils.userCanEditProject(ctx.getInsight().getUser(), agentConfig.getWorkspaceId())
 						? CollaborationAgentTools.twinFileTools(agentConfig.getWorkspaceId()) : List.of();
 		subAgentTools.addAll(twinFileTools);
+		if (RouterReplayWorkspace.isReplay(agentConfig)) {
+			defaultAndExplicitTools.removeIf(tool -> !RouterReplayWorkspace.allowsTool(agentConfig, String.valueOf(tool.get("name"))));
+			subAgentTools.clear();
+		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
 		// Register on root only; descendants look up the shared per-tree budget.

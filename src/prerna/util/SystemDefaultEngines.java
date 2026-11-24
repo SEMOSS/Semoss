@@ -67,8 +67,8 @@ public class SystemDefaultEngines {
 			Constants.SKILL_EXPORTS, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FRONTEND_DESIGN,
 			Constants.SKILL_FUNCTIONS, Constants.SKILL_MCP, Constants.SKILL_MODEL, Constants.SKILL_PAGINATION,
 			Constants.SKILL_PERMISSIONS, Constants.SKILL_PPTX, Constants.SKILL_PYTHON, Constants.SKILL_ROOM,
-			Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR, Constants.SKILL_WORKFLOW_AUTOMATION,
-			Constants.SKILL_XLSX);
+			Constants.SKILL_ROUTER_PLAYBOOK, Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR,
+			Constants.SKILL_WORKFLOW_AUTOMATION, Constants.SKILL_XLSX);
 
 	private static final List<String> COLLABORATION_SKILLS = List.of(Constants.SKILL_COLLABORATION,
 			Constants.SKILL_DOCX, Constants.SKILL_PPTX, Constants.SKILL_PYTHON, Constants.SKILL_XLSX);
@@ -81,7 +81,7 @@ public class SystemDefaultEngines {
 	 */
 	private static final List<String> SYSTEM_MCPS = List.of(Constants.MCP_APP_FILESYSTEM,
 			Constants.MCP_BROWSER_AUTOMATION, Constants.MCP_DATABASE_MAKER, Constants.MCP_NODE_BUILDER,
-			Constants.MCP_PIXABAY, Constants.MCP_REACTOR_HELP, Constants.MCP_ROOM_FILESYSTEM);
+			Constants.MCP_PIXABAY, Constants.MCP_REACTOR_HELP, Constants.MCP_ROOM_FILESYSTEM, Constants.MCP_ROUTER_TOOLS);
 
 	/**
 	 * Subset of {@link #SYSTEM_MCPS} seeded onto system agent workspaces. This is
@@ -96,7 +96,7 @@ public class SystemDefaultEngines {
 	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER,
 			Constants.AGENT_COLLABORATION, Constants.AGENT_DATABASE_EXPLORER, Constants.AGENT_NOTEBOOK_ANALYST,
 			Constants.AGENT_OFFICE, Constants.AGENT_PPTX,
-			Constants.AGENT_PPTX_REVIEWER, Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER);
+			Constants.AGENT_PPTX_REVIEWER, Constants.AGENT_ROUTER_OPTIMIZER, Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER);
 
 	public static List<String> getIgnoreDatabaseOwlList() {
 		return IGNORE_DATABASE_OWL;
@@ -164,6 +164,9 @@ public class SystemDefaultEngines {
 		if (Constants.AGENT_PPTX.equals(agentId)) {
 			return List.of(Constants.MCP_PIXABAY);
 		}
+		if (Constants.AGENT_ROUTER_OPTIMIZER.equals(agentId)) {
+			return List.of(Constants.MCP_ROUTER_TOOLS);
+		}
 		return List.of();
 	}
 
@@ -196,6 +199,9 @@ public class SystemDefaultEngines {
 		}
 		if (Constants.AGENT_PPTX.equals(agentId)) {
 			return List.of(Constants.SKILL_PPTX);
+		}
+		if (Constants.AGENT_ROUTER_OPTIMIZER.equals(agentId)) {
+			return List.of(Constants.SKILL_ROUTER_PLAYBOOK);
 		}
 		return List.of();
 	}

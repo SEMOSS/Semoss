@@ -676,8 +676,9 @@ the admin's paths alike, with the setting and its new value in `details`.
 `AuditEventType.SETTING_CHANGES` lists them; Enterprise Usage counts them as `SETTING_CHANGES`. Saving
 an app's blocks (`PROJECT_BLOCKS_UPDATE`), replacing an app by upload (`PROJECT_REPLACE`) and a user
 showing or hiding an engine in their own lists (`ENGINE_VISIBILITY_UPDATE`) have their own events too,
-on the Audit tab only. No code records `PROJECT_UPDATE` or `ENGINE_UPDATE`; they are kept so stored
-events of those types still read.
+on the Audit tab only. The one `ENGINE_UPDATE` is `UpdateModelRouterConfig` saving a router in `subtask`
+mode, with the config's `sha256` and `version` in `details`. No code records `PROJECT_UPDATE`; it is
+kept so stored events of that type still read.
 
 Exporting a project or an engine for download records `PROJECT_EXPORT` (`ExportProject`,
 `ExportProjectApp`, `ExportApp`) or `ENGINE_EXPORT` (`ExportEngine`, `ExportDatabase`), both at `HIGH`

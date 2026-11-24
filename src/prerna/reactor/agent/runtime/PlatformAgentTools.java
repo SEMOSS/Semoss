@@ -46,6 +46,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.reactor.model.RouterReplayWorkspace;
 import prerna.util.Utility;
 
 public final class PlatformAgentTools {
@@ -119,6 +120,9 @@ public final class PlatformAgentTools {
         params = effective;
 		String overrideMcpId = getDefaultToolsMcpId();
 		if (overrideMcpId != null) {
+			if (RouterReplayWorkspace.isReplay(ctx.getAgentConfig())) {
+				throw new IllegalStateException("MCP tools are unavailable during router evaluation");
+			}
 			JSONObject tool = findMcpTool(overrideMcpId, toolName);
 			if (tool == null) {
 				throw new IllegalArgumentException("Unknown default MCP tool: " + toolName);
@@ -167,6 +171,10 @@ public final class PlatformAgentTools {
 		}
 		String normalized = value.toString().trim().toLowerCase(java.util.Locale.ROOT);
 		return !("false".equals(normalized) || "0".equals(normalized) || "no".equals(normalized));
+	}
+
+	public static boolean hasDefaultMcpOverride() {
+		return getDefaultToolsMcpId() != null;
 	}
 
 	private static String getDefaultToolsMcpId() {

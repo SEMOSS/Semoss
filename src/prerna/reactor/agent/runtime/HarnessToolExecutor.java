@@ -86,6 +86,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.SecretRedactor;
+import prerna.reactor.model.RouterReplayWorkspace;
 import prerna.util.ValueUtils;
 
 /**
@@ -174,8 +175,8 @@ final class HarnessToolExecutor {
 		// room. Only ask tools become AGENT_RUN_ACTION rows and pause the run.
 		// a routine run has nobody to approve; its ask tools are refused in
 		// executeToolSafely instead
-		List<Map<String, Object>> askToolCalls = CollaborationRunMode.isRoutine(room) ? List.of()
-				: getAskToolCalls(toolCalls);
+		List<Map<String, Object>> askToolCalls = CollaborationRunMode.isRoutine(room) || RouterReplayWorkspace.isReplay(ctx.getAgentConfig())
+				? List.of() : getAskToolCalls(toolCalls);
 		if (!askToolCalls.isEmpty()) {
 			List<Map<String, Object>> autoToolCalls = new ArrayList<>();
 			for (Map<String, Object> toolCall : toolCalls) {
@@ -359,7 +360,10 @@ final class HarnessToolExecutor {
 		// when this method runs on a worker thread from the parallel-tool pool.
 		ToolExecOutcome outcome;
 		try {
-			if (state.pptxWorkflow() != null && tc.toolCall.containsKey("_pptxBatchError")) {
+			if (RouterReplayWorkspace.isReplay(ctx.getAgentConfig())
+					&& !RouterReplayWorkspace.allowsTool(ctx.getAgentConfig(), tc.rawToolName)) {
+				outcome = new ToolExecOutcome("This tool is not available during router evaluation. Nothing was run.", false);
+			} else if (state.pptxWorkflow() != null && tc.toolCall.containsKey("_pptxBatchError")) {
 				outcome = new ToolExecOutcome(String.valueOf(tc.toolCall.get("_pptxBatchError")), false);
 			} else if (state.pptxWorkflow() != null && PptxEditSession.TOOL.equals(tc.rawToolName)) {
 				outcome = new ToolExecOutcome(state.pptxWorkflow().prepareEdit(tc.toolParams).toString(), true);

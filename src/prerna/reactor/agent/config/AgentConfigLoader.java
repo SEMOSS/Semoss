@@ -747,7 +747,7 @@ public final class AgentConfigLoader {
 	 * Extract {@code workspace_id} from {@code room.options.workspace}, mirroring
 	 * {@link Room#getRoomOrWorkspaceSystemPrompt()}'s parsing.
 	 */
-	private static String extractWorkspaceId(Room room) {
+	public static String extractWorkspaceId(Room room) {
 		String opts = room.getOptions();
 		if (opts == null || opts.trim().isEmpty()) {
 			return null;

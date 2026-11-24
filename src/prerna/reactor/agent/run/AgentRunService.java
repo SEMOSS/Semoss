@@ -47,6 +47,7 @@ import com.google.gson.Gson;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.impl.model.Room;
@@ -353,6 +354,23 @@ public final class AgentRunService {
 		}
 
 		return attachMessages(run, runId, resolveUserId(insight));
+	}
+
+	/**
+	 * Returns a run of a model router that the caller owns, whoever started it, with its messages read from its
+	 * starter's room. This is how the owner of a shared router reads the usage evidence of all its users.
+	 *
+	 * @throws SecurityException when the caller does not own the router
+	 */
+	public Map<String, Object> getRunOfOwnedRouter(String runId, Insight insight, String routerId) {
+		if (!SecurityEngineUtils.userIsOwner(insight.getUser(), routerId)) {
+			throw new SecurityException("Only an owner of router " + routerId + " may read its users' runs");
+		}
+		Map<String, Object> run = AgentRunStore.getRunMapForAutomation(runId);
+		if (run == null || !routerId.equals(run.get("modelId"))) {
+			throw new IllegalArgumentException("No run of router " + routerId + " found for runId=" + runId);
+		}
+		return attachMessages(run, runId, ValueUtils.trimToNull(run.get("userId")));
 	}
 
 	/**

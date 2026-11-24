@@ -1,0 +1,38 @@
+{
+  "mode": "subtask",
+  "sticky": false,
+  "classifier_engine": "<YOUR_CLASSIFIER_MODEL_ENGINE_ID>",
+  "routes": [
+    {
+      "name": "economy",
+      "engine_id": "<YOUR_ECONOMY_MODEL_ENGINE_ID>",
+      "description": "Lower-cost chat model for straightforward requests",
+      "weight": 1
+    },
+    {
+      "name": "strong",
+      "engine_id": "<YOUR_STRONG_MODEL_ENGINE_ID>",
+      "description": "Higher-capability chat model for verification and difficult requests",
+      "weight": 1
+    }
+  ],
+  "strong_route": "strong",
+  "subtasks": [
+    {
+      "id": "respond",
+      "recognition_rules": [
+        "Answer a straightforward request or provide a concise response without complex reasoning."
+      ],
+      "route": "economy"
+    },
+    {
+      "id": "verify",
+      "recognition_rules": [
+        "Check a prior answer, resolve a difficult ambiguity, or verify a multi-step result."
+      ],
+      "route": "strong"
+    }
+  ],
+  "default_subtask": "respond",
+  "version": "quickstart-1"
+}

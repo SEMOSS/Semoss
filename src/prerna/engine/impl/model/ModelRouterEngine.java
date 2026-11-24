@@ -34,6 +34,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,6 +58,7 @@ import com.google.gson.JsonSyntaxException;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IModelRouterEngine;
@@ -67,12 +69,18 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.SystemMessagePart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.engine.impl.model.usage.ModelUsageRequest;
 import prerna.om.Insight;
+import prerna.reactor.agent.skill.Skill;
+import prerna.reactor.agent.skill.SkillProjects;
+import prerna.reactor.model.RouterLearningExamples;
+import prerna.reactor.model.RouterLearningTrigger;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 /**
@@ -97,11 +105,17 @@ import prerna.util.Utility;
  *
  * <pre>
  * {
- *   "mode": "keyword",                 // "keyword" | "llm" | "typesafe" | "weighted"
+ *   "mode": "keyword",                 // "keyword" | "llm" | "typesafe" | "weighted" | "subtask"
  *   "sticky": false,                   // pin a room to its first route (default false)
  *   "default_route": "&lt;engineId&gt;",     // used when no route matches (defaults to route 0)
  *   "fallbacks": ["&lt;engineId&gt;"],       // tried in order when the chosen target fails
- *   "classifier_engine": "&lt;engineId&gt;", // required for "llm" and "typesafe" modes
+ *   "classifier_engine": "&lt;engineId&gt;", // required for "llm", "typesafe" and "subtask" modes
+ *   "subtasks": [ { "id": "edit", "recognition_rules": ["..."], "route": "code", // a routes[].name
+ *                   "skill_id": "&lt;skill project id&gt;" } ],                     // "subtask" mode
+ *   "default_subtask": "edit", "version": "2026-11-09.1", // "subtask" mode
+ *   "strong_route": "code",   // optional, "subtask" mode: the route reference runs use; else the highest-priced route
+ *   "improvement": { "enabled": false, "paused": false, "min_new_tasks": 100,      // self-improving router
+ *                    "max_quality_loss": 0.0 },
  *   "embeddings_engine": "&lt;engineId&gt;", // required for the router to serve embeddings
  *   "routes": [
  *     { "name": "code", "engine_id": "aa876e7e-...", "keywords": ["java", "python", "debug"],
@@ -126,6 +140,15 @@ import prerna.util.Utility;
  * <li><b>weighted</b>: Deterministic weighted round-robin is applied across
  * routes whose weight is greater than zero. For example, weights of 30 and 70
  * produce an exact 30/70 split during each cycle.</li>
+ * <li><b>subtask</b>: for agents. The classifier chat model picks one of the configured {@code subtasks}
+ * from the latest user request in the provider context, the previous subtask and the latest tool-result names and
+ * statuses, all derived from the active room branch (see
+ * {@link RouterSubtaskPolicy}). The request goes to that subtask's {@code route} through the same fallbacks,
+ * access checks and usage limits as any other mode. The SKILL.md of {@code skill_id} is added as a system part
+ * to a copy of that dispatch only, never to the room. A failed classification keeps the previous subtask, else
+ * {@code default_subtask}. The routing trace gains {@code subtask_id}, {@code skill_id}, {@code config_version}
+ * and {@code classifier_inputs}; {@code skill_guidance_status} reports whether guidance was attached to the dispatch
+ * or, if not, why (not configured, access denied, empty or missing, or unavailable).</li>
  * </ul>
  *
  * <h3>Sticky routing</h3>
@@ -141,6 +164,12 @@ import prerna.util.Utility;
  * Tool results are never routed on: whatever the sticky setting, a tool-result
  * continuation goes to the engine that served the room last, so one agent turn
  * stays on one model.
+ * </p>
+ *
+ * <p>
+ * Precedence in {@code subtask} mode: the engine pin is not used, so a tool-result continuation is classified
+ * like any other step, and {@code sticky} pins the room's subtask instead (a pinned subtask whose route the
+ * caller cannot use is classified again).
  * </p>
  *
  * <p>
@@ -233,6 +262,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	private static final String MODE_LLM = "llm";
 	private static final String MODE_TYPESAFE = "typesafe";
 	private static final String MODE_WEIGHTED = "weighted";
+	private static final String MODE_SUBTASK = "subtask";
 
 	private static final String MESSAGE_JSON = "message_json";
 
@@ -269,6 +299,10 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	private volatile String classifierEngineId;
 	private volatile String embeddingsEngineId;
 	private volatile int totalWeight = 0;
+	/** Set only in subtask mode. */
+	private volatile RouterSubtaskPolicy subtaskPolicy;
+	/** The learning section of the config; learning starts by volume, see {@link prerna.reactor.model.RouterLearningTrigger}. */
+	private volatile Improvement improvement;
 	/**
 	 * Round-robin counter for weighted mode - increments on every weighted call.
 	 */
@@ -436,8 +470,28 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			writer.write(json);
 		}
 		applyConfig(cfg);
+		mirrorToSmss(json);
 		classLogger.info("ModelRouterEngine '{}' config updated: {} route(s), mode={}, sticky={}", this.engineId,
 				this.routes.size(), this.routingMode, this.sticky);
+	}
+
+	/**
+	 * Keeps the {@value #ROUTER_CONFIG_JSON} line of the smss file equal to the config file, so the smss of a router
+	 * that is shared or recreated on its own never carries an outdated setup. The config file stays the source of
+	 * truth; a failed mirror is logged and does not undo the update.
+	 */
+	private void mirrorToSmss(String json) {
+		String smssPath = getSmssFilePath();
+		if (smssPath == null || !new File(smssPath).isFile()) {
+			return;
+		}
+		try {
+			String compact = com.google.gson.JsonParser.parseString(json).toString();
+			InternalUtility.changePropertiesFileValue(smssPath, ROUTER_CONFIG_JSON, compact);
+			this.smssProp.setProperty(ROUTER_CONFIG_JSON, compact);
+		} catch (IOException | RuntimeException e) {
+			classLogger.warn("ModelRouterEngine '{}' could not mirror the config into its smss: {}", this.engineId, e.getMessage());
+		}
 	}
 
 	/**
@@ -465,9 +519,10 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		}
 
 		String mode = resolvedMode(cfg);
-		if (!MODE_KEYWORD.equals(mode) && !isClassificationMode(mode) && !MODE_WEIGHTED.equals(mode)) {
+		if (!MODE_KEYWORD.equals(mode) && !isClassificationMode(mode) && !MODE_WEIGHTED.equals(mode)
+				&& !MODE_SUBTASK.equals(mode)) {
 			throw new IllegalArgumentException("ModelRouterEngine: unknown mode '" + mode + "' in " + configName
-					+ ". Valid modes are: " + MODE_KEYWORD + ", " + MODE_LLM + ", " + MODE_TYPESAFE + ", " + MODE_WEIGHTED);
+					+ ". Valid modes are: " + MODE_KEYWORD + ", " + MODE_LLM + ", " + MODE_TYPESAFE + ", " + MODE_WEIGHTED + ", " + MODE_SUBTASK);
 		}
 
 		Set<String> seenNames = new HashSet<>();
@@ -495,7 +550,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			}
 		}
 
-		if (isClassificationMode(mode) && trimOrNull(cfg.classifier_engine) == null) {
+		if ((isClassificationMode(mode) || MODE_SUBTASK.equals(mode)) && trimOrNull(cfg.classifier_engine) == null) {
 			throw new IllegalArgumentException(
 					"ModelRouterEngine: classification mode requires classifier_engine in " + configName);
 		}
@@ -510,6 +565,19 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			classLogger.warn(
 					"ModelRouterEngine ({}): mode is 'keyword' but no route defines keywords - every request will use the default route",
 					configName);
+		}
+
+		if (MODE_SUBTASK.equals(mode)) {
+			List<String> routeNames = new ArrayList<>();
+			for (int i = 0; i < cfg.routes.size(); i++) {
+				routeNames.add(resolvedRouteName(cfg.routes.get(i), i));
+			}
+			cfg.subtaskPolicy = RouterSubtaskPolicy.parse(cfg.subtasks, cfg.default_subtask, cfg.version, routeNames,
+					configName);
+		}
+
+		if (cfg.improvement != null) {
+			cfg.improvement.validate(configName, MODE_SUBTASK.equals(mode));
 		}
 
 		rejectSelfReference(trimOrNull(cfg.default_route), "default_route", configName, routerEngineId);
@@ -564,6 +632,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		this.classifierEngineId = trimOrNull(cfg.classifier_engine);
 		this.embeddingsEngineId = trimOrNull(cfg.embeddings_engine);
 		this.totalWeight = newTotalWeight;
+		this.subtaskPolicy = cfg.subtaskPolicy;
+		this.improvement = cfg.improvement;
 
 		this.rrCounter.set(0);
 		this.roomRoutePins.clear();
@@ -620,6 +690,107 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		String classifier_engine;
 		String embeddings_engine;
 		List<RouteConfig> routes;
+		List<RouterSubtaskPolicy.Subtask> subtasks;
+		String default_subtask;
+		String version;
+		Improvement improvement;
+		/** Built by validation in subtask mode; not part of the JSON. */
+		transient RouterSubtaskPolicy subtaskPolicy;
+
+		public Improvement improvement() {
+			return improvement;
+		}
+
+		/** The validated subtask policy; null outside subtask mode. */
+		public RouterSubtaskPolicy subtaskPolicy() {
+			return subtaskPolicy;
+		}
+	}
+
+	/**
+	 * The {@code improvement} section of a router.json: whether the router learns on its own and the one policy choice,
+	 * how much quality the admin would trade for savings. Absent means learning is off.
+	 */
+	public static class Improvement {
+		public static final String SCHEDULER_JOB_ID = "scheduler_job_id";
+		public String scheduler_job_id;
+		public Boolean enabled;
+		public Boolean paused;
+		/** Chat model of the optimizer agent and its judge; set by the learning switch. */
+		public String optimizer_model;
+		/** New runs of the router since the last learning attempt that start a learning check. */
+		public int min_new_tasks = 100;
+		/** Maximum observed paired quality loss (0-1 agreement with the strongest route) a cheaper version may accept. */
+		public double max_quality_loss = 0.0;
+		public ReplaySettings replay;
+
+		public ReplaySettings replaySettings() {
+			return replay == null ? new ReplaySettings() : replay;
+		}
+
+		/** Learning is on and not paused by a rollback. */
+		public boolean active() {
+			return Boolean.TRUE.equals(enabled) && !Boolean.TRUE.equals(paused);
+		}
+
+		void validate(String configName, boolean subtaskMode) {
+			if (min_new_tasks < 0 || max_quality_loss < 0 || max_quality_loss > 1) {
+				throw new IllegalArgumentException("ModelRouterEngine: improvement in " + configName
+						+ " needs min_new_tasks >= 0 and max_quality_loss in [0,1]");
+			}
+			if (Boolean.TRUE.equals(enabled) && !subtaskMode) {
+				throw new IllegalArgumentException("ModelRouterEngine: improvement.enabled requires mode 'subtask' in " + configName);
+			}
+			if (replay != null) {
+				replay.validate();
+			}
+		}
+	}
+
+	/** Limits for one router learning attempt, set by the admin. */
+	public static class ReplaySettings {
+		public static final int DEFAULT_VALIDATION_TASKS = 20;
+		public int history_days = 30;
+		public int max_runs = 1000;
+		public int min_train_tasks = 10;
+		public int max_train_tasks = 30;
+		public int validation_tasks = DEFAULT_VALIDATION_TASKS;
+		public int max_snapshot_bytes = 5 << 20;
+		public int evaluation_budget_micros = 30_000_000;
+		public int repeats = 2;
+		public int parallel_runs = 4;
+		public int max_turns = 25;
+		public int run_timeout_seconds = 15 * 60;
+
+		void validate() {
+			bound("history_days", history_days, 1, 365);
+			bound("min_train_tasks", min_train_tasks, 1, 100);
+			bound("max_train_tasks", max_train_tasks, min_train_tasks, 100);
+			bound("validation_tasks", validation_tasks, DEFAULT_VALIDATION_TASKS, 100);
+			bound("max_runs", max_runs, min_train_tasks + validation_tasks, 10_000);
+			bound("max_snapshot_bytes", max_snapshot_bytes, 0, 20 << 20);
+			bound("evaluation_budget_micros", evaluation_budget_micros, 1, Integer.MAX_VALUE);
+			bound("repeats", repeats, 1, 5);
+			bound("parallel_runs", parallel_runs, 1, 8);
+			bound("max_turns", max_turns, 1, 100);
+			bound("run_timeout_seconds", run_timeout_seconds, 1, 3600);
+		}
+
+		private static void bound(String key, int value, int min, int max) {
+			if (value < min || value > max) {
+				throw new IllegalArgumentException("improvement.replay." + key + " must be between " + min + " and " + max);
+			}
+		}
+	}
+
+	/** Hex sha-256 of the text's UTF-8 bytes. */
+	public static String sha256(String text) {
+		try {
+			return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256")
+					.digest(text.getBytes(StandardCharsets.UTF_8)));
+		} catch (java.security.NoSuchAlgorithmException e) {
+			throw new IllegalStateException(e);
+		}
 	}
 
 	public static class RouteConfig {
@@ -682,7 +853,16 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		trace.put("classifier_status", "not_used");
 		String primaryEngineId = null;
 		boolean toolContinuation = inputMessage.hasToolResultPart();
-		if ((this.sticky || toolContinuation) && roomId != null) {
+		RouterSubtaskPolicy policy = this.subtaskPolicy;
+		InputMessage dispatchMessage = inputMessage;
+		if (policy != null) {
+			RouterSubtaskPolicy.Subtask subtask = selectSubtask(policy, inputMessage, room, user, trace);
+			Route subtaskRoute = routeByName(subtask.route());
+			primaryEngineId = subtaskRoute.engineId;
+			trace.put("selected_route_name", subtaskRoute.name);
+			dispatchMessage = withGuidance(subtask, inputMessage, user, trace);
+		}
+		if (policy == null && (this.sticky || toolContinuation) && roomId != null) {
 			String pinned = roomRoutePins.get(roomId);
 			if (pinned != null && userCanUseTarget(user, pinned)) {
 				primaryEngineId = pinned;
@@ -735,11 +915,11 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 					candidateId);
 			try {
 				if (targetEngine instanceof AbstractModelEngine targetModel) {
-					targetModel.validateInputModalities(room.getMessages(), inputMessage);
+					targetModel.validateInputModalities(room.getMessages(), dispatchMessage);
 				}
 
 				Map<String, Object> params = hyperParameters != null ? new HashMap<>(hyperParameters) : new HashMap<>();
-				AskModelEngineResponse response = targetEngine.askRoom(inputMessage, room, params);
+				AskModelEngineResponse response = targetEngine.askRoom(dispatchMessage, room, params);
 
 				if (roomId != null) {
 					roomRoutePins.put(roomId, candidateId);
@@ -1022,6 +1202,112 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		return images;
 	}
 
+	// -------------------------------------------------------------------------
+	// Subtask mode
+	// -------------------------------------------------------------------------
+
+	private Route routeByName(String name) {
+		for (Route route : this.routes) {
+			if (route.name.equalsIgnoreCase(name)) {
+				return route;
+			}
+		}
+		throw new IllegalStateException("ModelRouterEngine: no route named " + name);
+	}
+
+	/** The pinned subtask when sticky, else the classifier's choice, else the previous subtask, else the default. */
+	private RouterSubtaskPolicy.Subtask selectSubtask(RouterSubtaskPolicy policy, InputMessage inputMessage, Room room,
+			User user, Map<String, Object> trace) {
+		List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(), inputMessage);
+		List<AbstractMessage> context = RoomMessageStore.providerContext(branch);
+		String goal = policy.goalOf(context);
+		String previous = RouterSubtaskPolicy.previousSubtaskOf(context);
+		if (previous == null && this.improvement != null && this.improvement.active()
+				&& (context == branch || RouterSubtaskPolicy.previousSubtaskOf(branch) == null)) {
+			// the first routed call of a task: lets the router start learning once enough new tasks are in, and keeps the
+			// files the task starts with, so this task can be rerun later
+			RouterLearningTrigger.taskStarted(this.engineId, this.improvement);
+			RouterLearningExamples.snapshotBaseline(room, this.improvement.replaySettings().max_snapshot_bytes);
+		}
+		List<String> steps = policy.recentStepsOf(context);
+		Map<String, Object> inputs = new LinkedHashMap<>();
+		inputs.put("goal", goal);
+		inputs.put("previous_subtask", previous);
+		inputs.put("recent_steps", steps);
+		trace.put("classifier_inputs", inputs);
+		trace.put("config_version", policy.version());
+
+		RouterSubtaskPolicy.Subtask previousSubtask = policy.find(previous);
+		RouterSubtaskPolicy.Subtask chosen = null;
+		if (this.sticky && previousSubtask != null && userCanUseTarget(user, routeByName(previousSubtask.route()).engineId)) {
+			chosen = previousSubtask;
+			trace.put("selection_source", "sticky_subtask");
+			trace.put("classifier_status", "skipped_sticky");
+		} else {
+			trace.put("classifier_engine_id", this.classifierEngineId);
+			try {
+				IModelEngine classifier = resolveEngine(this.classifierEngineId);
+				if (classifier instanceof ITypeSafeEngine) {
+					throw new IllegalArgumentException("Subtask mode needs a chat classifier engine");
+				}
+				chosen = policy.parseChoice(
+						askChatClassifier(classifier, policy.classifierPrompt(goal, previous, steps), room, trace));
+				trace.put("classifier_status", chosen == null ? "invalid_choice" : "success");
+			} catch (Exception e) {
+				trace.put("classifier_status", "error");
+				classLogger.error("ModelRouterEngine '{}' trace={}: subtask classification failed", this.engineId,
+						trace.get("trace_id"), e);
+			}
+			trace.put("selection_source", chosen != null ? "classifier"
+					: previousSubtask != null ? "previous_subtask" : "default_subtask");
+			if (chosen == null) {
+				chosen = previousSubtask != null ? previousSubtask : policy.defaultSubtask();
+			}
+		}
+		trace.put("subtask_id", chosen.id());
+		trace.put("skill_id", chosen.skillId());
+		return chosen;
+	}
+
+	/** A copy of the message with the subtask's skill text as one more system part, so the room is never changed. */
+	private InputMessage withGuidance(RouterSubtaskPolicy.Subtask subtask, InputMessage inputMessage, User user,
+			Map<String, Object> trace) {
+		String skillId = subtask.skillId();
+		if (skillId == null) {
+			trace.put("skill_guidance_status", "not_configured");
+			return inputMessage;
+		}
+		try {
+			if (user != null && !SecurityProjectUtils.userCanViewProject(user, skillId)) {
+				trace.put("skill_guidance_status", "access_denied");
+				return inputMessage;
+			}
+			String raw = readSkillContent(skillId);
+			String body = raw == null ? "" : Skill.stripFrontmatter(raw).trim();
+			if (body.isEmpty()) {
+				trace.put("skill_guidance_status", "empty_or_missing");
+				return inputMessage;
+			}
+			InputMessage copy = MessageUtils.deepCopy(inputMessage);
+			String dispatchedGuidance = body.length() > 8000 ? body.substring(0, 8000) + "..." : body;
+			copy.addPart(new SystemMessagePart("Guidance for the current subtask '" + subtask.id() + "':\n"
+					+ dispatchedGuidance));
+			trace.put("skill_guidance_sha256", sha256(dispatchedGuidance));
+			trace.put("skill_guidance_status", "attached_to_dispatch");
+			return copy;
+		} catch (Exception e) {
+			trace.put("skill_guidance_status", "unavailable");
+			classLogger.warn("ModelRouterEngine '{}': no guidance for subtask {}: {}", this.engineId, subtask.id(), e.getMessage());
+			return inputMessage;
+		}
+	}
+
+	/** The raw SKILL.md of a native skill project, read-only; null when the skill has none. */
+	protected String readSkillContent(String skillId) throws IOException {
+		Path dir = SkillProjects.resolveSkillDir(skillId);
+		return dir == null ? null : Files.readString(dir.resolve(Skill.SKILL_FILE), StandardCharsets.UTF_8);
+	}
+
 	/** Retains the existing prompt and chat transport for ordinary LLM classifiers. */
 	private String classifyRouteWithChatModel(IModelEngine classifierEngine, String routingText, Room room,
 			Map<String, Object> trace) {
@@ -1041,6 +1327,12 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				+ "reply with ONLY the single route name that best matches - no explanation, no punctuation, no quotes.\n\n"
 				+ "Available routes:\n" + routeList + "\nUser question: " + routingText + "\n\nRoute name:";
 
+		return askChatClassifier(classifierEngine, classificationPrompt, room, trace);
+	}
+
+	/** Sends a classification prompt to a chat model and returns its reply. */
+	private String askChatClassifier(IModelEngine classifierEngine, String classificationPrompt, Room room,
+			Map<String, Object> trace) {
 		Map<String, Object> request = new LinkedHashMap<>();
 		request.put("prompt", classificationPrompt);
 		if (trace.containsKey("classifier_model")) request.put("model", trace.get("classifier_model"));

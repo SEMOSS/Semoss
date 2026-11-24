@@ -64,6 +64,7 @@ import prerna.reactor.agent.skill.SkillStager;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
+import prerna.reactor.model.RouterReplayWorkspace;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -321,6 +322,7 @@ public final class AgentRunner {
 			// Resolve the shared agent config once for all harnesses.
 			AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
 					maxReflections, explicitWorkspaceId);
+			RouterReplayWorkspace.verifyRun(agentConfig, insight);
 
 			try {
 				reportSkillsNotLoaded(runId, SkillStager.stage(filePath, agentConfig.getSkills(), insight.getUser()));
