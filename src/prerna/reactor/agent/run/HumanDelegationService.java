@@ -65,6 +65,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.io.connector.ConnectorGuards;
 import prerna.notifications.NotificationDbUtils;
 import prerna.notifications.NotificationService;
 import prerna.om.Insight;
@@ -165,8 +166,7 @@ public final class HumanDelegationService {
 		packet.put("responseFormat", responseFormat);
 		packet.put("dueAt", dueAt);
 		if (!sources.isEmpty()) {
-			packet.put("files", copyFiles(sources,
-					Paths.get(Room.roomFolderPath(assigneeRoomId)).resolve(REQUEST_FILES_FOLDER), assigneeRoomId));
+			packet.put("files", copyFiles(sources, assigneeRoomId, REQUEST_FILES_FOLDER));
 		}
 		if (!links.isEmpty()) {
 			packet.put("links", links);
@@ -473,15 +473,16 @@ public final class HumanDelegationService {
 	 */
 	public static List<Map<String, Object>> returnedFiles(String parentRoomId, String childRunId) {
 		List<Map<String, Object>> out = new ArrayList<>();
-		Path roomRoot = Paths.get(Room.roomFolderPath(parentRoomId));
-		Path dir = roomRoot.resolve(FILES_FOLDER).resolve(childRunId);
+		// the run id is a folder name below the room folder; real paths, so a link cannot lead out of the room
+		String relative = FILES_FOLDER + "/" + Utility.requireSafePathSegment(childRunId, "run id");
+		Path dir = ConnectorGuards.resolveWithin(Paths.get(Room.roomFolderPath(parentRoomId)), relative);
 		if (!Files.isDirectory(dir)) {
 			return out;
 		}
 		try (Stream<Path> paths = Files.list(dir)) {
-			paths.filter(Files::isRegularFile).sorted().forEach(path -> {
+			paths.filter(path -> isFileDirectlyIn(dir, path)).sorted().forEach(path -> {
 				Map<String, Object> file = new LinkedHashMap<>();
-				file.put("path", roomRoot.relativize(path).toString().replace('\\', '/'));
+				file.put("path", relative + "/" + path.getFileName());
 				file.put("name", path.getFileName().toString());
 				try {
 					file.put("size", Files.size(path));
@@ -503,17 +504,18 @@ public final class HumanDelegationService {
 		if (assigneeRoomId == null || parentRoomId == null) {
 			throw new IllegalStateException("Unable to find the rooms for this delegation");
 		}
+		Utility.requireSafePathSegment(childRunId, "run id");
 		List<Path> sources = validateFiles(Paths.get(Room.roomFolderPath(assigneeRoomId)), files);
 
 		ClusterUtil.pullRoom(parentRoomId);
-		copyFiles(sources, Paths.get(Room.roomFolderPath(parentRoomId)).resolve(FILES_FOLDER).resolve(childRunId),
-				parentRoomId);
+		copyFiles(sources, parentRoomId, FILES_FOLDER + "/" + childRunId);
 	}
 
-	// Replace target with copies of sources, then push the room; returns paths
-	// relative to the room folder.
-	private static List<String> copyFiles(List<Path> sources, Path target, String roomId) {
-		Path roomRoot = Paths.get(Room.roomFolderPath(roomId));
+	// Replace the folder at relativeTarget (below the room folder) with copies of
+	// sources, then push the room; returns paths relative to the room folder.
+	private static List<String> copyFiles(List<Path> sources, String roomId, String relativeTarget) {
+		// real paths, so nothing outside the room folder (or the room folder itself) is ever cleared or written
+		Path target = ConnectorGuards.resolveWithin(Paths.get(Room.roomFolderPath(roomId)), relativeTarget);
 		List<String> copied = new ArrayList<>();
 		try {
 			// A retry after a failed push starts from a clean folder.
@@ -522,7 +524,7 @@ public final class HumanDelegationService {
 			for (Path source : sources) {
 				Path dest = uniqueTarget(target, source.getFileName().toString());
 				Files.copy(source, dest, StandardCopyOption.COPY_ATTRIBUTES);
-				copied.add(roomRoot.relativize(dest).toString().replace('\\', '/'));
+				copied.add(relativeTarget + "/" + dest.getFileName());
 			}
 		} catch (IOException e) {
 			throw new IllegalStateException("Unable to copy files: " + e.getMessage(), e);
@@ -619,6 +621,15 @@ public final class HumanDelegationService {
 			candidate = dir.resolve(base + "-" + i + ext);
 		}
 		return candidate;
+	}
+
+	// a regular file directly in the folder, also once links are followed
+	private static boolean isFileDirectlyIn(Path dir, Path path) {
+		try {
+			return Files.isRegularFile(path) && dir.toRealPath().equals(path.toRealPath().getParent());
+		} catch (IOException e) {
+			return false;
+		}
 	}
 
 	private static void deleteRecursively(Path path) throws IOException {

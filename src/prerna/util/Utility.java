@@ -1793,6 +1793,26 @@ public final class Utility {
 		return normalizedString;
 	}
 
+	// true when the value (e.g. an id from the DB or a remote API) is one folder/file name: not blank, not . or .., no separator or NUL
+	// checked again after NFKC, since normalizePath applies it and full-width forms can turn into / \ or .
+	public static boolean isSafePathSegment(String value) {
+		return value != null && isSingleName(value) && isSingleName(Normalizer.normalize(value, Form.NFKC));
+	}
+
+	private static boolean isSingleName(String value) {
+		return !value.isBlank() && !".".equals(value) && !"..".equals(value) && value.indexOf('/') < 0
+				&& value.indexOf('\\') < 0 && value.indexOf('\0') < 0;
+	}
+
+	// returns the value, or logs and throws IllegalArgumentException when it is not a single safe name
+	public static String requireSafePathSegment(String value, String what) {
+		if (!isSafePathSegment(value)) {
+			classLogger.warn("Refused {} that is not a single safe folder name: {}", what, cleanLogString(value));
+			throw new IllegalArgumentException("Not a valid " + what);
+		}
+		return value;
+	}
+
 	/**
 	 * Resolves a file inside a folder and returns the real location of the file.
 	 * The file path must be relative to the folder. Both the folder and the file

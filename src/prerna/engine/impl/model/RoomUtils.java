@@ -178,10 +178,9 @@ public final class RoomUtils {
 	}
 
 	private static String resolveRoomId(String roomId, Insight insight) {
-		if (roomId == null || roomId.trim().isEmpty()) {
-			return insight.getInsightId();
-		}
-		return roomId;
+		String resolved = (roomId == null || roomId.trim().isEmpty()) ? insight.getInsightId() : roomId;
+		// the id names the room folder, so refuse it before the room row is inserted
+		return Utility.requireSafePathSegment(resolved, "room id");
 	}
 
 	private static void createRoomRowIfMissing(String roomId, Insight insight, IModelEngine modelEngine,

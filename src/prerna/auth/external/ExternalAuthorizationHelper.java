@@ -96,6 +96,13 @@ public class ExternalAuthorizationHelper {
 				String engineSubType = (String) newE.get("engineSubType");
 				Map<String, Object> properties = null;
 
+				// the id and name make up file and folder names below
+				if (!Utility.isSafePathSegment(engineId) || !Utility.isSafePathSegment(engineName)) {
+					classLogger.warn("Skipping the external engine '{}' ('{}') because its id or name is not a safe file name",
+							Utility.cleanLogString(engineId), Utility.cleanLogString(engineName));
+					continue;
+				}
+
 				// TODO: need to expand on logic for the class to initialize
 				String engineClass = null;
 				if(engineType == IEngine.CATALOG_TYPE.DATABASE) {
@@ -198,9 +205,17 @@ public class ExternalAuthorizationHelper {
 			for (JsonNode detail : parsedJsonNode) {
 				Map<String, Object> permissionMap = new HashMap<>();
 				
-				// these are mandatory
-				permissionMap.put("engineId", detail.path(ENGINEID_KEY).asText());
-				permissionMap.put("engineName", detail.path(ENGINENAME_KEY).asText());
+				// these are mandatory, and become file and folder names
+				String detailEngineId = detail.path(ENGINEID_KEY).asText();
+				String detailEngineName = detail.path(ENGINENAME_KEY).asText();
+				if (!Utility.isSafePathSegment(detailEngineId) || !Utility.isSafePathSegment(detailEngineName)) {
+					classLogger.warn("Ignoring an external engine for user {} whose id or name is not a safe file name: {} ('{}')",
+							User.getSingleLogginName(user), Utility.cleanLogString(detailEngineId),
+							Utility.cleanLogString(detailEngineName));
+					continue;
+				}
+				permissionMap.put("engineId", detailEngineId);
+				permissionMap.put("engineName", detailEngineName);
 				
 				IEngine.CATALOG_TYPE engineType = null;
 				if(ENGINETYPE_KEY != null && !ENGINETYPE_KEY.isEmpty() && detail.has(ENGINETYPE_KEY)) {
