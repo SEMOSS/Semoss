@@ -48,6 +48,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.pipeline.PlatformOperation;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
@@ -94,7 +95,6 @@ public class ExternalAuthorizationHelper {
 				String engineName = (String) newE.get("engineName");
 				IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) newE.get("engineType");
 				String engineSubType = (String) newE.get("engineSubType");
-				Map<String, Object> properties = null;
 
 				// the id and name make up file and folder names below
 				if (!Utility.isSafePathSegment(engineId) || !Utility.isSafePathSegment(engineName)) {
@@ -103,34 +103,48 @@ public class ExternalAuthorizationHelper {
 					continue;
 				}
 
-				// TODO: need to expand on logic for the class to initialize
-				String engineClass = null;
-				if(engineType == IEngine.CATALOG_TYPE.DATABASE) {
-					engineClass = RDBMSNativeEngine.class.getName();
-				
-					properties = new HashMap<>();
-					properties.put(Constants.RDBMS_TYPE, engineSubType);
-					properties.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+engineName+"_OWL.OWL");
+				// one engine that cannot be written (e.g. a name the file system refuses) does not stop the others
+				try {
+					createExternalEngine(engineId, engineName, engineType, engineSubType);
+				} catch (IllegalArgumentException e) {
+					classLogger.warn("Skipping the external engine '{}' ('{}'): {}", Utility.cleanLogString(engineId),
+							Utility.cleanLogString(engineName), Utility.cleanLogString(e.getMessage()));
 				}
-				
-				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
-				InternalUtility.setEngineSmssPath(engineId, tempSmss.getAbsolutePath());
-				File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-				FileUtils.copyFile(tempSmss, smssFile);
-				InternalUtility.setEngineSmssPath(engineId, smssFile.getAbsolutePath());
-				tempSmss.delete();
-				
-				// also make the folder to persist... even if empty
-				String engineFolder = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
-				File eFolder = new File(engineFolder);
-				eFolder.mkdir();
-				
-				ClusterUtil.pushEngine(engineId);
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		}
+	}
+
+	// writes the smss and folder of an engine the external API granted, then pushes it
+	private static void createExternalEngine(String engineId, String engineName, IEngine.CATALOG_TYPE engineType,
+			String engineSubType) throws Exception {
+		Map<String, Object> properties = null;
+		// TODO: need to expand on logic for the class to initialize
+		String engineClass = null;
+		if(engineType == IEngine.CATALOG_TYPE.DATABASE) {
+			engineClass = RDBMSNativeEngine.class.getName();
+
+			properties = new HashMap<>();
+			properties.put(Constants.RDBMS_TYPE, engineSubType);
+			properties.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+engineName+"_OWL.OWL");
+		}
+
+		File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
+		InternalUtility.setEngineSmssPath(engineId, tempSmss.getAbsolutePath());
+		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		FileUtils.copyFile(tempSmss, smssFile);
+		InternalUtility.setEngineSmssPath(engineId, smssFile.getAbsolutePath());
+		tempSmss.delete();
+
+		// also make the folder to persist... even if empty
+		String engineFolder = Utility.childPath(EngineUtility.getLocalEngineBaseDirectory(engineType),
+				SmssUtilities.getUniqueName(engineName, engineId), "engine folder");
+		File eFolder = new File(engineFolder);
+		eFolder.mkdir();
+
+		ClusterUtil.pushEngine(engineId);
 	}
 	
 	/**

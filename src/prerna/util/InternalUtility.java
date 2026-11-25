@@ -1239,13 +1239,13 @@ public final class InternalUtility {
 				// write the properties file or not
 				// return the properties
 				String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
-				File engineDir = new File(
-						Utility.normalizeParam(baseFolder) + File.separator + "engines" + File.separator + engineId);
+				File engineDir = new File(Utility.childPath(
+						Utility.normalizeParam(baseFolder) + File.separator + "engines", engineId, "engine id"));
 				if (!engineDir.exists()) {
 					engineDir.mkdirs();
 				}
 
-				File owlFile = new File(engineDir.getAbsolutePath() + File.separator + engineId + ".owl");
+				File owlFile = new File(Utility.childPath(engineDir.getAbsolutePath(), engineId + ".owl", "engine id"));
 				// engine owlFileName
 				FileUtils.writeStringToFile(owlFile, owl);
 				prop.replace(Constants.OWL, owlFile.getAbsolutePath());
