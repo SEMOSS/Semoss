@@ -42,6 +42,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.security.SecureRandom;
@@ -1817,8 +1818,8 @@ public final class Utility {
 	// unless it is a single safe name whose normalized path is a direct child of the folder
 	public static String childPath(String folder, String name, String what) {
 		requireSafePathSegment(name, what);
-		Path base = Path.of(folder).toAbsolutePath().normalize();
-		Path child = base.resolve(name).normalize();
+		Path base = checkedBaseFolder(folder, what);
+		Path child = base.resolve(checkedPath(name, what)).normalize();
 		if (!child.startsWith(base) || !base.equals(child.getParent())) {
 			classLogger.warn("Refused {} that leaves its folder: {}", what, cleanLogString(name));
 			throw new IllegalArgumentException("Not a valid " + what);
@@ -1835,14 +1836,70 @@ public final class Utility {
 			classLogger.warn("Refused {} that is not a plain relative path: {}", what, cleanLogString(relative));
 			throw new IllegalArgumentException("Not a valid " + what);
 		}
-		Path base = Path.of(folder).toAbsolutePath().normalize();
-		Path rel = Path.of(relative.replace('\\', '/'));
+		Path rel = checkedPath(relative.replace('\\', '/'), what);
+		// real path of the folder, so a link above it compares as it really is
+		Path base = realPathOfExisting(checkedBaseFolder(folder, what));
 		Path target = base.resolve(rel).normalize();
-		if (rel.isAbsolute() || !target.startsWith(base) || target.equals(base)) {
+		if (rel.isAbsolute() || !target.startsWith(base) || target.equals(base) || leavesThroughLink(base, target)) {
 			classLogger.warn("Refused {} that leaves its folder: {}", what, cleanLogString(relative));
 			throw new IllegalArgumentException("Not a valid " + what);
 		}
 		return target.toString();
+	}
+
+	// a blank folder would resolve against the working directory
+	private static Path checkedBaseFolder(String folder, String what) {
+		if (folder == null || folder.isBlank()) {
+			throw new IllegalArgumentException("The folder for the " + what + " must not be blank");
+		}
+		return Path.of(folder).toAbsolutePath().normalize();
+	}
+
+	// characters the file system does not allow (e.g. : on Windows) are logged like any other refused value
+	private static Path checkedPath(String value, String what) {
+		try {
+			return Path.of(value);
+		} catch (InvalidPathException e) {
+			classLogger.warn("Refused {} that is not a valid path: {}", what, cleanLogString(value));
+			throw new IllegalArgumentException("Not a valid " + what, e);
+		}
+	}
+
+	// the real path of the nearest existing part, so a folder that is not created yet still compares true
+	private static Path realPathOfExisting(Path path) {
+		Path existing = path;
+		while (existing != null && !Files.exists(existing)) {
+			existing = existing.getParent();
+		}
+		if (existing == null) {
+			return path;
+		}
+		try {
+			return existing.toRealPath().resolve(existing.relativize(path)).normalize();
+		} catch (IOException e) {
+			throw new IllegalArgumentException("The folder cannot be resolved: " + path, e);
+		}
+	}
+
+	// a link below the folder (or the target itself) must not lead outside it
+	private static boolean leavesThroughLink(Path base, Path target) {
+		Path existing = target;
+		while (existing != null && !Files.exists(existing, LinkOption.NOFOLLOW_LINKS)) {
+			existing = existing.getParent();
+		}
+		if (existing == null) {
+			return true;
+		}
+		if (!existing.startsWith(base)) {
+			// nothing below the folder exists yet
+			return false;
+		}
+		try {
+			return !existing.toRealPath().startsWith(base);
+		} catch (IOException e) {
+			// e.g. a link to nothing
+			return true;
+		}
 	}
 
 	/**

@@ -1259,7 +1259,7 @@ public class MicrosoftOneDriveHelper {
 			File saved = HttpHelperUtility.getRequestFileDownload(url, headers, null, null, null, folder,
 					temp.getName());
 			// only the temp file named above is moved or deleted, never a path the helper hands back
-			if (!temp.getCanonicalFile().equals(saved.getCanonicalFile())) {
+			if (saved == null || !temp.getCanonicalFile().equals(saved.getCanonicalFile())) {
 				throw new IllegalStateException("The download was not saved as " + temp.getName());
 			}
 			long size = temp.length();
