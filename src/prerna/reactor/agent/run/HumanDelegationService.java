@@ -474,7 +474,8 @@ public final class HumanDelegationService {
 	public static List<Map<String, Object>> returnedFiles(String parentRoomId, String childRunId) {
 		List<Map<String, Object>> out = new ArrayList<>();
 		Path roomRoot = Paths.get(Room.roomFolderPath(parentRoomId));
-		Path dir = roomRoot.resolve(FILES_FOLDER).resolve(childRunId);
+		// the run id is a folder name below the room folder
+		Path dir = roomRoot.resolve(FILES_FOLDER).resolve(Utility.requireSafePathSegment(childRunId, "run id"));
 		if (!Files.isDirectory(dir)) {
 			return out;
 		}
@@ -503,6 +504,7 @@ public final class HumanDelegationService {
 		if (assigneeRoomId == null || parentRoomId == null) {
 			throw new IllegalStateException("Unable to find the rooms for this delegation");
 		}
+		Utility.requireSafePathSegment(childRunId, "run id");
 		List<Path> sources = validateFiles(Paths.get(Room.roomFolderPath(assigneeRoomId)), files);
 
 		ClusterUtil.pullRoom(parentRoomId);
@@ -514,6 +516,10 @@ public final class HumanDelegationService {
 	// relative to the room folder.
 	private static List<String> copyFiles(List<Path> sources, Path target, String roomId) {
 		Path roomRoot = Paths.get(Room.roomFolderPath(roomId));
+		// nothing outside the room folder is ever cleared or written
+		if (!target.toAbsolutePath().normalize().startsWith(roomRoot.toAbsolutePath().normalize())) {
+			throw new IllegalArgumentException("The destination is outside the room folder");
+		}
 		List<String> copied = new ArrayList<>();
 		try {
 			// A retry after a failed push starts from a clean folder.
