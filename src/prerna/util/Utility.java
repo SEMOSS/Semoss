@@ -1813,6 +1813,38 @@ public final class Utility {
 		return value;
 	}
 
+	// one name (e.g. an id from the DB or a remote API) under a folder; logs and throws IllegalArgumentException
+	// unless it is a single safe name whose normalized path is a direct child of the folder
+	public static String childPath(String folder, String name, String what) {
+		requireSafePathSegment(name, what);
+		Path base = Path.of(folder).toAbsolutePath().normalize();
+		Path child = base.resolve(name).normalize();
+		if (!child.startsWith(base) || !base.equals(child.getParent())) {
+			classLogger.warn("Refused {} that leaves its folder: {}", what, cleanLogString(name));
+			throw new IllegalArgumentException("Not a valid " + what);
+		}
+		// same string form callers had before (folder + separator + name), from the checked name
+		return folder + File.separator + child.getFileName();
+	}
+
+	// a relative path (sub folders allowed) under a folder; logs and throws IllegalArgumentException when it is
+	// blank, absolute, changes under NFKC or would leave the folder; returns the normalized path
+	public static String pathWithin(String folder, String relative, String what) {
+		if (relative == null || relative.isBlank() || relative.indexOf('\0') >= 0
+				|| !relative.equals(Normalizer.normalize(relative, Form.NFKC))) {
+			classLogger.warn("Refused {} that is not a plain relative path: {}", what, cleanLogString(relative));
+			throw new IllegalArgumentException("Not a valid " + what);
+		}
+		Path base = Path.of(folder).toAbsolutePath().normalize();
+		Path rel = Path.of(relative.replace('\\', '/'));
+		Path target = base.resolve(rel).normalize();
+		if (rel.isAbsolute() || !target.startsWith(base) || target.equals(base)) {
+			classLogger.warn("Refused {} that leaves its folder: {}", what, cleanLogString(relative));
+			throw new IllegalArgumentException("Not a valid " + what);
+		}
+		return target.toString();
+	}
+
 	/**
 	 * Resolves a file inside a folder and returns the real location of the file.
 	 * The file path must be relative to the folder. Both the folder and the file

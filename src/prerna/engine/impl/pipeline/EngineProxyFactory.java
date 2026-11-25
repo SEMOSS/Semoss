@@ -51,6 +51,7 @@ import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.project.api.IProject;
 import prerna.util.EngineUtility;
+import prerna.util.Utility;
 
 /**
  * Factory for creating a dynamic proxy that wraps an IEngine instance to apply
@@ -89,7 +90,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = pipelineFileOrNull(engine, pipelineValue);
 			}
 		}
 
@@ -124,7 +125,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = pipelineFileOrNull(engine, pipelineValue);
 			}
 		}
 
@@ -157,7 +158,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = pipelineFileOrNull(engine, pipelineValue);
 			}
 		}
 
@@ -185,7 +186,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = pipelineFileOrNull(engine, pipelineValue);
 			}
 		}
 
@@ -221,7 +222,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = pipelineFileOrNull(engine, pipelineValue);
 			}
 		}
 
@@ -244,7 +245,7 @@ public class EngineProxyFactory {
 		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = pipelineFileOrNull(engine, pipelineValue);
 			}
 		}
 
@@ -267,7 +268,7 @@ public class EngineProxyFactory {
 		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = pipelineFileOrNull(engine, pipelineValue);
 			}
 		}
 
@@ -287,7 +288,18 @@ public class EngineProxyFactory {
 	public static File pipelineFile(IEngine engine, String pipelineFileName) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		return new File((assetsFolder + "/" + pipelineFileName.trim()).replace("\\", "/"));
+		// the PIPELINE value is a path inside the assets folder (a leading slash was always ignored)
+		String relative = pipelineFileName.trim().replaceFirst("^[/\\\\]+", "");
+		return new File(Utility.pathWithin(assetsFolder, relative, "pipeline file").replace("\\", "/"));
+	}
+
+	// a PIPELINE value outside the assets folder is logged and the engine loads without a pipeline
+	private static File pipelineFileOrNull(IEngine engine, String pipelineFileName) {
+		try {
+			return pipelineFile(engine, pipelineFileName);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
 
 }

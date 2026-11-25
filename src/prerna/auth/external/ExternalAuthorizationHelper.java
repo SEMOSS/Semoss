@@ -48,6 +48,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.pipeline.PlatformOperation;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
@@ -121,7 +122,8 @@ public class ExternalAuthorizationHelper {
 				tempSmss.delete();
 				
 				// also make the folder to persist... even if empty
-				String engineFolder = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
+				String engineFolder = Utility.childPath(EngineUtility.getLocalEngineBaseDirectory(engineType),
+						SmssUtilities.getUniqueName(engineName, engineId), "engine folder");
 				File eFolder = new File(engineFolder);
 				eFolder.mkdir();
 				

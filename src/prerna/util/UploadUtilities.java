@@ -1540,8 +1540,9 @@ public final class UploadUtilities {
 	 * @return
 	 */
 	private static String getEngineTempSmssLoc(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
-		return EngineUtility.getLocalEngineBaseDirectory(engineType) + "/"
-				+ SmssUtilities.getUniqueName(engineName, engineId) + ".temp";
+		// the id and name come from callers and remote APIs, so the file has to stay in the engine folder
+		return Utility.childPath(EngineUtility.getLocalEngineBaseDirectory(engineType),
+				SmssUtilities.getUniqueName(engineName, engineId) + ".temp", "engine name");
 	}
 
 	/**
