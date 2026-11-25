@@ -46,6 +46,7 @@ import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitDestroyer;
 import prerna.util.git.GitRepoUtils;
@@ -144,7 +145,7 @@ public class DeleteAssetReactor extends AbstractReactor {
 			AuthProvider provider = user.getPrimaryLogin();
 			String userProjectId = user.getAssetProjectId(provider);
 			if (userProjectId != null && !userProjectId.isEmpty()) {
-				IProject userProject = Utility.getUserAssetProject(userProjectId);
+				IProject userProject = InternalUtility.getUserAssetProject(userProjectId);
 				gitVersionFolder = AssetUtility
 						.getUserAssetFolder(userProject.getProjectName(), userProject.getProjectId())
 						.replace("\\", "/");
@@ -174,8 +175,8 @@ public class DeleteAssetReactor extends AbstractReactor {
 		}
 
 		// TODO: consolidate below with above
-		// TODO: create new methods to directly deleteFromStorage instead of an entire
-		// sync
+		// TODO: create new methods to directly deleteFromStorage
+		// instead of an entire sync
 
 		// push to the cloud
 		if (ClusterUtil.IS_CLUSTER) {

@@ -187,7 +187,9 @@ class SandboxBlockedClassesUnitTests {
 			"prerna.engine.impl.pipeline.PlatformOperation", "prerna.engine.impl.pipeline.EngineCallPermission",
 			"prerna.engine.impl.pipeline.AgentRunOperation", "prerna.om.InsightStore",
 			"prerna.util.LocalMasterConceptIdHash", "prerna.util.SystemProjectSeeder",
-			"prerna.util.SystemDatabaseSchemaUtils" })
+			"prerna.util.SystemDatabaseSchemaUtils", "prerna.util.EngineCloneUtility", "prerna.util.InsightsRDBMSUtils",
+			"prerna.util.EngineSyncUtility", "prerna.util.ProjectSyncUtility", "prerna.util.AbstractFileWatcher",
+			"prerna.util.ProjectWatcher", "prerna.util.SMSSWebWatcher", "prerna.util.SMSSNoInitEngineWatcher" })
 	void platformStateAndInternalHelpersAreBlocked(String name) {
 		assertTrue(SemossClassLoader.isReflectionApiBlocked(name));
 	}
