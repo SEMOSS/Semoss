@@ -29,6 +29,7 @@ package prerna.reactor.agent;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,11 +56,13 @@ import prerna.project.api.IProject;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.AgentConfigLoader;
 import prerna.reactor.agent.run.AgentRoomNamer;
+import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.reactor.agent.skill.SkillStager;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
+import prerna.reactor.apptest.AppTestCandidate;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -298,103 +301,143 @@ public final class AgentRunner {
 
 		insight.setRoomForInsight(room);
 
-		AgentRunTarget target = resolveWorkingTarget(room, insight, params, effectiveWorkspaceId);
-		String filePath = target.getWorkingDirectory();
-		if (filePath != null && !filePath.trim().isEmpty()) {
-			params.put(FILE_PATH_PARAM_KEY, filePath);
-		}
-		// Older configuration reads "project"; bridge an explicit project space.
-		if (target.isProject() && ValueUtils.trimToNull(params.get(PARAM_SPACE)) != null) {
-			params.put(PARAM_PROJECT, target.getProjectId());
-		}
-
-		SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
-
-		// Resolve the shared agent config once for all harnesses.
-		AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
-				maxReflections, explicitWorkspaceId);
-
-		try {
-			SkillStager.stage(filePath, agentConfig.getSkills());
-		} catch (Exception e) {
-			logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
-		}
-
-		AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
-				.userId(room.getUserId()).input(input).userText(userText).runId(runId).sandboxPolicy(sandboxPolicy)
-				.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls).spawnDepth(resolveSpawnDepth())
-				.resumeMode(resumeMode).agentTarget(target).agentConfig(agentConfig).build();
-
+		AgentRunTarget liveTarget = resolveWorkingTarget(room, insight, params, effectiveWorkspaceId);
 		IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
-		logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
-		if (hasMediaInput(ctx) && !harness.supportsMediaInput()) {
-			throw new IllegalArgumentException(
-					"RunAgent media input is not supported for harnessType='" + harness.getName() + "'");
-		}
-		if (!resumeMode && ctx.getSpawnDepth() == 0) {
-			AgentRoomNamer.nameRoomAsync(roomId, userText, modelId, room.getUserId(), insight);
-		}
+		AppTestCandidate candidate = liveTarget.isProject() && Constants.AGENT_APP_BUILDER.equals(effectiveWorkspaceId)
+				? AppTestCandidate.open(insight.getUser(), liveTarget.getProjectId(), liveTarget.getGitFolder()) : null;
+		String previousInsightFolder = candidate == null ? null : insight.getInsightFolder();
+		try (candidate) {
+			if (candidate != null && harness.getClass() != SemossAgentHarness.class) {
+				throw new IllegalArgumentException("App candidate changes require the SEMOSS assistant harness");
+			}
+			AgentRunTarget target = candidate == null ? liveTarget : liveTarget.inCandidate(candidate.checkout(), candidate.branch());
+			String filePath = target.getWorkingDirectory();
+			if (filePath != null && !filePath.trim().isEmpty()) {
+				params.put(FILE_PATH_PARAM_KEY, filePath);
+			}
+			// Older configuration reads "project"; bridge an explicit project space.
+			if (target.isProject() && ValueUtils.trimToNull(params.get(PARAM_SPACE)) != null) {
+				params.put(PARAM_PROJECT, target.getProjectId());
+			}
 
-		// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
-		List<IAgentRunHook> hooks = ctx.getAgentConfig().getRunHooks();
-		WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
-		AgentHarnessResult result = null;
+			SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
+
+			// Resolve the shared agent config once for all harnesses.
+			AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
+					maxReflections, explicitWorkspaceId);
+
+			try {
+				SkillStager.stage(filePath, agentConfig.getSkills());
+			} catch (Exception e) {
+				logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);
+			}
+
+			AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
+					.userId(room.getUserId()).input(input).userText(userText).runId(runId).sandboxPolicy(sandboxPolicy)
+					.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls).spawnDepth(resolveSpawnDepth())
+					.resumeMode(resumeMode).agentTarget(target).agentConfig(agentConfig).build();
+
+			logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);
+			if (hasMediaInput(ctx) && !harness.supportsMediaInput()) {
+				throw new IllegalArgumentException(
+						"RunAgent media input is not supported for harnessType='" + harness.getName() + "'");
+			}
+			if (!resumeMode && ctx.getSpawnDepth() == 0) {
+				AgentRoomNamer.nameRoomAsync(roomId, userText, modelId, room.getUserId(), insight);
+			}
+
+			// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
+			List<IAgentRunHook> hooks = candidate == null ? ctx.getAgentConfig().getRunHooks() : List.of();
+			WorkspaceOverlay wsOverlay = applyWorkspaceOverlay(room, explicitWorkspaceId);
+			AgentHarnessResult result = null;
+			try {
+				// Lifecycle: onRoomCreation - observation-only, exceptions swallowed
+				for (IAgentRunHook h : hooks) {
+					try {
+						h.onRoomCreation(ctx);
+					} catch (Exception hookEx) {
+						logger.warn("AgentRunner: onRoomCreation hook {} threw - logging and continuing",
+								h.getClass().getSimpleName(), hookEx);
+					}
+				}
+				// Lifecycle: beforeRun - veto point, exceptions abort the run
+				for (IAgentRunHook h : hooks) {
+					h.beforeRun(ctx);
+				}
+				// Lifecycle: afterAgentInit - observation-only, exceptions swallowed
+				for (IAgentRunHook h : hooks) {
+					try {
+						h.afterAgentInit(ctx);
+					} catch (Exception hookEx) {
+						logger.warn("AgentRunner: afterAgentInit hook {} threw - logging and continuing",
+								h.getClass().getSimpleName(), hookEx);
+					}
+				}
+				result = harness.execute(ctx);
+			} finally {
+				AgentHarnessResult finalResult = result;
+				// Lifecycle: afterRun - observation-only, exceptions swallowed
+				for (IAgentRunHook h : hooks) {
+					try {
+						h.afterRun(ctx, finalResult);
+					} catch (Exception hookEx) {
+						logger.warn("AgentRunner: afterRun hook {} threw - logging and continuing",
+								h.getClass().getSimpleName(), hookEx);
+					}
+				}
+				// Lifecycle: beforeAgentDeInit - last chance before overlay is restored
+				for (IAgentRunHook h : hooks) {
+					try {
+						h.beforeAgentDeInit(ctx, finalResult);
+					} catch (Exception hookEx) {
+						logger.warn("AgentRunner: beforeAgentDeInit hook {} threw - logging and continuing",
+								h.getClass().getSimpleName(), hookEx);
+					}
+				}
+				restoreWorkspaceOverlay(room, wsOverlay);
+				if (ClusterUtil.IS_CLUSTER) {
+					try {
+						target.pushToCluster();
+					} catch (Exception e) {
+						logger.warn("AgentRunner: post-agent target push failed for target={}", target, e);
+					}
+					pushRoomAfterRun(roomId);
+				}
+			}
+
+			if (candidate != null && result != null && result.getCompletionError() == null
+					&& !Thread.currentThread().isInterrupted()) {
+				return finishCandidate(candidate, target, ctx, result);
+			}
+			return result;
+			} finally {
+			if (candidate != null) insight.setInsightFolder(previousInsightFolder);
+		}
+	}
+
+	private static AgentHarnessResult finishCandidate(AppTestCandidate candidate, AgentRunTarget target,
+			AgentRunContext ctx, AgentHarnessResult result) throws Exception {
+		var actor = ctx.getInsight().getUser();
+		String sha = candidate.commit(actor, Path.of(target.getWorkingDirectory()));
+		if (sha == null) return result;
+
+		String note = "Candidate branch `" + candidate.branch() + "` at `" + sha + "`.";
+		String error = null;
 		try {
-			// Lifecycle: onRoomCreation - observation-only, exceptions swallowed
-			for (IAgentRunHook h : hooks) {
-				try {
-					h.onRoomCreation(ctx);
-				} catch (Exception hookEx) {
-					logger.warn("AgentRunner: onRoomCreation hook {} threw - logging and continuing",
-							h.getClass().getSimpleName(), hookEx);
-				}
-			}
-			// Lifecycle: beforeRun - veto point, exceptions abort the run
-			for (IAgentRunHook h : hooks) {
-				h.beforeRun(ctx);
-			}
-			// Lifecycle: afterAgentInit - observation-only, exceptions swallowed
-			for (IAgentRunHook h : hooks) {
-				try {
-					h.afterAgentInit(ctx);
-				} catch (Exception hookEx) {
-					logger.warn("AgentRunner: afterAgentInit hook {} threw - logging and continuing",
-							h.getClass().getSimpleName(), hookEx);
-				}
-			}
-			result = harness.execute(ctx);
-		} finally {
-			AgentHarnessResult finalResult = result;
-			// Lifecycle: afterRun - observation-only, exceptions swallowed
-			for (IAgentRunHook h : hooks) {
-				try {
-					h.afterRun(ctx, finalResult);
-				} catch (Exception hookEx) {
-					logger.warn("AgentRunner: afterRun hook {} threw - logging and continuing",
-							h.getClass().getSimpleName(), hookEx);
-				}
-			}
-			// Lifecycle: beforeAgentDeInit - last chance before overlay is restored
-			for (IAgentRunHook h : hooks) {
-				try {
-					h.beforeAgentDeInit(ctx, finalResult);
-				} catch (Exception hookEx) {
-					logger.warn("AgentRunner: beforeAgentDeInit hook {} threw - logging and continuing",
-							h.getClass().getSimpleName(), hookEx);
-				}
-			}
-			restoreWorkspaceOverlay(room, wsOverlay);
-			if (ClusterUtil.IS_CLUSTER) {
-				try {
-					target.pushToCluster();
-				} catch (Exception e) {
-					logger.warn("AgentRunner: post-agent target push failed for target={}", target, e);
-				}
-				pushRoomAfterRun(roomId);
-			}
+			String testRun = candidate.test(actor, sha);
+			note += " Isolated H2 regression queued as `" + testRun + "`. See Testing history for the result.";
+		} catch (Exception failure) {
+			logger.warn("Could not start candidate regression for project={} commit={}", target.getProjectId(), sha, failure);
+			error = "Could not start the candidate regression. Retry this commit from the Pixel Terminal or check the server log.";
+			note += " " + error;
 		}
-
-		return result;
+		String responseId = result.getFinalOutputMessageId();
+		if (responseId != null) {
+			var response = ctx.getRoom().appendHarnessResponse(note, responseId, ctx.getModelEngine(), ctx.getInsight());
+			responseId = response.getMessageId();
+		}
+		return new AgentHarnessResult(result.getFinalText() + "\n\n" + note, result.getIterations(),
+				result.getToolCallRecords(), result.getReflectionsUsed(), result.getInputMessageId(), responseId, error);
 	}
 
 	/**

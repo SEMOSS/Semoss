@@ -51,10 +51,11 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 	static final String REPEAT = "repeat";
 	static final String RECORDING_IDS = "recordingIds";
 	static final String ALL = "all";
+	static final String CANDIDATE_SHA = "candidateCommitSha";
 
 	public RunAppTestsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO, REPEAT, RECORDING_IDS, ALL };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO, REPEAT, RECORDING_IDS, ALL, CANDIDATE_SHA };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -81,21 +82,37 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 			}
 		}
 
-		final AppTestEnvironment.Definition database;
-        try { database = AppTestEnvironment.definition(requireUser(), projectId); }
-        catch (java.io.IOException failure) { throw new IllegalArgumentException("TEST_DATABASE_SETUP_FAILED: " + failure.getMessage(), failure); }
-        if (database != null && scenario != null && !scenario.isBlank())
-            throw new IllegalArgumentException("Development mock scenarios cannot be combined with an enabled test database");
-        String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName,
-                repeat, getNounAsStringList(RECORDING_IDS), getBoolean(ALL, false), database);
+		String candidateSha = getString(CANDIDATE_SHA);
+		List<String> recordingIds = getNounAsStringList(RECORDING_IDS);
+		boolean all = getBoolean(ALL, false);
+		String runId;
+		try {
+			if (candidateSha != null || this.store.getGenRowStruct(CANDIDATE_SHA) != null) {
+				if (!all || (suite != null && !suite.isBlank()) || (scenario != null && !scenario.isBlank())
+						|| (pages != null && !pages.isEmpty()) || (recordingIds != null && !recordingIds.isEmpty())) {
+					throw new IllegalArgumentException("A candidate run requires all=true for the approved baseline suite");
+				}
+				runId = AppTestCandidate.rerun(requireUser(), projectId, candidateSha, repeat);
+			} else {
+				var database = AppTestEnvironment.definition(requireUser(), projectId);
+				if (database != null && scenario != null && !scenario.isBlank())
+					throw new IllegalArgumentException("Development mock scenarios cannot be combined with an enabled test database");
+				runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName,
+						repeat, recordingIds, all, database);
+			}
+		} catch (java.io.IOException | java.net.URISyntaxException failure) {
+			throw new IllegalArgumentException("TEST_DATABASE_SETUP_FAILED: " + failure.getMessage(), failure);
+		}
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("runId", runId);
 		result.put("target", projectId);
-		result.put("status", AppTestRuns.get(owner, runId).get("status"));
+		var run = AppTestRuns.get(owner, runId);
+		result.put("status", run.get("status"));
 		result.put("scope", AppTestRuns.PLATFORM_SMOKE_SUITE.equals(suite) ? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSIONS");
 		result.put("maxFixAttempts", AppTestRuns.maxFixAttempts());
-        if (database != null) result.put("mode", "ISOLATED_H2");
+		if ("ISOLATED_H2".equals(run.get("mode"))) result.put("mode", "ISOLATED_H2");
+		if (candidateSha != null) result.put(CANDIDATE_SHA, candidateSha);
 		if (repeat > 1) result.put("repeat", repeat);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
@@ -118,6 +135,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 						.list(String.class))
 				.key(RECORDING_IDS, k -> k.list(String.class).description("Explicit recording UUIDs returned by ListAppTestRecordings for this app. Read only selected files. Mutually exclusive with suite and all=true."))
 				.key(ALL, k -> k.type(Boolean.class).description("Set true only for an intentional full regression run of this app. Mutually exclusive with recordingIds and suite; omission never selects all tests."))
+				.key(CANDIDATE_SHA, "Optional exact Git SHA. Requires all=true and an owner-approved baseline, and builds and tests the candidate with isolated H2.")
 				.key(SCENARIO, "Development fixture only, requires APP_TEST_ALLOW_MOCKS=true; never verifies an app.")
 				.key(REPEAT, k -> k.type(Integer.class).description("Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY."))
 				.output(Map.class, "Run id, explicit target, initial status and maximum repair attempts");

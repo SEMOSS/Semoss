@@ -139,29 +139,9 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 					+ projectId + "'], release=true).");
 		}
 
-		Path tempZip = null;
-		Path portalsZip = null;
-
 		try {
-			// 1 - Zip the client folder
-			tempZip = Files.createTempFile("semoss-client-", ".zip");
-			zipDirectory(clientDir, tempZip);
-			classLogger.info("Zipped client ({} bytes) -> {}", Files.size(tempZip), tempZip);
-
-			// 2 - POST to the node builder service
-			String endpoint = endpointBase + "/build" + "?buildCmd=" + URLEncoder.encode(BUILD_CMD, "UTF-8")
-					+ "&outDir=" + URLEncoder.encode(Constants.PORTALS_FOLDER, "UTF-8");
-
-			portalsZip = Files.createTempFile("semoss-portals-", ".zip");
-			postMultipart(endpoint, tempZip, portalsZip);
-			classLogger.info("Received portals zip ({} bytes)", Files.size(portalsZip));
-
-			// 3 - Extract portals zip into the project's asset directory
 			Path portalsDir = projectAssetsDir.resolve(Constants.PORTALS_FOLDER).normalize();
-			deleteDirectory(portalsDir);
-			Files.createDirectories(portalsDir);
-			unzip(portalsZip, portalsDir, Constants.PORTALS_FOLDER);
-			classLogger.info("Extracted portals -> {}", portalsDir);
+			compilePortal(endpointBase, clientDir, portalsDir);
 
 			// 4 - Refuse to publish a build whose asset URLs are absolute. Serving would
 			// 404 every asset and leave a blank page, so stop while the last good portal
@@ -196,13 +176,44 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error("BuildAndPublishApp failed for project {}", projectId, e);
 			return getError(e.getMessage());
+		}
+	}
+
+	/** Build from a server-owned candidate snapshot without releasing any project. */
+	public static void buildCandidatePortal(Path assets) throws IOException, URISyntaxException {
+		Path portals = assets.resolve(Constants.PORTALS_FOLDER);
+		Path client = assets.resolve(CLIENT_DIR);
+		if (Files.isDirectory(client)) {
+			String builder = normalizeBuildServiceUrl(Utility.getDIHelperProperty(NODE_SERVER_ENDPOINT));
+			compilePortal(builder, client, portals);
+		}
+		if (!Files.isRegularFile(portals.resolve(INDEX_HTML))) {
+			throw new IOException("The candidate has no built portal index.html");
+		}
+		if (findAbsoluteAssetUrl(portals) != null) {
+			throw new IOException("The candidate portal uses an absolute asset URL. Build with relative asset paths.");
+		}
+	}
+
+	private static void compilePortal(String endpointBase, Path client, Path portals) throws IOException, URISyntaxException {
+		Path sourceZip = Files.createTempFile("semoss-client-", ".zip");
+		Path portalsZip = null;
+		try {
+			zipDirectory(client, sourceZip);
+			String endpoint = endpointBase + "/build?buildCmd=" + URLEncoder.encode(BUILD_CMD, StandardCharsets.UTF_8)
+					+ "&outDir=" + URLEncoder.encode(Constants.PORTALS_FOLDER, StandardCharsets.UTF_8);
+			portalsZip = Files.createTempFile("semoss-portals-", ".zip");
+			postMultipart(endpoint, sourceZip, portalsZip);
+			deleteDirectory(portals);
+			Files.createDirectories(portals);
+			unzip(portalsZip, portals, Constants.PORTALS_FOLDER);
 		} finally {
-			quietDelete(tempZip);
+			quietDelete(sourceZip);
 			quietDelete(portalsZip);
 		}
 	}
 
-	private void postMultipart(String url, Path zipFile, Path destFile) throws IOException, URISyntaxException {
+	private static void postMultipart(String url, Path zipFile, Path destFile) throws IOException, URISyntaxException {
 		String boundary = "----SemossBuild" + Long.toHexString(System.currentTimeMillis());
 		HttpURLConnection conn = (HttpURLConnection) new URI(url).toURL().openConnection();
 		conn.setRequestMethod("POST");
@@ -234,7 +245,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		}
 	}
 
-	private void zipDirectory(Path dir, Path destZip) throws IOException {
+	private static void zipDirectory(Path dir, Path destZip) throws IOException {
 		try (ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(destZip)))) {
 			try (Stream<Path> stream = Files.walk(dir)) {
 				stream.filter(p -> !Files.isDirectory(p)).forEach(p -> {
@@ -255,7 +266,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 	 * Unzip the portals archive; strips a leading "portals/" prefix if the service
 	 * wraps entries under that folder name.
 	 */
-	private void unzip(Path zipFile, Path destDir, String stripPrefix) throws IOException {
+	private static void unzip(Path zipFile, Path destDir, String stripPrefix) throws IOException {
 		String prefix = stripPrefix.endsWith("/") ? stripPrefix : stripPrefix + "/";
 		try (ZipInputStream zis = new ZipInputStream(new BufferedInputStream(Files.newInputStream(zipFile)))) {
 			ZipEntry entry;
@@ -280,7 +291,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		}
 	}
 
-	private void deleteDirectory(Path dir) throws IOException {
+	private static void deleteDirectory(Path dir) throws IOException {
 		if (!Files.exists(dir)) {
 			return;
 		}
@@ -289,7 +300,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		}
 	}
 
-	private void quietDelete(Path p) {
+	private static void quietDelete(Path p) {
 		if (p != null) {
 			try {
 				Files.deleteIfExists(p);
@@ -309,7 +320,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		return projectId;
 	}
 
-	private String normalizeBuildServiceUrl(String rawUrl) {
+	private static String normalizeBuildServiceUrl(String rawUrl) {
 		if (rawUrl == null || rawUrl.trim().isEmpty()) {
 			throw new IllegalArgumentException("Missing required property in RDF_Map.prop: " + NODE_SERVER_ENDPOINT);
 		}
@@ -338,7 +349,7 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 	 * @return the offending attribute value, or null when there is no index.html,
 	 *         it cannot be read, or all of its asset urls are relative
 	 */
-	private String findAbsoluteAssetUrl(Path portalsDir) {
+	private static String findAbsoluteAssetUrl(Path portalsDir) {
 		Path indexHtml = portalsDir.resolve(INDEX_HTML).normalize();
 		if (!Files.isRegularFile(indexHtml)) {
 			return null;

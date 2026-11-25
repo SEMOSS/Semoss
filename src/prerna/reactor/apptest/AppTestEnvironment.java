@@ -195,7 +195,7 @@ public final class AppTestEnvironment implements AutoCloseable {
         return definition;
     }
 
-    private static void authorize(User actor, Definition definition) {
+    static void authorize(User actor, Definition definition) {
         if (!SecurityEngineUtils.userCanViewEngine(actor, definition.sourceEngineId))
             throw new IllegalArgumentException("You need view access to the source database configured for this app");
         Object[] type = SecurityEngineUtils.getEngineTypeAndSubtype(definition.sourceEngineId);
@@ -212,12 +212,10 @@ public final class AppTestEnvironment implements AutoCloseable {
         if (definition != null) {
             authorize(actor, definition);
             // Prove the fixture is usable before replacing a working configuration.
-            Path scratch = Files.createTempDirectory("semoss-app-test-validate-");
-            try (var ignored = RegressionH2Database.open(scratch, definition.schemaSql, "", definition.seedSql)) {
-                saved.put("sourceEngineId", definition.sourceEngineId);
-                saved.put("schemaSql", definition.schemaSql);
-                saved.put("seedSql", definition.seedSql);
-            } finally { Files.deleteIfExists(scratch); }
+            checkFixture(definition);
+            saved.put("sourceEngineId", definition.sourceEngineId);
+            saved.put("schemaSql", definition.schemaSql);
+            saved.put("seedSql", definition.seedSql);
         } else {
             for (String field : List.of("sourceEngineId", "schemaSql", "seedSql"))
                 if (value.get(field) instanceof String text) saved.put(field, text);
@@ -227,6 +225,15 @@ public final class AppTestEnvironment implements AutoCloseable {
         AppTestRecordings.write(file, saved);
         ClusterUtil.copyLocalFileToEngineCloudFolder(projectId, IEngine.CATALOG_TYPE.PROJECT, file.toString());
         return saved;
+    }
+
+    static void checkFixture(Definition definition) throws IOException, SQLException {
+        Path scratch = Files.createTempDirectory("semoss-app-test-validate-");
+        try (var ignored = RegressionH2Database.open(scratch, definition.schemaSql, "", definition.seedSql)) {
+            // Provision the fixture before accepting the settings or a baseline.
+        } finally {
+            Files.deleteIfExists(scratch);
+        }
     }
 
     static Portal portal(String projectId) throws IOException {

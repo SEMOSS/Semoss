@@ -26,6 +26,39 @@ INSERT INTO TASKS (ID, TITLE, LANE) VALUES ('t2', 'Another test task', 'Backlog'
 
 The schema must reproduce the tables the app needs. This release does not extract or clone a source database automatically. The agent can prepare the fixture through `ManageAppTestDatabase` using the app's known schema and expected test data.
 
+## Test changes from the App Building Agent on a candidate branch
+
+The app owner can enable this workflow for a CODE app on a single SEMOSS server. First save the H2 fixture and record checks in Test Preview. Commit `assets/app-tests/database.json` and the saved tests under `assets/app-tests/tests/` in the app's Git repository. Use the full SHA of the commit you approve as the starting point, including the published app source or static portal.
+
+Run this in the SEMOSS Pixel Terminal as the app owner.
+
+```text
+ManageAppTestDatabase(project=["APP_ID"], action=["approveBaseline"], baselineCommitSha=["APP_COMMIT_SHA"]);
+```
+
+Open the app's workbench and ask the **App Building Agent** to make a change. SEMOSS starts a separate checkout of the approved commit, saves the changes to a new `app-candidate/…` branch, and builds a test-only preview from the candidate SHA. React apps under `assets/client/` use the configured node builder. Static apps use their committed `assets/portals/` files. The replay uses the H2 fixture and recordings from the approved baseline even if the candidate has edited those files.
+
+The assistant's result includes the candidate branch, SHA, and regression run ID. Open **Testing → History** on a saved test for its result. Use the Pixel Terminal to retry the exact commit or fetch its full report.
+
+```text
+RunAppTests(project=["APP_ID"], all=[true], candidateCommitSha=["CANDIDATE_SHA"]);
+GetAppTestRun(runId=["RUN_ID"]);
+```
+
+Each assistant run starts a new candidate from the approved baseline. Candidate runs use checkout-local file tools and sandboxed Chromium for playback. Branch review, merge, and publication are separate actions. SEMOSS removes the temporary checkout and keeps the candidate branch for review, including after a manual merge. The app owner can replace the baseline by approving another commit or turn off candidate runs with `ManageAppTestDatabase(project=["APP_ID"], action=["clearBaseline"]);`.
+
+To verify a candidate, check the branch and SHA reported by the assistant and look for the same `app-candidate/…` branch in **Version Control** or in `ProjectGitBranches(project=["APP_ID"]);`. The branch selector can still show `master` because that is the main checkout. A `master` badge on a commit row means `master` points to that commit. A fast-forward merge can put both branch badges on the same commit.
+
+## Watch a regression replay
+
+Playwright runs headless by default. To open a Chromium window for regression replays, add this setting to the `RDF_Map.prop` loaded by Tomcat and restart Tomcat.
+
+```properties
+APP_TEST_HEADLESS=false
+```
+
+Run a saved test again. The window opens on the desktop of the machine running Tomcat and closes when the run ends. Run Tomcat in a desktop session to see it. The worker needs the matching Playwright Chromium browser installed for visible runs. Set `APP_TEST_HEADLESS=true` to return to headless playback.
+
 ## Implementation
 
 ```mermaid
@@ -46,7 +79,7 @@ flowchart TD
 - The preview injects SDK environment/bootstrap code at runtime; app files remain unchanged. Browser network policy restricts supported requests; background playback also intercepts all requests offline and receives no normal session cookie.
 - `RegressionPixelAccess` parses supported requests and invokes the real Pixel interpreter. A scoped `SqlQueryReactor` hook uses the private JDBC connection before normal engine lookup. Other reactors are never dispatched from this endpoint.
 - The H2 connection has a generated non-admin CRUD identity. The source engine ID acts as a permitted alias; no new managed engine is registered in the database catalog.
-- Background playback uses the existing runner and history writer. Results include fixture and built-portal/public-settings/SDK hashes, rather than claiming a Git commit was tested.
+- Background playback uses the existing runner and history writer. Results include fixture and portal snapshot hashes. Candidate replays also store the exact candidate and baseline commits.
 - Manual previews expire after thirty minutes and are closed on Return/unmount; replay databases close after each attempt. A periodic cleanup task removes expired active previews.
 
 ## Initial limits

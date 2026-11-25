@@ -65,6 +65,7 @@ import prerna.util.Utility;
 final class AppTestRunner {
 	static final long RUN_TIMEOUT_MS = 120_000;
 	private static final double STEP_TIMEOUT_MS = 5_000;
+	static final String HEADLESS_PROP = "APP_TEST_HEADLESS";
 	/** Optional ISO instant the page clock starts at, so date-dependent screens replay the same. */
 	static final String FIXED_TIME_PROP = "APP_TEST_FIXED_TIME";
 	// animations and transitions make an element move or change while a step is acting on it
@@ -75,6 +76,12 @@ final class AppTestRunner {
 			+ " if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add(); })();";
 
 	private AppTestRunner() { }
+
+	static BrowserType.LaunchOptions chromiumOptions(boolean sandbox) {
+		String configured = Utility.getDIHelperProperty(HEADLESS_PROP);
+		boolean headless = configured == null || !"false".equalsIgnoreCase(configured.trim());
+		return new BrowserType.LaunchOptions().setHeadless(headless).setChromiumSandbox(sandbox).setTimeout(30_000);
+	}
 
 	static URI appRoot(String applicationUrl, String projectId) {
 		if (projectId == null || !projectId.matches("[A-Za-z0-9_-]{1,128}")) throw new IllegalArgumentException("Invalid app project id");
@@ -136,6 +143,14 @@ final class AppTestRunner {
             List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat,
             Consumer<Map<String, Object>> progress, String owner, AppTestEnvironment.Definition database,
             AppTestEnvironment.Portal portal) {
+		return run(runId, target, root, sessionId, cookieName, recordings, reportFolder, deadline, repeat, progress,
+				owner, database, portal, Map.of());
+	}
+
+	static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
+			List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat,
+			Consumer<Map<String, Object>> progress, String owner, AppTestEnvironment.Definition database,
+			AppTestEnvironment.Portal portal, Map<String, Object> provenance) {
 		Instant startedAt = Instant.now();
 		List<Map<String, Object>> tests = new ArrayList<>();
 		for (Map<String, Object> recording : recordings) tests.add(pendingTest(recording, "QUEUED"));
@@ -144,7 +159,7 @@ final class AppTestRunner {
 		try {
 			if (System.nanoTime() >= deadline) throw new IllegalStateException("Run expired in queue");
 			try (Playwright playwright = Playwright.create(new Playwright.CreateOptions().setEnv(Map.of("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")));
-					Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setTimeout(30_000))) {
+					Browser browser = playwright.chromium().launch(chromiumOptions(provenance.containsKey("candidateCommitSha")))) {
 				for (int index = 0; index < recordings.size(); index++) {
 					if (System.nanoTime() >= deadline) throw new IllegalStateException("Run exceeded its time limit");
 					Map<String, Object> recording = recordings.get(index);
@@ -164,6 +179,7 @@ final class AppTestRunner {
 		}
 		Map<String, Object> report = report(runId, target, tests);
         if (database != null) report.putAll(Map.of("mode", "ISOLATED_H2", "fixtureHash", database.fixtureHash(), "portalHash", portal.hash()));
+		report.putAll(provenance);
 		report.put("startedAt", startedAt.toString());
 		report.put("durationMs", java.time.Duration.between(startedAt, Instant.now()).toMillis());
 		try {

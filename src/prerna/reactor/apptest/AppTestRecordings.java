@@ -346,19 +346,27 @@ final class AppTestRecordings {
 		try {
 			Map<String, Object> recording = GSON.fromJson(Files.readString(file), new TypeToken<Map<String, Object>>() { }.getType());
 			// Older version-1 recordings predate descriptions; migrate only after validation.
-			if (recording == null) throw new IllegalArgumentException("Missing recording");
-			boolean needsDescription = !recording.containsKey("description");
-			if (needsDescription) recording.put("description", "Replays the recorded workflow: " + recording.get("name") + ".");
-			Map<String, Object> validated = validate(recording);
-			if (!file.getFileName().toString().equals(validated.get("id") + ".json")) {
-				throw new IllegalArgumentException("Recording id must match its filename");
-			}
-			if (recording.get("updatedAt") instanceof String updatedAt) validated.put("updatedAt", updatedAt);
+			boolean needsDescription = recording != null && !recording.containsKey("description");
+			Map<String, Object> validated = validateStored(recording, file.getFileName().toString());
 			if (needsDescription) write(file, validated);
 			return validated;
 		} catch (RuntimeException e) {
 			throw new IOException("Saved recording " + file.getFileName() + " is invalid (" + e.getMessage() + "); review it before running app tests", e);
 		}
+	}
+
+	/** Validate a stored recording from an asset file or from the approved Git tree. */
+	static Map<String, Object> validateStored(Map<String, Object> recording, String filename) {
+		if (recording == null) throw new IllegalArgumentException("Missing recording");
+		if (!recording.containsKey("description")) {
+			recording.put("description", "Replays the recorded workflow: " + recording.get("name") + ".");
+		}
+		Map<String, Object> validated = validate(recording);
+		if (!filename.equals(validated.get("id") + ".json")) {
+			throw new IllegalArgumentException("Recording id must match its filename");
+		}
+		if (recording.get("updatedAt") instanceof String updatedAt) validated.put("updatedAt", updatedAt);
+		return validated;
 	}
 
     /** Malformed filenames are deletable only by explicit basename, and valid tests keep the UUID path. */

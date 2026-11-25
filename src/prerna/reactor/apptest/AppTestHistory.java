@@ -108,7 +108,8 @@ final class AppTestHistory {
     static Map<String, Object> compact(Map<String, Object> original) {
         Map<String, Object> run = new LinkedHashMap<>();
         for (String field : List.of("version", "runId", "target", "status", "startedAt", "finishedAt", "expiresAt",
-                "durationMs", "repeat", "privateReportRunId", "scope", "mode", "fixtureHash", "portalHash", "coverageWarning", "reportWarning")) {
+                "durationMs", "repeat", "privateReportRunId", "scope", "mode", "fixtureHash", "portalHash",
+                "candidateCommitSha", "baselineCommitSha", "candidateBranch", "coverageWarning", "reportWarning")) {
             if (original.containsKey(field)) run.put(field, original.get(field));
         }
         if (original.get("summary") instanceof Map<?, ?> source) {
@@ -280,7 +281,8 @@ final class AppTestHistory {
             }
             if (recordingId != null && matched == null) continue;
             Map<String, Object> summary = new LinkedHashMap<>();
-            for (String field : List.of("runId", "status", "startedAt", "finishedAt", "durationMs", "summary", "mode", "fixtureHash", "portalHash"))
+            for (String field : List.of("runId", "status", "startedAt", "finishedAt", "durationMs", "summary", "mode",
+                    "fixtureHash", "portalHash", "candidateCommitSha", "baselineCommitSha", "candidateBranch"))
                 if (run.containsKey(field)) summary.put(field, run.get(field));
             if (matched != null) summary.put("test", matched);
             summaries.add(summary);

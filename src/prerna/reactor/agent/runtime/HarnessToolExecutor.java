@@ -168,7 +168,8 @@ final class HarnessToolExecutor {
 		// room. Only ask tools become AGENT_RUN_ACTION rows and pause the run.
 		// a routine run has nobody to approve; its ask tools are refused in
 		// executeToolSafely instead
-		List<Map<String, Object>> askToolCalls = CollaborationRunMode.isRoutine(room) ? List.of()
+		List<Map<String, Object>> askToolCalls = CollaborationRunMode.isRoutine(room)
+				|| ctx.getAgentTarget() != null && ctx.getAgentTarget().getCandidateBranch() != null ? List.of()
 				: getAskToolCalls(toolCalls);
 		if (!askToolCalls.isEmpty()) {
 			List<Map<String, Object>> autoToolCalls = new ArrayList<>();
@@ -335,7 +336,8 @@ final class HarnessToolExecutor {
 				currentIter);
 
 		// Pre-tool hooks - observer only; exceptions logged + swallowed.
-		List<IToolHook> toolHooks = ctx.getAgentConfig().getToolHooks();
+		List<IToolHook> toolHooks = ctx.getAgentTarget() != null && ctx.getAgentTarget().getCandidateBranch() != null
+				? List.of() : ctx.getAgentConfig().getToolHooks();
 		fireBeforeTool(toolHooks, ctx, tc, currentIter);
 
 		Map<String, Object> runningPatch = new LinkedHashMap<>();
@@ -349,7 +351,9 @@ final class HarnessToolExecutor {
 		// when this method runs on a worker thread from the parallel-tool pool.
 		ToolExecOutcome outcome;
 		try {
-			if (state.pptxWorkflow() != null && tc.toolCall.containsKey("_pptxBatchError")) {
+			if (ctx.getAgentTarget() != null && !ctx.getAgentTarget().allowsTool(tc.rawToolName)) {
+				outcome = new ToolExecOutcome("Candidate runs use checkout-local file tools. SEMOSS builds and tests the commit after editing.", false);
+			} else if (state.pptxWorkflow() != null && tc.toolCall.containsKey("_pptxBatchError")) {
 				outcome = new ToolExecOutcome(String.valueOf(tc.toolCall.get("_pptxBatchError")), false);
 			} else if (state.pptxWorkflow() != null && PptxEditSession.TOOL.equals(tc.rawToolName)) {
 				outcome = new ToolExecOutcome(state.pptxWorkflow().prepareEdit(tc.toolParams).toString(), true);

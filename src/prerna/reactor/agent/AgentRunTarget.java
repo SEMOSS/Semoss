@@ -27,6 +27,11 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Set;
+
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.util.AssetUtility;
@@ -41,6 +46,9 @@ import prerna.util.AssetUtility;
  * the run specifies a {@code subdir}.
  */
 public final class AgentRunTarget {
+	private static final Set<String> CANDIDATE_TOOLS = Set.of("ReadFile", "WriteFile", "EditFile", "MultiEdit",
+			"MoveFile", "DeleteFile", "GlobFiles", "GrepFiles", "ListDirectory", "TodoRead", "TodoWrite",
+			"ListSkill", "LoadSkill");
 
 	private final String space;
 	private final IProject project;
@@ -49,14 +57,21 @@ public final class AgentRunTarget {
 	/** Root directory itself, or {@code rootDirectory/subdir} after validation. */
 	private final String workingDirectory;
 	private final String gitFolder;
+	private final String candidateBranch;
 
 	private AgentRunTarget(String space, IProject project, String rootDirectory,
 			String workingDirectory, String gitFolder) {
+		this(space, project, rootDirectory, workingDirectory, gitFolder, null);
+	}
+
+	private AgentRunTarget(String space, IProject project, String rootDirectory,
+			String workingDirectory, String gitFolder, String candidateBranch) {
 		this.space = space;
 		this.project = project;
 		this.rootDirectory = rootDirectory;
 		this.workingDirectory = workingDirectory;
 		this.gitFolder = gitFolder;
+		this.candidateBranch = candidateBranch;
 	}
 
 	public static AgentRunTarget insight(String rootDirectory) {
@@ -76,7 +91,23 @@ public final class AgentRunTarget {
 	}
 
 	public AgentRunTarget withWorkingDirectory(String workingDirectory) {
-		return new AgentRunTarget(space, project, rootDirectory, workingDirectory, gitFolder);
+		return new AgentRunTarget(space, project, rootDirectory, workingDirectory, gitFolder, candidateBranch);
+	}
+
+	AgentRunTarget inCandidate(Path checkout, String branch) throws IOException {
+		Path assets = checkout.resolve("assets").toRealPath();
+		Path working = assets.resolve(getWorkingSubdir()).toFile().getCanonicalFile().toPath();
+		if (!assets.startsWith(checkout.toRealPath()) || !working.startsWith(assets)) {
+			throw new IOException("Candidate working directory must be inside the candidate checkout");
+		}
+		Files.createDirectories(working);
+		return new AgentRunTarget(space, project, assets.toString(), working.toString(), checkout.toString(), branch);
+	}
+
+	public String getCandidateBranch() { return candidateBranch; }
+
+	public boolean allowsTool(String name) {
+		return candidateBranch == null || CANDIDATE_TOOLS.contains(name);
 	}
 
 	/**

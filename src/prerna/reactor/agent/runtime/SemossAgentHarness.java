@@ -219,6 +219,10 @@ public class SemossAgentHarness implements IAgentHarness {
 			subAgentTools.addAll(CollaborationAgentTools.definitions(ctx.getRoom(), ctx.getInsight().getUser(),
 					ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH));
 		}
+		if (ctx.getAgentTarget() != null && ctx.getAgentTarget().getCandidateBranch() != null) {
+			defaultAndExplicitTools.removeIf(tool -> !ctx.getAgentTarget().allowsTool(String.valueOf(tool.get("name"))));
+			subAgentTools.clear();
+		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
 		// Register on root only; descendants look up the shared per-tree budget.
@@ -1255,6 +1259,15 @@ public class SemossAgentHarness implements IAgentHarness {
 
 					- Use this exact id for project-scoped Pixel or tool calls that act on the target project.
 					- Do not substitute the room id or another project id for the target project id.\
+					""");
+		}
+		if (ctx != null && ctx.getAgentTarget() != null && ctx.getAgentTarget().getCandidateBranch() != null) {
+			sb.append("\n\n## Candidate checkout\n- You are editing branch ").append(ctx.getAgentTarget().getCandidateBranch());
+			sb.append("""
+
+					- Edit through the checkout-local file tools. SEMOSS commits your changes, builds and queues the approved H2 regressions after you finish.
+					- Publishing and live project tools are unavailable in this run. This runtime instruction takes precedence over build and publish instructions in skills or project files.
+					- Report your edits. SEMOSS adds the candidate commit and test run to the result.
 					""");
 		}
 		sb.append("""

@@ -118,6 +118,20 @@ final class AppTestRuns {
     static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
             String applicationUrl, String sessionId, String cookieName, int repeat, List<String> recordingIds, boolean all,
             AppTestEnvironment.Definition database) {
+        return start(owner, projectId, scenario, suite, pages, applicationUrl, sessionId, cookieName, repeat, recordingIds,
+                all, database, null, null, Map.of());
+    }
+
+    static String startCandidate(String owner, String projectId, int repeat, List<Map<String, Object>> recordings,
+            AppTestEnvironment.Definition database, AppTestEnvironment.Portal portal, Map<String, Object> provenance) {
+        return start(owner, projectId, null, null, null, null, null, null, repeat, null, true, database,
+                recordings, portal, provenance);
+    }
+
+    private static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
+            String applicationUrl, String sessionId, String cookieName, int repeat, List<String> recordingIds, boolean all,
+            AppTestEnvironment.Definition database, List<Map<String, Object>> approvedRecordings,
+            AppTestEnvironment.Portal candidatePortal, Map<String, Object> provenance) {
         int replays = Math.max(1, Math.min(MAX_REPEAT, repeat));
         String runId = UUID.randomUUID().toString();
         Map<String, Object> pending = new LinkedHashMap<>();
@@ -143,7 +157,7 @@ final class AppTestRuns {
         }
         selectedIds(suite, recordingIds, all); // Reject implicit broad runs before accessing project files.
         List<Map<String, Object>> recordings;
-        try { recordings = PLATFORM_SMOKE_SUITE.equals(suite)
+        try { recordings = approvedRecordings != null ? approvedRecordings : PLATFORM_SMOKE_SUITE.equals(suite)
                 ? selectRecordings(List.of(), suite, pages)
                 : loadSelected(AppTestRecordings.folder(projectId), suite, recordingIds, all, pages); }
         catch (IOException e) { throw new IllegalArgumentException("Unable to read app test recordings: " + e.getMessage(), e); }
@@ -163,7 +177,7 @@ final class AppTestRuns {
         if (!ACTIVE_PROJECTS.add(projectId)) throw new IllegalArgumentException("An app test run is already active for this app. Wait for it to finish before starting another shared-data workflow.");
         try {
         AppTestEnvironment.Portal portal;
-        try { portal = database == null ? null : AppTestEnvironment.portal(projectId); }
+        try { portal = database == null ? null : candidatePortal == null ? AppTestEnvironment.portal(projectId) : candidatePortal; }
         catch (IOException failure) { throw new IllegalArgumentException("TEST_PREVIEW_UNAVAILABLE: " + failure.getMessage(), failure); }
         URI root = database == null
                 ? AppTestRunner.appRoot(applicationUrl == null ? Utility.getApplicationUrl() : applicationUrl, projectId)
@@ -176,6 +190,7 @@ final class AppTestRuns {
             pending.put("fixtureHash", database.fixtureHash());
             pending.put("portalHash", portal.hash());
         }
+        pending.putAll(provenance);
         try {
             run.historyFolder = AppTestHistory.folder(projectId);
             String warning = AppTestHistory.publishAt(projectId, run.historyFolder, pending);
@@ -202,7 +217,8 @@ final class AppTestRuns {
             WORKERS.execute(() -> {
                 try {
                 Map<String, Object> result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected,
-                        reportFolder, deadline, replays, progress -> update(run, projectId, pending, progress), owner, database, portal);
+                        reportFolder, deadline, replays, progress -> update(run, projectId, pending, progress), owner, database, portal,
+                        provenance);
                 if (!result.containsKey("reportWarning")) result.put("privateReportRunId", runId);
                 update(run, projectId, pending, result);
                 } catch (RuntimeException | AssertionError failure) {
@@ -233,7 +249,7 @@ final class AppTestRuns {
     /** Store progress independently of the UI lifecycle; failures remain visible on the live result. */
     private static void update(Run run, String projectId, Map<String, Object> initial, Map<String, Object> progress) {
         Map<String, Object> next = new LinkedHashMap<>(progress);
-        for (String field : List.of("mode", "fixtureHash", "portalHash"))
+        for (String field : List.of("mode", "fixtureHash", "portalHash", "candidateCommitSha", "baselineCommitSha", "candidateBranch"))
             if (initial.containsKey(field)) next.put(field, initial.get(field));
         next.put("version", 1);
         next.put("expiresAt", initial.get("expiresAt"));

@@ -93,6 +93,11 @@
           "all": {
             "type": "boolean",
             "description": "Set true only for an intentional full regression run of this app; mutually exclusive with recordingIds and suite. No selection never means all."
+          },
+          "candidateCommitSha": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{40}$",
+            "description": "Optional exact app Git commit. Requires all=true and replays the entire owner-approved suite using isolated H2."
           }
         },
         "required": [

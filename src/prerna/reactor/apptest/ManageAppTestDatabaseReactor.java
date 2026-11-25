@@ -39,8 +39,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /** Configure fixtures and open/close manual previews without changing the application's engine references. */
 public class ManageAppTestDatabaseReactor extends AbstractAppTestReactor {
     public ManageAppTestDatabaseReactor() {
-        this.keysToGet = new String[] { "project", "action", "configuration", "environmentId" };
-        this.keyRequired = new int[] { 1, 0, 0, 0 };
+        this.keysToGet = new String[] { "project", "action", "configuration", "environmentId", "baselineCommitSha" };
+        this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
     }
 
     @Override
@@ -56,6 +56,12 @@ public class ManageAppTestDatabaseReactor extends AbstractAppTestReactor {
                 case "get" -> result = Map.of("target", target, "configuration", AppTestEnvironment.configuration(target));
                 case "save" -> result = Map.of("target", target, "configuration",
                         AppTestEnvironment.save(requireUser(), target, getMap("configuration")));
+                case "approveBaseline" -> {
+                    String sha = getString("baselineCommitSha");
+                    if (sha == null) throw new IllegalArgumentException("Provide the Git SHA for the candidate baseline");
+                    result = AppTestCandidate.approve(requireUser(), target, sha);
+                }
+                case "clearBaseline" -> result = AppTestCandidate.approve(requireUser(), target, null);
                 case "open" -> {
                     var definition = AppTestEnvironment.definition(requireUser(), target);
                     if (definition == null) throw new IllegalArgumentException("Save and enable a test database before opening its preview");
@@ -67,7 +73,7 @@ public class ManageAppTestDatabaseReactor extends AbstractAppTestReactor {
                     AppTestEnvironment.stop(AppTestRuns.ownerOf(requireUser()), target, id);
                     result = Map.of("target", target, "closed", true);
                 }
-                default -> throw new IllegalArgumentException("action must be get, save, open or close");
+                default -> throw new IllegalArgumentException("action must be get, save, open, close, approveBaseline or clearBaseline");
             }
             return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
         } catch (IOException | SQLException failure) {
@@ -80,9 +86,10 @@ public class ManageAppTestDatabaseReactor extends AbstractAppTestReactor {
         return super.getReactorDefinition()
                 .description("Manage an app's isolated H2 test database. Save source engine ID, schema SQL and synthetic seed SQL once; enabled configurations are used automatically by RunAppTests. Open creates a fresh manual recording preview; close destroys it. No source rows are copied and the source database is never queried or changed by these operations. Requires app edit and source engine view access.")
                 .key("project", "Required target app project ID, never the toolbox ID")
-                .key("action", "get (default), save, open, or close. Read configuration before changing it.")
+                .key("action", "get (default), save, open, or close. App owners may approveBaseline or clearBaseline for candidate regressions.")
                 .key("configuration", key -> key.type(Map.class).description("For save: enabled boolean, sourceEngineId string, schemaSql string with simple CREATE TABLE/INDEX, seedSql string with literal INSERTs (may be empty). Use synthetic data, never credentials or production rows. Disabled configurations use ordinary app tests."))
                 .key("environmentId", "For close: the environmentId returned by open, belonging to this app and user")
+                .key("baselineCommitSha", "For approveBaseline: full Git commit SHA containing the approved H2 fixture and saved tests")
                 .output(Map.class, "Target and saved configuration, or temporary previewPath/environmentId/expiry. Preview URLs contain credentials: never save them in tests or repeat them in chat.");
     }
 }

@@ -28,6 +28,7 @@
 package prerna.reactor.apptest;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mockStatic;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -45,6 +46,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import com.sun.net.httpserver.HttpServer;
+
+import prerna.util.Utility;
 
 /** Runs real Chromium against a small authenticated app, without a live SEMOSS database. */
 class AppTestRunnerUnitTests {
@@ -89,6 +92,19 @@ class AppTestRunnerUnitTests {
 
 	@AfterEach
 	void stopServer() { server.stop(0); }
+
+	@Test
+	void rdfHeadlessSettingControlsBrowserVisibilityAndPreservesSandbox() {
+		try (var utility = mockStatic(Utility.class)) {
+			assertEquals(Boolean.TRUE, AppTestRunner.chromiumOptions(false).headless);
+			utility.when(() -> Utility.getDIHelperProperty(AppTestRunner.HEADLESS_PROP)).thenReturn(" false ");
+			var visible = AppTestRunner.chromiumOptions(true);
+			assertEquals(Boolean.FALSE, visible.headless);
+			assertEquals(Boolean.TRUE, visible.chromiumSandbox);
+			utility.when(() -> Utility.getDIHelperProperty(AppTestRunner.HEADLESS_PROP)).thenReturn("true");
+			assertEquals(Boolean.TRUE, AppTestRunner.chromiumOptions(true).headless);
+		}
+	}
 
 	@Test
 	void explicitPlatformSmokeWorksWithoutSavedRecordingsAndReportsLimitedCoverage() {
