@@ -107,6 +107,8 @@ class AppTestContractUnitTests {
 				foundRun = true;
 				assertTrue(tool.getAsJsonObject("inputSchema").getAsJsonObject("properties").has("recordingIds"));
 				assertTrue(tool.getAsJsonObject("inputSchema").getAsJsonObject("properties").has("all"));
+                assertTrue(tool.getAsJsonObject("inputSchema").getAsJsonObject("properties").has("headless"));
+                assertTrue(tool.getAsJsonObject("inputSchema").getAsJsonObject("properties").has("keepOpen"));
 			}
 		}
 		assertTrue(foundGet && foundRun && foundHistoryList && foundHistoryRead);

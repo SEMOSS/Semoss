@@ -51,10 +51,12 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 	static final String REPEAT = "repeat";
 	static final String RECORDING_IDS = "recordingIds";
 	static final String ALL = "all";
+	static final String HEADLESS = "headless";
+	static final String KEEP_OPEN = "keepOpen";
 
 	public RunAppTestsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO, REPEAT, RECORDING_IDS, ALL };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), SUITE, PAGES, SCENARIO, REPEAT, RECORDING_IDS, ALL, HEADLESS, KEEP_OPEN };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -81,13 +83,14 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 			}
 		}
 
+		final AppTestBrowserOptions browserOptions = new AppTestBrowserOptions(getBoolean(HEADLESS, true), getBoolean(KEEP_OPEN, false));
 		final AppTestEnvironment.Definition database;
         try { database = AppTestEnvironment.definition(requireUser(), projectId); }
         catch (java.io.IOException failure) { throw new IllegalArgumentException("TEST_DATABASE_SETUP_FAILED: " + failure.getMessage(), failure); }
         if (database != null && scenario != null && !scenario.isBlank())
             throw new IllegalArgumentException("Development mock scenarios cannot be combined with an enabled test database");
         String runId = AppTestRuns.start(owner, projectId, scenario, suite, pages, null, ThreadStore.getSessionId(), cookieName,
-                repeat, getNounAsStringList(RECORDING_IDS), getBoolean(ALL, false), database);
+                repeat, getNounAsStringList(RECORDING_IDS), getBoolean(ALL, false), database, browserOptions);
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("runId", runId);
@@ -95,6 +98,8 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 		result.put("status", AppTestRuns.get(owner, runId).get("status"));
 		result.put("scope", AppTestRuns.PLATFORM_SMOKE_SUITE.equals(suite) ? "PAGE_VISIBILITY_SMOKE" : "SAVED_WORKFLOW_REGRESSIONS");
 		result.put("maxFixAttempts", AppTestRuns.maxFixAttempts());
+		result.put("headless", browserOptions.headless());
+		result.put("keepOpen", browserOptions.keepOpen());
         if (database != null) result.put("mode", "ISOLATED_H2");
 		if (repeat > 1) result.put("repeat", repeat);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
@@ -119,6 +124,8 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 				.key(RECORDING_IDS, k -> k.list(String.class).description("Explicit recording UUIDs returned by ListAppTestRecordings for this app. Read only selected files. Mutually exclusive with suite and all=true."))
 				.key(ALL, k -> k.type(Boolean.class).description("Set true only for an intentional full regression run of this app. Mutually exclusive with recordingIds and suite; omission never selects all tests."))
 				.key(SCENARIO, "Development fixture only, requires APP_TEST_ALLOW_MOCKS=true; never verifies an app.")
+				.key(HEADLESS, k -> k.type(Boolean.class).description("Default true. Set false to open Chromium on the backend machine desktop, not a remote user browser. Requires an available graphical display and full Chromium installation."))
+				.key(KEEP_OPEN, k -> k.type(Boolean.class).description("Default false; requires headless=false. Retain only the final browser window for up to 60 seconds after results are published, or until it is closed manually. Further app runs wait until inspection ends. Inspection does not change the recorded result."))
 				.key(REPEAT, k -> k.type(Integer.class).description("Optional 1 to 5. Replays each recording this many times in fresh browsers; it passes only if every replay passes, and differing results are reported FLAKY."))
 				.output(Map.class, "Run id, explicit target, initial status and maximum repair attempts");
 	}

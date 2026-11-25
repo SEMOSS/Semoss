@@ -136,6 +136,14 @@ final class AppTestRunner {
             List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat,
             Consumer<Map<String, Object>> progress, String owner, AppTestEnvironment.Definition database,
             AppTestEnvironment.Portal portal) {
+        return run(runId, target, root, sessionId, cookieName, recordings, reportFolder, deadline, repeat, progress,
+                owner, database, portal, AppTestBrowserOptions.DEFAULT);
+    }
+
+    static Map<String, Object> run(String runId, String target, URI root, String sessionId, String cookieName,
+            List<Map<String, Object>> recordings, Path reportFolder, long deadline, int repeat,
+            Consumer<Map<String, Object>> progress, String owner, AppTestEnvironment.Definition database,
+            AppTestEnvironment.Portal portal, AppTestBrowserOptions options) {
 		Instant startedAt = Instant.now();
 		List<Map<String, Object>> tests = new ArrayList<>();
 		for (Map<String, Object> recording : recordings) tests.add(pendingTest(recording, "QUEUED"));
@@ -144,25 +152,46 @@ final class AppTestRunner {
 		try {
 			if (System.nanoTime() >= deadline) throw new IllegalStateException("Run expired in queue");
 			try (Playwright playwright = Playwright.create(new Playwright.CreateOptions().setEnv(Map.of("PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD", "1")));
-					Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true).setTimeout(30_000))) {
+					Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(options.headless()).setTimeout(30_000));
+                    Inspection inspection = new Inspection()) {
 				for (int index = 0; index < recordings.size(); index++) {
 					if (System.nanoTime() >= deadline) throw new IllegalStateException("Run exceeded its time limit");
 					Map<String, Object> recording = recordings.get(index);
 					tests.set(index, pendingTest(recording, "RUNNING"));
 					progress.accept(progressReport(runId, target, tests, startedAt));
-					tests.set(index, replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat, runId, owner, target, database, portal, playwright.request()));
+					tests.set(index, replayRepeated(browser, root, sessionId, cookieName, recording, deadline, repeat, runId, owner, target, database, portal, playwright.request(), options.keepOpen() && index == recordings.size()-1 ? inspection : null));
 					progress.accept(progressReport(runId, target, tests, startedAt));
 				}
+                if (inspection.page != null && !inspection.page.isClosed()) {
+                    Map<String,Object> completed = finishReport(runId, target, tests, startedAt, database, portal, reportFolder, options);
+                    Map<String,Object> viewing = new LinkedHashMap<>(completed);
+                    viewing.put("browserOpen", true);
+                    viewing.put("browserClosesAt", Instant.now().plusMillis(AppTestBrowserOptions.INSPECTION_MS).toString());
+                    progress.accept(viewing);
+                    inspection.awaitClose(AppTestBrowserOptions.INSPECTION_MS);
+                    return completed;
+                }
 			}
 		} catch (RuntimeException | AssertionError e) {
 			for (Map<String, Object> test : tests) if (List.of("QUEUED", "RUNNING").contains(test.get("status"))) {
 				test.put("status", "ERROR");
 				test.put("classification", "ERROR");
 				test.put("finishedAt", Instant.now().toString());
-				test.put("reason", "The runner could not start or finish this test within its time limit. Check browser installation and application URL.");
+				test.put("reason", options.headless()
+                        ? "The runner could not start or finish this test within its time limit. Check browser installation and application URL."
+                        : "Headed Chromium could not start or finish this test. Check that the backend has a graphical desktop and the full Playwright Chromium browser installed, that its window was not closed during playback, and that the application is reachable.");
 			}
 		}
+        return finishReport(runId, target, tests, startedAt, database, portal, reportFolder, options);
+    }
+
+    private static Map<String,Object> finishReport(String runId, String target, List<Map<String,Object>> tests,
+            Instant startedAt, AppTestEnvironment.Definition database, AppTestEnvironment.Portal portal,
+            Path reportFolder, AppTestBrowserOptions options) {
 		Map<String, Object> report = report(runId, target, tests);
+        report.put("headless", options.headless());
+        report.put("keepOpen", options.keepOpen());
+        report.put("browserOpen", false);
         if (database != null) report.putAll(Map.of("mode", "ISOLATED_H2", "fixtureHash", database.fixtureHash(), "portalHash", portal.hash()));
 		report.put("startedAt", startedAt.toString());
 		report.put("durationMs", java.time.Duration.between(startedAt, Instant.now()).toMillis());
@@ -201,7 +230,7 @@ final class AppTestRunner {
 
 	@SuppressWarnings("unchecked")
 	private static Map<String, Object> replay(Browser browser, URI root, String sessionId, String cookieName,
-			Map<String, Object> recording, long deadline, AppTestEnvironment testEnvironment, com.microsoft.playwright.APIRequest requests) {
+			Map<String, Object> recording, long deadline, AppTestEnvironment testEnvironment, com.microsoft.playwright.APIRequest requests, Inspection inspection) {
 		Instant startedAt = Instant.now();
 		Map<String, Object> test = new LinkedHashMap<>();
 		test.put("id", recording.get("id"));
@@ -224,9 +253,10 @@ final class AppTestRunner {
 		AtomicBoolean unauthorized = new AtomicBoolean();
 		AtomicBoolean unsafeNavigation = new AtomicBoolean();
 		AtomicInteger runtimeErrors = new AtomicInteger();
-		try (BrowserContext context = browser.newContext(new Browser.NewContextOptions().setViewportSize(1280, 900)
-				.setDeviceScaleFactor(1.0).setLocale("en-US").setTimezoneId("UTC").setColorScheme(ColorScheme.LIGHT)
-				.setReducedMotion(ReducedMotion.REDUCE).setServiceWorkers(ServiceWorkerPolicy.BLOCK))) {
+        BrowserContext context = browser.newContext(new Browser.NewContextOptions().setViewportSize(1280, 900)
+                .setDeviceScaleFactor(1.0).setLocale("en-US").setTimezoneId("UTC").setColorScheme(ColorScheme.LIGHT)
+                .setReducedMotion(ReducedMotion.REDUCE).setServiceWorkers(ServiceWorkerPolicy.BLOCK));
+        try {
 			context.addInitScript(DISABLE_ANIMATIONS);
 			Instant fixedTime = fixedTime();
 			if (fixedTime != null) context.clock().install(new Clock.InstallOptions().setTime(fixedTime.toString()));
@@ -377,7 +407,14 @@ final class AppTestRunner {
                 cleanupResult.put("stepsAttempted",attempted); cleanupResult.put("stepsCompleted",completed);
                 test.put("cleanup",cleanupResult);
             }
-		}
+            if (inspection != null && !page.isClosed()) {
+                inspection.page = page;
+                inspection.context = context;
+                inspection.environment = testEnvironment;
+            }
+        } finally {
+            if (inspection == null || inspection.context != context) context.close();
+        }
         if (testEnvironment != null && !testEnvironment.diagnostics().isEmpty()) test.put("diagnostics", testEnvironment.diagnostics());
 		test.put("assertionsPassed", completedAssertions);
 		test.put("stepsAttempted", attemptedSteps);
@@ -492,25 +529,52 @@ final class AppTestRunner {
 
     private static Map<String, Object> replayRepeated(Browser browser, URI root, String sessionId, String cookieName,
             Map<String, Object> recording, long deadline, int repeat, String runId, String owner, String target,
-            AppTestEnvironment.Definition database, AppTestEnvironment.Portal portal, com.microsoft.playwright.APIRequest requests) {
+            AppTestEnvironment.Definition database, AppTestEnvironment.Portal portal, com.microsoft.playwright.APIRequest requests, Inspection inspection) {
         List<Map<String, Object>> outcomes = new ArrayList<>();
         for (int i = 0; i < Math.max(1, repeat); i++) {
             var definition = AppTestPlayback.variables(recording, runId, i + 1);
-            if (database == null) outcomes.add(replay(browser, root, sessionId, cookieName, definition, deadline, null, requests));
+            Inspection finalInspection = i == Math.max(1, repeat)-1 ? inspection : null;
+            if (database == null) outcomes.add(replay(browser, root, sessionId, cookieName, definition, deadline, null, requests, finalInspection));
             else {
-                try (AppTestEnvironment environment = AppTestEnvironment.open(owner, target, database, portal, false)) {
-                    outcomes.add(replay(browser, environment.root(root), null, null, definition, deadline, environment, requests));
+                AppTestEnvironment environment = null;
+                try {
+                    environment = AppTestEnvironment.open(owner, target, database, portal, false);
+                    outcomes.add(replay(browser, environment.root(root), null, null, definition, deadline, environment, requests, finalInspection));
                 } catch (java.io.IOException | java.sql.SQLException | RuntimeException failure) {
                     var failed = pendingTest(recording, "ERROR");
                     failed.put("classification", "TEST_DATABASE_SETUP_FAILED");
                     failed.put("reason", "Could not prepare the isolated H2 fixture: " + failure.getMessage());
                     failed.put("finishedAt", Instant.now().toString());
                     outcomes.add(failed);
+                } finally {
+                    if (environment != null && (finalInspection == null || finalInspection.environment != environment)) environment.close();
                 }
             }
             if (System.nanoTime() >= deadline) break;
         }
         return aggregateRepeats(outcomes, Math.max(1, repeat));
+    }
+
+    /** Owns only the final attempt; test outcomes are frozen before this bounded inspection. */
+    static final class Inspection implements AutoCloseable {
+        Page page;
+        BrowserContext context;
+        AppTestEnvironment environment;
+
+        void awaitClose(long maximumMs) {
+            long until = System.nanoTime() + maximumMs * 1_000_000;
+            try {
+                while (!Thread.currentThread().isInterrupted() && !page.isClosed() && System.nanoTime() < until) {
+                    // Pump Playwright events on its owning thread so the window remains responsive.
+                    page.waitForTimeout(Math.min(200, Math.max(1, (until-System.nanoTime())/1_000_000.0)));
+                }
+            } catch (RuntimeException ignored) { /* Closing the inspection window cannot change the completed result. */ }
+        }
+
+        @Override public void close() {
+            try { if (context != null) context.close(); }
+            finally { if (environment != null) environment.close(); }
+        }
     }
 
 	/**

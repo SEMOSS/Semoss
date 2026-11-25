@@ -108,7 +108,7 @@ final class AppTestHistory {
     static Map<String, Object> compact(Map<String, Object> original) {
         Map<String, Object> run = new LinkedHashMap<>();
         for (String field : List.of("version", "runId", "target", "status", "startedAt", "finishedAt", "expiresAt",
-                "durationMs", "repeat", "privateReportRunId", "scope", "mode", "fixtureHash", "portalHash", "coverageWarning", "reportWarning")) {
+                "durationMs", "repeat", "headless", "keepOpen", "privateReportRunId", "scope", "mode", "fixtureHash", "portalHash", "coverageWarning", "reportWarning")) {
             if (original.containsKey(field)) run.put(field, original.get(field));
         }
         if (original.get("summary") instanceof Map<?, ?> source) {

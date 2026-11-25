@@ -118,12 +118,20 @@ final class AppTestRuns {
     static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
             String applicationUrl, String sessionId, String cookieName, int repeat, List<String> recordingIds, boolean all,
             AppTestEnvironment.Definition database) {
+        return start(owner, projectId, scenario, suite, pages, applicationUrl, sessionId, cookieName, repeat, recordingIds, all, database, AppTestBrowserOptions.DEFAULT);
+    }
+
+    static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
+            String applicationUrl, String sessionId, String cookieName, int repeat, List<String> recordingIds, boolean all,
+            AppTestEnvironment.Definition database, AppTestBrowserOptions browserOptions) {
         int replays = Math.max(1, Math.min(MAX_REPEAT, repeat));
         String runId = UUID.randomUUID().toString();
         Map<String, Object> pending = new LinkedHashMap<>();
         pending.put("runId", runId);
         pending.put("target", projectId);
         pending.put("status", "RUNNING");
+        pending.put("headless", browserOptions.headless());
+        pending.put("keepOpen", browserOptions.keepOpen());
         Run run = new Run(owner, pending);
         if (scenario != null && !scenario.isBlank()) {
             if (!Boolean.parseBoolean(Utility.getDIHelperProperty(ALLOW_MOCKS_PROP))) {
@@ -160,7 +168,7 @@ final class AppTestRuns {
         if (database == null && (sessionId == null || sessionId.isBlank())) {
             throw new IllegalArgumentException("A signed-in browser session is required to replay app tests. Run from the app editor after signing in.");
         }
-        if (!ACTIVE_PROJECTS.add(projectId)) throw new IllegalArgumentException("An app test run is already active for this app. Wait for it to finish before starting another shared-data workflow.");
+        if (!ACTIVE_PROJECTS.add(projectId)) throw new IllegalArgumentException("An app test run is already active for this app. Close its inspection window or wait for it to finish before starting another shared-data workflow.");
         try {
         AppTestEnvironment.Portal portal;
         try { portal = database == null ? null : AppTestEnvironment.portal(projectId); }
@@ -200,7 +208,7 @@ final class AppTestRuns {
             WORKERS.execute(() -> {
                 try {
                 Map<String, Object> result = AppTestRunner.run(runId, projectId, root, sessionId, cookieName, selected,
-                        reportFolder, deadline, replays, progress -> update(run, projectId, pending, progress), owner, database, portal);
+                        reportFolder, deadline, replays, progress -> update(run, projectId, pending, progress), owner, database, portal, browserOptions);
                 if (!result.containsKey("reportWarning")) result.put("privateReportRunId", runId);
                 update(run, projectId, pending, result);
                 } catch (RuntimeException | AssertionError failure) {
@@ -231,7 +239,7 @@ final class AppTestRuns {
     /** Store progress independently of the UI lifecycle; failures remain visible on the live result. */
     private static void update(Run run, String projectId, Map<String, Object> initial, Map<String, Object> progress) {
         Map<String, Object> next = new LinkedHashMap<>(progress);
-        for (String field : List.of("mode", "fixtureHash", "portalHash"))
+        for (String field : List.of("mode", "fixtureHash", "portalHash", "headless", "keepOpen"))
             if (initial.containsKey(field)) next.put(field, initial.get(field));
         next.put("version", 1);
         next.put("expiresAt", initial.get("expiresAt"));
@@ -297,7 +305,7 @@ final class AppTestRuns {
     private static void register(String id, Run run) {
         synchronized (RUNS) {
             if (RUNS.size() >= MAX_RUNS) {
-                String terminal = RUNS.entrySet().stream().filter(e -> !List.of("RUNNING", "QUEUED").contains(e.getValue().result.get("status")))
+                String terminal = RUNS.entrySet().stream().filter(e -> !List.of("RUNNING", "QUEUED").contains(e.getValue().result.get("status")) && !Boolean.TRUE.equals(e.getValue().result.get("browserOpen")))
                         .map(Map.Entry::getKey).findFirst().orElse(null);
                 if (terminal == null) throw new IllegalArgumentException("Too many active app test runs");
                 RUNS.remove(terminal);

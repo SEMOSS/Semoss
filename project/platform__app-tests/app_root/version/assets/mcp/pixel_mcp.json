@@ -93,6 +93,14 @@
           "all": {
             "type": "boolean",
             "description": "Set true only for an intentional full regression run of this app; mutually exclusive with recordingIds and suite. No selection never means all."
+          },
+          "headless": {
+            "type": "boolean",
+            "description": "Default true. Set false to open Chromium on the backend machine desktop. Requires an available display and full Playwright Chromium installation."
+          },
+          "keepOpen": {
+            "type": "boolean",
+            "description": "Default false; requires headless=false. Keep only the final window open for up to 60 seconds after testing, or until manually closed. Inspection does not change the result; another app run waits until the window closes."
           }
         },
         "required": [
