@@ -3,6 +3,7 @@ import json
 import mimetypes
 from pydantic import BaseModel
 from ...utils import string_to_bool
+from ..semoss_base.document_input import attached_file_text
 from ..semoss_base.media_types import (
     decode_base64_text,
     is_text_mime_type,
@@ -1173,7 +1174,7 @@ class OpenAIMessageBuilder:
             # as text content while retaining the filename as context.
             text = decode_base64_text(data)
             if media_content.file_name:
-                text = f"Attached file: {media_content.file_name}\n\n{text}"
+                text = attached_file_text(media_content.file_name, text)
             return self._build_text_content_part(text)
 
         mime_type = normalize_text_mime_type(
