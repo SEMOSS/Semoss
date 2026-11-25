@@ -95,9 +95,9 @@ public class ClusterUtil {
 
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
-	// A successful folder refresh covers every resource in that catalog. Keep only
-	// a short, bounded in-memory record so stock-only cards do not each pull it
-	// again.
+	// A successful folder refresh covers every resource in that catalog.
+	// Keep only a short, bounded in-memory record so stock-only cards do not
+	// each pull it again.
 	private static final Cache<String, Boolean> IMAGE_FOLDER_REFRESHES = CacheBuilder.newBuilder().maximumSize(64)
 			.expireAfterWrite(Duration.ofSeconds(30)).build();
 	private static final String SCHEDULER_EXECUTOR_KEY = "SCHEDULER_EXECUTOR";
@@ -186,7 +186,7 @@ public class ClusterUtil {
 	 * @return the central cloud storage client
 	 * @throws Exception if the client cannot be created from the storage settings
 	 */
-	public static ICloudClient getCentralStorageClient() throws Exception {
+	static ICloudClient getCentralStorageClient() throws Exception {
 		return ClusterSyncCloudClient.of(CentralCloudStorage.getInstance());
 	}
 
@@ -197,7 +197,7 @@ public class ClusterUtil {
 	 * @return the active {@link IClusterSynchronizer} for the configured backend
 	 * @throws Exception if no backend is configured or it fails to initialize
 	 */
-	public static IClusterSynchronizer getClusterSynchronizer() throws Exception {
+	static IClusterSynchronizer getClusterSynchronizer() throws Exception {
 		return ClusterSynchronizerFactory.getClusterSynchronizer();
 	}
 

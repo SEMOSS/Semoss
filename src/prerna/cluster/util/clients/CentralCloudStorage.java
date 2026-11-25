@@ -67,10 +67,8 @@ import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
 import prerna.util.ProjectSyncUtility;
-import prerna.util.ProjectWatcher;
-import prerna.util.SMSSNoInitEngineWatcher;
-import prerna.util.SMSSWebWatcher;
 import prerna.util.UploadUtilities;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -453,42 +451,42 @@ public final class CentralCloudStorage implements ICloudClient {
 	public void catalogPulledEngine(String aliasAndEngineId, String localSmssFileName, IEngine.CATALOG_TYPE type) {
 		if (IEngine.CATALOG_TYPE.DATABASE == type) {
 			classLogger.info("Synchronizing the database metadata for {}", aliasAndEngineId);
-			SMSSWebWatcher.catalogEngine(localSmssFileName,
+			InternalUtility.catalogEngine(localSmssFileName,
 					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE));
 			return;
 		} else if (IEngine.CATALOG_TYPE.STORAGE == type) {
 			classLogger.info("Synchronizing the storage metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+			InternalUtility.catalogEngine(localSmssFileName,
 					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.STORAGE));
 			return;
 		} else if (IEngine.CATALOG_TYPE.MODEL == type) {
 			classLogger.info("Synchronizing the model metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+			InternalUtility.catalogEngine(localSmssFileName,
 					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.MODEL));
 			return;
 		} else if (IEngine.CATALOG_TYPE.VECTOR == type) {
 			classLogger.info("Synchronizing the vector metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+			InternalUtility.catalogEngine(localSmssFileName,
 					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.VECTOR));
 			return;
 		} else if (IEngine.CATALOG_TYPE.FUNCTION == type) {
 			classLogger.info("Synchronizing the function metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+			InternalUtility.catalogEngine(localSmssFileName,
 					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.FUNCTION));
 			return;
 		} else if (IEngine.CATALOG_TYPE.GUARDRAIL == type) {
 			classLogger.info("Synchronizing the guardrail metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+			InternalUtility.catalogEngine(localSmssFileName,
 					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.GUARDRAIL));
 			return;
 		} else if (IEngine.CATALOG_TYPE.VENV == type) {
 			classLogger.info("Synchronizing the venv metadata for {}", aliasAndEngineId);
-			SMSSNoInitEngineWatcher.catalogEngine(localSmssFileName,
+			InternalUtility.catalogEngine(localSmssFileName,
 					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.VENV));
 			return;
 		} else if (IEngine.CATALOG_TYPE.PROJECT == type) {
 			classLogger.info("Synchronizing the project for {}", aliasAndEngineId);
-			ProjectWatcher.catalogProject(localSmssFileName,
+			InternalUtility.catalogProject(localSmssFileName,
 					EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT));
 			return;
 		}
@@ -935,8 +933,8 @@ public final class CentralCloudStorage implements ICloudClient {
 
 		File absoluteFolder = new File(localFilePath);
 		if (absoluteFolder.isDirectory()) {
-			// this is adding a hidden file into every sub folder to make sure there is no
-			// empty directory
+			// this is adding a hidden file into every sub folder
+			// to make sure there is no empty directory
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
 			storagePath = localEnginePath.relativize(absoluteFolder.toPath());
 		} else {
@@ -1589,8 +1587,8 @@ public final class CentralCloudStorage implements ICloudClient {
 
 		File absoluteFolder = new File(Utility.normalizePath(localAbsoluteFilePath));
 		if (absoluteFolder.isDirectory()) {
-			// this is adding a hidden file into every sub folder to make sure there is no
-			// empty directory
+			// this is adding a hidden file into every sub folder
+			// to make sure there is no empty directory
 			ClusterUtil.validateFolder(absoluteFolder.getAbsolutePath());
 		}
 
@@ -1599,8 +1597,8 @@ public final class CentralCloudStorage implements ICloudClient {
 			storageProjectFolderPath = storageProjectFolderPath + "/" + storageRelativePath;
 		}
 
-		// adding a lock for now, but there may be times we don't need one and other
-		// times we do
+		// adding a lock for now, but there may be times we don't need one
+		// and other times we do
 		// reaching h2 db from version folder vs static assets in project...
 
 		classLogger.info("Applying lock for project {} to push project relative folder {}", aliasAndProjectId,
@@ -1641,8 +1639,8 @@ public final class CentralCloudStorage implements ICloudClient {
 			storageProjectFolderPath = storageProjectFolderPath + "/" + storageRelativePath;
 		}
 
-		// adding a lock for now, but there may be times we don't need one and other
-		// times we do
+		// adding a lock for now, but there may be times we don't need one
+		// and other times we do
 		// reaching h2 db from version folder vs static assets in project...
 
 		classLogger.info("Applying lock for project {} to pull project relative folder {}", aliasAndProjectId,
@@ -1727,8 +1725,8 @@ public final class CentralCloudStorage implements ICloudClient {
 
 			String storageInsightFolder = PROJECT_CONTAINER_PREFIX + projectId + "/" + Constants.APP_ROOT_FOLDER + "/"
 					+ Constants.VERSION_FOLDER + "/" + insightId;
-			// since extensions might be different, need to actually delete the old file by
-			// name
+			// since extensions might be different, need to actually delete
+			// the old file by name
 			if (oldImageFileName != null) {
 				String storageOldFileToDelete = storageInsightFolder + "/" + oldImageFileName;
 				classLogger.info("Deleting old insight image from remote={}",
@@ -1767,7 +1765,7 @@ public final class CentralCloudStorage implements ICloudClient {
 		IProject project = null;
 		String alias = null;
 		if (projectAlreadyLoaded) {
-			project = Utility.getUserAssetProject(projectId);
+			project = InternalUtility.getUserAssetProject(projectId);
 			if (project == null) {
 				throw new IllegalArgumentException("User asset project not found...");
 			}
@@ -1807,15 +1805,15 @@ public final class CentralCloudStorage implements ICloudClient {
 				// Now pull the smss
 				classLogger.info("Pulling smss from remote={} to target={}", storageSmssFolder,
 						EngineUtility.getUserFolder());
-				// THIS MUST BE COPY AND NOT SYNC TO AVOID DELETING EVERYTHING IN THE USER
-				// FOLDER
+				// THIS MUST BE COPY AND NOT SYNC
+				// TO AVOID DELETING EVERYTHING IN THE USER FOLDER
 				storageCopyToLocal(storageSmssFolder, EngineUtility.getUserFolder());
 				classLogger.debug("Done pulling from remote={} to target={}", storageSmssFolder,
 						EngineUtility.getUserFolder());
 			} finally {
 				// Re-open the project
 				if (projectAlreadyLoaded) {
-					Utility.getUserAssetProject(projectId);
+					InternalUtility.getUserAssetProject(projectId);
 				}
 			}
 		} finally {
@@ -1824,7 +1822,7 @@ public final class CentralCloudStorage implements ICloudClient {
 
 	@Override
 	public void pushUserAsset(String projectId) throws IOException, InterruptedException {
-		IProject project = Utility.getUserAssetProject(projectId);
+		IProject project = InternalUtility.getUserAssetProject(projectId);
 		if (project == null) {
 			throw new IllegalArgumentException("User asset project not found...");
 		}
@@ -1849,7 +1847,7 @@ public final class CentralCloudStorage implements ICloudClient {
 		} finally {
 			try {
 				// Re-open the project
-				Utility.getUserAssetProject(projectId);
+				InternalUtility.getUserAssetProject(projectId);
 			} catch (Exception e) {
 				classLogger.error("Failed to reopen user asset project {} after pushUserAsset.", projectId, e);
 			}
