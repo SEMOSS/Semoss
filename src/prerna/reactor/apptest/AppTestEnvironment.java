@@ -175,6 +175,12 @@ public final class AppTestEnvironment implements AutoCloseable {
         return definition;
     }
 
+    /** Candidate apps always use the restricted preview; no fixture means all database aliases are unavailable. */
+    static Definition candidateDefinition(User actor, String projectId) throws IOException {
+        Definition configured=definition(actor,projectId);
+        return configured!=null?configured:new Definition("__NO_APP_DATABASE__", "CREATE TABLE SEMOSS_PREVIEW_EMPTY (ID INTEGER);", "", hash("no-database-candidate"));
+    }
+
     private static void authorize(User actor, Definition definition) {
         if (!SecurityEngineUtils.userCanViewEngine(actor, definition.sourceEngineId))
             throw new IllegalArgumentException("You need view access to the source database configured for this app");

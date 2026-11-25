@@ -1868,6 +1868,57 @@
         "type": "object",
         "description": "Explicit app target and compact persisted history."
       }
+    },
+    {
+      "name": "ManageAppTestChanges",
+      "description": "Configure optional single-server SEMOSS app chat candidates. Enabled chats edit a private branch, build/test it, and fast-forward the base only after matching workflow coverage passes. Failed candidates resume for the same owner. Read settings before editing them.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "get",
+              "save",
+              "buildLog",
+              "abandon",
+              "testResult"
+            ]
+          },
+          "configuration": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "baseBranch": {
+                "type": "string"
+              },
+              "buildCommand": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "project"
+        ],
+        "additionalProperties": false
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "ManageAppTestChanges",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "inline"
+        }
+      }
     }
   ]
 }

@@ -298,7 +298,12 @@ public final class AgentRunner {
 
 		insight.setRoomForInsight(room);
 
-		AgentRunTarget target = resolveWorkingTarget(room, insight, params, effectiveWorkspaceId);
+        AgentRunTarget originalTarget = resolveWorkingTarget(room, insight, params, effectiveWorkspaceId);
+        try (prerna.reactor.apptest.AppChanges.Session change = prerna.reactor.apptest.AppChanges.begin(originalTarget, insight.getUser(), harnessType)) {
+        String priorInsightFolder=insight.getInsightFolder();
+        try {
+        AgentRunTarget target=change==null?originalTarget:change.target();
+        if(change!=null) input=input+change.instructions();
 		String filePath = target.getWorkingDirectory();
 		if (filePath != null && !filePath.trim().isEmpty()) {
 			params.put(FILE_PATH_PARAM_KEY, filePath);
@@ -394,7 +399,18 @@ public final class AgentRunner {
 			}
 		}
 
+        if(change!=null) {
+            String outcome=change.finish(result);
+            String parent=result==null?null:result.getFinalOutputMessageId();
+            var completion=room.appendHarnessResponse(outcome,parent,modelEngine,insight);
+            result=new AgentHarnessResult((result==null?"":result.getFinalText()+"\n\n")+outcome,
+                    result==null?0:result.getIterations(),result==null?List.of():result.getToolCallRecords(),
+                    result==null?0:result.getReflectionsUsed(),result==null?null:result.getInputMessageId(),completion.getMessageId(),
+                    result==null?null:result.getCompletionError());
+        }
 		return result;
+        } finally { if(change!=null)insight.setInsightFolder(priorInsightFolder); }
+        }
 	}
 
 	/**

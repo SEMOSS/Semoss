@@ -83,6 +83,7 @@ final class AppTestRuns {
     }
 
     private AppTestRuns() { }
+    static boolean active(String project) { return ACTIVE_PROJECTS.contains(project); }
 
     static int maxFixAttempts() {
         String value = Utility.getDIHelperProperty(MAX_FIX_ATTEMPTS_PROP);
@@ -124,6 +125,8 @@ final class AppTestRuns {
     static String start(String owner, String projectId, String scenario, String suite, List<String> pages,
             String applicationUrl, String sessionId, String cookieName, int repeat, List<String> recordingIds, boolean all,
             AppTestEnvironment.Definition database, AppTestBrowserOptions browserOptions) {
+        var candidate=prerna.util.AppChangeScope.current(projectId);
+        if(AppChanges.active(projectId) && candidate==null)throw new IllegalArgumentException("An app candidate is being edited/tested; wait for its merge gate before running normal app tests");
         int replays = Math.max(1, Math.min(MAX_REPEAT, repeat));
         String runId = UUID.randomUUID().toString();
         Map<String, Object> pending = new LinkedHashMap<>();
@@ -132,6 +135,10 @@ final class AppTestRuns {
         pending.put("status", "RUNNING");
         pending.put("headless", browserOptions.headless());
         pending.put("keepOpen", browserOptions.keepOpen());
+        if(candidate!=null) {
+            pending.put("changeId",candidate.changeId);
+            if(candidate.commit!=null)pending.put("candidateCommit",candidate.commit);
+        }
         Run run = new Run(owner, pending);
         if (scenario != null && !scenario.isBlank()) {
             if (!Boolean.parseBoolean(Utility.getDIHelperProperty(ALLOW_MOCKS_PROP))) {
@@ -178,7 +185,7 @@ final class AppTestRuns {
         long deadline = System.nanoTime() + AppTestRunner.RUN_TIMEOUT_MS * replays * 1_000_000;
         pending.putAll(AppTestHistory.pending(runId, projectId, selected, replays, Instant.now()));
         if (database != null) {
-            pending.put("mode", "ISOLATED_H2");
+            pending.put("mode", candidate!=null && "__NO_APP_DATABASE__".equals(database.sourceEngineId()) ? "CANDIDATE_PREVIEW" : "ISOLATED_H2");
             pending.put("fixtureHash", database.fixtureHash());
             pending.put("portalHash", portal.hash());
         }
@@ -239,7 +246,7 @@ final class AppTestRuns {
     /** Store progress independently of the UI lifecycle; failures remain visible on the live result. */
     private static void update(Run run, String projectId, Map<String, Object> initial, Map<String, Object> progress) {
         Map<String, Object> next = new LinkedHashMap<>(progress);
-        for (String field : List.of("mode", "fixtureHash", "portalHash", "headless", "keepOpen"))
+        for (String field : List.of("mode", "fixtureHash", "portalHash", "headless", "keepOpen", "changeId", "candidateCommit"))
             if (initial.containsKey(field)) next.put(field, initial.get(field));
         next.put("version", 1);
         next.put("expiresAt", initial.get("expiresAt"));

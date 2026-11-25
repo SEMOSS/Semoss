@@ -85,7 +85,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 
 		final AppTestBrowserOptions browserOptions = new AppTestBrowserOptions(getBoolean(HEADLESS, true), getBoolean(KEEP_OPEN, false));
 		final AppTestEnvironment.Definition database;
-        try { database = AppTestEnvironment.definition(requireUser(), projectId); }
+        try { database = prerna.util.AppChangeScope.current(projectId)==null ? AppTestEnvironment.definition(requireUser(), projectId) : AppTestEnvironment.candidateDefinition(requireUser(), projectId); }
         catch (java.io.IOException failure) { throw new IllegalArgumentException("TEST_DATABASE_SETUP_FAILED: " + failure.getMessage(), failure); }
         if (database != null && scenario != null && !scenario.isBlank())
             throw new IllegalArgumentException("Development mock scenarios cannot be combined with an enabled test database");
@@ -100,7 +100,7 @@ public class RunAppTestsReactor extends AbstractAppTestReactor {
 		result.put("maxFixAttempts", AppTestRuns.maxFixAttempts());
 		result.put("headless", browserOptions.headless());
 		result.put("keepOpen", browserOptions.keepOpen());
-        if (database != null) result.put("mode", "ISOLATED_H2");
+        if (database != null) result.put("mode", AppTestRuns.get(owner,runId).getOrDefault("mode", "ISOLATED_H2"));
 		if (repeat > 1) result.put("repeat", repeat);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}

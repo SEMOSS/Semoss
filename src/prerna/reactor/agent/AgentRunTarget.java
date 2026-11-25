@@ -75,6 +75,11 @@ public final class AgentRunTarget {
 		return new AgentRunTarget(project.getProjectId(), project, rootDirectory, rootDirectory, gitFolder);
 	}
 
+    /** Preserve the authorized project while routing its run into a server-created candidate. */
+    public AgentRunTarget forCandidate(String assetsDirectory, String candidateGitFolder) {
+        return new AgentRunTarget(space, project, assetsDirectory, assetsDirectory, candidateGitFolder);
+    }
+
 	public AgentRunTarget withWorkingDirectory(String workingDirectory) {
 		return new AgentRunTarget(space, project, rootDirectory, workingDirectory, gitFolder);
 	}

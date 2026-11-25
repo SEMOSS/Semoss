@@ -424,6 +424,9 @@ final class HarnessToolExecutor {
 	 * {@code Room.updateToolResponseMeta()} before this method is called.
 	 */
 	private static List<Map<String, Object>> getAskToolCalls(List<Map<String, Object>> toolCalls) {
+        // Candidate leases cannot be resumed by an out-of-scope approval execution.
+        // These tools receive an ordinary denied result below; they are never executed automatically.
+        if (prerna.util.AppChangeScope.current() != null) return List.of();
 		List<Map<String, Object>> askToolCalls = new ArrayList<>();
 		if (toolCalls == null || toolCalls.isEmpty()) {
 			return askToolCalls;
@@ -543,6 +546,8 @@ final class HarnessToolExecutor {
 
 	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx,
 			Map<String, Object> paramMap, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
+        if (prerna.util.AppChangeScope.current() != null && isAskTool(tc.toolCall))
+            return new ToolExecOutcome("This tool requires approval and cannot execute inside the current candidate change. Nothing was run; approval pauses are not supported by this workflow yet.", false);
 		if (CollaborationRunMode.isRoutine(ctx.getRoom()) && isAskTool(tc.toolCall)) {
 			return new ToolExecOutcome(
 					tc.rawToolName + " needs the owner's approval, and this scheduled routine runs "
@@ -775,6 +780,8 @@ final class HarnessToolExecutor {
 
 	private static String callMcpToolViaReactor(String rawToolName, String engineId, Map<String, Object> params,
 			AgentRunContext ctx) {
+        if (prerna.util.AppChangeScope.current() != null && !prerna.reactor.apptest.AppChanges.supportsMcpTool(rawToolName))
+            return "Tool execution error: candidate changes support the built-in file/build tools and app regression tools. This external MCP tool is not candidate-aware and was not executed.";
 		try {
 			RunMCPToolReactor reactor = new RunMCPToolReactor();
 			reactor.In();
@@ -815,6 +822,7 @@ final class HarnessToolExecutor {
 	 */
 	private static final class AgentThreadContext {
 		private final Map<String, String> log4jContext;
+        private final prerna.util.AppChangeScope.Context appChange = prerna.util.AppChangeScope.current();
 		private final String insightId;
 		private final String sessionId;
 		private final String routeId;
@@ -845,7 +853,7 @@ final class HarnessToolExecutor {
 		}
 
 		private <T> T call(Supplier<T> task) {
-			try (var ignored = CloseableThreadContext.putAll(log4jContext)) {
+			try (var ignored = CloseableThreadContext.putAll(log4jContext); var change = prerna.util.AppChangeScope.enter(appChange)) {
 				ThreadStore.setInsightId(insightId);
 				ThreadStore.setSessionId(sessionId);
 				ThreadStore.setRouteId(routeId);

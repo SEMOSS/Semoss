@@ -61,6 +61,7 @@ public class PublishProjectReactor extends AbstractReactor {
 					"Project does not exist or user does not have edit access to the project");
 		}
 
+        if (prerna.util.AppChangeScope.current(projectId) != null) return NounMetadata.getSuccessNounMessage("Candidate saved; the platform publishes only after its test-and-merge gate passes");
 		IProject project = Utility.getProject(projectId);
 		if (release) {
 			ProjectPortalsHelper.releasePortal(user, project);
@@ -79,5 +80,14 @@ public class PublishProjectReactor extends AbstractReactor {
 		}
 		return noun;
 	}
+
+    @Override
+    public prerna.reactor.ReactorDefinition getReactorDefinition() {
+        return super.getReactorDefinition()
+                .description("Publish an app portal, or defer publication when an app change is awaiting the platform test-and-merge gate")
+                .key(ReactorKeysEnum.PROJECT, "Target app project ID")
+                .key(ReactorKeysEnum.RELEASE, "Optional true to release across servers; false marks the local portal for republishing")
+                .output(String.class, "Published app URL, or a candidate publication deferral message");
+    }
 
 }

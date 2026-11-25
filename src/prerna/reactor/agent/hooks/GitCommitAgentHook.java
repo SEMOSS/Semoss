@@ -136,6 +136,7 @@ public final class GitCommitAgentHook implements IAgentRunHook {
 	
 	@Override
 	public void afterRun(AgentRunContext ctx, AgentHarnessResult result) {
+        if (prerna.util.AppChangeScope.current() != null) return; // Candidate commit belongs to the test/merge coordinator.
 		AgentRunTarget target = ctx.getAgentTarget();
 		String commitTarget = target != null ? target.toString()
 				: "projectId=" + Objects.toString(ctx.getAgentConfig().getModelParams().get("project"), null);

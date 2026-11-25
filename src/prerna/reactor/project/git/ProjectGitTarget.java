@@ -84,7 +84,7 @@ public final class ProjectGitTarget implements GitReactorTarget {
 	@Override
 	public GitTargetHandle resolve(String targetId) {
 		IProject project = Utility.getProject(targetId);
-		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT, targetId,
+		String versionFolder = prerna.util.AppChangeScope.current(targetId) != null ? prerna.util.AppChangeScope.current(targetId).version().toString() : EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT, targetId,
 				project.getEngineName());
 		return new GitTargetHandle(targetId, versionFolder,
 				() -> ClusterUtil.pushProjectFolder(project, versionFolder));

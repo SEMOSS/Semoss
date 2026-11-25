@@ -271,6 +271,8 @@ public class AssetUtility {
 	 * @return
 	 */
 	public static String getProjectAppRootFolder(String projectName, String projectId) {
+        var candidate = AppChangeScope.current(projectId);
+        if (candidate != null) return candidate.appRoot.toString().replace("\\", "/");
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
 			baseFolder += DIR_SEPARATOR;
