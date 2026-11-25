@@ -1015,6 +1015,28 @@ class BrainMemoryDbUnitTests {
 	}
 
 	@Test
+	void restrictedSearchCanFindNeverIngestMailBySenderAlone() throws Exception {
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, " + BrainRuleUtils.valueColumn()
+				+ ", CREATED_AT) VALUES (?, ?, 'never', 'never_sender', 'blocked@example.com', CURRENT_TIMESTAMP)",
+				ownerId, ownerType);
+		Map<String, Object> blocked = new LinkedHashMap<>(listed("blocked@example.com", "inbox", false));
+		blocked.put("id", "blocked");
+		BrainMessageSource source = mock(BrainMessageSource.class);
+		when(source.search(eq(user), eq(List.of("from:blocked@example.com")), eq(true), any(), any(), eq(100)))
+				.thenReturn(List.of(blocked));
+		try (MockedStatic<BrainMessageSource> current = mockStatic(BrainMessageSource.class)) {
+			current.when(BrainMessageSource::current).thenReturn(source);
+			Map<String, Object> result = BrainThreadFinder.restrictedMail(user, null, null,
+					"blocked@example.com", null, null);
+			assertEquals("searched", result.get("status"));
+			List<?> items = (List<?>) result.get("items");
+			assertEquals(1, items.size());
+			assertEquals("NEVER_INGEST", ((Map<?, ?>) items.get(0)).get("code"));
+			assertFalse(((Map<?, ?>) items.get(0)).containsKey("subject"));
+		}
+	}
+
+	@Test
 	void restrictedSearchHonorsDatesAndDoesNotIncludeThreadsLinkedOnlyToOtherTopics() throws Exception {
 		topic("t-requested", "Requested");
 		topic("t-other", "Other");

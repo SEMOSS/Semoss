@@ -53,13 +53,14 @@ final class BrainRestrictedMailSearch {
 	static Map<String, Object> search(User user, String ownerId, String ownerType, List<String> topics,
 			String query, String person, Timestamp after, Timestamp before) {
 		List<String> words = BrainThreadFinder.bodyTokens(query);
-		if (words.isEmpty()) {
+		if (words.isEmpty() && (person == null || person.isBlank())) {
 			return Map.of("status", "not_searched", "items", List.of(),
-					"note", "Enter search words to check for restricted mail.");
+					"note", "Enter search words or a sender to check for restricted mail.");
 		}
 		List<Map<String, Object>> messages;
 		try {
-			List<String> searchWords = words.size() > 6 ? words.subList(0, 6) : words;
+			List<String> searchWords = words.isEmpty() ? List.of("from:" + person.trim())
+					: words.size() > 6 ? words.subList(0, 6) : words;
 			messages = BrainMessageSource.current().search(user, searchWords, true, instant(after), instant(before),
 					MAX_SEARCH);
 			if (messages != null && messages.isEmpty() && searchWords.size() > 1) {
