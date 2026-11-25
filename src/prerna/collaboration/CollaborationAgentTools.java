@@ -66,8 +66,10 @@ import prerna.io.connector.ms.outlook.MicrosoftOutlookListMailReactor;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookSaveDraftReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadFileReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadMessageAttachmentReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsGetChannelMessageReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsGetChatMessageReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsGetChatReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsListChannelMessagesReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsListChannelsReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsListChatMessagesReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsListChatsReactor;
@@ -191,6 +193,9 @@ public final class CollaborationAgentTools {
 		REACTORS.put("ListChannelFiles", MicrosoftTeamsListFilesReactor.class);
 		REACTORS.put("DownloadChannelFile", MicrosoftTeamsDownloadFileReactor.class);
 		REACTORS.put("UploadChannelFile", MicrosoftTeamsUploadFileReactor.class);
+		// read messages posted in a Teams channel; offered as deferred tools
+		REACTORS.put("ListChannelMessages", MicrosoftTeamsListChannelMessagesReactor.class);
+		REACTORS.put("GetChannelMessage", MicrosoftTeamsGetChannelMessageReactor.class);
 		REACTORS.put("ListChats", MicrosoftTeamsListChatsReactor.class);
 		REACTORS.put("GetChat", MicrosoftTeamsGetChatReactor.class);
 		REACTORS.put("ListChatMessages", MicrosoftTeamsListChatMessagesReactor.class);
@@ -264,11 +269,11 @@ public final class CollaborationAgentTools {
 
 	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365
 	// mail after Brain's own search,
-	// calendar changes, Teams channels and their files, one Teams chat or message
+	// calendar changes, Teams channels and their files, channel messages, one Teams chat or message
 	// by id, skills, Brain edits, and listing or managing routines
 	private static final Set<String> DEFERRED = Set.of("ListM365Mail", "DeleteMySkill", "CreateEvent", "UpdateEvent",
 			"DeleteEvent", "RespondToEvent", "ListChannels", "ListChannelFiles", "DownloadChannelFile",
-			"UploadChannelFile", "GetChat", "GetChatMessage", "ListMySkills", "OpenSkill", "PublishSkill",
+			"UploadChannelFile", "ListChannelMessages", "GetChannelMessage", "GetChat", "GetChatMessage", "ListMySkills", "OpenSkill", "PublishSkill",
 			"UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines", "ManageRoutine");
 	// what the chat card calls a tool when its words alone would not say it
 	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat", "UseSkillInAssistant",
