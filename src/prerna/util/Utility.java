@@ -1794,9 +1794,14 @@ public final class Utility {
 	}
 
 	// true when the value (e.g. an id from the DB or a remote API) is one folder/file name: not blank, not . or .., no separator or NUL
+	// checked again after NFKC, since normalizePath applies it and full-width forms can turn into / \ or .
 	public static boolean isSafePathSegment(String value) {
-		return value != null && !value.isBlank() && !".".equals(value) && !"..".equals(value)
-				&& value.indexOf('/') < 0 && value.indexOf('\\') < 0 && value.indexOf('\0') < 0;
+		return value != null && isSingleName(value) && isSingleName(Normalizer.normalize(value, Form.NFKC));
+	}
+
+	private static boolean isSingleName(String value) {
+		return !value.isBlank() && !".".equals(value) && !"..".equals(value) && value.indexOf('/') < 0
+				&& value.indexOf('\\') < 0 && value.indexOf('\0') < 0;
 	}
 
 	// returns the value, or logs and throws IllegalArgumentException when it is not a single safe name

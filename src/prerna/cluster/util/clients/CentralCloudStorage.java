@@ -604,6 +604,9 @@ public final class CentralCloudStorage implements ICloudClient {
 		String localEngineFolder = localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId;
 		String localSmssFileName = aliasAndEngineId + ".smss";
 		String localSmssFilePath = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + localSmssFileName);
+		// the stored alias and the id are normalized into these names, so check the final paths
+		requireInsideFolder(localEngineBaseFolder, localEngineFolder);
+		requireInsideFolder(localEngineBaseFolder, localSmssFilePath);
 
 		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
 		String cloudEngineFolder = cloudContainerPrefix + engineId;
@@ -686,6 +689,7 @@ public final class CentralCloudStorage implements ICloudClient {
 		String localSmssFileName = SmssUtilities.getUniqueName(engineName, engineId) + ".smss";
 		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
 		String localSmssFilePath = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + localSmssFileName);
+		requireInsideFolder(localEngineBaseFolder, localSmssFilePath);
 
 		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
 		String cloudSmssFolder = cloudContainerPrefix + engineId + SMSS_POSTFIX;
@@ -1854,6 +1858,16 @@ public final class CentralCloudStorage implements ICloudClient {
 			} catch (Exception e) {
 				classLogger.error("Failed to reopen user asset project {} after pushUserAsset.", projectId, e);
 			}
+		}
+	}
+
+	// the path has to be below the base folder, never the base folder itself or outside it
+	private static void requireInsideFolder(String baseFolder, String path) {
+		Path base = Paths.get(Utility.normalizePath(baseFolder)).toAbsolutePath().normalize();
+		Path target = Paths.get(Utility.normalizePath(path)).toAbsolutePath().normalize();
+		if (!target.startsWith(base) || target.equals(base)) {
+			classLogger.warn("Refused an engine path outside {}: {}", base, Utility.cleanLogString(path));
+			throw new IllegalArgumentException("The engine folder is outside the engine base folder");
 		}
 	}
 

@@ -98,8 +98,8 @@ public class ExternalAuthorizationHelper {
 
 				// the id and name make up file and folder names below
 				if (!Utility.isSafePathSegment(engineId) || !Utility.isSafePathSegment(engineName)) {
-					classLogger.warn("Skipping the external engine '{}' because its id or name is not a safe file name",
-							Utility.cleanLogString(engineId));
+					classLogger.warn("Skipping the external engine '{}' ('{}') because its id or name is not a safe file name",
+							Utility.cleanLogString(engineId), Utility.cleanLogString(engineName));
 					continue;
 				}
 
@@ -209,8 +209,9 @@ public class ExternalAuthorizationHelper {
 				String detailEngineId = detail.path(ENGINEID_KEY).asText();
 				String detailEngineName = detail.path(ENGINENAME_KEY).asText();
 				if (!Utility.isSafePathSegment(detailEngineId) || !Utility.isSafePathSegment(detailEngineName)) {
-					classLogger.warn("Ignoring an external engine for user {} whose id or name is not a safe file name: {}",
-							User.getSingleLogginName(user), Utility.cleanLogString(detailEngineId));
+					classLogger.warn("Ignoring an external engine for user {} whose id or name is not a safe file name: {} ('{}')",
+							User.getSingleLogginName(user), Utility.cleanLogString(detailEngineId),
+							Utility.cleanLogString(detailEngineName));
 					continue;
 				}
 				permissionMap.put("engineId", detailEngineId);

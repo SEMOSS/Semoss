@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -263,13 +264,8 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
    
 	@Override
 	public void removeDocument(List<String> fileNames, Map<String, Object> parameters) throws Exception {
-		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
-		}
-
-		final String DOCUMENT_FOLDER = this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass
-				+ FILE_SEPARATOR + AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME;
+		// checked before anything is deleted, remotely or locally
+		final String DOCUMENT_FOLDER = ownDocumentsFolder(parameters);
 
 		// 1. List vectors from S3 Vector DB
 		JsonObject listRequest = new JsonObject();
@@ -334,7 +330,11 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// 3. Delete files from local storage
 		List<String> filesToRemoveFromCloud = new ArrayList<>();
 		for (String name : fileNames) {
-			String documentName = Paths.get(name).getFileName().toString();
+			Path namePath = Paths.get(name).getFileName();
+			if (namePath == null) {
+				continue;
+			}
+			String documentName = namePath.toString();
 			File documentFile = storedDocumentToRemove(new File(DOCUMENT_FOLDER), documentName);
 
 			if (documentFile != null) {
@@ -355,6 +355,21 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 	}
 	
+	// the documents folder of one of this engine's own index classes, so it never leaves this engine's schema folder
+	private String ownDocumentsFolder(Map<String, Object> parameters) {
+		String indexClass = this.defaultIndexClass;
+		if (parameters != null && parameters.containsKey("indexClass")) {
+			indexClass = (String) parameters.get("indexClass");
+		}
+		boolean known = indexClass != null
+				&& (indexClass.equals(this.defaultIndexClass) || this.indexClasses.contains(indexClass));
+		if (!known || !Utility.isSafePathSegment(indexClass)) {
+			classLogger.warn("Refused an index class this engine does not have: {}", Utility.cleanLogString(indexClass));
+			throw new IllegalArgumentException("Unknown index class: " + indexClass);
+		}
+		return this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + DOCUMENTS_FOLDER_NAME;
+	}
+
 	@Override
 	protected List<Map<String, Object>> nearestNeighborCall(Insight insight, 
 			String searchStatement, 
@@ -462,13 +477,7 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	@Override
 	public List<Map<String, Object>> listDocuments(Map<String, Object> parameters) {
-		String indexClass = this.defaultIndexClass;
-		if (parameters.containsKey("indexClass")) {
-			indexClass = (String) parameters.get("indexClass");
-		}
-
-		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
-				+ DOCUMENTS_FOLDER_NAME);
+		File documentsDir = new File(ownDocumentsFolder(parameters));
 
 		List<Map<String, Object>> filesInS3Vector = new ArrayList<>();
 		Set<String> uniqueSources = new HashSet<>();
