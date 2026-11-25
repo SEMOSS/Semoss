@@ -392,8 +392,8 @@ public class SymlinkHelper {
 	private void initalizeChrootFolder() {
 		timed("configured symlinks", () -> {
 			String baseFolder = Utility.getBaseFolder();
-			symlinkFolder(baseFolder + "/" + Constants.PY_BASE_FOLDER);
-			symlinkFolder(Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR));
+			grantSharedPyFolder(baseFolder + "/" + Constants.PY_BASE_FOLDER);
+			grantInsightCache();
 
 			// Read paths from DIHelper or configuration
 			String pathsToSymlink = Utility.getDIHelperProperty("CHROOT_SYMLINK_PATHS");
@@ -564,6 +564,70 @@ public class SymlinkHelper {
 			enqueueOrInject(sourceDirName, sourceDirName, true);
 		}
 		createChrootSymlink(sourceDirName);
+	}
+
+	/**
+	 * The py folder is shared by every user, so a namespace jail may read it and never write it.
+	 * The launcher already binds it read-only when the worker starts; asking for it read-only here
+	 * keeps a later request from replacing that bind with a writable one.
+	 */
+	private void grantSharedPyFolder(String pyFolder) {
+		if (!injectMode) {
+			symlinkFolder(pyFolder);
+			return;
+		}
+		String path = Utility.normalizePath(pyFolder);
+		enqueueOrInject(path, path, false);
+		createChrootSymlink(path);
+	}
+
+	/**
+	 * The insight cache root holds every user's and every engine's scratch folders. Sharing it
+	 * whole is the long-standing behaviour and stays the default; with
+	 * {@code NAMESPACE_SHARE_INSIGHT_CACHE=false} neither the namespace jail nor the user's chroot
+	 * (which the Java worker, one-shot commands and project reactors use) gets the whole cache. They
+	 * get only what is granted: the worker's own folder (bound by the launcher, or made inside the
+	 * chroot), each insight folder as that insight opens ({@code Insight.getInsightFolder}), and the
+	 * CSV import folder, because {@code PandasFrame} reads files that sources download there by path.
+	 * The jail gets that folder read-only; a chroot link cannot be read-only.
+	 */
+	private void grantInsightCache() {
+		String cache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
+		if (!injectMode || SandboxSettings.NAMESPACE_SHARE_INSIGHT_CACHE.asBoolean()) {
+			symlinkFolder(cache);
+			return;
+		}
+		if (cache == null || cache.isBlank()) {
+			return;
+		}
+		cache = Utility.normalizePath(cache);
+		unlinkWholeInsightCache(cache);
+		String csvFolder = Utility.getDIHelperProperty(Constants.CSV_INSIGHT_CACHE_FOLDER);
+		if (csvFolder != null && !csvFolder.isBlank()) {
+			String path = Utility.normalizePath(cache + "/" + csvFolder.trim());
+			enqueueOrInject(path, path, false);
+			createChrootSymlink(path);
+		}
+	}
+
+	/**
+	 * Removes a link to the whole cache that an earlier start left in this user's chroot, where
+	 * {@link #createChrootSymlink(String)} would otherwise leave it, since it skips a link that exists.
+	 * Only the link is deleted, never what it points at.
+	 */
+	private void unlinkWholeInsightCache(String cache) {
+		if (!cache.startsWith("/")) {
+			return;
+		}
+		Path link = Paths.get(userChrootFolder).resolve(cache.substring(1));
+		try {
+			if (Files.isSymbolicLink(link)) {
+				Files.delete(link);
+				classLogger.info("Removed the link to the whole insight cache at {}", link);
+			}
+		} catch (IOException e) {
+			classLogger.warn("Could not remove the link to the whole insight cache at {}", link, e);
+		}
 	}
 
 	private void createChrootSymlink(String sourceDirName) {

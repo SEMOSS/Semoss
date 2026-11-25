@@ -162,6 +162,35 @@ public final class SandboxSettings {
 	public static final Key NAMESPACE_EXEC_FALLBACK = add("NAMESPACE_EXEC_FALLBACK", "fakechroot", Scope.NAMESPACE,
 			"One-shot commands have no namespace jail: fakechroot runs them in the user's chroot, "
 					+ "refuse fails them");
+	public static final Key NAMESPACE_SHARE_INSIGHT_CACHE = add("NAMESPACE_SHARE_INSIGHT_CACHE", "true", Scope.NAMESPACE,
+			"true gives every python jail, and links into every user's chroot, the whole insight cache folder, "
+					+ "which holds other users' and engines' scratch folders; false grants only the worker's own "
+					+ "folder, each insight's folder as it opens, and the CSV import folder (read-only in the jail)");
+	public static final Key NAMESPACE_PID_NAMESPACE =add("NAMESPACE_PID_NAMESPACE", "false", Scope.NAMESPACE,
+			"true runs the python worker in its own PID namespace, so it sees and can signal only its own processes "
+					+ "instead of every process of the pod's uid, the JVM included; the worker is then pid 1, and "
+					+ "ends when its launcher ends");
+	public static final Key NAMESPACE_BASE_RO_PATHS =add("NAMESPACE_BASE_RO_PATHS", "", Scope.NAMESPACE,
+			"Comma-separated absolute host paths, files or folders, bound read-only into the python jail in place of "
+					+ "the built-in /usr, /bin, /sbin, /lib*, /etc; empty keeps the built-in list. The python install "
+					+ "must be covered, or the worker cannot start");
+	public static final Key NAMESPACE_REQUIRE_RO = add("NAMESPACE_REQUIRE_RO", "false", Scope.NAMESPACE,
+			"true fails the python jail's start, or a read-only grant, when a bind that should be read-only cannot "
+					+ "be made so; false logs a warning in the worker console and carries on");
+	public static final Key NAMESPACE_MASK_BINARIES =add("NAMESPACE_MASK_BINARIES", "false", Scope.NAMESPACE,
+			"true hides /usr/bin, /usr/sbin, /usr/local/bin, /usr/local/sbin, /bin and /sbin in the python jail "
+					+ "except the NAMESPACE_BINARY_ALLOWLIST names; it hides them from listings and PATH lookups "
+					+ "but does not stop code running an executable it can reach by full path, such as /usr/lib/git-core/*");
+	public static final Key NAMESPACE_BINARY_ALLOWLIST = add("NAMESPACE_BINARY_ALLOWLIST", "", Scope.NAMESPACE,
+			"Binary names kept by NAMESPACE_MASK_BINARIES, comma-separated, replacing the default; "
+					+ "empty keeps env, sh and ldconfig. Add what the worker's shell commands (ls, cp, git) and "
+					+ "your tools (tesseract) need");
+	public static final Key NAMESPACE_MINIMAL_ETC = add("NAMESPACE_MINIMAL_ETC", "false", Scope.NAMESPACE,
+			"true binds only the NAMESPACE_ETC_ALLOWLIST entries of /etc into the python jail instead of all of it");
+	public static final Key NAMESPACE_ETC_ALLOWLIST = add("NAMESPACE_ETC_ALLOWLIST", "", Scope.NAMESPACE,
+			"Entries of /etc kept by NAMESPACE_MINIMAL_ETC, comma-separated and relative to /etc, replacing the "
+					+ "default; empty keeps ld.so.cache, nsswitch.conf, passwd, group, hosts, host.conf, resolv.conf, "
+					+ "gai.conf, services, protocols, localtime, timezone, ssl/certs and ssl/openssl.cnf");
 
 	// ------------------------------------------------------------------ openshell
 

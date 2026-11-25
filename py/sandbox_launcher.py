@@ -60,11 +60,14 @@ Run modes:
 """
 import argparse
 import ctypes
+import errno
 import os
 import platform
+import posixpath
 import shutil
 import socket
 import struct
+import subprocess
 import sys
 import tempfile
 
@@ -76,6 +79,9 @@ libc = ctypes.CDLL("libc.so.6", use_errno=True)
 CLONE_NEWNS = 0x00020000
 CLONE_NEWUSER = 0x10000000
 CLONE_NEWNET = 0x40000000
+CLONE_NEWPID = 0x20000000
+PR_SET_PDEATHSIG = 1
+SIGKILL = 9
 
 MS_RDONLY = 1
 MS_BIND = 0x1000
@@ -84,6 +90,13 @@ MS_REC = 0x4000
 MS_PRIVATE = 1 << 18
 MS_SLAVE = 1 << 19
 MS_SHARED = 1 << 20
+MS_NOSUID = 2
+MS_NODEV = 4
+MS_NOEXEC = 8
+MS_NOATIME = 1024
+MS_NODIRATIME = 2048
+MS_STRICTATIME = 1 << 24
+ST_RELATIME = 4096  # statvfs f_flag bit; the mount(2) flag is a different value
 
 MNT_DETACH = 2
 
@@ -198,17 +211,136 @@ DEFAULT_RO_PATHS = [
 ]
 DEV_NODES = ["null", "zero", "full", "random", "urandom", "tty"]
 
+# Opt-in narrowing of the system folders above (--mask-bins / --minimal-etc).
+# Off unless asked for: the default jail binds DEFAULT_RO_PATHS whole.
+DEFAULT_MASK_BIN_DIRS = [
+    "/usr/bin", "/usr/sbin", "/usr/local/bin", "/usr/local/sbin", "/bin", "/sbin",
+]
+# env: `#!/usr/bin/env` shebangs. sh: subprocess(shell=True) and the worker's
+# own CMD handlers. ldconfig: ctypes.util.find_library() shells out to it.
+DEFAULT_ALLOW_BINS = ["env", "sh", "ldconfig"]
+# Enough for the dynamic loader, user/group lookups, DNS and TLS. Entries are
+# relative to /etc and may be files or folders.
+DEFAULT_ETC_ALLOW = [
+    "ld.so.cache", "nsswitch.conf", "passwd", "group", "hosts", "host.conf",
+    "resolv.conf", "gai.conf", "services", "protocols", "localtime",
+    "timezone", "ssl/certs", "ssl/openssl.cnf",
+]
+
 
 def _bind(src, tgt, ro):
+    # a file source needs a file mount point, and MS_REC only applies to folders
+    if os.path.isdir(src):
+        os.makedirs(tgt, exist_ok=True)
+        rec = MS_REC
+    else:
+        os.makedirs(os.path.dirname(tgt), exist_ok=True)
+        open(tgt, "a").close()
+        rec = 0
+    _chk(_mount(src, tgt, "", MS_BIND | rec), "bind %s" % src)
+    if ro and not _remount_ro(tgt, rec=bool(rec)):
+        _ro_failed(tgt)
+
+
+# --require-ro: a bind that cannot be made read-only stops the launch (or the
+# inject) instead of only logging a warning. Off by default.
+_STRICT_RO = False
+
+
+def _set_strict_ro(flag):
+    global _STRICT_RO
+    _STRICT_RO = bool(flag)
+
+
+def _remount_ro(tgt, rec=True):
+    """Remount the bind at `tgt` read-only and return whether it now is.
+
+    A mount inherited into a user namespace has its nosuid/nodev/noexec and
+    atime flags locked, and the kernel refuses a remount that changes one. So
+    the remount repeats the flags the mount already has. Without that it fails
+    on such a mount, and the bind stays read-write: harmless for root-owned
+    /usr, but the worker runs as the same uid that owns the shared py/ folder."""
+    keep = 0
+    try:
+        have = os.statvfs(tgt).f_flag
+        keep = have & (MS_NOSUID | MS_NODEV | MS_NOEXEC | MS_NOATIME | MS_NODIRATIME)
+        if not have & (MS_NOATIME | ST_RELATIME):
+            keep |= MS_STRICTATIME  # strictatime; the default would be relatime
+    except OSError:
+        pass
+    _mount("none", tgt, "", MS_BIND | MS_REMOUNT | MS_RDONLY | keep | (MS_REC if rec else 0))
+    # judge by the result, not the return code: a filesystem that is already
+    # read-only refuses the remount and is read-only all the same
+    try:
+        return bool(os.statvfs(tgt).f_flag & MS_RDONLY)
+    except OSError:
+        return False
+
+
+def _ro_failed(path):
+    msg = "%s could not be made read-only" % path
+    if _STRICT_RO:
+        raise OSError(errno.EROFS, msg)
+    sys.stderr.write("WARNING: %s; code in the jail can modify it "
+                     "(--require-ro stops the launch instead)\n" % msg)
+
+
+def _seal(tgt):
+    """Make a tmpfs we built read-only. The interpreter is uid 0 inside its user
+    namespace, so it owns the tmpfs and could otherwise write into it."""
+    if not _remount_ro(tgt, rec=False):
+        _ro_failed(tgt)
+
+
+def _etc_rel(entry):
+    """Normalise an --etc-allow entry (`hosts`, `ssl/certs` or `/etc/hosts`) to a
+    path relative to /etc, or None when it would leave /etc."""
+    entry = entry.strip()
+    if entry.startswith("/etc/"):
+        entry = entry[len("/etc/"):]
+    rel = posixpath.normpath(entry)
+    if not entry or posixpath.isabs(rel) or rel == "." or rel.split("/")[0] == "..":
+        return None
+    return rel
+
+
+def _mask_bin_dir(jail, host_dir, allow_bins):
+    """Hide `host_dir` inside the jail: an empty read-only tmpfs replaces it and
+    only the allowed binaries are bound back in from the host. A name that is a
+    symlink on the host (sh -> dash) is bound as its target."""
+    tgt = jail + host_dir
+    if not os.path.isdir(host_dir):
+        return
+    # the folder is only in the jail when its parent was bound (/usr, /bin);
+    # with --no-default-ro it may have to be created
     os.makedirs(tgt, exist_ok=True)
-    _chk(_mount(src, tgt, "", MS_BIND | MS_REC), "bind %s" % src)
-    if ro:
-        # best-effort recursive read-only remount; failure is non-fatal (the
-        # interpreter is unprivileged on the host either way).
-        _mount("none", tgt, "", MS_BIND | MS_REMOUNT | MS_REC | MS_RDONLY | MS_BIND)
+    _chk(_mount("tmpfs", tgt, "tmpfs", 0, "size=1m,mode=755"), "mask %s" % host_dir)
+    for name in allow_bins:
+        src = os.path.join(host_dir, name)
+        if os.path.isfile(src):
+            _bind(src, os.path.join(tgt, name), ro=True)
+    _seal(tgt)
 
 
-def build_jail(jail, ro_paths, rw_paths, inject_roots):
+def _minimal_etc(jail, etc_allow):
+    """Replace /etc inside the jail with an empty read-only tmpfs holding only the
+    allowed entries, bound from the host."""
+    tgt = jail + "/etc"
+    os.makedirs(tgt, exist_ok=True)
+    _chk(_mount("tmpfs", tgt, "tmpfs", 0, "size=1m,mode=755"), "tmpfs /etc")
+    for entry in etc_allow:
+        rel = _etc_rel(entry)
+        if rel is None:
+            sys.stderr.write("note: ignoring --etc-allow %r (not under /etc)\n" % entry)
+            continue
+        src = "/etc/" + rel
+        if os.path.exists(src):
+            _bind(src, tgt + "/" + rel, ro=True)
+    _seal(tgt)
+
+
+def build_jail(jail, ro_paths, rw_paths, inject_roots,
+               mask_bin_dirs=None, allow_bins=None, etc_allow=None):
     """Construct the interpreter's minimal root under `jail` (runs in the
     supervisor, before the fork).
 
@@ -217,7 +349,13 @@ def build_jail(jail, ro_paths, rw_paths, inject_roots):
     a SHARED mount so those later binds PROPAGATE across the namespace boundary
     (see the module docstring). Everything not bound here -- the rest of the
     host filesystem, other users' projects, the un-injected contents of the
-    inject-roots -- is invisible inside the jail."""
+    inject-roots -- is invisible inside the jail.
+
+    Optional narrowing, off when left None: `mask_bin_dirs` are hidden behind
+    an empty tmpfs that holds only the `allow_bins` names; `etc_allow` swaps the
+    whole-/etc bind for a tmpfs holding only those /etc entries."""
+    if etc_allow is not None:
+        ro_paths = [p for p in ro_paths if p != "/etc"]
     os.makedirs(jail, exist_ok=True)
     # new root must itself be a mount point for pivot_root
     _chk(_mount(jail, jail, "", MS_BIND), "bind jail->self")
@@ -235,6 +373,12 @@ def build_jail(jail, ro_paths, rw_paths, inject_roots):
     for p in ro_paths:
         if os.path.exists(p):
             _bind(p, jail + p, ro=True)
+
+    # after the ro binds: the folders being masked must already be in the jail
+    for d in (mask_bin_dirs or []):
+        _mask_bin_dir(jail, d, allow_bins or [])
+    if etc_allow is not None:
+        _minimal_etc(jail, etc_allow)
 
     # tmpfs /tmp (writable scratch)
     tmp = os.path.join(jail, "tmp")
@@ -442,8 +586,12 @@ def inject(jail, src, dst, mode="rw"):
         raise OSError(2, "no such source to inject: %s" % src)
     os.makedirs(tgt, exist_ok=True)
     _chk(_mount(src, tgt, "", MS_BIND | MS_REC), "inject %s" % dst)
-    if mode == "ro":
-        _mount("none", tgt, "", MS_BIND | MS_REMOUNT | MS_REC | MS_RDONLY)
+    if mode == "ro" and not _remount_ro(tgt):
+        try:
+            _ro_failed(dst)
+        except OSError:
+            _umount2(tgt, MNT_DETACH)
+            raise
 
 
 def remove(jail, dst):
@@ -456,7 +604,21 @@ def remove(jail, dst):
 # SELF-TEST -- the EKS/CI gate.  Builds the full jail, hardens, and asserts the
 # security properties end-to-end without needing the gaas server.
 # ===========================================================================
-def _self_test():
+def _hardening_opts(args):
+    """build_jail() keyword arguments for the opt-in narrowing flags; empty when
+    none is set, which leaves the jail exactly as it has always been."""
+    opts = {}
+    if args.mask_bins:
+        names = args.allow_bin or DEFAULT_ALLOW_BINS
+        opts["mask_bin_dirs"] = DEFAULT_MASK_BIN_DIRS
+        opts["allow_bins"] = [n for n in names
+                              if n and "/" not in n and n not in (".", "..")]
+    if args.minimal_etc:
+        opts["etc_allow"] = args.etc_allow or DEFAULT_ETC_ALLOW
+    return opts
+
+
+def _self_test(args):
     print("=== sandbox_launcher self-test (%s) ===" % _MACHINE)
     try:
         enter_userns()
@@ -469,9 +631,11 @@ def _self_test():
     _chk(libc.unshare(CLONE_NEWNS), "supervisor unshare(CLONE_NEWNS)")
     _chk(_mount("none", "/", "", MS_REC | MS_PRIVATE), "make-rprivate /")
 
+    _set_strict_ro(args.require_ro)
     work = tempfile.mkdtemp(prefix="sbx-selftest-")
     backing = os.path.join(work, "backing")
     for proj, content in [("projectB", "B_DATA"), ("projectC", "C_DATA"),
+                          ("projectD", "D_DATA"),
                           ("otherUser_secret", "SHOULD_NOT_LEAK")]:
         os.makedirs(os.path.join(backing, proj))
         with open(os.path.join(backing, proj, "data.csv"), "w") as f:
@@ -479,10 +643,24 @@ def _self_test():
 
     jail = os.path.join(work, "jail")
     inject_roots = ["/projects"]
-    build_jail(jail, DEFAULT_RO_PATHS, rw_paths=[], inject_roots=inject_roots)
+    opts = _hardening_opts(args)
+    extra = [os.path.abspath(p) for p in args.extra_ro if p]
+    ro_paths = ([] if args.no_default_ro else list(DEFAULT_RO_PATHS)) + extra
+    # stands in for the shared py/ folder: owned by this uid, so only the mount
+    # mode keeps it unwritable. Outside /tmp, which the jail covers with a tmpfs.
+    pyroot = tempfile.mkdtemp(prefix="sbx-selftest-py-",
+                              dir="/var/tmp" if os.path.isdir("/var/tmp") else None)
+    pyfolder = os.path.join(pyroot, "py")
+    os.makedirs(pyfolder)
+    with open(os.path.join(pyfolder, "marker"), "w") as f:
+        f.write("PY_DATA")
+    ro_paths.append(pyfolder)
+    build_jail(jail, ro_paths, rw_paths=[], inject_roots=inject_roots, **opts)
 
     c2p_r, c2p_w = os.pipe()
     p2c_r, p2c_w = os.pipe()
+    if args.pid_ns:
+        _chk(libc.unshare(CLONE_NEWPID), "supervisor unshare(CLONE_NEWPID)")
     pid = os.fork()
 
     # ---------------- interpreter (child) --------------------------------
@@ -526,6 +704,33 @@ def _self_test():
                     emit("READ_OK %s=%s" % (p, body[:200]))
                 except Exception as ex:
                     emit("READ_FAIL %s (%s)" % (p, type(ex).__name__))
+            elif line == "PIDS":
+                others = 0
+                for other in range(2, 65536):
+                    try:
+                        os.kill(other, 0)  # signal 0: existence and permission check only
+                        others += 1
+                    except OSError:
+                        pass
+                emit("PIDS pid=%d others=%d" % (os.getpid(), others))
+            elif line.startswith("LISTDIR "):
+                try:
+                    emit("LISTDIR %s" % ",".join(sorted(os.listdir(line[8:]))))
+                except Exception as ex:
+                    emit("LISTDIR_ERR %s" % type(ex).__name__)
+            elif line.startswith("WRITE "):
+                try:
+                    open(line[6:], "w").close()
+                    emit("WRITE_OK")
+                except Exception as ex:
+                    emit("WRITE_FAIL %s" % type(ex).__name__)
+            elif line.startswith("RUN "):
+                try:
+                    rc = subprocess.run(line[4:].split(), stdout=subprocess.DEVNULL,
+                                        stderr=subprocess.DEVNULL).returncode
+                    emit("RUN rc=%d" % rc)
+                except Exception as ex:
+                    emit("RUN_ERR %s" % type(ex).__name__)
             elif line == "EGRESS":
                 # AF_INET socket must be refused by seccomp (EACCES); even if it
                 # were not, the empty netns has no route.
@@ -607,6 +812,64 @@ def _self_test():
     send("READ /home/anyuser/.ssh/id_rsa")
     P(recv().startswith("READ_FAIL"), "host paths outside the allowlist are hidden")
 
+    if args.mask_bins:
+        print("--- opt-in: binaries masked to the allowlist ---")
+        allow = set(opts["allow_bins"])
+        for d in DEFAULT_MASK_BIN_DIRS:
+            if not os.path.isdir(d):
+                continue
+            expected = sorted(n for n in allow if os.path.isfile(os.path.join(d, n)))
+            send("LISTDIR " + d)
+            P(recv() == "LISTDIR " + ",".join(expected),
+              "%s lists only the allowed binaries %s" % (d, expected))
+        send("WRITE /usr/bin/planted")
+        P(recv().startswith("WRITE_FAIL"), "masked /usr/bin is read-only")
+        if "ls" not in allow:
+            send("RUN /usr/bin/ls /")
+            P(recv() == "RUN_ERR FileNotFoundError", "a binary outside the allowlist cannot be run")
+        if "sh" in allow and os.path.isfile("/bin/sh"):
+            send("RUN /bin/sh -c true")
+            P(recv() == "RUN rc=0", "an allowed binary (sh) still runs")
+
+    if args.minimal_etc:
+        print("--- opt-in: /etc narrowed to the allowlist ---")
+        rels = [_etc_rel(e) for e in opts["etc_allow"]]
+        expected = sorted({r.split("/")[0] for r in rels
+                           if r and os.path.exists("/etc/" + r)})
+        send("LISTDIR /etc")
+        P(recv() == "LISTDIR " + ",".join(expected), "/etc lists only the allowed entries %s" % expected)
+        if "os-release" not in expected and os.path.exists("/etc/os-release"):
+            send("READ /etc/os-release")
+            P(recv().startswith("READ_FAIL"), "an /etc file outside the allowlist is hidden")
+        send("WRITE /etc/planted")
+        P(recv().startswith("WRITE_FAIL"), "minimal /etc is read-only")
+
+    if args.pid_ns:
+        print("--- opt-in: worker has its own PID namespace ---")
+        send("PIDS")
+        P(recv() == "PIDS pid=1 others=0", "worker is pid 1 and can signal no other process")
+
+    print("--- shared py/ folder: readable, never writable ---")
+    if pyroot.startswith("/tmp/"):
+        print("  [SKIP] no folder outside /tmp available for the py/ stand-in")
+    else:
+        send("READ %s/marker" % pyfolder)
+        P(recv() == "READ_OK %s/marker=PY_DATA" % pyfolder, "py/ folder is readable")
+        send("WRITE %s/planted" % pyfolder)
+        P(recv().startswith("WRITE_FAIL"), "cannot add a file to py/")
+        send("WRITE %s/marker" % pyfolder)
+        P(recv().startswith("WRITE_FAIL"), "cannot overwrite a file in py/")
+
+    if args.no_default_ro:
+        print("--- opt-in: default system folders are not bound ---")
+        if "/etc" not in extra and not args.minimal_etc:
+            send("LISTDIR /etc")
+            P(recv().startswith("LISTDIR_ERR"), "/etc is absent unless listed")
+        for path in extra:
+            if os.path.isdir(path):
+                send("LISTDIR " + path)
+                P(recv().startswith("LISTDIR "), "listed base path %s is present" % path)
+
     print("--- lazy load: inject an authorized project (live) ---")
     inject(jail, os.path.join(backing, "projectB"), "/projects/projectB", "rw")
     send("READ /projects/projectB/data.csv")
@@ -618,6 +881,13 @@ def _self_test():
     send("READ /projects/projectC/data.csv")
     P(recv() == "READ_OK /projects/projectC/data.csv=C_DATA",
       "interpreter reads newly-granted projectC without restart")
+
+    print("--- read-only inject: readable, not writable ---")
+    inject(jail, os.path.join(backing, "projectD"), "/projects/projectD", "ro")
+    send("READ /projects/projectD/data.csv")
+    P(recv() == "READ_OK /projects/projectD/data.csv=D_DATA", "read-only project is readable")
+    send("WRITE /projects/projectD/planted")
+    P(recv().startswith("WRITE_FAIL"), "read-only project cannot be written")
 
     send("READ /projects/otherUser_secret/data.csv")
     P(recv().startswith("READ_FAIL"), "un-injected project still invisible")
@@ -638,6 +908,7 @@ def _self_test():
     recv()
     os.waitpid(pid, 0)
     shutil.rmtree(work, ignore_errors=True)
+    shutil.rmtree(pyroot, ignore_errors=True)
 
     ok = all(results)
     print("=== %s (%d/%d checks passed) ===" %
@@ -778,6 +1049,7 @@ def _handle_control(jail, source_roots, destination_roots, raw):
 
 
 def _real_mode(args):
+    _set_strict_ro(args.require_ro)
     try:
         enter_userns()
     except OSError as e:
@@ -791,7 +1063,7 @@ def _real_mode(args):
     # rw paths the worker needs that live OUTSIDE the backing store: the gaas
     # code (py_folder, ro), the per-insight scratch folder (rw), and the io dir
     # that carries the worker's data UDS so Java can reach it across namespaces.
-    ro = list(DEFAULT_RO_PATHS)
+    ro = [] if args.no_default_ro else list(DEFAULT_RO_PATHS)
     if args.py_folder:
         ro.append(os.path.abspath(args.py_folder))
     for extra in args.extra_ro:
@@ -812,7 +1084,15 @@ def _real_mode(args):
     # later remove) a throwaway tmpdir ourselves.
     own_jail = not args.jail_root
     jail = args.jail_root or tempfile.mkdtemp(prefix="sbx-jail-")
-    build_jail(jail, ro, rw, inject_roots)
+    build_jail(jail, ro, rw, inject_roots, **_hardening_opts(args))
+
+    if args.no_default_ro:
+        # without the default folders nothing else brings the interpreter in
+        exe = args.exec_cmd or sys.executable
+        if not os.path.lexists(jail + exe):
+            sys.stderr.write("FATAL: %s is not visible in the jail. With --no-default-ro, "
+                             "bind its install folder with --extra-ro.\n" % exe)
+            sys.exit(3)
 
     # pass-through args for the gaas server; argparse.REMAINDER keeps the "--"
     # separator, so drop a leading one.
@@ -821,8 +1101,18 @@ def _real_mode(args):
         gaas_args = gaas_args[1:]
 
     _unshare_net = not args.no_net
+    if args.pid_ns:
+        # only children created from here on are in the new PID namespace; the
+        # supervisor stays in the pod's, so Java can still signal and wait on it
+        _chk(libc.unshare(CLONE_NEWPID), "supervisor unshare(CLONE_NEWPID)")
     child_pid = os.fork()
     if child_pid == 0:
+        if args.pid_ns:
+            # pid 1 of its namespace ignores the SIGTERM Java sends (the kernel drops
+            # default-action signals for a namespace's init), so tie the worker's life
+            # to the supervisor's. When pid 1 dies the kernel kills the rest of the
+            # namespace with it, user subprocesses included.
+            _chk(libc.prctl(PR_SET_PDEATHSIG, SIGKILL, 0, 0, 0), "prctl(PR_SET_PDEATHSIG)")
         enter_jail(jail, inject_roots, unshare_net=_unshare_net)
         harden(unshare_net_already_done=_unshare_net)
         if args.exec_cmd:
@@ -901,6 +1191,32 @@ def parse_args():
     p.add_argument("--extra-ro", action="append", default=[],
                    help="additional host dir bound read-only into the jail "
                         "(repeatable; e.g. a NODE_HOME install root)")
+    p.add_argument("--no-default-ro", action="store_true",
+                   help="do not bind the default system folders (%s); bind only "
+                        "the --extra-ro paths, the py folder and the insight "
+                        "folder. The worker's Python install must be listed"
+                        % ",".join(DEFAULT_RO_PATHS))
+    p.add_argument("--pid-ns", action="store_true",
+                   help="run the worker in its own PID namespace so it sees and can "
+                        "signal only its own processes (default: it shares the "
+                        "pod's, and can signal every process of the same uid)")
+    p.add_argument("--require-ro", action="store_true",
+                   help="fail the launch (or the INJECT) when a bind that should "
+                        "be read-only cannot be made so, instead of warning")
+    p.add_argument("--mask-bins", action="store_true",
+                   help="hide /usr/bin, /usr/sbin, /usr/local/{bin,sbin}, /bin and "
+                        "/sbin behind empty read-only folders that hold only the "
+                        "--allow-bin names (default: bind them whole)")
+    p.add_argument("--allow-bin", action="append", default=[],
+                   help="binary name kept visible by --mask-bins (repeatable; "
+                        "replaces the default %s)" % ",".join(DEFAULT_ALLOW_BINS))
+    p.add_argument("--minimal-etc", action="store_true",
+                   help="bind only the --etc-allow entries of /etc instead of all "
+                        "of it (default: bind /etc whole)")
+    p.add_argument("--etc-allow", action="append", default=[],
+                   help="entry of /etc kept by --minimal-etc, relative to /etc "
+                        "(repeatable; replaces the default list: %s)"
+                        % ",".join(DEFAULT_ETC_ALLOW))
     p.add_argument("gaas", nargs=argparse.REMAINDER,
                    help="args passed through to the worker "
                         "(gaas_tcp_socket_server.py by default)")
@@ -910,6 +1226,6 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
     if args.self_test:
-        _self_test()
+        _self_test(args)
     else:
         _real_mode(args)

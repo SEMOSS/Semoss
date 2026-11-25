@@ -64,6 +64,143 @@ sandbox, which is separate from the user-code jail).
 | `SANDBOX_IO_DIR` | `${java.io.tmpdir}/semoss-sandbox` | Folder for the jail, io and control sockets. Keep it short: AF_UNIX paths are limited to about 108 bytes |
 | `NAMESPACE_SCRUB_ENV` | `true` | `true` starts the python and node jails with only the kept environment variables; `false` passes the server's whole environment, secrets included |
 | `NAMESPACE_EXEC_FALLBACK` | `fakechroot` | One-shot commands have no namespace jail: `fakechroot` runs them in the user's chroot, `refuse` fails them |
+| `NAMESPACE_SHARE_INSIGHT_CACHE` | `true` | `true` gives every python jail the whole insight cache folder read-write. `false` grants only the worker's own folder, each insight's folder as it opens, and the CSV import folder read-only. See [Insight cache sharing](#insight-cache-sharing) |
+| `NAMESPACE_PID_NAMESPACE` | `false` | `true` runs the python worker in its own PID namespace. See [Process isolation](#process-isolation) |
+| `NAMESPACE_BASE_RO_PATHS` | none (built-in `/usr`, `/bin`, `/sbin`, `/lib*`, `/etc`) | Comma-separated absolute host paths, files or folders, bound read-only into the python jail instead of the built-in list. The python install must be covered. See [Base mounts and read-only enforcement](#base-mounts-and-read-only-enforcement) |
+| `NAMESPACE_REQUIRE_RO` | `false` | `true` fails the jail's start, or a read-only grant, when a bind that should be read-only cannot be made so. `false` logs a warning in the worker console (`console.txt`) and carries on |
+| `NAMESPACE_MASK_BINARIES` | `false` | `true` hides `/usr/bin`, `/usr/sbin`, `/usr/local/bin`, `/usr/local/sbin`, `/bin` and `/sbin` in the python jail except the allowlisted names. See [Narrowing the jail's filesystem](#narrowing-the-jails-filesystem) |
+| `NAMESPACE_BINARY_ALLOWLIST` | `env,sh,ldconfig` | Comma-separated binary names kept by `NAMESPACE_MASK_BINARIES`. A configured value replaces the default |
+| `NAMESPACE_MINIMAL_ETC` | `false` | `true` binds only the allowlisted entries of `/etc` into the python jail instead of all of it |
+| `NAMESPACE_ETC_ALLOWLIST` | see below | Comma-separated entries of `/etc`, relative to it. A configured value replaces the default: `ld.so.cache,nsswitch.conf,passwd,group,hosts,host.conf,resolv.conf,gai.conf,services,protocols,localtime,timezone,ssl/certs,ssl/openssl.cnf` |
+
+#### Insight cache sharing
+
+When a user's chroot is initialised, the namespace jail is granted the shared `py/` folder and the
+insight cache (`INSIGHT_CACHE_DIR`). The cache root holds every active worker's scratch folder
+(`a<digits>`), every session's insight folders, engine-owned worker folders (`MODEL_*`) and the CSV
+import folder. With the default `NAMESPACE_SHARE_INSIGHT_CACHE=true` it is mounted read-write into
+every python jail, so any user can read and change another user's and an engine's scratch files. This
+was confirmed on a running pod with two users: both listed the same folders, all writable.
+
+`NAMESPACE_SHARE_INSIGHT_CACHE=false` closes that. A jail then gets only:
+
+- its own worker folder, bound read-write by the launcher;
+- each insight's folder as the insight opens (`Insight.getInsightFolder` through `grantFolder`);
+- the CSV import folder (`CSV_INSIGHT_CACHE_FOLDER`), **read-only**, because `PandasFrame` loads files
+  that URL and file sources download there with `read_csv('<path>')`.
+
+`false` also stops linking the whole cache into the user's chroot. Fakechroot is not a jail
+(see [Insight cache sharing under fakechroot](#insight-cache-sharing-under-fakechroot)), but the Java
+worker, one-shot commands and project Java reactors all work through that chroot, and its link to the
+cache root was an absolute symlink to the real folder, so they had the same cross-user access. A chroot
+that an earlier start left with that link has it removed (only the link, never its target). Each granted
+insight folder is still linked in individually, and the CSV import folder is linked too; a chroot link
+cannot be read-only, so it is writable there.
+
+Still shared with `false`: the CSV import folder is one folder for all users, so its files remain
+readable by every jail (random names, but listable). Per-user subfolders would be the next step.
+Before turning it off, try the flows that touch the cache root outside a granted insight folder:
+federation and fuzzy matching, the SharePoint, Dropbox and Google file pulls, and any project Java
+reactor or one-shot command that reads or writes there directly. Anything that fails needs a per-file or
+per-folder grant. Platform reactors are unaffected, since they run in the server and not in a jail.
+
+The `py/` folder is now always requested read-only in the namespace jail, whatever this setting says.
+Before, Java asked for it read-write; it stayed read-only only because the launcher's own read-only bind
+was already in place, which `inject()` leaves untouched.
+
+##### Insight cache sharing under fakechroot
+
+Fakechroot rewrites each absolute path a process opens to `<user chroot>/<path>`, so only what is
+placed in the user's chroot exists for it. The cache was placed there as one absolute symlink to the
+real folder, which the kernel follows to the real cache, so under fakechroot every user also saw every
+other user's cache folders, writable by the shared uid. The path rewriting hid what was never linked
+(`RDF_Map.prop`, `db/`, other users' projects), not the cache. With `SANDBOX_MODE=FAKECHROOT` the link
+is still made, and `NAMESPACE_SHARE_INSIGHT_CACHE` has no effect.
+
+#### Process isolation
+
+By default the namespace jail shares the pod's PID namespace, and the worker runs as the same host
+uid as the JVM. User code can therefore signal every other process of that uid: other users' workers
+and the JVM itself. If the JVM is pid 1 and handles SIGTERM, that is enough to shut the pod down.
+`kill(pid, 0)` over the pid range reports them (`sandbox_probes.py`, `probe_signals`).
+
+`NAMESPACE_PID_NAMESPACE=true` starts the worker in a new PID namespace (launcher flag `--pid-ns`).
+It then sees and can signal only its own processes. It does not hide anything else: `/proc` was
+never mounted in the jail, and the network, loopback and filesystem views are unchanged.
+
+What to expect:
+
+- The worker is **pid 1** (`os.getpid()` returns 1). The kernel ignores default-action signals sent
+  to a namespace's init from inside it, so user code cannot kill the worker with `os.kill`, and the
+  `kill(pid, 0)` probe finds nothing else to signal.
+- **Shutdown still works.** Java's SIGTERM to the worker is ignored for the same reason, so the
+  launcher asks the kernel to SIGKILL the worker when the launcher exits (`PR_SET_PDEATHSIG`). Java
+  stops the launcher right after the worker, which ends the worker and everything else in the
+  namespace, including subprocesses user code left running (today those can outlive the worker).
+- **Zombies are not reaped.** An orphaned child of user code is reparented to the worker, which does
+  not wait on it. It lingers until the worker ends. If that matters, add a small init as pid 1.
+- Host tools (`ps`, `kubectl exec ... ps`) still show host pids, and `ClientProcessWrapper` signals
+  the launcher by host pid as before.
+- If the platform cannot create a PID namespace (for example a sandboxed runtime without it), the
+  launch fails with `unshare(CLONE_NEWPID)` in the worker console; unset the flag to go back.
+- It applies to the python worker only, not the node worker.
+
+Check it with `python py/sandbox_launcher.py --self-test --pid-ns`.
+
+#### Base mounts and read-only enforcement
+
+The shared `py/` folder is bound read-only, and so is every read-only project grant. The read-only
+remount used to be best effort and failed silently: a mount inherited into a user namespace has its
+`nosuid`, `nodev`, `noexec` and atime flags locked, and a remount that dropped one was refused. For
+root-owned `/usr` that is harmless, but the worker runs as the uid that owns `py/`, so a failed remount
+left the globally shared `py/` writable. The remount now repeats the mount's existing flags and checks the
+result. A bind that is still writable is logged as `WARNING: ... could not be made read-only` in the
+worker console; set `NAMESPACE_REQUIRE_RO=true` to refuse to start (or refuse the grant) instead.
+`python py/sandbox_launcher.py --self-test` asserts that `py/` and a read-only grant reject writes.
+
+`NAMESPACE_BASE_RO_PATHS` replaces the built-in system folders. Only what you list (plus `py/`, the
+insight folder and `SANDBOX_PATH` folders outside the built-in list) exists in the jail. The launcher
+refuses to start if the Python interpreter is not covered. A starting point for the Ubuntu image,
+to be checked with the self-test and a real workload before use:
+
+```
+NAMESPACE_BASE_RO_PATHS=/lib64,/lib/x86_64-linux-gnu,/usr/lib/python,/usr/share/tesseract-ocr
+NAMESPACE_MASK_BINARIES=true
+NAMESPACE_BINARY_ALLOWLIST=env,sh,ldconfig,tesseract
+NAMESPACE_MINIMAL_ETC=true
+NAMESPACE_REQUIRE_RO=true
+```
+
+Combined with the binary mask this removes the executables still reachable by full path under
+`/usr/lib`, `/usr/libexec` and `/usr/share`. Things to expect: `SANDBOX_PATH` folders under the
+built-in list are no longer added; a tool needs its shared libraries and data folders listed (find them
+with `ldd`); `/usr/share/zoneinfo` and similar data folders are gone unless listed.
+
+#### Narrowing the jail's filesystem
+
+By default the namespace jail binds `/usr`, `/bin`, `/sbin`, `/lib*` and `/etc` whole, read-only, so
+user code can list every installed binary and read every file under `/etc`. The two flags above
+replace those views with an empty read-only folder holding only what is allowlisted. They apply to the
+python worker only (not the node worker) and are applied when a worker starts, so running workers keep
+the view they have.
+
+- **What it is:** reduced exposure and discoverability. A binary that is masked cannot be found
+  by `ls`, `PATH` lookup or `/usr/bin/<name>`. It is not an execution control: anything else
+  executable under the still-visible `/usr/lib`, `/usr/libexec` or `/usr/share` (for example
+  `/usr/lib/git-core/git`) can still be run by its full path. The kernel-level controls (no
+  capabilities, `no_new_privs`, seccomp, empty or host network namespace) are unchanged.
+- **Network:** with `SANDBOX_ALLOW_NETWORK=true` the jail needs DNS and TLS files. The default `/etc`
+  list keeps `resolv.conf`, `hosts`, `nsswitch.conf`, `ssl/certs` and `ssl/openssl.cnf` for that.
+- **What breaks until allowlisted:** the worker's own CMD handlers (`exec_dir`, `exec_cp`,
+  `exec_generic` in `gaas_tcp_server_handler.py`) run `ls`, `cp`, `git` and similar through
+  `shell=True`. Tools users call by name, such as `tesseract`, and scripts whose shebang names
+  an interpreter (`#!/usr/bin/python3`) need their binary listed. A tool that reads other
+  `/etc` files (for example `alternatives`) needs them in `NAMESPACE_ETC_ALLOWLIST`.
+- **Names that are symlinks on the host** (`sh` to `dash`) are bound as their target, so list
+  `sh`, not `dash`.
+- **Checking a config:** run the launcher's self-test with the same flags on the target node pool,
+  for example `python py/sandbox_launcher.py --self-test --mask-bins --allow-bin env --allow-bin sh
+  --minimal-etc`. Without the flags it checks the default jail as before.
 
 ### OpenShell
 

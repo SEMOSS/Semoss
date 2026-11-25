@@ -1631,6 +1631,7 @@ public class ClientProcessWrapper {
 			commands.add("--jail-root");
 			commands.add(jailDir);
 			addSandboxPathMounts(commands);
+			addNamespaceOptions(commands);
 			// When SANDBOX_ALLOW_NETWORK=true the launcher skips CLONE_NEWNET so
 			// user code can reach external services. Filesystem isolation, capability
 			// drop, and seccomp still apply; only the empty-netns and the AF_UNIX-
@@ -2120,6 +2121,61 @@ public class ClientProcessWrapper {
 			}
 			commands.add("--extra-ro");
 			commands.add(path);
+		}
+	}
+
+	/**
+	 * Adds the opt-in launcher flags that change the python jail: its own PID namespace, the base
+	 * read-only paths, the {@code /usr/bin}-style folders and {@code /etc}, and whether a failed
+	 * read-only remount stops the launch. Nothing is added unless the matching setting is configured,
+	 * so the jail stays as it was: shared PID namespace, built-in folders bound whole.
+	 */
+	private static void addNamespaceOptions(List<String> commands) {
+		if (SandboxSettings.NAMESPACE_PID_NAMESPACE.asBoolean()) {
+			commands.add("--pid-ns");
+		}
+		String basePaths = SandboxSettings.NAMESPACE_BASE_RO_PATHS.configured();
+		if (basePaths != null) {
+			commands.add("--no-default-ro");
+			addListFlags(commands, "--extra-ro", basePaths, true);
+		}
+		if (SandboxSettings.NAMESPACE_REQUIRE_RO.asBoolean()) {
+			commands.add("--require-ro");
+		}
+		if (SandboxSettings.NAMESPACE_MASK_BINARIES.asBoolean()) {
+			commands.add("--mask-bins");
+			addListFlags(commands, "--allow-bin", SandboxSettings.NAMESPACE_BINARY_ALLOWLIST.configured(), false);
+		}
+		if (SandboxSettings.NAMESPACE_MINIMAL_ETC.asBoolean()) {
+			commands.add("--minimal-etc");
+			addListFlags(commands, "--etc-allow", SandboxSettings.NAMESPACE_ETC_ALLOWLIST.configured(), false);
+		}
+	}
+
+	/**
+	 * Adds {@code flag value} for each entry of a comma-separated setting. The command may be joined
+	 * into a {@code bash -c} string by the ulimit wrapper, so entries outside a plain path alphabet
+	 * are dropped rather than passed on, as are relative ones when {@code absoluteOnly}.
+	 */
+	private static void addListFlags(List<String> commands, String flag, String csv, boolean absoluteOnly) {
+		if (csv == null) {
+			return;
+		}
+		for (String item : csv.split(",")) {
+			String value = item.trim();
+			if (value.isEmpty()) {
+				continue;
+			}
+			if (!value.matches("[A-Za-z0-9._+/-]+")) {
+				classLogger.warn("Ignoring {} entry '{}': only letters, digits and . _ + / - are allowed", flag, value);
+				continue;
+			}
+			if (absoluteOnly && !value.startsWith("/")) {
+				classLogger.warn("Ignoring {} entry '{}': it must be an absolute path", flag, value);
+				continue;
+			}
+			commands.add(flag);
+			commands.add(value);
 		}
 	}
 
