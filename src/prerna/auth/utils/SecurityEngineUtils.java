@@ -59,6 +59,7 @@ import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionProblem;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
+import prerna.auth.access.UserAccess;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
@@ -280,7 +281,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * <p>
 	 * A user needs the creation rules: the publisher rule, the admin only rule for
 	 * the engine's type, and for a public engine the admin only rule for making one
-	 * public. With no user, the platform registers the engine, which gives no one
+	 * public. A user, admins included, never creates an engine with the id of a
+	 * project. With no user, the platform registers the engine, which gives no one
 	 * access to it.
 	 *
 	 * @param engineId          the new engine's id
@@ -292,10 +294,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param global            whether it is public
 	 * @param user              the signed in user who creates it, or null when the
 	 *                          platform registers it
-	 * @throws IllegalArgumentException when the user may not create the engine
+	 * @throws IllegalArgumentException when the user may not create the engine, or
+	 *                                  a project has its id
 	 */
 	public static void addEngine(String engineId, String engineName, String engineDisplayName,
 			IEngine.CATALOG_TYPE engineType, String engineSubType, String engineCost, boolean global, User user) {
+		if (user != null) {
+			requireNoProjectWithId(engineId);
+		}
 		ResourceWriteAccess.requireEngineCreation(user, engineType, global);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
@@ -351,8 +357,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		});
 	}
 
-	static void updateEngineTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType,
-			String engineSubType) {
+	static void updateEngineTypeAndSubType(String engineId, IEngine.CATALOG_TYPE engineType, String engineSubType) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE ENGINE SET ENGINETYPE=?, ENGINESUBTYPE=? WHERE ENGINEID=?";
 
@@ -820,16 +825,16 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @param user     the signed in user
 	 * @param engineId the engine
 	 * @return the request: {@code id}, {@code permission} (the level asked for),
-	 *         {@code comment} and {@code requestedAt} (UTC, ISO 8601); null when the
-	 *         user has none waiting
+	 *         {@code comment} and {@code requestedAt} (UTC, ISO 8601); null when
+	 *         the user has none waiting
 	 */
 	public static Map<String, Object> getUserWaitingAccessRequest(User user, String engineId) {
 		return OwnAccessRequests.waiting(OwnAccessRequests.ENGINE, engineId, user);
 	}
 
 	/**
-	 * Withdraws the signed in user's own access request on an engine that waits
-	 * for a decision. The request is kept, marked withdrawn by the user.
+	 * Withdraws the signed in user's own access request on an engine that waits for
+	 * a decision. The request is kept, marked withdrawn by the user.
 	 *
 	 * @param user     the signed in user
 	 * @param engineId the engine
@@ -932,18 +937,34 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return the level, or null when the user has no access to the engine
 	 */
 	public static AccessPermissionEnum getCurrentUserEngineLevel(User user, String engineId) {
+		UserAccess access = getCurrentUserEngineAccess(user, engineId);
+		return access == null ? null : access.level();
+	}
+
+	/**
+	 * The user's access on the engine now, as {@link #getCurrentUserEngineLevel}
+	 * reads it, and where it comes from: their own grant, the team whose grant
+	 * gives the highest level, or the engine being public.
+	 *
+	 * @param user     the user
+	 * @param engineId the engine
+	 * @return the access, or null when the user has no access to the engine
+	 */
+	public static UserAccess getCurrentUserEngineAccess(User user, String engineId) {
 		if (user == null) {
 			return null;
 		}
-		Integer levelId = CurrentPermissionLevel.ofOrNull(user, PermissionTargetResource.engine(engineId));
-		if (levelId != null) {
+		CurrentPermissionLevel.CurrentLevel current = CurrentPermissionLevel.levelOfOrNull(user,
+				PermissionTargetResource.engine(engineId));
+		if (current != null) {
 			for (AccessPermissionEnum level : AccessPermissionEnum.values()) {
-				if (level.getId() == levelId) {
-					return level;
+				if (level.getId() == current.levelId()) {
+					return current.teamId() == null ? UserAccess.direct(level)
+							: UserAccess.team(level, current.teamId(), current.teamType());
 				}
 			}
 		}
-		return engineIsGlobal(engineId) ? AccessPermissionEnum.READ_ONLY : null;
+		return engineIsGlobal(engineId) ? UserAccess.publicRead() : null;
 	}
 
 	/**
@@ -1211,7 +1232,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
-		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE ENGINEID=?");
+		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE ENGINEID=? AND (ENGINETYPE IS NULL OR ENGINETYPE <> '"
+				+ PermissionSubject.PROJECT_TYPE + "')");
 		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE GRANTEEENGINEID=? AND GRANTEEENGINETYPE <> '"
 				+ PermissionSubject.PROJECT_TYPE + "'");
 		deletes.add("DELETE FROM USERENGINEPREFERENCE WHERE ENGINEID=?");
@@ -1252,10 +1274,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * it has, as a permission batch. An app's custom reactors, or the other
 	 * engine's own code, use the permission in place of the signed in user's own,
 	 * so an app can write to a database for people who have no access to it
-	 * themselves, and a vector database can embed with the model it is given.
-	 * Only the engine's owners can, and where only admins give access to the
-	 * engine, only in admin mode
-	 * ({@link SecurityAdminUtils#setEngineGranteePermission}).
+	 * themselves, and a vector database can embed with the model it is given. Only
+	 * the engine's owners can, and where only admins give access to the engine,
+	 * only in admin mode ({@link SecurityAdminUtils#setEngineGranteePermission}).
 	 *
 	 * @param user              the user giving the access
 	 * @param granteeEngineId   the app or engine given the access
@@ -1314,14 +1335,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * The messages the single methods throw when an app's or engine's permission
-	 * is taken away.
+	 * The messages the single methods throw when an app's or engine's permission is
+	 * taken away.
 	 *
 	 * @return the rules
 	 */
 	static PermissionErrorRules granteeRemovalErrorRules() {
-		return new PermissionErrorRules()
-				.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, GRANTEES_NEED_OWNER)
+		return new PermissionErrorRules().illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, GRANTEES_NEED_OWNER)
 				.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, GRANTEE_HAS_NO_ACCESS)
 				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, GRANTEE_WRITE_FAILED);
 	}
@@ -1338,8 +1358,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 *                          gives one
 	 * @return the change
 	 */
-	static PermissionChange granteePermissionChange(String granteeEngineId, String granteeEngineType,
-			String engineId, PermissionGrant grant) {
+	static PermissionChange granteePermissionChange(String granteeEngineId, String granteeEngineType, String engineId,
+			PermissionGrant grant) {
 		PermissionSubject grantee = PermissionSubject.ofEngine(granteeEngineId, granteeEngineType);
 		String catalogType = PermissionBatchUtils.catalogTypeOf(granteeEngineType);
 		boolean given = granteeEngineId != null && catalogType != null && SecurityEngine2EngineUtils

@@ -36,7 +36,7 @@ dependencies = [
     "google-genai==3.4.0",
     "grpcio-status>=1.82.1",
     "guidance>=0.3.1",
-    "gunicorn>=26.0.0",
+    "gunicorn>=27.0.0",
     "huggingface-hub>=0.29.3",
     "jsonpickle>=4.1.2",
     "keybert>=0.9.0",
@@ -50,7 +50,7 @@ dependencies = [
     "lm-format-enforcer>=0.10.11",
     "markdown>=3.10.2",
     "matplotlib>=3.11.0",
-    "nltk>=3.10.3",
+    "nltk>=3.10.4",
     "numpy>=2.2.6",
     "omega-memory[server]>=1.5.13",
     "onnxruntime>=1.24.1",
@@ -68,7 +68,7 @@ dependencies = [
     "pyenchant>=3.3.0",
     "pyjarowinkler>=3.0.0",
     # "pymupdf>=1.25.3",
-    "pypdf>=6.19.0",
+    "pypdf>=7.0.0",
     "pystemmer>=3.1.0",
     "pytesseract>=0.3.13",
     "pytest>=9.1.1",
@@ -111,9 +111,14 @@ override-dependencies = [
     "marshmallow==4.1.2",
     "protobuf>=6.33.5",
     "numpy>=2.2.6",
-    "pyasn1>=0.6.3",  # CVE-2026-30922: force min version over transitive 0.6.2
+    "pyasn1>=0.6.5",  # CVE-2026-30922 and later: force min version over transitive 0.6.x
     "lxml>=6.1.0",  # CVE-2026-41066: force min version over transitive 6.0.x
     "pillow>=13.0.0",  # CVE-2026-112393 and others: force min version over transitive 12.x
+    "filelock>=4.2.1",  # transitive: TOCTOU/symlink/permission fixes
+    "docling-core>=2.103.0",  # transitive: external control of file name or path
+    "opentelemetry-api>=1.45.2",  # transitive: ReDoS
+    "setuptools>=84.1.0",  # transitive: directory traversal
+    "soupsieve>=4.0.1",  # transitive via beautifulsoup4: algorithmic complexity
 ]
 
 [[tool.uv.index]]

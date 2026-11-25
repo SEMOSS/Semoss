@@ -91,7 +91,6 @@ import org.quartz.CronExpression;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
@@ -876,8 +875,8 @@ public final class Utility {
 	public static String getOriginalFileName(final String FILE_LOCATION) {
 		// The FileUploader appends the time as "_yyyy_MM_dd_HH_mm_ss_SSSS"
 		// onto the original fileName in order to ensure that it is unique
-		// since we are using the fileName to be the table name, let us try and remove
-		// this
+		// since we are using the fileName to be the table name,
+		// let us try and remove this
 		String ext = "." + FilenameUtils.getExtension(FILE_LOCATION);
 		String fileName = FilenameUtils.getName(FILE_LOCATION).replace(ext, "");
 		// 24 is the length of the date being added
@@ -997,55 +996,6 @@ public final class Utility {
 
 		// pipeline
 		return EngineProxyFactory.createGuardedProject(project);
-	}
-
-	/**
-	 * 
-	 * @param projectId
-	 * @return
-	 */
-	public static IProject getUserAssetProject(String projectId) {
-		IProject project = null;
-
-		if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
-			project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
-		} else {
-			// Acquire the lock on the project, don't want several calls to try and load the
-			// engine at the same time
-			classLogger.info("Applying lock for user asset project {}", projectId);
-			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
-			lock.lock();
-			classLogger.info("User asset project {} is locked", projectId);
-			try {
-				// Need to do a double check here, so if a different thread was waiting for the
-				// project to load, it doesn't go through this process again
-				if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
-					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
-				}
-
-				if (ClusterUtil.IS_CLUSTER) {
-					ClusterUtil.pullUserAsset(projectId, false);
-				}
-
-				// Now that the project has been pulled, grab the smss file
-				String folderName = UserAssetUtils.ASSET_APP_NAME;
-				String smssFile = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + "/" + Constants.USER_FOLDER + "/"
-						+ SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
-				// Start up the project using the details in the smss
-				if (smssFile != null && new File(Utility.normalizePath(smssFile)).exists()) {
-					// actual load project process
-					project = InternalUtility.loadProject(smssFile,
-							Utility.loadProperties(Utility.normalizePath(smssFile)));
-				} else {
-					classLogger.debug("There is no SMSS File for the user asset project {}...", projectId);
-				}
-			} finally {
-				lock.unlock();
-				classLogger.info("User asset project {} is unlocked", projectId);
-			}
-		}
-
-		return project;
 	}
 
 	/**
@@ -1841,6 +1791,26 @@ public final class Utility {
 		normalizedString = normalizedString.replace("\\", "/");
 
 		return normalizedString;
+	}
+
+	// true when the value (e.g. an id from the DB or a remote API) is one folder/file name: not blank, not . or .., no separator or NUL
+	// checked again after NFKC, since normalizePath applies it and full-width forms can turn into / \ or .
+	public static boolean isSafePathSegment(String value) {
+		return value != null && isSingleName(value) && isSingleName(Normalizer.normalize(value, Form.NFKC));
+	}
+
+	private static boolean isSingleName(String value) {
+		return !value.isBlank() && !".".equals(value) && !"..".equals(value) && value.indexOf('/') < 0
+				&& value.indexOf('\\') < 0 && value.indexOf('\0') < 0;
+	}
+
+	// returns the value, or logs and throws IllegalArgumentException when it is not a single safe name
+	public static String requireSafePathSegment(String value, String what) {
+		if (!isSafePathSegment(value)) {
+			classLogger.warn("Refused {} that is not a single safe folder name: {}", what, cleanLogString(value));
+			throw new IllegalArgumentException("Not a valid " + what);
+		}
+		return value;
 	}
 
 	/**

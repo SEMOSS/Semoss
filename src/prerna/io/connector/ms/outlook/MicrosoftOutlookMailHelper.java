@@ -59,6 +59,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ConnectorPage;
 import prerna.query.parsers.MailSearchParser;
 import prerna.security.HttpHelperUtility;
@@ -398,7 +399,7 @@ public class MicrosoftOutlookMailHelper {
 			int end = Math.min(offset + UPLOAD_CHUNK_BYTES, bytes.length);
 			Map<String, String> chunkHeaders = new HashMap<>();
 			chunkHeaders.put("Content-Range", "bytes " + offset + "-" + (end - 1) + "/" + bytes.length);
-			HttpHelperUtility.putRequestBytesBody(uploadUrl.toString(), chunkHeaders,
+			HttpHelperUtility.putRequestBytesBody(ConnectorGuards.requirePreAuthenticated(uploadUrl.toString()), chunkHeaders,
 					Arrays.copyOfRange(bytes, offset, end), ContentType.APPLICATION_OCTET_STREAM, null, null, null);
 		}
 	}
@@ -978,7 +979,9 @@ public class MicrosoftOutlookMailHelper {
 				}
 				messages.add(message);
 			}
-			next = page != null && page.get("@odata.nextLink") instanceof String link ? link : null;
+			next = page != null && page.get("@odata.nextLink") instanceof String link
+					? ConnectorGuards.requireUnder(link, this.graphBaseUrl)
+					: null;
 			pages++;
 		} while (searching && next != null && pages < MAX_SEARCH_PAGES && messages.size() < query.top);
 
@@ -1317,7 +1320,9 @@ public class MicrosoftOutlookMailHelper {
 					appendFolderLevel(accessToken, mailbox, id, path, depth + 1, tree);
 				}
 			}
-			url = page != null && page.get("@odata.nextLink") instanceof String next ? next : null;
+			url = page != null && page.get("@odata.nextLink") instanceof String next
+					? ConnectorGuards.requireUnder(next, this.graphBaseUrl)
+					: null;
 		}
 	}
 

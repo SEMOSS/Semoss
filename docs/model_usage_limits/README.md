@@ -40,13 +40,13 @@ first, then the team they got access through first. When that team has nothing
 left, calls move on to the next team.
 
 An App Limit is on a path only for a call the custom reactors of an app make,
-and an Engine Limit only for a call another engine's own code makes, such as a
-guardrail asking its judge model or a vector database embedding, when the model
-gives that app or engine a permission. It applies to a person whose only way to
-the model is the app or engine: one with no grant of their own and none through
+or an agent's run makes, and an Engine Limit only for a call another engine's
+own code makes, such as a guardrail asking its judge model or a vector database
+embedding, when the model gives that app, agent or engine a permission. It
+applies to a person whose only way to the model is the app, agent or engine: one with no grant of their own and none through
 a team. Like a Team Limit, it has a shared amount for the app or engine as a
 whole, an amount for each user, or both. See
-[engine access](../platform_services/engine_access.md#giving-an-app-or-an-engine-a-permission-on-an-engine).
+[engine access](../platform_services/engine_access.md#giving-an-app-an-agent-or-an-engine-a-permission).
 
 ## How a call is checked
 

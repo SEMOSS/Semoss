@@ -154,7 +154,7 @@ class AgentRunnerLifecycleHookTest {
 			return harnessResult;
 		});
 
-		skill.when(() -> SkillStager.stage(any(), anyList())).then(inv -> null);
+		skill.when(() -> SkillStager.stage(any(), anyList(), any())).then(inv -> null);
 	}
 
 	// ---------- ordering ----------

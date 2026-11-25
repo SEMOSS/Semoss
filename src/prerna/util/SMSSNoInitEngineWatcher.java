@@ -54,7 +54,7 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 	 */
 	@Override
 	public void process(String fileName) {
-		catalogEngine(fileName, folderToWatch);
+		InternalUtility.catalogEngine(fileName, folderToWatch);
 	}
 
 	/**
@@ -62,66 +62,7 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 	 * list and loads an existing database.
 	 */
 	public String loadExistingEngine(String fileName) {
-		return loadNewEngine(fileName, folderToWatch);
-	}
-
-	/**
-	 * Loads a new database by setting a specific engine with associated properties.
-	 * 
-	 * @param Specifies properties to load
-	 */
-	public static String loadNewEngine(String newFile, String folderToWatch) {
-		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
-		String engineId = null;
-		try {
-			Properties prop = Utility
-					.loadProperties(Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile));
-			if (prop == null) {
-				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
-			}
-
-			engineId = prop.getProperty(Constants.ENGINE);
-			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
-					|| engines.endsWith(";" + engineId)) {
-				classLogger.debug("Engine {}<>{} is already loaded...", folderToWatch, newFile);
-			} else {
-				String filePath = folderToWatch + "/" + newFile;
-				InternalUtility.catalogEngineByType(filePath, prop, engineId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to load engine from SMSS file {} in {}", newFile, folderToWatch, e);
-		}
-
-		return engineId;
-	}
-
-	/**
-	 * Loads a new engine by setting a specific engine with associated properties.
-	 * 
-	 * @param Specifies properties to load
-	 */
-	public static String catalogEngine(String newFile, String folderToWatch) {
-		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
-		String engineId = null;
-		try {
-			Properties prop = Utility
-					.loadProperties(Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile));
-			if (prop == null) {
-				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
-			}
-			engineId = prop.getProperty(Constants.ENGINE);
-			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
-					|| engines.endsWith(";" + engineId)) {
-				classLogger.debug("Engine {}<>{} is already loaded...", folderToWatch, newFile);
-			} else {
-				String filePath = folderToWatch + "/" + newFile;
-				InternalUtility.catalogEngineByType(filePath, prop, engineId);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to catalog engine from SMSS file {} in {}", newFile, folderToWatch, e);
-		}
-
-		return engineId;
+		return InternalUtility.catalogEngine(fileName, folderToWatch);
 	}
 
 	/**
@@ -131,8 +72,7 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 	public void loadFirst() {
 		// I need to get all the SMSS files
 		// Read the engine names and profile the SMSS files i.e. capture that in some
-		// kind of hashtable
-		// and let it go that is it
+		// kind of hashtable and let it go that is it
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
 		if (fileNames == null || fileNames.length == 0) {
@@ -148,9 +88,8 @@ public class SMSSNoInitEngineWatcher extends AbstractFileWatcher {
 				String fileName = fileNames[fileIdx];
 				// I really dont want to load anything here
 				// I only want to keep track of what are the engine names and their
-				// corresponding SMSS files
-				// so we will catalog instead of load
-				String loadedEngineId = catalogEngine(fileName, folderToWatch);
+				// corresponding SMSS files so we will catalog instead of load
+				String loadedEngineId = InternalUtility.catalogEngine(fileName, folderToWatch);
 				engineIds.add(loadedEngineId);
 			} catch (RuntimeException ex) {
 				classLogger.error("Failed to catalog engine from SMSS file {}/{}", folderToWatch, fileNames[fileIdx],

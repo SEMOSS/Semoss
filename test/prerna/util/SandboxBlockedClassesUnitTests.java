@@ -51,8 +51,7 @@ import org.objectweb.asm.Type;
  */
 class SandboxBlockedClassesUnitTests {
 
-	private static final Pattern ASKS_FOR_A_SYSTEM_DATABASE = Pattern
-			.compile("SystemEngineRegistry\\.get\\w*Db\\(\\)");
+	private static final Pattern ASKS_FOR_A_SYSTEM_DATABASE = Pattern.compile("SystemEngineRegistry\\.get\\w*Db\\(\\)");
 
 	@TempDir
 	Path folder;
@@ -186,9 +185,11 @@ class SandboxBlockedClassesUnitTests {
 			"prerna.security.SecretRedactor", "prerna.util.InternalUtility", "prerna.util.InternalUtility$Nested",
 			"prerna.engine.impl.pipeline.EngineProxyFactory", "prerna.engine.impl.pipeline.PipelineInvocationHandler",
 			"prerna.engine.impl.pipeline.PlatformOperation", "prerna.engine.impl.pipeline.EngineCallPermission",
-			"prerna.om.InsightStore",
+			"prerna.engine.impl.pipeline.AgentRunOperation", "prerna.om.InsightStore",
 			"prerna.util.LocalMasterConceptIdHash", "prerna.util.SystemProjectSeeder",
-			"prerna.util.SystemDatabaseSchemaUtils" })
+			"prerna.util.SystemDatabaseSchemaUtils", "prerna.util.EngineCloneUtility", "prerna.util.InsightsRDBMSUtils",
+			"prerna.util.EngineSyncUtility", "prerna.util.ProjectSyncUtility", "prerna.util.AbstractFileWatcher",
+			"prerna.util.ProjectWatcher", "prerna.util.SMSSWebWatcher", "prerna.util.SMSSNoInitEngineWatcher" })
 	void platformStateAndInternalHelpersAreBlocked(String name) {
 		assertTrue(SemossClassLoader.isReflectionApiBlocked(name));
 	}
@@ -257,9 +258,8 @@ class SandboxBlockedClassesUnitTests {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = { "com.fasterxml.jackson.databind.ObjectMapper",
-			"com.fasterxml.jackson.databind.JsonNode", "com.fasterxml.jackson.databind.node.ObjectNode",
-			"com.fasterxml.jackson.databind.module.SimpleModule",
+	@ValueSource(strings = { "com.fasterxml.jackson.databind.ObjectMapper", "com.fasterxml.jackson.databind.JsonNode",
+			"com.fasterxml.jackson.databind.node.ObjectNode", "com.fasterxml.jackson.databind.module.SimpleModule",
 			"com.fasterxml.jackson.databind.ser.std.StdSerializer",
 			"com.fasterxml.jackson.databind.deser.std.StdDeserializer",
 			"com.fasterxml.jackson.databind.introspect.VisibilityChecker$Std",
@@ -313,9 +313,8 @@ class SandboxBlockedClassesUnitTests {
 			"javax.xml.parsers.DocumentBuilderFactory", "javax.xml.transform.TransformerFactory",
 			"org.xml.sax.InputSource", "org.w3c.dom.ls.LSSerializer", "org.w3c.dom.ls.DOMImplementationLS",
 			"prerna.util.Utility", "prerna.util.SignedInTasks", "prerna.reactor.AbstractReactor",
-			"prerna.security.HttpHelperUtility",
-			"prerna.security.HttpStatusException", "prerna.util.EmailUtility", "jakarta.mail.Session",
-			"jakarta.mail.internet.MimeMessage", "prerna.auth.utils.SecurityEngineUtils",
+			"prerna.security.HttpHelperUtility", "prerna.security.HttpStatusException", "prerna.util.EmailUtility",
+			"jakarta.mail.Session", "jakarta.mail.internet.MimeMessage", "prerna.auth.utils.SecurityEngineUtils",
 			"prerna.reactor.agent.admin.RunSummary", "custom.reactors.AdminPanelReactor" })
 	void classesCustomReactorsRelyOnStayOpen(String name) {
 		assertFalse(SemossClassLoader.isReflectionApiBlocked(name));

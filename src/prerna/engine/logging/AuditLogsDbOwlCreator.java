@@ -85,6 +85,8 @@ public class AuditLogsDbOwlCreator extends AbstractOwlCreator {
 				Pair.with("BILLED_SOURCE_TYPE", VARCHAR_255),
 				Pair.with("BILLED_SUBJECT_ID", VARCHAR_255),
 				Pair.with("BILLED_SUBJECT_TYPE", VARCHAR_255),
+				Pair.with("ACCESS_REASON", VARCHAR_255),
+				Pair.with("ACCESS_DETAILS", CLOB_DATATYPE_NAME),
 				Pair.with("MESSAGE", CLOB_DATATYPE_NAME),
 				Pair.with("REQUEST", CLOB_DATATYPE_NAME),
 				Pair.with("RESPONSE", CLOB_DATATYPE_NAME),
