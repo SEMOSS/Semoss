@@ -64,10 +64,12 @@ import errno
 import os
 import platform
 import shutil
+import signal
 import socket
 import struct
 import sys
 import tempfile
+import time
 
 libc = ctypes.CDLL("libc.so.6", use_errno=True)
 
@@ -77,6 +79,7 @@ libc = ctypes.CDLL("libc.so.6", use_errno=True)
 CLONE_NEWNS = 0x00020000
 CLONE_NEWUSER = 0x10000000
 CLONE_NEWNET = 0x40000000
+CLONE_NEWPID = 0x20000000
 
 MS_RDONLY = 1
 MS_NOSUID = 2
@@ -233,16 +236,22 @@ def _locked_flags(path):
     return flags
 
 
+def _make_read_only(tgt, recursive=True):
+    """Remount the bind at `tgt` read-only; True when it is read-only after.
+    A refused remount is retried with the flags the mount already carries."""
+    remount = MS_BIND | MS_REMOUNT | MS_RDONLY | (MS_REC if recursive else 0)
+    _mount("none", tgt, "", remount)
+    if not _is_read_only(tgt):
+        # refused, most likely for dropping a locked flag: repeat them
+        _mount("none", tgt, "", remount | _locked_flags(tgt))
+    return _is_read_only(tgt)
+
+
 def _bind(src, tgt, ro, strict=False):
     os.makedirs(tgt, exist_ok=True)
     _chk(_mount(src, tgt, "", MS_BIND | MS_REC), "bind %s" % src)
     if ro:
-        remount = MS_BIND | MS_REMOUNT | MS_REC | MS_RDONLY
-        _mount("none", tgt, "", remount)
-        if not _is_read_only(tgt):
-            # refused, most likely for dropping a locked flag: repeat them
-            _mount("none", tgt, "", remount | _locked_flags(tgt))
-        if strict and not _is_read_only(tgt):
+        if not _make_read_only(tgt) and strict:
             # the interpreter could write here, and for a strict path (the
             # worker code every python on the server runs) that is an escape
             raise OSError(errno.EROFS,
@@ -315,6 +324,15 @@ def enter_jail(jail, inject_roots, unshare_net):
     for root in inject_roots:
         _chk(_mount("none", jail + root, "", MS_SLAVE),
              "child make-slave inject-root %s" % root)
+    # The jail's own folders -- its root and the empty inject-root skeletons --
+    # live on the host disk with no quota, so the interpreter gets them
+    # read-only. Only these mounts change, and only in this namespace: /tmp,
+    # the rw binds and every folder injected later keep their own access, and
+    # the supervisor still creates mount points in its rw view.
+    for tgt in [jail] + [jail + root for root in inject_roots]:
+        if not _make_read_only(tgt, recursive=False):
+            sys.stderr.write("WARNING: could not make %s read-only in the jail; "
+                             "the worker can write there\n" % tgt)
     if unshare_net:
         # empty network namespace -> no route off the box.  AF_UNIX still works
         # (it is filesystem-based), which is why the broker<->worker channel
@@ -534,6 +552,8 @@ def _self_test():
 
     c2p_r, c2p_w = os.pipe()
     p2c_r, p2c_w = os.pipe()
+    supervisor_pid = os.getpid()
+    _chk(libc.unshare(CLONE_NEWPID), "supervisor unshare(CLONE_NEWPID)")
     pid = os.fork()
 
     # ---------------- interpreter (child) --------------------------------
@@ -585,6 +605,12 @@ def _self_test():
                     emit("WRITE_OK %s" % p)
                 except Exception as ex:
                     emit("WRITE_FAIL %s (%s)" % (p, type(ex).__name__))
+            elif line == "GETPID":
+                emit("PID %d" % os.getpid())
+            elif line.startswith("SIGNAL0 "):
+                # signal 0 only checks whether the process can be signalled
+                rc = libc.kill(int(line[8:]), 0)
+                emit("SIGNAL0 rc=%d errno=%d" % (rc, ctypes.get_errno()))
             elif line == "EGRESS":
                 # AF_INET socket must be refused by seccomp (EACCES); even if it
                 # were not, the empty netns has no route.
@@ -656,6 +682,21 @@ def _self_test():
     P(r.startswith("UNSHARE rc=-1") and "errno=1" in r,
       "unshare() blocked by seccomp (EPERM) -- cannot escape the jail")
 
+    print("--- processes outside the jail are invisible ---")
+    send("GETPID")
+    P(recv() == "PID 1", "interpreter is PID 1 of its own PID namespace")
+    send("SIGNAL0 %d" % supervisor_pid)
+    P(recv() == "SIGNAL0 rc=-1 errno=%d" % errno.ESRCH,
+      "a process outside the jail (stands in for Tomcat) cannot be signalled")
+
+    print("--- the jail's own folders are read-only ---")
+    send("WRITE /fill.bin")
+    P(recv().startswith("WRITE_FAIL"), "jail root is read-only")
+    send("WRITE /projects/fill.bin")
+    P(recv().startswith("WRITE_FAIL"), "inject-root skeleton is read-only")
+    send("WRITE /tmp/scratch.txt")
+    P(recv().startswith("WRITE_OK"), "private /tmp is still writable")
+
     print("--- worker code is read-only ---")
     send("READ /sbx-code/worker.py")
     P(recv() == "READ_OK /sbx-code/worker.py=ORIGINAL", "worker code is visible")
@@ -679,6 +720,9 @@ def _self_test():
     send("READ /projects/projectB/data.csv")
     P(recv() == "READ_OK /projects/projectB/data.csv=B_DATA",
       "interpreter reads projectB live after injection")
+    send("WRITE /projects/projectB/out.txt")
+    P(recv().startswith("WRITE_OK"),
+      "a folder injected rw stays writable under the read-only skeleton")
 
     print("--- mid-session grant: inject a NEVER-staged project (live) ---")
     inject(jail, os.path.join(backing, "projectC"), "/projects/projectC", "rw")
@@ -717,6 +761,42 @@ def _self_test():
 # control socket.  (Plumbing is in place; exercised once Java sends commands
 # over the UDS channel -- plan steps 6c/6d.)
 # ===========================================================================
+# How long a stopped supervisor waits for the jail before killing it.
+STOP_GRACE_SECONDS = 5.0
+_stop_deadline = [None]
+
+
+def _stop_on_signal(child_pid):
+    """In the supervisor: a stop signal (Java's Process.destroy is SIGTERM)
+    stops the jail instead of only the supervisor. The jail's init is the
+    supervisor's child, so the supervisor stays to reap it -- dying first
+    would leave init a zombie of whatever adopts it."""
+    def stop(signum, _frame):
+        if _stop_deadline[0] is None:
+            _stop_deadline[0] = time.monotonic() + STOP_GRACE_SECONDS
+            try:
+                os.kill(child_pid, signal.SIGTERM)
+            except OSError:
+                pass
+
+    for sig in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+        signal.signal(sig, stop)
+
+
+def _jail_exited(child_pid):
+    """Reap the jail's init if it has exited; past the stop grace, kill it
+    (SIGKILL on a PID namespace's init takes the whole namespace with it)."""
+    wpid, _ = os.waitpid(child_pid, os.WNOHANG)
+    if wpid == child_pid:
+        return True
+    if _stop_deadline[0] is not None and time.monotonic() > _stop_deadline[0]:
+        try:
+            os.kill(child_pid, signal.SIGKILL)
+        except OSError:
+            pass
+    return False
+
+
 def _serve_control(jail, inject_roots, control_sock, child_pid, source_only_roots=()):
     """Supervisor loop: accept line commands from Java and (un)mount projects.
     Protocol (tab-separated, newline-terminated): one reply line per command.
@@ -742,8 +822,7 @@ def _serve_control(jail, inject_roots, control_sock, child_pid, source_only_root
     try:
         while True:
             # exit when the interpreter is gone
-            wpid, _ = os.waitpid(child_pid, os.WNOHANG)
-            if wpid == child_pid:
+            if _jail_exited(child_pid):
                 break
             try:
                 conn, _ = srv.accept()
@@ -891,42 +970,25 @@ def _real_mode(args):
         gaas_args = gaas_args[1:]
 
     _unshare_net = not args.no_net
+    # Own PID namespace: the next fork is its PID 1, and nothing in it can
+    # see or signal a process outside -- Tomcat, other users' workers, the
+    # engine workers -- although they all run as the same host user.
+    _chk(libc.unshare(CLONE_NEWPID), "supervisor unshare(CLONE_NEWPID)")
     child_pid = os.fork()
     if child_pid == 0:
         enter_jail(jail, inject_roots, unshare_net=_unshare_net)
         harden(unshare_net_already_done=_unshare_net)
-        if args.exec_cmd:
-            # alternate worker runtime (e.g. the node agent worker); the exec
-            # target must be visible inside the jail (DEFAULT_RO_PATHS or an
-            # --extra-ro bind)
-            # node agent code runs in worker_threads, which cannot chdir, so
-            # start the worker in its insight folder (bound rw at the same
-            # absolute path inside the jail) instead of the pivot root "/"
-            if args.insight_folder:
-                try:
-                    os.chdir(os.path.abspath(args.insight_folder))
-                except OSError:
-                    pass
-            exe = args.exec_cmd
-            cmd = [exe]
-            if args.exec_script:
-                cmd.append(args.exec_script)
-            cmd += gaas_args
-            os.execv(exe, cmd)
-        else:
-            py = sys.executable
-            cmd = [py, os.path.join(args.py_folder or "/usr/lib/semoss/py",
-                                    "gaas_tcp_socket_server.py")]
-            cmd += gaas_args
-            os.execv(py, cmd)
+        _run_init(lambda: _exec_worker(args, gaas_args))
         os._exit(127)  # unreachable
 
+    _stop_on_signal(child_pid)
     try:
         if args.control_socket:
             _serve_control(jail, inject_roots, args.control_socket, child_pid,
                            [p for p in args.inject_source_root if p])
         else:
-            os.waitpid(child_pid, 0)
+            while not _jail_exited(child_pid):
+                time.sleep(0.2)
     finally:
         # best-effort: on a graceful exit drop the jail mounts + skeleton we own.
         # (When Java kills us it owns --jail-root cleanup instead.)
@@ -936,6 +998,88 @@ def _real_mode(args):
 
 
 # ---------------------------------------------------------------------------
+def _exec_worker(args, gaas_args):
+    """Exec the worker (in the jail, hardened, not PID 1)."""
+    # start in the insight folder (bound rw at the same absolute path), not
+    # the read-only jail root; node agent code runs in worker_threads, which
+    # cannot chdir, so it needs this too
+    if args.insight_folder:
+        try:
+            os.chdir(os.path.abspath(args.insight_folder))
+        except OSError:
+            pass
+    # the jail root is read-only and the server's HOME is not passed in, so
+    # give libraries that cache under ~ (matplotlib, fontconfig, ...) the
+    # jail's private /tmp
+    home = os.environ.get("HOME")
+    if not home or not os.path.isdir(home) or not os.access(home, os.W_OK):
+        os.environ["HOME"] = "/tmp"
+    if args.exec_cmd:
+        # alternate worker runtime (e.g. the node agent worker); the exec
+        # target must be visible inside the jail (DEFAULT_RO_PATHS or an
+        # --extra-ro bind)
+        exe = args.exec_cmd
+        cmd = [exe]
+        if args.exec_script:
+            cmd.append(args.exec_script)
+        cmd += gaas_args
+        os.execv(exe, cmd)
+    else:
+        py = sys.executable
+        cmd = [py, os.path.join(args.py_folder or "/usr/lib/semoss/py",
+                                "gaas_tcp_socket_server.py")]
+        cmd += gaas_args
+        os.execv(py, cmd)
+
+
+# signals Java (Process.destroy) and an operator may send; PID 1 ignores any
+# signal it has no handler for, so init forwards them to the worker
+_FORWARDED_SIGNALS = (signal.SIGTERM, signal.SIGINT, signal.SIGHUP,
+                      signal.SIGQUIT, signal.SIGUSR1, signal.SIGUSR2)
+
+
+def _run_init(exec_worker):
+    """PID 1 of the jail's PID namespace. Starts the worker as its child,
+    forwards stop signals to it (the kernel drops any signal PID 1 has no
+    handler for, so a worker that was PID 1 itself would ignore Java's
+    SIGTERM), reaps orphans, and exits with the worker's status. When PID 1
+    exits the kernel kills everything left in the namespace."""
+    worker = os.fork()
+    if worker == 0:
+        for sig in _FORWARDED_SIGNALS:
+            signal.signal(sig, signal.SIG_DFL)
+        exec_worker()
+        os._exit(127)
+
+    def forward(signum, _frame):
+        try:
+            os.kill(worker, signum)
+        except OSError:
+            pass
+
+    for sig in _FORWARDED_SIGNALS:
+        signal.signal(sig, forward)
+    while True:
+        try:
+            pid, status = os.waitpid(-1, 0)
+        except ChildProcessError:
+            os._exit(0)
+        if pid == worker:
+            code = os.waitstatus_to_exitcode(status)
+            # stop and reap whatever the worker left behind before leaving, so
+            # nothing in the namespace outlives it as a zombie
+            try:
+                os.kill(-1, signal.SIGKILL)
+            except OSError:
+                pass
+            while True:
+                try:
+                    os.waitpid(-1, 0)
+                except ChildProcessError:
+                    break
+            os._exit(code if code >= 0 else 128 - code)
+
+
 def parse_args():
     p = argparse.ArgumentParser(description="SEMOSS unprivileged Python sandbox")
     p.add_argument("--self-test", action="store_true",
