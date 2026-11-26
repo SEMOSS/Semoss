@@ -1974,7 +1974,7 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>42.7.14</version>
+			<version>42.7.15</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.pgvector/pgvector -->
 		<dependency>
