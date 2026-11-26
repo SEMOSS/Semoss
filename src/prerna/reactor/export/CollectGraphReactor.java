@@ -123,7 +123,7 @@ public class CollectGraphReactor extends CollectReactor {
 			return (ITableDataFrame) allNumericInputs.get(0);
 		}
 
-		return (ITableDataFrame) this.insight.getDataMaker();
+		return this.insight.getCurrentFrame();
 	}
 
 	@Override

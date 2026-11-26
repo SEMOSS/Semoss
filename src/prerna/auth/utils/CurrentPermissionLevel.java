@@ -105,6 +105,21 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
+	 * Reads the user's current level on the target and the team whose grant gives
+	 * it, treating a failed read as no access.
+	 *
+	 * @return {@link #levelOf}, or null when the rows cannot be read, which is
+	 *         logged
+	 */
+	static CurrentLevel levelOfOrNull(User user, PermissionTargetResource target) {
+		try {
+			return levelOf(user, target);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	/**
 	 * Reads the user's highest level on a project, an engine or an insight from the
 	 * grants in effect now: their own, and those of the login provider groups and
 	 * custom teams they are in. A grant, or a membership of a custom team, that has
@@ -115,6 +130,20 @@ final class CurrentPermissionLevel {
 	 * @throws IllegalArgumentException when the rows cannot be read
 	 */
 	static Integer of(User user, PermissionTargetResource target) {
+		CurrentLevel level = levelOf(user, target);
+		return level == null ? null : level.levelId();
+	}
+
+	/**
+	 * Reads the user's level on the target as {@link #of} does, and the team whose
+	 * grant gives it when a team's grant is higher than the user's own. On an
+	 * insight whose project the user owns, the level is the project's, from the
+	 * user or the team that owns the project.
+	 *
+	 * @return the level and its team, or null when the user has no access now
+	 * @throws IllegalArgumentException when the rows cannot be read
+	 */
+	static CurrentLevel levelOf(User user, PermissionTargetResource target) {
 		if (user == null) {
 			return null;
 		}
@@ -130,8 +159,8 @@ final class CurrentPermissionLevel {
 			groupTable = "GROUPENGINEPERMISSION";
 			break;
 		case INSIGHT:
-			Integer projectLevel = of(user, PermissionTargetResource.project(target.getProjectId()));
-			if (projectLevel != null && AccessPermissionEnum.isOwner(projectLevel)) {
+			CurrentLevel projectLevel = levelOf(user, PermissionTargetResource.project(target.getProjectId()));
+			if (projectLevel != null && AccessPermissionEnum.isOwner(projectLevel.levelId())) {
 				return projectLevel;
 			}
 			userTable = "USERINSIGHTPERMISSION";
@@ -144,18 +173,32 @@ final class CurrentPermissionLevel {
 		SelectQueryStruct ownLevels = currentLevelsQuery(userTable, target);
 		ownLevels.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userTable + "__USERID", "==",
 				AbstractSecurityUtils.getUserFiltersQs(user)));
-		Integer best = highestLevel(ownLevels, target);
+		Integer own = highestLevel(ownLevels, target);
 
 		IQueryFilter teams = currentTeamsFilter(user, groupTable);
 		if (teams != null) {
 			SelectQueryStruct teamLevels = currentLevelsQuery(groupTable, target);
+			teamLevels.addSelector(new QueryColumnSelector(groupTable + "__ID"));
+			teamLevels.addSelector(new QueryColumnSelector(groupTable + "__TYPE"));
 			teamLevels.addExplicitFilter(teams);
-			Integer teamLevel = highestLevel(teamLevels, target);
-			if (teamLevel != null && (best == null || teamLevel < best)) {
-				best = teamLevel;
+			CurrentLevel team = highestTeamLevel(teamLevels, target);
+			if (team != null && (own == null || team.levelId() < own)) {
+				return team;
 			}
 		}
-		return best;
+		return own == null ? null : new CurrentLevel(own, null, null);
+	}
+
+	/**
+	 * A user's level on a project, an engine or an insight, and the team whose
+	 * grant gives it.
+	 *
+	 * @param levelId  the level's id
+	 * @param teamId   the team whose grant gives the level, or null when it is the
+	 *                 user's own
+	 * @param teamType that team's type, or null
+	 */
+	record CurrentLevel(int levelId, String teamId, String teamType) {
 	}
 
 	/**
@@ -228,12 +271,134 @@ final class CurrentPermissionLevel {
 	}
 
 	/**
+	 * Whether the user can open at least one insight of a project now: a public
+	 * insight, or one given to them directly or to a login provider group or custom
+	 * team they are in. A grant, or a membership of a custom team, that has ended
+	 * does not count, and neither does a row with no level.
+	 *
+	 * @param user      the user
+	 * @param projectId the project
+	 * @return whether the project has an insight the user can open
+	 * @throws IllegalArgumentException when the rows cannot be read
+	 */
+	static boolean canOpenAnInsightOf(User user, String projectId) {
+		if (user == null) {
+			return false;
+		}
+		PermissionTargetResource project = PermissionTargetResource.project(projectId);
+		SelectQueryStruct publicInsights = new SelectQueryStruct();
+		publicInsights.addSelector(new QueryColumnSelector("INSIGHT__INSIGHTID"));
+		publicInsights.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("INSIGHT__PROJECTID", "==", projectId));
+		publicInsights.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("INSIGHT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
+		if (hasRow(publicInsights, project)) {
+			return true;
+		}
+
+		SelectQueryStruct ownInsights = insightGrantsQuery("USERINSIGHTPERMISSION", projectId);
+		ownInsights.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__USERID", "==",
+				AbstractSecurityUtils.getUserFiltersQs(user)));
+		if (hasRow(ownInsights, project)) {
+			return true;
+		}
+
+		IQueryFilter teams = currentTeamsFilter(user, "GROUPINSIGHTPERMISSION");
+		if (teams == null) {
+			return false;
+		}
+		SelectQueryStruct teamInsights = insightGrantsQuery("GROUPINSIGHTPERMISSION", projectId);
+		teamInsights.addExplicitFilter(teams);
+		return hasRow(teamInsights, project);
+	}
+
+	/**
+	 * Builds a query for the insight grants in effect on any insight of a project,
+	 * in a user or group insight permission table.
+	 *
+	 * @return a query for the grants, leaving out rows with no level and grants
+	 *         that have ended
+	 */
+	private static SelectQueryStruct insightGrantsQuery(String table, String projectId) {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(table + "__INSIGHTID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(table + "__PROJECTID", "==", projectId));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(table + "__PERMISSION", "!=", null, PixelDataType.NULL_VALUE));
+		qs.addExplicitFilter(AbstractSecurityUtils.getUnexpiredFilter(table + "__ENDDATE"));
+		return qs;
+	}
+
+	/**
+	 * Whether anyone has been given access to the target: a row of any level in its
+	 * user or team permission table, ended or not. A project, an engine or an
+	 * insight that was just created has none until its creator is made its owner.
+	 *
+	 * @param target the project, engine or insight
+	 * @return whether the target has any permission row
+	 * @throws IllegalArgumentException when the rows cannot be read
+	 */
+	static boolean hasAnyGrant(PermissionTargetResource target) {
+		List<String> tables = switch (target.getResourceType()) {
+		case PROJECT -> List.of("PROJECTPERMISSION", "GROUPPROJECTPERMISSION");
+		case ENGINE -> List.of("ENGINEPERMISSION", "GROUPENGINEPERMISSION");
+		case INSIGHT -> List.of("USERINSIGHTPERMISSION", "GROUPINSIGHTPERMISSION");
+		default -> List.of();
+		};
+		for (String table : tables) {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector(table + "__PERMISSION"));
+			filterToTarget(qs, table, target);
+			if (hasRow(qs, target)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean hasRow(SelectQueryStruct qs, PermissionTargetResource target) {
+		qs.setLimit(1);
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
+				.getRawWrapper(SystemEngineRegistry.getSecurityDb(), qs)) {
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			classLogger.error("Could not read the user's access to {}", target.describe(), e);
+			throw new IllegalArgumentException("Could not read your access to " + target.describe());
+		}
+	}
+
+	/**
 	 * Runs the query on the security database and keeps the highest level it reads.
 	 *
 	 * @return the highest level the query reads, where a lower id is a higher
 	 *         level, or null when it reads none
 	 * @throws IllegalArgumentException when the rows cannot be read
 	 */
+	/**
+	 * Reads the highest level among a team permission query's rows, with the team
+	 * that holds it: the first such team when several hold the same level.
+	 *
+	 * @param qs     a query selecting the level, the team's id and its type
+	 * @param target the target, for the error
+	 * @return the level and its team, or null when there are no rows
+	 * @throws IllegalArgumentException when the rows cannot be read
+	 */
+	private static CurrentLevel highestTeamLevel(SelectQueryStruct qs, PermissionTargetResource target) {
+		CurrentLevel best = null;
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
+				.getRawWrapper(SystemEngineRegistry.getSecurityDb(), qs)) {
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				if (values[0] instanceof Number number && (best == null || number.intValue() < best.levelId())) {
+					best = new CurrentLevel(number.intValue(), String.valueOf(values[1]), String.valueOf(values[2]));
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Could not read the user's access to {}", target.describe(), e);
+			throw new IllegalArgumentException("Could not read your access to " + target.describe());
+		}
+		return best;
+	}
+
 	private static Integer highestLevel(SelectQueryStruct qs, PermissionTargetResource target) {
 		Integer best = null;
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()

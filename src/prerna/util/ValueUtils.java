@@ -30,8 +30,10 @@ package prerna.util;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Reading loosely typed values: text that may be missing or blank, text that
@@ -290,6 +292,24 @@ public final class ValueUtils {
 			}
 		}
 		return number > 0 ? number : null;
+	}
+
+	/**
+	 * A map with text keys holding a value's entries, for a value read as an
+	 * untyped object, such as a parsed JSON map or a map an engine handed back. The
+	 * map is a copy, so changing it leaves the value as it was.
+	 *
+	 * @param value a map, or anything else
+	 * @return a new map of the value's entries, each key as text, in their order;
+	 *         null when the value is not a map
+	 */
+	public static Map<String, Object> toStringKeyMap(Object value) {
+		if (!(value instanceof Map<?, ?> map)) {
+			return null;
+		}
+		Map<String, Object> copy = new LinkedHashMap<>();
+		map.forEach((key, entry) -> copy.put(String.valueOf(key), entry));
+		return copy;
 	}
 
 	/**

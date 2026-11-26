@@ -114,6 +114,23 @@ class WorkflowHardeningTest {
 	}
 
 	@Test
+	void writeFileKeepsAnExistingFileWhenOverrideIsFalse() throws Exception {
+		Files.writeString(root.resolve("notes.md"), "mine");
+		var ctx = mock(AgentRunContext.class);
+		when(ctx.getAgentConfig()).thenReturn(AgentConfig.builder().workingDir(root.toString()).build());
+		var handlers = PlatformAgentToolHandlers.handlersByName();
+
+		String kept = handlers.get("WriteFile")
+				.execute(Map.of("path", "notes.md", "content", "theirs", "override", false), ctx);
+		assertEquals("Wrote file: notes (2).md (notes.md already exists)", kept);
+		assertEquals("mine", Files.readString(root.resolve("notes.md")));
+		assertEquals("theirs", Files.readString(root.resolve("notes (2).md")));
+
+		handlers.get("WriteFile").execute(Map.of("path", "notes.md", "content", "replaced"), ctx);
+		assertEquals("replaced", Files.readString(root.resolve("notes.md")));
+	}
+
+	@Test
 	void modelAndParallelToolTimingsRemainSeparate() {
 		var nanos = new AtomicLong();
 		var progress = new AgentRunProgress(40, 5, nanos::get);

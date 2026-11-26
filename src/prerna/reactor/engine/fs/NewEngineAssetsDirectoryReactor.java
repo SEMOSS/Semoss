@@ -30,6 +30,8 @@ package prerna.reactor.engine.fs;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.json.JSONObject;
+
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -42,6 +44,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
@@ -49,8 +52,8 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 
 	public NewEngineAssetsDirectoryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
-				ReactorKeysEnum.COMMENT_KEY.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0 };
+				ReactorKeysEnum.COMMENT_KEY.getKey(), ReactorKeysEnum.OVERRIDE.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -77,15 +80,15 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 		while (filePath.startsWith("/")) {
 			filePath = filePath.substring(1);
 		}
+		SavedAsset savedAsset = FileSystemUtil.createNewAssetDirectory(assetFolder, filePath,
+				getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false));
 		String comment = this.keyValue.get(this.keysToGet[2]);
 		if (comment == null) {
-			comment = "add: creating new directory";
+			comment = "add: created directory " + savedAsset.savedPath();
 		}
 
-		FileSystemUtil.createNewAssetDirectory(assetFolder, filePath);
-
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + filePath);
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/" + savedAsset.savedPath());
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
@@ -98,8 +101,14 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 		// handle synchronization to the cloud
 		ClusterUtil.pushEngineFolder(engine, assetFolder);
 
-		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		return retNoun;
+		return FileSystemUtil.savedAssetsAsNounMetadata(List.of(savedAsset));
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
+		return properties;
 	}
 
 	@Override
@@ -107,7 +116,10 @@ public class NewEngineAssetsDirectoryReactor extends AbstractReactor {
 		return super.getReactorDefinition().description("Create a new empty directory in the engine folder")
 				.key(ReactorKeysEnum.ENGINE, "The unique id for the engine")
 				.key(ReactorKeysEnum.FILE_PATH, "Names of the file to create.").key(ReactorKeysEnum.COMMENT_KEY,
-						"Comment to add while creating and saving the new file within the git repository for the engine");
+						"Comment to add while creating and saving the new file within the git repository for the engine")
+				.key(ReactorKeysEnum.OVERRIDE,
+						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_DIRECTORY_DESCRIPTION))
+				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
 	}
 
 }

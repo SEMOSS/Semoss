@@ -34,9 +34,11 @@ import java.util.Properties;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.date.SemossDate;
 import prerna.ds.py.PyTranslator;
+import prerna.engine.api.EngineAccess;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IMCP;
 import prerna.engine.api.IRDBMSEngine;
@@ -50,6 +52,7 @@ import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.NotebookExecution;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
+import prerna.util.openshell.OpenShellSecrets;
 
 /**
  * Contract for SEMOSS project engines and their project-scoped resources.
@@ -64,6 +67,11 @@ public interface IProject extends IEngine, IMCP {
 	String MCP_ENDPOINT = "MCP_ENDPOINT";
 	String MCP_AUTH_SCHEME = "MCP_AUTH_SCHEME";
 	String MCP_AUTH_TOKEN = "MCP_AUTH_TOKEN";
+	
+	String MCP_CLIENT_REQUEST_TIMEOUT_SECONDS = "MCP_CLIENT_REQUEST_TIMEOUT_SECONDS";
+	String MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS = "MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS";
+	String MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS = "MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS";
+	String MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB = "MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB";
 
 	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
 	String BLOCK_FILE_NAME = "blocks.json";
@@ -108,6 +116,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param projectId - id to set the project
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setProjectId(String projectId);
 
 	/**
@@ -116,6 +125,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getProjectId();
 
 	/**
@@ -123,6 +133,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	IProject.PROJECT_TYPE getProjectType();
 
 	/**
@@ -131,6 +142,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param projectName - name of the project
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setProjectName(String projectName);
 
 	/**
@@ -139,26 +151,31 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getProjectName();
 
 	// gets the perspectives for this engine
 	// REFAC: Not sure we need this anymore
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Vector<String> getPerspectives();
 
 	// gets the questions for a given perspective
 	// REFAC: Not sure we need this anymore
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Vector<String> getInsights(String perspective);
 
 	// get all the insights irrespective of perspective
 	// REFAC: Not sure we need this anymore
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Vector<String> getInsights();
 
 	// get the insight for a given question description
 	// REFAC: Not sure we need this anymore - we can do this where id is null
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Vector<Insight> getInsight(String... id);
 
 	/**
@@ -168,6 +185,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return the insights database, or null when the project has none
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.EDIT)
 	IRDBMSEngine getInsightDatabase();
 
 	/**
@@ -176,6 +194,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param insightDatabase
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.EDIT, projectCode = AccessPermissionEnum.OWNER)
 	void setInsightDatabase(IRDBMSEngine insightDatabase);
 
 	/**
@@ -184,11 +203,13 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getInsightDefinition();
 
 	/**
 	 * Compile the project specific reactors
 	 */
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.EDIT)
 	void compileReactors();
 
 	/**
@@ -198,6 +219,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param loader
 	 * @return
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	IReactor getReactor(String reactorName);
 
 	/**
@@ -206,6 +228,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	TreeSet<String> getAvailableReactors();
 
 	// publish the engine assets to a specific location
@@ -222,6 +245,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean requirePublish(boolean pullFromCloud);
 
 	/**
@@ -230,6 +254,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param pullFromCloud
 	 * @return
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean publish(String location, boolean pullFromCloud);
 
 	/**
@@ -237,6 +262,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @param republish
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void setRepublish(boolean republish);
 
 	/**
@@ -244,6 +270,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean isPublished();
 
 	/**
@@ -251,6 +278,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	SemossDate getLastPublishDate();
 
 	/**
@@ -258,6 +286,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	List<File> writeNotebooks();
 
 	/**
@@ -265,6 +294,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	INotebookHelper getNotebookHelper();
 
 	/**
@@ -274,6 +304,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	NotebookExecution executeNotebooks(Insight insight, Map<String, String> inputReplacements);
 
 	/**
@@ -282,6 +313,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return Map of the variable name to the engine id
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Map<String, String> getEngineDependencies();
 
 	/**
@@ -290,6 +322,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean isAsset();
 
 	/**
@@ -299,6 +332,7 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	@IgnoreEngineLogging
 	@Deprecated
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.EDIT)
 	ProjectProperties getProjectProperties();
 
 	/**
@@ -307,6 +341,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getProjectGitProvider();
 
 	/**
@@ -315,6 +350,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getProjectGitRepo();
 
 	/**
@@ -323,12 +359,14 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	AuthProvider getGitProvider();
 
 	/**
 	 * Clears the class cache
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.EDIT)
 	void clearClassCache();
 
 	/**
@@ -336,6 +374,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	ClientProcessWrapper getClientProcessWrapper();
 
 	/**
@@ -343,6 +382,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	SocketClient getProjectTcpClient();
 
 	/**
@@ -351,6 +391,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	SocketClient getProjectTcpClient(boolean create);
 
 	/**
@@ -360,6 +401,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	SocketClient getProjectTcpClient(boolean create, int port);
 
 	/**
@@ -367,6 +409,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.EDIT)
 	TCPRTranslator getProjectRTranslator();
 
 	/**
@@ -374,6 +417,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.EDIT)
 	PyTranslator getProjectPyTranslator();
 
 	/**
@@ -387,6 +431,7 @@ public interface IProject extends IEngine, IMCP {
 	 *         is not running
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	Object clearPythonImports();
 
 	/**
@@ -394,6 +439,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getCompileOutput();
 
 	/**
@@ -402,6 +448,7 @@ public interface IProject extends IEngine, IMCP {
 	 * properties. No-op for implementations that do not cache a handler.
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	default void resetMCP() {
 		// no-op
 	}
@@ -411,6 +458,7 @@ public interface IProject extends IEngine, IMCP {
 	 *         when the project serves its own generated tools
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default String getRemoteMCPEndpoint() {
 		return null;
 	}
@@ -424,8 +472,35 @@ public interface IProject extends IEngine, IMCP {
 	 *         Bearer or Basic, or null when none is configured
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default String getRemoteMCPAuthScheme() {
 		return null;
+	}
+
+	/**
+	 * The project's sandbox secrets: its {@link OpenShellSecrets#SECRETS_PROP}
+	 * declaration and each {@link OpenShellSecrets#VALUE_PROP_PREFIX} value, and no
+	 * other setting. The platform hands them to the project's sandbox for everyone
+	 * who can open the project; a project's custom code reads them only for its
+	 * owners, as it does the rest of its settings.
+	 *
+	 * @return a copy holding only the sandbox secret settings, empty when there are
+	 *         none
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.OWNER)
+	default Properties getSandboxSecretSettings() {
+		Properties sandboxSecrets = new Properties();
+		Properties smssProp = getSmssProp();
+		if (smssProp == null) {
+			return sandboxSecrets;
+		}
+		for (String key : smssProp.stringPropertyNames()) {
+			if (key.equals(OpenShellSecrets.SECRETS_PROP) || key.startsWith(OpenShellSecrets.VALUE_PROP_PREFIX)) {
+				sandboxSecrets.setProperty(key, smssProp.getProperty(key));
+			}
+		}
+		return sandboxSecrets;
 	}
 
 }

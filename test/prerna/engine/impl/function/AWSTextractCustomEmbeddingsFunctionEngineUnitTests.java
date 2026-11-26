@@ -149,6 +149,7 @@ public class AWSTextractCustomEmbeddingsFunctionEngineUnitTests extends SemossUn
 			CaseInsensitiveProperties storageProps = new CaseInsensitiveProperties();
 			storageProps.put(S3StorageEngine.S3_BUCKET_KEY, "bucket");
 			when(s3StorageEngine.getSmssProp()).thenReturn(storageProps);
+			when(s3StorageEngine.getBucketName()).thenReturn("bucket");
 			
 			engine.setBasic(true); // skips folder initialization
 			engine.open(testProps);

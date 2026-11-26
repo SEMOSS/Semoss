@@ -52,6 +52,15 @@ public class AuditLogsDbOwlCreator extends AbstractOwlCreator {
 		this.allSchemas = new ArrayList<>();
 
 		// @formatter:off
+		// one row per log entry of an engine call, written in the background by
+		// AuditLogsJDBCAppender from the logging context PipelineInvocationHandler sets: who called
+		// which engine method, in which session, insight, project and room, whether it succeeded,
+		// the request and response when the engine keeps them, token counts, start and end times,
+		// the input and output reactors, any GUARDRAIL_ACTION, and the usage limit source billed.
+		// REQUEST_ID groups the rows of one request and SPAN_ID those of one engine call, such as
+		// its guardrail, input and output rows. The table also lives in any engine configured as
+		// the audit database. AuditLogsDbUtils and EnterpriseUsageUtils read it for activity
+		// timelines and usage reports
 		addTable("AUDIT_LOGS", Arrays.asList( 
 				Pair.with("LOG_ID", VARCHAR_255),
 				Pair.with("REQUEST_ID", VARCHAR_255),
@@ -76,6 +85,8 @@ public class AuditLogsDbOwlCreator extends AbstractOwlCreator {
 				Pair.with("BILLED_SOURCE_TYPE", VARCHAR_255),
 				Pair.with("BILLED_SUBJECT_ID", VARCHAR_255),
 				Pair.with("BILLED_SUBJECT_TYPE", VARCHAR_255),
+				Pair.with("ACCESS_REASON", VARCHAR_255),
+				Pair.with("ACCESS_DETAILS", CLOB_DATATYPE_NAME),
 				Pair.with("MESSAGE", CLOB_DATATYPE_NAME),
 				Pair.with("REQUEST", CLOB_DATATYPE_NAME),
 				Pair.with("RESPONSE", CLOB_DATATYPE_NAME),
@@ -90,6 +101,9 @@ public class AuditLogsDbOwlCreator extends AbstractOwlCreator {
 				Pair.with("LOGGER_NAME", VARCHAR_255),
 				Pair.with("LOGGER_LOCATION", VARCHAR_255)));
 
+		// one row per server log line, written in the background by ServerLogsJDBCAppender: its
+		// LEVEL, logger and source location, thread, time and MESSAGE, with the request, session
+		// and user it was logged for
 		addTable("SERVER_LOGS", Arrays.asList(
 				Pair.with("LOG_ID", VARCHAR_255),
 				Pair.with("SESSION_ID", VARCHAR_255),

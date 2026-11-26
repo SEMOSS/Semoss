@@ -100,7 +100,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		// check to see if the collection is available
 		// if available, get the ID
 		// if not create a collection and get the ID
-		collectionName = collectionName.replaceAll(" ", "_");
+		collectionName = collectionName.replace(" ", "_");
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		Map<String, String> headersMap = new HashMap<>();
 		if (this.apiKey != null && !this.apiKey.isEmpty()) {
@@ -269,7 +269,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			// replace spaces with _ since thats how
 			// readCSV creates Source Property.
-			sourceProperty.put("Source", fileName.replaceAll(" ", "_")); 
+			sourceProperty.put("Source", fileName.replace(" ", "_")); 
 																			
 			fileNamesForDelete.put("where", sourceProperty);
 
@@ -290,9 +290,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
+			File documentFile = storedDocumentToRemove(new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents"), documentName);
 			try {
-				if (documentFile.exists()) {
+				if (documentFile != null) {
 					FileUtils.forceDelete(documentFile);
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}

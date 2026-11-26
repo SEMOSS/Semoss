@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.insights.fs;
 
+import java.util.List;
+
 import org.json.JSONObject;
 
 import prerna.cluster.util.ClusterUtil;
@@ -35,15 +37,14 @@ import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.FileSystemUtil;
+import prerna.util.FileSystemUtil.SavedAsset;
 import prerna.util.Utility;
 
 public class CopyInsightAssetReactor extends AbstractReactor {
 
-	private static final String OVERRIDE = ReactorKeysEnum.OVERRIDE.getKey();
-
 	public CopyInsightAssetReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.NEW_VALUE.getKey(),
-				OVERRIDE };
+				ReactorKeysEnum.OVERRIDE.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
@@ -61,16 +62,15 @@ public class CopyInsightAssetReactor extends AbstractReactor {
 
 		String assetFolder = this.insight.getInsightFolder();
 
-		boolean override = getBoolean(OVERRIDE, false);
-		FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
+		boolean override = getBoolean(ReactorKeysEnum.OVERRIDE.getKey(), false);
+		SavedAsset savedAsset = FileSystemUtil.copyAsset(assetFolder, sourceFileName, destFileName, override);
 
 		// push room to cloud storage
 		if (this.insight.getRoomId() != null) {
 			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
 		}
 
-		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
-		return retNoun;
+		return FileSystemUtil.savedAssetsAsNounMetadata(List.of(savedAsset));
 	}
 
 	@Override
@@ -80,15 +80,16 @@ public class CopyInsightAssetReactor extends AbstractReactor {
 				.key(ReactorKeysEnum.FILE_PATH,
 						"The source file or directory to copy. This relative path should assume the prefix of the insight folder.")
 				.key(ReactorKeysEnum.NEW_VALUE,
-						"The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system.")
-				.key(OVERRIDE, key -> key.type(Boolean.class).description(
-						"Whether to delete an existing file or directory at the destination before copying. Defaults to false."));
+						"The destination path for the copy, with the same character restrictions you would expect on a typical file system. When something already exists there, override decides whether it is replaced or the copy is written beside it under the next copy number.")
+				.key(ReactorKeysEnum.OVERRIDE,
+						key -> key.type(Boolean.class).description(FileSystemUtil.OVERRIDE_KEEP_DESCRIPTION))
+				.outputList(SavedAsset.class, FileSystemUtil.SAVED_ASSETS_OUTPUT_DESCRIPTION);
 	}
 
 	@Override
 	public JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(OVERRIDE).put("default", false);
+		properties.getJSONObject(ReactorKeysEnum.OVERRIDE.getKey()).put("default", false);
 		return properties;
 	}
 

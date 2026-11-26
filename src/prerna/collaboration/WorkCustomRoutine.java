@@ -51,8 +51,8 @@ import prerna.reactor.agent.skill.SkillProjects;
 
 /**
  * The owner's own routines: an instruction of theirs, done on a schedule by their agent with its auto tools plus the
- * skills and tools they add, the answer delivered only to them (email, a Teams message to themselves, or kept in
- * Routines). Many per owner, run by {@link WorkRoutine}.
+ * skills and tools they add, the answer delivered only to them (email, a Teams message to themselves, a section of
+ * their daily brief, or kept in Routines). Many per owner, run by {@link WorkRoutine}.
  */
 public final class WorkCustomRoutine {
 	public static final String ID = "custom";
@@ -61,7 +61,12 @@ public final class WorkCustomRoutine {
 	static final int MAX_PROMPT = 4000;
 	static final int MAX_TOOLS = 10;
 	static final int MAX_TOOL_NAME = 255;
-	static final Set<String> DELIVERIES = Set.of("email", "teams", "none");
+	/**
+	 * Delivered as a section of the owner's daily brief: the routine has no schedule of its own, the brief starts it
+	 * and prints its answer under its name (the sections step of inbox-daily-brief.automation.json).
+	 */
+	static final String BRIEF = "brief";
+	static final Set<String> DELIVERIES = Set.of("email", "teams", "none", BRIEF);
 	/** The catalog types Routines offers: toolboxes (engines and projects with MCP tools) and knowledge (VECTOR). */
 	static final Set<String> TOOL_TYPES = Set.of("PROJECT", "STORAGE", "DATABASE", "FUNCTION", "MODEL", "VECTOR");
 	static final WorkRoutine.Kind KIND = new WorkRoutine.Kind(ID, "WORK_CUSTOM_ROUTINE",
@@ -189,7 +194,7 @@ public final class WorkCustomRoutine {
 		}
 		String delivery = text(input.get("delivery")).toLowerCase();
 		if (!DELIVERIES.contains(delivery)) {
-			throw new IllegalArgumentException("delivery must be email, teams or none");
+			throw new IllegalArgumentException("delivery must be email, teams, brief or none");
 		}
 		if (!(input.get("skills") instanceof List<?> skills) || !skills.stream().allMatch(String.class::isInstance)) {
 			throw new IllegalArgumentException("skills must be a list of skill ids");

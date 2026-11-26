@@ -41,14 +41,13 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils {
 
-	private static final Logger classLogger = LogManager.getLogger(SecurityAdminUtils.class);
+	private static final Logger classLogger = LogManager.getLogger(SecurityAdminExternalConnectorsUtils.class);
 
 	private static SecurityAdminExternalConnectorsUtils instance = new SecurityAdminExternalConnectorsUtils();
 
@@ -79,25 +78,14 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 	}
 
 	/**
-	 * Check if the user is an admin
-	 * 
-	 * @param userId String representing the id of the user to check
+	 * Whether the user acts as an admin now, as
+	 * {@link SecurityAdminUtils#userIsAdmin(User)} answers it.
+	 *
+	 * @param user the signed in user
+	 * @return true when the user is an admin and no project's custom code is acting
 	 */
 	public static Boolean userIsAdmin(User user) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", getUserFiltersQs(user)));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("SMSS_USER__ADMIN", "==", true, PixelDataType.BOOLEAN));
-		boolean isAdmin = false;
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			isAdmin = wrapper.hasNext();
-		} catch (Exception e) {
-			classLogger.error("Failed to verify whether the user has admin access", e);
-		}
-
-		return isAdmin;
+		return SecurityAdminUtils.userIsAdmin(user);
 	}
 
 	/**

@@ -78,7 +78,6 @@ public class GetInsightsReactor extends AbstractReactor {
 			projectFilters = new Vector<String>();
 			for (int i = 0; i < projectFilterGrs.size(); i++) {
 				String pFilter = projectFilterGrs.get(i).toString();
-				pFilter = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), pFilter);
 				if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), pFilter)) {
 					projectFilters.add(pFilter);
 				} else {

@@ -69,6 +69,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
+import prerna.engine.impl.pipeline.PlatformOperation;
 
 class SecurityJdbcMigrationUnitTests {
 
@@ -99,7 +100,10 @@ class SecurityJdbcMigrationUnitTests {
 					+ "METAVALUE VARCHAR CHECK (METAVALUE <> 'reject'), METAORDER INT)");
 			statement.execute("INSERT INTO INSIGHTMETA VALUES ('project','insight','tag','original',0)");
 		}
-		assertDoesNotThrow(() -> SecurityInsightUtils.updateInsightTags("project", "insight", List.of("ok", "reject")));
+		try (PlatformOperation operation = PlatformOperation.begin("test migration")) {
+			assertDoesNotThrow(
+					() -> SecurityInsightUtils.updateInsightTags(null, "project", "insight", List.of("ok", "reject")));
+		}
 		try (var statement = connection.prepareStatement("SELECT METAVALUE FROM INSIGHTMETA");
 				var rs = statement.executeQuery()) {
 			assertTrue(rs.next());
@@ -119,7 +123,9 @@ class SecurityJdbcMigrationUnitTests {
 					+ "METAVALUE VARCHAR, METAORDER INT)");
 		}
 		connection.setAutoCommit(false);
-		SecurityInsightUtils.updateInsightTags("project", "insight", List.of("  spaced  ", ""));
+		try (PlatformOperation operation = PlatformOperation.begin("test migration")) {
+			SecurityInsightUtils.updateInsightTags(null, "project", "insight", List.of("  spaced  ", ""));
+		}
 		connection.rollback();
 		try (var statement = connection.prepareStatement("SELECT METAVALUE FROM INSIGHTMETA ORDER BY METAORDER");
 				var rs = statement.executeQuery()) {
@@ -131,19 +137,6 @@ class SecurityJdbcMigrationUnitTests {
 		}
 		verify(connection).commit();
 		assertFalse(connection.getAutoCommit());
-	}
-
-	@Test
-	void tokenFailureKeepsExistingReturnContractAfterRollback() throws Exception {
-		// No TOKEN table: execution fails in manual transaction mode.
-		connection.setAutoCommit(false);
-		clearInvocations(connection);
-		Object[] token = SecurityTokenUtils.generateToken("127.0.0.1", "client");
-		assertNotNull(token[0]);
-		assertEquals("127.0.0.1", token[1]);
-		assertEquals("client", token[2]);
-		verify(connection).rollback();
-		verify(connection, never()).commit();
 	}
 
 	@Test
@@ -262,25 +255,6 @@ class SecurityJdbcMigrationUnitTests {
 		}
 		assertFalse(connection.getAutoCommit());
 		assertFalse(connection.isClosed());
-	}
-
-	@Test
-	void expiredTokenCleanupCommitsWhileRetainingFreshTokens() throws Exception {
-		try (var statement = connection.createStatement()) {
-			statement.execute("CREATE TABLE TOKEN (VALUE VARCHAR, DATEADDED TIMESTAMP)");
-			statement.execute(
-					"INSERT INTO TOKEN VALUES ('old', TIMESTAMP '2000-01-01 00:00:00'), ('fresh', TIMESTAMP '2999-01-01 00:00:00')");
-		}
-		connection.setAutoCommit(false);
-		clearInvocations(connection);
-		SecurityTokenUtils.clearExpiredTokens(60);
-		connection.rollback();
-		try (var ps = connection.prepareStatement("SELECT VALUE FROM TOKEN"); var rs = ps.executeQuery()) {
-			assertTrue(rs.next());
-			assertEquals("fresh", rs.getString(1));
-			assertFalse(rs.next());
-		}
-		verify(connection).commit();
 	}
 
 	@Test

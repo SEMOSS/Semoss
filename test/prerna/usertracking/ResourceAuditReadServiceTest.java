@@ -157,6 +157,27 @@ class ResourceAuditReadServiceTest {
 	}
 
 	@Test
+	void anEnginesPermissionChangeShowsTheAppOrEngineGivenIt() throws Exception {
+		event("1", "PERMISSION_ADD", "ENGINE", "a", "a", null);
+		db.execute("UPDATE USER_AUDIT_EVENTS SET DETAILS='{\"granteeEngineId\":\"vector-db\","
+				+ "\"granteeEngineType\":\"VECTOR\",\"token\":\"secret\"}'");
+		var row = (Map<?, ?>) ((List<?>) ResourceAuditReadService.read(user, "ENGINE", "a", Map.of()).get("events"))
+				.get(0);
+		assertEquals("{\"granteeEngineId\":\"vector-db\",\"granteeEngineType\":\"VECTOR\"}",
+				row.get("DETAILS"));
+	}
+
+	@Test
+	void anAppsPermissionChangeShowsTheApp() throws Exception {
+		event("1", "PERMISSION_ADD", "ENGINE", "a", "a", null);
+		db.execute(
+				"UPDATE USER_AUDIT_EVENTS SET DETAILS='{\"granteeProjectId\":\"orders-app\",\"token\":\"secret\"}'");
+		var row = (Map<?, ?>) ((List<?>) ResourceAuditReadService.read(user, "ENGINE", "a", Map.of()).get("events"))
+				.get(0);
+		assertEquals("{\"granteeProjectId\":\"orders-app\"}", row.get("DETAILS"));
+	}
+
+	@Test
 	void appSettingChangesShowWhatChangedButNoMetadataValues() throws Exception {
 		projectOwners.when(() -> SecurityProjectUtils.userIsOwner(user, "p")).thenReturn(true);
 		event("public", "PROJECT_GLOBAL_UPDATE", "PROJECT", "p", null, "p");

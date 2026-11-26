@@ -36,7 +36,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -63,8 +62,10 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateGuardrailEngineReactor.class);
 
+	private static final String CATALOG_NAME_KEYS = ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.GUARDRAIL.getKey();
+
 	public CreateGuardrailEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.GUARDRAIL.getKey(), ReactorKeysEnum.GUARDRAIL_DETAILS.getKey(),
+		this.keysToGet = new String[] { CATALOG_NAME_KEYS, ReactorKeysEnum.GUARDRAIL_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
@@ -144,12 +145,9 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 			guardrail.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(guardrailId, guardrailName, guardrail, smssFile);
 			SecurityEngineUtils.addEngine(guardrailId, global, user);
-			SecurityEngineUtils.setDefaultEngineMarkdown(guardrailId, guardrail.getDefaultMarkdown());
+			SecurityEngineUtils.setDefaultEngineMarkdown(user, guardrailId, guardrail.getDefaultMarkdown());
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(guardrailId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, guardrailId);
 
 			ClusterUtil.pushEngine(guardrailId);
 			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.GUARDRAIL_CREATE, AuditTargetType.GUARDRAIL,
@@ -176,15 +174,12 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getGuardrailName() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.GUARDRAIL.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if (strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
+		List<String> strValues = getListStringForAliasedKey(CATALOG_NAME_KEYS);
+		if (!strValues.isEmpty()) {
+			return strValues.get(0).trim();
 		}
 
-		List<String> strValues = this.curRow.getAllStrValues();
+		strValues = this.curRow.getAllStrValues();
 		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}

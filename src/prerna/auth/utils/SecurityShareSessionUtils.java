@@ -99,15 +99,16 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param sessionId
-	 * @param routeId
-	 * @return
-	 * @throws SQLException
+	 * Creates a token that signs its holder in as the user, in a session of their
+	 * own. It never hands over the user's session, so it stores no session id.
+	 *
+	 * @param user    the user the token signs in as
+	 * @param routeId the load balancer route of the user's server, or null
+	 * @return the token
+	 * @throws SQLException if the token cannot be stored
 	 */
-	public static String createAuthToken(User user, String sessionId, String routeId) throws SQLException {
-		return createToken(user, sessionId, routeId, false, true);
+	public static String createAuthToken(User user, String routeId) throws SQLException {
+		return createToken(user, null, routeId, false, true);
 	}
 
 	/**
@@ -120,7 +121,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static String createToken(User user, String sessionId, String routeId, boolean sessionToken,
+	static String createToken(User user, String sessionId, String routeId, boolean sessionToken,
 			boolean authToken) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (user == null) {
@@ -230,7 +231,7 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	 * @return
 	 * @throws SQLException
 	 */
-	public static String logSessionUsed(String shareToken, ZonedDateTime zdt, boolean success) throws SQLException {
+	static String logSessionUsed(String shareToken, ZonedDateTime zdt, boolean success) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE " + SESSION_SHARE_TABLE_NAME + " SET " + DATE_USED
@@ -251,10 +252,13 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param shareDetails
-	 * @return
-	 * @throws IllegalAccessException
+	 * Reconstructs the stored user's login identity for an auth-share token. The
+	 * canonical user id is preserved independently of profile fields such as email.
+	 *
+	 * @param shareDetails the auth-share record returned by getShareSessionDetails
+	 * @return the matching account's access token
+	 * @throws IllegalAccessException when the token is not usable or its account
+	 *                                cannot be resolved
 	 */
 	public static AccessToken generateAccessTokenForShareAuth(Object[] shareDetails) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
@@ -274,6 +278,9 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 			throw new IllegalAccessException("Token is not an auth token");
 		} else if (useValid != null) {
 			throw new IllegalAccessException("Token has already been used. Please get a new token");
+		}
+		if (userId == null || userId.isBlank() || userType == null || userType.isBlank()) {
+			throw new IllegalAccessException("Auth token does not identify a user login");
 		}
 
 		final String SMSS_USER_TABLE_NAME = "SMSS_USER";
@@ -304,14 +311,16 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 				String username = (String) values[3];
 				String email = (String) values[4];
 
+				token.setId(userId);
 				token.setName(name);
 				token.setUsername(username);
 				token.setEmail(email);
+				return token;
 			}
 		} catch (Exception e) {
 			classLogger.error("Unable to generate an access token for share-session authentication.", e);
 		}
 
-		return token;
+		throw new IllegalAccessException("Unable to resolve the user for share authentication");
 	}
 }

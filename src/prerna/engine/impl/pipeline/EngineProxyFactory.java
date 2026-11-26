@@ -32,6 +32,9 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEmbeddedRDBMSServerEngine;
@@ -51,6 +54,7 @@ import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.project.api.IProject;
 import prerna.util.EngineUtility;
+import prerna.util.Utility;
 
 /**
  * Factory for creating a dynamic proxy that wraps an IEngine instance to apply
@@ -58,12 +62,31 @@ import prerna.util.EngineUtility;
  */
 public class EngineProxyFactory {
 
+	private static final Logger classLogger = LogManager.getLogger(EngineProxyFactory.class);
+
 	/**
 	 * 
 	 * @param engine
 	 * @return
 	 */
 	public static IModelEngine createGuardedModelEngine(IModelEngine engine) {
+		return createGuardedModelEngine(engine, false);
+	}
+
+	/**
+	 * Wraps a model for the platform's own use: a feature that uses a model a
+	 * platform setting names, for every user of the feature. The model's pipeline
+	 * runs as on any proxy, and the access check lets the platform's own calls
+	 * through whoever the user is.
+	 *
+	 * @param engine the model, or null
+	 * @return the proxy, or null for no model
+	 */
+	public static IModelEngine createPlatformModelEngine(IModelEngine engine) {
+		return createGuardedModelEngine(engine, true);
+	}
+
+	private static IModelEngine createGuardedModelEngine(IModelEngine engine, boolean forPlatformUse) {
 		if (engine == null) {
 			return null;
 		}
@@ -72,11 +95,11 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = checkedPipelineFile(engine, pipelineValue);
 			}
 		}
 
-		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);
+		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile, forPlatformUse);
 		List<Class<?>> classes = new ArrayList<>();
 		classes.add(IEngine.class);
 		classes.add(IModelEngine.class);
@@ -107,7 +130,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = checkedPipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -140,7 +163,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = checkedPipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -168,7 +191,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = checkedPipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -204,7 +227,7 @@ public class EngineProxyFactory {
 		if (engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = checkedPipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -227,7 +250,7 @@ public class EngineProxyFactory {
 		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = checkedPipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -250,7 +273,7 @@ public class EngineProxyFactory {
 		if (engine != null && engine.getSmssProp().containsKey(IEngine.PIPELINE)) {
 			String pipelineValue = engine.getSmssProp().getProperty(IEngine.PIPELINE);
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
-				jsonFile = pipelineFile(engine, pipelineValue);
+				jsonFile = checkedPipelineFile(engine, pipelineValue);
 			}
 		}
 
@@ -270,7 +293,25 @@ public class EngineProxyFactory {
 	public static File pipelineFile(IEngine engine, String pipelineFileName) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		return new File((assetsFolder + "/" + pipelineFileName.trim()).replace("\\", "/"));
+		if (pipelineFileName == null) {
+			throw new IllegalArgumentException("Not a valid pipeline file");
+		}
+		// the PIPELINE value is a path inside the assets folder (a leading slash was always ignored)
+		String relative = pipelineFileName.trim().replaceFirst("^[/\\\\]+", "");
+		return new File(Utility.pathWithin(assetsFolder, relative, "pipeline file").replace("\\", "/"));
+	}
+
+	// a PIPELINE value that is not a file in the assets folder holds guardrails that cannot be applied, so the
+	// engine is refused, as it is when its pipeline file cannot be read
+	private static File checkedPipelineFile(IEngine engine, String pipelineFileName) {
+		try {
+			return pipelineFile(engine, pipelineFileName);
+		} catch (IllegalArgumentException e) {
+			classLogger.error("The PIPELINE value of engine {} is not a file inside its assets folder: {}",
+					engine.getEngineId(), Utility.cleanLogString(pipelineFileName));
+			throw new IllegalStateException("The guardrail configuration for engine " + engine.getEngineId()
+					+ " is not inside its assets folder, so it will not run without its guardrails", e);
+		}
 	}
 
 }

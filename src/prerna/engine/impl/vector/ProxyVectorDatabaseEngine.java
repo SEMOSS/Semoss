@@ -38,17 +38,26 @@ import org.apache.logging.log4j.Logger;
 
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
+import prerna.auth.utils.SecurityEngineAccessUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.pipeline.AdminOperation;
+import prerna.engine.impl.pipeline.PlatformOperation;
 import prerna.engine.impl.vector.interceptor.AbstractInterceptor;
 import prerna.engine.impl.vector.metadata.VectorDatabaseMetadataCSVTable;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.security.SecretRedactor;
 import prerna.util.Constants;
+import prerna.util.InternalUtility;
 import prerna.util.Utility;
 
 public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
@@ -89,6 +98,7 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				this.smssProp.putAll(engineSecrets);
 			}
 		}
+		SecretRedactor.recordSecrets(this.engineId, this.smssProp);
 
 		this.targetEngineId = this.smssProp.getProperty(TARGET_ENGINE_ID);
 		if (targetEngineId == null || (targetEngineId = targetEngineId.trim()).isEmpty()) {
@@ -113,7 +123,19 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			this.targetParameters = GSON.fromJson(targetParametersStr, Object[].class);
 		}
 
-		this.smssProp.put(Constants.EMBEDDER_ENGINE_ID, targetEngine.getSmssProp().get(Constants.EMBEDDER_ENGINE_ID));
+		requireEditorOnTarget(this.engineId, this.targetEngineId);
+		String targetSmssFilePath = InternalUtility.getEngineSmssPath(this.targetEngineId);
+		Properties targetSmssProp = targetSmssFilePath == null ? null : Utility.loadProperties(targetSmssFilePath);
+		if (targetSmssProp == null) {
+			throw new IllegalArgumentException(
+					"Could not find the settings of the target vector database " + this.targetEngineId);
+		}
+		String embedderEngineId = targetEngine.getEmbedderEngineId();
+		if (embedderEngineId == null) {
+			throw new IllegalArgumentException(
+					"The target vector database " + this.targetEngineId + " names no " + Constants.EMBEDDER_ENGINE_ID);
+		}
+		this.smssProp.put(Constants.EMBEDDER_ENGINE_ID, embedderEngineId);
 
 		try {
 			targetInterceptor = AbstractInterceptor.buildInterceptor(targetInterceptorType, this, targetEngine,
@@ -123,19 +145,50 @@ public class ProxyVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		Enhancer enhancer = new Enhancer();
-		Class<?> superClass = Class.forName((String) targetEngine.getSmssProp().get("ENGINE_TYPE"));
+		Class<?> superClass = Class.forName(targetSmssProp.getProperty(Constants.ENGINE_TYPE));
 		enhancer.setSuperclass(superClass);
 		enhancer.setInterfaces(new Class[] { IVectorDatabaseEngine.class });
 		enhancer.setCallback(targetInterceptor);
 
 		try {
 			proxy = (IVectorDatabaseEngine) enhancer.create();
-			proxy.open(targetEngine.getSmssFilePath());
+			proxy.open(targetSmssFilePath);
 		} catch (Exception e) {
 			classLogger.error("Unable to create proxy for vector database", e);
 			throw new IllegalArgumentException("Unable to create proxy for vector database", e);
 		}
 
+	}
+
+	/**
+	 * Refuses to copy the target vector database unless this one may: the target
+	 * gives this proxy vector database Editor, the signed in user owns the target,
+	 * or the platform or an admin is doing its own work. The copy opens with the
+	 * target's settings, credentials included, so a Read-Only permission is not
+	 * enough.
+	 *
+	 * @param proxyEngineId  this proxy vector database
+	 * @param targetEngineId the vector database it copies
+	 * @throws IllegalArgumentException if none of those holds
+	 */
+	static void requireEditorOnTarget(String proxyEngineId, String targetEngineId) {
+		EngineGrantee proxyEngine = new EngineGrantee(proxyEngineId, IEngine.CATALOG_TYPE.VECTOR.name());
+		AccessPermissionEnum granted = SecurityEngineAccessUtils.getGranteePermission(proxyEngine, targetEngineId);
+		if (granted != null && granted.getId() <= AccessPermissionEnum.EDIT.getId()) {
+			return;
+		}
+		User user = ThreadStore.getUser();
+		if (user != null
+				&& SecurityEngineAccessUtils.getUserPermission(user, targetEngineId, false) == AccessPermissionEnum.OWNER) {
+			return;
+		}
+		if (PlatformOperation.covering() != null
+				|| user != null && SecurityEngineAccessUtils.isAdmin(user) && AdminOperation.isRunning()) {
+			return;
+		}
+		throw new IllegalArgumentException("Vector database " + targetEngineId
+				+ " does not give proxy vector database " + proxyEngineId
+				+ " Editor access, which it needs to open a copy of it");
 	}
 
 	@Override

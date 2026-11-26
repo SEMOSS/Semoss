@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
@@ -60,5 +62,57 @@ class BrainThreadClassifierUnitTests {
 		List<Map<String, Object>> namesake = List.of(Map.of("name", "Owner", "address", "owner@elsewhere.com"));
 		assertEquals("none",
 				BrainThreadClassifier.recipientRole(OWNER, Map.of("to", namesake, "cc", namesake), "email"));
+	}
+
+	@Test
+	void aModelReadsEarlierMessagesUnlessItsWindowSaysOtherwise() {
+		// no setting: the newest message and up to nine before it, inside a fixed budget
+		BrainThreadClassifier.Window standard = BrainThreadClassifier.window((Object) null);
+		assertEquals(10, standard.messages());
+		assertEquals(12000, standard.budget());
+		assertTrue(standard.earlier());
+		// 0: the newest message alone
+		assertFalse(BrainThreadClassifier.window((Object) 0).earlier());
+		// a context window in tokens: half of it, at three characters a token
+		BrainThreadClassifier.Window wide = BrainThreadClassifier.window((Object) 16000);
+		assertEquals(24000, wide.budget());
+		assertTrue(wide.earlier());
+	}
+
+	@Test
+	void aSubjectNamesAServiceNowTicketAndOnlyAWholeWordClosesIt() {
+		assertEquals("INC-20774", BrainThreadClassifier.ticket("Ticket INC-20774 Closed"));
+		assertEquals("INC0012345", BrainThreadClassifier.ticket("Incident INC0012345 assigned to you"));
+		assertEquals("REQ0012345", BrainThreadClassifier.ticket("REQ0012345: laptop request"));
+		assertEquals("CHG0012345", BrainThreadClassifier.ticket("Approval needed for CHG0012345"));
+		assertEquals(null, BrainThreadClassifier.ticket("Lunch on Friday"));
+		assertTrue(BrainThreadClassifier.ticketOver("Ticket INC0012345 Closed"));
+		assertTrue(BrainThreadClassifier.ticketOver("CHG0012345 approved."));
+		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 unapproved vendor list"));
+		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 re-closed review"));
+		assertFalse(BrainThreadClassifier.ticketOver("INC0012345 prepaid cards"));
+	}
+
+	/** A sender's domain that only resembles a known organisation is named; a known or unrelated one is not. */
+	@Test
+	void aDomainThatOnlyResemblesAKnownOrganisationIsFlagged() {
+		Set<String> known = Set.of("castellanbank.example", "northpine.example", "acme.example");
+		assertEquals("castellanbank.example",
+				BrainOrgDomains.lookalike("castellanbank-payments.example", known));
+		assertEquals("northpine.example", BrainOrgDomains.lookalike("northpine-analytics.example", known));
+		assertEquals("castellanbank.example", BrainOrgDomains.lookalike("castellanbank.co", known));
+		assertEquals("castellanbank.example", BrainOrgDomains.lookalike("castelIanbank.example", known));
+		assertEquals("northpine.example", BrainOrgDomains.lookalike("mail.northplne.example", known));
+		// the organisation itself, a subdomain of it, an unrelated one, and a short name that only looks close
+		assertEquals(null, BrainOrgDomains.lookalike("castellanbank.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike("mail.northpine.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike("tidewaterlogistics.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike("acne.example", known));
+		assertEquals(null, BrainOrgDomains.lookalike(null, known));
+		// a verified subdomain of the organisation lends its own label to nobody
+		Set<String> withSub = Set.of("northpine.example", "partners.northpine.example");
+		assertEquals(null, BrainOrgDomains.lookalike("winrate-partners.example", withSub));
+		assertEquals(null, BrainOrgDomains.lookalike("partners.northpine.example", withSub));
+		assertEquals("northpine.example", BrainOrgDomains.lookalike("northpine-sales.example", withSub));
 	}
 }

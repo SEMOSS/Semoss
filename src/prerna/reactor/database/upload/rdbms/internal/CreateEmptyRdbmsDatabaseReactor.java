@@ -30,7 +30,6 @@ package prerna.reactor.database.upload.rdbms.internal;
 import java.io.File;
 import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
@@ -39,7 +38,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -54,7 +52,6 @@ import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadInputUtility;
@@ -71,11 +68,11 @@ import prerna.util.sql.SQLiteQueryUtil;
  *
  * Pixel usage:
  * <ul>
- * <li>CreateEmptyRdbmsDatabase(database=["MyDb"]);</li>
- * <li>CreateEmptyRdbmsDatabase(database=["MyDb"], rdbmsType=["SQLITE"]);</li>
- * <li>CreateEmptyRdbmsDatabase(database=["MyDb"], username=["admin"],
+ * <li>CreateEmptyRdbmsDatabase(catalogName=["MyDb"]);</li>
+ * <li>CreateEmptyRdbmsDatabase(catalogName=["MyDb"], rdbmsType=["SQLITE"]);</li>
+ * <li>CreateEmptyRdbmsDatabase(catalogName=["MyDb"], username=["admin"],
  * password=["secret"]);</li>
- * <li>CreateEmptyRdbmsDatabase(database=["MyDb"], rdbmsType=["SQLITE"],
+ * <li>CreateEmptyRdbmsDatabase(catalogName=["MyDb"], rdbmsType=["SQLITE"],
  * username=["admin"], password=["secret"]);</li>
  * </ul>
  */
@@ -97,7 +94,8 @@ public class CreateEmptyRdbmsDatabaseReactor extends AbstractReactor {
 	protected transient boolean error = false;
 
 	public CreateEmptyRdbmsDatabaseReactor() {
-		this.keysToGet = new String[] { UploadInputUtility.DATABASE, RDBMS_TYPE_KEY, USERNAME_KEY, PASSWORD_KEY };
+		this.keysToGet = new String[] { UploadInputUtility.CATALOG_NAME + "," + UploadInputUtility.DATABASE,
+				RDBMS_TYPE_KEY, USERNAME_KEY, PASSWORD_KEY };
 		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
@@ -116,8 +114,7 @@ public class CreateEmptyRdbmsDatabaseReactor extends AbstractReactor {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 
-		this.databaseName = UploadInputUtility.getEngineNameOrId(this.store,
-				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
+		this.databaseName = this.keyValue.get(UploadInputUtility.CATALOG_NAME);
 		RdbmsTypeEnum rdbmsType = getRdbmsType();
 
 		try {
@@ -191,10 +188,7 @@ public class CreateEmptyRdbmsDatabaseReactor extends AbstractReactor {
 			}
 		}
 
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
-		}
+		SecurityEngineUtils.addEngineOwner(user, this.databaseId);
 
 		ClusterUtil.pushEngine(this.databaseId);
 
@@ -222,7 +216,7 @@ public class CreateEmptyRdbmsDatabaseReactor extends AbstractReactor {
 		return super.getReactorDefinition().description(
 				"Creates a new, empty H2 or SQLite database without requiring a file upload or predefined schema. "
 						+ "Tables can be added later via SQL or the metamodel API.")
-				.key(UploadInputUtility.DATABASE, "The name of the new database to create")
+				.key(UploadInputUtility.CATALOG_NAME, "The name of the new database to create")
 				.key(RDBMS_TYPE_KEY, "The database engine type: H2_DB (default) or SQLITE")
 				.key(USERNAME_KEY, "The database username (default: sa for H2, empty for SQLite)")
 				.key(PASSWORD_KEY, "The database password (default: empty)");

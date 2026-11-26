@@ -147,6 +147,9 @@ final class PermissionBatchAudit {
 			if (change.getSubject().getCategory() == SubjectCategory.TEAM) {
 				details.put("groupId", validation.getSubjectId());
 				details.put("groupType", validation.getSubjectType());
+			} else if (change.getSubject().getCategory() == SubjectCategory.ENGINE) {
+				details.put("granteeEngineId", validation.getSubjectId());
+				details.put("granteeEngineType", validation.getSubjectType());
 			} else {
 				String subjectType = validation.getSubjectType();
 				// Approval writes intentionally match by ID; retain the request's provider in

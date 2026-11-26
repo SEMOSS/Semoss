@@ -53,7 +53,6 @@ import com.google.gson.stream.JsonWriter;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.date.SemossDate;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PyUtils;
 import prerna.om.Insight;
@@ -87,18 +86,17 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.security.SessionIds;
 import prerna.util.Utility;
 import prerna.util.gson.FrameCacheHelper;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
 import prerna.util.gson.NumberAdapter;
-import prerna.util.gson.SemossDateAdapter;
 
 public class InsightUtility {
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
-			.registerTypeAdapter(Double.class, new NumberAdapter())
-			.registerTypeAdapter(SemossDate.class, new SemossDateAdapter()).create();
+			.registerTypeAdapter(Double.class, new NumberAdapter()).create();
 
 	protected static final Logger classLogger = LogManager.getLogger(InsightUtility.class.getName());
 	public static final String PANEL_VIEW_VISUALIZATION = "visualization";
@@ -166,21 +164,22 @@ public class InsightUtility {
 	}
 
 	/**
-	 * Get a subset of the session Id to use in file locations to do file structure
-	 * length restrictions
-	 * 
-	 * @param sessionId
-	 * @return
+	 * The folder name that stands for a session in file locations: the session's
+	 * hash ({@link SessionIds#hash(String)}), the same value the logs and audit
+	 * tables hold. The same session always gets the same name, and the name does
+	 * not tell anyone the session id, which is all a browser needs to act as the
+	 * user.
+	 *
+	 * @param sessionId the session id, or null
+	 * @return the folder name for the session
 	 */
 	public static String getFolderDirSessionId(String sessionId) {
-		if (sessionId == null) {
+		String hash = SessionIds.hash(sessionId);
+		if (hash == null) {
 			classLogger.warn("SESSION ID is null");
 			return "UNKNOWN_SESSION_ID";
 		}
-		if (sessionId.length() > 32) {
-			return sessionId.substring(0, 32);
-		}
-		return sessionId;
+		return hash;
 	}
 
 	/**
@@ -813,7 +812,7 @@ public class InsightUtility {
 			}
 			// default to base frame
 			if (frame == null) {
-				frame = (ITableDataFrame) insight.getDataMaker();
+				frame = insight.getCurrentFrame();
 			}
 			qs.setFrame(frame);
 		}

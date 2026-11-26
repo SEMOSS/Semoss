@@ -28,115 +28,129 @@
 package prerna.tcp.client.workers;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
-import prerna.engine.api.IEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.ClientProcessWrapper;
 import prerna.om.IStringExportProcessor;
 import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.tcp.PayloadStruct;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
+/**
+ * Runs a database query that a Python process asks for, as the given user. Any
+ * other request from Python runs as a reactor call instead.
+ */
 public class NativePyEngineWorker implements Runnable {
 
 	private static final Logger classLogger = LogManager.getLogger(NativePyEngineWorker.class);
 
-	/*
-	 * NOTE
-	 * This class has been repurposed and is only used for database execution
-	 * All other operations should be send via a reactor call instead of directly invoking the database
-	 */
+	private static final String GENERIC_ERROR = "Runtime Error Processing Python Command";
+	private static final IStringExportProcessor ESCAPE_QUOTES = input -> input.replace("\"", "\\\"");
 
-	private PayloadStruct ps = null;
+	private final PayloadStruct ps;
+	private final User user;
+	private final Insight insight;
+	private ClientProcessWrapper sandbox = null;
 	private PayloadStruct output = null;
-	private User user = null;
-	private Insight insight = null;
 
+	/**
+	 * Creates a worker that returns the query results inline as JSON.
+	 *
+	 * @param user the user the query runs as
+	 * @param ps   the request from the Python process
+	 */
 	public NativePyEngineWorker(User user, PayloadStruct ps) {
-		this.ps = ps;
-		this.user = user;
+		this(user, ps, null);
 	}
 
+	/**
+	 * Creates a worker that writes the query results to a file in the insight's
+	 * folder, unless the request asks for JSON.
+	 *
+	 * @param user    the user the query runs as
+	 * @param ps      the request from the Python process
+	 * @param insight the insight whose folder holds the results, or null to return
+	 *                them inline
+	 */
 	public NativePyEngineWorker(User user, PayloadStruct ps, Insight insight) {
 		this.ps = ps;
 		this.user = user;
 		this.insight = insight;
 	}
 
+	/**
+	 * Sets the wrapper of the Python process that asked, so a result file can be sent into its
+	 * sandbox when it runs in one.
+	 *
+	 * @param sandbox the wrapper of the asking process, or null
+	 */
+	public void setSandbox(ClientProcessWrapper sandbox) {
+		this.sandbox = sandbox;
+	}
+
+	/** Writes the rows to a file and sets the payload to the path the Python process should open. */
+	private void writeResultFile(IRawSelectWrapper wrapper) throws IOException {
+		String name = "a_" + Utility.getRandomString(5) + ".json";
+		if (this.sandbox == null || !this.sandbox.isOpenShell()) {
+			String fileLocation = insight.getInsightFolder() + "/" + name;
+			Utility.writeResultToJson(fileLocation, wrapper, null, ESCAPE_QUOTES);
+			ps.payload = new Object[] { fileLocation.replace("\\", "/") };
+			return;
+		}
+		// A sandboxed process cannot see the host's insight folder: write to a temp folder, send the
+		// file in, and drop the host copy (Python only deletes its own).
+		Path dir = Files.createTempDirectory("semoss-engine-result-");
+		Path file = dir.resolve(name);
+		try {
+			Utility.writeResultToJson(file.toString(), wrapper, null, ESCAPE_QUOTES);
+			ps.payload = new Object[] { this.sandbox.deliverResultFile(file.toString()) };
+		} finally {
+			Files.deleteIfExists(file);
+			Files.deleteIfExists(dir);
+		}
+	}
+
 	@Override
 	public void run() {
-		IRawSelectWrapper wrapper = null;
+		String engineId = ps.objId;
 		try {
-			String engineId = ps.objId;
-			boolean canAccess = SecurityEngineUtils.userCanViewEngine(user, engineId); 
-			if(canAccess) {
-				if(ps.engineType.equalsIgnoreCase("DATABASE") && ps.methodName.equalsIgnoreCase("execquery")) {
-					IEngine engine = Utility.getDatabase(engineId);
-					wrapper = WrapperManager.getInstance().getRawWrapper((IDatabaseEngine)engine, ps.payload[0] + "");
-					// do the logic of converting it into 
-					String fileLocation = null;
-					if(this.insight == null || (ps.payload.length > 1 && ps.payload[1].equals("json"))) {
-						JSONArray jsonPayload = Utility.writeResultToJsonObject(wrapper, null, new IStringExportProcessor() {
-							// we need to replace all inner quotes with ""
-							@Override
-							public String processString(String input) {
-								return input.replace("\"", "\\\"");
-							}
-						});
-						ps.payload = new Object[] {jsonPayload};
-					} else {
-						fileLocation = insight.getInsightFolder() + "/a_" + Utility.getRandomString(5) + ".json";
-						Utility.writeResultToJson(fileLocation, wrapper, null, new IStringExportProcessor() {
-							// we need to replace all inner quotes with ""
-							@Override
-							public String processString(String input) {
-								return input.replace("\"", "\\\"");
-							}
-						});
-						fileLocation = fileLocation.replace("\\","/");
-						ps.payload = new Object[] {fileLocation};
-					}
+			if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+				throw new IllegalArgumentException(
+						"Engine " + engineId + " does not exist or user does not have access to it");
+			}
+			if (!"DATABASE".equalsIgnoreCase(ps.engineType) || !"execquery".equalsIgnoreCase(ps.methodName)) {
+				throw new IllegalArgumentException("Can only execute a database query using this method");
+			}
+			IDatabaseEngine engine = Utility.getDatabase(engineId);
+			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, ps.payload[0] + "")) {
+				if (this.insight == null || (ps.payload.length > 1 && "json".equals(ps.payload[1]))) {
+					ps.payload = new Object[] { Utility.writeResultToJsonObject(wrapper, null, ESCAPE_QUOTES) };
 				} else {
-					throw new IllegalArgumentException("Can only execute a database query using this method");
-				}
-			} else {
-				throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have access to it");
-			}
-			// got the response
-			ps.response = true;
-		} catch(Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			// Get the message from the current exception
-			String errorMessage = (e.getCause() != null) ? e.getCause().getMessage() : e.getLocalizedMessage();
-			// if its null, pass a generic message
-			if (errorMessage == null) {
-				errorMessage = "Runtime Error Processing Python Command";
-			}
-			ps.ex = errorMessage;
-			ps.response = true;
-		} finally {
-			if(wrapper != null) {
-				try {
-					wrapper.close();
-				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					writeResultFile(wrapper);
 				}
 			}
+		} catch (Exception e) {
+			classLogger.error("Failed to run the Python process's query on engine {}", engineId, e);
+			String errorMessage = e.getCause() != null ? e.getCause().getMessage() : e.getLocalizedMessage();
+			ps.ex = errorMessage == null ? GENERIC_ERROR : errorMessage;
 		}
+		ps.response = true;
 		output = ps;
 	}
 
 	/**
-	 * 
-	 * @return
+	 * Returns the request with its results or its error filled in.
+	 *
+	 * @return the answered request, or null until {@link #run()} finishes
 	 */
 	public PayloadStruct getOutput() {
 		return this.output;

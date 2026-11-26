@@ -50,51 +50,54 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	public Console System = new Console();
 //	public SecurityManager curManager = null;
 //	public SecurityManager reactorManager = null;
-	
+
 	public List<NounMetadata> nounMetaOutput = new Vector<NounMetadata>();
 	public ITableDataFrame dataframe;
-	
+
 	/**
 	 * Method to execute
+	 * 
 	 * @return
 	 */
 	public void runCompiledCode() {
 		try {
 			execute();
-		} catch(Exception ex) {
+		} catch (Exception ex) {
 			throw ex;
 		}
 	}
-	
+
 	public List<NounMetadata> getNounMetaOutput() {
 		return this.nounMetaOutput;
 	}
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	////////////////////// Frame Methods ///////////////////////
-	
+
 	/**
 	 * Filter node to set of values
+	 * 
 	 * @param columnHeader
 	 * @param instances
 	 */
 	protected void filterNode(String columnHeader, String[] instances) {
 		List<Object> values = new Vector<Object>();
-		for(int instanceIndex = 0;instanceIndex < instances.length; instanceIndex++) {
+		for (int instanceIndex = 0; instanceIndex < instances.length; instanceIndex++) {
 			values.add(instances[instanceIndex]);
 		}
 		NounMetadata colMeta = new NounMetadata(columnHeader, PixelDataType.COLUMN);
 		NounMetadata valuesMeta = new NounMetadata(values, PixelDataType.CONST_STRING);
 		SimpleQueryFilter filter = new SimpleQueryFilter(colMeta, "==", valuesMeta);
 		this.dataframe.addFilter(filter);
-		
+
 		// set the output so the FE knows what occurred
 		this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_FILTER));
 	}
-	
+
 	/**
 	 * Filter node to set of values
+	 * 
 	 * @param columnHeader
 	 * @param instances
 	 */
@@ -103,13 +106,14 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 		NounMetadata valuesMeta = new NounMetadata(values, PixelDataType.CONST_STRING);
 		SimpleQueryFilter filter = new SimpleQueryFilter(colMeta, "==", valuesMeta);
 		((ITableDataFrame) this.dataframe).addFilter(filter);
-		
+
 		// set the output so the FE knows what occurred
 		this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_FILTER));
 	}
-	
+
 	/**
 	 * Filter note to specific value
+	 * 
 	 * @param columnHeader
 	 * @param value
 	 */
@@ -118,7 +122,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 		NounMetadata valuesMeta = new NounMetadata(value, PixelDataType.CONST_STRING);
 		SimpleQueryFilter filter = new SimpleQueryFilter(colMeta, "==", valuesMeta);
 		((ITableDataFrame) this.dataframe).addFilter(filter);
-		
+
 		// set the output so the FE knows what occurred
 		this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_FILTER));
 	}
@@ -183,7 +187,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 //		}
 //		java.lang.System.setSecurityManager(reactorManager);
 //	}
-	
+
 //	/**
 //	 * 
 //	 * Runs anomaly detection on categorical data. This is done by counting the
@@ -244,7 +248,7 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 //		}
 //		java.lang.System.setSecurityManager(reactorManager);
 //	}
-		
+
 //	/**
 //	 * Runs a .R file script with the current data frame in Semoss synchronized
 //	 * to R as rSyncFrameName. After running the routine, the R frame with name
@@ -326,55 +330,56 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 	////////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////////
 	//////////////////////// Tinker Methods ////////////////////////
-	
+
 	/**
 	 * Remove all nodes of a specific type
+	 * 
 	 * @param type
 	 */
 	protected void removeNode(String type) {
 //		java.lang.System.setSecurityManager(curManager);
-		if(this.dataframe instanceof TinkerFrame)
-		{
-			((TinkerFrame)this.dataframe).removeColumn(type);
+		if (this.dataframe instanceof TinkerFrame) {
+			((TinkerFrame) this.dataframe).removeColumn(type);
 			String output = "Removed nodes for " + type;
 			System.out.println(output);
-			this.dataframe.updateDataId();
 			// set the output so the FE knows what occurred
-			this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
+			this.nounMetaOutput
+					.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 		}
 //		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+
 	/**
 	 * Remove all nodes of a specific type and with a specific value
+	 * 
 	 * @param type
 	 * @param data
 	 */
 	protected void removeNode(String type, String data) {
 //		java.lang.System.setSecurityManager(curManager);
-		if(this.dataframe instanceof TinkerFrame) {
+		if (this.dataframe instanceof TinkerFrame) {
 			List<Object> removeList = new Vector<Object>();
 			removeList.add(data);
-			((TinkerFrame)this.dataframe).remove(type, removeList);
+			((TinkerFrame) this.dataframe).remove(type, removeList);
 			String output = "Removed nodes for  " + data + " with values " + removeList;
 			System.out.println(output);
-			this.dataframe.updateDataId();
 			// set the output so the FE knows what occurred
-			this.nounMetaOutput.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
+			this.nounMetaOutput
+					.add(new NounMetadata(this.dataframe, PixelDataType.FRAME, PixelOperationType.FRAME_DATA_CHANGE));
 		}
 //		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+
 	/**
 	 * Find degree of a node
+	 * 
 	 * @param type
 	 * @param data
 	 */
 	protected void degree(String type, String data) {
 //		java.lang.System.setSecurityManager(curManager);
-		if(this.dataframe instanceof TinkerFrame)
-		{
-			Object degree = ((TinkerFrame)this.dataframe).degree(type, data);
+		if (this.dataframe instanceof TinkerFrame) {
+			Object degree = ((TinkerFrame) this.dataframe).degree(type, data);
 			String output = "Degrees for  " + data + ":" + degree;
 			System.out.println(output);
 			// set the output so the FE knows what occurred
@@ -382,44 +387,43 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 		}
 //		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+
 	/**
 	 * Calculate the node eigenvalue
+	 * 
 	 * @param type
 	 * @param data
 	 */
-	protected void eigen(String type, String data)
-	{
+	protected void eigen(String type, String data) {
 //		java.lang.System.setSecurityManager(curManager);
-		if(this.dataframe instanceof TinkerFrame)
-		{
-			Object degree = ((TinkerFrame)this.dataframe).eigen(type, data);
-			String output = "Eigen for  " + data + ":" +degree;
+		if (this.dataframe instanceof TinkerFrame) {
+			Object degree = ((TinkerFrame) this.dataframe).eigen(type, data);
+			String output = "Eigen for  " + data + ":" + degree;
 			System.out.println(output);
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
 		}
 //		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+
 	/**
 	 * Determine if node is an orphan
+	 * 
 	 * @param type
 	 * @param data
 	 */
 	protected void isOrphan(String type, String data) {
 //		java.lang.System.setSecurityManager(curManager);
-		if(this.dataframe instanceof TinkerFrame)
-		{
-			boolean orphan = ((TinkerFrame)this.dataframe).isOrphan(type, data);
+		if (this.dataframe instanceof TinkerFrame) {
+			boolean orphan = ((TinkerFrame) this.dataframe).isOrphan(type, data);
 			String output = data + "  Orphan? " + orphan;
 			System.out.println(output);
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(output, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
-		}		
+		}
 //		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+
 //	/**
 //	 * Generate a new graph based of the edges to traverse
 //	 * @param selectors
@@ -532,68 +536,69 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 
 	protected void runLoopIdentifer(int cycleSize) {
 //		java.lang.System.setSecurityManager(curManager);
-		if(this.dataframe instanceof TinkerFrame)
-		{
+		if (this.dataframe instanceof TinkerFrame) {
 			String loops = TinkerAlgorithmUtility.runLoopIdentifer((TinkerFrame) this.dataframe, cycleSize);
 			System.out.println(loops);
-			
+
 			// set the output so the FE knows what occurred
 			this.nounMetaOutput.add(new NounMetadata(loops, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
 		}
 //		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+
 	protected void runDisconnectedNodesIdentifier(String type, String instance) {
 //		java.lang.System.setSecurityManager(curManager);
-		if(this.dataframe instanceof TinkerFrame)
-		{
-			String disconnectedNodes = TinkerAlgorithmUtility.runDisconnectedNodesIdentifier((TinkerFrame) this.dataframe, type, instance);
+		if (this.dataframe instanceof TinkerFrame) {
+			String disconnectedNodes = TinkerAlgorithmUtility
+					.runDisconnectedNodesIdentifier((TinkerFrame) this.dataframe, type, instance);
 			System.out.println(disconnectedNodes);
 
 			// set the output so the FE knows what occurred
-			this.nounMetaOutput.add(new NounMetadata(disconnectedNodes, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
+			this.nounMetaOutput
+					.add(new NounMetadata(disconnectedNodes, PixelDataType.CONST_STRING, PixelOperationType.OPERATION));
 		}
 //		java.lang.System.setSecurityManager(reactorManager);
 	}
-	
+
 	////////////////////////////////////////////////////////////
 	////////////////////////////////////////////////////////////
 	//////////////////// Setter / Getters //////////////////////
-	
+
 //	protected void setCurSecurityManager(SecurityManager curManager) {
 //		this.curManager = curManager;
 //	}
-	
+
 //	protected void setReactorManager(SecurityManager reactorManager) {
 //		this.reactorManager = reactorManager;
 //	}
-	
+
 	protected void setConsole() {
 		this.System = new Console();
 	}
-	
+
 	protected Object retrieveVariable(String varName) {
 		NounMetadata noun = this.insight.getVarStore().get(varName);
-		if(noun == null) {
+		if (noun == null) {
 			return null;
 		}
 		return noun.getValue();
 	}
-	
+
 	protected void storeVariable(String varName, NounMetadata noun) {
 		this.insight.getVarStore().put(varName, noun);
 	}
-	
+
 	protected void setDataFrame(ITableDataFrame frame) {
 		this.dataframe = frame;
 	}
-	
+
 	protected void removeVariable(String varName) {
 		this.insight.getVarStore().remove(varName);
 	}
-	
+
 	/**
 	 * Get the base folder
+	 * 
 	 * @return
 	 */
 	protected String getBaseFolder() {
@@ -603,14 +608,14 @@ public abstract class AbstractJavaReactorBaseClass extends AbstractReactor {
 		} catch (Exception ignored) {
 			logger.info("No BaseFolder detected... most likely running as test...");
 		}
-		if(baseFolder == null)
+		if (baseFolder == null)
 			baseFolder = "C:/users/pkapaleeswaran/workspacej3/SemossWeb";
-		
+
 		return baseFolder;
 	}
-	
+
 	protected void setLogger(Logger logger) {
 		this.logger = logger;
 	}
-	
+
 }

@@ -36,7 +36,6 @@ import java.util.Vector;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.InsightAdministrator;
 import prerna.om.MosfetFile;
 import prerna.project.api.IProject;
@@ -68,8 +67,6 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		// need to know what we are updating
 		String existingId = getRdbmsId();
 
-		// we may have the alias
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityInsightUtils.userCanEditInsight(this.insight.getUser(), projectId, existingId)) {
 			throw new IllegalArgumentException(
 					"Project does not exist or user does not have permission to edit this insight");
@@ -98,14 +95,12 @@ public class SetInsightNameReactor extends AbstractInsightReactor {
 		logger.info("1) Done");
 
 		logger.info("2) Updating insight in index");
-		SecurityInsightUtils.updateInsightName(projectId, existingId, insightName);
+		SecurityInsightUtils.updateInsightName(this.insight.getUser(), projectId, existingId, insightName);
 		logger.info("2) Done");
 
 		logger.info("3) Update mosfet file for collaboration");
 		updateRecipeFile(logger, project.getProjectId(), project.getProjectName(), existingId, insightName);
 		logger.info("3) Done");
-
-//		ClusterUtil.reactorPushInsightDB(projectId);
 
 		Map<String, Object> returnMap = new HashMap<String, Object>();
 		returnMap.put("app_insight_id", existingId);

@@ -28,20 +28,18 @@
 package prerna.engine.impl.r;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -57,8 +55,6 @@ public class RserveUtil {
 
 	protected static final Logger classLogger = LogManager.getLogger(RserveUtil.class);
 
-	private static final String R_FOLDER = (Utility.getBaseFolder() + "/" + "R" + "/" + "Temp" + "/").replace('\\',
-			'/');
 	private static final String R_DATA_EXT = ".RData";
 
 	// R binary location
@@ -176,70 +172,19 @@ public class RserveUtil {
 	}
 
 	/**
-	 * 
-	 * @param port
-	 * @throws Exception
+	 * Stops the Rserve processes listening on a port by killing them.
+	 *
+	 * @param port the Rserve port
+	 * @throws Exception if the processes cannot be looked up
 	 */
 	public static void stopR(int port) throws Exception {
-		// Stop
-		File tempFile = new File(R_FOLDER + Utility.getRandomString(12) + ".txt");
-		try {
-			if (SystemUtils.IS_OS_WINDOWS) {
-				// Dump the output of netstat to a file
-				ProcessBuilder pbNetstat = new ProcessBuilder("netstat", "-ano");
-				pbNetstat.redirectOutput(tempFile);
-				Process processNetstat = pbNetstat.start();
-				processNetstat.waitFor(7L, TimeUnit.SECONDS);
-
-				// Parse netstat output to get the PIDs of processes running on Rserve's port
-				List<String> lines = FileUtils.readLines(tempFile, StandardCharsets.UTF_8);
-				List<String> pids = lines.stream().filter(l -> l.contains("LISTENING")) // Only grab processes in
-																						// LISTENING state
-						.map(l -> l.trim().split("\\s+")) // Trim the empty characters and split into rows
-						.filter(r -> r[1].contains(":" + port)) // Only use those that are listening on the right port
-						.map(r -> r[4]) // Grab the pid
-						.collect(Collectors.toList());
-				for (String pid : pids) {
-					try {
-						Integer.parseInt(pid.trim());
-					} catch (NumberFormatException e) {
-						classLogger.error("'{}' is not a valid PID while stopping Rserve on port {}",
-								Utility.cleanLogString(pid), port, e);
-						throw e;
-					}
-					// Go through and kill these processes
-					ProcessBuilder pbTaskkill = new ProcessBuilder("taskkill", "/PID", pid, "/F").inheritIO();
-					Process processTaskkill = pbTaskkill.start();
-					processTaskkill.waitFor(7L, TimeUnit.SECONDS);
-					classLogger.info("Stopped Rserve on port {} with pid {}", port, Utility.cleanLogString(pid));
-				}
-
+		for (int pid : MgmtUtil.getPidsByPort(port)) {
+			Optional<ProcessHandle> process = ProcessHandle.of(pid);
+			if (process.isPresent() && process.get().destroyForcibly()) {
+				classLogger.info("Stopped Rserve on port {} with pid {}", port, pid);
 			} else {
-				// Dump the output of lsof to a file
-				ProcessBuilder pbLsof = new ProcessBuilder("lsof", "-t", "-i:" + port, "-sTCP:LISTEN");
-				pbLsof.redirectOutput(tempFile);
-				Process processLsof = pbLsof.start();
-				processLsof.waitFor(7L, TimeUnit.SECONDS);
-
-				// Parse lsof output to get the PIDs of processes (in this case each line is
-				// just the pid)
-				List<String> lines = FileUtils.readLines(tempFile, StandardCharsets.UTF_8);
-				for (String pid : lines) {
-					try {
-						Integer.parseInt(pid.trim());
-					} catch (NumberFormatException e) {
-						classLogger.error("'{}' is not a valid PID while stopping Rserve on port {}",
-								Utility.cleanLogString(pid), port, e);
-						throw e;
-					}
-					ProcessBuilder pbKill = new ProcessBuilder("kill", "-9", pid).inheritIO();
-					Process processKill = pbKill.start();
-					processKill.waitFor(7L, TimeUnit.SECONDS);
-					classLogger.info("Stopped Rserve on port {} with pid {}", port, Utility.cleanLogString(pid));
-				}
+				classLogger.warn("Could not stop the process {} that listens on Rserve port {}", pid, port);
 			}
-		} finally {
-			tempFile.delete();
 		}
 	}
 
@@ -249,7 +194,17 @@ public class RserveUtil {
 	 * @return
 	 */
 	public static String getRDataFile(String rDataFileName) {
-		return R_FOLDER + rDataFileName + R_DATA_EXT;
+		return getRTempFolder() + rDataFileName + R_DATA_EXT;
+	}
+
+	/**
+	 * Returns the R temp folder under the base folder, with forward slashes and a
+	 * trailing slash. The base folder is read on each call.
+	 *
+	 * @return the R temp folder
+	 */
+	private static String getRTempFolder() {
+		return (Utility.getBaseFolder() + "/R/Temp/").replace('\\', '/');
 	}
 
 	/**

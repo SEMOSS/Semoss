@@ -28,6 +28,7 @@
 package prerna.io.connector.ms.onedrive;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -72,6 +73,16 @@ import prerna.util.ValueUtils;
  * The destination folder has to exist. Graph answers a path addressed upload
  * into a folder that is not there with a 404 rather than creating it, so create
  * it with {@code MicrosoftOneDriveCreateFolder} first.
+ * </p>
+ *
+ * <p>
+ * A file that {@code MicrosoftOneDriveDownloadFile} wrote can be saved back
+ * over the file it was downloaded from: pass it with a conflict behavior of
+ * {@code replace} and no destination. The download recorded where it came from
+ * and which version it held, so the upload reaches the original wherever it
+ * lives. When somebody changed the original in the meantime the upload is
+ * refused rather than discarding their change unseen; once that has been said,
+ * the same upload asked for again replaces it.
  * </p>
  */
 public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriveReactor {
@@ -132,7 +143,8 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 	 * path that climbs above its root, which is the same guard the insight asset
 	 * reactors use. Stripping a leading slash afterwards keeps an absolute path
 	 * from being read as one, so it resolves under the insight folder like any
-	 * other relative path.
+	 * other relative path, and {@link Utility#resolveContainedFile} refuses a
+	 * symbolic link that leads out of the folder.
 	 * </p>
 	 *
 	 * @param requestedPath path relative to the insight folder
@@ -141,9 +153,6 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 	 *                              readable file
 	 */
 	private File resolveInsightFile(String requestedPath) {
-		String insightFolder = this.insight.getInsightFolder();
-		File insightFolderFile = new File(insightFolder);
-
 		String relativePath;
 		try {
 			relativePath = Utility.normalizePath(requestedPath);
@@ -158,17 +167,17 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 			throw new SemossPixelException("A file path is required to upload to OneDrive.");
 		}
 
-		File sourceFile = new File(insightFolderFile, relativePath);
-		if (!sourceFile.exists() || !sourceFile.isFile()) {
+		try {
+			return Utility.resolveContainedFile(this.insight.getInsightFolder(), relativePath).toFile();
+		} catch (IOException | IllegalArgumentException e) {
 			throw new SemossPixelException("No file exists in the insight folder at: " + relativePath);
 		}
-		return sourceFile;
 	}
 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Upload a file from the insight folder into OneDrive, into the signed in user's own drive or into a folder shared with them.")
+				"Upload a file from the insight folder into OneDrive, into the signed in user's own drive or into a folder shared with them. To save a file that was downloaded from OneDrive back over its original, pass only the file path and a conflict behavior of replace: it goes to the file it was downloaded from, wherever that is. When the original was changed in OneDrive after the download nothing is uploaded and the result says so; uploading again the same way then replaces it.")
 				.key(DRIVE_ID, DRIVE_ID_DESCRIPTION)
 				.key(ReactorKeysEnum.FILE_PATH, "Path of the file to upload, relative to the insight folder.")
 				.key(ReactorKeysEnum.NAME,

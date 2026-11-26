@@ -53,19 +53,13 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 	public NounMetadata execute() {
 		this.organizeKeys();
 
-		String disable_terminal = Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL);
-		if (disable_terminal != null && !disable_terminal.isEmpty()) {
-			if (Boolean.parseBoolean(disable_terminal)) {
-				throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_TERMINAL))) {
+			throw new IllegalArgumentException("Terminal and user code execution has been disabled.");
 		}
 
 		// check if script sourcing terminal is disabled
-		String disable_script_scource = Utility.getDIHelperProperty(Constants.DISABLE_SCRIPT_SOURCE);
-		if (disable_script_scource != null && !disable_script_scource.isEmpty()) {
-			if (Boolean.parseBoolean(disable_script_scource)) {
-				throw new IllegalArgumentException("Script Sourcing has been disabled.");
-			}
+		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.DISABLE_SCRIPT_SOURCE))) {
+			throw new IllegalArgumentException("Script Sourcing has been disabled.");
 		}
 
 		String relativePath = Utility.normalizePath(this.keyValue.get(this.keysToGet[0]));
@@ -93,12 +87,14 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		// if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			// get the app_root folder for the project
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
+			this.insight.getUser().getSandbox().grantFolder(assetFolder);
 		}
 
 		File file = new File(path);
 		String name = file.getName();
-		name = name.replaceAll(".py", "");
+		if (name.endsWith(".py")) {
+			name = name.substring(0, name.length() - ".py".length());
+		}
 
 		String assetOutput = assetFolder + "/" + name + ".output";
 
@@ -108,12 +104,13 @@ public class PySourceReactor extends AbstractPyFrameReactor {
 		List<NounMetadata> outputs = new Vector<NounMetadata>(1);
 		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));
 
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null)
-				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		NounMetadata smartSyncVar = insight.getVarStore().get("SMART_SYNC");
+		boolean smartSync = Boolean.parseBoolean(smartSyncVar != null ? smartSyncVar.getValue().toString()
+				: Utility.getDIHelperProperty("SMART_SYNC"));
 		if (smartSync) {
 			// if this returns true
 			if (smartSync(pyt)) {
-				outputs.add(new NounMetadata(this.insight.getCurFrame(), PixelDataType.FRAME,
+				outputs.add(new NounMetadata(this.insight.getCurrentFrame(), PixelDataType.FRAME,
 						PixelOperationType.FRAME_HEADERS_CHANGE));
 			}
 		}

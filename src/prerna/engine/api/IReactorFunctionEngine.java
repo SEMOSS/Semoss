@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.reactor.IReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -47,6 +48,7 @@ public interface IReactorFunctionEngine extends IReactor, IFunctionEngine {
 	 * @param ns
 	 * @return
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	NounMetadata execute(NounStore ns);
 
 	/**
@@ -55,5 +57,6 @@ public interface IReactorFunctionEngine extends IReactor, IFunctionEngine {
 	 * @param curRow
 	 * @return
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	NounMetadata execute(NounStore ns, GenRowStruct curRow);
 }

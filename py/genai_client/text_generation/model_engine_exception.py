@@ -123,6 +123,9 @@ class ModelEngineException:
 
         if hasattr(self.error, "code"):
             code = self.error.code() if callable(self.error.code) else self.error.code
+        elif getattr(self.error, "status_code", None) is not None:
+            # Interactions uses Stainless errors, including non-JSON proxy errors.
+            code = self.error.status_code
 
         try:
             if "{" in error_str:

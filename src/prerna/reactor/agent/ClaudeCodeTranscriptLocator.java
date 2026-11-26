@@ -27,13 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 
+import prerna.engine.impl.model.Room;
 import prerna.util.Utility;
 
 /**
@@ -55,11 +55,11 @@ public class ClaudeCodeTranscriptLocator {
 	 *         {@code null} if the room dir or file doesn't exist
 	 */
 	public static Path findJsonlFile(String roomId) {
-		if (roomId == null || roomId.isEmpty()) {
+		if (!Utility.isSafePathSegment(roomId)) {
 			return null;
 		}
 
-		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		String roomFolderPath = Room.roomFolderPath(roomId);
 		Path rootDir = Paths.get(roomFolderPath);
 
 		if (!Files.isDirectory(rootDir)) {

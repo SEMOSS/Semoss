@@ -77,8 +77,26 @@ final class BrainTopicReviewOperations {
 			out.put("choice", choice);
 			return out;
 		}
+		if ("build".equals(type)) {
+			// one topic as the owner set it up: its profile, people and the conversations they kept or turned down
+			String key = input.get("topicKey") == null ? "" : text(input.get("topicKey"), "Topic key", 100);
+			out.put("topicKey", key);
+			out.put("name", text(input.get("name"), "Topic name", 255).trim());
+			if (((String) out.get("name")).isEmpty()) throw new IllegalArgumentException("Name the topic");
+			out.put("description", input.get("description") == null ? "" : text(input.get("description"), "Topic description", 12000));
+			String terms = input.get("terms") == null ? "" : text(input.get("terms"), "Topic clues", 4000);
+			BrainTopicReviewProfiles.terms(terms);
+			out.put("terms", terms);
+			for (String[] list : new String[][] { { "people", "60" }, { "include", "60" }, { "exclude", "60" }, { "fromSuggestions", "30" } }) {
+				List<String> ids = strings(input.get(list[0])).stream().distinct().toList();
+				if (ids.size() > Integer.parseInt(list[1])) throw new IllegalArgumentException("Choose at most " + list[1] + " " + list[0]);
+				ids.forEach(id -> text(id, "Id", 100));
+				out.put(list[0], ids);
+			}
+			return out;
+		}
 		if (!Set.of("confirm", "reject", "move", "also_link").contains(type)) {
-			throw new IllegalArgumentException("Choose confirm, reject, move, also_link, organize, reconcile_profile or undo");
+			throw new IllegalArgumentException("Choose confirm, reject, move, also_link, build, organize, reconcile_profile or undo");
 		}
 		out.put("topicKey", text(input.get("topicKey"), "Topic key", 100));
 		List<String> ids = strings(input.get("threadIds"));
@@ -127,6 +145,16 @@ final class BrainTopicReviewOperations {
 			}
 			Map<String, Object> before = map(latest.get("before"));
 			BrainTopicReviewStructure.undo(draft, latest);
+			// a topic set up in the builder goes back to how it was, or away when it was new
+			List<Map<String, Object>> topics = new ArrayList<>(maps(draft.get("topics")));
+			for (Map<String, Object> saved : maps(latest.get("built"))) {
+				int at = -1;
+				for (int i = 0; i < topics.size(); i++) if (Objects.equals(topics.get(i).get("key"), saved.get("key"))) at = i;
+				Map<String, Object> was = map(saved.get("before"));
+				if (at >= 0 && was.isEmpty()) topics.remove(at);
+				else if (at >= 0) topics.set(at, was);
+			}
+			draft.put("topics", topics);
 			draft.put("corrections", maps(before.get("corrections")));
 			draft.put("baseVersions", map(before.get("baseVersions")));
 			history.remove(history.size() - 1);
@@ -157,6 +185,14 @@ final class BrainTopicReviewOperations {
 			history.add(Map.of("id", operationId, "type", type, "summary", summary, "before", before,
 					"after", state(draft), "topicPatches", patches));
 			draft.put("lastChange", summary);
+		} else if ("build".equals(type)) {
+			Map<String, Object> before = state(draft);
+			List<Map<String, Object>> built = BrainTopicBuilder.build(ownerId, ownerType, review, request);
+			draft = map(review.get("draft"));
+			String summary = "Set up " + request.get("name") + " with " + strings(request.get("include")).size() + " conversation(s)";
+			history.add(Map.of("id", operationId, "type", type, "summary", summary, "before", before,
+					"after", state(draft), "built", built));
+			draft.put("lastChange", summary);
 		} else {
 			Map<String, Object> source = kept(review, (String) request.get("topicKey"));
 			String sourceKey = (String) source.get("key");
@@ -177,7 +213,7 @@ final class BrainTopicReviewOperations {
 				BrainThreadTopicDecisions.lockThread(ownerId, ownerType, threadId);
 				BrainTopicReviewEvidence.requireEmail(ownerId, ownerType, threadId);
 				String currentVersion = BrainTopicReviewEvidence.version(ownerId, ownerType, threadId);
-				if (!currentVersion.equals(map(request.get("versions")).get(threadId))) {
+				if (!BrainTopicReviewEvidence.sameVersion(currentVersion, map(request.get("versions")).get(threadId))) {
 					throw new IllegalArgumentException("This conversation's topic links changed. Refresh its preview before correcting it.");
 				}
 				base.put(threadId, currentVersion);
@@ -219,7 +255,7 @@ final class BrainTopicReviewOperations {
 		for (String threadId : versions.keySet().stream().sorted().toList()) {
 			BrainThreadTopicDecisions.lockThread(ownerId, ownerType, threadId);
 			BrainTopicReviewEvidence.requireEmail(ownerId, ownerType, threadId);
-			if (!BrainTopicReviewEvidence.version(ownerId, ownerType, threadId).equals(versions.get(threadId))) {
+			if (!BrainTopicReviewEvidence.sameVersion(BrainTopicReviewEvidence.version(ownerId, ownerType, threadId), versions.get(threadId))) {
 				throw new IllegalArgumentException("A reviewed conversation changed. Refresh its preview and review its correction before applying setup.");
 			}
 		}
@@ -296,7 +332,7 @@ final class BrainTopicReviewOperations {
 		return topic;
 	}
 
-	private static void put(List<Map<String, Object>> corrections, String threadId, String key, String state, boolean primary) {
+	static void put(List<Map<String, Object>> corrections, String threadId, String key, String state, boolean primary) {
 		if (!primary && "include".equals(state)) {
 			primary = corrections.stream().anyMatch(row -> threadId.equals(row.get("threadId"))
 					&& key.equals(row.get("topicKey")) && "include".equals(row.get("state"))

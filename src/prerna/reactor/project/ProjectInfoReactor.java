@@ -60,16 +60,12 @@ public class ProjectInfoReactor extends AbstractReactor {
 
 		boolean hasAccess = false;
 		List<Map<String, Object>> baseInfo = null;
-		// make sure valid id for user
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			hasAccess = true;
-			// user has access!
 			baseInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(), projectId);
 		} else if (SecurityProjectUtils.projectIsDiscoverable(projectId)) {
 			baseInfo = SecurityProjectUtils.getDiscoverableProjectList(projectId, null);
 		} else {
-			// you dont have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
@@ -148,8 +144,9 @@ public class ProjectInfoReactor extends AbstractReactor {
 
 								Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
 								  Core project fields: project_id, project_name, project_display_name, project_type, project_cost,
-								    project_global, project_discoverable, project_is_template, project_catalog_name, project_created_by, project_created_by_type,
-								    project_date_created, project_date_last_edited, low_project_name, project_description.
+								    project_global, project_discoverable, project_is_template, project_has_custom_login, project_catalog_name,
+								    project_created_by, project_created_by_type, project_date_created, project_date_last_edited, low_project_name,
+								    project_description.
 								  Portal fields: project_has_portal, project_portal_name, project_portal_published_date, project_published_user,
 								    project_published_user_type, project_reactors_compiled_date, project_reactors_compiled_user,
 								    project_reactors_compiled_user_type. When project_has_portal is true, project_portal_url is also returned.

@@ -68,6 +68,10 @@ import prerna.auth.access.ModelUsageLimitRule;
 import prerna.auth.access.ModelUsageLimitRule.Counts;
 import prerna.auth.access.ModelUsageLimitRule.Metric;
 import prerna.auth.access.ModelUsageLimitRule.Window;
+import prerna.auth.access.PermissionSubject;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.impl.model.inferencetracking.ModelUsageLogFilter;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.ModelUsageLogTotals;
 import prerna.util.Utility;
@@ -81,6 +85,10 @@ public class ModelUsageGuardUnitTests {
 	private static final String MODEL = "model-m";
 	private static final String PERSON = "eli";
 	private static final String LOGIN = "NATIVE";
+	private static final String APP = "claims-app";
+	private static final String APP_TYPE = PermissionSubject.PROJECT_TYPE;
+	private static final String GUARDRAIL = "prompt-guard";
+	private static final String OTHER_PERSON = "ana";
 	private static final Instant NOW = Instant.parse("2026-10-12T14:30:15Z");
 
 	private MutableTestClock clock;
@@ -659,9 +667,142 @@ public class ModelUsageGuardUnitTests {
 		}
 	}
 
+	@Test
+	void aCallAnAppMakesForAPersonWithNoGrantIsBilledToTheAppsLimit() {
+		ModelUsageLimitPath path = appPath(limit(rule(Metric.TOKENS, 1000L, Window.DAY, Counts.SHARED),
+				rule(Metric.TOKENS, 400L, Window.DAY, Counts.EACH_PERSON)));
+
+		ModelUsageTicket ticket = admit(path, 100, 200L);
+
+		assertEquals(new ModelUsageBilledTo("ENGINE", APP, APP_TYPE), ticket.billedTo());
+		ticket.bill(report(100, 150));
+		assertEquals(250, used(ModelUsageCounterScope.granteeShared(MODEL, APP, APP_TYPE), Metric.TOKENS, Window.DAY));
+		assertEquals(250,
+				used(ModelUsageCounterScope.granteeMember(MODEL, APP, APP_TYPE, PERSON, LOGIN), Metric.TOKENS, Window.DAY));
+	}
+
+	@Test
+	void anAppsOverallAmountIsSharedByEveryoneWhoUsesTheApp() {
+		ModelUsageLimitPath path = appPath(limit(rule(Metric.TOKENS, 1000L, Window.DAY, Counts.SHARED)));
+		charge(ModelUsageCounterScope.granteeShared(MODEL, APP, APP_TYPE), Metric.TOKENS, Window.DAY, 1000);
+
+		try (MockedStatic<SecurityProjectUtils> projects = mockStatic(SecurityProjectUtils.class)) {
+			projects.when(() -> SecurityProjectUtils.getProjectDisplayNameForId(APP)).thenReturn("Claims");
+
+			ModelUsageLimitException refusal = assertThrows(ModelUsageLimitException.class,
+					() -> admit(path, 100, 200L));
+
+			assertEquals(StepLimitType.APP, refusal.getLimitType());
+			assertTrue(refusal.getMessage().startsWith("Claims has reached its GPT-5 limit"), refusal.getMessage());
+		}
+	}
+
+	@Test
+	void anAppsAmountForEachUserStopsOnlyThatUser() {
+		ModelUsageLimit limit = limit(rule(Metric.TOKENS, 1000L, Window.DAY, Counts.SHARED),
+				rule(Metric.TOKENS, 400L, Window.DAY, Counts.EACH_PERSON));
+		charge(ModelUsageCounterScope.granteeMember(MODEL, APP, APP_TYPE, PERSON, LOGIN), Metric.TOKENS, Window.DAY, 400);
+
+		try (MockedStatic<SecurityProjectUtils> projects = mockStatic(SecurityProjectUtils.class)) {
+			projects.when(() -> SecurityProjectUtils.getProjectDisplayNameForId(APP)).thenReturn("Claims");
+			ModelUsageLimitException refusal = assertThrows(ModelUsageLimitException.class,
+					() -> admit(appPath(limit), 100, 200L));
+			assertTrue(refusal.getMessage().startsWith("You have reached your GPT-5 limit in Claims"),
+					refusal.getMessage());
+		}
+
+		ModelUsageTicket anotherUser = admit(appPathFor(OTHER_PERSON, limit), 100, 200L);
+		anotherUser.bill(report(100, 50));
+		assertEquals(150,
+				used(ModelUsageCounterScope.granteeMember(MODEL, APP, APP_TYPE, OTHER_PERSON, LOGIN), Metric.TOKENS, Window.DAY));
+		assertEquals(150, used(ModelUsageCounterScope.granteeShared(MODEL, APP, APP_TYPE), Metric.TOKENS, Window.DAY));
+	}
+
+	@Test
+	void whatOneAppUsesDoesNotCountAgainstAnother() {
+		ModelUsageLimitPath path = appPath(limit(rule(Metric.TOKENS, 1000L, Window.DAY, Counts.SHARED)));
+		charge(ModelUsageCounterScope.granteeShared(MODEL, "another-app", APP_TYPE), Metric.TOKENS, Window.DAY, 1000);
+
+		ModelUsageTicket ticket = admit(path, 100, 200L);
+
+		assertEquals(APP, ticket.billedTo().subjectId());
+	}
+
+	@Test
+	void anAppsCountersAreFilledFromTheCallsBilledToTheApp() {
+		assertEquals(new ModelUsageLogFilter(MODEL, null, null, "ENGINE", APP, APP_TYPE, false),
+				ModelUsageCounterScope.granteeShared(MODEL, APP, APP_TYPE).logFilter());
+		assertEquals(new ModelUsageLogFilter(MODEL, PERSON, LOGIN, "ENGINE", APP, APP_TYPE, false),
+				ModelUsageCounterScope.granteeMember(MODEL, APP, APP_TYPE, PERSON, LOGIN).logFilter());
+	}
+
+	@Test
+	void aCounterKeepsItsNameAndAnAppsCounterEndsWithTheAppAndItsType() {
+		assertEquals("TEAM_SHARED|" + MODEL + "|CUSTOM|Ops||", ModelUsageCounterScope.teamShared(MODEL, "Ops", "CUSTOM").id());
+		assertEquals("PERSON_MODEL|" + MODEL + "|||" + LOGIN + "|" + PERSON,
+				ModelUsageCounterScope.personModel(MODEL, PERSON, LOGIN).id());
+		assertEquals("GRANTEE_SHARED|" + MODEL + "|||||PROJECT|" + APP,
+				ModelUsageCounterScope.granteeShared(MODEL, APP, APP_TYPE).id());
+		assertEquals("GRANTEE_MEMBER|" + MODEL + "|||" + LOGIN + "|" + PERSON + "|PROJECT|" + APP,
+				ModelUsageCounterScope.granteeMember(MODEL, APP, APP_TYPE, PERSON, LOGIN).id());
+	}
+
+	@Test
+	void aCallAnEngineMakesForAPersonWithNoGrantIsBilledToTheEnginesLimit() {
+		ModelUsageLimitKey key = ModelUsageLimitKey.grantee(MODEL, GUARDRAIL, "GUARDRAIL");
+		ModelUsageLimitPath path = granteePathFor(PERSON, key,
+				limit(rule(Metric.TOKENS, 1000L, Window.DAY, Counts.SHARED)));
+
+		ModelUsageTicket ticket = admit(path, 100, 200L);
+
+		assertEquals(new ModelUsageBilledTo("ENGINE", GUARDRAIL, "GUARDRAIL"), ticket.billedTo());
+		assertEquals("Engine Limit", ticket.billedTo().label());
+		ticket.bill(report(100, 150));
+		assertEquals(250, used(ModelUsageCounterScope.granteeShared(MODEL, GUARDRAIL, "GUARDRAIL"), Metric.TOKENS,
+				Window.DAY));
+	}
+
+	@Test
+	void anEnginesUsedUpLimitNamesTheEngine() {
+		ModelUsageLimitKey key = ModelUsageLimitKey.grantee(MODEL, GUARDRAIL, "GUARDRAIL");
+		ModelUsageLimit limit = limit(rule(Metric.TOKENS, 400L, Window.DAY, Counts.EACH_PERSON));
+		charge(ModelUsageCounterScope.granteeMember(MODEL, GUARDRAIL, "GUARDRAIL", PERSON, LOGIN), Metric.TOKENS,
+				Window.DAY, 400);
+
+		try (MockedStatic<SecurityEngineUtils> engines = mockStatic(SecurityEngineUtils.class)) {
+			engines.when(() -> SecurityEngineUtils.getEngineAliasForId(GUARDRAIL)).thenReturn("Prompt Guard");
+			ModelUsageLimitException refusal = assertThrows(ModelUsageLimitException.class,
+					() -> admit(granteePathFor(PERSON, key, limit), 100, 200L));
+
+			assertEquals(StepLimitType.ENGINE, refusal.getLimitType());
+			assertTrue(refusal.getMessage().startsWith("You have reached your GPT-5 limit through Prompt Guard"),
+					refusal.getMessage());
+		}
+	}
+
 	/*
 	 * Paths, as the resolver builds them
 	 */
+
+	private static ModelUsageLimitPath appPath(ModelUsageLimit limit) {
+		return appPathFor(PERSON, limit);
+	}
+
+	private static ModelUsageLimitPath appPathFor(String person, ModelUsageLimit limit) {
+		return granteePathFor(person, ModelUsageLimitKey.grantee(MODEL, APP, APP_TYPE), limit);
+	}
+
+	private static ModelUsageLimitPath granteePathFor(String person, ModelUsageLimitKey key, ModelUsageLimit limit) {
+		ModelUsageLimitPath path = new ModelUsageLimitPath(MODEL, person, LOGIN);
+		path.addCeiling(new Step(Layer.CEILING, StepLimitType.MODEL_TOTAL, ModelUsageLimitKey.modelTotal(MODEL), null));
+		path.addStep(directStep(null).skipped(Reason.NO_GRANT));
+		Step granted = new Step(Layer.BILLED, StepLimitType.ofGrantee(key), key, limit);
+		path.addStep(granted);
+		path.addStep(new Step(Layer.BILLED, StepLimitType.PUBLIC, ModelUsageLimitKey.publicUse(MODEL), null)
+				.skipped(Reason.NOT_PUBLIC));
+		path.setBilled(StepLimitType.ofGrantee(key), List.of(granted));
+		return path;
+	}
 
 	private static ModelUsageLimitPath directPath(ModelUsageLimit limit) {
 		ModelUsageLimitPath path = new ModelUsageLimitPath(MODEL, PERSON, LOGIN);

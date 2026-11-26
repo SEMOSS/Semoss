@@ -32,13 +32,25 @@ import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.security.SensitiveKeys;
 
 /**
  * Static factory class whose methods replace direct file-API calls in bytecode
@@ -72,6 +84,18 @@ import java.util.concurrent.ConcurrentHashMap;
  * closing the user-created symlink escape vector.
  */
 public final class SandboxedJavaExecution {
+
+	private static final Logger classLogger = LogManager.getLogger(SandboxedJavaExecution.class);
+
+	/**
+	 * How long to wait before saying again that chroot is off.
+	 */
+	private static final long CHROOT_OFF_WARNING_GAP_MILLIS = 60_000L;
+
+	/**
+	 * When the chroot warning was last logged, in milliseconds, or 0 for never.
+	 */
+	static final AtomicLong CHROOT_OFF_LAST_WARNED = new AtomicLong();
 
 	/**
 	 * Per-thread chroot root (set by the executor before running reactor code).
@@ -203,6 +227,44 @@ public final class SandboxedJavaExecution {
 		return defaultValue;
 	}
 
+	/**
+	 * Sandboxed replacement for {@code Utility.getDIHelperProperty(String)}.
+	 * Returns the RDF_Map value, or null for every key the RDF_Map editor hides:
+	 * the secret keys of {@link SensitiveKeys#isSensitiveKey(String)} and the
+	 * secret store and keystore settings.
+	 *
+	 * @param key the RDF_Map key
+	 * @return the value, or null for a hidden or missing key
+	 */
+	public static String sandboxedPlatformProperty(String key) {
+		if (key == null || DIHelper.containsSensitiveKey(key)) {
+			return null;
+		}
+		return Utility.getDIHelperProperty(key);
+	}
+
+	/**
+	 * Sandboxed replacement for {@code Utility.loadProperties(String)}: reads the
+	 * file under the same path rule as {@link #file(String)}.
+	 *
+	 * @param filePath the properties file
+	 * @return its values, empty when the file cannot be read
+	 */
+	public static Properties sandboxedLoadProperties(String filePath) {
+		return Utility.loadProperties(filePath == null ? null : sanitize(filePath));
+	}
+
+	/**
+	 * Sandboxed replacement for {@code Utility.loadProperties(File)}: reads the
+	 * file under the same path rule as {@link #file(String)}.
+	 *
+	 * @param file the properties file
+	 * @return its values, empty when the file cannot be read
+	 */
+	public static Properties sandboxedLoadProperties(File file) {
+		return Utility.loadProperties(file == null ? null : new File(sanitize(file.getPath())));
+	}
+
 	// ------------------------------------------------------------------ Setup
 
 	/**
@@ -234,6 +296,16 @@ public final class SandboxedJavaExecution {
 	 */
 	public static void clearSandboxRootForCurrentThread() {
 		THREAD_SANDBOX_ROOT.remove();
+	}
+
+	/**
+	 * The sandbox root set on the current thread, without the global fallback, so
+	 * work handed to another thread can open files in the same folder.
+	 *
+	 * @return the user's chroot folder, or null when none is set on this thread
+	 */
+	static String sandboxRootForCurrentThread() {
+		return THREAD_SANDBOX_ROOT.get();
 	}
 
 	/**
@@ -275,6 +347,11 @@ public final class SandboxedJavaExecution {
 	static String sanitize(String rawPath) {
 		String root = getEffectiveSandboxRoot();
 		if (root == null) {
+			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
+				throw new SecurityException("File access in a project reactor needs the user's folder, which this "
+						+ "thread does not have; do the file work on the thread that runs the reactor");
+			}
+			warnChrootOff();
 			return rawPath;
 		}
 		Path base = Path.of(root);
@@ -298,6 +375,23 @@ public final class SandboxedJavaExecution {
 			throw new SecurityException("Path escape attempt blocked by project reactor sandbox: " + rawPath);
 		}
 		return resolved.toString();
+	}
+
+	/**
+	 * Logs, at most once a minute, that a project reactor used a file path while
+	 * chroot is off. The reactor still runs, which is what a developer machine
+	 * needs; the path is used as given.
+	 */
+	private static void warnChrootOff() {
+		long now = System.currentTimeMillis();
+		long last = CHROOT_OFF_LAST_WARNED.get();
+		if ((last == 0 || now - last >= CHROOT_OFF_WARNING_GAP_MILLIS)
+				&& CHROOT_OFF_LAST_WARNED.compareAndSet(last, now)) {
+			classLogger.warn(
+					"A project reactor used a file path while {} is off, so the path is used as given and is not "
+							+ "kept inside the user's folder. This would typically require {} to be enabled for security.",
+					Constants.CHROOT_ENABLE, Constants.CHROOT_ENABLE);
+		}
 	}
 
 	// ------------------------------------------------------------------ File
@@ -435,6 +529,16 @@ public final class SandboxedJavaExecution {
 
 	// ---------------------------------------------------------- Blocked APIs
 
+	/**
+	 * Replacement for a call project reactors cannot make, such as
+	 * {@code System.loadLibrary} - always throws.
+	 *
+	 * @param method the method that was called
+	 */
+	public static void blockCall(String method) {
+		throw new SecurityException(method + " is not permitted in project reactors");
+	}
+
 	/** Replacement for {@code Runtime.exec(...)} - always throws. */
 	public static void blockRuntimeExec() {
 		throw new SecurityException("Runtime.exec() is not permitted in project reactors");
@@ -448,25 +552,114 @@ public final class SandboxedJavaExecution {
 		throw new SecurityException("System.exit() / Runtime.halt() is not permitted in project reactors");
 	}
 
+	// ------------------------------------------------------------- Path values
+
 	/**
-	 * Sandboxed replacement for {@code Class.forName(String)}.
+	 * A file a project's code is about to use or hand to the JDK, the platform or a
+	 * shared library, under the same path rule as {@link #file(String)}.
 	 *
-	 * <p>
-	 * Checks the class name against
-	 * {@link SemossClassLoader#isReflectionApiBlocked} before delegating so that
-	 * reactor code cannot load blocked classes by name string (e.g.
-	 * {@code Class.forName("java.lang.ProcessBuilder")}). The three-arg overload is
-	 * reduced to this by the bytecode transformer so that a caller-supplied
-	 * {@code ClassLoader} cannot bypass {@code SemossClassLoader}.
-	 *
-	 * @throws SecurityException      if the class is on the reactor block list
-	 * @throws ClassNotFoundException if the class cannot be found
+	 * @param file the file the project holds
+	 * @return the same file when it is inside the user's folder or no folder is
+	 *         set, otherwise the file at that path inside the user's folder
 	 */
-	public static Class<?> sandboxedForName(String className) throws ClassNotFoundException {
-		if (SemossClassLoader.isReflectionApiBlocked(className)) {
-			throw new SecurityException("Class.forName('" + className + "') is not permitted in project reactors");
+	public static File sandboxedFileValue(File file) {
+		if (file == null) {
+			return null;
 		}
-		return Class.forName(className);
+		String sandboxed = sanitize(file.getPath());
+		return sandboxed.equals(file.getPath()) ? file : new File(sandboxed);
+	}
+
+	/**
+	 * A path a project's code is about to hand to the JDK, the platform or a shared
+	 * library, under the same path rule as {@link #file(String)}. A path inside
+	 * another file system, such as an open zip file, is left as it is.
+	 *
+	 * @param path the path the project holds
+	 * @return the same path when it is inside the user's folder or no folder is
+	 *         set, otherwise that path inside the user's folder
+	 */
+	public static Path sandboxedPathValue(Path path) {
+		if (path == null || path.getFileSystem() != FileSystems.getDefault()) {
+			return path;
+		}
+		String sandboxed = sanitize(path.toString());
+		return sandboxed.equals(path.toString()) ? path : Path.of(sandboxed);
+	}
+
+	/**
+	 * A URL a project's code is about to hand to the JDK, the platform or a shared
+	 * library, which would fetch what it names: it has to be a local file, and
+	 * follows the same path rule as {@link #file(String)}. Any other address is
+	 * fetched with HttpHelperUtility, which applies the request lists.
+	 *
+	 * @param url the URL the project holds
+	 * @return the same URL when it names a file inside the user's folder or no
+	 *         folder is set, otherwise the URL of that path inside the user's folder
+	 * @throws SecurityException if the URL names anything but a local file
+	 */
+	public static URL sandboxedUrlValue(URL url) {
+		if (url == null) {
+			return null;
+		}
+		if (!"file".equalsIgnoreCase(url.getProtocol())) {
+			throw new SecurityException("A URL handed to another class in a project reactor has to be a local file; "
+					+ "fetch '" + url.getProtocol() + "' addresses with HttpHelperUtility");
+		}
+		try {
+			String path = new File(url.toURI()).getPath();
+			String sandboxed = sanitize(path);
+			return sandboxed.equals(path) ? url : new File(sandboxed).toURI().toURL();
+		} catch (URISyntaxException | MalformedURLException | IllegalArgumentException e) {
+			throw new SecurityException("Not a local file: " + url, e);
+		}
+	}
+
+	/**
+	 * The address of a zip or jar file a project's code is about to open as a file
+	 * system, such as {@code jar:file:/data/archive.zip}: the file follows the same
+	 * path rule as {@link #file(String)}.
+	 *
+	 * @param uri the address the project passed
+	 * @return the same address when the file is inside the user's folder or no
+	 *         folder is set, otherwise the address of that path inside the user's
+	 *         folder
+	 * @throws SecurityException if the address names anything but a zip or jar
+	 *                           file on the local disk
+	 */
+	public static URI sandboxedFileSystemUri(URI uri) {
+		if (uri == null) {
+			return null;
+		}
+		String address = uri.toString();
+		int inside = address.indexOf("!/");
+		String archive = inside < 0 ? address : address.substring(0, inside);
+		if (!archive.regionMatches(true, 0, "jar:file:", 0, 9)) {
+			throw new SecurityException(
+					"Only a zip or jar file on the local disk can be opened as a file system in project reactors");
+		}
+		try {
+			String path = new File(URI.create(archive.substring(4))).getPath();
+			String sandboxed = sanitize(path);
+			if (sandboxed.equals(path)) {
+				return uri;
+			}
+			return URI.create("jar:" + new File(sandboxed).toURI() + (inside < 0 ? "" : address.substring(inside)));
+		} catch (IllegalArgumentException e) {
+			throw new SecurityException("Not a zip or jar file on the local disk: " + address, e);
+		}
+	}
+
+	/**
+	 * A path a project's code handed to a platform helper, under the same path rule
+	 * as {@link #file(String)}.
+	 *
+	 * @param path the path the project passed
+	 * @return the path inside the user's folder when one is set, otherwise the same
+	 *         path
+	 */
+	public static String sandboxedPath(String path) {
+		return path == null ? null : sanitize(path);
 	}
 
 	/**

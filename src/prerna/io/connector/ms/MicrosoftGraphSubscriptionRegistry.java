@@ -30,7 +30,6 @@ package prerna.io.connector.ms;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,7 +42,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
-import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.util.ValueUtils;
 
 /**
@@ -195,9 +193,7 @@ public class MicrosoftGraphSubscriptionRegistry {
 			token.setId(this.userId);
 			token.setEmail(this.userEmail);
 			token.setAccess_token(this.accessToken);
-			if (this.refreshToken != null) {
-				token.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, this.refreshToken);
-			}
+			token.setRefresh_token(this.refreshToken);
 			if (this.tokenExpiration != null) {
 				// the start is worked back from the expiry, so the check that matters -
 				// whether it has run out - lands exactly on the recorded moment
@@ -228,7 +224,7 @@ public class MicrosoftGraphSubscriptionRegistry {
 
 			AccessToken current = user.getAccessToken(AuthProvider.MICROSOFT);
 			if (current != null && token != null && !token.equals(this.accessToken)) {
-				String refreshed = firstMetaValue(current, AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
+				String refreshed = current.getRefresh_token();
 				Timestamp expiresAt = current.getExpires_in() > 0 && current.getStartTime() > 0
 						? new Timestamp(current.getStartTime() + (current.getExpires_in() * 1000L))
 						: null;
@@ -294,7 +290,7 @@ public class MicrosoftGraphSubscriptionRegistry {
 		SecurityExternalConnectorsUtils.upsertMicrosoftGraphSubscription(subscriptionId, userId,
 				AuthProvider.MICROSOFT.toString(), token.getEmail(), clientState, resource, changeType, notificationUrl,
 				expiration == null ? null : Timestamp.from(expiration), token.getAccess_token(),
-				firstMetaValue(token, AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY), tokenExpiration);
+				token.getRefresh_token(), tokenExpiration);
 		classLogger.info("Recorded Microsoft Graph subscription {} on '{}' for user {}", subscriptionId, resource,
 				userId);
 	}
@@ -354,22 +350,6 @@ public class MicrosoftGraphSubscriptionRegistry {
 			found.add(new Subscription(row));
 		}
 		return found;
-	}
-
-	/**
-	 * @param token the token to read
-	 * @param key   the metadata key to read
-	 * @return the first value held under that key, or null when there is none
-	 */
-	private static String firstMetaValue(AccessToken token, String key) {
-		if (token == null) {
-			return null;
-		}
-		Collection<String> values = token.getMetaValues(key);
-		if (values == null || values.isEmpty()) {
-			return null;
-		}
-		return values.iterator().next();
 	}
 
 	/**

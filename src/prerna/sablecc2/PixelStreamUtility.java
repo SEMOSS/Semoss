@@ -51,7 +51,6 @@ import com.google.gson.GsonBuilder;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.StreamingOutput;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.date.SemossDate;
 import prerna.ds.shared.CachedIterator;
 import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
@@ -75,12 +74,12 @@ import prerna.sablecc2.om.task.AbstractTask;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
+import prerna.security.SecretRedactor;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
 import prerna.util.gson.InsightSheetAdapter;
 import prerna.util.gson.NumberAdapter;
-import prerna.util.gson.SemossDateAdapter;
 import prerna.util.insight.InsightUtility;
 
 public class PixelStreamUtility {
@@ -90,7 +89,6 @@ public class PixelStreamUtility {
 	private static Gson getPanelGson() {
 		return new GsonBuilder().disableHtmlEscaping().excludeFieldsWithModifiers(Modifier.STATIC)
 				.registerTypeAdapter(Double.class, new NumberAdapter())
-				.registerTypeAdapter(SemossDate.class, new SemossDateAdapter())
 				.registerTypeAdapter(InsightPanel.class, new InsightPanelAdapter(true))
 				.registerTypeAdapter(InsightSheet.class, new InsightSheetAdapter()).create();
 	}
@@ -615,7 +613,7 @@ public class PixelStreamUtility {
 						classLogger.error("Failed to flush task {} data to stream", task.getId(), e);
 						// let us send back an error
 						ps.print("\"output\":");
-						ps.print(gson.toJson(e.getMessage()));
+						ps.print(gson.toJson(SecretRedactor.redactError(e.getMessage())));
 						ps.print(",\"operationType\":");
 						ps.print(gson.toJson(new PixelOperationType[] { PixelOperationType.ERROR }));
 						// close the map

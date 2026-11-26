@@ -284,4 +284,72 @@ public class BeanFiller {
 		return mapper.writeValueAsString(object);
 	}
 
+	/**
+	 * Evaluates a JMESPath expression that selects a list of objects and returns
+	 * those objects.
+	 * 
+	 * @param json        source JSON payload
+	 * @param jsonPattern JMESPath expression that selects a list of objects
+	 * @return the selected objects, empty when the expression selects anything else
+	 */
+	public static List<JsonNode> getJmesObjects(String json, String jsonPattern) {
+		List<JsonNode> objects = new ArrayList<>();
+		JsonNode result = getJmesResult(json, jsonPattern);
+		if (result != null && result.isArray()) {
+			for (JsonNode node : result) {
+				if (node.isObject()) {
+					objects.add(node);
+				}
+			}
+		}
+		return objects;
+	}
+
+	/**
+	 * Returns a field of a JSON object as text. An array field is joined with
+	 * commas.
+	 * 
+	 * @param node  the JSON object
+	 * @param field the field name
+	 * @return the field as text, or null when the field is missing or null
+	 */
+	public static String getText(JsonNode node, String field) {
+		JsonNode value = node.get(field);
+		if (value == null || value.isNull()) {
+			return null;
+		}
+		if (value.isArray()) {
+			List<String> parts = new ArrayList<>();
+			for (JsonNode part : value) {
+				parts.add(part.asText());
+			}
+			return String.join(", ", parts);
+		}
+		return value.asText();
+	}
+
+	/**
+	 * Returns a field of a JSON object as an int.
+	 * 
+	 * @param node  the JSON object
+	 * @param field the field name
+	 * @return the field as an int, or 0 when the field is missing or not a number
+	 */
+	public static int getInt(JsonNode node, String field) {
+		JsonNode value = node.get(field);
+		return value == null ? 0 : value.asInt();
+	}
+
+	/**
+	 * Returns a field of a JSON object as a double.
+	 * 
+	 * @param node  the JSON object
+	 * @param field the field name
+	 * @return the field as a double, or 0 when the field is missing or not a number
+	 */
+	public static double getDouble(JsonNode node, String field) {
+		JsonNode value = node.get(field);
+		return value == null ? 0 : value.asDouble();
+	}
+
 }

@@ -41,10 +41,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
@@ -70,6 +72,9 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	private static final int CHAT_PAGE = 50;
 	// the subject of a chat with no topic of its own
 	static final String CHAT_PREFIX = "Chat: ";
+	// a call Graph leaves unanswered this long fails, so the job it is part of ends with Retry rather than waiting
+	// for good; BrainGraphMessageSource uses it too
+	static final Timeout TIMEOUT = Timeout.ofMinutes(2);
 	private static final String USER_SELECT = "id,displayName,mail,userPrincipalName,jobTitle,department,companyName,"
 			+ "accountEnabled,userType";
 	private static final Logger classLogger = LogManager.getLogger(BrainGraphHeaderSource.class);
@@ -137,7 +142,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 				BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 				CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null, null,
-				null));
+				null, TIMEOUT));
 		for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
 			if (r instanceof Map<?, ?> response && response.get("body") instanceof Map<?, ?> body
 					&& body.get("id") instanceof String id && response.get("status") instanceof Number status
@@ -430,10 +435,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	@Override
 	public List<Map<String, Object>> searchDirectory(User user, String query, int max) {
-		// $search matches word prefixes in any order, so "ryan weiler" finds "Weiler, Ryan"
-		String text = query.replace("\"", " ").replace("\\", " ").trim();
-		String field = text.contains("@") ? "mail" : "displayName";
-		String url = BASE + "/users?$search=" + encode("\"" + field + ":" + text + "\"") + "&$select=" + USER_SELECT
+		String url = BASE + "/users?$search=" + userSearch(query) + "&$select=" + USER_SELECT
 				+ "&$top=" + Math.min(max * 2, 50);
 		List<Map<String, Object>> out = new ArrayList<>();
 		try {
@@ -442,7 +444,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			// $search on users needs eventual consistency
 			headers.put("ConsistencyLevel", "eventual");
 			for (Map<String, Object> row : values(
-					CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url, headers, null, null, null)))) {
+					CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url, headers, null, null, null, TIMEOUT)))) {
 				String email = address(row);
 				// admin and service accounts have no mailbox
 				if (email == null || row.get("mail") == null || Boolean.FALSE.equals(row.get("accountEnabled"))) {
@@ -463,6 +465,13 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			classLogger.warn("Directory search failed: {}", e.getMessage());
 		}
 		return out;
+	}
+
+	static String userSearch(String query) {
+		// $search matches word prefixes in any order, so "ryan weiler" finds "Weiler, Ryan"
+		String text = query.replace("\"", " ").replace("\\", " ").trim();
+		String field = text.contains("@") ? "mail" : "displayName";
+		return encode("\"" + field + ":" + text + "\"");
 	}
 
 	@Override
@@ -494,7 +503,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	@Override
 	public byte[] photo(User user, String path) throws Exception {
 		// User.Read covers the owner's own photo, anyone else's needs User.ReadBasic.All or more; 404 when none is set
-		return HttpHelperUtility.getRequestBytes(BASE + path,
+		return HttpHelperUtility.getRequestBytes(
+				ConnectorGuards.requireUnder(BASE + path, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
 				MicrosoftLoginUtils.getBearerHeader(MicrosoftLoginUtils.getValidAccessToken(user)), null, null, null);
 	}
 
@@ -546,7 +556,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 					Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 							BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
 							CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON,
-							null, null, null));
+							null, null, null, TIMEOUT));
 					for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
 						Map<String, Object> response = (Map<String, Object>) r;
 						int status = ((Number) response.getOrDefault("status", 0)).intValue();
@@ -604,11 +614,13 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	private static Map<String, Object> get(String token, String url) throws Exception {
-		return CollaborationDbUtils.parseMap(
-				HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+		// a nextLink comes back in the response, and the request carries the token
+		return CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(
+				ConnectorGuards.requireUnder(url, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
+				MicrosoftLoginUtils.getBearerHeader(token), null, null, null, TIMEOUT));
 	}
 
-	private static String encode(String value) {
+	static String encode(String value) {
 		return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
 	}
 }

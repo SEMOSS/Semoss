@@ -37,7 +37,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -68,8 +67,10 @@ public class CreateModelEngineReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(CreateModelEngineReactor.class);
 
+	private static final String CATALOG_NAME_KEYS = ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.MODEL.getKey();
+
 	public CreateModelEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.MODEL_DETAILS.getKey(),
+		this.keysToGet = new String[] { CATALOG_NAME_KEYS, ReactorKeysEnum.MODEL_DETAILS.getKey(),
 				ReactorKeysEnum.GLOBAL.getKey() };
 	}
 
@@ -163,13 +164,10 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			UploadUtilities.addEngineToDIHelper(modelId, modelName, model, smssFile);
 			SecurityEngineUtils.addEngine(modelId, global, user);
 			if (modelDescription != null) {
-				SecurityEngineUtils.updateEngineMetadata(modelId, Map.of(Constants.DESCRIPTION, modelDescription));
+				SecurityEngineUtils.updateEngineMetadata(user, modelId, Map.of(Constants.DESCRIPTION, modelDescription));
 			}
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(modelId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, modelId);
 
 			ClusterUtil.pushEngine(modelId);
 			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.MODEL_CREATE, AuditTargetType.MODEL, modelId,
@@ -177,7 +175,9 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error("Failed to create model engine {} ({})", modelName, modelId, e);
 			UploadUtilities.cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
-			SecurityEngineUtils.deleteEngine(modelId);
+			if (SecurityEngineUtils.containsEngineId(modelId)) {
+				SecurityEngineUtils.deleteEngine(user, modelId);
+			}
 			throw new IllegalArgumentException("Unable to create model engine " + modelName, e);
 		}
 
@@ -196,15 +196,12 @@ public class CreateModelEngineReactor extends AbstractReactor {
 	 * @return
 	 */
 	private String getModelName() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.MODEL.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if (strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
+		List<String> strValues = getListStringForAliasedKey(CATALOG_NAME_KEYS);
+		if (!strValues.isEmpty()) {
+			return strValues.get(0).trim();
 		}
 
-		List<String> strValues = this.curRow.getAllStrValues();
+		strValues = this.curRow.getAllStrValues();
 		if (strValues != null && !strValues.isEmpty()) {
 			return strValues.get(0).trim();
 		}

@@ -81,24 +81,25 @@ public final class BrainTopicReviewUtils {
 		return result;
 	}
 
-	/** One onboarding chat turn. Read-only: it returns a reply and proposed draft changes for the owner. */
-	public static Map<String, Object> chat(User user, String reviewId, int revision, Object messages) {
-		List<Map<String, Object>> turns = new ArrayList<>();
-		for (Map<String, Object> message : maps(messages)) {
-			String role = text(message.get("role"), "Message role", 20);
-			if (!Set.of("owner", "assistant").contains(role)) throw new IllegalArgumentException("Each message is from the owner or the assistant");
-			turns.add(Map.of("role", role, "text", text(message.get("text"), "Message", 4000)));
-		}
-		if (turns.isEmpty() || !"owner".equals(turns.get(turns.size() - 1).get("role"))) throw new IllegalArgumentException("Write a message for the assistant");
-		List<Map<String, Object>> recent = new ArrayList<>(turns.subList(Math.max(0, turns.size() - 20), turns.size()));
+	/** The owner's words as drafts of the topics to set up, one per line they wrote. Read-only. */
+	public static Map<String, Object> startBuild(User user, String reviewId, int revision, String text) {
+		String words = text(text, "What you wrote", 6000).trim();
+		if (words.isEmpty()) throw new IllegalArgumentException("Write the topics you want to set up");
 		var owner = CollaborationDbUtils.ownerOf(user);
-		Map<String, Object> context = new LinkedHashMap<>();
-		CollaborationDbUtils.batch(conn -> {
-			Map<String, Object> review = requireReview(owner.getValue0(), owner.getValue1(), reviewId, true);
-			requireRevision(review, revision);
-			context.putAll(BrainTopicReviewChat.context(owner.getValue0(), owner.getValue1(), review, recent));
-		});
-		Map<String, Object> result = new LinkedHashMap<>(BrainTopicReviewChat.ask(user, context));
+		Map<String, Object> review = requireReview(owner.getValue0(), owner.getValue1(), reviewId, false);
+		requireRevision(review, revision);
+		Map<String, Object> result = new LinkedHashMap<>(BrainTopicBuilder.start(user, owner.getValue0(), owner.getValue1(), review, words));
+		result.put("reviewId", reviewId);
+		result.put("revision", revision);
+		return result;
+	}
+
+	/** The conversations that fit a topic being set up, best first, for the owner to keep or turn down. Read-only. */
+	public static Map<String, Object> findThreads(User user, String reviewId, int revision, Map<String, Object> profile) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		Map<String, Object> review = requireReview(owner.getValue0(), owner.getValue1(), reviewId, false);
+		requireRevision(review, revision);
+		Map<String, Object> result = new LinkedHashMap<>(BrainTopicBuilder.find(user, owner.getValue0(), owner.getValue1(), review, profile));
 		result.put("reviewId", reviewId);
 		result.put("revision", revision);
 		return result;
@@ -207,9 +208,11 @@ public final class BrainTopicReviewUtils {
 		String ownerType = owner.getValue1();
 		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", ownerId, ownerType)) {
 			Map<String, Object> existing = read(ownerId, ownerType, false);
-			// an untouched first draft whose suggestions failed (e.g. not signed in yet) is generated again
+			// an untouched first draft whose suggestions failed (e.g. not signed in yet) is generated again, once the
+			// owner has been shown why: the page calls this when the job ends, and again on Retry
 			if (existing != null && integer(existing.get("revision")) == 1 && existing.get("appliedRevision") == null
-					&& !Objects.toString(map(existing.get("draft")).get("modelError"), "").isEmpty()) {
+					&& !Objects.toString(map(existing.get("draft")).get("modelError"), "").isEmpty()
+					&& Boolean.TRUE.equals(map(existing.get("draft")).get("modelErrorShown"))) {
 				CollaborationDbUtils.update("DELETE FROM BRAIN_TOPIC_REVIEW WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 						+ "AND REVIEW_ID = ? AND REVISION = 1", ownerId, ownerType, existing.get("id"));
 				existing = null;
@@ -220,6 +223,9 @@ public final class BrainTopicReviewUtils {
 					Map<String, Object> locked = requireReview(ownerId, ownerType, (String) current.get("id"), true);
 					Map<String, Object> draft = map(locked.get("draft"));
 					BrainTopicReviewProfiles.initialize(ownerId, ownerType, draft);
+					if (!Objects.toString(draft.get("modelError"), "").isEmpty()) {
+						draft.put("modelErrorShown", true);
+					}
 					CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_REVIEW SET DRAFT_JSON = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?",
 							CollaborationDbUtils.toJson(draft), ownerId, ownerType, locked.get("id"));
 				});
@@ -272,8 +278,9 @@ public final class BrainTopicReviewUtils {
 		if (!fresh.isEmpty()) {
 			job.step("areas", 80);
 			List<BrainTopicAreas.Topic> named = fresh.stream().map(topic -> new BrainTopicAreas.Topic(
-					(String) topic.get("name"), nullableText(topic.get("about")), strings(topic.get("threadIds")).size(),
-					strings(topic.get("folders")).stream().findFirst().orElse(null))).toList();
+					(String) topic.get("name"), nullableText(topic.get("about")),
+					BrainTopicReviewEvidence.strings(topic.get("threadIds")).size(),
+					BrainTopicReviewEvidence.strings(topic.get("folders")).stream().findFirst().orElse(null))).toList();
 			String engineId = BrainTopicModel.engine(user);
 			List<BrainTopicAreas.Area> grouped = engineId == null ? BrainTopicAreas.single(named)
 					: BrainTopicAreas.group(BrainTopicOnboarding.caller(user, engineId), named);
@@ -310,11 +317,11 @@ public final class BrainTopicReviewUtils {
 				List<Map<String, Object>> areas = maps(draft.get("areas"));
 				Map<String, Object> area = areas.stream().filter(entry -> Objects.equals(areaKey, entry.get("key")))
 						.findFirst().orElseThrow(() -> new IllegalArgumentException("Area not found"));
-				if (strings(area.get("topicKeys")).size() < 2 || split == Boolean.TRUE.equals(area.get("split"))) {
+				if (BrainTopicReviewEvidence.strings(area.get("topicKeys")).size() < 2 || split == Boolean.TRUE.equals(area.get("split"))) {
 					return;
 				}
 				List<Map<String, Object>> topics = maps(draft.get("topics"));
-				if (strings(area.get("topicKeys")).stream().anyMatch(key -> topics.stream().anyMatch(topic ->
+				if (BrainTopicReviewEvidence.strings(area.get("topicKeys")).stream().anyMatch(key -> topics.stream().anyMatch(topic ->
 						key.equals(topic.get("key")) && Boolean.TRUE.equals(topic.get("accepted"))))) {
 					throw new IllegalArgumentException("A saved topic cannot be regrouped here");
 				}
@@ -393,6 +400,7 @@ public final class BrainTopicReviewUtils {
 						throw new IllegalArgumentException("Import or sorting is still running. Your review draft is saved; try again after it finishes.");
 					}
 					Map<String, Object> draft = map(current.get("draft"));
+					discardDroppedBuildCorrections(draft);
 					BrainTopicReviewProfiles.initialize(ownerId, ownerType, draft);
 					current.put("draft", draft);
 					BrainTopicReviewProfiles.validate(ownerId, ownerType, draft);
@@ -463,7 +471,7 @@ public final class BrainTopicReviewUtils {
 							}
 						}
 						topic.put("appliedAddedPeople", strings(topic.get("addedPeople")));
-						BrainMailFolders.fileFrom(ownerId, ownerType, savedId, strings(topic.get("folderIds")),
+						BrainMailFolders.fileFrom(ownerId, ownerType, savedId, BrainTopicReviewEvidence.strings(topic.get("folderIds")),
 								Boolean.TRUE.equals(topic.get("fileFromFolder")));
 						topic.put("accepted", true);
 						topic.put("id", savedId);
@@ -563,6 +571,27 @@ public final class BrainTopicReviewUtils {
 				CollaborationDbUtils.now(), ownerId, ownerType, reviewId, revision);
 	}
 
+	/** A skipped builder card contributes no links, rejections, or exclusive version checks to final filing. */
+	static void discardDroppedBuildCorrections(Map<String, Object> draft) {
+		Set<String> dropped = new HashSet<>();
+		for (Map<String, Object> topic : maps(draft.get("topics"))) {
+			if (Boolean.TRUE.equals(topic.get("built")) && Boolean.FALSE.equals(topic.get("keep"))
+					&& topic.get("mergedIntoKey") == null) dropped.add((String) topic.get("key"));
+		}
+		if (dropped.isEmpty()) return;
+		List<Map<String, Object>> kept = new ArrayList<>();
+		Set<String> droppedThreads = new HashSet<>();
+		for (Map<String, Object> row : maps(draft.get("corrections"))) {
+			if (dropped.contains(row.get("topicKey"))) droppedThreads.add((String) row.get("threadId"));
+			else kept.add(row);
+		}
+		kept.forEach(row -> droppedThreads.remove(row.get("threadId")));
+		Map<String, Object> versions = map(draft.get("baseVersions"));
+		droppedThreads.forEach(versions::remove);
+		draft.put("corrections", kept);
+		draft.put("baseVersions", versions);
+	}
+
 	private static List<Map<String, Object>> normalize(String ownerId, String ownerType, Object value,
 			List<Map<String, Object>> originals) {
 		List<Map<String, Object>> incoming = maps(value);
@@ -609,7 +638,7 @@ public final class BrainTopicReviewUtils {
 			topic.put("keep", edit.get("keep"));
 			// filing new mail from the topic's project folder: the owner's choice, offered only with a folder
 			if (edit.get("fileFromFolder") instanceof Boolean file) {
-				topic.put("fileFromFolder", file && !strings(topic.get("folderIds")).isEmpty());
+				topic.put("fileFromFolder", file && !BrainTopicReviewEvidence.strings(topic.get("folderIds")).isEmpty());
 			}
 			Set<String> allowedPeople = new HashSet<>();
 			maps(topic.get("people")).forEach(person -> allowedPeople.add((String) person.get("id")));
@@ -747,6 +776,7 @@ public final class BrainTopicReviewUtils {
 		return result;
 	}
 
+	// person IDs only; the draft's own lists (folders, threads, topic keys) are read with BrainTopicReviewEvidence.strings
 	private static List<String> strings(Object value) {
 		if (!(value instanceof List<?> values)) {
 			return List.of();

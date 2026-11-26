@@ -42,7 +42,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.common.io.Files;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -107,8 +106,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		this.databaseName = UploadInputUtility.getEngineNameOrId(this.store,
-				this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()));
+		this.databaseName = this.keyValue.get(UploadInputUtility.CATALOG_NAME);
 		try {
 			// make a new id
 			this.databaseId = UUID.randomUUID().toString();
@@ -152,10 +150,7 @@ public abstract class CreateNewRdbmsDatabaseReactor extends AbstractReactor {
 			}
 		}
 
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityEngineUtils.addEngineOwner(this.databaseId, user.getAccessToken(ap).getId());
-		}
+		SecurityEngineUtils.addEngineOwner(user, this.databaseId);
 
 		ClusterUtil.pushEngine(this.databaseId);
 

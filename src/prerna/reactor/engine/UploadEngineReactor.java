@@ -42,7 +42,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.reflect.TypeToken;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -65,8 +64,8 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -81,7 +80,7 @@ public class UploadEngineReactor extends AbstractReactor {
 
 	public UploadEngineReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_PATH.getKey(), ReactorKeysEnum.SPACE.getKey(),
-				ReactorKeysEnum.GLOBAL.getKey() };
+				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.ENGINE_TYPE.getKey() };
 	}
 
 	@Override
@@ -169,6 +168,17 @@ public class UploadEngineReactor extends AbstractReactor {
 		Object[] typeAndSubtypeAndCost = SecurityEngineUtils.getEngineTypeAndSubTypeAndCost(prop);
 		IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) typeAndSubtypeAndCost[0];
 
+		String expectedEngineType = this.keyValue.get(ReactorKeysEnum.ENGINE_TYPE.getKey());
+		if (expectedEngineType != null && !(expectedEngineType = expectedEngineType.trim()).isEmpty()
+				&& (engineType == null || !expectedEngineType.equalsIgnoreCase(engineType.name()))) {
+			cleanUpFolders(randomTempUnzipF);
+			SemossPixelException exception = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("The file holds a " + engineType
+							+ " engine, but this upload expects a " + expectedEngineType.toUpperCase() + " engine"));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+
 		// check if admin only
 		if (AbstractSecurityUtils.adminOnlyEngineAdd(engineType) && !SecurityAdminUtils.userIsAdmin(user)) {
 			throwFunctionalityOnlyExposedForAdminsError();
@@ -187,6 +197,14 @@ public class UploadEngineReactor extends AbstractReactor {
 			cleanUpFolders(randomTempUnzipF);
 			SemossPixelException exception = new SemossPixelException(
 					NounMetadata.getErrorNounMessage("Engine id already exists"));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
+		try {
+			AbstractSecurityUtils.requireNoProjectWithId(engineId);
+		} catch (IllegalArgumentException e) {
+			cleanUpFolders(randomTempUnzipF);
+			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
@@ -216,8 +234,6 @@ public class UploadEngineReactor extends AbstractReactor {
 		String engineFolderPath = EngineUtility.getLocalEngineBaseDirectory(engineType);
 		logger.info("Determined the engine type = " + engineType);
 
-		String engines = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-
 		File finalEngineSmss = null;
 		File finalEngineFolder = null;
 		boolean engineAddedToDIHelper = false;
@@ -232,10 +248,7 @@ public class UploadEngineReactor extends AbstractReactor {
 					+ SmssUtilities.getUniqueName(engineName, engineId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
-			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
-					|| engines.endsWith(";" + engineId))) {
-				String newEngines = engines + ";" + engineId;
-				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, newEngines);
+			if (InternalUtility.addEngineId(engineId)) {
 				engineAddedToDIHelper = true;
 			} else {
 				SemossPixelException exception = new SemossPixelException(
@@ -274,11 +287,10 @@ public class UploadEngineReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE,
-					finalEngineSmss.getAbsolutePath());
+			InternalUtility.setEngineSmssPath(engineId, finalEngineSmss.getAbsolutePath());
 			if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
 				logger.info(step + ") Synchronizing database structure");
-				Utility.synchronizeEngineMetadata(engineId);
+				InternalUtility.synchronizeEngineMetadata(engineId);
 				logger.info(step + ") Done");
 				step++;
 			}
@@ -292,8 +304,8 @@ public class UploadEngineReactor extends AbstractReactor {
 			String displayName = prop.getProperty(Constants.ENGINE_DISPLAY_NAME);
 			if (displayName == null || displayName.trim().isEmpty()) {
 				try {
-					Utility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(), Constants.ENGINE_DISPLAY_NAME,
-							engineName);
+					InternalUtility.changePropertiesFileValue(finalEngineSmss.getAbsolutePath(),
+							Constants.ENGINE_DISPLAY_NAME, engineName);
 				} catch (IOException e) {
 					classLogger.error("Failed to add the display name to the smss of engine {}", engineId, e);
 				}
@@ -307,7 +319,7 @@ public class UploadEngineReactor extends AbstractReactor {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile,
 							new TypeToken<Map<String, Object>>() {
 							}.getType());
-					SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+					SecurityEngineUtils.updateEngineMetadata(user, engineId, metadata);
 					// delete this file since values can update and file is dynamically generated on
 					// export
 					metadataFile.delete();
@@ -352,15 +364,14 @@ public class UploadEngineReactor extends AbstractReactor {
 					lmDeleter.deleteEngineRDBMS(engineId);
 				}
 				// delete from security
-				SecurityEngineUtils.deleteEngine(engineId);
+				if (SecurityEngineUtils.containsEngineId(engineId)) {
+					SecurityEngineUtils.deleteEngine(user, engineId);
+				}
 			}
 		}
 
 		// add user as engine owner
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityEngineUtils.addEngineOwner(engineId, user.getAccessToken(ap).getId());
-		}
+		SecurityEngineUtils.addEngineOwner(user, engineId);
 
 		ClusterUtil.pushEngine(engineId);
 		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_CREATE,
@@ -394,8 +405,9 @@ public class UploadEngineReactor extends AbstractReactor {
 						"This is a required value containing the relative file path of the single zip file to be imported")
 				.key(ReactorKeysEnum.SPACE,
 						"This is an optional field to determine the space in which the relative file path exists (user project space, current insight space, project id space).")
-				.key(ReactorKeysEnum.GLOBAL,
-						"This is a required value to determine if the engine is public or private");
+				.key(ReactorKeysEnum.GLOBAL, "This is a required value to determine if the engine is public or private")
+				.key(ReactorKeysEnum.ENGINE_TYPE,
+						"An optional engine type, such as MODEL or GUARDRAIL. When it is given, the upload is refused unless the file holds an engine of that type. Without it, the engine is uploaded as the type its file holds.");
 	}
 
 }

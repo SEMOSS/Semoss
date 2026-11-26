@@ -54,7 +54,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		if (INIT_LIST.contains(fileName)) {
 			return;
 		}
-		catalogProject(fileName, folderToWatch);
+		InternalUtility.catalogProject(fileName, folderToWatch);
 	}
 
 	@Override
@@ -65,7 +65,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			String fileName = engineId + this.extension;
 			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
 				try {
-					catalogProject("platform__" + fileName, folderToWatch, true);
+					InternalUtility.catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
 					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName, "APP", "SYSTEM");
 					Utility.getProject(engineId, false);
@@ -74,8 +74,9 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					continue;
 				}
 			} else {
-				classLogger.warn("Platform app '{}' is registered but {}/platform__{} is missing; it will not be "
-						+ "available", engineId, folderToWatch, fileName);
+				classLogger.warn(
+						"Platform app '{}' is registered but {}/platform__{} is missing; it will not be available",
+						engineId, folderToWatch, fileName);
 			}
 		}
 
@@ -87,7 +88,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
 				try {
 					// set all as global
-					catalogProject("platform__" + fileName, folderToWatch, true);
+					InternalUtility.catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
 					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName,
 							ProjectHelper.SKILL_PROJECT_TAG, "SYSTEM");
@@ -107,7 +108,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			String fileName = engineId + this.extension;
 			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
 				try {
-					catalogProject("platform__" + fileName, folderToWatch, true);
+					InternalUtility.catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
 					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName, "MCP", "SYSTEM");
 					// load the project object and don't pull from cloud
@@ -122,8 +123,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 						+ "not be available", engineId, folderToWatch, fileName);
 			}
 		}
-		// the web search folder ships in every build; when RDF_Map leaves it off, mark it handled
-		// so loadFirst() does not catalog it as an ordinary project
+		// the web search folder ships in every build; when RDF_Map leaves it off, mark
+		// it handled so loadFirst() does not catalog it as an ordinary project
 		if (!Utility.isWebSearchEnabled()) {
 			INIT_LIST.add("platform__" + Constants.MCP_WEB_SEARCH + this.extension);
 		}
@@ -134,7 +135,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			String fileName = engineId + this.extension;
 			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
 				try {
-					catalogProject("platform__" + fileName, folderToWatch, true);
+					InternalUtility.catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
 					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName,
 							ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG, "SYSTEM");
@@ -148,8 +149,6 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			}
 		}
 	}
-
-
 
 	/**
 	 * Used in the starter class for processing SMSS files.
@@ -173,7 +172,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 				}
 
 				// we need to add projects to security db
-				String loadedProject = catalogProject(fileName, folderToWatch);
+				String loadedProject = InternalUtility.catalogProject(fileName, folderToWatch);
 				projectIds.add(loadedProject);
 			} catch (RuntimeException ex) {
 				classLogger.error("Project failed to load: {}/{}", folderToWatch, fileNames[fileIdx], ex);
@@ -193,56 +192,10 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
 			for (String project : projects) {
 				if (!projectIds.contains(project) && !reservedProjects.contains(project)) {
-					SecurityProjectUtils.deleteProject(project);
+					SecurityProjectUtils.deleteProject(null, project);
 				}
 			}
 		}
-	}
-
-	/**
-	 * Loads a new project by setting a specific engine with associated properties.
-	 * 
-	 * @param Specifies properties to load
-	 */
-	public static String catalogProject(String newFile, String folderToWatch) {
-		return catalogProject(newFile, folderToWatch, false);
-	}
-
-	/**
-	 * Loads a new project by setting a specific engine with associated properties.
-	 * 
-	 * @param Specifies properties to load
-	 */
-	public static String catalogProject(String newFile, String folderToWatch, boolean global) {
-		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
-		String projectId = null;
-		try {
-			String smssFile = Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile);
-			Properties prop = Utility.loadProperties(smssFile);
-
-			projectId = prop.getProperty(Constants.PROJECT);
-
-			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
-					|| projects.endsWith(";" + projectId)) {
-				classLogger.debug("Project {}<>{} is already loaded...", folderToWatch, newFile);
-			} else {
-				String fileName = folderToWatch + "/" + newFile;
-				DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, fileName);
-
-				String projectNames = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-				if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
-						|| projects.endsWith(";" + projectId))) {
-					projectNames = projectNames + ";" + projectId;
-					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectNames);
-				}
-
-				SecurityProjectUtils.addProject(projectId, global, null);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to catalog project from smss file {}/{}", folderToWatch, newFile, e);
-		}
-
-		return projectId;
 	}
 
 }

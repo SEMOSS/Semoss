@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.ds.py;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +50,8 @@ public class PyTranslator {
 	static Map<String, SemossDataType> pyS = new HashMap<String, SemossDataType>();
 	static {
 		pyS.put("object", SemossDataType.STRING);
-		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA variant)
+		// pandas 3 reports string columns as "str" ("string" is the opt-in pd.NA
+		// variant)
 		pyS.put("str", SemossDataType.STRING);
 		pyS.put("string", SemossDataType.STRING);
 		pyS.put("category", SemossDataType.STRING);
@@ -58,7 +60,8 @@ public class PyTranslator {
 		pyS.put("bool", SemossDataType.BOOLEAN);
 		pyS.put("datetime64", SemossDataType.DATE);
 		pyS.put("datetime64[ns]", SemossDataType.TIMESTAMP);
-		// pandas 3 keeps the parsed resolution instead of forcing ns ("us" for parsed strings)
+		// pandas 3 keeps the parsed resolution instead of forcing ns ("us" for parsed
+		// strings)
 		pyS.put("datetime64[us]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[ms]", SemossDataType.TIMESTAMP);
 		pyS.put("datetime64[s]", SemossDataType.TIMESTAMP);
@@ -219,14 +222,14 @@ public class PyTranslator {
 
 	/**
 	 * Same as {@link #runEmptyPy(String...)} but tells the python server to skip
-	 * the per-execution cancel trace (sys.settrace). Use this for engine-owned
-	 * python processes whose execution can never be cancelled by a user, to avoid
-	 * the trace overhead on import-heavy setup scripts.
+	 * the per-execution cancel trace (sys.settrace), whose overhead on import-heavy
+	 * setup scripts is large. Use this for engine-owned python processes. A
+	 * cancelled job still stops at the next chunk it streams.
 	 *
 	 * @param script
 	 */
 	public void runEmptyPyNoCancelTrace(String... script) {
-		this.transportScript(null, convertArrayToString(script), false, true);
+		this.transportScript(null, convertArrayToString(script), false, true, null, null);
 	}
 
 	/**
@@ -242,13 +245,13 @@ public class PyTranslator {
 	/**
 	 * Same as {@link #runDirectPy(String...)} but tells the python server to skip
 	 * the per-execution cancel trace (sys.settrace). Use this for engine-owned
-	 * python processes whose execution can never be cancelled by a user.
+	 * python processes. A cancelled job still stops at the next chunk it streams.
 	 *
 	 * @param script
 	 * @return
 	 */
 	public Object runDirectPyNoCancelTrace(String... script) {
-		return this.transportScript(null, convertArrayToString(script), false, true);
+		return this.transportScript(null, convertArrayToString(script), false, true, null, null);
 	}
 
 	/**
@@ -272,15 +275,34 @@ public class PyTranslator {
 	/**
 	 * Same as {@link #runDirectPy(Insight, String...)} but tells the python server
 	 * to skip the per-execution cancel trace (sys.settrace). Use this for
-	 * engine-owned python processes whose execution can never be cancelled by a
-	 * user.
+	 * engine-owned python processes. A cancelled job still stops at the next chunk
+	 * it streams.
 	 *
 	 * @param executionInsight the security-context insight; may be null
 	 * @param script
 	 * @return
 	 */
 	public Object runDirectPyNoCancelTrace(Insight executionInsight, String... script) {
-		return this.transportScript(executionInsight, convertArrayToString(script), false, true);
+		return this.transportScript(executionInsight, convertArrayToString(script), false, true, null, null);
+	}
+
+	/**
+	 * Same as {@link #runDirectPyNoCancelTrace(Insight, String...)} but stops
+	 * waiting for python after {@code maxWait}, failing with {@code maxWaitMessage}
+	 * while python keeps running. Use this where a caller must not wait for the
+	 * socket client's maximum wait, such as a guardrail screening a request.
+	 *
+	 * @param executionInsight the security-context insight; may be null
+	 * @param maxWait          how long to wait for python to answer
+	 * @param maxWaitMessage   the error the caller gets when python does not answer
+	 *                         in time
+	 * @param script           the python to run
+	 * @return what the script returned
+	 */
+	public Object runDirectPyNoCancelTrace(Insight executionInsight, Duration maxWait, String maxWaitMessage,
+			String... script) {
+		return this.transportScript(executionInsight, convertArrayToString(script), false, true, maxWait,
+				maxWaitMessage);
 	}
 
 	/**
@@ -296,13 +318,13 @@ public class PyTranslator {
 	/**
 	 * Same as {@link #runScript(String...)} but tells the python server to skip the
 	 * per-execution cancel trace (sys.settrace). Use this for engine-owned python
-	 * processes whose execution can never be cancelled by a user.
+	 * processes. A cancelled job still stops at the next chunk it streams.
 	 *
 	 * @param script
 	 * @return
 	 */
 	public Object runScriptNoCancelTrace(String... script) {
-		return this.transportScript(null, convertArrayToString(script), true, true);
+		return this.transportScript(null, convertArrayToString(script), true, true, null, null);
 	}
 
 	/**
@@ -325,14 +347,14 @@ public class PyTranslator {
 	/**
 	 * Same as {@link #runScript(Insight, String...)} but tells the python server to
 	 * skip the per-execution cancel trace (sys.settrace). Use this for engine-owned
-	 * python processes whose execution can never be cancelled by a user.
+	 * python processes. A cancelled job still stops at the next chunk it streams.
 	 *
 	 * @param executionInsight the security-context insight; may be null
 	 * @param script
 	 * @return
 	 */
 	public Object runScriptNoCancelTrace(Insight executionInsight, String... script) {
-		return this.transportScript(executionInsight, convertArrayToString(script), false, true);
+		return this.transportScript(executionInsight, convertArrayToString(script), false, true, null, null);
 	}
 
 	/**
@@ -427,11 +449,11 @@ public class PyTranslator {
 	 * @return the deserialized result from the Python process
 	 */
 	private Object transportScript(Insight executionInsight, String script, boolean supportLegacyVars) {
-		return transportScript(executionInsight, script, supportLegacyVars, false);
+		return transportScript(executionInsight, script, supportLegacyVars, false, null, null);
 	}
 
 	private Object transportScript(Insight executionInsight, String script, boolean supportLegacyVars,
-			boolean disableCancelTrace) {
+			boolean disableCancelTrace, Duration maxWait, String maxWaitMessage) {
 		final String ROOT = this.globalStoreInsight.getInsightFolder().replace('\\', '/');
 		final String APP_ROOT = this.globalStoreInsight.getContextProjectId() != null ? EngineUtility
 				.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
@@ -466,7 +488,7 @@ public class PyTranslator {
 		}
 
 		Object output = transportScriptWithExplicitPaths(executionInsight, script, asset_paths, runtimeVars,
-				supportLegacyVars, disableCancelTrace);
+				supportLegacyVars, disableCancelTrace, maxWait, maxWaitMessage);
 		// try to perform some cleanup
 		if (output instanceof String) {
 			String strOutput = (String) output;
@@ -501,14 +523,16 @@ public class PyTranslator {
 	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
 			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars) {
 		return transportScriptWithExplicitPaths(executionInsight, script, explicitAssetPaths, runtimeVars,
-				supportLegacyVars, false);
+				supportLegacyVars, false, null, null);
 	}
 
 	private Object transportScriptWithExplicitPaths(Insight executionInsight, String script,
 			String[] explicitAssetPaths, Map<String, Object> runtimeVars, boolean supportLegacyVars,
-			boolean disableCancelTrace) {
+			boolean disableCancelTrace, Duration maxWait, String maxWaitMessage) {
 		PayloadStruct ps = new PayloadStruct();
 		ps.disableCancelTrace = disableCancelTrace;
+		ps.maxWait = maxWait;
+		ps.maxWaitMessage = maxWaitMessage;
 		ps.operation = PayloadStruct.OPERATION.PYTHON;
 		ps.methodName = new Object() {
 		}.getClass().getEnclosingMethod().getName();

@@ -51,10 +51,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntFunction;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
+
+import com.google.common.util.concurrent.MoreExecutors;
 
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
@@ -74,6 +77,8 @@ public final class WorkPipeline {
 	private static final Logger classLogger = LogManager.getLogger(WorkPipeline.class);
 
 	private static final int MESSAGES = 60;
+	// pages of MESSAGES read back from the newest for one thread on one run
+	private static final int MAX_PAGES = 10;
 	// read like mail arriving over days: earlier finds are passed on so a window
 	// does not list them again
 	private static final int WINDOW = 12;
@@ -93,7 +98,8 @@ public final class WorkPipeline {
 	// backlog before the first build stays out
 	private static final int RETRY_NEW_DAYS = 7;
 	// this many unfinished tries in a row from one cursor, and the cursor moves
-	// past that mail
+	// past that mail. Only tries that failed on the mail count (an unreadable reply, a
+	// fetch that keeps failing), never a model outage (ModelUnavailable)
 	private static final int GIVE_UP = 3;
 	// ...once those tries span this long: lagging threads are retried every sync,
 	// and a model or Graph outage of a
@@ -120,19 +126,24 @@ public final class WorkPipeline {
 			- update: news on some piece of work (progress, a date moved, a blocker).
 			- done_claim: a message says something was finished, sent, merged, fixed, scheduled or answered. A \
 			message that delivers what was asked (the owner sends the reply, file or answer someone asked for, or \
-			someone else delivers what the owner was waiting on) is a done_claim for that ask.
+			someone else delivers what the owner was waiting on) is a done_claim for that ask. A message that only \
+			promises it ("I'll send it tomorrow", "expected by Wednesday", "working on it") is a commitment or an \
+			update, never a done_claim.
 			text: one short line. Tasks and commitments are imperative ("Send Kira the budget"). Use people's names, never p1.. ids.
 			assignee (who has to do it), never empty for task and commitment:
 			- "me" when the owner was asked by name or directly (a 1:1 chat with the owner, "@owner", "can you" \
 			addressed only to them), when the owner said they would do it, or when the owner raised it themselves \
 			(a request, bug, or idea the owner posted) and no one else was named to do it.
 			- "group" for a task discussed in a meeting or a group with no one named.
-			- a p id for a task someone else has to do. "unclear" only when you truly cannot tell.
+			- a p id for a task someone else has to do. An ask in a message the owner wrote is for the people that \
+			message was written to, not for the owner: give the p id of the person it was addressed to, or "group" \
+			when it went to several. "unclear" only when you truly cannot tell.
 			Not used for decision and update: use "".
 			askedBy: who asked or said it: "me", a p id, or "".
 			directedAtOwner: true only when the message is aimed at the owner, not at a group.
 			message: the m id it comes from. quote: up to 20 words copied from it.
-			due: YYYY-MM-DD when a message gives or clearly implies a date, else "".
+			due: YYYY-MM-DD when a message gives or clearly implies a date, else "". A relative date ("Friday", \
+			"tomorrow", "next week") counts from the day of the message that says it (its "day"), never from today.
 			alreadyNoted lists what earlier messages of this thread already gave: do not list those again, but do \
 			list a done_claim or update when these messages finish or change one of them.
 			earlier, when given, holds the messages just before these, already read: use them to understand the new \
@@ -162,6 +173,18 @@ public final class WorkPipeline {
 		t.setDaemon(true);
 		return t;
 	});
+
+	/**
+	 * Opens the pool one run reads its threads on, with the given number of
+	 * threads; the run shuts it down when its reads are done. Not final so tests
+	 * can read on their own thread.
+	 */
+	static IntFunction<ExecutorService> readPool = size -> Executors.newFixedThreadPool(size, r -> {
+		Thread t = new Thread(r, "collaboration-work-items-extract");
+		t.setDaemon(true);
+		return t;
+	});
+
 	// a first build reads this many threads a run, each run its own job in the
 	// owner's lane, so other owners get the
 	// pool between them; a sync run that finishes a build cut off takes no more, so
@@ -410,12 +433,9 @@ public final class WorkPipeline {
 				java.util.concurrent.atomic.AtomicInteger done = new java.util.concurrent.atomic.AtomicInteger();
 				java.util.concurrent.atomic.AtomicInteger found = new java.util.concurrent.atomic.AtomicInteger();
 				java.util.concurrent.atomic.AtomicInteger failed = new java.util.concurrent.atomic.AtomicInteger();
-				ExecutorService reads = Executors
-						.newFixedThreadPool(Math.max(1, Math.min(extractParallel(), threadIds.size())), r -> {
-							Thread t = new Thread(r, "collaboration-work-items-extract");
-							t.setDaemon(true);
-							return t;
-						});
+				int readers = Math.max(1, Math.min(extractParallel(), threadIds.size()));
+				// one reader reads on this thread: no pool to start for a single thread or a setting of 1
+				ExecutorService reads = readers == 1 ? MoreExecutors.newDirectExecutorService() : readPool.apply(readers);
 				try {
 					List<java.util.concurrent.Future<?>> pending = new ArrayList<>();
 					for (String threadId : threadIds) {
@@ -450,6 +470,8 @@ public final class WorkPipeline {
 					}
 					before = after;
 				}
+				// an item whose steps are all finished is finished; one with a step open again is open again
+				WorkTaskUtils.settleAll(ownerId, ownerType);
 				status.put("state", "done");
 			} catch (Throwable e) {
 				classLogger.error("Work items run failed", e);
@@ -472,11 +494,43 @@ public final class WorkPipeline {
 		String from = CollaborationDbUtils.queryOne(
 				"SELECT WORK_REF FROM BRAIN_THREAD WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ? AND THREAD_ID = ?",
 				rs -> rs.getString("WORK_REF"), ownerId, ownerType, threadId);
+		boolean outage = false;
 		try {
 			return extractWindow(user, ownerId, ownerType, threadId, model, self);
+		} catch (ModelUnavailable e) {
+			outage = true;
+			throw e;
 		} finally {
-			settle(ownerId, ownerType, threadId, from);
+			// a model that is down says nothing about this thread's mail: no try counts against it, the cursor
+			// stays, and the thread is read again once the model is back
+			if (!outage) {
+				settle(ownerId, ownerType, threadId, from);
+			}
 		}
+	}
+
+	// the model could not be reached or answered "try later" (429, 5xx, timeout, connection): not a failure of the mail
+	static class ModelUnavailable extends IllegalStateException {
+		private static final long serialVersionUID = 1L;
+
+		ModelUnavailable(Throwable cause) {
+			super("Work items model unavailable: " + cause.getMessage(), cause);
+		}
+	}
+
+	private static final java.util.regex.Pattern UNAVAILABLE = java.util.regex.Pattern.compile(
+			"\\b(429|5\\d\\d)\\b|time[ds]? ?out|connect|unavailable|overload|rate.?limit|too many requests|"
+					+ "temporar|bad gateway|reset by peer|broken pipe|unknown ?host|no route|try again",
+			java.util.regex.Pattern.CASE_INSENSITIVE);
+
+	static boolean looksUnavailable(Throwable e) {
+		for (Throwable t = e; t != null; t = t.getCause() == t ? null : t.getCause()) {
+			if (t instanceof java.io.IOException || t instanceof java.util.concurrent.TimeoutException
+					|| (t.getMessage() != null && UNAVAILABLE.matcher(t.getMessage()).find())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@SuppressWarnings("unchecked")
@@ -519,6 +573,8 @@ public final class WorkPipeline {
 
 		Map<String, String> people = new LinkedHashMap<>();
 		Map<String, String> names = new LinkedHashMap<>();
+		// person id by address, to tell who a message was written to
+		Map<String, String> byAddress = new LinkedHashMap<>();
 		List<Map<String, Object>> peopleInput = new ArrayList<>();
 		CollaborationDbUtils.query("SELECT tp.PERSON_ID, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp "
 				+ "LEFT JOIN BRAIN_PERSON p ON p.OWNER_ID = tp.OWNER_ID AND p.OWNER_TYPE = tp.OWNER_TYPE AND "
@@ -530,6 +586,10 @@ public final class WorkPipeline {
 					}
 					String shortId = "p" + (people.size() + 1);
 					people.put(shortId, personId);
+					String address = rs.getString("EMAIL_NORM");
+					if (address != null && !address.isBlank()) {
+						byAddress.put(address.trim().toLowerCase(java.util.Locale.ROOT), personId);
+					}
 					String name = CollaborationDbUtils.getString(rs, "DISPLAY_NAME");
 					name = name == null || name.isBlank() ? String.valueOf(rs.getString("EMAIL_NORM")) : name;
 					names.put(shortId, name);
@@ -537,17 +597,32 @@ public final class WorkPipeline {
 					return null;
 				}, ownerId, ownerType, threadId);
 
-		Map<String, Object> read = BrainThreadMessages.read(user, ownerId, ownerType, threadId, MESSAGES,
-				BrainMessageSource.current());
 		String ref = (String) thread.get("ref");
+		Map<String, Object> read = readSince(ownerId, ownerType, threadId, ref, user);
 		// the cursor goes to the thread's newest mail, hidden or gone mail included,
 		// unless some was left unread
 		String end = (String) thread.get("last");
 		List<Map<String, Object>> fresh = new ArrayList<>();
 		List<Map<String, Object>> older = new ArrayList<>();
+		// the other people each message was written to (To, not Cc), by its time
+		Map<String, Set<String>> writtenTo = new LinkedHashMap<>();
+		String ownerAddress = selfId == null ? null : CollaborationDbUtils.queryOne(
+				"SELECT EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+				rs -> rs.getString(1), ownerId, ownerType, selfId);
+		// mail whose only To recipient is the owner, with no Cc, by its time
+		Set<String> aloneAt = new HashSet<>();
 		for (Map<String, Object> m : (List<Map<String, Object>>) read.get("messages")) {
 			String at = String.valueOf(m.get("at"));
 			end = end == null || at.compareTo(end) > 0 ? at : end;
+			if (sentToOwnerAlone(m, ownerAddress)) {
+				aloneAt.add(at);
+			}
+			// an invite, reply or cancellation: the calendar has it, as for the thread's card
+			// (BrainThreadClassifier), so it asks nothing of anyone here
+			if (Boolean.TRUE.equals(m.get("meeting"))) {
+				continue;
+			}
+			writtenTo.put(at, addressees(m.get("to"), byAddress));
 			if (ref == null || at.compareTo(ref) > 0) {
 				fresh.add(m);
 			} else {
@@ -587,6 +662,14 @@ public final class WorkPipeline {
 			noted = new ArrayList<>(noted.subList(0, MAX_NOTED));
 		}
 		String today = WorkReconcile.today(user);
+		// each message's own date and weekday in the owner's zone: "by Friday" counts from the mail, not from today
+		java.time.ZoneId zone = BrainProfileUtils.timeZone(user);
+		for (Map<String, Object> m : context) {
+			String day = messageDay(m.get("at"), zone);
+			if (day != null) {
+				m.put("day", day);
+			}
+		}
 		List<Map<String, Object>> found = new ArrayList<>();
 		for (int from = 0; from < messages.size(); from += WINDOW) {
 			List<Map<String, Object>> window = messages.subList(from, Math.min(messages.size(), from + WINDOW));
@@ -611,7 +694,13 @@ public final class WorkPipeline {
 				input.put("earlier", earlier);
 			}
 			input.put("messages", window);
-			Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(ask(model, user, input));
+			String asked;
+			try {
+				asked = ask(model, user, input);
+			} catch (RuntimeException e) {
+				throw looksUnavailable(e) ? new ModelUnavailable(e) : e;
+			}
+			Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(asked);
 			if (answer == null || !(answer.get("candidates") instanceof List<?> list)) {
 				// the window is read again with the next mail
 				throw new IllegalStateException("unreadable extract for thread " + threadId);
@@ -633,7 +722,21 @@ public final class WorkPipeline {
 			for (Map<String, Object> c : found) {
 				String kind = str(c.get("kind"));
 				String assignee = assignee(str(c.get("assignee")), people);
-				boolean directed = Boolean.TRUE.equals(c.get("directedAtOwner"));
+				Map<String, Object> source = null;
+				for (Map<String, Object> m : messages) {
+					if (m.get("id").equals(c.get("message"))) {
+						source = m;
+					}
+				}
+				// the model's reading, or the mail itself: an ask sent to the owner alone is theirs
+				boolean directed = Boolean.TRUE.equals(c.get("directedAtOwner"))
+						|| (source != null && aloneAt.contains(String.valueOf(source.get("at")))
+								&& !bulk && size <= 2 && !ME.equals(source.get("from")));
+				// an ask the owner wrote is for the people it went to, in code: the model often gives the owner
+				// their own request ("Schedule the inspection." to Peter). Their own promise is a commitment
+				if (ME.equals(assignee) && "task".equals(kind) && source != null && ME.equals(source.get("from"))) {
+					assignee = askedOf(writtenTo.get(String.valueOf(source.get("at"))), people);
+				}
 				// the owner rule, in code: theirs only when asked directly or they took it on
 				String rule = null;
 				if (ME.equals(assignee) && !"commitment".equals(kind) && !directed) {
@@ -643,12 +746,7 @@ public final class WorkPipeline {
 						rule = "unconfirmed";
 					}
 				}
-				String at = null;
-				for (Map<String, Object> m : messages) {
-					if (m.get("id").equals(c.get("message"))) {
-						at = String.valueOf(m.get("at"));
-					}
-				}
+				String at = source == null ? null : String.valueOf(source.get("at"));
 				Map<String, Object> addressing = new LinkedHashMap<>();
 				addressing.put("directedAtOwner", directed);
 				addressing.put("ownerPosted", posted);
@@ -659,7 +757,7 @@ public final class WorkPipeline {
 						+ "ADDRESSING_JSON, TOPIC_ID, RESULT, DROP_REASON, EXTRACTED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, "
 						+ "?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, UUID.randomUUID().toString(), threadId, at,
 						time(at), clip(kind, 20), named(str(c.get("text")), names), str(c.get("quote")),
-						time(str(c.get("due"))), clip(assignee, 50), clip(person(str(c.get("askedBy")), people), 50),
+						dueTime(str(c.get("due"))), clip(assignee, 50), clip(writer(source, c, people), 50),
 						CollaborationDbUtils.toJson(addressing), thread.get("topicId"), rule == null ? null : "drop",
 						rule, now);
 				if (rule == null) {
@@ -669,6 +767,42 @@ public final class WorkPipeline {
 			moveCursor(conn, ownerId, ownerType, threadId, ref, reached);
 		});
 		return kept[0];
+	}
+
+	// every message since the cursor, read a page at a time from the newest back to it; a long thread is not cut to
+	// its newest pages. At most MAX_PAGES pages: what is older than that is left for later runs.
+	private static Map<String, Object> readSince(String ownerId, String ownerType, String threadId, String ref,
+			User user) {
+		BrainMessageSource source = BrainMessageSource.current();
+		Map<String, Object> page = BrainThreadMessages.read(user, ownerId, ownerType, threadId, MESSAGES, source,
+				false, null);
+		List<Map<String, Object>> rows = new ArrayList<>(list(page.get("messages")));
+		List<String> failed = new ArrayList<>(strings(page.get("failedAt")));
+		for (int n = 1; n < MAX_PAGES && Boolean.TRUE.equals(page.get("hasMore")) && page.get("nextCursor") != null; n++) {
+			String oldest = rows.isEmpty() ? null : String.valueOf(rows.get(0).get("at"));
+			if (ref != null && oldest != null && oldest.compareTo(ref) <= 0) {
+				break;
+			}
+			page = BrainThreadMessages.read(user, ownerId, ownerType, threadId, MESSAGES, source, false,
+					(String) page.get("nextCursor"));
+			rows.addAll(0, list(page.get("messages")));
+			failed.addAll(strings(page.get("failedAt")));
+		}
+		Map<String, Object> out = new LinkedHashMap<>(page);
+		out.put("messages", rows);
+		out.put("failedAt", failed);
+		return out;
+	}
+
+	// the only To recipient is the owner and nobody is on Cc: a raw Graph-style message as read
+	private static boolean sentToOwnerAlone(Map<String, Object> m, String ownerAddress) {
+		if (ownerAddress == null) {
+			return false;
+		}
+		List<?> to = m.get("to") instanceof List<?> list ? list : List.of();
+		List<?> cc = m.get("cc") instanceof List<?> list ? list : List.of();
+		return cc.isEmpty() && to.size() == 1 && to.get(0) instanceof Map<?, ?> r
+				&& ownerAddress.trim().equalsIgnoreCase(String.valueOf(r.get("address")).trim());
 	}
 
 	// a second before at, in whole seconds, so the next read takes at again
@@ -743,6 +877,8 @@ public final class WorkPipeline {
 		// run (older rows hold names the model made up, and topics merged or deleted
 		// since)
 		CollaborationDbUtils.query("SELECT c.CANDIDATE_ID, c.THREAD_ID, c.MESSAGE_REF, c.KIND, c.TEXT, c.DUE_AT, "
+				+ "c.ASKED_BY, (SELECT w.DISPLAY_NAME FROM BRAIN_PERSON w WHERE w.OWNER_ID = c.OWNER_ID AND "
+				+ "w.OWNER_TYPE = c.OWNER_TYPE AND w.PERSON_ID = c.ASKED_BY) AS WRITER_NAME, "
 				// the thread's topic now, not at extract: a thread filed, moved or left without
 				// a topic since
 				+ "c.ASSIGNEE, (SELECT MIN(bt.TOPIC_ID) FROM BRAIN_THREAD_TOPIC bt JOIN BRAIN_TOPIC tp ON "
@@ -776,6 +912,14 @@ public final class WorkPipeline {
 					String name = CollaborationDbUtils.getString(rs, "DISPLAY_NAME");
 					c.put("assignee",
 							isPerson(assignee) ? (name == null ? UNCLEAR : name) : assignee == null ? "" : assignee);
+					// who wrote the message: the owner, or a person by name; left out when not known
+					String writer = rs.getString("ASKED_BY");
+					String writerName = CollaborationDbUtils.getString(rs, "WRITER_NAME");
+					if (ME.equals(writer)) {
+						c.put("by", ME);
+					} else if (writerName != null && !writerName.isBlank()) {
+						c.put("by", writerName);
+					}
 					c.put("text", CollaborationDbUtils.getString(rs, "TEXT"));
 					c.put("at", row.get("at"));
 					String due = (String) row.get("due");
@@ -897,6 +1041,28 @@ public final class WorkPipeline {
 			for (Map<String, Object> u : list(plan.get("topicUpdates"))) {
 				mark(u.get("evidence"), "topic_update", topicId, null);
 			}
+			// a step that changed hands: to the owner it is open on their list, to someone else the owner waits
+			for (Map<String, Object> r : list(plan.get("reassigns"))) {
+				String stepId = (String) r.get("stepId");
+				boolean toMe = Boolean.TRUE.equals(r.get("toMe"));
+				Map<String, Object> from = byShort.get(String.valueOf(r.get("candidate")));
+				String assigneeId = toMe || from == null ? null : (String) from.get("assigneeId");
+				if (!toMe && assigneeId == null) {
+					// the person named is no one Brain knows: news, the step stays as it is
+					mark(r.get("evidence"), "topic_update", topicId, null);
+					continue;
+				}
+				try {
+					Map<String, Object> args = new LinkedHashMap<>();
+					args.put("assigneeId", assigneeId);
+					args.put("status", toMe ? "open" : "waiting");
+					WorkTaskUtils.updateStep(user, stepId, args, BRAIN);
+					evidence(stepId, r.get("evidence"), "reassigned");
+					mark(r.get("evidence"), "reassign", stepId, null);
+				} catch (IllegalArgumentException e) {
+					mark(r.get("evidence"), "reassign", null, "unmatched");
+				}
+			}
 			for (Map<String, Object> close : list(plan.get("closes"))) {
 				Object ref = close.get("closes");
 				if (close.get("appliedTo") != null) {
@@ -952,6 +1118,10 @@ public final class WorkPipeline {
 			args.put("due", first.get("due"));
 			args.put("assigneeId", assigneeId);
 			args.put("status", mine ? "open" : "waiting");
+			// the mail did not say whose it is: kept on the step, so it is not read as a group's ask
+			if (UNCLEAR.equals(step.get("assignee")) && assigneeId == null) {
+				args.put("note", WorkTaskUtils.UNCLEAR_WHO);
+			}
 			String stepId;
 			try {
 				stepId = (String) WorkTaskUtils.addStep(user, args, BRAIN).get("id");
@@ -1308,9 +1478,43 @@ public final class WorkPipeline {
 		params.put("temperature", 0);
 		params.put("max_tokens", MAX_TOKENS);
 		params.put("schema", EXTRACT_SCHEMA);
+		// a thinking model reads a thread in seconds with its thinking held low, and in minutes without
+		String effort = Utility.getDIHelperProperty(Constants.COLLAB_WORK_REASONING_EFFORT);
+		if (effort != null && !effort.isBlank()) {
+			params.put("reasoning_effort", effort.trim());
+		}
 		Insight insight = new Insight();
 		insight.setUser(user);
 		return model.ask(CollaborationDbUtils.toJson(input), EXTRACT, insight, params).getStringResponse();
+	}
+
+	// the people a message was written to that Brain knows on this thread, as person ids
+	private static Set<String> addressees(Object to, Map<String, String> byAddress) {
+		Set<String> out = new LinkedHashSet<>();
+		if (to instanceof List<?> list) {
+			for (Object r : list) {
+				if (r instanceof Map<?, ?> m && m.get("address") != null) {
+					String personId = byAddress
+							.get(String.valueOf(m.get("address")).trim().toLowerCase(java.util.Locale.ROOT));
+					if (personId != null) {
+						out.add(personId);
+					}
+				}
+			}
+		}
+		return out;
+	}
+
+	// who an ask the owner wrote is for: the one person the message went to, or the only other person on the
+	// thread (a 1:1 chat has no To); with several, no one in particular
+	static String askedOf(Set<String> writtenTo, Map<String, String> people) {
+		if (writtenTo != null && writtenTo.size() == 1) {
+			return writtenTo.iterator().next();
+		}
+		if ((writtenTo == null || writtenTo.isEmpty()) && people.size() == 1) {
+			return people.values().iterator().next();
+		}
+		return GROUP;
 	}
 
 	// "me", "group", "unclear", or the person a p id stands for
@@ -1337,6 +1541,19 @@ public final class WorkPipeline {
 		return ME.equals(value) || GROUP.equals(value) ? value : UNCLEAR;
 	}
 
+	// who wrote the message a candidate comes from, from the message itself: the owner or a person Brain knows.
+	// Only when the message is not found, or its sender is no one Brain knows, the model's reading stands
+	private static String writer(Map<String, Object> source, Map<String, Object> c, Map<String, String> people) {
+		Object from = source == null ? null : source.get("from");
+		if (ME.equals(from)) {
+			return ME;
+		}
+		if (from != null && people.containsKey(String.valueOf(from))) {
+			return people.get(String.valueOf(from));
+		}
+		return person(str(c.get("askedBy")), people);
+	}
+
 	// a name ("Bob") or a p id the model made up is no one Brain knows: unclear,
 	// not a person id addStep refuses
 	static String assignee(String value, Map<String, String> people) {
@@ -1347,6 +1564,26 @@ public final class WorkPipeline {
 	private static boolean isPerson(String assignee) {
 		return assignee != null && !assignee.isBlank() && !ME.equals(assignee) && !GROUP.equals(assignee)
 				&& !UNCLEAR.equals(assignee);
+	}
+
+	// the date and weekday of a message's time in the owner's zone, "2026-11-05 (Thursday)"; null when unreadable
+	static String messageDay(Object at, java.time.ZoneId zone) {
+		try {
+			java.time.LocalDate day = java.time.OffsetDateTime.parse(String.valueOf(at)).atZoneSameInstant(zone)
+					.toLocalDate();
+			return day + " (" + day.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL,
+					java.util.Locale.ENGLISH) + ")";
+		} catch (java.time.format.DateTimeParseException e) {
+			return null;
+		}
+	}
+
+	// a due date is a day, not an instant: noon UTC keeps it the same day in every zone from UTC-12 to UTC+11,
+	// where midnight UTC showed the day before to an owner west of Greenwich
+	private static Timestamp dueTime(String value) {
+		Timestamp t = time(value);
+		return t == null || value == null || value.trim().length() != 10 ? t
+				: Timestamp.valueOf(t.toLocalDateTime().plusHours(12));
 	}
 
 	private static Timestamp time(String value) {
@@ -1367,6 +1604,11 @@ public final class WorkPipeline {
 
 	private static String key(String ownerId, String ownerType) {
 		return ownerType + ":" + ownerId;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<String> strings(Object value) {
+		return value instanceof List<?> l ? (List<String>) l : List.of();
 	}
 
 	@SuppressWarnings("unchecked")

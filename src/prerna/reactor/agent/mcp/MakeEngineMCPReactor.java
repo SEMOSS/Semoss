@@ -183,7 +183,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 				}
 			} else {
 				thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
-						this.insight.getCurFrame());
+						this.insight.getCurrentFrame());
 				reactorTool = thisReactor.asMcpTool();
 			}
 			try {
@@ -318,15 +318,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		}
 
 		// add tags
-		MCPUtility.addMCPTag(engine);
+		MCPUtility.addMCPTag(user, engine);
 		boolean mcpEnabled = engine.isMCPEnabled();
 		if (!mcpEnabled) {
-			String smssFilePath = engine.getSmssFilePath();
-			Map<String, String> mcpEnabledMap = new HashMap<>();
-			mcpEnabledMap.put(Constants.MCP_ENABLED, "true");
 			try {
-				Utility.changePropertiesFileValue(smssFilePath, mcpEnabledMap, false);
-				engine.open(smssFilePath);
+				engine.updateSetting(Constants.MCP_ENABLED, "true");
+				engine.reload();
 			} catch (Exception e) {
 				throw new IllegalArgumentException("Error enabling mcp in smss");
 			}

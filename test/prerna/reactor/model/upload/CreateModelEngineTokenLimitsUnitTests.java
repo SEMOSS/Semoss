@@ -68,23 +68,27 @@ class CreateModelEngineTokenLimitsUnitTests {
 
 	@Test
 	void savesLimitsBeforeInitializingAModelAndExcludesThemFromItsSmss() throws Exception {
-		exerciseCreation(false);
+		exerciseCreation(false, ReactorKeysEnum.CATALOG_NAME.getKey());
 	}
 
 	@Test
 	void failedInitializationRemovesTheSavedMetadataAndReportsFailure() throws Exception {
-		exerciseCreation(true);
+		exerciseCreation(true, ReactorKeysEnum.CATALOG_NAME.getKey());
 	}
 
-	private void exerciseCreation(boolean failInitialization) throws Exception {
+	@Test
+	void takesTheCatalogNameUnderTheModelKeyToo() throws Exception {
+		exerciseCreation(false, ReactorKeysEnum.MODEL.getKey());
+	}
+
+	private void exerciseCreation(boolean failInitialization, String nameKey) throws Exception {
 		User user = mock(User.class);
 		when(user.getLogins()).thenReturn(List.of());
 		Insight insight = mock(Insight.class);
 		when(insight.getUser()).thenReturn(user);
 		CreateModelEngineReactor reactor = new CreateModelEngineReactor();
 		reactor.setInsight(insight);
-		reactor.getNounStore().makeNoun(ReactorKeysEnum.MODEL.getKey())
-				.add(new NounMetadata("Test Model", PixelDataType.CONST_STRING));
+		reactor.getNounStore().makeNoun(nameKey).add(new NounMetadata("Test Model", PixelDataType.CONST_STRING));
 		reactor.getNounStore().makeNoun(ReactorKeysEnum.MODEL_DETAILS.getKey())
 				.add(new NounMetadata(Map.of(IModelEngine.MODEL_TYPE, "REMOTE", Constants.MODEL, "test-model",
 						Constants.CONTEXT_WINDOW, 1_000_000L, Constants.MAX_TOKENS, 64_000L), PixelDataType.MAP));
@@ -138,7 +142,7 @@ class CreateModelEngineTokenLimitsUnitTests {
 			if (failInitialization) {
 				IllegalArgumentException failure = assertThrows(IllegalArgumentException.class, reactor::execute);
 				assertSame(initializationFailure, failure.getCause());
-				engines.verify(() -> SecurityEngineUtils.deleteEngine(engineId.get()));
+				engines.verify(() -> SecurityEngineUtils.deleteEngine(any(), anyString()), never());
 				uploads.verify(() -> UploadUtilities.cleanUpCreateNewError(any(), eq(engineId.get()), any(), isNull(), any()));
 				uploads.verify(() -> UploadUtilities.getEngineReturnData(any(), anyString()), never());
 			} else {
@@ -146,7 +150,7 @@ class CreateModelEngineTokenLimitsUnitTests {
 				assertEquals(Map.of("engine_id", engineId.get()), result.getValue());
 				assertTrue(Files.isRegularFile(directory.resolve(engineId.get() + ".smss")));
 				engines.verify(() -> SecurityEngineUtils.addEngine(engineId.get(), false, user));
-				engines.verify(() -> SecurityEngineUtils.deleteEngine(anyString()), never());
+				engines.verify(() -> SecurityEngineUtils.deleteEngine(any(), anyString()), never());
 			}
 			assertEquals(1, models.constructed().size());
 			verify(models.constructed().get(0)).open(anyString());

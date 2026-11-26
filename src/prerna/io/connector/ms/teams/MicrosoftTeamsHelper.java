@@ -27,14 +27,10 @@
  *******************************************************************************/
 package prerna.io.connector.ms.teams;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,6 +48,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
@@ -108,12 +105,6 @@ public class MicrosoftTeamsHelper {
 	 * Graph recommends a resumable upload session for anything larger than 4MB.
 	 */
 	private static final long SIMPLE_UPLOAD_MAX_BYTES = 4L * 1024L * 1024L;
-
-	/**
-	 * Upload session chunk size. Graph requires every chunk except the last to be a
-	 * multiple of 320 KiB.
-	 */
-	private static final int UPLOAD_CHUNK_BYTES = 320 * 1024 * 10;
 
 	/**
 	 * Utility class constructor intentionally hidden.
@@ -174,7 +165,7 @@ public class MicrosoftTeamsHelper {
 		try {
 			requireValue(teamId, "Team ID is required to list Microsoft Teams channels.");
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(CHANNELS, teamId.trim());
+			String url = String.format(CHANNELS, ConnectorGuards.segment(teamId));
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
 			List<Map<String, Object>> channels = new ArrayList<>();
 			for (Map<String, Object> channel : getValueList(response)) {
@@ -218,7 +209,7 @@ public class MicrosoftTeamsHelper {
 			requireValue(channelId, "Channel ID is required to resolve the Microsoft Teams channel folder.");
 
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(FILES_FOLDER, teamId.trim(), channelId.trim());
+			String url = String.format(FILES_FOLDER, ConnectorGuards.segment(teamId), ConnectorGuards.segment(channelId));
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
 			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
@@ -278,8 +269,10 @@ public class MicrosoftTeamsHelper {
 
 		try {
 			Map<String, Object> folder = getChannelFilesFolder(accessToken, teamId, channelId);
-			String driveId = folder.get(DRIVE_ID).toString();
-			String folderId = folder.get(FOLDER_ID).toString();
+			// ids Graph returned go into the url as one safe segment each; the raw id goes back to the caller
+			String rawDriveId = folder.get(DRIVE_ID).toString();
+			String driveId = ConnectorGuards.segment(rawDriveId);
+			String folderId = ConnectorGuards.segment(folder.get(FOLDER_ID).toString());
 
 			String relativePath = encodeRelativePath(folderPath);
 			String url;
@@ -291,7 +284,7 @@ public class MicrosoftTeamsHelper {
 
 			List<Map<String, Object>> items = new ArrayList<>();
 			for (Map<String, Object> item : MicrosoftTeamsMessageHelper.getPagedValues(accessToken, url, limit)) {
-				items.add(toDriveItemMap(item, driveId));
+				items.add(toDriveItemMap(item, rawDriveId));
 			}
 			return items;
 		} catch (Exception e) {
@@ -341,7 +334,7 @@ public class MicrosoftTeamsHelper {
 			}
 
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
-			String metadataUrl = String.format(ITEM, resolvedDriveId.trim(), itemId.trim());
+			String metadataUrl = String.format(ITEM, ConnectorGuards.segment(resolvedDriveId), ConnectorGuards.segment(itemId));
 			String metadataResponse = HttpHelperUtility.getRequest(metadataUrl, headers, null, null, null);
 			Map<String, Object> metadata = GSON.fromJson(metadataResponse, new TypeToken<Map<String, Object>>() {
 			}.getType());
@@ -359,10 +352,16 @@ public class MicrosoftTeamsHelper {
 				normalizedFileName = itemName.toString();
 			}
 			String targetPath;
+			String resultPath;
 			if (normalizedFileName == null || normalizedFileName.isEmpty()) {
 				targetPath = path;
+				resultPath = "";
 			} else {
-				targetPath = Paths.get(path, normalizedFileName).toString();
+				// the name may be the remote one, so it stays a single name inside the destination
+				targetPath = ConnectorGuards
+						.resolveWithin(Paths.get(path), MicrosoftOneDriveHelper.baseName(normalizedFileName)).toString();
+				// a direct child of the destination, whatever real path the destination resolved to
+				resultPath = new File(targetPath).getName();
 			}
 			File file = new File(targetPath);
 			File parent = file.getParentFile();
@@ -381,7 +380,8 @@ public class MicrosoftTeamsHelper {
 			if (preAuthUrl != null && !preAuthUrl.toString().trim().isEmpty()) {
 				size = MicrosoftOneDriveHelper.download(preAuthUrl.toString(), null, file, String.valueOf(itemName));
 			} else {
-				String contentUrl = String.format(ITEM_CONTENT, resolvedDriveId.trim(), itemId.trim());
+				String contentUrl = String.format(ITEM_CONTENT, ConnectorGuards.segment(resolvedDriveId),
+						ConnectorGuards.segment(itemId));
 				size = MicrosoftOneDriveHelper.download(contentUrl, headers, file, String.valueOf(itemName));
 			}
 			if (size == 0) {
@@ -391,7 +391,7 @@ public class MicrosoftTeamsHelper {
 			Map<String, Object> result = new HashMap<>();
 			result.put(ID, itemId);
 			result.put(NAME, itemName);
-			result.put(FILE_PATH, Path.of(path).relativize(file.toPath()).toString());
+			result.put(FILE_PATH, resultPath);
 			result.put(SUCCESS, true);
 			return result;
 		} catch (Exception e) {
@@ -436,8 +436,8 @@ public class MicrosoftTeamsHelper {
 
 			String conflict = normalizeConflictBehavior(conflictBehavior);
 			Map<String, Object> folder = getChannelFilesFolder(accessToken, teamId, channelId);
-			String driveId = folder.get(DRIVE_ID).toString();
-			String folderId = folder.get(FOLDER_ID).toString();
+			String driveId = ConnectorGuards.segment(folder.get(DRIVE_ID).toString());
+			String folderId = ConnectorGuards.segment(folder.get(FOLDER_ID).toString());
 			String targetPath = buildTargetPath(folderPath, fileName);
 
 			String response;
@@ -488,7 +488,6 @@ public class MicrosoftTeamsHelper {
 	private static String sessionUpload(String accessToken, String driveId, String folderId, String targetPath,
 			String conflictBehavior, String fileName, File file) throws Exception {
 		final String CREATE_SESSION = GRAPH_BASE + "/drives/%s/items/%s:/%s:/createUploadSession";
-		final String CONTENT_RANGE = "Content-Range";
 
 		String sessionUrl = String.format(CREATE_SESSION, driveId, folderId, targetPath);
 		Map<String, Object> item = new HashMap<>();
@@ -505,47 +504,8 @@ public class MicrosoftTeamsHelper {
 		if (sessionJson == null || sessionJson.get(UPLOAD_URL) == null) {
 			throw new IllegalStateException("Microsoft Graph did not return an upload session for file: " + fileName);
 		}
-		String uploadUrl = sessionJson.get(UPLOAD_URL).toString();
-
-		// the upload session url is pre-authenticated, so the bearer header is omitted
-		long totalSize = file.length();
-		long offset = 0;
-		String lastResponse = null;
-		try (InputStream is = new BufferedInputStream(new FileInputStream(file))) {
-			byte[] chunk = new byte[UPLOAD_CHUNK_BYTES];
-			int bytesRead;
-			while ((bytesRead = readChunk(is, chunk)) > 0) {
-				byte[] payload = bytesRead == chunk.length ? chunk : Arrays.copyOf(chunk, bytesRead);
-				Map<String, String> chunkHeaders = new HashMap<>();
-				chunkHeaders.put(CONTENT_RANGE, "bytes " + offset + "-" + (offset + bytesRead - 1) + "/" + totalSize);
-				String chunkResponse = HttpHelperUtility.putRequestBytesBody(uploadUrl, chunkHeaders, payload,
-						ContentType.APPLICATION_OCTET_STREAM, null, null, null);
-				if (chunkResponse != null && !chunkResponse.trim().isEmpty()) {
-					lastResponse = chunkResponse;
-				}
-				offset += bytesRead;
-			}
-		}
-		if (offset != totalSize) {
-			throw new IllegalStateException("Uploaded " + offset + " of " + totalSize + " bytes for file: " + fileName);
-		}
-		return lastResponse;
-	}
-
-	/**
-	 * Fills the buffer as far as the stream allows so that every chunk except the
-	 * last keeps the size Graph requires.
-	 */
-	private static int readChunk(InputStream is, byte[] buffer) throws Exception {
-		int total = 0;
-		while (total < buffer.length) {
-			int read = is.read(buffer, total, buffer.length - total);
-			if (read == -1) {
-				break;
-			}
-			total += read;
-		}
-		return total;
+		// sent the way a OneDrive upload is, which cancels the session when a piece is refused
+		return MicrosoftOneDriveHelper.sendToUploadSession(sessionJson.get(UPLOAD_URL).toString(), file, fileName);
 	}
 
 	/**
@@ -618,6 +578,10 @@ public class MicrosoftTeamsHelper {
 		for (String segment : normalized.split("/")) {
 			if (segment.isEmpty()) {
 				continue;
+			}
+			// path-addressed calls stay below the channel folder
+			if (segment.trim().equals(".") || segment.trim().equals("..")) {
+				throw new IllegalArgumentException("The folder path must not contain . or .. segments: " + path);
 			}
 			if (encoded.length() > 0) {
 				encoded.append("/");

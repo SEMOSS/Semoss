@@ -28,6 +28,9 @@
 package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -171,6 +174,28 @@ class BrainThreadClassifierDbUnitTests {
 	}
 
 	@Test
+	void aConfidentPickWithNoneOfTheTopicsPeopleOnTheThreadIsAsked() throws Exception {
+		person(A, "p-ana");
+		file(A, 0.95, B, 0.03);
+		assertEquals(List.of(List.of(A, "suggested", true), List.of(B, "suggested", false)), links());
+		assertEquals(List.of(List.of(A, B)), openQuestions());
+
+		// one of the topic's people on the thread: filed as before
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, ?, ?)",
+				ownerId, ownerType, THREAD, "p-ana");
+		file(A, 0.95, B, 0.03);
+		assertEquals(List.of(List.of(A, "confirmed", true)), links());
+		assertEquals(List.of(), openQuestions());
+	}
+
+	@Test
+	void aTopicWithNoPeopleFilesOnTheModelAlone() throws Exception {
+		person(B, "p-ben");
+		file(A, 0.95, B, 0.03);
+		assertEquals(List.of(List.of(A, "confirmed", true)), links());
+	}
+
+	@Test
 	void aFilingNeverTouchesAThreadTheOwnerFiled() throws Exception {
 		sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY, "
 				+ "CHANGED_BY) VALUES (?, ?, ?, ?, 'you', 100, TRUE, 'you')", ownerId, ownerType, THREAD, A);
@@ -181,7 +206,270 @@ class BrainThreadClassifierDbUnitTests {
 		assertEquals(List.of(List.of(A, "you", true), List.of(B, "suggested", false)), links());
 	}
 
+	@Test
+	void aThreadThatCannotBeFiledByItsFolderDoesNotStopTheRest() throws Exception {
+		sql("INSERT INTO BRAIN_TOPIC_FOLDER (OWNER_ID, OWNER_TYPE, TOPIC_ID, FOLDER_ID) VALUES (?, ?, ?, 'folder-1')",
+				ownerId, ownerType, A);
+		// mail in the folder on two threads; the first has no thread row, so its link fails
+		for (String thread : List.of("th-gone", THREAD)) {
+			sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, FOLDER, RECEIVED_AT) VALUES "
+					+ "(?, ?, ?, ?, 'folder-1', CURRENT_TIMESTAMP)", ownerId, ownerType, "m-" + thread, thread);
+		}
+
+		assertEquals(1, BrainThreadClassifier.fileByFolder(ownerId, ownerType, List.of("th-gone", THREAD)));
+
+		assertEquals(List.of(List.of(A, "confirmed", true)), links());
+	}
+
+	@Test
+	void anOwnersClosingNoteIsNotWaitingButTheirQuestionIs() throws Exception {
+		// the model reads both threads: "Thanks, done" is an update with nothing to do, the question is not
+		assertEquals("fyi", ownerWroteLast("th-done", "Thanks, done - the PO is approved.", 0.95));
+		assertEquals("waiting", ownerWroteLast("th-ask", "Can you send me the signed PO by Friday?", 0.1));
+		assertEquals(List.of("waiting_on", "fyi"), askTypes());
+	}
+
+	private List<String> askTypes() throws Exception {
+		List<String> out = new ArrayList<>();
+		try (Statement statement = connection.createStatement();
+				ResultSet rs = statement.executeQuery("SELECT ASK_TYPE FROM WORK_ITEM ORDER BY THREAD_ID")) {
+			while (rs.next()) {
+				out.add(rs.getString(1));
+			}
+		}
+		return out;
+	}
+
+	// the verdict for a thread whose only message is the owner's, with the model giving it this fyi score
+	@SuppressWarnings("unchecked")
+	private String ownerWroteLast(String threadId, String text, double fyi) throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM) VALUES (?, ?, 'self', "
+				+ "'Owner', 'owner@test.com')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, SUBJECT, MUTED, AUTOMATED) "
+				+ "VALUES (?, ?, ?, ?, 'email', 'PO', FALSE, FALSE)", ownerId, ownerType, threadId, "email:" + threadId);
+		BrainClassifier classifier = new BrainClassifier() {
+			@Override
+			public String version() {
+				return "test-v1";
+			}
+
+			@Override
+			public Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight) {
+				return new Scores(Map.of(), fyi, 0, 0.5, Map.of());
+			}
+		};
+		Map<String, Object> message = new LinkedHashMap<>();
+		message.put("id", "g-" + threadId);
+		message.put("at", "2026-11-05T10:00:00Z");
+		message.put("text", text);
+		message.put("fromId", "self");
+		message.put("fromName", "Owner");
+		message.put("to", List.of());
+		message.put("cc", List.of());
+		try (MockedStatic<BrainThreadMessages> messages = mockStatic(BrainThreadMessages.class)) {
+			messages.when(() -> BrainThreadMessages.read(any(), anyString(), anyString(), anyString(), any(), any()))
+					.thenReturn(Map.of("messages", List.of(message)));
+			Class<?> context = Class.forName(BrainThreadClassifier.class.getName() + "$Context");
+			Map<String, Object> extra = new LinkedHashMap<>();
+			extra.put("classifier", classifier);
+			extra.put("cutoffs", classifier.cutoffs());
+			extra.put("topics", List.of());
+			extra.put("self", new BrainThreadClassifier.Self("self", "Owner", Set.of("owner@test.com")));
+			extra.put("window", BrainThreadClassifier.window((Object) null));
+			extra.put("timeZone", java.time.ZoneOffset.UTC);
+			extra.put("vips", Set.of());
+			extra.put("topicVips", Map.of());
+			extra.put("rules", List.of());
+			extra.put("followed", Set.of());
+			extra.put("automatedSenders", Set.of());
+			extra.put("scored", new java.util.concurrent.ConcurrentHashMap<String, BrainClassifier.Scores>());
+			extra.put("linkedFolders", Map.of());
+			extra.put("ownOrg", BrainOrgDomains.of(List.of(), "test.com"));
+			extra.put("partners", new java.util.concurrent.ConcurrentHashMap<String, Boolean>());
+			Method classify = BrainThreadClassifier.class.getDeclaredMethod("classifyOne", context, String.class);
+			classify.setAccessible(true);
+			return ((BrainThreadClassifier.Result) classify.invoke(null, context(context, extra), threadId)).work();
+		}
+	}
+
 	// ---- helpers ----
+
+	@Test
+	void aNoticeFromTheOwnersOrganisationThatNeedsThemRaisesOneItemPerTicketAndAClosingNoticeFinishesIt()
+			throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM) VALUES (?, ?, 'desk', "
+				+ "'EHS System', 'ehs-system@test.com')", ownerId, ownerType);
+		// assigned, then a reminder in its own thread: the same ticket, so still one item
+		assertTrue(notice("assigned", "Corrective Action CA-318 Assigned to You", "desk", 0.9));
+		assertTrue(notice("reminder", "Escalation: CA-318 is overdue", "desk", 0.9));
+		assertEquals(List.of(List.of("notice:CA-318", "errand", "open")), items());
+		// an approval with no ticket id is its own item
+		assertTrue(notice("timesheet", "Timesheet awaiting your approval - Marco Bellini", "desk", 0.8));
+		assertEquals(2, items().size());
+		// a status notice raises nothing, and one that says the ticket is closed finishes its item
+		assertFalse(notice("update", "CA-318 photo evidence received", "desk", 0.1));
+		assertEquals("open", items().get(0).get(2));
+		assertFalse(notice("closed", "Corrective Action CA-318 Closed", "desk", 0.1));
+		assertEquals(List.of("notice:CA-318", "errand", "done"), items().get(0));
+		// each notice is asked about once: a second run over the same mail does not call the model again
+		assertFalse(noticeAgain("assigned", "Corrective Action CA-318 Assigned to You"));
+	}
+
+	@Test
+	void aNoticeFromOutsideTheOwnersOrganisationIsNeverAskedAbout() throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM) VALUES (?, ?, 'spam', "
+				+ "'IT Helpdesk', 'it-helpdesk@elsewhere.example')", ownerId, ownerType);
+		// the classifier would say it needs the owner ("verify your mailbox"): it is not asked
+		assertFalse(notice("phish", "Verify Your Mailbox to Avoid Suspension", "spam", null));
+		assertTrue(items().isEmpty());
+	}
+
+	@Test
+	void aNoticeFromAnOrganisationTheOwnerWorksWithIsAskedAbout() throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM, RELATIONSHIP) VALUES "
+				+ "(?, ?, 'portal', 'Vendor Portal', 'no-reply@portal.adatum.com', 'automated')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM, RELATIONSHIP) VALUES "
+				+ "(?, ?, 'kira', 'Kira Holt', 'kira@adatum.com', 'external')", ownerId, ownerType);
+		// mail from someone there is not enough: the owner has not written to them
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID) VALUES (?, ?, 'talk', "
+				+ "'kira')", ownerId, ownerType);
+		assertFalse(notice("early", "Ticket VP-11 assigned to you", "portal", null));
+		// the owner wrote on a thread Kira is on: the organisation's portal is asked about from then on
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, "
+				+ "RECEIVED_AT) VALUES (?, ?, 'key-talk', 'talk', 'g-talk', 'self', ?)", ownerId, ownerType,
+				java.sql.Timestamp.valueOf("2026-11-04 10:00:00"));
+		assertTrue(notice("later", "Ticket VP-12 assigned to you", "portal", 0.9));
+		assertEquals(List.of(List.of("notice:VP-12", "errand", "open")), items());
+	}
+
+	@Test
+	void aNoticeFromAVipIsAskedAboutWhereverItComesFrom() throws Exception {
+		sql("INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, DISPLAY_NAME, EMAIL_NORM) VALUES (?, ?, 'desk', "
+				+ "'Client Desk', 'desk@client.example')", ownerId, ownerType);
+		vips = Set.of("desk");
+		assertTrue(notice("vip", "Change request CR-7 needs your approval", "desk", 0.9));
+	}
+
+	@Test
+	void acceptingANewTopicFoundInIncomingMailKeepsItAndFilesItsConversations() throws Exception {
+		String review = proposal("t-new", "Harbour crane inspection");
+		BrainReviewUtils.resolveReview(ownerId, ownerType, review, "Accept", null, BrainProfileUtils.YOU);
+		assertEquals("active", value("SELECT STATUS FROM BRAIN_TOPIC WHERE TOPIC_ID = 't-new'"));
+		assertEquals("member", value("SELECT STATE FROM BRAIN_TOPIC_PERSON WHERE TOPIC_ID = 't-new'"));
+		assertEquals(List.of(List.of("t-new", "confirmed", true)), links());
+	}
+
+	@Test
+	void acceptingANewTopicTheScreenAlreadyKeptStillFilesItsConversations() throws Exception {
+		String review = proposal("t-new", "Harbour crane inspection");
+		// the owner's screen saves the topic as active before it answers the question
+		sql("UPDATE BRAIN_TOPIC SET STATUS = 'active' WHERE TOPIC_ID = 't-new'");
+		BrainReviewUtils.resolveReview(ownerId, ownerType, review, "Accept", null, BrainProfileUtils.YOU);
+		assertEquals("member", value("SELECT STATE FROM BRAIN_TOPIC_PERSON WHERE TOPIC_ID = 't-new'"));
+		assertEquals(List.of(List.of("t-new", "confirmed", true)), links());
+	}
+
+	@Test
+	void dismissingANewTopicRemovesItAndFilesNothing() throws Exception {
+		String review = proposal("t-new", "Harbour crane inspection");
+		BrainReviewUtils.resolveReview(ownerId, ownerType, review, "dismiss", null, BrainProfileUtils.YOU);
+		assertEquals(null, value("SELECT STATUS FROM BRAIN_TOPIC WHERE TOPIC_ID = 't-new'"));
+		assertTrue(links().isEmpty());
+		// the answered question stays: it is what keeps the same group from being asked about again
+		assertEquals("dismissed", value("SELECT STATUS FROM BRAIN_REVIEW WHERE REVIEW_ID = '" + review + "'"));
+	}
+
+	// a suggested topic with one suggested person and the question about it, as a look at incoming mail leaves them
+	private String proposal(String topicId, String name) throws Exception {
+		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, STATUS, ORIGIN) VALUES (?, ?, ?, ?, "
+				+ "'suggested', 'brain')", ownerId, ownerType, topicId, name);
+		sql("INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, PERSON_ID, STATE) VALUES (?, ?, ?, 'kira', "
+				+ "'suggested')", ownerId, ownerType, topicId);
+		Map<String, Object> detail = new LinkedHashMap<>();
+		detail.put("text", "New topic suggested: " + name);
+		detail.put("candidate", topicId);
+		detail.put("threadIds", List.of(THREAD, "th-gone"));
+		return (String) ((Map<?, ?>) BrainReviewUtils.addReview(ownerId, ownerType, BrainReviewUtils.NEW_TOPIC, "topic",
+				topicId, "key-1", detail).get("review")).get("id");
+	}
+
+	private String value(String query) throws Exception {
+		try (Statement statement = connection.createStatement(); ResultSet rs = statement.executeQuery(query)) {
+			return rs.next() ? rs.getString(1) : null;
+		}
+	}
+
+	// one machine notice on its own thread, judged as classifyOne would after sorting it automated; demand is
+	// the classifier's answer, null when asking at all is a failure
+	private Set<String> vips = Set.of();
+
+	private boolean notice(String threadId, String subject, String senderId, Double demand) throws Exception {
+		insertNotice(threadId, subject, senderId);
+		return judge(threadId, subject, demand);
+	}
+
+	private boolean noticeAgain(String threadId, String subject) throws Exception {
+		return judge(threadId, subject, null);
+	}
+
+	private void insertNotice(String threadId, String subject, String senderId) throws Exception {
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, SUBJECT, MUTED, AUTOMATED) "
+				+ "VALUES (?, ?, ?, ?, 'email', ?, FALSE, TRUE)", ownerId, ownerType, threadId, "email:" + threadId, subject);
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, "
+				+ "RECEIVED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, "key-" + threadId, threadId,
+				"g-" + threadId, senderId, java.sql.Timestamp.valueOf("2026-11-05 10:00:00"));
+	}
+
+	private boolean judge(String threadId, String subject, Double demand) throws Exception {
+		BrainClassifier classifier = new BrainClassifier() {
+			@Override
+			public String version() {
+				return "test-v1";
+			}
+
+			@Override
+			public Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight) {
+				throw new UnsupportedOperationException();
+			}
+
+			@Override
+			public Double demand(ThreadInput thread, Insight insight) {
+				if (demand == null) {
+					throw new AssertionError("the model was asked about a notice it should not see");
+				}
+				return demand;
+			}
+		};
+		Class<?> context = Class.forName(BrainThreadClassifier.class.getName() + "$Context");
+		Method notice = BrainThreadClassifier.class.getDeclaredMethod("notice", context, String.class, Map.class,
+				List.class);
+		notice.setAccessible(true);
+		Map<String, Object> message = new LinkedHashMap<>();
+		message.put("id", "g-" + threadId);
+		message.put("at", "2026-11-05T10:00:00Z");
+		message.put("text", subject);
+		message.put("fromName", "EHS System");
+		Map<String, Object> extra = Map.of("classifier", classifier, "self",
+				new BrainThreadClassifier.Self("self", "Owner", Set.of("owner@test.com")), "window",
+				BrainThreadClassifier.window((Object) null), "timeZone", java.time.ZoneOffset.UTC, "ownOrg",
+				BrainOrgDomains.of(List.of(), "test.com"), "vips", vips, "topicVips", Map.of(), "partners",
+				new java.util.concurrent.ConcurrentHashMap<String, Boolean>());
+		return (Boolean) notice.invoke(null, context(context, extra), threadId,
+				Map.of("subject", subject, "source", "email"), List.of(message));
+	}
+
+	// [dedupe key, ask type, status] of every item, oldest first
+	private List<List<Object>> items() throws Exception {
+		List<List<Object>> out = new ArrayList<>();
+		try (java.sql.Statement statement = connection.createStatement();
+				java.sql.ResultSet rs = statement
+						.executeQuery("SELECT DEDUPE_KEY, ASK_TYPE, STATUS FROM WORK_ITEM ORDER BY CREATED_AT, ITEM_ID")) {
+			while (rs.next()) {
+				out.add(List.of(rs.getString(1), rs.getString(2), rs.getString(3)));
+			}
+		}
+		return out;
+	}
 
 	// the model's topic scores, best first, with the rest on "Something else"; run as classifyOne would
 	private void file(Object... ranked) throws Exception {
@@ -202,8 +490,14 @@ class BrainThreadClassifierDbUnitTests {
 
 	// the run's context with what filing reads; everything else empty
 	private Object context(Class<?> type) throws Exception {
-		Map<String, Object> values = Map.of("user", user, "ownerId", ownerId, "ownerType", ownerType, "classifier",
-				CLASSIFIER, "fileAt", BrainProfileUtils.DEFAULT_FILE_AT, "askAt", BrainProfileUtils.DEFAULT_ASK_AT);
+		return context(type, Map.of());
+	}
+
+	private Object context(Class<?> type, Map<String, Object> extra) throws Exception {
+		Map<String, Object> values = new LinkedHashMap<>(Map.of("user", user, "ownerId", ownerId, "ownerType",
+				ownerType, "classifier", CLASSIFIER, "fileAt", BrainProfileUtils.DEFAULT_FILE_AT, "askAt",
+				BrainProfileUtils.DEFAULT_ASK_AT));
+		values.putAll(extra);
 		RecordComponent[] parts = type.getRecordComponents();
 		Class<?>[] types = new Class<?>[parts.length];
 		Object[] args = new Object[parts.length];
@@ -256,6 +550,11 @@ class BrainThreadClassifierDbUnitTests {
 			}
 		}
 		return questions;
+	}
+
+	private void person(String topic, String personId) throws Exception {
+		sql("INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, PERSON_ID, STATE) VALUES (?, ?, ?, ?, "
+				+ "'member')", ownerId, ownerType, topic, personId);
 	}
 
 	private void sql(String sql, Object... params) throws Exception {

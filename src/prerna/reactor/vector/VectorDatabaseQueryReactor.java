@@ -48,7 +48,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class VectorDatabaseQueryReactor extends AbstractReactor {
@@ -76,7 +75,7 @@ public class VectorDatabaseQueryReactor extends AbstractReactor {
 			throw new SemossPixelException("Unable to find engine");
 		}
 
-		String embeddingsEngineId = eng.getSmssProp().getProperty(Constants.EMBEDDER_ENGINE_ID);
+		String embeddingsEngineId = eng.getEmbedderEngineId();
 		if (embeddingsEngineId == null
 				|| !SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), embeddingsEngineId)) {
 			throw new IllegalArgumentException("Embeddings model " + embeddingsEngineId

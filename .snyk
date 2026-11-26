@@ -1,0 +1,8 @@
+# Snyk (https://snyk.io) policy file
+version: v1.25.0
+# test code is not shipped; keep its fixtures out of Snyk Code results
+exclude:
+  global:
+    - test/**
+    - py/**/tests/**
+    - py/testing/**

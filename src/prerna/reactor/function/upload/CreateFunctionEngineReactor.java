@@ -29,7 +29,6 @@ package prerna.reactor.function.upload;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -38,7 +37,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -68,7 +66,8 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(CreateFunctionEngineReactor.class);
 
 	public CreateFunctionEngineReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.FUNCTION.getKey(), ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
+		this.keysToGet = new String[] { ReactorKeysEnum.CATALOG_NAME.getKey() + "," + ReactorKeysEnum.FUNCTION.getKey(),
+				ReactorKeysEnum.FUNCTION_DETAILS.getKey(),
 				ReactorKeysEnum.FILE_PATH.getKey() };
 		this.keyRequired = new int[] { 1, 1, 0 };
 	}
@@ -88,7 +87,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String functionName = getStringFromKeyOrCurRowStringValue(ReactorKeysEnum.FUNCTION.getKey());
+		String functionName = this.keyValue.get(ReactorKeysEnum.CATALOG_NAME.getKey());
 		if (functionName == null || (functionName = functionName.trim()).isEmpty()) {
 			throw new NullPointerException("Must define the name of the new function engine");
 		}
@@ -146,10 +145,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 			UploadUtilities.addEngineToDIHelper(functionId, functionName, function, smssFile);
 			SecurityEngineUtils.addEngine(functionId, false, user);
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(functionId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, functionId);
 
 			// Initialize git and commit initial engine files
 			try {
@@ -204,7 +200,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 				Create and register a function engine from the supplied function metadata. The reactor validates the
 				engine type, creates its assets and SMSS configuration, assigns the caller as an owner, initializes
 				version control, and synchronizes the engine to the cluster.
-				""").key(ReactorKeysEnum.FUNCTION,
+				""").key(ReactorKeysEnum.CATALOG_NAME,
 				"The catalog name for the new function engine. The name must be unique and contain only supported engine-name characters.")
 				.key(ReactorKeysEnum.FUNCTION_DETAILS, """
 						The function-engine SMSS properties. The map must include FUNCTION_TYPE and the configuration

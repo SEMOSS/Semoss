@@ -219,6 +219,30 @@ class UpdateEngineGuardrailConfigReactorUnitTests {
 		assertTrue(exception.getMessage().contains("skipping tool-result continuations requires an 'input' guardrail"));
 	}
 
+	@Test
+	void aMappingThatReadsNothingTheGuardrailReceivesIsRejected() {
+		assertInvalidParam("inputMapping", Map.of("prompt", "promt"), "which the guardrail does not receive");
+		assertInvalidParam("inputMapping", Map.of("prompt", "args0"), "which the guardrail does not receive");
+		assertInvalidParam("inputMapping", Map.of("prompt", List.of("arg0", "arg1x")),
+				"which the guardrail does not receive");
+		assertInvalidParam("inputMapping", Map.of("prompt", "result"), "which the guardrail does not receive");
+	}
+
+	@Test
+	void aMappingMayReadIntoAnArgumentOrAnEarlierGuardrailsResult() {
+		Map<String, Object> params = validParams();
+		params.put("inputMapping", Map.of("prompt", "arg0.message", "content", List.of("arg1", "arg2.items.*.body"),
+				"previous", "interim_result.returnPrompt"));
+		assertDoesNotThrow(() -> UpdateEngineGuardrailConfigReactor.validateConfigStructure(config(params)));
+	}
+
+	@Test
+	void anOutputGuardrailMayReadTheResult() {
+		Map<String, Object> params = validParams();
+		params.put("inputMapping", Map.of("prompt", "result.messages.0.body"));
+		assertDoesNotThrow(() -> UpdateEngineGuardrailConfigReactor.validateConfigStructure(outputConfig(params)));
+	}
+
 	private static void assertInvalidParam(String key, Object value, String expectedMessage) {
 		Map<String, Object> params = validParams();
 		params.put(key, value);
