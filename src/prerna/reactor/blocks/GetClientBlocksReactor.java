@@ -40,13 +40,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.BlocksThemeUtils;
 import prerna.theme.ThemeDbTable;
 
+@Deprecated
 public class GetClientBlocksReactor extends AbstractReactor {
 
+	@Deprecated
 	public GetClientBlocksReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILTERS.getKey() };
 		this.keyRequired = new int[] { 0 };
 	}
 
+	@Deprecated
 	@Override
 	public NounMetadata execute() {
 		String userId = this.insight.getUserId();
@@ -66,6 +69,7 @@ public class GetClientBlocksReactor extends AbstractReactor {
 		return new NounMetadata(blocks, PixelDataType.MAP);
 	}
 
+	@Deprecated
 	protected GenRowFilters getFilters() {
 		GenRowStruct inputsGRS = this.store.getGenRowStruct(ReactorKeysEnum.FILTERS.getKey());
 		if (inputsGRS != null && !inputsGRS.isEmpty()) {

@@ -29,6 +29,9 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,6 +61,7 @@ import prerna.engine.api.ICustomEmbeddingsFunctionEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.SmssUtilities;
@@ -495,6 +499,36 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 				+ INDEXED_FOLDER_NAME);
 	}
 
+	// the stored copy of a listed document, or null unless it is an existing regular file directly inside the documents folder
+	public static File storedDocument(File documentsDir, String fileName) {
+		if (documentsDir == null || fileName == null || fileName.isEmpty() || ".".equals(fileName)
+				|| "..".equals(fileName) || fileName.indexOf('/') >= 0 || fileName.indexOf('\\') >= 0
+				|| fileName.indexOf('\0') >= 0) {
+			return null;
+		}
+		try {
+			Path realDir = documentsDir.toPath().toRealPath();
+			Path candidate = realDir.resolve(fileName);
+			// the real path rules out a link that leads out of the folder
+			if (!Files.isRegularFile(candidate) || !realDir.equals(candidate.toRealPath().getParent())) {
+				return null;
+			}
+			return new File(documentsDir, fileName);
+		} catch (IOException | InvalidPathException e) {
+			return null;
+		}
+	}
+
+	// the stored copy to delete with a removed document, or null (logged) when there is none to delete safely
+	protected static File storedDocumentToRemove(File documentsDir, String documentName) {
+		File file = storedDocument(documentsDir, documentName);
+		if (file == null) {
+			classLogger.warn("Not deleting a stored copy of '{}': it is missing or not a file directly in the documents folder",
+					documentName);
+		}
+		return file;
+	}
+
 	/**
 	 * 
 	 * @param indexClass
@@ -670,7 +704,6 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 		// verify chunks aren't getting truncated
 		this.embedderEngineId = this.smssProp.getProperty(Constants.EMBEDDER_ENGINE_ID);
 		if (this.embedderEngineId == null || (this.embedderEngineId = this.embedderEngineId.trim()).isEmpty()) {
-
 			// check legacy key....
 			this.embedderEngineId = this.smssProp.getProperty("ENCODER_ID");
 			if (this.embedderEngineId == null || (this.embedderEngineId = this.embedderEngineId.trim()).isEmpty()) {
@@ -688,23 +721,18 @@ public abstract class AbstractVectorDatabaseEngine extends AbstractEngine implem
 							+ this.embedderEngineId);
 		}
 
-		Properties modelProperties = modelEngine.getSmssProp();
-		if (modelProperties.isEmpty() || !modelProperties.containsKey(Constants.MODEL)) {
+		String modelName = modelEngine.getModelName();
+		if (modelName == null || modelName.isBlank()) {
 			throw new IllegalArgumentException("Embedder engine exists but does not contain key " + Constants.MODEL);
 		}
 
-		this.smssProp.put(Constants.MODEL, modelProperties.getProperty(Constants.MODEL));
-		this.smssProp.put(IModelEngine.MODEL_TYPE, modelProperties.getProperty(IModelEngine.MODEL_TYPE));
-		if (!modelProperties.containsKey(Constants.MAX_TOKENS)) {
-			this.smssProp.put(Constants.MAX_TOKENS, "None");
-		} else {
-			String modelMaxTokens = modelProperties.getProperty(Constants.MAX_TOKENS);
-			if (modelMaxTokens == null || (modelMaxTokens = modelMaxTokens.trim()).isEmpty()) {
-				this.smssProp.put(Constants.MAX_TOKENS, "None");
-			} else {
-				this.smssProp.put(Constants.MAX_TOKENS, modelMaxTokens);
-			}
+		this.smssProp.put(Constants.MODEL, modelName);
+		ModelTypeEnum modelType = modelEngine.getModelType();
+		if (modelType != null) {
+			this.smssProp.put(IModelEngine.MODEL_TYPE, modelType.name());
 		}
+		long modelMaxTokens = modelEngine.getMaxTokens();
+		this.smssProp.put(Constants.MAX_TOKENS, modelMaxTokens > 0 ? String.valueOf(modelMaxTokens) : "None");
 
 		// model engine responsible for creating keywords
 		this.keywordGeneratorEngineId = this.smssProp.getProperty(Constants.KEYWORD_ENGINE_ID);

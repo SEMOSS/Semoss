@@ -201,7 +201,7 @@ class MakePlaywrightMCPReactorTest extends SemossUnitTest {
 					projectId, projectName)).thenReturn(versionDir.toString());
 			engineUtility.when(() -> EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
 					projectId, projectName)).thenReturn(assetsDir.toString());
-			mcpUtility.when(() -> MCPUtility.addMCPTag(project)).then(invocation -> null);
+			mcpUtility.when(() -> MCPUtility.addMCPTag(any(), any())).then(invocation -> null);
 
 			gitRepoUtils.when(() -> GitRepoUtils.addSpecificFiles(anyString(), anyList())).then(invocation -> null);
 			gitRepoUtils.when(() -> GitRepoUtils.commitAddedFiles(anyString(), anyString(), anyString(), anyString()))

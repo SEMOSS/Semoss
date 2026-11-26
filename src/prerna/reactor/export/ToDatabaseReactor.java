@@ -57,7 +57,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.InternalUtility;
 import prerna.util.Utility;
@@ -101,7 +100,6 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			this.task = getTask();
 
 			this.engineId = this.keyValue.get(TARGET_DATABASE);
-			this.engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), this.engineId);
 			if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), this.engineId)) {
 				throw new IllegalArgumentException("Database " + this.engineId
 						+ " does not exist or user does not have edit access to the database");
@@ -126,7 +124,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 						throw new IllegalArgumentException("Batch size cannot be less than 1");
 					}
 				} catch (NumberFormatException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Invalid batch size {}", batchSizeStr, e);
 					throw new IllegalArgumentException("Invalid batch size value of " + batchSizeStr);
 				}
 			}
@@ -147,7 +145,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				try {
 					task.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the task exporting to table {} of database {}", this.targetTable,
+							this.engineId, e);
 				}
 			}
 		}
@@ -159,8 +158,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 	protected void buildTask() {
 		Logger logger = this.getLogger(CLASS_NAME);
 
-		logger.info("Persisting data into table = " + this.targetTable);
-		logger.info("Replace existing table data = " + this.override);
+		logger.info("Persisting data into table = {}", this.targetTable);
+		logger.info("Replace existing table data = {}", this.override);
 
 		// grab the engine
 		IDatabaseEngine targetDatabase = Utility.getDatabase(engineId);
@@ -224,7 +223,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 					targetEngine.insertData(queryUtil.dropTable(this.targetTable));
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to drop table {} in database {}", this.targetTable, this.engineId, e);
 				throw new SemossPixelException(new NounMetadata(
 						"Error occurred trying to delete the existing table with message = " + e.getMessage(),
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -233,7 +232,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			try {
 				targetEngine.insertData(queryUtil.createTable(this.targetTable, headers, sqlTypes));
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create table {} in database {}", this.targetTable, this.engineId, e);
 				throw new SemossPixelException(new NounMetadata(
 						"Error occurred trying to create the new table with message = " + e.getMessage(),
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -247,7 +246,7 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 			try {
 				targetEngine.insertData(queryUtil.createTable(this.targetTable, headers, sqlTypes));
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create table {} in database {}", this.targetTable, this.engineId, e);
 				throw new SemossPixelException(new NounMetadata(
 						"Error occurred trying to create the new table with message = " + e.getMessage(),
 						PixelDataType.CONST_STRING, PixelOperationType.ERROR));
@@ -383,19 +382,20 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 
 				// batch commit based on size
 				if (++count % this.batchSize == 0) {
-					logger.info("Executing batch .... row num = " + count);
+					logger.info("Executing batch .... row num = {}", count);
 					ps.executeBatch();
 				}
 			}
 
 			// well, we are done looping through now
-			logger.info("Executing final batch .... row num = " + count);
+			logger.info("Executing final batch .... row num = {}", count);
 			ps.executeBatch(); // insert any remaining records
 			if (!ps.getConnection().getAutoCommit()) {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to insert rows into table {} of database {}", this.targetTable,
+					this.engineId, e);
 			throw new IllegalArgumentException(
 					"An error occurred persisting data into the database with message = " + e.getMessage());
 		} finally {
@@ -403,13 +403,15 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 				try {
 					ps.close();
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to close the insert statement for table {} of database {}",
+							this.targetTable, this.engineId, e);
 				}
 				if (targetEngine.isConnectionPooling()) {
 					try {
 						ps.getConnection().close();
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to close the connection used to insert into table {} of database {}",
+								this.targetTable, this.engineId, e);
 					}
 				}
 			}
@@ -436,8 +438,8 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 						logger.info("Need to first remove the exisitng concept from the OWL");
 						owlEngine.removeConcept(targetTable);
 						long end2 = System.currentTimeMillis();
-						logger.info("Finished removing concept from the OWL. Total time = " + ((end2 - start2) / 1000)
-								+ " seconds");
+						logger.info("Finished removing concept from the OWL. Total time = {} seconds",
+								(end2 - start2) / 1000);
 					}
 					// choose the first column as the prim key
 					owlEngine.addConcept(targetTable, null, null);
@@ -456,14 +458,15 @@ public class ToDatabaseReactor extends TaskBuilderReactor {
 						EngineSyncUtility.clearEngineCache(this.engineId);
 						logger.info("Finished persisting engine metadata and synchronizing with local master");
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to save and sync the metadata of database {}", this.engineId, e);
 					}
 
 				} catch (InterruptedException | IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to add table {} to the metadata of database {}", this.targetTable,
+							this.engineId, e);
 				}
 				long end = System.currentTimeMillis();
-				logger.info("Finished adding concept to the OWL. Total time = " + ((end - start) / 1000) + " seconds");
+				logger.info("Finished adding concept to the OWL. Total time = {} seconds", (end - start) / 1000);
 			}
 		}
 	}

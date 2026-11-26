@@ -97,4 +97,89 @@ class SemossAgentPromptUnitTests {
 			assertEquals(originalOptions, room.getOptionsMap());
 		}
 	}
+
+	@Test
+	void aTwinsPersonaGoesBetweenItsInstructionsAndItsRules() throws Exception {
+		for (String persona : new String[] { "## Persona of Robin Reyes\n### Voice\nDirect.", null }) {
+			Room room = spy(new Room());
+			room.setId("twin-persona-test");
+			room.setOptionsMap(new HashMap<>());
+			AgentConfig config = AgentConfig.builder().authoredPrompt("Twin instructions").useDefaultAgentTools(false)
+					.digitalTwin(true).digitalTwinOwner("Robin Reyes").digitalTwinPersona(persona).build();
+			AgentRunContext ctx = mock(AgentRunContext.class);
+			when(ctx.getRoom()).thenReturn(room);
+			when(ctx.getInsight()).thenReturn(mock(Insight.class));
+			when(ctx.getModelEngine()).thenReturn(mock(IModelEngine.class));
+			when(ctx.getAgentConfig()).thenReturn(config);
+			when(ctx.getParamMap()).thenReturn(Map.of());
+			when(ctx.getInput()).thenReturn("What would Robin think?");
+			when(ctx.getMaxTurns()).thenReturn(30);
+			RuntimeException stopped = new IllegalStateException("Stop before contacting a model");
+			doAnswer(call -> {
+				InputMessage message = call.getArgument(0);
+				String prompt = message.getSystemPrompt();
+				int instructions = prompt.indexOf("Twin instructions");
+				int rules = prompt.indexOf("## Digital Twin\n");
+				assertTrue(instructions > 0 && instructions < rules, prompt);
+				if (persona == null) {
+					// a twin without one runs under the rules as they were
+					assertTrue(prompt.contains("never speak or sign as them."), prompt);
+					assertTrue(!prompt.contains("Persona of") && !prompt.contains("My read of"), prompt);
+				} else {
+					// after the instructions, which whoever is chatting can replace, and never without its rules
+					int at = prompt.indexOf(persona);
+					assertTrue(instructions < at && at < rules, prompt);
+					assertTrue(prompt.contains("Start with \"My read of Robin Reyes:\""), prompt);
+				}
+				throw stopped;
+			}).when(room).ask(any(), any(), any());
+			try (var stream = mockStatic(AgentRunStreamService.class);
+					var messages = mockStatic(RoomMessageStore.class)) {
+				stream.when(AgentRunStreamService::get).thenReturn(mock(AgentRunStreamService.class));
+				assertSame(stopped, assertThrows(RuntimeException.class, () -> new SemossAgentHarness().execute(ctx)));
+			}
+		}
+	}
+
+	@Test
+	void aPersonsOwnTwinIsToldWhoItIsAfterItsInstructionsAndOnlyAtTheRootOfTheRun() throws Exception {
+		String mainTwin = "## Who you are\nYou are the owner's Digital Twin.";
+		for (int depth : new int[] { AgentRunContext.ROOT_SPAWN_DEPTH, AgentRunContext.ROOT_SPAWN_DEPTH + 1 }) {
+			Room room = spy(new Room());
+			room.setId("main-twin-test");
+			room.setOptionsMap(new HashMap<>());
+			AgentConfig config = AgentConfig.builder().authoredPrompt("Agent and room instructions")
+					.useDefaultAgentTools(false).mainTwinPrompt(mainTwin).build();
+			AgentRunContext ctx = mock(AgentRunContext.class);
+			when(ctx.getRoom()).thenReturn(room);
+			when(ctx.getInsight()).thenReturn(mock(Insight.class));
+			when(ctx.getModelEngine()).thenReturn(mock(IModelEngine.class));
+			when(ctx.getAgentConfig()).thenReturn(config);
+			when(ctx.getParamMap()).thenReturn(Map.of());
+			when(ctx.getInput()).thenReturn("Who are you?");
+			when(ctx.getMaxTurns()).thenReturn(30);
+			when(ctx.getSpawnDepth()).thenReturn(depth);
+			RuntimeException stopped = new IllegalStateException("Stop before contacting a model");
+			doAnswer(call -> {
+				InputMessage message = call.getArgument(0);
+				String prompt = message.getSystemPrompt();
+				int instructions = prompt.indexOf("Agent and room instructions");
+				assertTrue(instructions > 0, prompt);
+				if (depth == AgentRunContext.ROOT_SPAWN_DEPTH) {
+					// once, after the instructions whoever is chatting can replace through their room
+					assertTrue(prompt.indexOf(mainTwin) > instructions, prompt);
+					assertEquals(prompt.indexOf(mainTwin), prompt.lastIndexOf(mainTwin));
+				} else {
+					// a sub-agent it starts is not the owner's twin
+					assertTrue(!prompt.contains("## Who you are"), prompt);
+				}
+				throw stopped;
+			}).when(room).ask(any(), any(), any());
+			try (var stream = mockStatic(AgentRunStreamService.class);
+					var messages = mockStatic(RoomMessageStore.class)) {
+				stream.when(AgentRunStreamService::get).thenReturn(mock(AgentRunStreamService.class));
+				assertSame(stopped, assertThrows(RuntimeException.class, () -> new SemossAgentHarness().execute(ctx)));
+			}
+		}
+	}
 }

@@ -32,7 +32,6 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.rdf.RdfUploadReactorUtility;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
@@ -73,9 +72,6 @@ public class RdfReplaceDatabaseLoaderSheetUploadReactor extends RdfLoaderSheetUp
 		}
 		// check security
 		User user = requireUser();
-
-		// check if input is alias since we are adding ot existing
-		databaseId = SecurityQueryUtils.testUserEngineIdForAlias(user, databaseId);
 
 		// throw error is user is not owner
 		if (!SecurityEngineUtils.userIsOwner(user, databaseId)) {

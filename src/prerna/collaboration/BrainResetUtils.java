@@ -49,7 +49,10 @@ public final class BrainResetUtils {
 	// the owner row and source connections carry the Microsoft link; everything
 	// else goes
 	// BRAIN_OWN_MAIL is kept so a fresh import after a reset still skips mail Collaboration sent
-	private static final Set<String> KEPT = Set.of("COLLAB_OWNER", "SOURCE_CONNECTION", "BRAIN_OWN_MAIL");
+	// BRAIN_PERSONA is kept so the Digital Twins the owner shares do not change how they answer and their own
+	// Digital Twin keeps its name and picture (WorkMainTwin); the notes its interview took from their mail go
+	private static final Set<String> KEPT = Set.of("COLLAB_OWNER", "SOURCE_CONNECTION", "BRAIN_OWN_MAIL",
+			"BRAIN_PERSONA");
 
 	private BrainResetUtils() {
 	}
@@ -82,6 +85,9 @@ public final class BrainResetUtils {
 							deleted.put(table, rows);
 						}
 					}
+					CollaborationDbUtils.update(conn,
+							"UPDATE BRAIN_PERSONA SET INTERVIEW_JSON = NULL WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+							ownerId, ownerType);
 				});
 			}
 			if (runs > 0) {

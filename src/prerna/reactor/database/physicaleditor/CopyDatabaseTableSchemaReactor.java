@@ -53,7 +53,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.EngineSyncUtility;
 import prerna.util.InternalUtility;
 import prerna.util.Utility;
@@ -95,7 +94,6 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 
 		// grab the source
 		String sourceDatabaseId = this.keyValue.get(SOURCE_DATABASE);
-		sourceDatabaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), sourceDatabaseId);
 		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), sourceDatabaseId)) {
 			throw new IllegalArgumentException("Database " + sourceDatabaseId
 					+ " does not exist or user does not have view access to the database");
@@ -104,7 +102,6 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 
 		// grab the target
 		String targetDatabaseId = this.keyValue.get(TARGET_DATABASE);
-		targetDatabaseId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), targetDatabaseId);
 		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), targetDatabaseId)) {
 			throw new IllegalArgumentException("Database " + targetDatabaseId
 					+ " does not exist or user does not have edit access to the database");
@@ -187,11 +184,11 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 				targetRDBMS.getSchema())) {
 			String dropTable = targetRDBMS.getQueryUtil().dropTable(targetTable);
 			try {
-				classLogger.info(User.getSingleLogginName(user) + " is droping existing table on " + targetDatabaseId
-						+ " with sql: " + dropTable);
+				classLogger.info("{} is dropping the existing table on {} with sql: {}", User.getSingleLogginName(user),
+						targetDatabaseId, dropTable);
 				targetRDBMS.removeData(dropTable);
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to drop table {} in database {}", targetTable, targetDatabaseId, e);
 				throw new IllegalArgumentException(
 						"Error occured dropping the table in the target database " + targetDatabaseId
 								+ ". Detailed message = " + e.getMessage() + ". SQL Executed = " + dropTable);
@@ -201,11 +198,11 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 		// write it to the target
 		String createTable = targetRDBMS.getQueryUtil().createTable(targetTable, finalTypes);
 		try {
-			classLogger.info(User.getSingleLogginName(user) + " is creating table on " + targetDatabaseId
-					+ " with sql: " + createTable);
+			classLogger.info("{} is creating a table on {} with sql: {}", User.getSingleLogginName(user),
+					targetDatabaseId, createTable);
 			targetRDBMS.insertData(createTable);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to create table {} in database {}", targetTable, targetDatabaseId, e);
 			throw new IllegalArgumentException("Error occured creating the table in the target database "
 					+ targetDatabaseId + ". Detailed message = " + e.getMessage() + ". SQL Executed = " + createTable);
 		}
@@ -230,8 +227,8 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 						logger.info("Need to first remove the exisitng concept from the OWL");
 						owlEngine.removeConcept(targetTable);
 						long end2 = System.currentTimeMillis();
-						logger.info("Finished removing concept from the OWL. Total time = " + ((end2 - start2) / 1000)
-								+ " seconds");
+						logger.info("Finished removing concept from the OWL. Total time = {} seconds",
+								(end2 - start2) / 1000);
 					}
 					// choose the first column as the prim key
 					owlEngine.addConcept(targetTable, null, null);
@@ -249,16 +246,18 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 						EngineSyncUtility.clearEngineCache(targetDatabaseId);
 						logger.info("Finished persisting engine metadata and synchronizing with local master");
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to save and sync the metadata of database {}", targetDatabaseId, e);
 					}
 
 				} catch (InterruptedException | IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to add table {} to the metadata of database {}", targetTable,
+							targetDatabaseId, e);
 				}
 				long end = System.currentTimeMillis();
-				logger.info("Finished adding concept to the OWL. Total time = " + ((end - start) / 1000) + " seconds");
+				logger.info("Finished adding concept to the OWL. Total time = {} seconds", (end - start) / 1000);
 			} catch (Exception e2) {
-				classLogger.error(Constants.STACKTRACE, e2);
+				classLogger.error("Failed to update the metadata of database {} after copying table {}",
+						targetDatabaseId, targetTable, e2);
 				noun.addAdditionalReturn(NounMetadata.getWarningNounMessage(
 						"Physical database changed but unable to update OWL. Detailed message = " + e2.getMessage()));
 			}
@@ -285,7 +284,7 @@ public class CopyDatabaseTableSchemaReactor extends AbstractReactor {
 					rdbms.getDatabase(), rdbms.getSchema());
 			return columnDetails;
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read the columns of table {}", table, e);
 			throw new IllegalArgumentException(
 					"Error occured getting the physical table structure. Detailed message = " + e.getMessage());
 		} finally {

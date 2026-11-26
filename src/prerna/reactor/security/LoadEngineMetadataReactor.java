@@ -93,17 +93,13 @@ public class LoadEngineMetadataReactor extends AbstractSetMetadataReactor {
 			}
 		}
 
-		if (!SecurityEngineUtils.userCanEditEngine(this.insight.getUser(), engineId)) {
-			throw new IllegalArgumentException("Engine does not exist or user does not have access to edit");
-		}
-
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityEngineUtils.getAllMetakeys();
 		if (!validMetakeys.containsAll(metadata.keySet())) {
 			throw new IllegalArgumentException("Unallowed metakeys. Can only use: " + String.join(", ", validMetakeys));
 		}
 
-		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+		SecurityEngineUtils.updateEngineMetadata(this.insight.getUser(), engineId, metadata);
 		IEngine.CATALOG_TYPE engineType = SecurityEngineUtils.getEngineType(engineId);
 		UserAuditTrailUtils.recordEngineLifecycle(this.insight.getUser(), AuditEventType.ENGINE_METADATA_UPDATE,
 				AuditTargetType.ofEngine(engineType), engineId, SecurityEngineUtils.getEngineDisplayNameForId(engineId),

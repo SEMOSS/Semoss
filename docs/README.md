@@ -56,6 +56,7 @@ Documentation for the SEMOSS core runtime, agents and harnesses, engine integrat
 - [Authentication and authorization](platform_services/authentication_and_authorization.md)
 - [Secret settings](platform_services/secret_settings.md): which settings are secret, where their values are hidden, and how secrets are kept out of error text and model provider errors.
 - [Project reactor sandbox](platform_services/project_reactor_sandbox.md): what a project's custom reactors can use, what the sandbox replaces, and the test that guards each rule.
+- [Engine access](platform_services/engine_access.md): the permission every engine and project method needs, how each call is checked, how an engine gives an app a permission for its custom reactors, and the test that guards each rule.
 - [Model usage limits](model_usage_limits/README.md): token, cost and compute-time limits on model calls, who sets them, and how every call is checked and billed.
 - [Java–Python communication](platform_services/java_python_communication.md)
 - [Monolith integration and API request flow](integrations/monolith_interaction.md)
@@ -86,6 +87,8 @@ The [Python GAAS tools index](python_gaas_tools/README.md) documents Python acce
 
 - [Local Docker setup](cloud_and_cluster/docker_deployment.md)
 - [Local Docker configuration](deployment/docker_configuration.md)
+- [Sandbox configuration](deployment/sandbox_configuration.md): every sandbox setting in one list, which jail you get, and what each jail's child process inherits
+- [OpenShell executor sandbox](deployment/executor_sandbox.md): running user code in a per-session container, the write-back pipeline and change detection, per-space write permissions, and building the image from `py/`
 - [Supporting engine examples](../docker-compose-examples/engines/README.md)
 - [Cloud and cluster architecture](cloud_and_cluster/README.md)
 - [Central asset storage](cloud_and_cluster/central_cloud_storage.md)

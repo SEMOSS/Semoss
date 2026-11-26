@@ -36,7 +36,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -152,10 +151,7 @@ public class CreateStorageEngineReactor extends AbstractReactor {
 
 //			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.STORAGE, storageId, storageName);
 
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider ap : logins) {
-				SecurityEngineUtils.addEngineOwner(storageId, user.getAccessToken(ap).getId());
-			}
+			SecurityEngineUtils.addEngineOwner(user, storageId);
 
 			ClusterUtil.pushEngine(storageId);
 			UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.STORAGE_CREATE, AuditTargetType.STORAGE,

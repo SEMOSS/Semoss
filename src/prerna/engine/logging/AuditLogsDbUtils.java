@@ -141,7 +141,8 @@ public class AuditLogsDbUtils {
 	 */
 	public static List<LogActivityRecord> getAuditLogsTimeLineData(String userId, String projectId, String engineId,
 			SemossDate startDate, SemossDate endDate, String roomId, String sessionId, int limit, int offset,
-			List<String> methodNames, List<String> engineTypes, String searchTerm) throws SQLException {
+			List<String> methodNames, List<String> engineTypes, List<String> accessReasons, String searchTerm)
+			throws SQLException {
 		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 		AbstractSqlQueryUtil queryUtil = auditLogsDb.getQueryUtil();
 
@@ -170,6 +171,8 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__BILLED_SOURCE_TYPE"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__BILLED_SUBJECT_ID"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__BILLED_SUBJECT_TYPE"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ACCESS_REASON"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__ACCESS_DETAILS"));
 
 		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
@@ -179,6 +182,7 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		addMultiValueFilter(qs, "AUDIT_LOGS__METHOD_NAME", methodNames);
 		addMultiValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
+		addMultiValueFilter(qs, "AUDIT_LOGS__ACCESS_REASON", accessReasons);
 		addGlobalSearchFilter(queryUtil, qs, searchTerm);
 
 		qs.addOrderBy("AUDIT_LOGS__LOG_TIMESTAMP", "desc");
@@ -225,11 +229,13 @@ public class AuditLogsDbUtils {
 			String billedSourceType = getOrDefault(map.get("BILLED_SOURCE_TYPE"), null);
 			String billedSubjectId = getOrDefault(map.get("BILLED_SUBJECT_ID"), null);
 			String billedSubjectType = getOrDefault(map.get("BILLED_SUBJECT_TYPE"), null);
+			String accessReason = getOrDefault(map.get("ACCESS_REASON"), null);
+			String accessDetails = getOrDefault(map.get("ACCESS_DETAILS"), null);
 
 			activityList.add(new LogActivityRecord(requestId, startTime, endTime, request, response, tokens, latency,
 					status, engineName, engineType, methodName, userNameFromRow, userIdFromRow, sessionIdFromRow,
 					spanIdFromRow, logTimestamp, guardrailAction, cacheReadTokens, cacheCreationTokens, promptTokens,
-					responseTokens, billedSourceType, billedSubjectId, billedSubjectType));
+					responseTokens, billedSourceType, billedSubjectId, billedSubjectType, accessReason, accessDetails));
 
 		}
 		return activityList;
@@ -389,7 +395,7 @@ public class AuditLogsDbUtils {
 	 */
 	public static long getAuditLogsCount(String userId, String projectId, String engineId, SemossDate startDate,
 			SemossDate endDate, String roomId, String sessionId, List<String> methodNames, List<String> engineTypes,
-			String searchTerm) {
+			List<String> accessReasons, String searchTerm) {
 		IRDBMSEngine auditLogsDb = SystemEngineRegistry.getAuditLogsDb();
 		AbstractSqlQueryUtil queryUtil = auditLogsDb.getQueryUtil();
 
@@ -410,6 +416,7 @@ public class AuditLogsDbUtils {
 		addFilter(qs, "AUDIT_LOGS__SESSION_ID", "==", sessionId);
 		addMultiValueFilter(qs, "AUDIT_LOGS__METHOD_NAME", methodNames);
 		addMultiValueFilter(qs, "AUDIT_LOGS__ENGINE_TYPE", engineTypes);
+		addMultiValueFilter(qs, "AUDIT_LOGS__ACCESS_REASON", accessReasons);
 		addGlobalSearchFilter(queryUtil, qs, searchTerm);
 
 		return QueryExecutionUtility.flushToLong(auditLogsDb, qs);
@@ -439,9 +446,11 @@ public class AuditLogsDbUtils {
 			return new String[] { "AUDIT_LOGS__USER_NAME", "AUDIT_LOGS__USER_ID", "AUDIT_LOGS__USER_TYPE" };
 		case "roomid":
 			return new String[] { "AUDIT_LOGS__ROOM_ID" };
+		case "accessreason":
+			return new String[] { "AUDIT_LOGS__ACCESS_REASON" };
 		default:
 			throw new IllegalArgumentException("Unsupported filterName '" + filterName
-					+ "'. Supported values: methodName, engineType, user, roomId");
+					+ "'. Supported values: methodName, engineType, user, roomId, accessReason");
 		}
 	}
 

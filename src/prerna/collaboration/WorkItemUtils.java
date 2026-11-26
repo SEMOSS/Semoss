@@ -62,6 +62,11 @@ public final class WorkItemUtils {
 	public static final Set<String> CLOSED_REASONS = Set.of("replied", "responded", "deleted", "by_owner", "by_agent",
 			"expired", "kept_out", "automated", NO_RESPONSE_NEEDED);
 
+	// DEDUPE_KEY prefix of an item raised by a machine notice that needs the owner (a ticket assigned to them, an
+	// approval waiting on them). Its thread is automated like any machine mail, so the item is kept where
+	// automated threads' items are hidden or dismissed
+	public static final String NOTICE_KEY = "notice:";
+
 	public static final String YOU = BrainProfileUtils.YOU;
 	public static final String BRAIN = "brain";
 	public static final String ASSISTANT = "assistant";
@@ -592,9 +597,18 @@ public final class WorkItemUtils {
 		if (threadIds.isEmpty()) {
 			return List.of();
 		}
+		List<Object> params = new ArrayList<>(threadIds);
+		params.add(NOTICE_KEY + "%");
 		return closeWhere(ownerId, ownerType,
-				" AND THREAD_ID IN (" + String.join(", ", Collections.nCopies(threadIds.size(), "?")) + ")",
-				new ArrayList<>(threadIds), DISMISSED, "automated", "sender is automated");
+				" AND THREAD_ID IN (" + String.join(", ", Collections.nCopies(threadIds.size(), "?")) + ")"
+						+ " AND (DEDUPE_KEY IS NULL OR DEDUPE_KEY NOT LIKE ?)",
+				params, DISMISSED, "automated", "sender is automated");
+	}
+
+	// a later notice says the ticket is closed, approved or cancelled: the item it raised is done
+	public static List<String> closeNotice(String ownerId, String ownerType, String ticket) {
+		return closeWhere(ownerId, ownerType, " AND DEDUPE_KEY = ?", new ArrayList<>(List.of(NOTICE_KEY + ticket)), DONE,
+				"responded", "the system says it is closed");
 	}
 
 	// snoozed items whose time has come go back to open
@@ -869,11 +883,13 @@ public final class WorkItemUtils {
 		}
 		if (Boolean.parseBoolean(String.valueOf(filter.get("hideMuted")))) {
 			// muted, or automated (by the classifier or by sender typing after the item was
-			// made)
+			// made); an item a machine notice raised stays, it is the reason that notice is shown at all
 			where.append(" AND NOT EXISTS (SELECT 1 FROM BRAIN_THREAD mt WHERE mt.OWNER_ID = w.OWNER_ID "
-					+ "AND mt.OWNER_TYPE = w.OWNER_TYPE AND mt.THREAD_ID = w.THREAD_ID AND (mt.MUTED = ? OR mt.AUTOMATED = ?))");
+					+ "AND mt.OWNER_TYPE = w.OWNER_TYPE AND mt.THREAD_ID = w.THREAD_ID AND (mt.MUTED = ? OR "
+					+ "(mt.AUTOMATED = ? AND (w.DEDUPE_KEY IS NULL OR w.DEDUPE_KEY NOT LIKE ?))))");
 			params.add(true);
 			params.add(true);
+			params.add(NOTICE_KEY + "%");
 		}
 		Timestamp closedSince = CollaborationDbUtils.toTimestamp(filter.get("closedSince"), "closedSince");
 		if (closedSince != null) {

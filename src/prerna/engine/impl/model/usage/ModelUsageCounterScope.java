@@ -43,6 +43,9 @@ import prerna.engine.impl.model.inferencetracking.ModelUsageLogFilter;
  * calls billed to a team on one model, together or for one member.</li>
  * <li>{@link ScopeType#PUBLIC_SHARED}: the calls billed to a model's public
  * use.</li>
+ * <li>{@link ScopeType#GRANTEE_SHARED} and {@link ScopeType#GRANTEE_MEMBER}: the
+ * calls billed to an app or engine on one model, together or for one
+ * person.</li>
  * <li>{@link ScopeType#TEAM_TOTAL}: the calls billed to a team on any model; a
  * router's own calls are left out so a routed call counts once.</li>
  * <li>{@link ScopeType#MODEL_TOTAL}: every call a model answers.</li>
@@ -56,43 +59,61 @@ import prerna.engine.impl.model.inferencetracking.ModelUsageLogFilter;
  * @param teamId    the team, or null
  * @param teamType  the team's type, or null
  * @param userId    the person's primary login id, or null
- * @param userType  the person's primary login type, or null
+ * @param userType          the person's primary login type, or null
+ * @param granteeEngineId   the app or engine given the model's permission, or
+ *                          null
+ * @param granteeEngineType its catalog type, or null
  */
 public record ModelUsageCounterScope(ScopeType scopeType, String engineId, String teamId, String teamType,
-		String userId, String userType) {
+		String userId, String userType, String granteeEngineId, String granteeEngineType) {
 
 	/** Whose use a counter counts */
 	public enum ScopeType {
-		PERSON_MODEL, TEAM_SHARED, TEAM_MEMBER, PUBLIC_SHARED, TEAM_TOTAL, MODEL_TOTAL, PERSON_ALL_MODELS
+		PERSON_MODEL, TEAM_SHARED, TEAM_MEMBER, PUBLIC_SHARED, TEAM_TOTAL, MODEL_TOTAL, PERSON_ALL_MODELS,
+		GRANTEE_SHARED, GRANTEE_MEMBER
 	}
 
 	public static ModelUsageCounterScope personModel(String engineId, String userId, String userType) {
-		return new ModelUsageCounterScope(ScopeType.PERSON_MODEL, engineId, null, null, userId, userType);
+		return new ModelUsageCounterScope(ScopeType.PERSON_MODEL, engineId, null, null, userId, userType, null, null);
 	}
 
 	public static ModelUsageCounterScope teamShared(String engineId, String teamId, String teamType) {
-		return new ModelUsageCounterScope(ScopeType.TEAM_SHARED, engineId, teamId, teamType, null, null);
+		return new ModelUsageCounterScope(ScopeType.TEAM_SHARED, engineId, teamId, teamType, null, null, null, null);
 	}
 
 	public static ModelUsageCounterScope teamMember(String engineId, String teamId, String teamType, String userId,
 			String userType) {
-		return new ModelUsageCounterScope(ScopeType.TEAM_MEMBER, engineId, teamId, teamType, userId, userType);
+		return new ModelUsageCounterScope(ScopeType.TEAM_MEMBER, engineId, teamId, teamType, userId, userType, null,
+				null);
 	}
 
 	public static ModelUsageCounterScope publicShared(String engineId) {
-		return new ModelUsageCounterScope(ScopeType.PUBLIC_SHARED, engineId, null, null, null, null);
+		return new ModelUsageCounterScope(ScopeType.PUBLIC_SHARED, engineId, null, null, null, null, null, null);
 	}
 
 	public static ModelUsageCounterScope teamTotal(String teamId, String teamType) {
-		return new ModelUsageCounterScope(ScopeType.TEAM_TOTAL, null, teamId, teamType, null, null);
+		return new ModelUsageCounterScope(ScopeType.TEAM_TOTAL, null, teamId, teamType, null, null, null, null);
 	}
 
 	public static ModelUsageCounterScope modelTotal(String engineId) {
-		return new ModelUsageCounterScope(ScopeType.MODEL_TOTAL, engineId, null, null, null, null);
+		return new ModelUsageCounterScope(ScopeType.MODEL_TOTAL, engineId, null, null, null, null, null, null);
 	}
 
 	public static ModelUsageCounterScope personAllModels(String userId, String userType) {
-		return new ModelUsageCounterScope(ScopeType.PERSON_ALL_MODELS, null, null, null, userId, userType);
+		return new ModelUsageCounterScope(ScopeType.PERSON_ALL_MODELS, null, null, null, userId, userType, null,
+				null);
+	}
+
+	public static ModelUsageCounterScope granteeShared(String engineId, String granteeEngineId,
+			String granteeEngineType) {
+		return new ModelUsageCounterScope(ScopeType.GRANTEE_SHARED, engineId, null, null, null, null, granteeEngineId,
+				granteeEngineType);
+	}
+
+	public static ModelUsageCounterScope granteeMember(String engineId, String granteeEngineId,
+			String granteeEngineType, String userId, String userType) {
+		return new ModelUsageCounterScope(ScopeType.GRANTEE_MEMBER, engineId, null, null, userId, userType,
+				granteeEngineId, granteeEngineType);
 	}
 
 	/**
@@ -100,17 +121,19 @@ public record ModelUsageCounterScope(ScopeType scopeType, String engineId, Strin
 	 * person it covers.
 	 *
 	 * @return the scope's part of a counter key; each part is escaped, so an id
-	 *         that holds {@code |} cannot make two scopes share a key
+	 *         that holds {@code |} cannot make two scopes share a key. An app's or
+	 *         engine's scope ends with its catalog type and id
 	 */
 	public String id() {
-		return scopeType.name() + "|" + part(engineId) + "|" + part(teamType) + "|" + part(teamId) + "|"
+		String id = scopeType.name() + "|" + part(engineId) + "|" + part(teamType) + "|" + part(teamId) + "|"
 				+ part(userType) + "|" + part(userId);
+		return granteeEngineId == null ? id : id + "|" + part(granteeEngineType) + "|" + part(granteeEngineId);
 	}
 
 	/**
-	 * The rows match what the counter counts: billed rows for a team or public use,
-	 * every row of the person or model otherwise, and the scopes across all models
-	 * leave out a router's own rows, as their counters do.
+	 * The rows match what the counter counts: billed rows for a team, an app, an
+	 * engine or public use, every row of the person or model otherwise, and the scopes across
+	 * all models leave out a router's own rows, as their counters do.
 	 *
 	 * @return the {@code MESSAGE} rows the counter is filled from
 	 */
@@ -131,6 +154,12 @@ public record ModelUsageCounterScope(ScopeType scopeType, String engineId, Strin
 			return new ModelUsageLogFilter(engineId, null, null, null, null, null, false);
 		case PERSON_ALL_MODELS:
 			return new ModelUsageLogFilter(null, userId, userType, null, null, null, true);
+		case GRANTEE_SHARED:
+			return new ModelUsageLogFilter(engineId, null, null, ModelUsageBilledTo.ENGINE, granteeEngineId,
+					granteeEngineType, false);
+		case GRANTEE_MEMBER:
+			return new ModelUsageLogFilter(engineId, userId, userType, ModelUsageBilledTo.ENGINE, granteeEngineId,
+					granteeEngineType, false);
 		default:
 			throw new IllegalStateException("Unknown counter scope " + scopeType);
 		}

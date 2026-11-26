@@ -66,18 +66,13 @@ public abstract class AbstractProjectPyReactor extends AbstractReactor {
 
 		organizeKeys();
 		String projectId = resolveContextEngineId(this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
-
-		String code = getDecodedCode();
-
-		// make sure valid id for user
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			// you don't have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
-
 		IProject project = Utility.getProject(projectId);
+
 		PyTranslator projectPyTranslator = project.getProjectPyTranslator();
+		String code = getDecodedCode();
 		Object output = projectPyTranslator.runScript(code);
 
 		List<NounMetadata> outputs = new ArrayList<>(1);

@@ -312,9 +312,9 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<String> filesToRemoveFromCloud = new ArrayList<>();
 		for (String name : fileNames) {
 			String documentName = Paths.get(name).getFileName().toString();
-			File documentFile = new File(DOCUMENT_FOLDER, documentName);
+			File documentFile = storedDocumentToRemove(new File(DOCUMENT_FOLDER), documentName);
 
-			if (documentFile.exists()) {
+			if (documentFile != null) {
 				try {
 					FileUtils.forceDelete(documentFile);
 				} catch (IOException e) {
@@ -453,8 +453,8 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 					Map<String, Object> fileInfo = new HashMap<>();
 					fileInfo.put("fileName", source);
-					File thisF = new File(documentsDir, source);
-					if (thisF.exists() && thisF.isFile()) {
+					File thisF = AbstractVectorDatabaseEngine.storedDocument(documentsDir, source);
+					if (thisF != null && thisF.isFile()) {
 						long fileSizeInBytes = thisF.length();
 						double fileSizeInMB = (double) fileSizeInBytes / (1024);
 						SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

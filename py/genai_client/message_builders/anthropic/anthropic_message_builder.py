@@ -734,9 +734,9 @@ class AnthropicMessageBuilder:
             mj, mn = int(major), int(minor) if minor else 0
         except (TypeError, ValueError):
             return False
-        if tier in ("opus", "sonnet"):
+        if tier in ("opus", "sonnet", "haiku"):
             return (mj, mn) >= (4, 6)
-        return False  # haiku / older -> legacy
+        return False  # older -> legacy
 
     def _supports_xhigh(self, model_name: str) -> bool:
         """`xhigh` effort: Fable and Opus 4.7+ only."""

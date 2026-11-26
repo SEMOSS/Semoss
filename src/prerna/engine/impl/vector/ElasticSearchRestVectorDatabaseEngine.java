@@ -359,8 +359,8 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		for (String document : fileNames) {
 			String documentName = Paths.get(document).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(DOCUMENT_FOLDER, documentName);
-			if (documentFile.exists()) {
+			File documentFile = storedDocumentToRemove(new File(DOCUMENT_FOLDER), documentName);
+			if (documentFile != null) {
 				try {
 					FileUtils.forceDelete(documentFile);
 				} catch (IOException e) {
@@ -554,8 +554,8 @@ public class ElasticSearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			String fileName = bucketDetails.get("key").getAsString();
 			fileInfo.put("fileName", fileName);
 
-			File thisF = new File(documentsDir, fileName);
-			if (thisF.exists() && thisF.isFile()) {
+			File thisF = AbstractVectorDatabaseEngine.storedDocument(documentsDir, fileName);
+			if (thisF != null && thisF.isFile()) {
 				long fileSizeInBytes = thisF.length();
 				double fileSizeInMB = (double) fileSizeInBytes / (1024);
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

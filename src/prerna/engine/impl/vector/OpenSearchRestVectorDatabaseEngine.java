@@ -555,8 +555,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		for (String document : sourceNames) {
 			String documentName = Paths.get(document).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(DOCUMENT_FOLDER, documentName);
-			if (documentFile.exists()) {
+			File documentFile = storedDocumentToRemove(new File(DOCUMENT_FOLDER), documentName);
+			if (documentFile != null) {
 				try {
 					FileUtils.forceDelete(documentFile);
 				} catch (IOException e) {
@@ -856,8 +856,8 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 		for (String source : sources) {
 			Map<String, Object> fileInfo = new HashMap<>();
 			fileInfo.put("fileName", source);
-			File thisF = new File(documentsDir, source);
-			if (thisF.exists() && thisF.isFile()) {
+			File thisF = AbstractVectorDatabaseEngine.storedDocument(documentsDir, source);
+			if (thisF != null && thisF.isFile()) {
 				long fileSizeInBytes = thisF.length();
 				double fileSizeInMB = (double) fileSizeInBytes / (1024);
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

@@ -44,6 +44,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitPath;
 import prerna.auth.access.ModelUsageLimitPath.Step;
@@ -60,6 +61,7 @@ import prerna.engine.impl.model.inferencetracking.ModelUsageLogFilter;
 import prerna.engine.impl.model.inferencetracking.ModelUsageLogTotals;
 import prerna.engine.impl.model.usage.ModelUsageEvaluation.RuleCheck;
 import prerna.engine.impl.model.usage.ModelUsageTicket.ChargeTarget;
+import prerna.engine.impl.pipeline.EngineCallPermission;
 import prerna.redis.RedisConnectionConfig;
 import prerna.util.Utility;
 import prerna.util.ValueUtils;
@@ -187,7 +189,7 @@ public final class ModelUsageGuard {
 		if (user == null || engine == null || ValueUtils.isBlank(engine.getEngineId())) {
 			return ModelUsageTicket.none();
 		}
-		ModelUsageLimitPath path = pathOf(user, engine.getEngineId());
+		ModelUsageLimitPath path = pathOf(user, engine.getEngineId(), EngineCallPermission.granteeMakingTheCall());
 		// a caller that names nothing is admitted as an ask with no prompt estimate
 		// and the default output maximum
 		ModelUsageRequest call = request == null ? ModelUsageRequest.ask(0, null) : request;
@@ -207,7 +209,7 @@ public final class ModelUsageGuard {
 		if (user == null || engine == null || ValueUtils.isBlank(engine.getEngineId())) {
 			return;
 		}
-		ModelUsageLimitPath path = pathOf(user, engine.getEngineId());
+		ModelUsageLimitPath path = pathOf(user, engine.getEngineId(), EngineCallPermission.granteeMakingTheCall());
 		Map<String, Object> priceEntry = prices.apply(engine.getEngineId());
 		ModelUsageEvaluation evaluation = ModelUsageEvaluation.of(path, false, priceEntry != null, clock.instant());
 		try {
@@ -241,13 +243,34 @@ public final class ModelUsageGuard {
 	 * @throws IllegalArgumentException for a missing user or one with no login
 	 */
 	public static ModelUsageLimitPath pathOf(User user, String engineId) {
+		return pathOf(user, engineId, null);
+	}
+
+	/**
+	 * How limits apply to a person on a model for a call an app's custom reactors
+	 * or another engine's own code make, when the model gives that app or engine a
+	 * permission. The path has its App Limit or Engine Limit, which applies to a
+	 * person whose only way to the model is the app or engine. It is cached like
+	 * {@link #pathOf(User, String)}, by the app or engine as well.
+	 *
+	 * @param user     the person the call runs for
+	 * @param engineId the model
+	 * @param grantee  the app or engine making the call, which the model gives a
+	 *                 permission, or null for a call no such app or engine makes
+	 * @return how limits apply to the call; kept briefly and shared, so it must not
+	 *         be changed
+	 * @throws IllegalArgumentException for a missing user or one with no login
+	 */
+	public static ModelUsageLimitPath pathOf(User user, String engineId, EngineGrantee grantee) {
 		if (user == null) {
 			// throws, with the reason
 			ModelUsageLimitResolver.personOf(user);
 		}
 		// keyed by the primary login, the login the person's counters are kept under
 		Pair<String, String> primary = User.getPrimaryUserIdAndTypePair(user);
-		String key = primary.getValue0() + KEY_SEPARATOR + primary.getValue1() + KEY_SEPARATOR + engineId;
+		String key = primary.getValue0() + KEY_SEPARATOR + primary.getValue1() + KEY_SEPARATOR + engineId
+				+ (grantee == null ? ""
+						: KEY_SEPARATOR + grantee.engineType() + KEY_SEPARATOR + grantee.engineId());
 		// read before resolving: a change written while the path resolves bumps
 		// the version past this one, so the next call resolves again
 		long version = SecurityModelUsageLimitUtils.version();
@@ -255,7 +278,8 @@ public final class ModelUsageGuard {
 		if (cached != null && cached.version() == version) {
 			return cached.path();
 		}
-		ModelUsageLimitPath path = ModelUsageLimitResolver.resolve(ModelUsageLimitResolver.personOf(user), engineId);
+		ModelUsageLimitPath path = ModelUsageLimitResolver.resolve(ModelUsageLimitResolver.personOf(user), engineId,
+				grantee);
 		PATHS.put(key, new CachedPath(path, version));
 		return path;
 	}
@@ -621,8 +645,8 @@ public final class ModelUsageGuard {
 
 	/**
 	 * Describes the source billed as the inference logs record it: its source type
-	 * and, for a Direct Limit, a Team Limit or a User's Total Model Limit, the id
-	 * and type of whom it belongs to.
+	 * and, for a Direct Limit, a Team Limit, an App Limit, an Engine Limit or a
+	 * User's Total Model Limit, the id and type of whom it belongs to.
 	 *
 	 * @param path   the person's path
 	 * @param billed the source billed, or null
@@ -637,6 +661,8 @@ public final class ModelUsageGuard {
 		case DIRECT:
 			return new ModelUsageBilledTo(sourceType, path.getUserId(), path.getUserType());
 		case TEAM:
+		case APP:
+		case ENGINE:
 		case ALL_MODELS:
 			return new ModelUsageBilledTo(sourceType, billed.getKey().subjectId(), billed.getKey().subjectType());
 		default:

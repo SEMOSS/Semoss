@@ -39,14 +39,12 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.access.ModelUsageLimit;
-import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
 import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionProblem;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
-import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -99,9 +97,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENDDATE"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__PERMISSION", "!=", null,
 				PixelDataType.CONST_INT));
@@ -147,15 +142,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				Object val = values[0];
-				// check if permission is expired
-				SemossDate endDate = (SemossDate) values[1];
-				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
-					// need to delete expired permission
-					String groupId = (String) values[2];
-					String groupType = (String) values[3];
-					removeExpiredEngineGroupPermission(groupId, groupType, engineId);
-					continue;
-				}
 				if (val != null) {
 					// actually do not care what the value is - we have a record so that means we
 					// can at least view
@@ -181,9 +167,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENDDATE"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ID"));
-		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		List<AuthProvider> logins = user.getLogins();
@@ -228,14 +211,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();
 				Object val = values[0];
-				SemossDate endDate = (SemossDate) values[1];
-				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
-					// Need to delete expired permission here
-					String permissionId = (String) values[2];
-					String permissionType = (String) values[3];
-					removeExpiredEngineGroupPermission(permissionId, permissionType, engineId);
-					continue;
-				}
 				if (val != null) {
 					bestGroupDatabasePermission = ((Number) val).intValue();
 				}
@@ -522,49 +497,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				new PermissionErrorRules().illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
 						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify group permission for a user who does not currently have access to the database"));
-	}
-
-	/**
-	 * Removes a team's grant on an engine that has ended, and its team limit on a
-	 * model with it, in one transaction.
-	 *
-	 * @param groupId   the team
-	 * @param groupType the team's type
-	 * @param engineId  the engine
-	 * @throws IllegalArgumentException when the team has no grant on the engine
-	 */
-	public static void removeExpiredEngineGroupPermission(String groupId, String groupType, String engineId)
-			throws IllegalAccessException {
-
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
-		if (existingGroupPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify group permission for a user who does not currently have access to the database");
-		}
-
-		try {
-			QueryExecutionUtility.write(securityDb, conn -> {
-				QueryExecutionUtility.executeUpdate(conn,
-						"DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=? AND ENGINEID=?", ps -> {
-							int parameterIndex = 1;
-							ps.setString(parameterIndex++, groupId);
-							ps.setString(parameterIndex++, groupType);
-							ps.setString(parameterIndex++, engineId);
-						});
-				// the team limit belongs to the grant
-				SecurityModelUsageLimitUtils.setLimit(conn, ModelUsageLimitKey.team(engineId, groupId, groupType), null,
-						null);
-				return null;
-			});
-			SecurityModelUsageLimitUtils.markChanged();
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve the group-based engine permission.", e);
-		}
 	}
 
 	/**

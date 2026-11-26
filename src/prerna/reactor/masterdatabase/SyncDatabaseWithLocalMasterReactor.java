@@ -42,7 +42,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -73,7 +73,7 @@ public class SyncDatabaseWithLocalMasterReactor extends AbstractReactor {
 		logger.info("Finished removing existing metadata");
 
 		logger.info("Starting to add metadata");
-		String smssFile = (String) DIHelper.getInstance().getEngineProperty(databaseId + "_" + Constants.STORE);
+		String smssFile = InternalUtility.getEngineSmssPath(databaseId);
 		Properties prop = Utility.loadProperties(smssFile);
 		AddToMasterDB adder = new AddToMasterDB();
 		adder.registerEngineLocal(smssFile, prop);

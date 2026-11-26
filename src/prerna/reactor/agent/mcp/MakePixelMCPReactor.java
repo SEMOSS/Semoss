@@ -121,7 +121,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		}
 
 		// add tags
-		MCPUtility.addMCPTag(project);
+		MCPUtility.addMCPTag(user, project);
 
 		String versionGitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
 				project.getProjectId());

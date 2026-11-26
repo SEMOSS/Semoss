@@ -255,7 +255,7 @@ public class Insight implements Serializable {
 		// put the pragmap
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE) + "")) {
 			if (this.user != null) {
-				this.user.getUserSymlinkHelper().symlinkFolder(getInsightFolder());
+				this.user.getSandbox().grantFolder(getInsightFolder());
 			}
 		}
 	}
@@ -663,7 +663,7 @@ public class Insight implements Serializable {
 		if (user != null) {
 			// if we have a chroot, mount the project for that user.
 			if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-				user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
+				user.getSandbox().grantProject(this.user, projectId);
 			}
 
 			String appRootFolder = AssetUtility.getProjectAssetsFolder(resolvedName, projectId);
@@ -672,7 +672,7 @@ public class Insight implements Serializable {
 
 		// if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
-			this.user.getUserSymlinkHelper().symlinkProject(this.user, projectId);
+			this.user.getSandbox().grantProject(this.user, projectId);
 		}
 
 		this.contextReinitialized = true;
@@ -1893,22 +1893,6 @@ public class Insight implements Serializable {
 		StringBuilder retURL = new StringBuilder(this.baseURL);
 		retURL.append("insight?insightId=").append(insightId);
 		return retURL.toString();
-	}
-
-	/**
-	 * Looks up a property by first checking the VarStore and then falling back to
-	 * the DIHelper server properties.
-	 *
-	 * @param propName the property name
-	 * @return the property value, or null if not found in either location
-	 */
-	public String getProperty(String propName) {
-		Object retObject = this.varStore.get(propName);
-		if (retObject != null) {
-			return ((NounMetadata) retObject).getValue().toString();
-		}
-
-		return Utility.getDIHelperProperty(propName);
 	}
 
 	/**

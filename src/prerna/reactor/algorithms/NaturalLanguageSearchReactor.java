@@ -48,6 +48,7 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.r.RSyntaxHelper;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.om.ThreadStore;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -65,6 +66,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.SessionIds;
 import prerna.util.Utility;
 
 public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
@@ -128,8 +130,9 @@ public class NaturalLanguageSearchReactor extends AbstractRFrameReactor {
 		}
 
 		// init r tables for use between methods
-		String rSessionTable = "NaturalLangTable" + this.getSessionId().substring(0, 10);
-		String rSessionJoinTable = "JoinTable" + this.getSessionId().substring(0, 10);
+		String sessionPart = SessionIds.hash(ThreadStore.getSessionId()).substring(0, 10);
+		String rSessionTable = "NaturalLangTable" + sessionPart;
+		String rSessionJoinTable = "JoinTable" + sessionPart;
 
 		// source the proper script
 		StringBuilder sb = new StringBuilder();

@@ -38,6 +38,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -56,6 +57,8 @@ import com.google.gson.JsonParseException;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
+import prerna.auth.access.GranteePermissionQuery;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.ModelUsageLimitKey;
 import prerna.auth.access.ModelUsageLimitRule;
@@ -219,6 +222,16 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	private static final String DELETE_ENGINE_GROUP = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=? "
 			+ "AND ENGINEID=?";
 
+	private static final String INSERT_ENGINE_GRANTEE = "INSERT INTO ENGINE2ENGINEPERMISSION (ENGINEID, ENGINETYPE, "
+			+ "GRANTEEENGINEID, GRANTEEENGINETYPE, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, "
+			+ "PERMISSIONGRANTEDBYTYPE) VALUES (?,?,?,?,?,?,?,?,?)";
+	private static final String SELECT_ENGINE_TYPE = "SELECT ENGINETYPE FROM ENGINE WHERE ENGINEID=?";
+	private static final String UPDATE_ENGINE_GRANTEE = "UPDATE ENGINE2ENGINEPERMISSION SET PERMISSION=?, ENDDATE=?, "
+			+ "PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ENGINEID=? AND GRANTEEENGINEID=? "
+			+ "AND GRANTEEENGINETYPE=?";
+	private static final String DELETE_ENGINE_GRANTEE = "DELETE FROM ENGINE2ENGINEPERMISSION WHERE ENGINEID=? "
+			+ "AND GRANTEEENGINEID=? AND GRANTEEENGINETYPE=?";
+
 	private static final String INSERT_INSIGHT_GROUP = "INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, "
 			+ "INSIGHTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) "
 			+ "VALUES (?,?,?,?,?,?,?,?,?)";
@@ -241,6 +254,9 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			AccessPermissionEnum.EDIT.getPermission(), AccessPermissionEnum.READ_ONLY.getPermission());
 	/** Why someone who is not an owner of a model cannot set a usage limit on it */
 	static final String OWNERS_SET_LIMITS = "Only owners can set usage limits";
+	/** Why an engine cannot be given access to a project */
+	static final String PROJECTS_GIVE_APPS_ONLY = "A project gives access to apps and agents only. "
+			+ "Engines are given access to engines.";
 	/**
 	 * Why someone who is not an owner of a model cannot end or shorten the access
 	 * of a person with a usage limit on it
@@ -912,14 +928,11 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 
 		// Step 2: in admin mode, does the target exist? Admin mode gives every
-		// permission
-		// without reading the target, so this is where a missing project, engine or
-		// insight is caught; a team is read with its permissions in step 3. Outside
-		// admin
-		// mode a missing target simply gives no permission in step 3, so someone
-		// without
-		// access cannot tell a missing project or team from one they are not allowed
-		// to change, and learns nothing about the people in the batch.
+		// permission without reading the target, so this is where a missing project,
+		// engine or insight is caught; a team is read with its permissions in step 3.
+		// Outside admin mode a missing target simply gives no permission in step 3, so
+		// someone without access cannot tell a missing project or team from one they
+		// are not allowed to change, and learns nothing about the people in the batch.
 		if (options.isAdminMode() && options.checksTargetExists() && !targetExists(target)) {
 			validation.block(PermissionProblem.ErrorCode.INVALID_TARGET, notFoundMessage(target));
 			return validation;
@@ -938,7 +951,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			validation.block(PermissionProblem.ErrorCode.INVALID_TARGET, e.getMessage());
 			return validation;
 		}
-		if (!allowed.canChangePeople() && !allowed.canChangeTeams() && !isOnlyLeaving(user, validation, options)) {
+		if (!allowed.canChangePeople() && !allowed.canChangeTeams() && !allowed.canChangeEngines()
+				&& !isOnlyLeaving(user, validation, options)) {
 			blockForNoPermission(target, allowed, validation);
 			return validation;
 		}
@@ -991,6 +1005,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 				validateModelLimitChange(target, allowed, change, limits);
 			} else if (subject.getCategory() == PermissionSubject.SubjectCategory.TEAM) {
 				validateTeamChange(target, allowed, change, options, limits);
+			} else if (subject.getCategory() == PermissionSubject.SubjectCategory.ENGINE) {
+				validateGranteeChange(target, allowed, change, options, limits);
 			} else {
 				validatePersonChange(user, target, allowed, change, existingLevels, options, limits);
 			}
@@ -1001,9 +1017,10 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	/**
 	 * Blocks the changes of a user who can change nothing on the target, without
 	 * reading them, so a malformed change gets the same answer. Each change says
-	 * what it needs: giving a team access, and a model's public use limit and
-	 * total, need an owner; anything else the permissions to change people. A batch
-	 * with no changes is blocked as a whole.
+	 * what it needs: giving a team access, a model's public use limit and total,
+	 * and an app's or engine's permission on an engine need an owner; anything else
+	 * the permissions to change people. A batch with no changes is blocked as a
+	 * whole.
 	 */
 	private static void blockForNoPermission(PermissionTargetResource target, PermissionAllowedChanges allowed,
 			PermissionBatchValidation validation) {
@@ -1018,6 +1035,9 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 				change.block(PermissionProblem.ErrorCode.NO_PERMISSION, allowed.getTeamsReason());
 			} else if (!isTeamTarget(target) && isModelLimitSubject(subject)) {
 				change.block(PermissionProblem.ErrorCode.NO_PERMISSION, allowed.getModelLimitsReason());
+			} else if (!isTeamTarget(target) && subject != null
+					&& subject.getCategory() == PermissionSubject.SubjectCategory.ENGINE) {
+				change.block(PermissionProblem.ErrorCode.NO_PERMISSION, allowed.getEnginesReason());
 			} else {
 				change.block(allowed.getPeopleCode(), allowed.getPeopleReason());
 			}
@@ -1158,6 +1178,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		allowed.setPeopleReason("Only this " + noun + "'s editors and owners can change who can use it");
 		allowed.setTeamsReason("Only this " + noun + "'s owners can change which teams can use it");
 		allowed.setModelLimitsReason("Only this " + noun + "'s owners can change its public use limit and its total");
+		allowed.setEnginesReason("Only this " + noun + "'s owners can change which apps and engines can use it");
 		String id = target.getId();
 		switch (target.getResourceType()) {
 		case PROJECT:
@@ -1168,6 +1189,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			allowed.setCanChangePeople(level != null && AccessPermissionEnum.isEditor(level));
 			allowed.setOwner(level != null && AccessPermissionEnum.isOwner(level));
 			allowed.setCanChangeTeams(allowed.isOwner());
+			allowed.setCanChangeEngines(allowed.isOwner()
+					&& target.getResourceType() != PermissionTargetResource.TargetResourceType.INSIGHT);
 			// a Digital Twin is shared with named people, never with a team. It is
 			// read only for someone who could change teams, so nobody else learns
 			// the project is one
@@ -1250,7 +1273,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 * type, since those tables keep only the id; a team's members and managers do.
 	 * A team's members and managers have no level, so they can only be added or
 	 * removed, and managers have no end date. A model's public use and total have
-	 * no id; see {@link #readModelLimitChangeFields}.
+	 * no id; see {@link #readModelLimitChangeFields}. An app or engine on an engine
+	 * has an id and its catalog type; see {@link #readGranteeChangeFields}.
 	 * </p>
 	 */
 	private static void readChangeFields(PermissionTargetResource target, PermissionChangeValidation validation,
@@ -1270,6 +1294,10 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			return;
 		}
 		validation.setSubjectId(subject.getId().trim());
+		if (subject.getCategory() == PermissionSubject.SubjectCategory.ENGINE) {
+			readGranteeChangeFields(target, validation);
+			return;
+		}
 		boolean isTeamTarget = isTeamTarget(target);
 		boolean isManagers = target.getResourceType() == PermissionTargetResource.TargetResourceType.TEAM_MANAGERS;
 		if (subject.getCategory() == PermissionSubject.SubjectCategory.TEAM) {
@@ -1319,6 +1347,78 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 		if (change.getAction() != PermissionChange.Action.REMOVE && to != null
 				&& !ValueUtils.isBlank(to.getEndDate())) {
+			try {
+				validation.setEndDate(AbstractSecurityUtils.calculateEndDate(to.getEndDate().trim()));
+			} catch (DateTimeParseException e) {
+				validation.block(PermissionProblem.ErrorCode.INVALID_DATE,
+						"The end date " + to.getEndDate() + " for " + subject.describe() + " is not a valid date");
+			}
+		}
+	}
+
+	/**
+	 * Reads a change to the access an engine or a project gives an app or an
+	 * engine, which the app's custom reactors, an agent's runs or the engine's own
+	 * code use: the grantee's catalog type, the level, {@code READ_ONLY} or
+	 * {@code EDIT}, and its end date. Blocks it as {@code NOT_WELL_FORMED} when the
+	 * target is neither an engine nor a project, when the grantee has no catalog
+	 * type or is the target itself, or when an add or a change gives an engine
+	 * access to a project, gives no level or gives {@code OWNER}, as
+	 * {@code INVALID_USAGE_LIMIT} when a project's grant carries a usage limit, and
+	 * as {@code INVALID_DATE} when its end date cannot be read. The usage limit a
+	 * model's grant carries is read with the others, in
+	 * {@link #validateGrantUsageLimit}.
+	 */
+	private static void readGranteeChangeFields(PermissionTargetResource target,
+			PermissionChangeValidation validation) {
+		PermissionChange change = validation.getChange();
+		PermissionSubject subject = change.getSubject();
+		boolean isProjectTarget = target.getResourceType() == PermissionTargetResource.TargetResourceType.PROJECT;
+		if (!isProjectTarget && target.getResourceType() != PermissionTargetResource.TargetResourceType.ENGINE) {
+			validation.block(PermissionProblem.ErrorCode.NOT_WELL_FORMED,
+					"An app or engine can be given access only to an engine or a project");
+			return;
+		}
+		String granteeType = catalogTypeOf(subject.getType());
+		if (granteeType == null) {
+			validation.block(PermissionProblem.ErrorCode.NOT_WELL_FORMED,
+					"The change for " + subject.describe() + " does not say what type of app or engine it is");
+			return;
+		}
+		validation.setSubjectType(granteeType);
+		boolean isItself = validation.getSubjectId().equals(target.getId())
+				&& (!isProjectTarget || PermissionSubject.PROJECT_TYPE.equals(granteeType));
+		if (isItself) {
+			validation.block(PermissionProblem.ErrorCode.NOT_WELL_FORMED,
+					isProjectTarget ? "A project cannot be given a permission on itself"
+							: "An engine cannot be given a permission on itself");
+			return;
+		}
+		if (change.getAction() == PermissionChange.Action.REMOVE) {
+			return;
+		}
+		if (isProjectTarget && !PermissionSubject.PROJECT_TYPE.equals(granteeType)) {
+			validation.block(PermissionProblem.ErrorCode.NOT_WELL_FORMED, PROJECTS_GIVE_APPS_ONLY);
+			return;
+		}
+		PermissionGrant to = change.getTo();
+		validation.setLevelId(levelId(to == null ? null : to.getLevel()));
+		if (validation.getLevelId() == null) {
+			validation.block(PermissionProblem.ErrorCode.NOT_WELL_FORMED,
+					"The change for " + subject.describe() + " does not say which access level to give");
+			return;
+		}
+		if (AccessPermissionEnum.isOwner(validation.getLevelId())) {
+			validation.block(PermissionProblem.ErrorCode.NOT_WELL_FORMED, "An app or engine can be given Read-Only "
+					+ "or Editor access to an engine or a project, not Author access");
+			return;
+		}
+		if (isProjectTarget && to.getUsageLimit() != null) {
+			validation.block(PermissionProblem.ErrorCode.INVALID_USAGE_LIMIT,
+					"Only a model's grants can have usage limits");
+			return;
+		}
+		if (!ValueUtils.isBlank(to.getEndDate())) {
 			try {
 				validation.setEndDate(AbstractSecurityUtils.calculateEndDate(to.getEndDate().trim()));
 			} catch (DateTimeParseException e) {
@@ -1636,6 +1736,91 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Validates a change to the access an engine gives an app or another engine,
+	 * and blocks it when it cannot be made:
+	 * <ul>
+	 * <li>{@code NO_PERMISSION}: the user is not an owner of the engine, directly
+	 * or through a team.</li>
+	 * <li>An add: {@code ADMIN_ONLY} when only admins can give access to the engine
+	 * and the options check that; {@code SUBJECT_MISSING} when no app, or no engine
+	 * of that catalog type, has the id; {@code ALREADY_HAS_ACCESS}.</li>
+	 * <li>A change: {@code NO_ACCESS} when the grantee has none to change.</li>
+	 * <li>A removal: {@code NO_ACCESS} when the grantee has none to take away.</li>
+	 * <li>The App Limit or Engine Limit the change leaves
+	 * ({@link #validateGrantUsageLimit}): {@code INVALID_USAGE_LIMIT} when the
+	 * engine is not a model or the limit cannot be defined there.</li>
+	 * </ul>
+	 *
+	 * @param target     the engine the change is on
+	 * @param allowed    what the user may change on the engine
+	 * @param validation the change, read, to block when it cannot be made
+	 * @param options    how the batch is saved, which says whether adds are left to
+	 *                   admins
+	 * @param limits     the usage limits defined on the engine now
+	 */
+	private static void validateGranteeChange(PermissionTargetResource target, PermissionAllowedChanges allowed,
+			PermissionChangeValidation validation, PermissionBatchOptions options, EngineUsageLimits limits) {
+		PermissionSubject subject = validation.getChange().getSubject();
+		if (!allowed.canChangeEngines()) {
+			validation.block(PermissionProblem.ErrorCode.NO_PERMISSION, allowed.getEnginesReason());
+			return;
+		}
+		EngineGrantee grantee = new EngineGrantee(validation.getSubjectId(), validation.getSubjectType());
+		Integer currentLevelId = SecurityEngine2EngineUtils.getGranteePermission(grantee, target.getId(),
+				isProjectTarget(target));
+		validation.setCurrentLevelId(currentLevelId);
+		switch (validation.getChange().getAction()) {
+		case ADD:
+			if (allowed.addsAreAdminOnly() && options.enforcesAdminOnlyAdds()) {
+				validation.block(PermissionProblem.ErrorCode.ADMIN_ONLY,
+						"Only admins can give apps and engines access to this " + nounFor(target));
+			} else if (!granteeExists(grantee)) {
+				validation.block(PermissionProblem.ErrorCode.SUBJECT_MISSING, subject.describe() + " does not exist");
+			} else if (currentLevelId != null) {
+				validation.block(PermissionProblem.ErrorCode.ALREADY_HAS_ACCESS,
+						subject.describe() + " already has access");
+			}
+			break;
+		case CHANGE:
+			if (currentLevelId == null) {
+				validation.block(PermissionProblem.ErrorCode.NO_ACCESS,
+						subject.describe() + " no longer has access to change");
+			}
+			break;
+		case REMOVE:
+			if (currentLevelId == null) {
+				validation.block(PermissionProblem.ErrorCode.NO_ACCESS,
+						subject.describe() + " no longer has access to remove");
+			}
+			break;
+		}
+		if (!validation.isBlocked() && limits != null) {
+			validateGrantUsageLimit(target, allowed, validation, options, limits);
+		}
+	}
+
+	/**
+	 * Whether an app, or an engine of the grantee's catalog type, has the grantee's
+	 * id.
+	 *
+	 * @param grantee the app or engine
+	 * @return whether it exists as that type
+	 */
+	private static boolean granteeExists(EngineGrantee grantee) {
+		if (grantee.isApp()) {
+			return SecurityProjectUtils.projectExists(grantee.engineId());
+		}
+		if (!SecurityEngineUtils.engineExists(grantee.engineId())) {
+			return false;
+		}
+		try {
+			return SecurityEngineUtils.getEngineType(grantee.engineId()).name().equals(grantee.engineType());
+		} catch (IllegalArgumentException e) {
+			return false;
+		}
+	}
+
+	/**
 	 * Validates a change to a model's public use limit or total, and blocks it when
 	 * it cannot be made:
 	 * <ul>
@@ -1690,10 +1875,10 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Reads the usage limit a change leaves on a person's or a team's grant on an
-	 * engine ({@link #readGrantUsageLimit}), and blocks the change when it cannot
-	 * be made. Only a limit that changes is checked; removing a grant removes its
-	 * limit.
+	 * Reads the usage limit a change leaves on a person's, a team's, an app's or an
+	 * engine's grant on an engine ({@link #readGrantUsageLimit}), and blocks the
+	 * change when it cannot be made. Only a limit that changes is checked; removing
+	 * a grant removes its limit.
 	 * <ul>
 	 * <li>{@code INVALID_USAGE_LIMIT}: the engine is not a model, or the limit
 	 * cannot be defined on the grant
@@ -1712,12 +1897,18 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 */
 	private static void validateGrantUsageLimit(PermissionTargetResource target, PermissionAllowedChanges allowed,
 			PermissionChangeValidation validation, PermissionBatchOptions options, EngineUsageLimits limits) {
-		boolean isTeam = validation.getChange().getSubject().getCategory() == PermissionSubject.SubjectCategory.TEAM;
+		PermissionSubject.SubjectCategory category = validation.getChange().getSubject().getCategory();
+		boolean isTeam = category == PermissionSubject.SubjectCategory.TEAM;
+		boolean isGrantee = category == PermissionSubject.SubjectCategory.ENGINE;
 		ModelUsageLimitKey key = isTeam
 				? ModelUsageLimitKey.team(target.getId(), validation.getSubjectId(), validation.getSubjectType())
-				// a change that does not give the login type gets it from SMSS_USER when the
-				// limit is written
-				: ModelUsageLimitKey.direct(target.getId(), validation.getSubjectId(), validation.getSubjectType());
+				: isGrantee
+						? ModelUsageLimitKey.grantee(target.getId(), validation.getSubjectId(),
+								validation.getSubjectType())
+						// a change that does not give the login type gets it from SMSS_USER when the
+						// limit is written
+						: ModelUsageLimitKey.direct(target.getId(), validation.getSubjectId(),
+								validation.getSubjectType());
 		ModelUsageLimit current = limits.current(key);
 		validation.setCurrentUsageLimit(current);
 
@@ -2008,6 +2199,13 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			return;
 		}
 
+		if (subject.getCategory() == PermissionSubject.SubjectCategory.ENGINE) {
+			writeGranteeGrant(conn, id, isProjectTarget(target), action, new EngineGrantee(subjectId, subjectType),
+					level, endDate, grantor, now);
+			writeUsageLimit(conn, validation, grantor);
+			return;
+		}
+
 		if (target.getResourceType() == PermissionTargetResource.TargetResourceType.TEAM_MANAGERS) {
 			if (action == PermissionChange.Action.ADD) {
 				QueryExecutionUtility.executeUpdate(conn, SecurityGroupManagerUtils.INSERT_MANAGER_QUERY, ps -> {
@@ -2229,6 +2427,75 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * Writes the access an engine or a project gives an app or an engine: its one
+	 * row in {@code ENGINE2ENGINEPERMISSION} is added, changed or removed. An add
+	 * keeps the type of the target giving it, {@code PROJECT} for a project or an
+	 * engine's catalog type read in the same transaction, and a change keeps the
+	 * date the access was first given.
+	 */
+	private static void writeGranteeGrant(Connection conn, String engineId, boolean project,
+			PermissionChange.Action action, EngineGrantee grantee, int level, Timestamp endDate,
+			Pair<String, String> grantor, Timestamp now) throws Exception {
+		if (action == PermissionChange.Action.ADD) {
+			String engineType;
+			if (project) {
+				engineType = PermissionSubject.PROJECT_TYPE;
+			} else {
+				List<String> engineTypes = QueryExecutionUtility.queryList(conn, SELECT_ENGINE_TYPE,
+						ps -> ps.setString(1, engineId), rs -> rs.getString(1));
+				engineType = engineTypes.isEmpty() ? null : engineTypes.get(0);
+			}
+			QueryExecutionUtility.executeUpdate(conn, INSERT_ENGINE_GRANTEE, ps -> {
+				int i = 1;
+				ps.setString(i++, engineId);
+				ps.setString(i++, engineType);
+				ps.setString(i++, grantee.engineId());
+				ps.setString(i++, grantee.engineType());
+				ps.setInt(i++, level);
+				ps.setTimestamp(i++, now);
+				setNullableTimestamp(ps, i++, endDate);
+				ps.setString(i++, grantor.getValue0());
+				ps.setString(i++, grantor.getValue1());
+			});
+		} else if (action == PermissionChange.Action.CHANGE) {
+			QueryExecutionUtility.executeUpdate(conn, UPDATE_ENGINE_GRANTEE + granteeTargetCondition(project), ps -> {
+				int i = 1;
+				ps.setInt(i++, level);
+				setNullableTimestamp(ps, i++, endDate);
+				ps.setString(i++, grantor.getValue0());
+				ps.setString(i++, grantor.getValue1());
+				ps.setString(i++, engineId);
+				ps.setString(i++, grantee.engineId());
+				ps.setString(i++, grantee.engineType());
+			});
+		} else {
+			QueryExecutionUtility.executeUpdate(conn, DELETE_ENGINE_GRANTEE + granteeTargetCondition(project), ps -> {
+				int i = 1;
+				ps.setString(i++, engineId);
+				ps.setString(i++, grantee.engineId());
+				ps.setString(i++, grantee.engineType());
+			});
+		}
+	}
+
+	/**
+	 * The condition that keeps a change or a removal of a grantee's row on its own
+	 * kind of target, so a project and an engine with the same id are two targets.
+	 * Rows written before the target's type was kept are an engine's.
+	 *
+	 * @param project whether the target is a project
+	 * @return the condition, to add after the row's other conditions
+	 */
+	private static String granteeTargetCondition(boolean project) {
+		return project ? " AND ENGINETYPE='" + PermissionSubject.PROJECT_TYPE + "'"
+				: " AND (ENGINETYPE IS NULL OR ENGINETYPE<>'" + PermissionSubject.PROJECT_TYPE + "')";
+	}
+
+	private static boolean isProjectTarget(PermissionTargetResource target) {
+		return target.getResourceType() == PermissionTargetResource.TargetResourceType.PROJECT;
+	}
+
 	private static void setNullableTimestamp(PreparedStatement ps, int index, Timestamp value) throws SQLException {
 		if (value == null) {
 			ps.setNull(index, Types.TIMESTAMP);
@@ -2387,6 +2654,16 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("people", people);
 		result.put("teams", teams);
+		if (isProject || target.getResourceType() == PermissionTargetResource.TargetResourceType.ENGINE) {
+			boolean canViewEngines = canViewEngines(user, target, asAdmin);
+			allowedChanges.put("canViewEngines", canViewEngines);
+			allowedChanges.put("canChangeEngines", allowed.canChangeEngines());
+			result.put("engines", canViewEngines ? readGrantees(target.getId(), isProject, limits) : new ArrayList<>());
+			boolean canViewAccessToEngines = canViewAccessToEngines(user, target, asAdmin);
+			allowedChanges.put("canViewAccessToEngines", canViewAccessToEngines);
+			result.put("accessToEngines",
+					canViewAccessToEngines ? readAccessToEngines(granteeOf(target)) : new ArrayList<>());
+		}
 		result.put("allowedPermissionChanges", allowedChanges);
 		if (limits != null && limits.isModel()) {
 			// a model's own limits, and what the user may change of them: limitLevels
@@ -2408,6 +2685,343 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			result.put("price", ModelUsageCost.priceEntry(engineId));
 		}
 		return result;
+	}
+
+	/**
+	 * Whether a user may see which apps and engines an engine gives a permission
+	 * to: its editors and owners, and anyone in admin mode. The grantees, their
+	 * levels and their App Limits and Engine Limits are not shown to someone who
+	 * can only view the engine.
+	 *
+	 * @param user     the user reading the engine's permissions
+	 * @param engineId the engine
+	 * @param asAdmin  true in admin mode
+	 * @return true when the user may see the engine's apps and engines
+	 */
+	static boolean canViewEngines(User user, String engineId, boolean asAdmin) {
+		return canViewEngines(user, PermissionTargetResource.engine(engineId), asAdmin);
+	}
+
+	/**
+	 * Whether a user may see which apps and engines an engine or a project gives a
+	 * permission to: its editors and owners, and anyone in admin mode.
+	 *
+	 * @param user    the user reading the permissions
+	 * @param target  the engine or project
+	 * @param asAdmin true in admin mode
+	 * @return true when the user may see its apps and engines
+	 */
+	static boolean canViewEngines(User user, PermissionTargetResource target, boolean asAdmin) {
+		if (asAdmin) {
+			return true;
+		}
+		return isProjectTarget(target) ? SecurityProjectUtils.userCanEditProject(user, target.getId())
+				: SecurityEngineUtils.userCanEditEngine(user, target.getId());
+	}
+
+	/**
+	 * Reads the apps and engines an engine gives access to, for an app's custom
+	 * reactors or another engine's own code to use, in the shape batches use: each
+	 * with its subject, the grantee's id, catalog type and name (an app's display
+	 * name, or an engine's, when it has one), and its subtype (an engine's subtype,
+	 * or an app's project type, such as CODE), and its access, the level, the end
+	 * date and on a model the App Limit or Engine Limit.
+	 *
+	 * @param engineId the engine
+	 * @return one entry for each app and engine, ordered by catalog type and id
+	 */
+	static List<Map<String, Object>> readEngines(String engineId) {
+		return readGrantees(engineId, false, EngineUsageLimits.read(engineId));
+	}
+
+	/**
+	 * Reads the apps and engines a project gives access to, in the shape
+	 * {@link #readEngines(String)} reads an engine's. A project's grants have no
+	 * usage limits.
+	 *
+	 * @param projectId the project
+	 * @return one entry for each app and engine, ordered by catalog type and id
+	 */
+	static List<Map<String, Object>> readProjectGrantees(String projectId) {
+		return readGrantees(projectId, true, null);
+	}
+
+	private static List<Map<String, Object>> readGrantees(String targetId, boolean project, EngineUsageLimits limits) {
+		List<Map<String, Object>> grantees = new ArrayList<>();
+		for (Map<String, Object> row : SecurityEngine2EngineUtils.getGrantees(targetId, project)) {
+			String granteeId = String.valueOf(row.get("GRANTEEENGINEID"));
+			String granteeType = String.valueOf(row.get("GRANTEEENGINETYPE"));
+			boolean isApp = PermissionSubject.PROJECT_TYPE.equals(granteeType);
+			Map<String, Object> subject = new LinkedHashMap<>();
+			subject.put("category", PermissionSubject.SubjectCategory.ENGINE.name());
+			subject.put("id", granteeId);
+			subject.put("type", granteeType);
+			subject.put("name", isApp ? nameOf(row.get("PROJECTDISPLAYNAME"), row.get("PROJECTNAME"))
+					: nameOf(row.get("ENGINEDISPLAYNAME"), row.get("ENGINENAME")));
+			subject.put("subtype", isApp ? row.get("PROJECTTYPE") : row.get("ENGINESUBTYPE"));
+			Map<String, Object> access = new LinkedHashMap<>();
+			access.put("level", AccessPermissionEnum.getPermissionValueById(String.valueOf(row.get("PERMISSION"))));
+			access.put("endDate", toIsoUtc(row.get("ENDDATE")));
+			access.put("usageLimit", limits == null ? null
+					: limits.current(ModelUsageLimitKey.grantee(targetId, granteeId, granteeType)));
+			Map<String, Object> grantee = new LinkedHashMap<>();
+			grantee.put("subject", subject);
+			grantee.put("access", access);
+			grantees.add(grantee);
+		}
+		return grantees;
+	}
+
+	/**
+	 * Whether a user may see which engines give an app or an engine a permission:
+	 * the app's or the engine's editors and owners, and anyone in admin mode, the
+	 * same people who see the apps and engines an engine gives a permission to
+	 * ({@link #canViewEngines}).
+	 *
+	 * @param user    the user asking
+	 * @param target  the project or engine
+	 * @param asAdmin whether the user reads in admin mode
+	 * @return whether the user sees the engines that give the target a permission
+	 */
+	static boolean canViewAccessToEngines(User user, PermissionTargetResource target, boolean asAdmin) {
+		return canViewEngines(user, target, asAdmin);
+	}
+
+	/**
+	 * The grantee a project or an engine is in {@code ENGINE2ENGINEPERMISSION}: an
+	 * app for a project, and an engine with its catalog type.
+	 *
+	 * @param target the project or engine
+	 * @return the grantee, or null for an engine the security database does not
+	 *         list
+	 */
+	private static EngineGrantee granteeOf(PermissionTargetResource target) {
+		if (target.getResourceType() == PermissionTargetResource.TargetResourceType.PROJECT) {
+			return EngineGrantee.ofApp(target.getId());
+		}
+		try {
+			return new EngineGrantee(target.getId(), SecurityEngineUtils.getEngineType(target.getId()).name());
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	/**
+	 * Reads the engines and projects that give an app or an engine a permission,
+	 * the other side of {@link #readEngines(String)}: each with its {@code target},
+	 * the engine or project whose Access Control holds the permission
+	 * ({@code resourceType} {@code ENGINE} or {@code PROJECT}, its id, its type,
+	 * {@code PROJECT} for a project, its name, the display name when it has one,
+	 * and its subtype, a project's type for a project), and its {@code access}, the
+	 * level, the end date and, on a model, the App Limit or Engine Limit the model
+	 * gives.
+	 *
+	 * @param grantee the app or engine, or null for none
+	 * @return one entry for each engine, ordered by catalog type and id
+	 */
+	static List<Map<String, Object>> readAccessToEngines(EngineGrantee grantee) {
+		List<Map<String, Object>> accessToEngines = new ArrayList<>();
+		if (grantee == null) {
+			return accessToEngines;
+		}
+		List<Map<String, Object>> rows = SecurityEngine2EngineUtils.getEnginesGivingAccessTo(grantee);
+		List<ModelUsageLimitKey> limitKeys = new ArrayList<>();
+		for (Map<String, Object> row : rows) {
+			if (IEngine.CATALOG_TYPE.MODEL.name().equals(row.get("ENGINETYPE"))) {
+				limitKeys.add(ModelUsageLimitKey.grantee(String.valueOf(row.get("ENGINEID")), grantee.engineId(),
+						grantee.engineType()));
+			}
+		}
+		Map<ModelUsageLimitKey, ModelUsageLimit> limits = SecurityModelUsageLimitUtils.getLimits(limitKeys);
+		for (Map<String, Object> row : rows) {
+			String engineId = String.valueOf(row.get("ENGINEID"));
+			boolean isProject = PermissionSubject.PROJECT_TYPE.equals(row.get("ENGINETYPE"));
+			Map<String, Object> engine = new LinkedHashMap<>();
+			engine.put("resourceType", isProject ? PermissionTargetResource.TargetResourceType.PROJECT.name()
+					: PermissionTargetResource.TargetResourceType.ENGINE.name());
+			engine.put("id", engineId);
+			engine.put("type", row.get("ENGINETYPE"));
+			engine.put("name", isProject ? nameOf(row.get("PROJECTDISPLAYNAME"), row.get("PROJECTNAME"))
+					: nameOf(row.get("ENGINEDISPLAYNAME"), row.get("ENGINENAME")));
+			engine.put("subtype", isProject ? row.get("PROJECTTYPE") : row.get("ENGINESUBTYPE"));
+			Map<String, Object> access = new LinkedHashMap<>();
+			access.put("level", AccessPermissionEnum.getPermissionValueById(String.valueOf(row.get("PERMISSION"))));
+			access.put("endDate", toIsoUtc(row.get("ENDDATE")));
+			access.put("usageLimit",
+					limits.get(ModelUsageLimitKey.grantee(engineId, grantee.engineId(), grantee.engineType())));
+			Map<String, Object> entry = new LinkedHashMap<>();
+			entry.put("target", engine);
+			entry.put("access", access);
+			accessToEngines.add(entry);
+		}
+		return accessToEngines;
+	}
+
+	/**
+	 * Reads every permission an engine or a project gives an app or an engine, on
+	 * the engines and projects the user can edit, or on every one in admin mode,
+	 * for the page that lists them all. Each entry has its {@code target} (the
+	 * engine or project giving it, as {@link #readAccessToEngines} has it), its
+	 * {@code subject} (the app or engine given it, as {@link #readEngines} has it),
+	 * its {@code access} (the level, the end date and, on a model, the App Limit or
+	 * Engine Limit) and {@code canChange}, true for the target's owners and in
+	 * admin mode.
+	 *
+	 * @param user    the user asking
+	 * @param asAdmin true in admin mode
+	 * @param query   the search, each side's kind and type, and the page
+	 * @return {@code grants}, the entries of the page, by target then grantee name,
+	 *         and {@code total}, how many match
+	 */
+	static Map<String, Object> readAllGrants(User user, boolean asAdmin, GranteePermissionQuery query) {
+		String search = query.search() == null ? "" : query.search().trim().toLowerCase(Locale.ROOT);
+		int limit = query.limit();
+		int offset = query.offset();
+		Map<String, Integer> levels = new HashMap<>();
+		List<ListedGrant> grants = new ArrayList<>();
+		for (Map<String, Object> row : SecurityEngine2EngineUtils.getAllGrants()) {
+			String targetId = (String) row.get("ENGINEID");
+			boolean isProject = PermissionSubject.PROJECT_TYPE.equals(row.get("ENGINETYPE"));
+			Map<String, Object> target = grantTarget(row, isProject);
+			Map<String, Object> subject = grantSubject(row);
+			boolean isProjectGrantee = PermissionSubject.PROJECT_TYPE.equals(subject.get("type"));
+			if (!GranteePermissionQuery.matchesKind(query.targetKind(), isProject)
+					|| !GranteePermissionQuery.matchesKind(query.granteeKind(), isProjectGrantee)
+					|| !matchesType(target, query.targetType()) || !matchesType(subject, query.granteeType())
+					|| !matchesSearch(search, target, subject)) {
+				continue;
+			}
+			Integer level = asAdmin ? Integer.valueOf(AccessPermissionEnum.OWNER.getId())
+					: levels.computeIfAbsent((isProject ? "P:" : "E:") + targetId,
+							key -> currentLevel(user, isProject ? PermissionTargetResource.project(targetId)
+									: PermissionTargetResource.engine(targetId)));
+			if (level == null || !AccessPermissionEnum.isEditor(level)) {
+				continue;
+			}
+			Map<String, Object> access = new LinkedHashMap<>();
+			access.put("level", AccessPermissionEnum.getPermissionValueById(String.valueOf(row.get("PERMISSION"))));
+			access.put("endDate", toIsoUtc(row.get("ENDDATE")));
+			access.put("usageLimit", null);
+			grants.add(new ListedGrant(target, subject, access, AccessPermissionEnum.isOwner(level)));
+		}
+		grants.sort(Comparator.comparing((ListedGrant grant) -> sortName(grant.target()))
+				.thenComparing(grant -> sortName(grant.subject())));
+		int from = Math.min(Math.max(offset, 0), grants.size());
+		int to = limit > 0 ? Math.min(from + limit, grants.size()) : grants.size();
+		List<ListedGrant> page = grants.subList(from, to);
+
+		List<ModelUsageLimitKey> limitKeys = new ArrayList<>();
+		for (ListedGrant grant : page) {
+			if (grant.isOnModel()) {
+				limitKeys.add(grant.limitKey());
+			}
+		}
+		Map<ModelUsageLimitKey, ModelUsageLimit> limits = SecurityModelUsageLimitUtils.getLimits(limitKeys);
+		List<Map<String, Object>> listed = new ArrayList<>();
+		for (ListedGrant grant : page) {
+			if (grant.isOnModel()) {
+				grant.access().put("usageLimit", limits.get(grant.limitKey()));
+			}
+			Map<String, Object> entry = new LinkedHashMap<>();
+			entry.put("target", grant.target());
+			entry.put("subject", grant.subject());
+			entry.put("access", grant.access());
+			entry.put("canChange", grant.canChange());
+			listed.add(entry);
+		}
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("grants", listed);
+		result.put("total", grants.size());
+		return result;
+	}
+
+	/**
+	 * One permission as the page that lists them all shows it.
+	 *
+	 * @param target    the engine or project giving it
+	 * @param subject   the app or engine given it
+	 * @param access    the level, end date and usage limit
+	 * @param canChange whether the user can change it
+	 */
+	private record ListedGrant(Map<String, Object> target, Map<String, Object> subject, Map<String, Object> access,
+			boolean canChange) {
+
+		boolean isOnModel() {
+			return IEngine.CATALOG_TYPE.MODEL.name().equals(target.get("type"));
+		}
+
+		ModelUsageLimitKey limitKey() {
+			return ModelUsageLimitKey.grantee(String.valueOf(target.get("id")), String.valueOf(subject.get("id")),
+					String.valueOf(subject.get("type")));
+		}
+	}
+
+	private static Integer currentLevel(User user, PermissionTargetResource target) {
+		try {
+			return CurrentPermissionLevel.of(user, target);
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	private static Map<String, Object> grantTarget(Map<String, Object> row, boolean isProject) {
+		Map<String, Object> target = new LinkedHashMap<>();
+		target.put("resourceType", isProject ? PermissionTargetResource.TargetResourceType.PROJECT.name()
+				: PermissionTargetResource.TargetResourceType.ENGINE.name());
+		target.put("id", row.get("ENGINEID"));
+		Object engineType = row.get("ENGINETYPE") != null ? row.get("ENGINETYPE") : row.get("TARGETCATALOGTYPE");
+		target.put("type", isProject ? PermissionSubject.PROJECT_TYPE : engineType);
+		target.put("name", isProject ? nameOf(row.get("TARGETPROJECTDISPLAYNAME"), row.get("TARGETPROJECTNAME"))
+				: nameOf(row.get("TARGETENGINEDISPLAYNAME"), row.get("TARGETENGINENAME")));
+		target.put("subtype", isProject ? row.get("TARGETPROJECTTYPE") : row.get("TARGETENGINESUBTYPE"));
+		return target;
+	}
+
+	private static Map<String, Object> grantSubject(Map<String, Object> row) {
+		boolean isApp = PermissionSubject.PROJECT_TYPE.equals(row.get("GRANTEEENGINETYPE"));
+		Map<String, Object> subject = new LinkedHashMap<>();
+		subject.put("category", PermissionSubject.SubjectCategory.ENGINE.name());
+		subject.put("id", row.get("GRANTEEENGINEID"));
+		subject.put("type", row.get("GRANTEEENGINETYPE"));
+		subject.put("name", isApp ? nameOf(row.get("GRANTEEPROJECTDISPLAYNAME"), row.get("GRANTEEPROJECTNAME"))
+				: nameOf(row.get("GRANTEEENGINEDISPLAYNAME"), row.get("GRANTEEENGINENAME")));
+		subject.put("subtype", isApp ? row.get("GRANTEEPROJECTTYPE") : row.get("GRANTEEENGINESUBTYPE"));
+		return subject;
+	}
+
+	/**
+	 * Whether a target or a grantee is of a type a filter asks for: a project by
+	 * its project type, such as SKILL, an engine by its catalog type.
+	 */
+	private static boolean matchesType(Map<String, Object> side, String type) {
+		if (type == null || type.isBlank()) {
+			return true;
+		}
+		Object sideType = PermissionSubject.PROJECT_TYPE.equals(side.get("type")) ? side.get("subtype")
+				: side.get("type");
+		return type.trim().equalsIgnoreCase(String.valueOf(sideType));
+	}
+
+	private static boolean matchesSearch(String query, Map<String, Object> target, Map<String, Object> subject) {
+		if (query.isEmpty()) {
+			return true;
+		}
+		for (String value : List.of(String.valueOf(target.get("id")), String.valueOf(target.get("name")),
+				String.valueOf(subject.get("id")), String.valueOf(subject.get("name")))) {
+			if (value.toLowerCase(Locale.ROOT).contains(query)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static String sortName(Map<String, Object> side) {
+		Object name = side.get("name");
+		return name == null ? "" : String.valueOf(name).toLowerCase(Locale.ROOT);
+	}
+
+	private static Object nameOf(Object displayName, Object name) {
+		return displayName == null || String.valueOf(displayName).isBlank() ? name : displayName;
 	}
 
 	/*
@@ -2688,6 +3302,27 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 	}
 
+	/**
+	 * Reads an app's or engine's catalog type by its name, ignoring case and
+	 * surrounding spaces.
+	 *
+	 * @param type the type sent with an app or engine subject
+	 * @return the catalog type's name, {@code PROJECT} for an app, or null for
+	 *         anything that is not a catalog type
+	 */
+	static String catalogTypeOf(String type) {
+		if (ValueUtils.isBlank(type)) {
+			return null;
+		}
+		String name = type.trim().toUpperCase(Locale.ROOT);
+		for (IEngine.CATALOG_TYPE catalogType : IEngine.CATALOG_TYPE.values()) {
+			if (catalogType.name().equals(name)) {
+				return name;
+			}
+		}
+		return null;
+	}
+
 	private static String targetKey(PermissionTargetResource target) {
 		return target.getResourceType() + ":" + (target.getProjectId() == null ? "" : target.getProjectId() + ":")
 				+ target.getId();
@@ -2701,6 +3336,9 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 		if (subject.getCategory() == PermissionSubject.SubjectCategory.TEAM) {
 			return "TEAM:" + validation.getSubjectId() + ":" + validation.getSubjectType();
+		}
+		if (subject.getCategory() == PermissionSubject.SubjectCategory.ENGINE) {
+			return "ENGINE:" + validation.getSubjectType() + ":" + validation.getSubjectId();
 		}
 		// a project's, engine's or insight's people are keyed by id alone
 		return isTeamTarget(target) ? "USER:" + validation.getSubjectId() + ":" + validation.getSubjectType()

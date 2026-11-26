@@ -90,7 +90,7 @@ public class RSourceReactor extends AbstractRFrameReactor {
 		// if we have a chroot, mount the project for that user.
 		if (Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.CHROOT_ENABLE))) {
 			// get the app_root folder for the project
-			this.insight.getUser().getUserSymlinkHelper().symlinkFolder(assetFolder);
+			this.insight.getUser().getSandbox().grantFolder(assetFolder);
 		}
 
 		// in case your script is using other files
@@ -134,8 +134,9 @@ public class RSourceReactor extends AbstractRFrameReactor {
 		List<NounMetadata> outputs = new ArrayList<>(1);
 		outputs.add(new NounMetadata(true, PixelDataType.BOOLEAN));
 
-		boolean smartSync = (insight.getProperty("SMART_SYNC") != null)
-				&& insight.getProperty("SMART_SYNC").equalsIgnoreCase("true");
+		NounMetadata smartSyncVar = insight.getVarStore().get("SMART_SYNC");
+		boolean smartSync = Boolean.parseBoolean(smartSyncVar != null ? smartSyncVar.getValue().toString()
+				: Utility.getDIHelperProperty("SMART_SYNC"));
 		if (smartSync) {
 			if (smartSync(rJavaTranslator)) {
 				outputs.add(new NounMetadata(this.insight.getCurrentFrame(), PixelDataType.FRAME,

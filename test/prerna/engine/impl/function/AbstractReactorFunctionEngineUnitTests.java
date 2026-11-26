@@ -33,7 +33,6 @@ import static org.junit.jupiter.api.Assertions.assertLinesMatch;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -63,8 +62,8 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 import prerna.util.UploadUtilities;
 
 public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
@@ -194,10 +193,8 @@ public class AbstractReactorFunctionEngineUnitTests extends SemossUnitTest {
 		assertEquals(propsFilePath.toString(), engine.getSmssFilePath());
 
 		// close
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder);
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder);
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 					// mock UploadUtilities so that nothing happens when methods of this class are
 					// called

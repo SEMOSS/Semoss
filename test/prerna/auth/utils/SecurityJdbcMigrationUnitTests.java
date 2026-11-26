@@ -69,6 +69,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.RdbmsTypeEnum;
 import prerna.util.sql.SqlQueryUtilFactory;
+import prerna.engine.impl.pipeline.PlatformOperation;
 
 class SecurityJdbcMigrationUnitTests {
 
@@ -99,7 +100,10 @@ class SecurityJdbcMigrationUnitTests {
 					+ "METAVALUE VARCHAR CHECK (METAVALUE <> 'reject'), METAORDER INT)");
 			statement.execute("INSERT INTO INSIGHTMETA VALUES ('project','insight','tag','original',0)");
 		}
-		assertDoesNotThrow(() -> SecurityInsightUtils.updateInsightTags("project", "insight", List.of("ok", "reject")));
+		try (PlatformOperation operation = PlatformOperation.begin("test migration")) {
+			assertDoesNotThrow(
+					() -> SecurityInsightUtils.updateInsightTags(null, "project", "insight", List.of("ok", "reject")));
+		}
 		try (var statement = connection.prepareStatement("SELECT METAVALUE FROM INSIGHTMETA");
 				var rs = statement.executeQuery()) {
 			assertTrue(rs.next());
@@ -119,7 +123,9 @@ class SecurityJdbcMigrationUnitTests {
 					+ "METAVALUE VARCHAR, METAORDER INT)");
 		}
 		connection.setAutoCommit(false);
-		SecurityInsightUtils.updateInsightTags("project", "insight", List.of("  spaced  ", ""));
+		try (PlatformOperation operation = PlatformOperation.begin("test migration")) {
+			SecurityInsightUtils.updateInsightTags(null, "project", "insight", List.of("  spaced  ", ""));
+		}
 		connection.rollback();
 		try (var statement = connection.prepareStatement("SELECT METAVALUE FROM INSIGHTMETA ORDER BY METAORDER");
 				var rs = statement.executeQuery()) {

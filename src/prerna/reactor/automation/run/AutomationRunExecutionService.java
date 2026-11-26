@@ -51,7 +51,6 @@ import java.util.function.LongSupplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.ThreadContext;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -63,7 +62,6 @@ import prerna.engine.api.ITypeSafeEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
-import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
@@ -141,9 +139,6 @@ final class AutomationRunExecutionService {
 
 	private static String currentSessionId() {
 		String sessionId = ThreadStore.getSessionId();
-		if (sessionId == null || sessionId.isBlank()) {
-			sessionId = ThreadContext.get(SemossLogUtils.SESSION_ID);
-		}
 		return sessionId == null || sessionId.isBlank() ? null : sessionId;
 	}
 

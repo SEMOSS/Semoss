@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.io.connector.google;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -99,7 +98,7 @@ public class GoogleTokenFiller extends AbstractOAuthTokenFiller {
 	 */
 	@Override
 	public AccessToken refreshAccessToken(AccessToken currentAccessToken, Map<String, Object> params) {
-		String refreshToken = getRefreshToken(currentAccessToken);
+		String refreshToken = currentAccessToken == null ? null : currentAccessToken.getRefresh_token();
 		String prefix = AuthProvider.GOOGLE.getSocialPrefix() + "_";
 		String clientId = socialData.getProperty(prefix + "client_id");
 		if (ValueUtils.isBlank(refreshToken) || ValueUtils.isBlank(clientId)) {
@@ -126,29 +125,12 @@ public class GoogleTokenFiller extends AbstractOAuthTokenFiller {
 		mergedToken.setToken_type(refreshedToken.getToken_type());
 		mergedToken.setExpires_in(refreshedToken.getExpires_in());
 		mergedToken.setStartTime(refreshedToken.getStartTime());
-		String updatedRefreshToken = getRefreshToken(refreshedToken);
-		mergedToken.addMetaValue(REFRESH_TOKEN_KEY,
-				ValueUtils.isBlank(updatedRefreshToken) ? refreshToken : updatedRefreshToken);
+		String updatedRefreshToken = refreshedToken.getRefresh_token();
+		mergedToken.setRefresh_token(ValueUtils.isBlank(updatedRefreshToken) ? refreshToken : updatedRefreshToken);
 		if (mergedToken.getProvider() == null) {
 			mergedToken.setProvider(AuthProvider.GOOGLE);
 		}
 		return mergedToken;
-	}
-
-	private static String getRefreshToken(AccessToken accessToken) {
-		if (accessToken == null) {
-			return null;
-		}
-		Collection<String> refreshTokens = accessToken.getMetaValues(REFRESH_TOKEN_KEY);
-		if (refreshTokens == null) {
-			return null;
-		}
-		for (String refreshToken : refreshTokens) {
-			if (!ValueUtils.isBlank(refreshToken)) {
-				return refreshToken;
-			}
-		}
-		return null;
 	}
 
 	@Override

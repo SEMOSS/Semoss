@@ -90,15 +90,11 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		organizeKeys();
 		String projectId = this.keyValue.get(this.keysToGet[0]);
-
 		if (projectId == null || projectId.isEmpty()) {
 			throw new IllegalArgumentException("Must input an project id");
 		}
 
-		// make sure valid id for user
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectId);
 		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
-			// you dont have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 

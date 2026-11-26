@@ -28,10 +28,13 @@
 package prerna.engine.api;
 
 import java.time.ZoneId;
+import java.util.Properties;
 import java.util.Vector;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.logging.IgnoreEngineLogging;
+import prerna.util.Constants;
 
 /**
  * This interface standardizes the functionality of all engines. All engines
@@ -69,6 +72,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * @return results specific to the engine type. Usually contained within
 	 *         ISelectWrapper
 	 */
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.EDIT)
 	Object execQuery(String query) throws Exception;
 
 	/**
@@ -78,6 +82,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * @param query the insert query to be run against the engine
 	 * @throws
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void insertData(String query) throws Exception;
 
 	/**
@@ -85,12 +90,14 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * 
 	 * @param query delete query
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void removeData(String query) throws Exception;
 
 	/**
 	 * Commit the database. Commits the active transaction. This operation ends the
 	 * active transaction. Saves the db to a file
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void commit();
 
 	/**
@@ -100,6 +107,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * @return the type of the database
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	DATABASE_TYPE getDatabaseType();
 
 	/**
@@ -112,6 +120,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 */
 	@Deprecated
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Vector<Object> getEntityOfType(String type);
 
 	/**
@@ -123,6 +132,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 *         not
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	boolean isConnected();
 
 	/**
@@ -132,6 +142,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * @param args       Arguments needed for that action
 	 * @return Object based on the type of action
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	Object doAction(IDatabaseEngine.ACTION_TYPE actionType, Object[] args);
 
 	/**
@@ -140,6 +151,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String[] getUDF();
 
 	/**
@@ -148,6 +160,7 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(value = AccessPermissionEnum.READ_ONLY, projectCode = AccessPermissionEnum.EDIT)
 	OWLEngineFactory getOWLEngineFactory();
 
 	/**
@@ -155,5 +168,19 @@ public interface IDatabaseEngine extends IExplorable, IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	ZoneId getDatabaseZoneId();
+
+	/**
+	 * Whether the database is a big data engine, its
+	 * {@link Constants#BIG_DATA_ENGINE} setting, which its queries account for.
+	 *
+	 * @return true for a big data engine
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default boolean isBigData() {
+		Properties smssProp = getSmssProp();
+		return smssProp != null && Boolean.parseBoolean(smssProp.getProperty(Constants.BIG_DATA_ENGINE));
+	}
 }
