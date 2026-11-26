@@ -65,13 +65,28 @@ import prerna.engine.api.IMCP;
 import prerna.om.Insight;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class RemoteMCP implements IMCP {
 
+
 	private static final Logger classLogger = LogManager.getLogger(RemoteMCP.class);
+
+	public static final int DEFAULT_CLIENT_REQUEST_TIMEOUT_SECONDS = 60;
+	public static final int DEFAULT_CLIENT_INITIALIZATION_TIMEOUT_SECONDS = 20;
+	public static final int DEFAULT_TRANSPORT_CONNECT_TIMEOUT_SECONDS = 10;
+	public static final int DEFAULT_TRANSPORT_MAX_RESPONSE_SIZE_MB = 16;
 
 	private String endpoint = null;
 	private String authorization = null;
+
+	/**
+	 * Per-instance config overrides supplied by the caller (typically read from the
+	 * project smss by {@link prerna.project.impl.Project}). {@code null} fields
+	 * mean "resolve at connect time from RDF_Map.prop / built-in default".
+	 */
+	private final RemoteMCPConfig smssConfig;
 
 	/**
 	 * The local engine/project that owns this connection. Null when the MCP is not
@@ -123,7 +138,7 @@ public class RemoteMCP implements IMCP {
 	 *                   MCP. When null or blank no Authorization header is sent.
 	 */
 	public RemoteMCP(String endpoint, String authScheme, String authToken) {
-		this(null, endpoint, authScheme, authToken);
+		this(null, endpoint, authScheme, authToken, RemoteMCPConfig.empty());
 	}
 
 	/**
@@ -140,9 +155,38 @@ public class RemoteMCP implements IMCP {
 	 *                   MCP. When null or blank no Authorization header is sent.
 	 */
 	public RemoteMCP(IEngine engine, String endpoint, String authScheme, String authToken) {
+		this(engine, endpoint, authScheme, authToken, RemoteMCPConfig.empty());
+	}
+
+	/**
+	 * Connects to a remote MCP on behalf of a local engine/project with explicit
+	 * client/transport configuration overrides.
+	 *
+	 * <p>
+	 * For every value in {@code config}, the resolution order is:
+	 * <ol>
+	 *   <li>The non-null field on {@code config} - typically read from the
+	 *       per-project smss by {@link prerna.project.impl.Project}.</li>
+	 *   <li>The matching system-wide key in RDF_Map.prop via
+	 *       {@link prerna.util.DIHelper}.</li>
+	 *   <li>The SDK built-in default.</li>
+	 * </ol>
+	 *
+	 * @param engine     the local engine/project that owns this connection
+	 * @param endpoint   url of the remote MCP server
+	 * @param authScheme optional authentication scheme for the Authorization
+	 *                   header, such as "Bearer" or "Basic". Defaults to "Bearer"
+	 *                   when left blank and a token is provided.
+	 * @param authToken  optional credential sent on every request to the remote
+	 *                   MCP. When null or blank no Authorization header is sent.
+	 * @param config     per-project overrides; use {@link RemoteMCPConfig#empty()}
+	 *                   when no smss values are set
+	 */
+	public RemoteMCP(IEngine engine, String endpoint, String authScheme, String authToken, RemoteMCPConfig config) {
 		this.engine = engine;
 		this.endpoint = endpoint;
 		this.authorization = buildAuthorizationHeader(authScheme, authToken);
+		this.smssConfig = config != null ? config : RemoteMCPConfig.empty();
 		if (engine != null) {
 			this.engineId = engine.getEngineId();
 			this.engineName = engine.getEngineName();
@@ -156,6 +200,34 @@ public class RemoteMCP implements IMCP {
 		}
 		String scheme = (authScheme == null || authScheme.isBlank()) ? "Bearer" : authScheme.trim();
 		return scheme + " " + authToken.trim();
+	}
+
+	/**
+	 * Resolves a single integer config value using the standard three-tier
+	 * precedence: smss override -&gt; RDF_Map.prop -&gt; built-in default.
+	 *
+	 * @param smssValue    the value read from the project smss, or {@code null}
+	 * @param globalKey    the {@link Constants} key to look up in RDF_Map.prop
+	 * @param builtInDefault the SDK's own default, used when neither source is set
+	 * @return a positive integer, never zero or negative
+	 */
+	private int resolveInt(Integer smssValue, String globalKey, int builtInDefault) {
+		if (smssValue != null && smssValue > 0) {
+			return smssValue;
+		}
+		String globalVal = Utility.getDIHelperProperty(globalKey);
+		if (globalVal != null && !globalVal.isBlank()) {
+			try {
+				int parsed = Integer.parseInt(globalVal.trim());
+				if (parsed > 0) {
+					return parsed;
+				}
+				classLogger.warn("Ignoring non-positive value '{}' for {} in RDF_Map.prop", globalVal, globalKey);
+			} catch (NumberFormatException e) {
+				classLogger.warn("Ignoring non-integer value '{}' for {} in RDF_Map.prop", globalVal, globalKey, e);
+			}
+		}
+		return builtInDefault;
 	}
 
 	private void connect() {
@@ -175,9 +247,30 @@ public class RemoteMCP implements IMCP {
 						context) -> requestBuilder.header("Authorization", authorization);
 				transportBuilder.httpRequestCustomizer(authCustomizer);
 			}
+
+			int connectTimeoutSeconds = resolveInt(smssConfig.connectTimeoutSeconds(),
+					Constants.MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS, DEFAULT_TRANSPORT_CONNECT_TIMEOUT_SECONDS);
+			int maxResponseSizeMb = resolveInt(smssConfig.maxResponseSizeMb(),
+					Constants.MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB, DEFAULT_TRANSPORT_MAX_RESPONSE_SIZE_MB);
+			transportBuilder.connectTimeout(Duration.ofSeconds(connectTimeoutSeconds));
+			transportBuilder.maxResponseSize(maxResponseSizeMb * 1024 * 1024);
+
 			transport = transportBuilder.build();
-			client = McpClient.sync(transport).requestTimeout(Duration.ofSeconds(60))
-					.capabilities(ClientCapabilities.builder().roots(true).build()).build();
+
+			int requestTimeoutSeconds = resolveInt(smssConfig.requestTimeoutSeconds(),
+					Constants.MCP_CLIENT_REQUEST_TIMEOUT_SECONDS, DEFAULT_CLIENT_REQUEST_TIMEOUT_SECONDS);
+			int initTimeoutSeconds = resolveInt(smssConfig.initializationTimeoutSeconds(),
+					Constants.MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS, DEFAULT_CLIENT_INITIALIZATION_TIMEOUT_SECONDS);
+
+			classLogger.debug("Connecting to remote MCP {} - requestTimeout={}s initTimeout={}s "
+					+ "connectTimeout={}s maxResponseSize={}MiB",
+					endpoint, requestTimeoutSeconds, initTimeoutSeconds, connectTimeoutSeconds, maxResponseSizeMb);
+
+			client = McpClient.sync(transport)
+					.requestTimeout(Duration.ofSeconds(requestTimeoutSeconds))
+					.initializationTimeout(Duration.ofSeconds(initTimeoutSeconds))
+					.capabilities(ClientCapabilities.builder().roots(true).build())
+					.build();
 		}
 	}
 
@@ -376,6 +469,34 @@ public class RemoteMCP implements IMCP {
 					endpoint, e);
 		}
 		return null;
+	}
+
+	/**
+	 * Per-project configuration overrides for the remote MCP client and transport.
+	 * Each field corresponds to one configurable SDK option; a {@code null} value
+	 * means "not set at the smss level - fall through to RDF_Map.prop / built-in".
+	 *
+	 * <p>
+	 * The key names used in the smss and in RDF_Map.prop follow the
+	 * {@code MCP_CLIENT_*} / {@code MCP_TRANSPORT_*} naming convention defined in
+	 * {@link prerna.util.Constants} and {@link prerna.project.api.IProject}, so a
+	 * single lookup works for both sources without any key translation.
+	 *
+	 * @param requestTimeoutSeconds        {@link prerna.util.Constants#MCP_CLIENT_REQUEST_TIMEOUT_SECONDS}
+	 * @param initializationTimeoutSeconds {@link prerna.util.Constants#MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS}
+	 * @param connectTimeoutSeconds        {@link prerna.util.Constants#MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS}
+	 * @param maxResponseSizeMb            {@link prerna.util.Constants#MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB}
+	 */
+	public record RemoteMCPConfig(
+			Integer requestTimeoutSeconds,
+			Integer initializationTimeoutSeconds,
+			Integer connectTimeoutSeconds,
+			Integer maxResponseSizeMb) {
+
+		/** All fields unset - every value resolves from RDF_Map.prop or the SDK default. */
+		public static RemoteMCPConfig empty() {
+			return new RemoteMCPConfig(null, null, null, null);
+		}
 	}
 
 }

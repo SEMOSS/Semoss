@@ -1210,6 +1210,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         def smss_stream_func(
             data: Any, stream_type: str = "content", interim: bool = True
         ):
+            """Send one streamed chunk to Java, or raise ExecutionCancelled once
+            the execution is cancelled. Model clients stream every chunk through
+            here, so a cancelled model call stops reading from its provider at
+            the next chunk, with or without the cancel trace."""
+            if any(event.is_set() for event in cancel_events):
+                raise ExecutionCancelled(self.CANCELLED_MESSAGE)
             structured_output = {"stream_type": stream_type, "data": data}
             self.send_output(
                 structured_output,
@@ -1254,9 +1260,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 ), contextlib.redirect_stderr(self.console):
                     insight_globals["core_server"] = self
                     # Engine-owned python processes (model / vector / etc.) set
-                    # disableCancelTrace because their executions can never be
-                    # cancelled by a user. Skipping sys.settrace avoids its large
-                    # overhead on import-heavy init / ask scripts.
+                    # disableCancelTrace. Skipping sys.settrace avoids its large
+                    # overhead on import-heavy init / ask scripts; a cancel still
+                    # stops their streams at the next smss_stream chunk.
                     disable_cancel_trace = bool(payload.get("disableCancelTrace"))
                     previous_trace = sys.gettrace()
                     rendered = []

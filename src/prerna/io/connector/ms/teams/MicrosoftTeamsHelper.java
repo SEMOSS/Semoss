@@ -32,7 +32,6 @@ import java.io.Reader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,6 +50,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
@@ -265,7 +265,7 @@ public class MicrosoftTeamsHelper {
 		try {
 			requireValue(teamId, "Team ID is required to list Microsoft Teams channels.");
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(CHANNELS, teamId.trim());
+			String url = String.format(CHANNELS, ConnectorGuards.segment(teamId));
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
 			List<Map<String, Object>> channels = new ArrayList<>();
 			for (Map<String, Object> channel : getValueList(response)) {
@@ -309,7 +309,7 @@ public class MicrosoftTeamsHelper {
 			requireValue(channelId, "Channel ID is required to resolve the Microsoft Teams channel folder.");
 
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(FILES_FOLDER, teamId.trim(), channelId.trim());
+			String url = String.format(FILES_FOLDER, ConnectorGuards.segment(teamId), ConnectorGuards.segment(channelId));
 			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
 			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
@@ -369,8 +369,10 @@ public class MicrosoftTeamsHelper {
 
 		try {
 			Map<String, Object> folder = getChannelFilesFolder(accessToken, teamId, channelId);
-			String driveId = folder.get(DRIVE_ID).toString();
-			String folderId = folder.get(FOLDER_ID).toString();
+			// ids Graph returned go into the url as one safe segment each; the raw id goes back to the caller
+			String rawDriveId = folder.get(DRIVE_ID).toString();
+			String driveId = ConnectorGuards.segment(rawDriveId);
+			String folderId = ConnectorGuards.segment(folder.get(FOLDER_ID).toString());
 
 			String relativePath = encodeRelativePath(folderPath);
 			String url;
@@ -382,7 +384,7 @@ public class MicrosoftTeamsHelper {
 
 			List<Map<String, Object>> items = new ArrayList<>();
 			for (Map<String, Object> item : MicrosoftTeamsMessageHelper.getPagedValues(accessToken, url, limit)) {
-				items.add(toDriveItemMap(item, driveId));
+				items.add(toDriveItemMap(item, rawDriveId));
 			}
 			return items;
 		} catch (Exception e) {
@@ -432,7 +434,7 @@ public class MicrosoftTeamsHelper {
 			}
 
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
-			String metadataUrl = String.format(ITEM, resolvedDriveId.trim(), itemId.trim());
+			String metadataUrl = String.format(ITEM, ConnectorGuards.segment(resolvedDriveId), ConnectorGuards.segment(itemId));
 			String metadataResponse = HttpHelperUtility.getRequest(metadataUrl, headers, null, null, null);
 			Map<String, Object> metadata = GSON.fromJson(metadataResponse, new TypeToken<Map<String, Object>>() {
 			}.getType());
@@ -450,10 +452,16 @@ public class MicrosoftTeamsHelper {
 				normalizedFileName = itemName.toString();
 			}
 			String targetPath;
+			String resultPath;
 			if (normalizedFileName == null || normalizedFileName.isEmpty()) {
 				targetPath = path;
+				resultPath = "";
 			} else {
-				targetPath = Paths.get(path, normalizedFileName).toString();
+				// the name may be the remote one, so it stays a single name inside the destination
+				targetPath = ConnectorGuards
+						.resolveWithin(Paths.get(path), MicrosoftOneDriveHelper.baseName(normalizedFileName)).toString();
+				// a direct child of the destination, whatever real path the destination resolved to
+				resultPath = new File(targetPath).getName();
 			}
 			File file = new File(targetPath);
 			File parent = file.getParentFile();
@@ -472,7 +480,8 @@ public class MicrosoftTeamsHelper {
 			if (preAuthUrl != null && !preAuthUrl.toString().trim().isEmpty()) {
 				size = MicrosoftOneDriveHelper.download(preAuthUrl.toString(), null, file, String.valueOf(itemName));
 			} else {
-				String contentUrl = String.format(ITEM_CONTENT, resolvedDriveId.trim(), itemId.trim());
+				String contentUrl = String.format(ITEM_CONTENT, ConnectorGuards.segment(resolvedDriveId),
+						ConnectorGuards.segment(itemId));
 				size = MicrosoftOneDriveHelper.download(contentUrl, headers, file, String.valueOf(itemName));
 			}
 			if (size == 0) {
@@ -482,7 +491,7 @@ public class MicrosoftTeamsHelper {
 			Map<String, Object> result = new HashMap<>();
 			result.put(ID, itemId);
 			result.put(NAME, itemName);
-			result.put(FILE_PATH, Path.of(path).relativize(file.toPath()).toString());
+			result.put(FILE_PATH, resultPath);
 			result.put(SUCCESS, true);
 			return result;
 		} catch (Exception e) {
@@ -527,8 +536,8 @@ public class MicrosoftTeamsHelper {
 
 			String conflict = normalizeConflictBehavior(conflictBehavior);
 			Map<String, Object> folder = getChannelFilesFolder(accessToken, teamId, channelId);
-			String driveId = folder.get(DRIVE_ID).toString();
-			String folderId = folder.get(FOLDER_ID).toString();
+			String driveId = ConnectorGuards.segment(folder.get(DRIVE_ID).toString());
+			String folderId = ConnectorGuards.segment(folder.get(FOLDER_ID).toString());
 			String targetPath = buildTargetPath(folderPath, fileName);
 
 			String response;
@@ -669,6 +678,10 @@ public class MicrosoftTeamsHelper {
 		for (String segment : normalized.split("/")) {
 			if (segment.isEmpty()) {
 				continue;
+			}
+			// path-addressed calls stay below the channel folder
+			if (segment.trim().equals(".") || segment.trim().equals("..")) {
+				throw new IllegalArgumentException("The folder path must not contain . or .. segments: " + path);
 			}
 			if (encoded.length() > 0) {
 				encoded.append("/");

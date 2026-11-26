@@ -85,7 +85,7 @@
 		<graphstream.version>2.0</graphstream.version>
 		<jai.imageio.version>1.4.0</jai.imageio.version>
 		<hadoop.version>3.3.6</hadoop.version>
-		<asm.version>9.9.1</asm.version>
+		<asm.version>9.11.1</asm.version>
 		<!-- JUnit 6: jupiter and platform share one version line -->
 		<junit.version>6.0.0</junit.version>
 	</properties>
@@ -760,6 +760,18 @@
 				<artifactId>reactor-netty-http</artifactId>
 				<version>1.2.18</version>
 			</dependency>
+			<!-- asm: maven-core brings asm 9.9.1 (CVE fixes in 9.11); asm-commons/asm-util are declared directly -->
+			<dependency>
+				<groupId>org.ow2.asm</groupId>
+				<artifactId>asm</artifactId>
+				<version>${asm.version}</version>
+			</dependency>
+			<!-- livekit-server brings java-jwt 4.5.0 -->
+			<dependency>
+				<groupId>com.auth0</groupId>
+				<artifactId>java-jwt</artifactId>
+				<version>4.6.2</version>
+			</dependency>
 			<!-- reactor-core 3.8 brings jspecify 1.0.1; caffeine/selenium still declare 1.0.0 -->
 			<dependency>
 				<groupId>org.jspecify</groupId>
@@ -891,6 +903,11 @@
 			<artifactId>sesame-runtime</artifactId>
 			<version>${sesame.version}</version>
 			<exclusions>
+				<!-- commons-httpclient 3.1 (no fix upstream) is only used by sesame's remote HTTP/SPARQL repositories, which we do not use -->
+				<exclusion>
+					<groupId>commons-httpclient</groupId>
+					<artifactId>commons-httpclient</artifactId>
+				</exclusion>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>*</artifactId>
@@ -1178,17 +1195,6 @@
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
 			<version>1.19.0</version>
-		</dependency>
-		<dependency>
-			<groupId>commons-configuration</groupId>
-			<artifactId>commons-configuration</artifactId>
-			<version>1.10</version>
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>commons-collections</groupId>
@@ -1968,7 +1974,7 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>42.7.14</version>
+			<version>42.7.15</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.pgvector/pgvector -->
 		<dependency>
@@ -2048,7 +2054,7 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20251224</version>
+			<version>20260719</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
 		<dependency>
@@ -2164,7 +2170,7 @@
 		<dependency>
 			<groupId>net.minidev</groupId>
 			<artifactId>json-smart</artifactId>
-			<version>2.6.0</version>
+			<version>2.6.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.ow2.asm</groupId>
@@ -2221,7 +2227,7 @@
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk</artifactId>
-			<version>1.62.0</version>
+			<version>1.67.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/jakarta.ws.rs/jakarta.ws.rs-api -->
 		<dependency>
@@ -2461,6 +2467,11 @@
 			<artifactId>janusgraph-core</artifactId>
     		<version>1.2.0-20260818-222253.cbd6fc2</version>
 			<exclusions>
+				<!-- commons-configuration 1.x (no fix upstream): no class on our classpath references it, janusgraph/tinkerpop use configuration2 -->
+				<exclusion>
+					<groupId>commons-configuration</groupId>
+					<artifactId>commons-configuration</artifactId>
+				</exclusion>
 				<exclusion>
 					<groupId>org.apache.tinkerpop</groupId>
 					<artifactId>*</artifactId>
@@ -2657,7 +2668,7 @@
 		<dependency>
 			<groupId>org.objenesis</groupId>
 			<artifactId>objenesis</artifactId>
-			<version>3.3</version>
+			<version>3.6</version>
 		</dependency>
 
 		<!-- Source: https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-classworlds -->
@@ -2726,9 +2737,15 @@
 		<dependency>
 			<groupId>org.owasp.esapi</groupId>
 			<artifactId>esapi</artifactId>
+			<!-- stay on 2.6.2.0: 2.7.0.0 blocks encodeForSQL unless opted in, and Utility.java/WebUtility call it -->
 			<version>2.6.2.0</version>
 			<classifier>jakarta</classifier>
 			<exclusions>
+				<!-- commons-configuration 1.x (no fix upstream) is only used by ESAPI's access controller, which we do not call -->
+				<exclusion>
+					<groupId>commons-configuration</groupId>
+					<artifactId>commons-configuration</artifactId>
+				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
@@ -3414,7 +3431,7 @@
 		<dependency>
 			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-stdlib</artifactId>
-			<version>1.9.25</version>
+			<version>2.1.0</version>
 			<exclusions>
 			<exclusion>
 				<groupId>org.jetbrains</groupId>
@@ -3465,6 +3482,10 @@
 				<exclusion>
 					<groupId>org.jetbrains.kotlin</groupId>
 					<artifactId>kotlin-stdlib-jdk8</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.jetbrains.kotlin</groupId>
+					<artifactId>kotlin-stdlib-common</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>

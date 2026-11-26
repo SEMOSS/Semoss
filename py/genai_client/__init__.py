@@ -172,7 +172,7 @@ def get_tokenizer(tokenizer_type: str, tokenizer_name, max_tokens):
     """
     Utility method to  get the appropriate tokenizer based on the Model Engine
     """
-    if (tokenizer_type == "EMBEDDED") or (tokenizer_type == "TEXT_GENERATION"):
+    if (tokenizer_type == "EMBEDDED") or (tokenizer_type == "TEXT_GENERATION") or (tokenizer_type == "TEXT_EMBEDDINGS"):
         from .tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
 
         return HuggingfaceTokenizer(encoder_name=tokenizer_name, max_tokens=max_tokens)

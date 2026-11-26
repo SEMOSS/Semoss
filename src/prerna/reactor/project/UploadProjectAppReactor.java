@@ -243,6 +243,15 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					throw exception;
 				}
 			} else {
+				try {
+					AbstractSecurityUtils.requireNoEngineWithId(projectId);
+				} catch (IllegalArgumentException e) {
+					cleanUpFolders(randomTempUnzipF);
+					SemossPixelException exception = new SemossPixelException(
+							NounMetadata.getErrorNounMessage(e.getMessage()));
+					exception.setContinueThreadOfExecution(false);
+					throw exception;
+				}
 				// first time upload
 				// need to ignore file watcher
 				if (InternalUtility.addProjectId(projectId)) {
@@ -303,8 +312,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		}
 
 		try {
-			InternalUtility.setProjectSmssPath(projectId,
-					finalProjectSmssF.getAbsolutePath());
+			InternalUtility.setProjectSmssPath(projectId, finalProjectSmssF.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
 			if (!replacingExistingProject) {
 				SecurityProjectUtils.addProject(projectId, global, user);

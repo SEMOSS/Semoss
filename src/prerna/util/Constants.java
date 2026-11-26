@@ -1066,6 +1066,16 @@ public class Constants {
 	// MCP
 	public static final String MCP_ENABLED = "MCP_ENABLED";
 
+	// Remote MCP client/transport tuning
+	/** How long (seconds) the client waits for a tool-call or list response. Default: 60. */
+	public static final String MCP_CLIENT_REQUEST_TIMEOUT_SECONDS = "MCP_CLIENT_REQUEST_TIMEOUT_SECONDS";
+	/** How long (seconds) the client waits for the MCP initialize handshake. Default: 20. */
+	public static final String MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS = "MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS";
+	/** How long (seconds) the transport waits to establish a TCP/TLS connection. Default: 10. */
+	public static final String MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS = "MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS";
+	/** Maximum inbound message size in MiB. Default: 16. */
+	public static final String MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB = "MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB";
+
 	// web search platform MCP; it needs a SearXNG service, so each instance turns
 	// it on in RDF_Map
 	public static final String WEB_SEARCH_ENABLED = "WEB_SEARCH_ENABLED";

@@ -853,8 +853,8 @@ public class ModelInferenceLogsUtils {
 			String userId, String userName, String userEmail, String agentType, String agentId, Boolean isActive,
 			String projectId, String projectName, Map<String, Object> options) {
 
-		doCreateNewConversation(insightId, insightId, roomName, roomContext, userId, userName, userEmail, agentType,
-				agentId, isActive, projectId, projectName, null, null, null);
+		doCreateNewConversation(insightId, roomId, roomName, roomContext, userId, userName, userEmail, agentType,
+				agentId, isActive, projectId, projectName, null, options, null);
 	}
 
 	/**

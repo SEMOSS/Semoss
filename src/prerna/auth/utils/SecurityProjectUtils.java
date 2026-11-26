@@ -57,6 +57,7 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.EngineGrantee;
 import prerna.auth.access.ModelUsageLimit;
 import prerna.auth.access.PermissionChange;
 import prerna.auth.access.PermissionErrorRules;
@@ -64,6 +65,7 @@ import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionProblem;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
+import prerna.auth.access.UserAccess;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -113,9 +115,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	private static final String INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this project's permissions.";
 	private static final String NOT_HIGH_ENOUGH = "The user doesn't have the high enough permissions to modify this users project permission.";
+	static final String PROJECT_GRANTEES_NEED_OWNER = "Only this project's owners can change which apps and engines "
+			+ "can use it.";
+	static final String PROJECT_GRANTEE_HAS_NO_ACCESS = "This app or engine does not currently have access to the "
+			+ "project.";
+	static final String PROJECT_GRANTEE_WRITE_FAILED = "An error occurred saving this access to the project";
 	private static final String INSERT_PROJECT = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, "
-			+ "DISCOVERABLE, IS_TEMPLATE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, PROJECTDISPLAYNAME) "
-			+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+			+ "DISCOVERABLE, IS_TEMPLATE, HAS_CUSTOM_LOGIN, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, "
+			+ "PROJECTDISPLAYNAME) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 	private static final String UPDATE_PROJECT = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=? "
 			+ "WHERE PROJECTID=?";
 	private static final String SELECT_STORED_INSIGHTS = "SELECT INSIGHTID, INSIGHTNAME, LAYOUT, GLOBAL, CACHEABLE, "
@@ -186,11 +193,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param global    whether the project is public, for a project not yet
 	 *                  registered or reloaded
 	 * @param user      the signed in user, recorded as the creator of a project not
-	 *                  yet registered: creating one needs the creation rules, and
-	 *                  reloading one needs the user to be able to edit it; or null
-	 *                  when the platform registers the project from its smss, which
-	 *                  gives no one access to it
+	 *                  yet registered: creating one needs the creation rules and an
+	 *                  id no engine has, and reloading one needs the user to be
+	 *                  able to edit it; or null when the platform registers the
+	 *                  project from its smss, which gives no one access to it
 	 * @throws IllegalArgumentException when the user may not create or reload the
+	 *                                  project, or an engine has the id of a new
 	 *                                  project
 	 * @throws Exception                when the insights database cannot be opened
 	 */
@@ -221,6 +229,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (user != null && projectExists) {
 			ResourceWriteAccess.requireProject(user, projectId, AccessPermissionEnum.EDIT);
 		} else if (user != null) {
+			requireNoEngineWithId(projectId);
 			ResourceWriteAccess.requireProjectCreation(user, IProject.PROJECT_TYPE.fromSmss(prop), global);
 		}
 
@@ -478,7 +487,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * <p>
 	 * A user needs the creation rules: the publisher rule, the admin only rule for
 	 * the project's type, and for a public project the admin only rule for making
-	 * one public. With no user, the platform registers the project, which gives no
+	 * one public. A user, admins included, never creates a project with the id of
+	 * an engine. With no user, the platform registers the project, which gives no
 	 * one access to it.
 	 *
 	 * @param projectId          the new project's id
@@ -490,10 +500,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param isTemplate         whether it is a template
 	 * @param user               the signed in user who creates it, or null when the
 	 *                           platform registers it
-	 * @throws IllegalArgumentException when the user may not create the project
+	 * @throws IllegalArgumentException when the user may not create the project, or
+	 *                                  an engine has its id
 	 */
 	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
 			String projectCost, boolean global, boolean isTemplate, User user) {
+		if (user != null) {
+			requireNoEngineWithId(projectId);
+		}
 		ResourceWriteAccess.requireProjectCreation(user, projectTypeOf(projectType), global);
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
@@ -511,9 +525,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Inserts a project's PROJECT row on the caller's connection, in its
-	 * transaction. The project is not discoverable, it was created and last edited
-	 * now, and the user, when given, is recorded as its creator. A blank display
-	 * name gives the project's name as its display name.
+	 * transaction. The project is not discoverable, has no login page of its own,
+	 * was created and last edited now, and the user, when given, is recorded as its
+	 * creator. A blank display name gives the project's name as its display name.
 	 *
 	 * @param connection the security database connection, in the caller's
 	 *                   transaction
@@ -531,6 +545,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
 			ps.setBoolean(parameterIndex++, isTemplate);
+			ps.setBoolean(parameterIndex++, false);
 			if (user != null) {
 				AuthProvider ap = user.getPrimaryLogin();
 				AccessToken token = user.getAccessToken(ap);
@@ -1223,6 +1238,31 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Whether a project has a login page of its own in its portal, so its portal is
+	 * served to signed out visitors for them to sign in there. A project without
+	 * one is served only to signed in users who can view it.
+	 *
+	 * @param projectId the project
+	 * @return true only when the project's custom login flag is true; false when
+	 *         the flag cannot be read
+	 */
+	public static boolean projectHasCustomLogin(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("PROJECT__HAS_CUSTOM_LOGIN", "==", true, PixelDataType.BOOLEAN));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			return wrapper.hasNext();
+		} catch (Exception e) {
+			classLogger.error("Could not read whether project {} has a custom login page",
+					Utility.cleanLogString(projectId), e);
+			return false;
+		}
+	}
+
+	/**
 	 * Determine whether a user may clone a project. The project's owners can always
 	 * clone it; anyone else must be able to view the project, and its owner must
 	 * have enabled it as a template.
@@ -1430,18 +1470,34 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return the level, or null when the user has no access to the project
 	 */
 	public static AccessPermissionEnum getCurrentUserProjectLevel(User user, String projectId) {
+		UserAccess access = getCurrentUserProjectAccess(user, projectId);
+		return access == null ? null : access.level();
+	}
+
+	/**
+	 * The user's access on the project now, as {@link #getCurrentUserProjectLevel}
+	 * reads it, and where it comes from: their own grant, the team whose grant
+	 * gives the highest level, or the project being public.
+	 *
+	 * @param user      the user
+	 * @param projectId the project
+	 * @return the access, or null when the user has no access to the project
+	 */
+	public static UserAccess getCurrentUserProjectAccess(User user, String projectId) {
 		if (user == null) {
 			return null;
 		}
-		Integer levelId = CurrentPermissionLevel.ofOrNull(user, PermissionTargetResource.project(projectId));
-		if (levelId != null) {
+		CurrentPermissionLevel.CurrentLevel current = CurrentPermissionLevel.levelOfOrNull(user,
+				PermissionTargetResource.project(projectId));
+		if (current != null) {
 			for (AccessPermissionEnum level : AccessPermissionEnum.values()) {
-				if (level.getId() == levelId) {
-					return level;
+				if (level.getId() == current.levelId()) {
+					return current.teamId() == null ? UserAccess.direct(level)
+							: UserAccess.team(level, current.teamId(), current.teamType());
 				}
 			}
 		}
-		return projectIsGlobal(projectId) ? AccessPermissionEnum.READ_ONLY : null;
+		return projectIsGlobal(projectId) ? UserAccess.publicRead() : null;
 	}
 
 	/**
@@ -1680,6 +1736,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?");
 		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE GRANTEEENGINEID=? AND GRANTEEENGINETYPE='"
 				+ PermissionSubject.PROJECT_TYPE + "'");
+		deletes.add("DELETE FROM ENGINE2ENGINEPERMISSION WHERE ENGINEID=? AND ENGINETYPE='"
+				+ PermissionSubject.PROJECT_TYPE + "'");
 		for (String deleteQuery : deletes) {
 			try {
 				QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> ps.setString(1, projectId));
@@ -1691,8 +1749,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 		try {
 			QueryExecutionUtility.write(securityDb, connection -> {
-				SecurityModelUsageLimitUtils.deleteGranteeLimits(connection, projectId,
-						PermissionSubject.PROJECT_TYPE);
+				SecurityModelUsageLimitUtils.deleteGranteeLimits(connection, projectId, PermissionSubject.PROJECT_TYPE);
 				return null;
 			});
 		} catch (RuntimeException e) {
@@ -1702,6 +1759,121 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		} finally {
 			SecurityModelUsageLimitUtils.markChanged();
 		}
+	}
+
+	/**
+	 * Gives an app or an agent a permission on a project, or changes the one it
+	 * has, as a permission batch. An app's custom reactors or an agent's runs use
+	 * the permission in place of the signed in user's own, so an agent can use a
+	 * skill its users cannot open, or an app can work with another app. A project
+	 * gives access to apps and agents only, never to an engine. Only the project's
+	 * owners can, and where only admins give access to the project, only in admin
+	 * mode ({@link SecurityAdminUtils#setProjectGranteePermission}).
+	 *
+	 * @param user              the user giving the access
+	 * @param granteeEngineId   the app or agent given the access
+	 * @param granteeEngineType its catalog type, {@code PROJECT}
+	 * @param projectId         the project
+	 * @param permission        the level, READ_ONLY or EDIT
+	 * @param endDate           when the access ends, or null
+	 * @throws IllegalAccessException when the user is not an owner of the project
+	 */
+	public static void setProjectGranteePermission(User user, String granteeEngineId, String granteeEngineType,
+			String projectId, String permission, String endDate) throws IllegalAccessException {
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
+				List.of(projectGranteePermissionChange(granteeEngineId, granteeEngineType, projectId,
+						new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.bulkAccessManagement(false), projectGranteeErrorRules(endDate));
+	}
+
+	/**
+	 * Takes away the permission a project gives an app, an agent or an engine, as a
+	 * permission batch. Only the project's owners can.
+	 *
+	 * @param user              the user taking the access away
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app or an
+	 *                          agent
+	 * @param projectId         the project
+	 * @throws IllegalAccessException when the user is not an owner of the project
+	 */
+	public static void removeProjectGranteePermission(User user, String granteeEngineId, String granteeEngineType,
+			String projectId) throws IllegalAccessException {
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.remove(PermissionSubject.ofEngine(granteeEngineId, granteeEngineType))),
+				PermissionBatchOptions.bulkAccessManagement(false), projectGranteeRemovalErrorRules());
+	}
+
+	/**
+	 * Reads the apps, agents and engines a project gives a permission to, for the
+	 * project's editors and owners: each with its subject, the grantee's id,
+	 * catalog type, name (its display name when it has one) and subtype (an app's
+	 * project type or an engine's subtype), and its access, the level and the end
+	 * date.
+	 *
+	 * @param user      the user asking
+	 * @param projectId the project
+	 * @return one entry for each app and engine, ordered by catalog type and id
+	 * @throws IllegalAccessException when the user cannot edit the project
+	 */
+	public static List<Map<String, Object>> getProjectGranteePermissions(User user, String projectId)
+			throws IllegalAccessException {
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("The project id must not be null or blank");
+		}
+		String id = projectId.trim();
+		if (!PermissionBatchUtils.canViewEngines(user, PermissionTargetResource.project(id), false)) {
+			throw new IllegalAccessException(
+					"Only this project's editors and owners can see which apps and engines can use it");
+		}
+		return PermissionBatchUtils.readProjectGrantees(id);
+	}
+
+	/**
+	 * The messages the single methods for a permission a project gives throw.
+	 *
+	 * @param endDate the end date given, named when it cannot be read
+	 * @return the rules
+	 */
+	static PermissionErrorRules projectGranteeErrorRules(String endDate) {
+		return new PermissionErrorRules(endDate)
+				.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, PROJECT_GRANTEES_NEED_OWNER)
+				.illegalArgument(PermissionProblem.ErrorCode.SUBJECT_MISSING,
+						SecurityEngineUtils.GRANTEE_DOES_NOT_EXIST)
+				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, PROJECT_GRANTEE_WRITE_FAILED);
+	}
+
+	/**
+	 * The messages the single methods throw when the permission a project gives is
+	 * taken away.
+	 *
+	 * @return the rules
+	 */
+	static PermissionErrorRules projectGranteeRemovalErrorRules() {
+		return new PermissionErrorRules()
+				.illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, PROJECT_GRANTEES_NEED_OWNER)
+				.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS, PROJECT_GRANTEE_HAS_NO_ACCESS)
+				.illegalArgument(PermissionProblem.ErrorCode.WRITE_FAILED, PROJECT_GRANTEE_WRITE_FAILED);
+	}
+
+	/**
+	 * Builds the change that leaves an app, an agent or an engine with a grant on a
+	 * project: an add when the project gives it none now, otherwise a change.
+	 *
+	 * @param granteeEngineId   the app or engine
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app or an
+	 *                          agent
+	 * @param projectId         the project
+	 * @param grant             the level, READ_ONLY or EDIT, and the end date
+	 * @return the change
+	 */
+	static PermissionChange projectGranteePermissionChange(String granteeEngineId, String granteeEngineType,
+			String projectId, PermissionGrant grant) {
+		PermissionSubject grantee = PermissionSubject.ofEngine(granteeEngineId, granteeEngineType);
+		String catalogType = PermissionBatchUtils.catalogTypeOf(granteeEngineType);
+		boolean given = granteeEngineId != null && catalogType != null && SecurityEngine2EngineUtils
+				.getGranteePermission(new EngineGrantee(granteeEngineId.trim(), catalogType), projectId, true) != null;
+		return given ? PermissionChange.change(grantee, grant) : PermissionChange.add(grantee, grant);
 	}
 
 	/**
@@ -1818,6 +1990,67 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("An error occurred setting the project template flag", e);
 		}
 		return true;
+	}
+
+	/**
+	 * Sets whether a project has a login page of its own in its portal. With it,
+	 * the portal is served to signed out visitors so they can sign in there;
+	 * without it, only signed in users who can view the project get the portal.
+	 * Only the project's owners can change it, and a Digital Twin never has one,
+	 * since it is shared with named people only.
+	 *
+	 * @param user           the signed in user
+	 * @param projectId      the project
+	 * @param hasCustomLogin whether the project has its own login page
+	 * @throws IllegalAccessException   when the user is not an owner of the project
+	 * @throws IllegalArgumentException when the project is a Digital Twin, or does
+	 *                                  not exist
+	 */
+	public static void setProjectCustomLogin(User user, String projectId, boolean hasCustomLogin)
+			throws IllegalAccessException {
+		if (!userIsOwner(user, projectId)) {
+			throw new IllegalAccessException("Only this project's owners can change whether it has its own login page");
+		}
+		if (hasCustomLogin) {
+			requireNotDigitalTwin(projectId);
+		}
+		updateProjectCustomLogin(projectId, hasCustomLogin);
+		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_CUSTOM_LOGIN_UPDATE, projectId, null,
+				Map.of("field", "customLogin", "customLogin", hasCustomLogin));
+	}
+
+	/**
+	 * Writes a project's custom login flag, with no permission check. The callers
+	 * check who may change it first: {@link #setProjectCustomLogin} for the
+	 * project's owners, and {@link SecurityAdminUtils#setProjectCustomLogin} for
+	 * admins.
+	 *
+	 * @param projectId      the project
+	 * @param hasCustomLogin whether the project has its own login page
+	 * @throws IllegalArgumentException when the project does not exist, or the flag
+	 *                                  cannot be written
+	 */
+	static void updateProjectCustomLogin(String projectId, boolean hasCustomLogin) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection
+						.prepareStatement("UPDATE PROJECT SET HAS_CUSTOM_LOGIN=? WHERE PROJECTID=?")) {
+					ps.setBoolean(1, hasCustomLogin);
+					ps.setString(2, projectId);
+					if (ps.executeUpdate() != 1) {
+						throw new IllegalArgumentException("Project " + projectId + " does not exist");
+					}
+				}
+				return null;
+			});
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Could not set whether project {} has a custom login page",
+					Utility.cleanLogString(projectId), e);
+			throw new IllegalArgumentException("Could not set whether the project has its own login page", e);
+		}
 	}
 
 	/**
@@ -2316,9 +2549,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// Detect circular dependency - if we're already visiting this node, there's a
 		// cycle. Every node in the visiting set has already had its own
-		// hasViewPermission
-		// checked, so the back-edge doesn't introduce any new permission requirement.
-		// Return true to avoid poisoning the result for all nodes in the cycle.
+		// hasViewPermission checked, so the back-edge doesn't introduce any new
+		// permission requirement. Return true to avoid poisoning the result for all
+		// nodes in the cycle.
 		if (visiting.contains(engineId)) {
 			return true;
 		}
@@ -3130,8 +3363,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * matched against any of the user's logins; a project stored without its
 	 * creator's login type matches the id alone.
 	 *
-	 * @return false as well when the project has no creator on record or the
-	 *         lookup fails, so what is kept for a creator is never given by mistake
+	 * @return false as well when the project has no creator on record or the lookup
+	 *         fails, so what is kept for a creator is never given by mistake
 	 */
 	public static boolean isProjectCreator(User user, String projectId) {
 		Pair<String, String> creator = user == null ? null : getProjectCreator(projectId);
@@ -3151,8 +3384,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Who created a project, as the id and login type on its row.
 	 *
 	 * @return the id with its login type, which is null where the project was
-	 *         stored without one; null when the project has no creator on record
-	 *         or the lookup fails
+	 *         stored without one; null when the project has no creator on record or
+	 *         the lookup fails
 	 */
 	public static Pair<String, String> getProjectCreator(String projectId) {
 		if (projectId == null) {
@@ -3176,7 +3409,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Refuses a way of sharing a Digital Twin beyond named people, such as making
-	 * it public, discoverable or a template, or giving a team or everyone access.
+	 * it public, discoverable or a template, serving its portal to signed out
+	 * visitors, or giving a team or everyone access.
 	 *
 	 * @throws IllegalArgumentException when the project is a Digital Twin
 	 */
@@ -3444,14 +3678,16 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DISCOVERABLE", "project_discoverable"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "IS_TEMPLATE", "project_is_template"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix + "HAS_CUSTOM_LOGIN", "project_has_custom_login"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
 		if (projectMetadataFilter != null && projectMetadataFilter.containsKey(DIGITAL_TWIN_METAKEY)) {
 			// A legacy untyped creator id may identify people on more than one provider.
-			qs1.addSelector(new QueryOpaqueSelector("(SELECT CASE WHEN COUNT(*) = 1 THEN MIN(creator.NAME) END "
-					+ "FROM SMSS_USER creator WHERE creator.ID = PROJECT.CREATEDBY "
-					+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR creator.TYPE = PROJECT.CREATEDBYTYPE))",
+			qs1.addSelector(new QueryOpaqueSelector(
+					"(SELECT CASE WHEN COUNT(*) = 1 THEN MIN(creator.NAME) END "
+							+ "FROM SMSS_USER creator WHERE creator.ID = PROJECT.CREATEDBY "
+							+ "AND (PROJECT.CREATEDBYTYPE IS NULL OR creator.TYPE = PROJECT.CREATEDBYTYPE))",
 					"digital_twin_owner_name"));
 		}
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DATECREATED", "project_date_created"));
@@ -3804,6 +4040,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DISCOVERABLE", "project_discoverable"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__IS_TEMPLATE", "project_is_template"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__HAS_CUSTOM_LOGIN", "project_has_custom_login"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
@@ -3923,6 +4160,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DISCOVERABLE", "project_discoverable"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__IS_TEMPLATE", "project_is_template"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__HAS_CUSTOM_LOGIN", "project_has_custom_login"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));

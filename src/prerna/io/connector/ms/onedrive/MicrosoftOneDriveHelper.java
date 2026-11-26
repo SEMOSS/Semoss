@@ -64,6 +64,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
@@ -805,7 +806,8 @@ public class MicrosoftOneDriveHelper {
 			if (item.get(DOWNLOAD_URL) == null && !ValueUtils.isBlank(resolvedDriveId)
 					&& !ValueUtils.isBlank(resolvedItemId)) {
 				Map<String, Object> remote = readItem(accessToken,
-						GRAPH_BASE + "/drives/" + resolvedDriveId + ITEMS + resolvedItemId);
+						GRAPH_BASE + "/drives/" + ConnectorGuards.segment(resolvedDriveId) + ITEMS
+								+ ConnectorGuards.segment(resolvedItemId));
 				if (remote != null) {
 					item = remote;
 				}
@@ -1319,7 +1321,8 @@ public class MicrosoftOneDriveHelper {
 			size = download(preAuthUrl.toString(), null, file, name);
 		}
 		if (size == 0 && !ValueUtils.isBlank(driveId) && !ValueUtils.isBlank(itemId)) {
-			String contentUrl = GRAPH_BASE + "/drives/" + driveId + ITEMS + itemId + "/content";
+			String contentUrl = GRAPH_BASE + "/drives/" + ConnectorGuards.segment(driveId) + ITEMS
+					+ ConnectorGuards.segment(itemId) + "/content";
 			size = download(contentUrl, headers(accessToken), file, name);
 		}
 		if (size == 0) {
@@ -1353,7 +1356,15 @@ public class MicrosoftOneDriveHelper {
 		// named up front, so a download that breaks part way is deleted too
 		File temp = new File(folder, ".download-" + UUID.randomUUID());
 		try {
-			temp = HttpHelperUtility.getRequestFileDownload(url, headers, null, null, null, folder, temp.getName());
+			// with the token the link has to be Graph's own; without it, a plain https link
+			url = headers == null ? ConnectorGuards.requirePreAuthenticated(url)
+					: ConnectorGuards.requireUnder(url, MicrosoftTokenFiller.MS_GRAPH_BASE_API);
+			File saved = HttpHelperUtility.getRequestFileDownload(url, headers, null, null, null, folder,
+					temp.getName());
+			// only the temp file named above is moved or deleted, never a path the helper hands back
+			if (saved == null || !temp.getCanonicalFile().equals(saved.getCanonicalFile())) {
+				throw new IllegalStateException("The download was not saved as " + temp.getName());
+			}
 			long size = temp.length();
 			checkDownloadSize(size, name);
 			if (size > 0) {
@@ -1387,7 +1398,10 @@ public class MicrosoftOneDriveHelper {
 	 * Teams attachment's that its sender chose, may carry "../" and would otherwise
 	 * write outside the destination.
 	 */
-	static String baseName(String name) {
+	public static String baseName(String name) {
+		if (name == null) {
+			throw new IllegalArgumentException("Not a file name: null");
+		}
 		String base = name.replace('\\', '/');
 		base = base.substring(base.lastIndexOf('/') + 1).trim();
 		if (base.isEmpty() || base.equals(".") || base.equals("..")) {
@@ -1475,6 +1489,7 @@ public class MicrosoftOneDriveHelper {
 		final String CONTENT_RANGE = "Content-Range";
 
 		// the upload session url is pre-authenticated, so the bearer header is omitted
+		uploadUrl = ConnectorGuards.requirePreAuthenticated(uploadUrl);
 		long totalSize = file.length();
 		long offset = 0;
 		String lastResponse = null;
@@ -1673,7 +1688,10 @@ public class MicrosoftOneDriveHelper {
 		List<Map<String, Object>> collected = new ArrayList<>();
 		String nextUrl = url;
 		while (nextUrl != null) {
-			String response = HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null);
+			// a nextLink comes back in the response, and the request carries the token
+			String response = HttpHelperUtility.getRequest(
+					ConnectorGuards.requireUnder(nextUrl, MicrosoftTokenFiller.MS_GRAPH_BASE_API), headers(accessToken),
+					null, null, null);
 			Map<String, Object> json = readMap(response);
 			if (json == null) {
 				break;
@@ -1700,7 +1718,7 @@ public class MicrosoftOneDriveHelper {
 		if (ValueUtils.isBlank(driveId)) {
 			return GRAPH_BASE + "/me/drive";
 		}
-		return GRAPH_BASE + "/drives/" + driveId.trim();
+		return GRAPH_BASE + "/drives/" + ConnectorGuards.segment(driveId);
 	}
 
 	/**
@@ -1722,7 +1740,7 @@ public class MicrosoftOneDriveHelper {
 		String base = drivePath(driveId);
 		String relativePath = encodeRelativePath(path);
 		if (!ValueUtils.isBlank(itemId)) {
-			String itemBase = base + ITEMS + itemId.trim();
+			String itemBase = base + ITEMS + ConnectorGuards.segment(itemId);
 			return relativePath.isEmpty() ? itemBase : itemBase + ":/" + relativePath + ":";
 		}
 		return relativePath.isEmpty() ? base + "/root" : base + "/root:/" + relativePath + ":";

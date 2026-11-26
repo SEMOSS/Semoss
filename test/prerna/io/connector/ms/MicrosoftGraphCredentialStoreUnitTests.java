@@ -53,7 +53,6 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
-import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.util.JdbcTestDatabase;
 import prerna.util.SystemEngineRegistry;
 
@@ -71,8 +70,7 @@ class MicrosoftGraphCredentialStoreUnitTests {
 			assertFalse(MicrosoftGraphCredentialStore.isRefreshable(token));
 			assertThrows(IllegalArgumentException.class, () -> MicrosoftGraphCredentialStore.save(token));
 			token.setProvider(AuthProvider.MICROSOFT);
-			token.removeMetaKey(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY);
-			token.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, " ");
+			token.setRefresh_token(" ");
 			assertFalse(MicrosoftGraphCredentialStore.isRefreshable(token));
 		}
 	}
@@ -93,8 +91,7 @@ class MicrosoftGraphCredentialStoreUnitTests {
 				assertEquals(1, fillers.constructed().size());
 				AccessToken persisted = MicrosoftGraphCredentialStore.get("account-one");
 				assertEquals("new-access", persisted.getAccess_token());
-				assertEquals("new-refresh", persisted.getMetaValues(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY)
-						.iterator().next());
+				assertEquals("new-refresh", persisted.getRefresh_token());
 				assertEquals(renewed.getStartTime() + renewed.getExpires_in() * 1000L,
 						persisted.getStartTime() + persisted.getExpires_in() * 1000L);
 				assertEquals("mail@example.test", persisted.getEmail());
@@ -156,8 +153,10 @@ class MicrosoftGraphCredentialStoreUnitTests {
 
 	@Test
 	void renewalSavesThroughAPackageAllowedToUseTheSecurityDatabase() {
-		// JdbcTestDatabase mocks the registry, which skips its caller check, so this runs the real one. No security
-		// database is loaded here, so a save that passes the check fails only for want of one.
+		// JdbcTestDatabase mocks the registry, which skips its caller check, so this
+		// runs the real one. No security
+		// database is loaded here, so a save that passes the check fails only for want
+		// of one.
 		assumeFalse(SystemEngineRegistry.isSecurityDbLoaded());
 		assertThrows(IllegalStateException.class,
 				() -> MicrosoftGraphCredentialStore.update(token("new-access", "new-refresh", 3_600_000L)));
@@ -196,7 +195,7 @@ class MicrosoftGraphCredentialStoreUnitTests {
 		token.setId("account-one");
 		token.setEmail("mail@example.test");
 		token.setAccess_token(value);
-		token.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, refresh);
+		token.setRefresh_token(refresh);
 		token.setExpires_in(3600);
 		token.setStartTime(System.currentTimeMillis() - 3_600_000L + remainingMillis);
 		return token;

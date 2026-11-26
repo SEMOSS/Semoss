@@ -61,8 +61,8 @@ public final class EngineCallPermission {
 	 * uses, when the engine gives it one.
 	 *
 	 * @return the app whose custom reactors made the call or the engine whose own
-	 *         code made it; null for a call made by the platform, by a person, or by
-	 *         an app or engine the engine gives no permission
+	 *         code made it; null for a call made by the platform, by a person, or
+	 *         by an app or engine the engine gives no permission
 	 */
 	public static EngineGrantee granteeMakingTheCall() {
 		State state = RUNNING.get();
@@ -115,7 +115,8 @@ public final class EngineCallPermission {
 	/**
 	 * Marks the start of a call the proxy passes on to its engine. A call made
 	 * inside another call gets its own state, so an engine called by the engine an
-	 * app called does not see the app.
+	 * app called sees the calling engine, and sees the app only when the engine
+	 * gives the calling engine no permission and gives the app one.
 	 *
 	 * @param engine  the engine answering the call
 	 * @param grantee the app or engine whose permission the call uses, or null

@@ -52,6 +52,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.antivirus.IVirusScanner;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
@@ -212,7 +213,7 @@ public class VirusTotalScannerUtils implements IVirusScanner {
 		CloseableHttpClient httpClient = null;
 		try {
 			httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass, keyPass);
-			HttpGet httpGet = new HttpGet(VIRUS_TOTAL_URL + analysisFileId);
+			HttpGet httpGet = new HttpGet(VIRUS_TOTAL_URL + ConnectorGuards.segment(analysisFileId));
 			httpGet.addHeader("x-apikey", this.apiKey);
 			httpGet.addHeader("accept", "application/json");
 

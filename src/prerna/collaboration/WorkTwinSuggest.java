@@ -174,7 +174,7 @@ public final class WorkTwinSuggest {
 	public static Map<String, Object> suggest(User user, String prompt, List<String> kinds, Integer sinceDays) {
 		String asked = prompt == null ? "" : prompt.replaceAll("\\s+", " ").trim();
 		if (asked.isEmpty()) {
-			throw new IllegalArgumentException("Say what your Digital Twin should know");
+			throw new IllegalArgumentException("Say what this twin should know");
 		}
 		if (asked.length() > MAX_PROMPT) {
 			throw new IllegalArgumentException("Keep it to " + MAX_PROMPT + " characters or fewer");

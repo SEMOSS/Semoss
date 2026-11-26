@@ -222,25 +222,25 @@ public final class BrainTopicBrief {
 		return null;
 	}
 
-	/**
-	 * Open Work items on the topic's confirmed threads or linked to the topic, most important first. Until the
-	 * action item model settles (SEMOSS/Semoss#3109) these are the topic's action items.
-	 */
-	static List<Map<String, Object>> openItems(String ownerId, String ownerType, String topicId, int limit) {
-		return CollaborationDbUtils.query(CollaborationDbUtils.page("SELECT w.ITEM_ID, w.TITLE, w.THREAD_ID, "
-				+ "w.DUE_AT, w.PRIORITY FROM WORK_ITEM w WHERE w.OWNER_ID = ? AND w.OWNER_TYPE = ? AND w.STATUS = ? "
-				+ "AND (w.LINK_TOPIC_ID = ? OR w.THREAD_ID IN (SELECT THREAD_ID FROM BRAIN_THREAD_TOPIC "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND SOURCE <> ?)) "
-				+ "ORDER BY COALESCE(w.SCORE, 0) DESC, w.DUE_AT, w.ITEM_ID", limit, 0), rs -> {
-					Map<String, Object> item = new LinkedHashMap<>();
-					item.put("itemId", rs.getString("ITEM_ID"));
-					item.put("title", CollaborationDbUtils.getString(rs, "TITLE"));
-					item.put("threadId", CollaborationDbUtils.getString(rs, "THREAD_ID"));
-					Timestamp due = rs.getTimestamp("DUE_AT");
-					item.put("dueAt", due == null ? null : CollaborationDbUtils.toIso(due));
-					item.put("priority", CollaborationDbUtils.getString(rs, "PRIORITY"));
-					return item;
-				}, ownerId, ownerType, "open", topicId, ownerId, ownerType, topicId, BrainTopicUtils.SUGGESTED);
+	/** The topic's open work items: title, status, due, whether the owner reviewed it, and the next step. */
+	static List<Map<String, Object>> openWork(String ownerId, String ownerType, String topicId, int limit) {
+		List<Map<String, Object>> out = new ArrayList<>();
+		for (Object o : (List<?>) WorkTaskUtils.listMyWork(ownerId, ownerType, Map.of("topicId", topicId)).get("workItems")) {
+			if (!(o instanceof Map<?, ?> m) || out.size() >= limit) {
+				continue;
+			}
+			@SuppressWarnings("unchecked")
+			Map<String, Object> item = (Map<String, Object>) m;
+			Map<String, Object> row = new LinkedHashMap<>();
+			row.put("id", item.get("id"));
+			row.put("title", item.get("title"));
+			row.put("status", item.get("status"));
+			row.put("due", item.get("due"));
+			row.put("reviewed", !WorkTaskUtils.PROPOSED.equals(item.get("state")));
+			row.put("next", nextStep(item));
+			out.add(row);
+		}
+		return out;
 	}
 
 	private static String clip(String text, int max) {

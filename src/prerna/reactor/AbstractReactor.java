@@ -79,6 +79,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.TypeReference;
+import prerna.util.Utility;
 import prerna.util.ValueUtils;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZonedDateTimeAdapter;
@@ -2589,8 +2590,8 @@ public abstract class AbstractReactor implements IReactor {
 	 *
 	 * <p>
 	 * A leading slash is taken as the root of the insight folder rather than of the
-	 * server, and {@link MCPUtility#resolveContainedMcpFile} refuses a path that
-	 * climbs out of the folder.
+	 * server, and {@link Utility#resolveContainedFile} refuses a path that climbs
+	 * out of the folder.
 	 * </p>
 	 *
 	 * @param key the key naming the files
@@ -2617,7 +2618,7 @@ public abstract class AbstractReactor implements IReactor {
 			}
 			File file;
 			try {
-				file = MCPUtility.resolveContainedMcpFile(insightFolder, relative).toFile();
+				file = Utility.resolveContainedFile(insightFolder, relative).toFile();
 			} catch (NoSuchFileException e) {
 				// the exception names the server side path, which the caller is not shown
 				throw new SemossPixelException("No file exists in the insight folder at: " + relative);

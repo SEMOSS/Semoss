@@ -33,6 +33,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -101,7 +102,7 @@ public final class WorkTwinFiles {
 		// one answer whether the chat has no agent, its agent is not a twin, or the twin is someone else's:
 		// only its owner is told that an agent is a twin
 		if (!canManage(user, twinId)) {
-			throw new IllegalArgumentException("Files can only be added in a chat with your own Digital Twin");
+			throw new IllegalArgumentException("Files can only be added in your own chat with a twin you share");
 		}
 		Path source = chatFile(Path.of(Room.roomFolderPath(room.getId())), path);
 		IProject project = Utility.getProject(twinId);
@@ -155,7 +156,7 @@ public final class WorkTwinFiles {
 	public static Map<String, Object> remove(User user, Room room, String path) {
 		String twinId = room == null ? null : agentOf(room);
 		if (!canManage(user, twinId)) {
-			throw new IllegalArgumentException("Files can only be removed in a chat with your own Digital Twin");
+			throw new IllegalArgumentException("Files can only be removed in your own chat with a twin you share");
 		}
 		IProject project = Utility.getProject(twinId);
 		if (project == null) {
@@ -378,17 +379,15 @@ public final class WorkTwinFiles {
 			throw new IllegalArgumentException("Pass the path of a file in this chat's folder");
 		}
 		String clean = path.trim();
+		String folder = chatFolder.toString();
 		try {
-			Path root = chatFolder.toRealPath();
-			Path file = root.resolve(clean);
-			if (!Files.exists(file)) {
+			try {
+				return Utility.resolveContainedFile(folder, clean);
+			} catch (NoSuchFileException e) {
 				// an upload stores "R&D.pptx" as "R&amp;D.pptx", and a model asks for the name as it is written
 				int name = clean.lastIndexOf('/') + 1;
-				file = root.resolve(clean.substring(0, name) + Utility.inputSanitizer(clean.substring(name)));
-			}
-			file = file.toRealPath();
-			if (file.startsWith(root) && Files.isRegularFile(file)) {
-				return file;
+				return Utility.resolveContainedFile(folder,
+						clean.substring(0, name) + Utility.inputSanitizer(clean.substring(name)));
 			}
 		} catch (IOException | RuntimeException e) {
 			// nothing there, or not a path at all: the answer below

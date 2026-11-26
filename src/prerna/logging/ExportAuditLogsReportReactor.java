@@ -132,13 +132,14 @@ public class ExportAuditLogsReportReactor extends AbstractReactor {
 
 		List<String> methodNames = getListFromSearch(searchMap, SemossLogUtils.METHOD_NAME);
 		List<String> engineTypes = getListFromSearch(searchMap, SemossLogUtils.ENGINE_TYPE);
+		List<String> accessReasons = getListFromSearch(searchMap, SemossLogUtils.ACCESS_REASON);
 
 		String searchTerm = getString(map, "searchTerm");
 
 		List<LogActivityRecord> result = Collections.emptyList();
 		try {
 			result = AuditLogsDbUtils.getAuditLogsTimeLineData(filterUserId, projectId, engineId, startDate, endDate,
-					roomId, sessionId, limit, offset, methodNames, engineTypes, searchTerm);
+					roomId, sessionId, limit, offset, methodNames, engineTypes, accessReasons, searchTerm);
 		} catch (SQLException e) {
 			classLogger.error("Error executing audit log fetch: {}", e.getMessage(), e);
 			throw new IllegalArgumentException("Error executing audit log fetch: " + e.getMessage());
@@ -194,7 +195,7 @@ public class ExportAuditLogsReportReactor extends AbstractReactor {
 		try (FileWriter writer = new FileWriter(f); BufferedWriter bufferedWriter = new BufferedWriter(writer)) {
 			// Write Headers
 			bufferedWriter.write(
-					"\"RequestId\",\"StartTime\",\"EndTime\",\"Request\",\"Response\",\"Tokens\",\"Latency\",\"Status\",\"EngineName\",\"EngineType\",\"MethodName\",\"UserName\",\"UserId\",\"SessionId\",\"SpanId\",\"LogTimestamp\",\"BilledSourceType\",\"BilledSubjectId\",\"BilledSubjectType\"\n");
+					"\"RequestId\",\"StartTime\",\"EndTime\",\"Request\",\"Response\",\"Tokens\",\"Latency\",\"Status\",\"EngineName\",\"EngineType\",\"MethodName\",\"UserName\",\"UserId\",\"SessionId\",\"SpanId\",\"LogTimestamp\",\"BilledSourceType\",\"BilledSubjectId\",\"BilledSubjectType\",\"AccessReason\",\"AccessDetails\"\n");
 
 			// Write Data
 			for (LogActivityRecord record : records) {
@@ -217,7 +218,9 @@ public class ExportAuditLogsReportReactor extends AbstractReactor {
 				builder.append(escapeCsv(record.logTimestamp())).append(",");
 				builder.append(escapeCsv(record.billedSourceType())).append(",");
 				builder.append(escapeCsv(record.billedSubjectId())).append(",");
-				builder.append(escapeCsv(record.billedSubjectType()));
+				builder.append(escapeCsv(record.billedSubjectType())).append(",");
+				builder.append(escapeCsv(record.accessReason())).append(",");
+				builder.append(escapeCsv(record.accessDetails()));
 				builder.append("\n");
 
 				bufferedWriter.write(builder.toString());
@@ -276,6 +279,10 @@ public class ExportAuditLogsReportReactor extends AbstractReactor {
 						htmlBuilder, "Billed To", new ModelUsageBilledTo(record.billedSourceType(),
 								record.billedSubjectId(), record.billedSubjectType()).label(),
 						"Billed Subject", record.billedSubjectId());
+			}
+			if (record.accessReason() != null) {
+				appendMetaRow(htmlBuilder, "Access Reason", record.accessReason(), "Access Details",
+						record.accessDetails());
 			}
 			htmlBuilder.append("</table>");
 

@@ -58,7 +58,6 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IEngine;
@@ -80,14 +79,16 @@ import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
-import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.AgentUseAccess;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 public class Room implements Serializable {
 
@@ -139,7 +140,8 @@ public class Room implements Serializable {
 	 * Populated by {@link #getAllToolsJsonForRoom(int)} and consumed by
 	 * {@link #updateToolResponseMeta(ResponseMessage)}.
 	 */
-	// Replaced wholesale on each rebuild so concurrent readers always see a complete map.
+	// Replaced wholesale on each rebuild so concurrent readers always see a
+	// complete map.
 	private transient volatile Map<String, Map<String, Object>> toolLookupByLLMName = new HashMap<>();
 
 	/**
@@ -187,8 +189,8 @@ public class Room implements Serializable {
 			snapshot.parentRoomId = this.parentRoomId;
 			snapshot.insight = this.insight;
 			snapshot.roomFolderPath = this.roomFolderPath;
-			snapshot.setOptionsMap(GSON.fromJson(GSON.toJson(getOptionsMap()),
-					new TypeToken<Map<String, Object>>() {}.getType()));
+			snapshot.setOptionsMap(GSON.fromJson(GSON.toJson(getOptionsMap()), new TypeToken<Map<String, Object>>() {
+			}.getType()));
 			for (AbstractMessage message : this.messages) {
 				snapshot.messages.add(MessageUtils.deepCopy(message));
 			}
@@ -783,8 +785,8 @@ public class Room implements Serializable {
 					toolResultsMessage.setParts(parts);
 					toolResultsMessage.normalizeForWrite();
 				}
-				// A provider tool the model called beside ours is still waiting: the provider runs
-				// it only when the message carrying our results holds nothing else.
+				// A provider tool the model called beside ours is still waiting: the provider
+				// runs it only when the message carrying our results holds nothing else.
 				if (runtimeContext != null && !runtimeContext.isBlank()
 						&& !hasPendingProviderToolCall(context.toolResponse)
 						&& toolResultsMessage.getParts().stream().noneMatch(part -> part instanceof TextMessagePart text
@@ -1289,15 +1291,13 @@ public class Room implements Serializable {
 				MCPUtility.requiresLLMNameSanitization(modelEngine));
 		Object existing = params.get("tools");
 		if (deferredLoading) {
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> tools = existing instanceof List<?>
-					? new ArrayList<>((List<Map<String, Object>>) existing) : new ArrayList<>();
+			List<Map<String, Object>> tools = toolMaps(existing);
 			tools.addAll(newTools);
 			params.put("tools", DeferredAgentTools.filterForModel(this, tools));
 		} else if (existing instanceof List<?>) {
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> toolsList = (List<Map<String, Object>>) existing;
+			List<Map<String, Object>> toolsList = toolMaps(existing);
 			toolsList.addAll(newTools);
+			params.put("tools", toolsList);
 		} else if (existing == null) {
 			params.put("tools", new ArrayList<>(newTools));
 		} else {
@@ -1358,7 +1358,6 @@ public class Room implements Serializable {
 	 * the exact names sent to the model, so callers must pass the same flag the
 	 * model invocation used.
 	 */
-	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> getAllToolsJsonForRoom(int maxLength, boolean sanitizeToolNamesForLLM) {
 		Map<String, Map<String, Object>> lookup = new HashMap<>();
 		List<Map<String, Object>> aggregated = new ArrayList<>();
@@ -1380,8 +1379,7 @@ public class Room implements Serializable {
 
 		if (o.containsKey("mcp")) {
 			try {
-				List<Map<String, Object>> mapMapList = (List<Map<String, Object>>) o.get("mcp");
-				for (Map<String, Object> mcpMap : mapMapList) {
+				for (Map<String, Object> mcpMap : toolMaps(o.get("mcp"))) {
 					try {
 						if (mcpMap.containsKey("id")) {
 							String id = (String) mcpMap.get("id");
@@ -1405,7 +1403,7 @@ public class Room implements Serializable {
 
 		if (o.containsKey("workspace")) {
 			try {
-				Map<String, Object> workspace = (Map<String, Object>) o.get("workspace");
+				Map<String, Object> workspace = ValueUtils.toStringKeyMap(o.get("workspace"));
 				if (workspace != null && workspace.containsKey("workspace_id")) {
 					String workspaceId = (String) workspace.get("workspace_id");
 
@@ -1503,7 +1501,6 @@ public class Room implements Serializable {
 	 *                                restricted to [a-zA-Z0-9_] (Bedrock/Nova)
 	 * @return list of non-disabled tool definition maps
 	 */
-	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> getToolJson(String engineId, int maxLength, boolean sanitizeToolNamesForLLM,
 			Map<String, Map<String, Object>> lookup) {
 		// room level MCPs
@@ -1544,9 +1541,8 @@ public class Room implements Serializable {
 					result.add(entry);
 					String llmName = toolObj.getString("name");
 					Map<String, Object> lookupMeta = new HashMap<>(engineMeta);
-					Object rawMeta = entry.get("_meta");
-					if (rawMeta instanceof Map) {
-						lookupMeta.putAll((Map<String, Object>) rawMeta);
+					if (entry.get("_meta") instanceof Map<?, ?> rawMeta) {
+						rawMeta.forEach((key, value) -> lookupMeta.put(String.valueOf(key), value));
 					}
 					lookupMeta.put(MCPUtility.SMSS_ENGINE_ID, MCPUtility.ROOM_MCP_ID);
 					lookupMeta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, originalNames.get(i));
@@ -1624,9 +1620,8 @@ public class Room implements Serializable {
 					// Engine-level fields go in first; tool-level meta overrides on top.
 					String llmFacingName = toolObj.getString("name");
 					Map<String, Object> lookupMeta = new HashMap<>(engineMeta);
-					Object rawToolMeta = toolMapEntry.get("_meta");
-					if (rawToolMeta instanceof Map) {
-						lookupMeta.putAll((Map<String, Object>) rawToolMeta);
+					if (toolMapEntry.get("_meta") instanceof Map<?, ?> rawToolMeta) {
+						rawToolMeta.forEach((key, value) -> lookupMeta.put(String.valueOf(key), value));
 					}
 					// the user might already have an indirection between the tool name and function
 					// name so if this key already exists keep using that
@@ -1703,7 +1698,6 @@ public class Room implements Serializable {
 	 * @param llmFacingName the name as the model called it
 	 * @return the original tool name, or the input unchanged when unknown
 	 */
-	@SuppressWarnings("unchecked")
 	public String resolveOriginalToolName(String llmFacingName) {
 		if (llmFacingName == null || llmFacingName.isBlank()) {
 			return llmFacingName;
@@ -1712,9 +1706,8 @@ public class Room implements Serializable {
 		if (entry == null) {
 			return llmFacingName;
 		}
-		Object rawMeta = entry.get("_meta");
-		if (rawMeta instanceof Map) {
-			Object original = ((Map<String, Object>) rawMeta).get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
+		if (entry.get("_meta") instanceof Map<?, ?> rawMeta) {
+			Object original = rawMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
 			if (original instanceof String && !((String) original).isBlank()) {
 				return (String) original;
 			}
@@ -1795,7 +1788,7 @@ public class Room implements Serializable {
 			return null;
 		}
 		User user = this.insight.getUser();
-		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+		if (!AgentUseAccess.mayUseAgent(user, this, workspaceId)) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}
@@ -2071,6 +2064,26 @@ public class Room implements Serializable {
 	}
 
 	/**
+	 * The maps in a list value, such as the tools in a call's params or the room's
+	 * MCP entries, each with text keys; anything that is not a map is left out.
+	 *
+	 * @param value a list, or anything else
+	 * @return a new list of the list's maps; empty when the value is not a list
+	 */
+	private static List<Map<String, Object>> toolMaps(Object value) {
+		List<Map<String, Object>> maps = new ArrayList<>();
+		if (value instanceof List<?> list) {
+			for (Object item : list) {
+				Map<String, Object> map = ValueUtils.toStringKeyMap(item);
+				if (map != null) {
+					maps.add(map);
+				}
+			}
+		}
+		return maps;
+	}
+
+	/**
 	 * Resolves a map/JSON-object key on the current traversal value.
 	 *
 	 * @param cur current traversal object
@@ -2081,9 +2094,7 @@ public class Room implements Serializable {
 		if (cur == null) {
 			return null;
 		}
-		if (cur instanceof Map<?, ?>) {
-			@SuppressWarnings("unchecked")
-			Map<String, Object> m = (Map<String, Object>) cur;
+		if (cur instanceof Map<?, ?> m) {
 			return m.get(key);
 		}
 		if (cur instanceof JsonObject) {
@@ -2416,7 +2427,8 @@ public class Room implements Serializable {
 	 * @return the room folder path
 	 */
 	public static String roomFolderPath(String roomId) {
-		return Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		// every room folder is built here, so the id has to be a single folder name inside the room folder
+		return Utility.childPath(Utility.getBaseFolder() + File.separator + "room", roomId, "room id");
 	}
 
 	// Core message accessors

@@ -386,6 +386,14 @@ public final class BrainProfileUtils {
 		// read-only: whether this deployment's Microsoft sign in asks for the scope a
 		// meeting transcript is read with, so a page offers one only where it can be read
 		settings.put("meetingTranscripts", CollaborationAgentTools.transcriptsRequested());
+		// read-only here (WorkSaveMainTwin changes it): the user's own Digital Twin, which is that agent under
+		// the name and picture they chose. The web reads these settings in its first load, where one failed
+		// statement fails all of it, so a twin that cannot be read is left out
+		try {
+			settings.put("mainTwin", WorkMainTwin.get(user));
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not read the user's own Digital Twin for their settings", e);
+		}
 		return settings;
 	}
 

@@ -278,6 +278,9 @@ public final class UploadUtilities {
 		if (engineName == null || engineName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the database");
 		}
+		// both become the engine folder and file names, so check them before anything is written
+		Utility.requireSafePathSegment(engineName, "engine name");
+		Utility.requireSafePathSegment(engineId, "engine id");
 
 		// need to make sure engine folder doesn't already exist
 		String engineLocation = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
@@ -1540,8 +1543,14 @@ public final class UploadUtilities {
 	 * @return
 	 */
 	private static String getEngineTempSmssLoc(IEngine.CATALOG_TYPE engineType, String engineId, String engineName) {
-		return EngineUtility.getLocalEngineBaseDirectory(engineType) + "/"
-				+ SmssUtilities.getUniqueName(engineName, engineId) + ".temp";
+		// the id and name come from callers and remote APIs, so the file has to stay in the engine folder;
+		// each is checked on its own, since the unique name normalizes away segments such as ..
+		Utility.requireSafePathSegment(engineId, "engine id");
+		if (engineName != null) {
+			Utility.requireSafePathSegment(engineName, "engine name");
+		}
+		return Utility.childPath(EngineUtility.getLocalEngineBaseDirectory(engineType),
+				SmssUtilities.getUniqueName(engineName, engineId) + ".temp", "engine name");
 	}
 
 	/**

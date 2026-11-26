@@ -101,7 +101,7 @@ public final class BrainTopicUtils {
 		}
 
 		Map<String, Integer> threads = countThreadsByTopic(ownerId, ownerType);
-		Map<String, Integer> openItems = countOpenItemsByTopic(ownerId, ownerType);
+		Map<String, Integer> openItems = WorkTaskUtils.openByTopic(ownerId, ownerType);
 		List<Map<String, Object>> items = CollaborationDbUtils.query(CollaborationDbUtils.page(
 				"SELECT " + SUMMARY_COLUMNS + " FROM BRAIN_TOPIC" + where + " ORDER BY NAME, TOPIC_ID", limit, offset),
 				rs -> mapSummary(rs, threads, openItems), params.toArray());
@@ -133,7 +133,7 @@ public final class BrainTopicUtils {
 
 	public static Map<String, Object> getTopic(String ownerId, String ownerType, String topicId) {
 		Map<String, Integer> threads = Map.of(topicId, countThreads(ownerId, ownerType, topicId));
-		Map<String, Integer> openItems = Map.of(topicId, countOpenItems(ownerId, ownerType, topicId));
+		Map<String, Integer> openItems = WorkTaskUtils.openByTopic(ownerId, ownerType);
 		Map<String, Object> topic = CollaborationDbUtils.queryOne(
 				"SELECT " + SUMMARY_COLUMNS + ", DESCRIPTION, KEYWORDS_JSON, CALENDAR_SERIES_JSON FROM BRAIN_TOPIC "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
@@ -151,7 +151,7 @@ public final class BrainTopicUtils {
 		}
 
 		// the topic's notes are memories linked to it (BrainListMemories)
-		topic.put("openActionItems", BrainTopicBrief.openItems(ownerId, ownerType, topicId, OPEN_ITEMS_SHOWN));
+		topic.put("openWorkItems", BrainTopicBrief.openWork(ownerId, ownerType, topicId, OPEN_ITEMS_SHOWN));
 		topic.put("people", getPeople(ownerId, ownerType, topicId));
 		topic.put("folders", BrainMailFolders.ofTopic(ownerId, ownerType, topicId));
 		topic.put("files", BrainTopicFiles.ofTopic(ownerId, ownerType, topicId));
@@ -693,21 +693,6 @@ public final class BrainTopicUtils {
 	private static Map<String, Integer> countThreadsByTopic(String ownerId, String ownerType) {
 		return countByTopic("SELECT TOPIC_ID, COUNT(*) FROM BRAIN_THREAD_TOPIC "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? GROUP BY TOPIC_ID", ownerId, ownerType);
-	}
-
-	// open work items on threads linked to the topic
-	private static final String OPEN_ITEMS_FROM = " FROM WORK_ITEM w JOIN BRAIN_THREAD_TOPIC tt "
-			+ "ON tt.OWNER_ID = w.OWNER_ID AND tt.OWNER_TYPE = w.OWNER_TYPE AND tt.THREAD_ID = w.THREAD_ID "
-			+ "WHERE w.OWNER_ID = ? AND w.OWNER_TYPE = ? AND w.STATUS = ?";
-
-	private static int countOpenItems(String ownerId, String ownerType, String topicId) {
-		return CollaborationDbUtils.count("SELECT COUNT(DISTINCT w.ITEM_ID)" + OPEN_ITEMS_FROM + " AND tt.TOPIC_ID = ?",
-				ownerId, ownerType, "open", topicId);
-	}
-
-	private static Map<String, Integer> countOpenItemsByTopic(String ownerId, String ownerType) {
-		return countByTopic("SELECT tt.TOPIC_ID, COUNT(DISTINCT w.ITEM_ID)" + OPEN_ITEMS_FROM + " GROUP BY tt.TOPIC_ID",
-				ownerId, ownerType, "open");
 	}
 
 	private static Map<String, Integer> countByTopic(String sql, Object... params) {

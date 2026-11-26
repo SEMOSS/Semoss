@@ -110,6 +110,7 @@ import prerna.reactor.collaboration.WorkSaveToTwinReactor;
 import prerna.reactor.collaboration.WorkSaveWorkReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 import prerna.reactor.collaboration.WorkShowItemReactor;
+import prerna.reactor.collaboration.WorkShowOrgChartReactor;
 import prerna.reactor.collaboration.WorkUpdateStepReactor;
 import prerna.reactor.collaboration.WorkUseSkillInAssistantReactor;
 
@@ -189,6 +190,7 @@ public final class CollaborationAgentTools {
 		// puts one found email, thread, Teams chat, or room file beside the owner's
 		// chat, on request
 		REACTORS.put("ShowItem", WorkShowItemReactor.class);
+		REACTORS.put("ShowOrgChart", WorkShowOrgChartReactor.class);
 		REACTORS.put("ListTeams", MicrosoftTeamsListTeamsReactor.class);
 		REACTORS.put("ListChannels", MicrosoftTeamsListChannelsReactor.class);
 		REACTORS.put("ListChannelFiles", MicrosoftTeamsListFilesReactor.class);
@@ -243,10 +245,8 @@ public final class CollaborationAgentTools {
 	// times the model writes are read in the owner's zone too: CreateEvent at 09:00 with no zone was 09:00 UTC
 	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent", "CreateEvent", "UpdateEvent");
 
-	// tools about the chat itself: only for the owner's chat at the root of the
-	// run, never a routine;
-	// ShowItem needs the owner's chat on screen to show anything
-	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "ShowItem");
+	// These tools display or change the owner's current chat.
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "ShowItem", "ShowOrgChart");
 
 	// the email editor is open in the owner's chat; a routine has none, its
 	// delivery step sends the result
@@ -276,7 +276,9 @@ public final class CollaborationAgentTools {
 			"UploadChannelFile", "GetChat", "GetChatMessage", "ListMySkills", "OpenSkill", "PublishSkill",
 			"UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines", "ManageRoutine");
 	// what the chat card calls a tool when its words alone would not say it
-	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat");
+	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat", "UseSkillInAssistant",
+			"Digital Twin Skills", "SaveToDigitalTwin", "Add a File to This Twin", "RemoveFromDigitalTwin",
+			"Remove a File From This Twin");
 
 	// said first in a mail tool's description, so the model knows which side of
 	// Brain it is on

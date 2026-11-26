@@ -28,6 +28,7 @@
 package prerna.auth.utils;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -122,6 +123,37 @@ class ResourceWriteAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
 		assertThrows(IllegalArgumentException.class, () -> ResourceWriteAccess.requireNewOwner(stranger, newEngine));
 		assertTrue(SecurityEngineUtils.userIsOwner(stranger, "newdb"));
+	}
+
+	@Test
+	void noOneCreatesAnEngineWithTheIdOfAProjectOrAProjectWithTheIdOfAnEngine() {
+		for (User creator : List.of(stranger, admin)) {
+			IllegalArgumentException engineRefused = assertThrows(IllegalArgumentException.class,
+					() -> SecurityEngineUtils.addEngine(PROJECT_ID, "orders", IEngine.CATALOG_TYPE.DATABASE, null, null,
+							false, creator));
+			assertEquals(
+					"A project already has the id " + PROJECT_ID + ". An engine cannot have the same id as a project.",
+					engineRefused.getMessage());
+
+			IllegalArgumentException projectRefused = assertThrows(IllegalArgumentException.class,
+					() -> SecurityProjectUtils.addProject(ENGINE_ID, "orders", "APP", null, false, creator));
+			assertEquals(
+					"An engine already has the id " + ENGINE_ID + ". A project cannot have the same id as an engine.",
+					projectRefused.getMessage());
+		}
+		assertFalse(SecurityEngineUtils.engineExists(PROJECT_ID));
+		assertFalse(SecurityProjectUtils.projectExists(ENGINE_ID));
+	}
+
+	@Test
+	void thePlatformStillRegistersAnEngineAndAProjectThatShareAnIdFromBefore() {
+		try (PlatformOperation operation = PlatformOperation.begin("test")) {
+			SecurityEngineUtils.addEngine(PROJECT_ID, "orders", IEngine.CATALOG_TYPE.DATABASE, null, null, false, null);
+			SecurityProjectUtils.addProject(ENGINE_ID, "orders", "APP", null, false, null);
+		}
+
+		assertTrue(SecurityEngineUtils.engineExists(PROJECT_ID));
+		assertTrue(SecurityProjectUtils.projectExists(ENGINE_ID));
 	}
 
 	@Test

@@ -31,18 +31,23 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
+import java.nio.file.NoSuchFileException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.message.BasicNameValuePair;
+import org.apache.hc.core5.util.Timeout;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
+
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.om.Insight;
+import prerna.security.HttpHelperUtility;
 import prerna.util.Utility;
 
 public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
@@ -50,6 +55,8 @@ public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
 	public static final String URL = "URL";
 	public static final String API_KEY = "API_KEY";
 	public static final String MODEL = "MODEL";
+
+	private static final Timeout REQUEST_TIMEOUT = Timeout.ofMinutes(5);
 
 	private String url;
 	private String apiKey;
@@ -74,48 +81,36 @@ public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
 		Insight insight = (Insight) parameterValues.getOrDefault("INSIGHT", null);
-		String instanceDir = Utility.normalizePath(insight.getInsightFolder());
 
 		String filePath = (String) parameterValues.getOrDefault("filePath", null);
 		if (filePath == null || filePath.isEmpty()) {
 			throw new IllegalArgumentException("Parameter 'filePath' is required.");
 		}
 
-		String fileLocation = instanceDir + "/" + filePath;
-
 		try {
-			return transcribe(new File(fileLocation));
-		} catch (IOException | InterruptedException e) {
+			File audioFile = Utility.resolveContainedFile(insight.getInsightFolder(), filePath.replaceFirst("^/+", ""))
+					.toFile();
+			return transcribe(audioFile);
+		} catch (NoSuchFileException e) {
+			throw new IllegalArgumentException("No file exists in the insight folder at: " + filePath, e);
+		} catch (IOException e) {
 			throw new RuntimeException("Transcription failed: " + e.getMessage(), e);
 		}
 	}
 
-	private String transcribe(File audioFile) throws IOException, InterruptedException {
-		if (!audioFile.exists()) {
-			throw new IOException("File does not exist: " + audioFile.getAbsolutePath());
-		}
-
+	private String transcribe(File audioFile) throws IOException {
 		String modelUrl = this.url.endsWith("/") ? this.url + "audio/transcriptions"
 				: this.url + "/audio/transcriptions";
 
 		String boundary = "----JavaBoundary" + UUID.randomUUID();
 		byte[] body = buildMultipartBody(boundary, this.model, audioFile);
+		ContentType contentType = ContentType.create("multipart/form-data",
+				new BasicNameValuePair("boundary", boundary));
 
-		HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build();
-
-		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(modelUrl)).timeout(Duration.ofMinutes(5))
-				.header("Authorization", "Bearer " + this.apiKey)
-				.header("Content-Type", "multipart/form-data; boundary=" + boundary)
-				.POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
-
-		HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-		int status = response.statusCode();
-		String respBody = response.body();
-
-		if (status / 100 != 2) {
-			throw new IOException("Non-2xx response (" + status + "): " + respBody);
-		}
-		return extractTextField(respBody);
+		String response = HttpHelperUtility.postRequestBytesBody(
+				HttpHelperUtility.getSystemClient(null, null, null, null, REQUEST_TIMEOUT), modelUrl,
+				Map.of("Authorization", "Bearer " + this.apiKey), body, contentType);
+		return extractTextField(response);
 	}
 
 	private static byte[] buildMultipartBody(String boundary, String model, File audioFile) throws IOException {
@@ -165,19 +160,29 @@ public class OpenAITranscribeFunctionEngine extends AbstractFunctionEngine {
 		return "application/octet-stream";
 	}
 
-	private static String extractTextField(String json) {
-		String key = "\"text\":";
-		int idx = json.indexOf(key);
-		if (idx == -1) {
-			return json;
+	/**
+	 * Reads the transcript from the reply: the {@code text} field of a JSON object.
+	 * A reply that is not JSON or has no {@code text} field is returned as it came.
+	 *
+	 * @param response the reply body, or null when it had none
+	 * @return the transcript, or an empty string for an empty reply
+	 */
+	private static String extractTextField(String response) {
+		if (response == null || response.isBlank()) {
+			return "";
 		}
-
-		int start = json.indexOf('"', idx + key.length());
-		int end = json.indexOf('"', start + 1);
-		if (start != -1 && end != -1) {
-			return json.substring(start + 1, end);
+		try {
+			JsonElement parsed = JsonParser.parseString(response);
+			if (parsed.isJsonObject()) {
+				JsonElement text = parsed.getAsJsonObject().get("text");
+				if (text != null && text.isJsonPrimitive()) {
+					return text.getAsString();
+				}
+			}
+		} catch (JsonParseException e) {
+			return response;
 		}
-		return json;
+		return response;
 	}
 
 	@Override

@@ -51,6 +51,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.StorageTypeEnum;
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.io.connector.ms.MicrosoftGraphDriveClient;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
@@ -425,7 +426,7 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 			transfers.add(() -> {
 				try {
 					byte[] bytes = this.driveClient.downloadBytes(item, remotePath);
-					Path target = localDirectory.resolve(relative);
+					Path target = ConnectorGuards.resolveWithin(localDirectory, relative);
 					if (target.getParent() != null) {
 						Files.createDirectories(target.getParent());
 					}
@@ -511,7 +512,7 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 			String remotePath = MicrosoftGraphDriveClient.joinPath(storageFolder, relative);
 			transfers.add(() -> {
 				try {
-					Path target = localRoot.resolve(relative);
+					Path target = ConnectorGuards.resolveWithin(localRoot, relative);
 					if (needsDownload(target, item)) {
 						byte[] bytes = this.driveClient.downloadBytes(item, remotePath);
 						if (target.getParent() != null) {
@@ -675,7 +676,7 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 				versionId);
 		Object itemName = item.get(MicrosoftGraphDriveClient.NAME);
 		String fileName = itemName != null ? itemName.toString() : baseName(normalized);
-		Path target = localDirectory.resolve(fileName);
+		Path target = ConnectorGuards.resolveWithin(localDirectory, fileName);
 		Files.write(target, bytes);
 		classLogger.info("Downloaded version {} of '{}' to {}", versionId, normalized, target);
 	}
@@ -849,7 +850,9 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 	 * @throws Exception if the request fails
 	 */
 	protected Map<String, Object> graphGet(String url) throws Exception {
-		String response = HttpHelperUtility.getRequest(url,
+		// every url sent here carries the token, nextLinks included, so none may leave Graph
+		String response = HttpHelperUtility.getRequest(
+				ConnectorGuards.requireUnder(url, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
 				MicrosoftLoginUtils.getBearerHeader(this.tokenProvider.getAccessToken()), null, null, null);
 		if (response == null || response.trim().isEmpty()) {
 			return null;

@@ -34,7 +34,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -82,6 +81,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
+import prerna.engine.impl.pipeline.AgentRunOperation;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.sablecc2.PixelRunner;
@@ -97,6 +97,7 @@ import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.MimeTypeUtility;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 import prerna.util.gson.GsonUtility;
 
 public final class MCPUtility {
@@ -148,6 +149,7 @@ public final class MCPUtility {
 	public static final String COMPONENT_EMAIL_SEND = "email-send";
 	public static final String COMPONENT_CALENDAR_EVENT = "calendar-event";
 	public static final String COMPONENT_MEMORY = "memory";
+	public static final String COMPONENT_ORG_CHART = "org-chart";
 
 	/**
 	 * @deprecated Use {@link #SMSS_ENGINE_ID}, which is set for every engine type
@@ -267,46 +269,6 @@ public final class MCPUtility {
 			}
 			return null;
 		}
-	}
-
-	/**
-	 * Resolves a tool-produced relative file reference beneath its execution root.
-	 * Both paths are canonicalized so a symlink inside the root cannot escape it.
-	 *
-	 * @param rootFolderPath execution root supplied to the MCP tool
-	 * @param relativePath   tool-produced path relative to the execution root
-	 * @return canonical path to an existing regular file beneath the root
-	 * @throws IOException              when either path cannot be resolved
-	 * @throws IllegalArgumentException when the input is blank, absolute, outside
-	 *                                  the root, or not a regular file
-	 */
-	public static Path resolveContainedMcpFile(String rootFolderPath, String relativePath) throws IOException {
-		if (rootFolderPath == null || rootFolderPath.isBlank()) {
-			throw new IllegalArgumentException("MCP execution root must not be blank");
-		}
-		if (relativePath == null || relativePath.isBlank()) {
-			throw new IllegalArgumentException("MCP file reference must not be blank");
-		}
-
-		Path reference = Path.of(relativePath);
-		if (reference.isAbsolute()) {
-			throw new IllegalArgumentException("MCP file reference must be relative");
-		}
-
-		Path canonicalRoot = Path.of(rootFolderPath).toAbsolutePath().normalize().toRealPath();
-		Path candidate = canonicalRoot.resolve(reference).normalize();
-		if (!candidate.startsWith(canonicalRoot)) {
-			throw new IllegalArgumentException("MCP file reference is outside its execution root");
-		}
-
-		Path canonicalFile = candidate.toRealPath();
-		if (!canonicalFile.startsWith(canonicalRoot)) {
-			throw new IllegalArgumentException("MCP file reference resolves outside its execution root");
-		}
-		if (!Files.isRegularFile(canonicalFile, LinkOption.NOFOLLOW_LINKS)) {
-			throw new IllegalArgumentException("MCP file reference is not a regular file");
-		}
-		return canonicalFile;
 	}
 
 	/**
@@ -907,7 +869,6 @@ public final class MCPUtility {
 	 * for direct lookup (short-prefix names) when provided, falling back to
 	 * UUID-regex parsing for legacy full-UUID-prefix names.
 	 */
-	@SuppressWarnings("unchecked")
 	public static void updateToolResponseWithProjectMeta(ResponseMessage response,
 			Map<String, JSONObject> mcpToolsJsonCache, Map<String, Map<String, Object>> llmNameToToolJson) {
 		if (mcpToolsJsonCache == null) {
@@ -928,8 +889,10 @@ public final class MCPUtility {
 			if (llmNameToToolJson != null && listedName != null && llmNameToToolJson.containsKey(listedName)) {
 				Map<String, Object> toolEntry = llmNameToToolJson.get(listedName);
 				Object rawMeta = toolEntry.get("_meta");
-				Map<String, Object> enrichedMeta = (rawMeta instanceof Map) ? (Map<String, Object>) rawMeta
-						: new HashMap<>();
+				Map<String, Object> enrichedMeta = ValueUtils.toStringKeyMap(rawMeta);
+				if (enrichedMeta == null) {
+					enrichedMeta = new HashMap<>();
+				}
 
 				String origFunctionName = (String) enrichedMeta.get(SMSS_FUNCTION_NAME);
 				if (origFunctionName == null) {
@@ -1016,11 +979,11 @@ public final class MCPUtility {
 					responseToolMap.put("_meta", mcpToolsJson.getJSONObject("_meta").toMap());
 				}
 
-				Map<String, Object> currentMeta = (Map<String, Object>) responseToolMap.get("_meta");
+				Map<String, Object> currentMeta = ValueUtils.toStringKeyMap(responseToolMap.get("_meta"));
 				if (currentMeta == null) {
 					currentMeta = new HashMap<>();
-					responseToolMap.put("_meta", currentMeta);
 				}
+				responseToolMap.put("_meta", currentMeta);
 
 				if (mcpTool != null && mcpTool.has("_meta")) {
 					Map<String, Object> toolMetaMap = mcpTool.getJSONObject("_meta").toMap();
@@ -1050,30 +1013,26 @@ public final class MCPUtility {
 	 * pinned routing inputs such as recording_file and project_id. Applying only
 	 * missing top-level values preserves every value the model/user supplied.
 	 */
-	@SuppressWarnings("unchecked")
 	private static void applyMissingArgumentDefaults(Map<String, Object> responseToolMap,
 			Map<String, Object> toolEntry) {
-		Object rawSchema = toolEntry.get("inputSchema");
-		if (!(rawSchema instanceof Map)) {
-			return;
-		}
-		Object rawProperties = ((Map<String, Object>) rawSchema).get("properties");
-		if (!(rawProperties instanceof Map)) {
+		if (!(toolEntry.get("inputSchema") instanceof Map<?, ?> schema)
+				|| !(schema.get("properties") instanceof Map<?, ?> properties)) {
 			return;
 		}
 
-		Object rawArguments = responseToolMap.get("arguments");
-		Map<String, Object> arguments = rawArguments instanceof Map ? (Map<String, Object>) rawArguments
-				: new HashMap<>();
-		for (Map.Entry<String, Object> propertyEntry : ((Map<String, Object>) rawProperties).entrySet()) {
-			if (arguments.containsKey(propertyEntry.getKey()) || !(propertyEntry.getValue() instanceof Map)) {
+		Map<String, Object> arguments = ValueUtils.toStringKeyMap(responseToolMap.get("arguments"));
+		if (arguments == null) {
+			arguments = new HashMap<>();
+		}
+		for (Map.Entry<?, ?> propertyEntry : properties.entrySet()) {
+			String name = String.valueOf(propertyEntry.getKey());
+			if (arguments.containsKey(name) || !(propertyEntry.getValue() instanceof Map<?, ?> property)) {
 				continue;
 			}
-			Map<String, Object> property = (Map<String, Object>) propertyEntry.getValue();
 			if (property.containsKey("default")) {
-				arguments.put(propertyEntry.getKey(), property.get("default"));
+				arguments.put(name, property.get("default"));
 			} else if (property.containsKey("const")) {
-				arguments.put(propertyEntry.getKey(), property.get("const"));
+				arguments.put(name, property.get("const"));
 			}
 		}
 		responseToolMap.put("arguments", arguments);
@@ -1618,8 +1577,8 @@ public final class MCPUtility {
 	 * names those files relative to the room. Image and PDF references are expanded
 	 * back into inline data only in the payload sent to the model (see
 	 * {@code MessageUtils#toJsonArrayWithImageData}); other media is named in the
-	 * text only. Pixel response wrappers retain their other outputs and metadata
-	 * in a text block, with the inline media replaced by room file references. Raw
+	 * text only. Pixel response wrappers retain their other outputs and metadata in
+	 * a text block, with the inline media replaced by room file references. Raw
 	 * base64 returned by Pixel file readers follows the same media path.
 	 *
 	 * @param toolOutput the tool result, as returned by
@@ -1708,8 +1667,8 @@ public final class MCPUtility {
 		// the model's own words come first, then what became of the media
 		Object response = result instanceof JSONObject object ? object.opt(AskModelEngineResponse.RESPONSE) : null;
 		String responseText = response instanceof String ? ((String) response).trim() : "";
-		StringBuilder text = new StringBuilder(wrapped ? ""
-				: responseText.isEmpty() ? String.join("\n\n", textChunks) : responseText);
+		StringBuilder text = new StringBuilder(
+				wrapped ? "" : responseText.isEmpty() ? String.join("\n\n", textChunks) : responseText);
 		if (text.length() > 0) {
 			text.append("\n\n");
 		}
@@ -1778,8 +1737,8 @@ public final class MCPUtility {
 				mimeType = MimeTypeUtility.DEFAULT_MIME_TYPE;
 			}
 			String extension = MimeTypes.getDefaultMimeTypes().forName(mimeType).getExtension();
-			JSONObject media = new JSONObject().put("base64Data", output).put("mimeType", mimeType)
-					.put("fileFormat", extension.startsWith(".") ? extension.substring(1) : extension);
+			JSONObject media = new JSONObject().put("base64Data", output).put("mimeType", mimeType).put("fileFormat",
+					extension.startsWith(".") ? extension.substring(1) : extension);
 			JSONObject part = new JSONObject().put("type", "MEDIA").put("mediaInfo", media);
 			pixel.put("output", new JSONObject().put(AskModelEngineResponse.PARTS, new JSONArray().put(part)));
 		} catch (IllegalArgumentException | MimeTypeException e) {
@@ -1835,12 +1794,14 @@ public final class MCPUtility {
 			throw new NullPointerException("Engine/Project is null");
 		}
 		if (engine instanceof IProject) {
-			if (!SecurityProjectUtils.userCanViewProject(user, engine.getEngineId())) {
+			if (!SecurityProjectUtils.userCanViewProject(user, engine.getEngineId())
+					&& !AgentRunOperation.runningAgentCanUse(engine.getEngineId(), true)) {
 				throw new IllegalArgumentException(
 						"Project " + engine.getEngineId() + " does not exist or user does not have access");
 			}
 		} else {
-			if (!SecurityEngineUtils.userCanViewEngine(user, engine.getEngineId())) {
+			if (!SecurityEngineUtils.userCanViewEngine(user, engine.getEngineId())
+					&& !AgentRunOperation.runningAgentCanUse(engine.getEngineId(), false)) {
 				throw new IllegalArgumentException(
 						"Engine " + engine.getEngineId() + " does not exist or user does not have access");
 			}

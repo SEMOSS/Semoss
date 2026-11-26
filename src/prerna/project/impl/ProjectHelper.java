@@ -157,7 +157,8 @@ public final class ProjectHelper {
 	 * @param user        the signed in user, who becomes the owner
 	 * @param logger      the logger for progress messages
 	 * @return the opened project
-	 * @throws IllegalArgumentException when the project name is null or empty
+	 * @throws IllegalArgumentException when the project name is null or empty, or
+	 *                                  an engine already has the project id
 	 * @throws SemossPixelException     when there is no signed in user, the user is
 	 *                                  not a publisher or not an admin where those
 	 *                                  are required, a project folder with the name
@@ -186,6 +187,7 @@ public final class ProjectHelper {
 		if (AbstractSecurityUtils.adminOnlyProjectAdd(projectType) && !SecurityAdminUtils.userIsAdmin(user)) {
 			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 		}
+		AbstractSecurityUtils.requireNoEngineWithId(projectId);
 
 		File newProjectFolder;
 		try {
