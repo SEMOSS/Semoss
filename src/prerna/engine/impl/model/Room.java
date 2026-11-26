@@ -2427,7 +2427,8 @@ public class Room implements Serializable {
 	 * @return the room folder path
 	 */
 	public static String roomFolderPath(String roomId) {
-		return Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		// every room folder is built here, so the id has to be a single folder name inside the room folder
+		return Utility.childPath(Utility.getBaseFolder() + File.separator + "room", roomId, "room id");
 	}
 
 	// Core message accessors

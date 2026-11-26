@@ -78,6 +78,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.cluster.util.ZKClient;
 import prerna.engine.api.IDatabaseEngine;
@@ -105,8 +106,8 @@ import prerna.tcp.workers.EngineSocketWrapper;
  * Only SEMOSS itself calls them: the project reactor sandbox
  * ({@link SemossClassLoader}) refuses this class, so custom reactors, their
  * jars and their Maven dependencies cannot use it. A single setting is read
- * with {@link Utility#getDIHelperProperty(String)}, and general helpers stay
- * in {@link Utility}.
+ * with {@link Utility#getDIHelperProperty(String)}, and general helpers stay in
+ * {@link Utility}.
  */
 public final class InternalUtility {
 
@@ -248,8 +249,7 @@ public final class InternalUtility {
 
 	/**
 	 * Adds an engine's id to the ids this server has cataloged, so the file watcher
-	 * does not load the engine a second time while it is being created or
-	 * uploaded.
+	 * does not load the engine a second time while it is being created or uploaded.
 	 *
 	 * @param engineId the engine
 	 * @return true when the id was added; false when it was already there
@@ -406,9 +406,8 @@ public final class InternalUtility {
 					|| projects.endsWith(";" + projectId)) {
 				classLogger.debug("Project {} is already loaded...", projectId);
 				// engines are by default loaded so that we can keep track on the front end of
-				// engine/all call
-				// so even though it is added here there is a good possibility it is not loaded
-				// so check to see this
+				// engine/all call so even though it is added here there is a good possibility
+				// it is not loaded so check to see this
 				if (DIHelper.getInstance().getProjectProperty(projectId) instanceof IProject) {
 					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
 				}
@@ -484,9 +483,8 @@ public final class InternalUtility {
 					|| engines.endsWith(";" + engineId)) {
 				classLogger.debug("Engine {} is already loaded...", engineId);
 				// engines are by default loaded so that we can keep track on the front end of
-				// engine/all call
-				// so even though it is added here there is a good possibility it is not loaded
-				// so check to see this
+				// engine/all call so even though it is added here there is a good possibility
+				// it is not loaded so check to see this
 				if (DIHelper.getInstance().getEngineProperty(engineId) instanceof IEngine) {
 					return (IEngine) DIHelper.getInstance().getEngineProperty(engineId);
 				}
@@ -559,6 +557,57 @@ public final class InternalUtility {
 			classLogger.error("Failed to load engine from SMSS metadata: {}", e.getMessage(), e);
 		}
 		return engine;
+	}
+
+	/**
+	 * Loads a user asset project by id, pulling it from the cluster first when
+	 * needed, and returns the project itself rather than a guarded proxy. It checks
+	 * nothing about who asks: callers check the user first.
+	 *
+	 * @param projectId the user asset project
+	 * @return the project, or null when it has no smss file
+	 */
+	public static IProject getUserAssetProject(String projectId) {
+		IProject project = null;
+
+		if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
+			project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+		} else {
+			// Acquire the lock on the project, don't want several calls to try and load the
+			// engine at the same time
+			classLogger.info("Applying lock for user asset project {}", projectId);
+			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
+			lock.lock();
+			classLogger.info("User asset project {} is locked", projectId);
+			try {
+				// Need to do a double check here, so if a different thread was waiting for the
+				// project to load, it doesn't go through this process again
+				if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
+					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
+				}
+
+				if (ClusterUtil.IS_CLUSTER) {
+					ClusterUtil.pullUserAsset(projectId, false);
+				}
+
+				// Now that the project has been pulled, grab the smss file
+				String folderName = UserAssetUtils.ASSET_APP_NAME;
+				String smssFile = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + "/" + Constants.USER_FOLDER + "/"
+						+ SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
+				// Start up the project using the details in the smss
+				if (smssFile != null && new File(Utility.normalizePath(smssFile)).exists()) {
+					// actual load project process
+					project = loadProject(smssFile, Utility.loadProperties(Utility.normalizePath(smssFile)));
+				} else {
+					classLogger.debug("There is no SMSS File for the user asset project {}...", projectId);
+				}
+			} finally {
+				lock.unlock();
+				classLogger.info("User asset project {} is unlocked", projectId);
+			}
+		}
+
+		return project;
 	}
 
 	/**
@@ -895,6 +944,99 @@ public final class InternalUtility {
 	}
 
 	/**
+	 * Registers the engine an smss file describes, unless it is registered already:
+	 * reads its id from the file, records the smss path and adds the engine to the
+	 * security database, and a database's metadata to the local master database, as
+	 * the platform's own work with no user. The engine watchers call this at start
+	 * up and the cluster calls it after pulling an engine.
+	 *
+	 * @param newFile       the smss file name
+	 * @param folderToWatch the folder that holds it
+	 * @return the engine id, or null when the file cannot be read
+	 */
+	public static String catalogEngine(String newFile, String folderToWatch) {
+		String engines = DIHelper.getInstance().getEngineProperty(Constants.ENGINES) + "";
+		String engineId = null;
+		try {
+			Properties prop = Utility
+					.loadProperties(Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile));
+			if (prop == null) {
+				throw new NullPointerException("Unable to find/load properties file '" + newFile + "'");
+			}
+			engineId = prop.getProperty(Constants.ENGINE);
+			if (engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
+					|| engines.endsWith(";" + engineId)) {
+				classLogger.debug("Engine {}<>{} is already loaded...", folderToWatch, newFile);
+			} else {
+				String filePath = folderToWatch + "/" + newFile;
+				catalogEngineByType(filePath, prop, engineId);
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to catalog engine from SMSS file {} in {}", newFile, folderToWatch, e);
+		}
+
+		return engineId;
+	}
+
+	/**
+	 * Registers the project an smss file describes as a private project, unless it
+	 * is registered already.
+	 *
+	 * @param newFile       the smss file name
+	 * @param folderToWatch the folder that holds it
+	 * @return the project id, or null when the file cannot be read
+	 * @see #catalogProject(String, String, boolean)
+	 */
+	public static String catalogProject(String newFile, String folderToWatch) {
+		return catalogProject(newFile, folderToWatch, false);
+	}
+
+	/**
+	 * Registers the project an smss file describes, unless it is registered
+	 * already: reads its id from the file, records the smss path and the project
+	 * id, and adds the project to the security database, public or not, as the
+	 * platform's own work with no user. The project watcher calls this at start up,
+	 * public for the platform apps, and the cluster calls it after pulling a
+	 * project.
+	 *
+	 * @param newFile       the smss file name
+	 * @param folderToWatch the folder that holds it
+	 * @param global        whether the project is public
+	 * @return the project id, or null when the file cannot be read
+	 */
+	public static String catalogProject(String newFile, String folderToWatch, boolean global) {
+		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
+		String projectId = null;
+		try {
+			String smssFile = Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile);
+			Properties prop = Utility.loadProperties(smssFile);
+
+			projectId = prop.getProperty(Constants.PROJECT);
+
+			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+					|| projects.endsWith(";" + projectId)) {
+				classLogger.debug("Project {}<>{} is already loaded...", folderToWatch, newFile);
+			} else {
+				String fileName = folderToWatch + "/" + newFile;
+				DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, fileName);
+
+				String projectNames = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
+				if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+						|| projects.endsWith(";" + projectId))) {
+					projectNames = projectNames + ";" + projectId;
+					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectNames);
+				}
+
+				SecurityProjectUtils.addProject(projectId, global, null);
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to catalog project from smss file {}/{}", folderToWatch, newFile, e);
+		}
+
+		return projectId;
+	}
+
+	/**
 	 * Registers an engine in DIHelper from its smss (its smss path, type and id),
 	 * syncs a database engine's metadata to the local master database, and adds the
 	 * engine to the security database.
@@ -1018,8 +1160,8 @@ public final class InternalUtility {
 
 		// 4) perform the necessary additions if the time stamps do not equal
 		// this is broken out into 2 separate parts
-		// 4.1) the local master doesn't have a time stamp which means the engine is not
-		// present
+		// 4.1) the local master doesn't have a time stamp
+		// which means the engine is not present
 		// -> i.e. we do not need to remove the engine and re-add it
 		// 4.2) the time is present and we need to remove anything relating the engine
 		// that was in the engine and then re-add it
@@ -1097,13 +1239,13 @@ public final class InternalUtility {
 				// write the properties file or not
 				// return the properties
 				String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
-				File engineDir = new File(
-						Utility.normalizeParam(baseFolder) + File.separator + "engines" + File.separator + engineId);
+				File engineDir = new File(Utility.childPath(
+						Utility.normalizeParam(baseFolder) + File.separator + "engines", engineId, "engine id"));
 				if (!engineDir.exists()) {
 					engineDir.mkdirs();
 				}
 
-				File owlFile = new File(engineDir.getAbsolutePath() + File.separator + engineId + ".owl");
+				File owlFile = new File(Utility.childPath(engineDir.getAbsolutePath(), engineId + ".owl", "engine id"));
 				// engine owlFileName
 				FileUtils.writeStringToFile(owlFile, owl);
 				prop.replace(Constants.OWL, owlFile.getAbsolutePath());
@@ -1305,8 +1447,7 @@ public final class InternalUtility {
 	 * @param pw            the compile output
 	 * @throws IOException when the classes folder cannot be read
 	 */
-	private static void logSandboxNotices(Path classesFolder, List<File> sources, PrintWriter pw)
-			throws IOException {
+	private static void logSandboxNotices(Path classesFolder, List<File> sources, PrintWriter pw) throws IOException {
 		List<Path> classFiles;
 		try (Stream<Path> walk = Files.walk(classesFolder)) {
 			classFiles = walk.filter(file -> file.toString().endsWith(".class")).sorted().toList();

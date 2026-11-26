@@ -290,9 +290,9 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			
 			String documentName = Paths.get(fileName).getFileName().toString();
 			// remove the physical documents
-			File documentFile = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents", documentName);
+			File documentFile = storedDocumentToRemove(new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR + "documents"), documentName);
 			try {
-				if (documentFile.exists()) {
+				if (documentFile != null) {
 					FileUtils.forceDelete(documentFile);
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}

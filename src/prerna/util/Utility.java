@@ -42,6 +42,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.security.SecureRandom;
@@ -91,7 +92,6 @@ import org.quartz.CronExpression;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.UserAssetUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
 import prerna.engine.api.IDatabaseEngine;
@@ -876,8 +876,8 @@ public final class Utility {
 	public static String getOriginalFileName(final String FILE_LOCATION) {
 		// The FileUploader appends the time as "_yyyy_MM_dd_HH_mm_ss_SSSS"
 		// onto the original fileName in order to ensure that it is unique
-		// since we are using the fileName to be the table name, let us try and remove
-		// this
+		// since we are using the fileName to be the table name,
+		// let us try and remove this
 		String ext = "." + FilenameUtils.getExtension(FILE_LOCATION);
 		String fileName = FilenameUtils.getName(FILE_LOCATION).replace(ext, "");
 		// 24 is the length of the date being added
@@ -997,55 +997,6 @@ public final class Utility {
 
 		// pipeline
 		return EngineProxyFactory.createGuardedProject(project);
-	}
-
-	/**
-	 * 
-	 * @param projectId
-	 * @return
-	 */
-	public static IProject getUserAssetProject(String projectId) {
-		IProject project = null;
-
-		if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
-			project = (IProject) DIHelper.getInstance().getProjectProperty(projectId);
-		} else {
-			// Acquire the lock on the project, don't want several calls to try and load the
-			// engine at the same time
-			classLogger.info("Applying lock for user asset project {}", projectId);
-			ReentrantLock lock = ProjectSyncUtility.getProjectLock(projectId);
-			lock.lock();
-			classLogger.info("User asset project {} is locked", projectId);
-			try {
-				// Need to do a double check here, so if a different thread was waiting for the
-				// project to load, it doesn't go through this process again
-				if (DIHelper.getInstance().getProjectProperty(projectId) != null) {
-					return (IProject) DIHelper.getInstance().getProjectProperty(projectId);
-				}
-
-				if (ClusterUtil.IS_CLUSTER) {
-					ClusterUtil.pullUserAsset(projectId, false);
-				}
-
-				// Now that the project has been pulled, grab the smss file
-				String folderName = UserAssetUtils.ASSET_APP_NAME;
-				String smssFile = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + "/" + Constants.USER_FOLDER + "/"
-						+ SmssUtilities.getUniqueName(folderName, projectId) + ".smss";
-				// Start up the project using the details in the smss
-				if (smssFile != null && new File(Utility.normalizePath(smssFile)).exists()) {
-					// actual load project process
-					project = InternalUtility.loadProject(smssFile,
-							Utility.loadProperties(Utility.normalizePath(smssFile)));
-				} else {
-					classLogger.debug("There is no SMSS File for the user asset project {}...", projectId);
-				}
-			} finally {
-				lock.unlock();
-				classLogger.info("User asset project {} is unlocked", projectId);
-			}
-		}
-
-		return project;
 	}
 
 	/**
@@ -1841,6 +1792,114 @@ public final class Utility {
 		normalizedString = normalizedString.replace("\\", "/");
 
 		return normalizedString;
+	}
+
+	// true when the value (e.g. an id from the DB or a remote API) is one folder/file name: not blank, not . or .., no separator or NUL
+	// checked again after NFKC, since normalizePath applies it and full-width forms can turn into / \ or .
+	public static boolean isSafePathSegment(String value) {
+		return value != null && isSingleName(value) && isSingleName(Normalizer.normalize(value, Form.NFKC));
+	}
+
+	private static boolean isSingleName(String value) {
+		return !value.isBlank() && !".".equals(value) && !"..".equals(value) && value.indexOf('/') < 0
+				&& value.indexOf('\\') < 0 && value.indexOf('\0') < 0;
+	}
+
+	// returns the value, or logs and throws IllegalArgumentException when it is not a single safe name
+	public static String requireSafePathSegment(String value, String what) {
+		if (!isSafePathSegment(value)) {
+			classLogger.warn("Refused {} that is not a single safe folder name: {}", what, cleanLogString(value));
+			throw new IllegalArgumentException("Not a valid " + what);
+		}
+		return value;
+	}
+
+	// one name (e.g. an id from the DB or a remote API) under a folder; logs and throws IllegalArgumentException
+	// unless it is a single safe name whose normalized path is a direct child of the folder
+	public static String childPath(String folder, String name, String what) {
+		requireSafePathSegment(name, what);
+		Path base = checkedBaseFolder(folder, what);
+		Path child = base.resolve(checkedPath(name, what)).normalize();
+		if (!child.startsWith(base) || !base.equals(child.getParent())) {
+			classLogger.warn("Refused {} that leaves its folder: {}", what, cleanLogString(name));
+			throw new IllegalArgumentException("Not a valid " + what);
+		}
+		// same string form callers had before (folder + separator + name), from the checked name
+		return folder + File.separator + child.getFileName();
+	}
+
+	// a relative path (sub folders allowed) under a folder; logs and throws IllegalArgumentException when it is
+	// blank, absolute, changes under NFKC or would leave the folder; returns the normalized path
+	public static String pathWithin(String folder, String relative, String what) {
+		if (relative == null || relative.isBlank() || relative.indexOf('\0') >= 0
+				|| !relative.equals(Normalizer.normalize(relative, Form.NFKC))) {
+			classLogger.warn("Refused {} that is not a plain relative path: {}", what, cleanLogString(relative));
+			throw new IllegalArgumentException("Not a valid " + what);
+		}
+		Path rel = checkedPath(relative.replace('\\', '/'), what);
+		// real path of the folder, so a link above it compares as it really is
+		Path base = realPathOfExisting(checkedBaseFolder(folder, what));
+		Path target = base.resolve(rel).normalize();
+		if (rel.isAbsolute() || !target.startsWith(base) || target.equals(base) || leavesThroughLink(base, target)) {
+			classLogger.warn("Refused {} that leaves its folder: {}", what, cleanLogString(relative));
+			throw new IllegalArgumentException("Not a valid " + what);
+		}
+		return target.toString();
+	}
+
+	// a blank folder would resolve against the working directory
+	private static Path checkedBaseFolder(String folder, String what) {
+		if (folder == null || folder.isBlank()) {
+			throw new IllegalArgumentException("The folder for the " + what + " must not be blank");
+		}
+		return Path.of(folder).toAbsolutePath().normalize();
+	}
+
+	// characters the file system does not allow (e.g. : on Windows) are logged like any other refused value
+	private static Path checkedPath(String value, String what) {
+		try {
+			return Path.of(value);
+		} catch (InvalidPathException e) {
+			classLogger.warn("Refused {} that is not a valid path: {}", what, cleanLogString(value));
+			throw new IllegalArgumentException("Not a valid " + what, e);
+		}
+	}
+
+	// the real path of the nearest existing part, so a folder that is not created yet still compares true
+	private static Path realPathOfExisting(Path path) {
+		Path existing = path;
+		while (existing != null && !Files.exists(existing)) {
+			existing = existing.getParent();
+		}
+		if (existing == null) {
+			return path;
+		}
+		try {
+			return existing.toRealPath().resolve(existing.relativize(path)).normalize();
+		} catch (IOException e) {
+			throw new IllegalArgumentException("The folder cannot be resolved: " + path, e);
+		}
+	}
+
+	// a link below the folder (or the target itself) must not lead outside it
+	private static boolean leavesThroughLink(Path base, Path target) {
+		Path existing = target;
+		while (existing != null && !Files.exists(existing, LinkOption.NOFOLLOW_LINKS)) {
+			existing = existing.getParent();
+		}
+		if (existing == null) {
+			return true;
+		}
+		if (!existing.startsWith(base)) {
+			// nothing below the folder exists yet
+			return false;
+		}
+		try {
+			return !existing.toRealPath().startsWith(base);
+		} catch (IOException e) {
+			// e.g. a link to nothing
+			return true;
+		}
 	}
 
 	/**

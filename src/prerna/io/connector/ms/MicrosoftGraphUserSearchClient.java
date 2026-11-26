@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.IAccessTokenFiller;
 import prerna.security.HttpHelperUtility;
 import prerna.util.SocialPropertiesUtil;
@@ -128,7 +129,7 @@ public class MicrosoftGraphUserSearchClient {
 			filter += " and userType eq 'Member'";
 			path = "/v1.0/users";
 		} else {
-			path = "/v1.0/groups/" + groupId + "/members/microsoft.graph.user";
+			path = "/v1.0/groups/" + ConnectorGuards.segment(groupId) + "/members/microsoft.graph.user";
 		}
 		List<String> queryParams = new ArrayList<>();
 		queryParams.add("$filter=" + URLEncoder.encode(filter, StandardCharsets.UTF_8.toString()));
@@ -232,11 +233,13 @@ public class MicrosoftGraphUserSearchClient {
 						java.nio.charset.StandardCharsets.UTF_8.toString()));
 				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/users?" + String.join("&", queryParams);
 			} else {
-				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/groups/" + groupId
+				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/groups/"
+						+ ConnectorGuards.segment(groupId)
 						+ "/members/microsoft.graph.user?" + String.join("&", queryParams);
 			}
 		} else {
-			uri = nextLink;
+			// a nextLink may come from a caller, and the request carries the token
+			uri = ConnectorGuards.requireUnder(nextLink, MicrosoftTokenFiller.MS_GRAPH_BASE_API);
 		}
 		return uri;
 	}

@@ -603,8 +603,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			for (String document : sourceNames) {
 				String documentName = Paths.get(document).getFileName().toString();
 				// remove the physical documents
-				File documentFile = new File(DOCUMENT_FOLDER, documentName);
-				if (documentFile.exists()) {
+				File documentFile = AbstractVectorDatabaseEngine.storedDocumentToRemove(new File(DOCUMENT_FOLDER), documentName);
+				if (documentFile != null) {
 					FileUtils.forceDelete(documentFile);
 					filesToRemoveFromCloud.add(documentFile.getAbsolutePath());
 				}
@@ -837,8 +837,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			for (Map<String, Object> fileInPostgresDb : sourcesInPostgresDb) {
 				String fileName = (String) fileInPostgresDb.get("fileName");
 
-				File thisF = new File(documentsDir, fileName);
-				if (thisF.exists() && thisF.isFile()) {
+				File thisF = AbstractVectorDatabaseEngine.storedDocument(documentsDir, fileName);
+				if (thisF != null && thisF.isFile()) {
 					long fileSizeInBytes = thisF.length();
 					double fileSizeInMB = (double) fileSizeInBytes / (1024);
 					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
