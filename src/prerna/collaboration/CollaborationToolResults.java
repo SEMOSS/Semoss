@@ -349,7 +349,7 @@ final class CollaborationToolResults {
 		}
 	}
 
-	private static String ownEmail(User user) {
+	static String ownEmail(User user) {
 		try {
 			String email = user == null ? null : MicrosoftLoginUtils.getMicrosoftEmail(user);
 			return email == null ? "" : email.toLowerCase(Locale.ROOT);

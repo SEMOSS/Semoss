@@ -55,6 +55,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.auth.User;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationRunMode;
+import prerna.collaboration.CollaborationTaint;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -618,6 +619,7 @@ final class HarnessToolExecutor {
 					ctx.getInsight(), ctx.getInput());
 			String output = result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError();
 			if (result.isSuccess()) {
+				CollaborationTaint.record(ctx.getRunId(), ctx.getInsight().getUser(), tc.rawToolName, output);
 				output = MCPUtility.externalizeToolResultMedia(output, ctx.getRoom());
 			}
 			return new ToolExecOutcome(output, result.isSuccess());

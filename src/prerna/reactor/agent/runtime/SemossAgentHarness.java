@@ -48,6 +48,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationRunMode;
+import prerna.collaboration.CollaborationTaint;
 import prerna.collaboration.CollaborationUtils;
 import prerna.collaboration.WorkRoutinePreferences;
 import prerna.engine.impl.model.Room;
@@ -372,6 +373,8 @@ public class SemossAgentHarness implements IAgentHarness {
 
 			if (ctx.isResumeMode()) {
 				// --- Resume mode ---
+				// the run's taint is held in memory; bring it back from the actions it paused on
+				CollaborationTaint.restore(ctx.getRunId(), AgentRunActionStore.getActionsForRun(ctx.getRunId()));
 				// The tool results were already written to the room by RunMCPToolReactor.
 				// If an older path already produced an assistant response, pick it up.
 				// Otherwise continue from the completed tool-result message here so the
@@ -1185,6 +1188,12 @@ public class SemossAgentHarness implements IAgentHarness {
 					}
 					meta.put(MCPUtility.SMSS_TOOL_TITLE, resolvedTitle);
 				}
+			}
+			if (CollaborationTaint.isTainted(runId)) {
+				if (meta == null) {
+					meta = new HashMap<>();
+				}
+				CollaborationTaint.stamp(runId, meta);
 			}
 			action.put("toolMeta", meta);
 			Map<String, Object> uiMeta = null;
