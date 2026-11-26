@@ -41,7 +41,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// A thread workspace's steps (WORK_THREAD_STEP); the goal is on BRAIN_THREAD, and its facts are Brain memories
+// A thread workspace's steps (WORK_THREAD_STEP); its goals are its topics' goals, and its facts are Brain memories
 // linked to the thread (BrainMemoryUtils)
 public final class WorkWorkspaceUtils {
 
@@ -203,8 +203,6 @@ public final class WorkWorkspaceUtils {
 		return workspaces.computeIfAbsent(threadId, id -> {
 			Map<String, Object> w = new LinkedHashMap<>();
 			w.put("threadId", id);
-			// thread goals are retired (topic goals replace them); kept empty until the client drops the field
-			w.put("goal", null);
 			w.put("steps", new ArrayList<>());
 			return w;
 		});

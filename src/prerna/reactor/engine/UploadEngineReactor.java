@@ -42,7 +42,6 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.reflect.TypeToken;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -65,7 +64,6 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.AuditTargetType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
@@ -202,6 +200,14 @@ public class UploadEngineReactor extends AbstractReactor {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
+		try {
+			AbstractSecurityUtils.requireNoProjectWithId(engineId);
+		} catch (IllegalArgumentException e) {
+			cleanUpFolders(randomTempUnzipF);
+			SemossPixelException exception = new SemossPixelException(NounMetadata.getErrorNounMessage(e.getMessage()));
+			exception.setContinueThreadOfExecution(false);
+			throw exception;
+		}
 
 		// do we have any other checks we want to make based on the SMSS
 		// let us do it now
@@ -228,8 +234,6 @@ public class UploadEngineReactor extends AbstractReactor {
 		String engineFolderPath = EngineUtility.getLocalEngineBaseDirectory(engineType);
 		logger.info("Determined the engine type = " + engineType);
 
-		String engines = (String) DIHelper.getInstance().getEngineProperty(Constants.ENGINES);
-
 		File finalEngineSmss = null;
 		File finalEngineFolder = null;
 		boolean engineAddedToDIHelper = false;
@@ -244,10 +248,7 @@ public class UploadEngineReactor extends AbstractReactor {
 					+ SmssUtilities.getUniqueName(engineName, engineId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
-			if (!(engines.startsWith(engineId) || engines.contains(";" + engineId + ";")
-					|| engines.endsWith(";" + engineId))) {
-				String newEngines = engines + ";" + engineId;
-				DIHelper.getInstance().setEngineProperty(Constants.ENGINES, newEngines);
+			if (InternalUtility.addEngineId(engineId)) {
 				engineAddedToDIHelper = true;
 			} else {
 				SemossPixelException exception = new SemossPixelException(
@@ -286,8 +287,7 @@ public class UploadEngineReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE,
-					finalEngineSmss.getAbsolutePath());
+			InternalUtility.setEngineSmssPath(engineId, finalEngineSmss.getAbsolutePath());
 			if (IEngine.CATALOG_TYPE.DATABASE == engineType) {
 				logger.info(step + ") Synchronizing database structure");
 				InternalUtility.synchronizeEngineMetadata(engineId);
@@ -319,7 +319,7 @@ public class UploadEngineReactor extends AbstractReactor {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile,
 							new TypeToken<Map<String, Object>>() {
 							}.getType());
-					SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+					SecurityEngineUtils.updateEngineMetadata(user, engineId, metadata);
 					// delete this file since values can update and file is dynamically generated on
 					// export
 					metadataFile.delete();
@@ -364,15 +364,14 @@ public class UploadEngineReactor extends AbstractReactor {
 					lmDeleter.deleteEngineRDBMS(engineId);
 				}
 				// delete from security
-				SecurityEngineUtils.deleteEngine(engineId);
+				if (SecurityEngineUtils.containsEngineId(engineId)) {
+					SecurityEngineUtils.deleteEngine(user, engineId);
+				}
 			}
 		}
 
 		// add user as engine owner
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityEngineUtils.addEngineOwner(engineId, user.getAccessToken(ap).getId());
-		}
+		SecurityEngineUtils.addEngineOwner(user, engineId);
 
 		ClusterUtil.pushEngine(engineId);
 		UserAuditTrailUtils.recordEngineLifecycle(user, AuditEventType.ENGINE_CREATE,

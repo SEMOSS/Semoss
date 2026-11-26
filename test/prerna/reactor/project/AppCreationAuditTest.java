@@ -113,12 +113,11 @@ class AppCreationAuditTest {
 		try (var security = mockStatic(SecurityProjectUtils.class);
 				var inputs = mockStatic(UploadInputUtility.class);
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
-			inputs.when(() -> UploadInputUtility.getProjectNameOrId(store)).thenReturn("alias");
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "alias")).thenReturn("project");
+			inputs.when(() -> UploadInputUtility.getProjectNameOrId(store)).thenReturn("project");
 			security.when(() -> SecurityProjectUtils.userCanEditProject(user, "project")).thenReturn(true);
 			security.when(SecurityProjectUtils::getAllMetakeys).thenReturn(List.of("description"));
 			if (fail) {
-				security.when(() -> SecurityProjectUtils.updateProjectMetadata("project", metadata))
+				security.when(() -> SecurityProjectUtils.updateProjectMetadata(user, "project", metadata))
 						.thenThrow(new IllegalStateException("Database unavailable"));
 				assertThrows(IllegalStateException.class, reactor::execute);
 				audit.verifyNoInteractions();
@@ -168,7 +167,6 @@ class AppCreationAuditTest {
 				var cluster = mockStatic(ClusterUtil.class);
 				var portals = mockStatic(ProjectPortalsHelper.class);
 				var audit = mockStatic(UserAuditTrailUtils.class)) {
-			security.when(() -> SecurityProjectUtils.testUserProjectIdForAlias(user, "project")).thenReturn("project");
 			security.when(() -> SecurityProjectUtils.userCanEditProject(user, "project")).thenReturn(true);
 			utility.when(() -> Utility.getProject("project")).thenReturn(project);
 			assets.when(() -> AssetUtility.getProjectPortalsFolder("project")).thenReturn(directory.toString());

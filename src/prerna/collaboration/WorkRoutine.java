@@ -1050,7 +1050,7 @@ final class WorkRoutine {
 			// an agent step that finished with no text is the model, not the connection
 			String error = timedOut(result) ? kind.timedOut()
 					: succeeded && kind.agent() != null
-					? "The assistant finished without an answer. Run it again; if it keeps happening, make the task smaller."
+					? "The routine finished without an answer. Run it again; if it keeps happening, make the task smaller."
 					: kind.failed();
 			finish(slot, "failed", null, error, result == null ? null : (String) result.get(AutomationConstants.ROOM_ID), started,
 					CAUSE_AGENT);

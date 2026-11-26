@@ -966,8 +966,8 @@ public class Project implements IProject {
 		}
 
 		// secondary check to execute reactor here
-		if (executeReactorOnSocket() && ((Utility.getDIHelperLocalProperty("core") == null
-				|| Utility.getDIHelperLocalProperty("core").toString().equalsIgnoreCase("true")) && retReac != null)) {
+		if (executeReactorOnSocket() && ((InternalUtility.getLocalProperty("core") == null
+				|| InternalUtility.getLocalProperty("core").toString().equalsIgnoreCase("true")) && retReac != null)) {
 
 			// need to convert this to reactor wrapper before I give it to be executed
 			CustomReactorWrapper wrapper = new CustomReactorWrapper();
@@ -1509,7 +1509,12 @@ public class Project implements IProject {
 			if (endpoint != null && !endpoint.isBlank()) {
 				String authToken = this.smssProp.getProperty(MCP_AUTH_TOKEN);
 				String authScheme = this.smssProp.getProperty(MCP_AUTH_SCHEME);
-				mcp = new RemoteMCP(this, endpoint, authScheme, authToken);
+				RemoteMCP.RemoteMCPConfig config = new RemoteMCP.RemoteMCPConfig(
+						parseMcpIntProp(MCP_CLIENT_REQUEST_TIMEOUT_SECONDS),
+						parseMcpIntProp(MCP_CLIENT_INITIALIZATION_TIMEOUT_SECONDS),
+						parseMcpIntProp(MCP_TRANSPORT_CONNECT_TIMEOUT_SECONDS),
+						parseMcpIntProp(MCP_TRANSPORT_MAX_RESPONSE_SIZE_MB));
+				mcp = new RemoteMCP(this, endpoint, authScheme, authToken, config);
 			} else {
 				mcp = InternalMCP.genFromEngine(this);
 			}
@@ -1521,6 +1526,33 @@ public class Project implements IProject {
 			}
 		}
 		return this.projectMCP;
+	}
+
+	/**
+	 * Reads a positive integer from the project smss for the given MCP config key.
+	 * Returns {@code null} when the property is absent, blank, non-numeric, or
+	 * non-positive, in which case {@link RemoteMCP} falls back to the system-wide
+	 * RDF_Map.prop value or the SDK built-in default.
+	 *
+	 * @param key a {@link prerna.project.api.IProject} {@code MCP_CLIENT_*} or
+	 *            {@code MCP_TRANSPORT_*} constant
+	 * @return positive integer, or {@code null} when unset / invalid
+	 */
+	private Integer parseMcpIntProp(String key) {
+		String rawValue = this.smssProp.getProperty(key);
+		if (rawValue == null || rawValue.isBlank()) {
+			return null;
+		}
+		try {
+			int parsed = Integer.parseInt(rawValue.trim());
+			if (parsed > 0) {
+				return parsed;
+			}
+			classLogger.warn("Ignoring non-positive value '{}' for smss property {}", rawValue, key);
+		} catch (NumberFormatException e) {
+			classLogger.warn("Ignoring non-integer value '{}' for smss property {}", rawValue, key);
+		}
+		return null;
 	}
 
 	/**

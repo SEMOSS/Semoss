@@ -44,7 +44,6 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
-import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
@@ -64,7 +63,6 @@ import prerna.usertracking.AuditEventType;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.InternalUtility;
 import prerna.util.UploadInputUtility;
 import prerna.util.UploadUtilities;
@@ -103,7 +101,7 @@ public class UploadProjectReactor extends AbstractReactor {
 
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
-		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
+		String projectFolderPath = Utility.getDIHelperProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
 				+ Constants.PROJECT_FOLDER;
 		String randomTempUnzipFolderPath = projectFolderPath + DIR_SEPARATOR + randomIdAsDir;
 		File randomTempUnzipF = new File(randomTempUnzipFolderPath);
@@ -177,7 +175,6 @@ public class UploadProjectReactor extends AbstractReactor {
 			}
 		}
 
-		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
 
@@ -198,6 +195,15 @@ public class UploadProjectReactor extends AbstractReactor {
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
+			try {
+				AbstractSecurityUtils.requireNoEngineWithId(projectId);
+			} catch (IllegalArgumentException e) {
+				cleanUpFolders(randomTempUnzipF);
+				SemossPixelException exception = new SemossPixelException(
+						NounMetadata.getErrorNounMessage(e.getMessage()));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
 
 			logger.info("{}) Done", step);
 			step++;
@@ -213,10 +219,7 @@ public class UploadProjectReactor extends AbstractReactor {
 					+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
 
 			// need to ignore file watcher
-			if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
-					|| projects.endsWith(";" + projectId))) {
-				String newProjects = projects + ";" + projectId;
-				DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, newProjects);
+			if (InternalUtility.addProjectId(projectId)) {
 				projectAddedToDIHelper = true;
 			} else {
 				SemossPixelException exception = new SemossPixelException(
@@ -255,8 +258,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		}
 
 		try {
-			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
-					finalProjectSmssF.getAbsolutePath());
+			InternalUtility.setProjectSmssPath(projectId, finalProjectSmssF.getAbsolutePath());
 
 			// ensure PROJECT_DISPLAY_NAME is present in the smss file
 			// if not present, seed it from PROJECT_ALIAS so the file stays consistent
@@ -283,7 +285,7 @@ public class UploadProjectReactor extends AbstractReactor {
 					Map<String, Object> metadata = (Map<String, Object>) GsonUtility.readJsonFileToObject(metadataFile,
 							new TypeToken<Map<String, Object>>() {
 							}.getType());
-					SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
+					SecurityProjectUtils.updateProjectMetadata(user, projectId, metadata);
 					// delete this file since values can update and file is dynamically generated on
 					// export
 					metadataFile.delete();
@@ -336,15 +338,14 @@ public class UploadProjectReactor extends AbstractReactor {
 					UploadUtilities.removeProjectFromDIHelper(projectId);
 				}
 				// delete from security
-				SecurityProjectUtils.deleteProject(projectId);
+				if (SecurityProjectUtils.containsProjectId(projectId)) {
+					SecurityProjectUtils.deleteProject(user, projectId);
+				}
 			}
 		}
 
 		// add user as engine owner
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider ap : logins) {
-			SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
-		}
+		SecurityProjectUtils.addProjectOwner(user, projectId);
 
 		ClusterUtil.pushProject(projectId);
 		UserAuditTrailUtils.recordProjectLifecycle(user, AuditEventType.PROJECT_UPLOAD, projectId, projectName,

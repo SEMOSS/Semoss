@@ -43,6 +43,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -61,8 +62,9 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 	// what the rules need of a message, and no body
 	private static final String CONVERSATION_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId,"
 			+ "isDraft";
-	private static final String SEARCH_SELECT = "id,conversationId,subject,from,receivedDateTime,parentFolderId,"
-			+ "isDraft,bodyPreview";
+	// internetMessageId is how mail Collaboration sent the owner is known (BrainOwnMail)
+	private static final String SEARCH_SELECT = "id,internetMessageId,conversationId,subject,from,receivedDateTime,"
+			+ "parentFolderId,isDraft,bodyPreview";
 	private static final int RETRIES = 3;
 	private static final long MAX_WAIT_MS = 10000;
 	private static final String MAIL_SELECT = "subject,from,toRecipients,ccRecipients,body,uniqueBody,receivedDateTime,"
@@ -99,7 +101,8 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 			try {
 				while (url != null && out.size() < max) {
 					Map<String, Object> page = CollaborationDbUtils.parseMap(
-							HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+							HttpHelperUtility.getRequest(ConnectorGuards.requireUnder(url, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
+									MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
 					if (page.get("value") instanceof List<?> values) {
 						for (Object value : values) {
 							out.add((Map<String, Object>) value);

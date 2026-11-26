@@ -203,7 +203,7 @@ public class MyEnginesReactor extends AbstractReactor {
 								Returns a list of engines that the user has access to.
 
 								Inputs: filterWord, limit, offset, onlyFavorites, engineType, engine, permissionFilters, metaKeys, metaFilters, noMeta, includeUserTracking, sort.
-								Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name, engine_user_permission, engine_group_permission, engine_favorite, engine_user_discoverable).
+								Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name, engine_user_permission, engine_group_permission, engine_favorite, engine_user_discoverable).
 								Model engines also include a capabilities object containing modelId, capability, inputModalities, outputModalities, contextWindow, maxOutputTokens, and builtinTools when model metadata is available and noMeta is false.
 								Any response key prefixed with app_* or database_* is legacy and should not be used.
 								""")
@@ -244,8 +244,6 @@ public class MyEnginesReactor extends AbstractReactor {
 				new JSONObject().put("type", "boolean").put("description", "Whether the engine is discoverable"));
 		itemProperties.put("engine_global", new JSONObject().put("type", "boolean").put("description",
 				"Whether the engine is globally accessible"));
-		itemProperties.put("engine_tool_app",
-				new JSONObject().put("type", "string").put("description", "Linked tool app project id (if set)"));
 		itemProperties.put("engine_created_by",
 				new JSONObject().put("type", "string").put("description", "Creator user id"));
 		itemProperties.put("engine_created_by_type",

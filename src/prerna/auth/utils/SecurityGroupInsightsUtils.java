@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -42,7 +43,6 @@ import prerna.auth.access.PermissionGrant;
 import prerna.auth.access.PermissionProblem;
 import prerna.auth.access.PermissionSubject;
 import prerna.auth.access.PermissionTargetResource;
-import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -88,206 +88,60 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Determine if group can view insight
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param insightId
-	 * @return
+	 * Says whether one of the user's teams can view an insight, through a team
+	 * grant on that insight.
+	 *
+	 * @param user      the signed in user
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @return true when one of the user's teams has any permission on the insight
 	 */
 	public static boolean userGroupCanViewInsight(User user, String projectId, String insightId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ENDDATE"));
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ID"));
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__TYPE"));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PERMISSION", "!=", null,
-				PixelDataType.CONST_INT));
-		OrQueryFilter orFilter = new OrQueryFilter();
-		List<AuthProvider> logins = user.getLogins();
-		boolean anyUserGroups = false;
-		for (AuthProvider login : logins) {
-			if (user.getAccessToken(login).getUserGroups().isEmpty()) {
-				continue;
-			}
-
-			AndQueryFilter andFilter = new AndQueryFilter();
-			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__TYPE", "==",
-					user.getAccessToken(login).getUserGroupType()));
-			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__ID", "==",
-					user.getAccessToken(login).getUserGroups()));
-			orFilter.addFilter(andFilter);
-		}
-
-		if (!anyUserGroups) {
-			return false;
-		}
-
-		qs.addExplicitFilter(orFilter);
-		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPINSIGHTPERMISSION__PERMISSION"));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] values = wrapper.next().getValues();
-				Object val = values[0];
-				SemossDate endDate = (SemossDate) values[1];
-				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
-					// Need to delete expired permission here
-					String groupId = (String) values[2];
-					String groupType = (String) values[3];
-					removeExpiredInsightGroupPermission(groupId, groupType, projectId, insightId);
-					continue;
-				}
-				if (val != null) {
-					// actually do not care what the value is - we have a record so that means we
-					// can at least view
-					return true;
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user's group can view insight.", e);
-			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
-		}
-
-		return false;
+		return bestTeamInsightPermission(user, projectId, insightId) != null;
 	}
 
 	/**
-	 * Determine if group can edit insight
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param insightId
-	 * @return
+	 * Says whether one of the user's teams can edit an insight, through a team
+	 * grant on that insight.
+	 *
+	 * @param user      the signed in user
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @return true when one of the user's teams is an editor or an owner of the
+	 *         insight
 	 */
 	public static boolean userGroupCanEditInsight(User user, String projectId, String insightId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ENDDATE"));
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__ID"));
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__TYPE"));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
-		OrQueryFilter orFilter = new OrQueryFilter();
-		List<AuthProvider> logins = user.getLogins();
-		boolean anyUserGroups = false;
-		for (AuthProvider login : logins) {
-			if (user.getAccessToken(login).getUserGroups().isEmpty()) {
-				continue;
-			}
-
-			AndQueryFilter andFilter = new AndQueryFilter();
-			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__TYPE", "==",
-					user.getAccessToken(login).getUserGroupType()));
-			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__ID", "==",
-					user.getAccessToken(login).getUserGroups()));
-			orFilter.addFilter(andFilter);
-		}
-
-		if (!anyUserGroups) {
-			return false;
-		}
-
-		qs.addExplicitFilter(orFilter);
-		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPINSIGHTPERMISSION__PERMISSION"));
-		Integer bestGroupDatabasePermission = null;
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] values = wrapper.next().getValues();
-				Object val = values[0];
-				SemossDate endDate = (SemossDate) values[1];
-				if (AbstractSecurityUtils.endDateIsExpired(endDate)) {
-					// Need to delete expired permission here
-					String groupId = (String) values[2];
-					String groupType = (String) values[3];
-					removeExpiredInsightGroupPermission(groupId, groupType, projectId, insightId);
-					continue;
-				}
-				if (val != null) {
-					bestGroupDatabasePermission = ((Number) val).intValue();
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user's group can edit insight.", e);
-			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
-		}
-
-		if (bestGroupDatabasePermission != null) {
-			return AccessPermissionEnum.isEditor(bestGroupDatabasePermission);
-		}
-
-		return false;
+		Integer permission = bestTeamInsightPermission(user, projectId, insightId);
+		return permission != null && AccessPermissionEnum.isEditor(permission);
 	}
 
 	/**
-	 * Determine if group is owner of insight
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param insightId
-	 * @return
+	 * Says whether one of the user's teams owns an insight, through a team grant on
+	 * that insight.
+	 *
+	 * @param user      the signed in user
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @return true when one of the user's teams is an owner of the insight
 	 */
 	public static boolean userGroupIsOwner(User user, String projectId, String insightId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
-		OrQueryFilter orFilter = new OrQueryFilter();
-		List<AuthProvider> logins = user.getLogins();
-		boolean anyUserGroups = false;
-		for (AuthProvider login : logins) {
-			if (user.getAccessToken(login).getUserGroups().isEmpty()) {
-				continue;
-			}
-
-			AndQueryFilter andFilter = new AndQueryFilter();
-			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__TYPE", "==",
-					user.getAccessToken(login).getUserGroupType()));
-			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__ID", "==",
-					user.getAccessToken(login).getUserGroups()));
-			orFilter.addFilter(andFilter);
-		}
-
-		if (!anyUserGroups) {
-			return false;
-		}
-
-		qs.addExplicitFilter(orFilter);
-		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPINSIGHTPERMISSION__PERMISSION"));
-		Integer bestGroupDatabasePermission = null;
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				Object val = wrapper.next().getValues()[0];
-				if (val != null) {
-					bestGroupDatabasePermission = ((Number) val).intValue();
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to verify whether the user group has owner-level access.", e);
-			throw new IllegalArgumentException("Failed to retrieve existing group project permissions for user", e);
-		}
-
-		if (bestGroupDatabasePermission != null) {
-			return AccessPermissionEnum.isOwner(bestGroupDatabasePermission);
-		}
-
-		return false;
+		Integer permission = bestTeamInsightPermission(user, projectId, insightId);
+		return permission != null && AccessPermissionEnum.isOwner(permission);
 	}
 
 	/**
-	 * Determine the strongest insight permission for the user/group
-	 * 
-	 * @param userId
-	 * @param insightId
-	 * @return
+	 * Returns the strongest permission the user has on an insight, from their own
+	 * grant or one of their teams' grants. A public insight the user has no grant
+	 * on gives Read-Only.
+	 *
+	 * @param user      the signed in user
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @return the permission id ({@link AccessPermissionEnum}, lower is stronger),
+	 *         or null when the user has no access
 	 */
 	public static Integer getBestInsightPermission(User user, String projectId, String insightId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// get best permission from user
 		Integer bestUserInsightPermission = null;
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -305,59 +159,83 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Unable to determine the highest group-based insight permission.", e);
+			classLogger.error("Unable to read the user's own permission on insight {} of project {}", insightId,
+					projectId, e);
 			throw new IllegalArgumentException("Failed to retrieve existing insight permissions for user", e);
 		}
 
-		// if they are the owner based on user, then skip the group check
 		if (bestUserInsightPermission != null && AccessPermissionEnum.isOwner(bestUserInsightPermission)) {
 			return bestUserInsightPermission;
 		}
 
-		// get best group permission
-		Integer bestGroupInsightPermission = null;
-
-		qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__INSIGHTID", "==", insightId));
-		OrQueryFilter orFilter = new OrQueryFilter();
-		List<AuthProvider> logins = user.getLogins();
-		for (AuthProvider login : logins) {
-			AndQueryFilter andFilter = new AndQueryFilter();
-			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__TYPE", "==",
-					user.getAccessToken(login).getUserGroupType()));
-			andFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__ID", "==",
-					user.getAccessToken(login).getUserGroups()));
-			orFilter.addFilter(andFilter);
-		}
-		qs.addExplicitFilter(orFilter);
-		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPINSIGHTPERMISSION__PERMISSION"));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				Object val = wrapper.next().getValues()[0];
-				if (val != null) {
-					bestGroupInsightPermission = ((Number) val).intValue();
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to determine the highest group-based insight permission.", e);
-			throw new IllegalArgumentException("Failed to retrieve existing insight permissions for user", e);
-		}
-
+		Integer bestGroupInsightPermission = bestTeamInsightPermission(user, projectId, insightId);
 		if (bestGroupInsightPermission == null && bestUserInsightPermission == null) {
 			if (SecurityInsightUtils.insightIsGlobal(projectId, insightId)) {
 				return AccessPermissionEnum.READ_ONLY.getId();
 			}
 			return null;
-		} else if (bestGroupInsightPermission == null
-				|| bestGroupInsightPermission.compareTo(bestUserInsightPermission) >= 0) {
+		}
+		if (bestGroupInsightPermission == null) {
 			return bestUserInsightPermission;
-		} else {
+		}
+		if (bestUserInsightPermission == null) {
 			return bestGroupInsightPermission;
 		}
+		return Math.min(bestUserInsightPermission, bestGroupInsightPermission);
+	}
+
+	/**
+	 * Returns the strongest permission any of the user's teams has on one insight.
+	 * Only grants on that insight count, not grants on other insights of the same
+	 * project.
+	 *
+	 * @param user      the signed in user
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @return the permission id ({@link AccessPermissionEnum}, lower is stronger),
+	 *         or null when the user is in no team or none of their teams has a
+	 *         grant on the insight
+	 */
+	private static Integer bestTeamInsightPermission(User user, String projectId, String insightId) {
+		OrQueryFilter teamFilter = new OrQueryFilter();
+		boolean anyUserGroups = false;
+		for (AuthProvider login : user.getLogins()) {
+			Collection<String> userGroups = user.getAccessToken(login).getUserGroups();
+			if (userGroups.isEmpty()) {
+				continue;
+			}
+			anyUserGroups = true;
+			AndQueryFilter loginTeams = new AndQueryFilter();
+			loginTeams.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__TYPE", "==",
+					user.getAccessToken(login).getUserGroupType()));
+			loginTeams.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__ID", "==", userGroups));
+			teamFilter.addFilter(loginTeams);
+		}
+		if (!anyUserGroups) {
+			return null;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("GROUPINSIGHTPERMISSION__PERMISSION"));
+		addInsightFilters(qs, projectId, insightId);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPINSIGHTPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.CONST_INT));
+		qs.addExplicitFilter(teamFilter);
+		qs.addOrderBy(new QueryColumnOrderBySelector("GROUPINSIGHTPERMISSION__PERMISSION"));
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance()
+				.getRawWrapper(SystemEngineRegistry.getSecurityDb(), qs)) {
+			if (wrapper.hasNext()) {
+				Object val = wrapper.next().getValues()[0];
+				if (val != null) {
+					return ((Number) val).intValue();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to read the team permissions on insight {} of project {}", insightId, projectId,
+					e);
+			throw new IllegalArgumentException("Failed to retrieve the team permissions on the insight for user", e);
+		}
+		return null;
 	}
 
 	/**
@@ -464,43 +342,6 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 				new PermissionErrorRules().illegalAccess(PermissionProblem.ErrorCode.NO_PERMISSION, OWNERS_ONLY)
 						.illegalArgument(PermissionProblem.ErrorCode.NO_ACCESS,
 								"Attempting to modify group permission for a user who does not currently have access to the insight"));
-	}
-
-	/**
-	 * Delete a group insight permission
-	 * 
-	 * @param groupId
-	 * @param groupType
-	 * @param insightId
-	 * @return
-	 * @throws IllegalAccessException
-	 */
-	public static void removeExpiredInsightGroupPermission(String groupId, String groupType, String projectId,
-			String insightId) throws IllegalAccessException {
-
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingGroupPermission = getGroupInsightPermission(groupId, groupType, projectId, insightId);
-		if (existingGroupPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify group permission for a user who does not currently have access to the insight");
-		}
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?", ps -> {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-					});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to determine the highest group-based insight permission.", e);
-		}
 	}
 
 	/**

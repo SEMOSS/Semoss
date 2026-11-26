@@ -39,13 +39,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.io.connector.ConnectorScopeAccess;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarCreateEventReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarDeleteEventReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarGetEventReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarGetMeetingTranscriptReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarGetScheduleReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarHelper;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarListCalendarsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarListEventsReactor;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarRespondToEventReactor;
@@ -99,9 +103,12 @@ import prerna.reactor.collaboration.WorkOpenSkillReactor;
 import prerna.reactor.collaboration.WorkPublishSkillReactor;
 import prerna.reactor.collaboration.WorkSaveCustomRoutineReactor;
 import prerna.reactor.collaboration.WorkSaveRoutinePreferencesReactor;
+import prerna.reactor.collaboration.WorkRemoveFromTwinReactor;
+import prerna.reactor.collaboration.WorkSaveToTwinReactor;
 import prerna.reactor.collaboration.WorkSaveWorkReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 import prerna.reactor.collaboration.WorkShowItemReactor;
+import prerna.reactor.collaboration.WorkShowOrgChartReactor;
 import prerna.reactor.collaboration.WorkUpdateStepReactor;
 import prerna.reactor.collaboration.WorkUseSkillInAssistantReactor;
 
@@ -125,12 +132,19 @@ public final class CollaborationAgentTools {
 	 */
 	public static final String TOOL_KIND = "semoss_collaboration_tool";
 
+	// These tools are handed only to a twin in its owner's chat.
+	private static final List<String> TWIN_FILE_TOOLS = List.of("SaveToDigitalTwin", "RemoveFromDigitalTwin");
+	public static final String TWIN_APPROVAL_PROJECT = "SMSS_TWIN_APPROVAL_PROJECT";
+
 	// tool name the model sees -> reactor it runs
 	private static final Map<String, Class<? extends AbstractReactor>> REACTORS = new LinkedHashMap<>();
 	static {
 		REACTORS.put("ListCalendars", MicrosoftCalendarListCalendarsReactor.class);
 		REACTORS.put("ListEvents", MicrosoftCalendarListEventsReactor.class);
 		REACTORS.put("GetEvent", MicrosoftCalendarGetEventReactor.class);
+		// what was said in an event's Teams meeting; offered only where the sign in asks
+		// for its scope (see TRANSCRIPT_TOOL)
+		REACTORS.put("GetMeetingTranscript", MicrosoftCalendarGetMeetingTranscriptReactor.class);
 		REACTORS.put("GetSchedule", MicrosoftCalendarGetScheduleReactor.class);
 		REACTORS.put("CreateEvent", MicrosoftCalendarCreateEventReactor.class);
 		REACTORS.put("UpdateEvent", MicrosoftCalendarUpdateEventReactor.class);
@@ -171,6 +185,7 @@ public final class CollaborationAgentTools {
 		// puts one found email, thread, Teams chat, or room file beside the owner's
 		// chat, on request
 		REACTORS.put("ShowItem", WorkShowItemReactor.class);
+		REACTORS.put("ShowOrgChart", WorkShowOrgChartReactor.class);
 		REACTORS.put("ListTeams", MicrosoftTeamsListTeamsReactor.class);
 		REACTORS.put("ListChannels", MicrosoftTeamsListChannelsReactor.class);
 		REACTORS.put("ListChannelFiles", MicrosoftTeamsListFilesReactor.class);
@@ -211,6 +226,8 @@ public final class CollaborationAgentTools {
 		REACTORS.put("PublishSkill", WorkPublishSkillReactor.class);
 		REACTORS.put("UseSkillInAssistant", WorkUseSkillInAssistantReactor.class);
 		REACTORS.put("DeleteMySkill", WorkDeleteMySkillReactor.class);
+		REACTORS.put("SaveToDigitalTwin", WorkSaveToTwinReactor.class);
+		REACTORS.put("RemoveFromDigitalTwin", WorkRemoveFromTwinReactor.class);
 	}
 
 	private static final Set<String> MEMORY_TOOLS = Set.of("Remember", "Forget", "SearchMemories");
@@ -223,10 +240,8 @@ public final class CollaborationAgentTools {
 	// times the model writes are read in the owner's zone too: CreateEvent at 09:00 with no zone was 09:00 UTC
 	private static final Set<String> ZONED_TOOLS = Set.of("ListEvents", "GetEvent", "CreateEvent", "UpdateEvent");
 
-	// tools about the chat itself: only for the owner's chat at the root of the
-	// run, never a routine;
-	// ShowItem needs the owner's chat on screen to show anything
-	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "ShowItem");
+	// These tools display or change the owner's current chat.
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic", "ShowItem", "ShowOrgChart");
 
 	// the email editor is open in the owner's chat; a routine has none, its
 	// delivery step sends the result
@@ -242,6 +257,11 @@ public final class CollaborationAgentTools {
 			"SetRoutinePreferences", "ListMySkills", "OpenSkill", "PublishSkill", "UseSkillInAssistant",
 			"DeleteMySkill");
 
+	// reading a transcript takes a Microsoft scope an administrator consents to, and
+	// until the sign in asks for it every call is refused, so it is offered only
+	// where the sign in does
+	private static final String TRANSCRIPT_TOOL = "GetMeetingTranscript";
+
 	// tools the model loads on demand (SearchTools/LoadTools): direct Microsoft 365
 	// mail after Brain's own search,
 	// calendar changes, Teams channels and their files, one Teams chat or message
@@ -251,7 +271,9 @@ public final class CollaborationAgentTools {
 			"UploadChannelFile", "GetChat", "GetChatMessage", "ListMySkills", "OpenSkill", "PublishSkill",
 			"UseSkillInAssistant", "EditTopic", "EditThread", "ListRoutines", "ManageRoutine");
 	// what the chat card calls a tool when its words alone would not say it
-	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat");
+	private static final Map<String, String> TITLES = Map.of("ShowItem", "Open Beside Chat", "UseSkillInAssistant",
+			"Digital Twin Skills", "SaveToDigitalTwin", "Add a File to This Twin", "RemoveFromDigitalTwin",
+			"Remove a File From This Twin");
 
 	// said first in a mail tool's description, so the model knows which side of
 	// Brain it is on
@@ -317,14 +339,48 @@ public final class CollaborationAgentTools {
 	}
 
 	private static List<Map<String, Object>> definitions(boolean memory, boolean chat, boolean owner) {
+		boolean transcripts = transcriptsRequested();
 		List<Map<String, Object>> tools = new ArrayList<>();
 		for (Map.Entry<String, JSONObject> tool : tools().entrySet()) {
 			if ((memory || !MEMORY_TOOLS.contains(tool.getKey())) && (chat || !CHAT_TOOLS.contains(tool.getKey()))
-					&& (owner || !OWNER_TOOLS.contains(tool.getKey()))) {
+					&& (owner || !OWNER_TOOLS.contains(tool.getKey()))
+					&& (transcripts || !TRANSCRIPT_TOOL.equals(tool.getKey()))
+					&& !isTwinFileTool(tool.getKey())) {
 				tools.add(tool.getValue().toMap());
 			}
 		}
 		return tools;
+	}
+
+	/** The approved file tools for an owner's chat, bound to the twin that requested the changes. */
+	public static List<Map<String, Object>> twinFileTools(String twinId) {
+		List<Map<String, Object>> result = new ArrayList<>();
+		for (String name : TWIN_FILE_TOOLS) {
+			JSONObject tool = tools().get(name);
+			if (tool == null) {
+				return List.of();
+			}
+			Map<String, Object> definition = tool.toMap();
+			Map<String, Object> meta = tool.getJSONObject("_meta").toMap();
+			meta.put(TWIN_APPROVAL_PROJECT, twinId);
+			definition.put("_meta", meta);
+			result.add(definition);
+		}
+		return result;
+	}
+
+	/**
+	 * Whether the deployment's Microsoft sign in asks for the scope a meeting
+	 * transcript is read with.
+	 */
+	static boolean transcriptsRequested() {
+		try {
+			return ConnectorScopeAccess.requestsAnyScope(AuthProvider.MICROSOFT,
+					List.of(MicrosoftCalendarHelper.TRANSCRIPT_SCOPE));
+		} catch (RuntimeException e) {
+			// no sign in settings to read, so nothing was asked for
+			return false;
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -345,6 +401,11 @@ public final class CollaborationAgentTools {
 
 	public static boolean isTool(String toolName) {
 		return toolName != null && tools().containsKey(toolName);
+	}
+
+	/** Whether this tool changes shared files in a Digital Twin owner's own chat. */
+	public static boolean isTwinFileTool(String toolName) {
+		return toolName != null && TWIN_FILE_TOOLS.contains(toolName);
 	}
 
 	/** Whether a stored pending action's _meta came from one of these tools. */

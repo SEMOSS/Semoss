@@ -30,16 +30,21 @@ package prerna.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.poi.hssf.record.crypto.Biff8EncryptionKey;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +52,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import com.zaxxer.hikari.HikariConfig;
@@ -63,6 +70,10 @@ class SandboxLibrariesUnitTests {
 	private static final String JSON_TYPE_INFO = "Lcom/fasterxml/jackson/annotation/JsonTypeInfo;";
 	private static final String JSON_TYPE_ID = "Lcom/fasterxml/jackson/annotation/JsonTypeInfo$Id;";
 	private static final String OBJECT_MAPPER = "com/fasterxml/jackson/databind/ObjectMapper";
+	private static final String PD_DOCUMENT = "org/apache/pdfbox/pdmodel/PDDocument";
+	private static final String PD_PAGE = "org/apache/pdfbox/pdmodel/PDPage";
+	private static final String PD_RECTANGLE = "org/apache/pdfbox/pdmodel/common/PDRectangle";
+	private static final String PD_RECTANGLE_DESCRIPTOR = "L" + PD_RECTANGLE + ";";
 
 	@TempDir
 	Path folder;
@@ -90,6 +101,7 @@ class SandboxLibrariesUnitTests {
 			"org.apache.logging.log4j.message.ParameterizedMessage", "org.apache.logging.log4j.spi.ExtendedLogger",
 			"org.apache.logging.log4j.util.Supplier", "com.zaxxer.hikari.HikariDataSource", "org.javatuples.Pair",
 			"jakarta.mail.Session", "jakarta.mail.internet.MimeMessage", "jakarta.activation.DataHandler",
+			"org.apache.pdfbox.Loader", "org.apache.pdfbox.io.IOUtils", "org.apache.fontbox.ttf.TTFParser",
 			"prerna.util.Utility", "javax.sql.DataSource", "org.w3c.dom.Document", "java.util.ArrayList" })
 	void aSharedLibraryClassIsThePlatformsOwn(String name) throws Exception {
 		assertSame(Class.forName(name), SandboxProbe.loader(this.folder).loadClass(name));
@@ -163,6 +175,36 @@ class SandboxLibrariesUnitTests {
 		assertEquals("hidden", SandboxProbe.run(probe, "readEnv"));
 		assertTrue(((File) SandboxProbe.run(probe, "file")).toPath().startsWith(root));
 		assertEquals("read me", SandboxProbe.run(probe, "parse"));
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = { Opcodes.V1_1, Opcodes.V1_4, Opcodes.V1_5 })
+	void aLibraryCompiledForAnOldJavaRunsInTheSandbox(int version) throws Throwable {
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe(version).method("findClass", mv -> {
+			mv.visitLdcInsn("java.lang.String");
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Class", "forName",
+					"(Ljava/lang/String;)Ljava/lang/Class;", false);
+		}).bytes());
+
+		assertEquals(String.class, SandboxProbe.run(probe, "findClass"));
+	}
+
+	@ParameterizedTest
+	@ValueSource(ints = { Opcodes.V1_1, Opcodes.V1_4, Opcodes.V1_5 })
+	void aFinallyBlockFromAnOldCompilerRunsInTheSandbox(int version) throws Throwable {
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe(version).method("finallyBlock", mv -> {
+			Label subroutine = new Label();
+			Label after = new Label();
+			mv.visitJumpInsn(Opcodes.JSR, subroutine);
+			mv.visitJumpInsn(Opcodes.GOTO, after);
+			mv.visitLabel(subroutine);
+			mv.visitVarInsn(Opcodes.ASTORE, 0);
+			mv.visitVarInsn(Opcodes.RET, 0);
+			mv.visitLabel(after);
+			mv.visitLdcInsn("finally ran");
+		}).bytes());
+
+		assertEquals("finally ran", SandboxProbe.run(probe, "finallyBlock"));
 	}
 
 	@Test
@@ -268,6 +310,16 @@ class SandboxLibrariesUnitTests {
 	}
 
 	@ParameterizedTest
+	@CsvSource({ "com/zaxxer/hikari/HikariConfig, getPassword, ()Ljava/lang/String;",
+			"com/zaxxer/hikari/HikariDataSource, getPassword, ()Ljava/lang/String;",
+			"com/zaxxer/hikari/HikariDataSource, getDataSourceProperties, ()Ljava/util/Properties;" })
+	void aConnectionPoolKeepsItsPasswordToItself(String owner, String name, String descriptor) throws Exception {
+		Class<?> probe = SandboxProbe.loadCall(this.folder, owner, name, descriptor, false);
+
+		assertThrows(SecurityException.class, () -> SandboxProbe.run(probe, "run"));
+	}
+
+	@ParameterizedTest
 	@CsvSource({ "com/zaxxer/hikari/HikariConfig, setDataSourceJNDI",
 			"com/zaxxer/hikari/HikariConfig, setDataSourceClassName",
 			"com/zaxxer/hikari/HikariDataSource, setDataSourceJNDI",
@@ -293,8 +345,171 @@ class SandboxLibrariesUnitTests {
 		byClassName.setProperty("dataSourceClassName", "org.h2.jdbcx.JdbcDataSource");
 
 		assertInstanceOf(HikariConfig.class, SandboxProbe.run(probe, "empty"));
-		assertEquals("jdbc:h2:mem:sandbox", SandboxedJavaExecution.hikariConfig(byUrl).getJdbcUrl());
-		assertThrows(SecurityException.class, () -> SandboxedJavaExecution.hikariConfig(byLookup));
-		assertThrows(SecurityException.class, () -> SandboxedJavaExecution.hikariConfig(byClassName));
+		assertEquals("jdbc:h2:mem:sandbox", SandboxedHikari.hikariConfig(byUrl).getJdbcUrl());
+		assertThrows(SecurityException.class, () -> SandboxedHikari.hikariConfig(byLookup));
+		assertThrows(SecurityException.class, () -> SandboxedHikari.hikariConfig(byClassName));
+	}
+
+	@Test
+	void pdfBoxWritesAndReadsPdfsInsideTheUsersFolder() throws Throwable {
+		Path root = Files.createDirectories(this.folder.resolve("user-root")).toRealPath();
+		String path = File.separator + "letter.pdf";
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe().method("roundTrip", mv -> {
+			mv.visitTypeInsn(Opcodes.NEW, PD_DOCUMENT);
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, PD_DOCUMENT, "<init>", "()V", false);
+			mv.visitVarInsn(Opcodes.ASTORE, 0);
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitTypeInsn(Opcodes.NEW, PD_PAGE);
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitFieldInsn(Opcodes.GETSTATIC, PD_RECTANGLE, "A4", PD_RECTANGLE_DESCRIPTOR);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, PD_PAGE, "<init>", "(" + PD_RECTANGLE_DESCRIPTOR + ")V", false);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, PD_DOCUMENT, "addPage", "(L" + PD_PAGE + ";)V", false);
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitLdcInsn(path);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, PD_DOCUMENT, "save", "(Ljava/lang/String;)V", false);
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, PD_DOCUMENT, "close", "()V", false);
+			mv.visitTypeInsn(Opcodes.NEW, "java/io/File");
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitLdcInsn(path);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/io/File", "<init>", "(Ljava/lang/String;)V", false);
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "org/apache/pdfbox/Loader", "loadPDF",
+					"(Ljava/io/File;)L" + PD_DOCUMENT + ";", false);
+			mv.visitVarInsn(Opcodes.ASTORE, 0);
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, PD_DOCUMENT, "getNumberOfPages", "()I", false);
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", false);
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, PD_DOCUMENT, "close", "()V", false);
+		}).bytes());
+		SandboxedJavaExecution.setSandboxRootForCurrentThread(root.toString());
+
+		assertEquals(1, SandboxProbe.run(probe, "roundTrip"));
+		assertTrue(Files.exists(root.resolve("letter.pdf")));
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "org/apache/pdfbox/io/IOUtils, unmap, (Ljava/nio/ByteBuffer;)V, true",
+			"org/apache/pdfbox/cos/COSName, clearResources, ()V, true",
+			"org/apache/pdfbox/pdmodel/ResourceCacheFactory, setResourceCacheCreateFunction, (Lorg/apache/pdfbox/pdmodel/ResourceCacheCreateFunction;)V, true",
+			"org/apache/pdfbox/pdmodel/font/FontMappers, set, (Lorg/apache/pdfbox/pdmodel/font/FontMapper;)V, true",
+			"org/apache/pdfbox/pdmodel/encryption/SecurityProvider, setProvider, (Ljava/security/Provider;)V, true",
+			"org/apache/pdfbox/pdmodel/encryption/SecurityHandlerFactory, registerHandler, (Ljava/lang/String;Ljava/lang/Class;Ljava/lang/Class;)V, false",
+			"org/apache/pdfbox/multipdf/Overlay, overlay, (Ljava/util/Map;)Lorg/apache/pdfbox/pdmodel/PDDocument;, false",
+			"org/apache/fontbox/cff/CFFISOAdobeCharset, getInstance, ()Lorg/apache/fontbox/cff/CFFISOAdobeCharset;, true",
+			"org/apache/fontbox/cff/CFFExpertCharset, getInstance, ()Lorg/apache/fontbox/cff/CFFExpertCharset;, true",
+			"org/apache/fontbox/cff/CFFExpertSubsetCharset, getInstance, ()Lorg/apache/fontbox/cff/CFFExpertSubsetCharset;, true" })
+	void pdfBoxCannotChangeWhatEveryUserShares(String owner, String name, String descriptor, boolean isStatic)
+			throws Exception {
+		Class<?> probe = SandboxProbe.loadCall(this.folder, owner, name, descriptor, isStatic);
+
+		assertThrows(SecurityException.class, () -> SandboxProbe.run(probe, "run"));
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "org/apache/poi/openxml4j/util/ZipSecureFile, setMinInflateRatio, (D)V",
+			"org/apache/poi/util/IOUtils, setByteArrayMaxOverride, (I)V",
+			"org/apache/poi/hssf/usermodel/HSSFWorkbook, setMaxRecordLength, (I)V",
+			"org/apache/poi/ddf/EscherContainerRecord, setMaxNumberOfChildren, (I)V",
+			"org/apache/poi/util/TempFile, setTempFileCreationStrategy, (Lorg/apache/poi/util/TempFileCreationStrategy;)V",
+			"org/apache/poi/ss/usermodel/WorkbookFactory, addProvider, (Lorg/apache/poi/ss/usermodel/WorkbookProvider;)V",
+			"org/apache/poi/ss/formula/eval/FunctionEval, registerFunction, (Ljava/lang/String;Lorg/apache/poi/ss/formula/functions/Function;)V",
+			"org/apache/poi/ss/util/SheetUtil, setFailoverFunction, (Lorg/apache/poi/ss/util/SheetUtil$Function5Arity;)V",
+			"org/apache/poi/util/ThreadLocalUtil, registerCleaner, (Ljava/lang/Runnable;)V",
+			"org/apache/poi/util/LocaleUtil, setUserLocale, (Ljava/util/Locale;)V",
+			"org/apache/poi/hssf/record/crypto/Biff8EncryptionKey, setCurrentUserPassword, (Ljava/lang/String;)V" })
+	void poiCannotChangeWhatEveryUserShares(String owner, String name, String descriptor) throws Exception {
+		Class<?> probe = SandboxProbe.loadCall(this.folder, owner, name, descriptor, true);
+
+		assertThrows(SecurityException.class, () -> SandboxProbe.run(probe, "run"));
+	}
+
+	@Test
+	void anEncryptedWorkbookOpensWithItsPassword() throws Throwable {
+		File workbook = this.folder.resolve("secret.xls").toFile();
+		try (HSSFWorkbook written = new HSSFWorkbook(); FileOutputStream out = new FileOutputStream(workbook)) {
+			written.createSheet().createRow(0).createCell(0).setCellValue("opened");
+			Biff8EncryptionKey.setCurrentUserPassword("secret");
+			written.write(out);
+		} finally {
+			Biff8EncryptionKey.setCurrentUserPassword(null);
+		}
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe().method("open", mv -> {
+			mv.visitTypeInsn(Opcodes.NEW, "java/io/File");
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitLdcInsn(workbook.getAbsolutePath());
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/io/File", "<init>", "(Ljava/lang/String;)V", false);
+			mv.visitLdcInsn("secret");
+			mv.visitMethodInsn(Opcodes.INVOKESTATIC, "org/apache/poi/ss/usermodel/WorkbookFactory", "create",
+					"(Ljava/io/File;Ljava/lang/String;)Lorg/apache/poi/ss/usermodel/Workbook;", false);
+			mv.visitInsn(Opcodes.ICONST_0);
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/apache/poi/ss/usermodel/Workbook", "getSheetAt",
+					"(I)Lorg/apache/poi/ss/usermodel/Sheet;", true);
+			mv.visitInsn(Opcodes.ICONST_0);
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/apache/poi/ss/usermodel/Sheet", "getRow",
+					"(I)Lorg/apache/poi/ss/usermodel/Row;", true);
+			mv.visitInsn(Opcodes.ICONST_0);
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/apache/poi/ss/usermodel/Row", "getCell",
+					"(I)Lorg/apache/poi/ss/usermodel/Cell;", true);
+			mv.visitMethodInsn(Opcodes.INVOKEINTERFACE, "org/apache/poi/ss/usermodel/Cell", "getStringCellValue",
+					"()Ljava/lang/String;", true);
+		}).bytes());
+
+		assertEquals("opened", SandboxProbe.run(probe, "open"));
+		assertNull(Biff8EncryptionKey.getCurrentUserPassword());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "org/apache/poi/hssf/usermodel/HSSFWorkbook", "org/apache/poi/hslf/usermodel/HSLFSlideShow",
+			"org/apache/poi/ddf/AbstractEscherOptRecord" })
+	void aPoiClassWithRefusedCallsCannotBeExtended(String owner) {
+		byte[] subclass = new SandboxProbe("custom/sandbox/Extended", owner).bytes();
+
+		assertThrows(SecurityException.class, () -> SemossClassLoader.applyBytecodeTransformations(subclass));
+	}
+
+	@Test
+	void aPageSizeEveryDocumentSharesStaysTheSame() throws Throwable {
+		float a4Width = PDRectangle.A4.getUpperRightX();
+		float letterWidth = PDRectangle.LETTER.getUpperRightX();
+		Class<?> probe = SandboxProbe.load(this.folder, new SandboxProbe().method("changeA4", mv -> {
+			mv.visitFieldInsn(Opcodes.GETSTATIC, PD_RECTANGLE, "A4", PD_RECTANGLE_DESCRIPTOR);
+			changeWidth(mv);
+		}).method("changeANewPage", mv -> {
+			mv.visitTypeInsn(Opcodes.NEW, PD_PAGE);
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, PD_PAGE, "<init>", "()V", false);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, PD_PAGE, "getMediaBox", "()" + PD_RECTANGLE_DESCRIPTOR, false);
+			changeWidth(mv);
+		}).method("changeAPageWithoutABox", mv -> {
+			mv.visitTypeInsn(Opcodes.NEW, PD_PAGE);
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitTypeInsn(Opcodes.NEW, "org/apache/pdfbox/cos/COSDictionary");
+			mv.visitInsn(Opcodes.DUP);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/apache/pdfbox/cos/COSDictionary", "<init>", "()V", false);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, PD_PAGE, "<init>", "(Lorg/apache/pdfbox/cos/COSDictionary;)V",
+					false);
+			mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, PD_PAGE, "getMediaBox", "()" + PD_RECTANGLE_DESCRIPTOR, false);
+			changeWidth(mv);
+		}).bytes());
+
+		assertEquals(1f, ((PDRectangle) SandboxProbe.run(probe, "changeA4")).getUpperRightX());
+		assertEquals(1f, ((PDRectangle) SandboxProbe.run(probe, "changeANewPage")).getUpperRightX());
+		assertEquals(1f, ((PDRectangle) SandboxProbe.run(probe, "changeAPageWithoutABox")).getUpperRightX());
+		assertEquals(a4Width, PDRectangle.A4.getUpperRightX());
+		assertEquals(letterWidth, PDRectangle.LETTER.getUpperRightX());
+	}
+
+	/**
+	 * With a rectangle on the stack, sets its upper right x to 1 and leaves the
+	 * rectangle on the stack.
+	 *
+	 * @param mv the method being written
+	 */
+	private static void changeWidth(MethodVisitor mv) {
+		mv.visitInsn(Opcodes.DUP);
+		mv.visitInsn(Opcodes.FCONST_1);
+		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, PD_RECTANGLE, "setUpperRightX", "(F)V", false);
 	}
 }

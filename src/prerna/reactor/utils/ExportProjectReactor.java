@@ -40,7 +40,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -56,7 +55,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Utility;
 import prerna.util.ZipUtils;
 
@@ -80,18 +78,14 @@ public class ExportProjectReactor extends AbstractReactor {
 		boolean keepGit = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]));
 
 		User user = this.insight.getUser();
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin) {
-			boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
-			if (!isOwner) {
-				throw new IllegalArgumentException(
-						"Project " + projectId + "does not exist or user does not have access to export.");
-			}
+		boolean isOwner = SecurityProjectUtils.userIsOwner(user, projectId);
+		if (!isOwner) {
+			throw new IllegalArgumentException(
+					"Project " + projectId + "does not exist or user does not have access to export.");
 		}
 
 		logger.info("Exporting project now...");
-		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER).replace("\\", "/");
+		String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER).replace("\\", "/");
 		if (!baseFolder.endsWith("/")) {
 			baseFolder += "/";
 		}
@@ -147,7 +141,7 @@ public class ExportProjectReactor extends AbstractReactor {
 				if (ClusterUtil.IS_CLUSTER && project.getProjectType().holdsInsights()) {
 					logger.info("Creating insight database ...");
 					try {
-						insightsFile = SecurityProjectUtils.createInsightsDatabase(projectId, outputDir);
+						insightsFile = SecurityProjectUtils.createInsightsDatabase(user, projectId, outputDir);
 					} catch (Exception e) {
 						classLogger.error("Failed to generate the insights database for project {} during export",
 								projectId, e);

@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -54,6 +55,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftMessageDisplay;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
@@ -251,7 +253,8 @@ public class MicrosoftTeamsMessageHelper {
 			int olderRun = 0;
 			walk: while (nextUrl != null) {
 				Map<String, Object> json = readMap(
-						HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null));
+						HttpHelperUtility.getRequest(ConnectorGuards.requireUnder(nextUrl, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
+								headers(accessToken), null, null, null));
 				if (json == null) {
 					break;
 				}
@@ -548,12 +551,23 @@ public class MicrosoftTeamsMessageHelper {
 	/** Opt-in original bodies are for UI display only. */
 	public static List<Map<String, Object>> listChatMessages(String accessToken, String chatId, int maxBodyChars,
 			int limit, boolean includeDisplayBody) throws Exception {
+		return listChatMessages(accessToken, chatId, maxBodyChars, limit, includeDisplayBody, null);
+	}
+
+	/**
+	 * As above, for a read nobody is waiting at: each request to Graph is given up
+	 * after {@code timeout}, so one that is never answered ends in an exception
+	 * and does not hold its thread for good. A null timeout waits for as long as
+	 * Graph takes, as the other listings do.
+	 */
+	public static List<Map<String, Object>> listChatMessages(String accessToken, String chatId, int maxBodyChars,
+			int limit, boolean includeDisplayBody, Timeout timeout) throws Exception {
 		try {
 			requireValue(chatId, "Chat ID is required to read Microsoft Teams chat messages.");
 
 			String url = chatPath(chatId) + "/messages?$top=" + pageSize(limit) + "&$orderby=createdDateTime%20desc";
 			List<Map<String, Object>> result = new ArrayList<>();
-			for (Map<String, Object> message : getPagedValues(accessToken, url, limit)) {
+			for (Map<String, Object> message : getPagedValues(accessToken, url, limit, timeout)) {
 				Map<String, Object> described = MicrosoftTeamsMessageMapper.toMessage(message, maxBodyChars, false);
 				if (includeDisplayBody) {
 					described.put("displayBody",
@@ -677,7 +691,7 @@ public class MicrosoftTeamsMessageHelper {
 			requireValue(chatId, "Chat ID is required to read a Microsoft Teams chat message.");
 			requireValue(messageId, "Message ID is required to read a Microsoft Teams chat message.");
 
-			String url = chatPath(chatId) + MESSAGES + messageId.trim();
+			String url = chatPath(chatId) + MESSAGES + ConnectorGuards.segment(messageId);
 			return readMessage(accessToken, url, maxBodyChars, false);
 		} catch (Exception e) {
 			classLogger.error("Failed to read message '{}' of Microsoft Teams chat '{}'.", messageId, chatId, e);
@@ -739,8 +753,8 @@ public class MicrosoftTeamsMessageHelper {
 
 			// Graph documents this one only under a named user rather than under /me,
 			// so the signed in user's id is read rather than assumed to be aliasable
-			String url = GRAPH_BASE + "/users/" + signedInUserId(accessToken) + CHATS + chatId.trim() + MESSAGES
-					+ messageId.trim() + SOFT_DELETE;
+			String url = GRAPH_BASE + "/users/" + ConnectorGuards.segment(signedInUserId(accessToken)) + CHATS
+					+ ConnectorGuards.segment(chatId) + MESSAGES + ConnectorGuards.segment(messageId) + SOFT_DELETE;
 			// answers 204 with no body
 			HttpHelperUtility.postRequestStringBody(url, headers(accessToken), "", ContentType.APPLICATION_JSON, null,
 					null, null);
@@ -851,7 +865,7 @@ public class MicrosoftTeamsMessageHelper {
 			Map<String, Object> request = buildMessage(accessToken, subject, content, html, mentions, attachmentUrls,
 					attachmentNames);
 			String url = ValueUtils.isBlank(replyToId) ? channelPath(teamId, channelId) + "/messages"
-					: channelPath(teamId, channelId) + MESSAGES + replyToId.trim() + "/replies";
+					: channelPath(teamId, channelId) + MESSAGES + ConnectorGuards.segment(replyToId) + "/replies";
 			return postMessage(accessToken, url, request, maxBodyChars);
 		} catch (Exception e) {
 			classLogger.error("Failed to send a message to channel '{}' in Microsoft Team '{}'.", channelId, teamId, e);
@@ -931,7 +945,7 @@ public class MicrosoftTeamsMessageHelper {
 			requireValue(destination, "A destination path is required to download a Microsoft Teams attachment.");
 
 			String messageUrl = ValueUtils.isBlank(chatId) ? messagePath(teamId, channelId, messageId, replyId)
-					: chatPath(chatId) + MESSAGES + messageId.trim();
+					: chatPath(chatId) + MESSAGES + ConnectorGuards.segment(messageId);
 			Map<String, Object> message = readMap(
 					HttpHelperUtility.getRequest(messageUrl, headers(accessToken), null, null, null));
 			if (message == null) {
@@ -994,7 +1008,7 @@ public class MicrosoftTeamsMessageHelper {
 					"The message holds no attachment of that name or id. Read the message to see what it has on it.");
 		}
 
-		String url = messageUrl + HOSTED_CONTENTS + "/" + hostedContentId.trim() + "/$value";
+		String url = messageUrl + HOSTED_CONTENTS + "/" + ConnectorGuards.segment(hostedContentId) + "/$value";
 
 		// hosted content is unnamed, so it is written under the name the caller
 		// asked for and under the id it has otherwise
@@ -1271,7 +1285,8 @@ public class MicrosoftTeamsMessageHelper {
 	 * The file a download is written to in a directory.
 	 */
 	private static File target(String destination, String fileName) {
-		File file = new File(Paths.get(destination, fileName).toString());
+		// only the base name is honored, so a name carrying separators cannot leave the destination
+		File file = new File(Paths.get(destination, MicrosoftOneDriveHelper.baseName(fileName)).toString());
 		File parent = file.getParentFile();
 		if (parent != null && !parent.exists() && !parent.mkdirs()) {
 			throw new IllegalStateException("Unable to create destination directory at: " + parent.getAbsolutePath());
@@ -1283,14 +1298,14 @@ public class MicrosoftTeamsMessageHelper {
 	 * The part of a Graph url that says which chat this is.
 	 */
 	private static String chatPath(String chatId) {
-		return GRAPH_BASE + CHATS + chatId.trim();
+		return GRAPH_BASE + CHATS + ConnectorGuards.segment(chatId);
 	}
 
 	/**
 	 * The part of a Graph url that says which channel this is.
 	 */
 	private static String channelPath(String teamId, String channelId) {
-		return GRAPH_BASE + "/teams/" + teamId.trim() + "/channels/" + channelId.trim();
+		return GRAPH_BASE + "/teams/" + ConnectorGuards.segment(teamId) + "/channels/" + ConnectorGuards.segment(channelId);
 	}
 
 	/**
@@ -1299,8 +1314,8 @@ public class MicrosoftTeamsMessageHelper {
 	private static String messagePath(String teamId, String channelId, String messageId, String replyId) {
 		requireValue(teamId, "Team ID is required to address a Microsoft Teams channel message.");
 		requireValue(channelId, "Channel ID is required to address a Microsoft Teams channel message.");
-		String message = channelPath(teamId, channelId) + MESSAGES + messageId.trim();
-		return ValueUtils.isBlank(replyId) ? message : message + REPLIES + replyId.trim();
+		String message = channelPath(teamId, channelId) + MESSAGES + ConnectorGuards.segment(messageId);
+		return ValueUtils.isBlank(replyId) ? message : message + REPLIES + ConnectorGuards.segment(replyId);
 	}
 
 	/**
@@ -1315,11 +1330,20 @@ public class MicrosoftTeamsMessageHelper {
 	 * limit is met or the collection runs out.
 	 */
 	static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit) throws Exception {
+		return getPagedValues(accessToken, url, limit, null);
+	}
+
+	/** As above, giving each request up after {@code timeout}; null waits for as long as Graph takes. */
+	private static List<Map<String, Object>> getPagedValues(String accessToken, String url, int limit,
+			Timeout timeout) throws Exception {
 		List<Map<String, Object>> collected = new ArrayList<>();
 		String nextUrl = url;
 		while (nextUrl != null) {
-			Map<String, Object> json = readMap(
-					HttpHelperUtility.getRequest(nextUrl, headers(accessToken), null, null, null));
+			// a nextLink comes back in the response, and the request carries the token
+			String guarded = ConnectorGuards.requireUnder(nextUrl, MicrosoftTokenFiller.MS_GRAPH_BASE_API);
+			Map<String, Object> json = readMap(timeout == null
+					? HttpHelperUtility.getRequest(guarded, headers(accessToken), null, null, null)
+					: HttpHelperUtility.getRequest(guarded, headers(accessToken), null, null, null, timeout));
 			if (json == null) {
 				break;
 			}

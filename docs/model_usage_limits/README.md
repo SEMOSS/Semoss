@@ -30,13 +30,23 @@ whichever source is billed.
 | Ceiling | Team Total | a team, across all models | admins |
 | 1 | Direct Limit | a person's grant on a model | the model's owners |
 | 2 | Team Limit | a team's grant on a model | the model's owners |
-| 3 | Public Use Limit | a public model, for people with no direct or team limit | the model's owners |
-| 4 | User's Total Model Limit | a person, across all models | admins |
-| 5 | General Platform Limit | everyone, across all models | admins |
+| 3 | App Limit or Engine Limit | the permission a model gives an app or another engine, for the calls the app's custom reactors or the engine's own code make for people whose only way to the model is that app or engine | the model's owners |
+| 4 | Public Use Limit | a public model, for people with no direct, team, app or engine limit | the model's owners |
+| 5 | User's Total Model Limit | a person, across all models | admins |
+| 6 | General Platform Limit | everyone, across all models | admins |
 
 A person in several teams with limits is billed to one team: Unlimited teams
 first, then the team they got access through first. When that team has nothing
 left, calls move on to the next team.
+
+An App Limit is on a path only for a call the custom reactors of an app make,
+or an agent's run makes, and an Engine Limit only for a call another engine's
+own code makes, such as a guardrail asking its judge model or a vector database
+embedding, when the model gives that app, agent or engine a permission. It
+applies to a person whose only way to the model is the app, agent or engine: one with no grant of their own and none through
+a team. Like a Team Limit, it has a shared amount for the app or engine as a
+whole, an amount for each user, or both. See
+[engine access](../platform_services/engine_access.md#giving-an-app-an-agent-or-an-engine-a-permission).
 
 ## How a call is checked
 

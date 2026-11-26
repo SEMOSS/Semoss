@@ -53,6 +53,7 @@ import prerna.io.connector.ms.MicrosoftGraphSubscriptionClient;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry;
 import prerna.io.connector.ms.MicrosoftGraphSubscriptionRegistry.Subscription;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.om.ThreadStore;
 
 /**
  * New mail by Microsoft Graph webhook. Each owner's mail (every folder) is subscribed to with their Microsoft
@@ -98,7 +99,8 @@ public final class BrainMailWebhook {
 
 	/**
 	 * A notification for one of Collaboration's subscriptions: a created message goes into its owner's Brain. Called
-	 * off the request thread; never throws.
+	 * off the request thread; never throws. Each owner's mail is imported as that owner: they are the thread's signed
+	 * in user while it runs, so the engines it calls check their access and their usage limits apply.
 	 */
 	public static void onMail(Subscription subscription, String changeType, String messageId) {
 		if (!CREATED.equalsIgnoreCase(changeType) || messageId == null || !CollaborationDbUtils.isInitalized()) {
@@ -115,11 +117,18 @@ public final class BrainMailWebhook {
 			BrainMailHeaderSource source = BrainMailHeaderSource.current();
 			for (String[] owner : owners) {
 				User user = ownerUser(owner[0], owner[1], microsoft);
-				Map<String, Object> header = source.message(user, messageId);
-				if (header != null) {
-					Set<String> threads = BrainSync.importHeaders(user, owner[0], owner[1], source, List.of(header));
-					classLogger.info("New mail from Microsoft Graph subscription {} reached {} thread(s)",
-							subscription.getId(), threads.size());
+				User onThread = ThreadStore.getUser();
+				ThreadStore.setUser(user);
+				try {
+					Map<String, Object> header = source.message(user, messageId);
+					if (header != null) {
+						Set<String> threads = BrainSync.importHeaders(user, owner[0], owner[1], source,
+								List.of(header));
+						classLogger.info("New mail from Microsoft Graph subscription {} reached {} thread(s)",
+								subscription.getId(), threads.size());
+					}
+				} finally {
+					ThreadStore.setUser(onThread);
 				}
 			}
 		} catch (Exception e) {

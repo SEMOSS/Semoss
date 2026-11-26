@@ -73,7 +73,7 @@ public class WorkUseSkillInAssistantReactor extends AbstractCollaborationReactor
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Turns one of the owner's own skills on or off for their assistant, so their chats load it when "
+				"Turns one of the owner's own skills on or off for their own Digital Twin, so their chats load it when "
 						+ "relevant. Takes effect from the next message.")
 				.key(SKILL_ID, "Id of the skill, from ListMySkills or PublishSkill.").key(USE, key -> key
 						.type(Boolean.class).description("true to turn it on (default), false to turn it off."));

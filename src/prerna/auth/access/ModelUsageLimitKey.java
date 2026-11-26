@@ -41,15 +41,18 @@ package prerna.auth.access;
  * <li>{@link #modelTotal}: a model's total, for everyone together, a
  * ceiling</li>
  * <li>{@link #teamTotal}: a team's total across all models, a ceiling</li>
+ * <li>{@link #grantee}: the permission a model gives an app or another engine,
+ * the App Limit or the Engine Limit</li>
  * </ul>
  * A ceiling is checked on every call on top of the limit that applies, and is
  * never the limit a call is billed to ({@link #isCeiling()}).
  *
  * @param type        what type of limit it is, kept in {@code LIMITTYPE}
  * @param engineId    the model, or null for a limit across all models
- * @param subjectId   the user or team id, or null for public use, the platform
- *                    and a model's total
- * @param subjectType the person's login type, or the team's type. A person's
+ * @param subjectId   the user, team, app or engine id, or null for public use,
+ *                    the platform and a model's total
+ * @param subjectType the person's login type, the team's type, or the catalog
+ *                    type of the app or engine given the permission. A person's
  *                    grant on a model keeps the login type too, though
  *                    {@code ENGINEPERMISSION} keeps only the user id; it is
  *                    null only for a grant's limit whose login type is not
@@ -68,7 +71,12 @@ public record ModelUsageLimitKey(Type type, String engineId, String subjectId, S
 		/** The platform default, for everyone with no other limit */
 		PLATFORM,
 		/** A model's total, for everyone together */
-		MODEL
+		MODEL,
+		/**
+		 * The permission a model gives an app or another engine, for the calls the
+		 * app's custom reactors or the engine's own code make with it
+		 */
+		ENGINE
 	}
 
 	/**
@@ -137,6 +145,32 @@ public record ModelUsageLimitKey(Type type, String engineId, String subjectId, S
 	 */
 	public static ModelUsageLimitKey modelTotal(String engineId) {
 		return new ModelUsageLimitKey(Type.MODEL, engineId, null, null);
+	}
+
+	/**
+	 * The key of the limit on the permission a model gives an app or another
+	 * engine: the App Limit for an app, the Engine Limit for an engine. It counts
+	 * the calls the app's custom reactors or the engine's own code make to the
+	 * model for people with no grant of their own and no team's grant on it:
+	 * together for its shared rules, and for each person for the others.
+	 *
+	 * @param engineId          the model
+	 * @param granteeEngineId   the app or engine given the permission
+	 * @param granteeEngineType its catalog type, {@code PROJECT} for an app
+	 * @return the grantee's limit on the model
+	 */
+	public static ModelUsageLimitKey grantee(String engineId, String granteeEngineId, String granteeEngineType) {
+		return new ModelUsageLimitKey(Type.ENGINE, engineId, granteeEngineId, granteeEngineType);
+	}
+
+	/**
+	 * Whether the key names the limit on the permission a model gives an app, the
+	 * App Limit, rather than another engine.
+	 *
+	 * @return whether the grantee is a project
+	 */
+	public boolean isAppGrantee() {
+		return type == Type.ENGINE && PermissionSubject.PROJECT_TYPE.equals(subjectType);
 	}
 
 	/**

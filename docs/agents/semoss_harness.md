@@ -6,7 +6,7 @@ The native harness, registered as `semoss`, executes an agent request using SEMO
 
 ## What happens during a run
 
-1. **Resolve context.** Load the room, select and authorize the model, resolve the agent workspace and file target, load configuration, and stage attached skills.
+1. **Resolve context.** Load the room's context, authorize the agent workspace, select and authorize the model, resolve the file target, load configuration, and stage attached skills.
 2. **Prepare the harness.** Apply default-tool policy, collect explicit and room/workspace tools, expose eligible subagent tools, and compose the system prompt.
 3. **Call the model.** Send the user turn through `Room.ask(...)` with model context and tool schemas. Supported current-turn media is included in this initial request.
 4. **Execute tools.** Dispatch requested tools, record results, and continue the model. Tool batches can run concurrently; consumers should not assume model-listed tool order guarantees serialized effects.
@@ -89,6 +89,16 @@ An agent's own files are the files in the `public` assets folder of its project,
 - The prompt names the files, up to 50 of them.
 - An upload stores a file under a cleaned name, so `R&D plan.md` is on disk as `R&amp;D plan.md`. When no file has the name a tool was given, the tool looks for the cleaned name, in the working target as well, and its answer shows the name on disk.
 - Nothing else in the agent's project is offered to a run. The CLI harnesses do not have agent files.
+
+### Digital Twins
+
+A Digital Twin answers about its owner to the people it is shared with, so its run is a guest in the chat of whoever asks it. Its instructions, skills and toolboxes are its owner's, not the asker's, and in a Collaboration room the harness therefore leaves out what any other agent there is given:
+
+- No Collaboration tools (the asker's mail, calendar, Teams, memory, topics, routines and skills), no person lookup, and no subagent tools, since a subagent with no agent of its own would be handed them in its place. `HarnessToolExecutor.twinRefusal` refuses the same tools when they are called by name.
+- It starts from the general harness prompt, not the Collaboration assistant's. After its own instructions come the twin's rules (`CollaborationPrompts.twinPrompt`) and the name of the person chatting; their profile, memories and routine preferences are left out, and so are their assistant skills.
+- No after-run hook runs: nothing from the chat is reviewed for memories or filed under a topic in the asker's account.
+
+Its own files, its owner's skills and toolboxes, and the chat's working directory work as for any agent. The one Collaboration tool a twin has is `SaveToDigitalTwin`, in its owner's own chat with it. The sharing rules are in the [access guide](../../src/prerna/auth/access/AGENTS.md#digital-twins).
 
 ### Provider tools called beside ours
 

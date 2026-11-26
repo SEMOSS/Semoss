@@ -235,7 +235,7 @@ public class TCPChromeDriverUtility {
 		while (cooki2.hasNext()) {
 			Cookie cook3 = cooki2.next();
 			String name2 = cook3.getName();
-			classLogger.info("##CHROME DRIVER: INIT CHECK found cookie{}", cook3.toJson());
+			classLogger.info("##CHROME DRIVER: INIT CHECK found cookie with Name = {}", cook3.getName());
 		}
 
 		Iterator<Cookie> cooki = driver.manage().getCookies().iterator();
@@ -257,10 +257,8 @@ public class TCPChromeDriverUtility {
 		}
 
 		if (cookieFound) {
-			classLogger.info(
-					"##CHROME DRIVER: found cookie - Name {} domain: {} path: {} isHttpOnly: {} isSecure: {} value: {}",
-					cook.getName(), cook.getDomain(), cook.getPath(), cook.isHttpOnly(), cook.isSecure(),
-					cook.getValue());
+			classLogger.info("##CHROME DRIVER: found cookie - Name {} domain: {} path: {} isHttpOnly: {} isSecure: {}",
+					cook.getName(), cook.getDomain(), cook.getPath(), cook.isHttpOnly(), cook.isSecure());
 			String safeName = cook.getName().replace("\r", "").replace("\n", "").replace("\0", "");
 			String safeDomain = cook.getDomain() == null ? null
 					: cook.getDomain().replace("\r", "").replace("\n", "").replace("\0", "");
@@ -276,9 +274,8 @@ public class TCPChromeDriverUtility {
 			classLogger.info("##CHROME DRIVER: deleted cookie with Name = {}", cookieName);
 
 			classLogger.info(
-					"##CHROME DRIVER: Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {} value: {}",
-					name.getName(), name.getDomain(), name.getPath(), name.isHttpOnly(), name.isSecure(),
-					name.getValue());
+					"##CHROME DRIVER: Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {}",
+					name.getName(), name.getDomain(), name.getPath(), name.isHttpOnly(), name.isSecure());
 			// works - but doesnt login
 			driver.manage().addCookie(name);
 		} else {
@@ -300,9 +297,9 @@ public class TCPChromeDriverUtility {
 			// true,
 			// true);
 			classLogger.info(
-					"##CHROME DRIVER: BASE ADD Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {} value: {} age: {} json: {}",
+					"##CHROME DRIVER: BASE ADD Adding cookie  - name: {} domain: {} path: {} isHttpOnly: {} isSecure: {} age: {}",
 					name.getName(), name.getDomain(), name.getPath(), name.isHttpOnly(), name.isSecure(),
-					name.getValue(), name.getExpiry(), name.toJson());
+					name.getExpiry());
 			// works - but doesnt login
 			driver.manage().addCookie(name);
 		}

@@ -30,7 +30,6 @@ package prerna.reactor.insights.recipemanagement;
 import java.util.List;
 
 import prerna.auth.utils.SecurityInsightUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.insights.AbstractInsightReactor;
@@ -56,7 +55,6 @@ public class InsightRecipeReactor extends AbstractInsightReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
 		boolean vec = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
 			throw new IllegalArgumentException("User does not have access to this insight");
 		}

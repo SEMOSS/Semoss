@@ -122,7 +122,7 @@ public final class AutomationMcpSync {
 			document.put("_meta", new JSONObject().put("last_modified_date",
 					LocalDate.now(ZoneOffset.UTC).format(DateTimeFormatter.ISO_LOCAL_DATE)));
 			Files.writeString(output, document.toString(4), StandardCharsets.UTF_8);
-			MCPUtility.addMCPTag(project);
+			MCPUtility.addMCPTag(user, project);
 		} catch (Exception e) {
 			classLogger.warn("Unable to synchronize automation MCP tools for project {}", projectId, e);
 		}

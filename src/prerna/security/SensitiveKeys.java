@@ -33,7 +33,7 @@ import java.util.Locale;
 import java.util.Set;
 
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.Utility;
 
 /**
  * The one rule for whether a setting holds a secret, judged by its key name.
@@ -111,7 +111,7 @@ public final class SensitiveKeys {
 	 * @return the normalized added names
 	 */
 	private static Set<String> additionalNames() {
-		String setting = DIHelper.getInstance().getProperty(Constants.SENSITIVE_KEYS);
+		String setting = Utility.getDIHelperProperty(Constants.SENSITIVE_KEYS);
 		AdditionalNames current = additionalNames;
 		if (setting == null ? current.setting() == null : setting.equals(current.setting())) {
 			return current.names();

@@ -29,6 +29,8 @@ package prerna.engine.api;
 
 import java.util.List;
 
+import prerna.auth.AccessPermissionEnum;
+
 public interface IRDFDatabase extends IDatabaseEngine {
 
 	static boolean isRDFDbType(IDatabaseEngine.DATABASE_TYPE type) {
@@ -49,6 +51,7 @@ public interface IRDFDatabase extends IDatabaseEngine {
 	 * 				object Object - RDF Object
 	 * 				concept boolean - True if the statement is a concept (URI), False if it is a property (Literal)
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void addStatement(Object[] args);
 	
 	/**
@@ -59,6 +62,7 @@ public interface IRDFDatabase extends IDatabaseEngine {
 	 * 				object Object - RDF Object
 	 * 				concept boolean - True if the statement is a concept (URI), False if it is a property (Literal)
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void removeStatement(Object[] args);
 	
 	/**
@@ -70,6 +74,7 @@ public interface IRDFDatabase extends IDatabaseEngine {
 	 * 				concept boolean - True if the statement is a concept (URI), False if it is a property (Literal)
 	 * @param commit 
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void bulkInsert(List<Object[]> args);
 	
 	/**
@@ -81,16 +86,19 @@ public interface IRDFDatabase extends IDatabaseEngine {
 	 * 				concept boolean - True if the statement is a concept (URI), False if it is a property (Literal)
 	 * @param commit
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void bulkRemoval(List<Object[]> args);
 
 	/**
 	 * Persist inferencing in the model
 	 * @throws Exception
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void infer() throws Exception;
 	
 	@Deprecated
 	// TODO: replace and set this within the commit
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void exportDB() throws Exception;
 
 }

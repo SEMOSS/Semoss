@@ -61,7 +61,6 @@ public class GetAllStepsReactor extends AbstractReactor {
 		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must input a project id");
 		}
-		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
 			throw new IllegalArgumentException(
 					"Project does not exist or user does not have access to view the project");

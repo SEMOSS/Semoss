@@ -396,7 +396,7 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 			boolean cacheEncrypt, List<String> recipe, String description, List<String> tags,
 			Set<ITableDataFrame> insightFrames, Set<String> queriedDatabaseIds, String schemaName) {
 		String projectId = project.getProjectId();
-		SecurityInsightUtils.addInsight(projectId, insightIdToSave, insightName, global, layout, cacheable,
+		SecurityInsightUtils.addInsight(this.insight.getUser(), projectId, insightIdToSave, insightName, global, layout, cacheable,
 				cacheMinutes, cacheCron, cachedOn, cacheEncrypt, recipe, schemaName);
 		if (this.insight.getUser() != null) {
 			SecurityInsightUtils.addUserInsightCreator(this.insight.getUser(), projectId, insightIdToSave);
@@ -404,14 +404,14 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		InsightAdministrator admin = new InsightAdministrator(project.getInsightDatabase());
 		if (description != null) {
 			admin.updateInsightDescription(insightIdToSave, description);
-			SecurityInsightUtils.updateInsightDescription(projectId, insightIdToSave, description);
+			SecurityInsightUtils.updateInsightDescription(this.insight.getUser(), projectId, insightIdToSave, description);
 		}
 		if (tags != null) {
 			admin.updateInsightTags(insightIdToSave, tags);
-			SecurityInsightUtils.updateInsightTags(projectId, insightIdToSave, tags);
+			SecurityInsightUtils.updateInsightTags(this.insight.getUser(), projectId, insightIdToSave, tags);
 		}
 		if (insightFrames != null && !insightFrames.isEmpty()) {
-			SecurityInsightUtils.updateInsightFrames(projectId, insightIdToSave, insightFrames);
+			SecurityInsightUtils.updateInsightFrames(this.insight.getUser(), projectId, insightIdToSave, insightFrames);
 		}
 		// keep track of any engines used
 		UserTrackingUtils.addEngineUsage(queriedDatabaseIds, insightIdToSave, projectId);

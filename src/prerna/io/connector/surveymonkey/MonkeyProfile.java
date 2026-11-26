@@ -62,7 +62,8 @@ public class MonkeyProfile implements IConnectorIOp {
 		params.put("alt", "json");
 
 		// make the API call
-		String output = HttpHelperUtility.makeGetCall(url, accessToken, null, true);
+		String output = HttpHelperUtility.getRequest(HttpHelperUtility.getSystemClient(),
+				url, HttpHelperUtility.bearerJsonHeaders(accessToken));
 
 		// fill the bean with the return
 		acToken = (AccessToken) BeanFiller.fillFromJson(output, jsonPattern, beanProps, acToken);

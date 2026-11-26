@@ -279,6 +279,32 @@ As per the `SEMOSS/backend-training` repository's `README.md`:
 -   **Pixel Operations within Reactors**: You can execute further Pixel scripts from within a Reactor using `this.planner.addPixelRecipe(String pixelScript)` and then retrieving results from the `NounStore`.
 -   **Managing State**: Reactors are typically stateless. If state is needed across Reactor calls, store it in the `NounStore` or use SEMOSS's broader state management capabilities (e.g., project or user-level properties if appropriate).
 
+## Using Engines
+
+A reactor gets an engine from `Utility`: `getDatabase`, `getModel`, `getStorage`, `getVectorDatabase`, `getFunctionEngine` and the other typed getters. Every call on the engine is checked: the reactor's call goes through when the signed in user holds the permission the method needs on that engine, or when the engine gave the app a permission that covers it. See [engine access](../platform_services/engine_access.md) for the level of each method.
+
+| What the reactor does | What it needs on the engine |
+| --- | --- |
+| Reads: runs a query through the platform's query classes, asks a model, lists or downloads from a storage engine, searches a vector database | `READ_ONLY` |
+| Writes, runs SQL as given, or holds the connection: `getConnection`, `getPreparedStatement`, `execQuery`, `insertData`, `copyToStorage`, `addDocument` | `EDIT` |
+
+```java
+IRDBMSEngine database = (IRDBMSEngine) Utility.getDatabase(databaseId);
+try (Connection connection = database.getConnection();
+        PreparedStatement insert = connection.prepareStatement("INSERT INTO ORDERS (ID, ITEM) VALUES (?, ?)")) {
+    connection.setAutoCommit(false);
+    insert.setString(1, orderId);
+    insert.setString(2, item);
+    insert.executeUpdate();
+    connection.commit();
+}
+```
+
+-   **An app that works for people with no access to the engine**: An app often inserts into a database or adds a file to a storage engine for people who cannot open that engine themselves. An owner of the engine gives the app a permission on it, on the engine's Access Control tab, in Apps, and the app's reactors then use the engine with that permission, whoever runs them. A project's owner gives an app a permission on the project the same way. `READ_ONLY` covers the read methods, and `EDIT` adds the writes and the connection. The same section lists the apps an engine gives a permission to and takes one away; see [engine access](../platform_services/engine_access.md#giving-an-app-an-agent-or-an-engine-a-permission) for the endpoints behind it.
+-   **A call the reactor has no permission for**: It throws with the engine id, the level the call needs and the method, such as `Engine <id> does not exist or neither the user nor the app has EDIT permission on it, which a custom reactor needs to call getConnection`.
+-   **SQL for the engine's dialect**: `database.getQueryUtil()` builds SQL for the engine's type. The engine's user name, password and connection URL stay with the engine.
+-   **The app's own project**: A reactor has `EDIT` on its own project, so it reads the project's insights database (`getInsightDatabase()`) and uses the project's Python process (`getProjectPyTranslator()`) for any user who can run it.
+
 ## Calling Web Services
 
 Reactors call HTTP services through [HttpHelperUtility](../../src/prerna/security/HttpHelperUtility.java). Its `getRequest(url, headers, timeout)` and `postRequestStringBody(url, headers, body, contentType, timeout)` entry points take only JDK types and return the response body as text:
@@ -310,6 +336,31 @@ String created = HttpHelperUtility.postRequestStringBody("https://api.example.co
 -   **Where a request can go**: Every request follows the admin's `BLACK_LIST_DOMAINS` and `WHITE_LIST_DOMAINS`, on the URL, on each redirect and on the addresses the host resolves to. A request a project's reactor sends to the cloud metadata service is refused. Localhost is open unless the admin blacklists it. A refused request throws an `IllegalArgumentException` that names the host. See the [project reactor sandbox](../platform_services/project_reactor_sandbox.md#http-requests).
 -   **Error messages**: Both exceptions name the full URL in their message. When a key travels as a query parameter, build the message a reactor returns from the status code and the address without its query string.
 
+## Running Work in Parallel
+
+A reactor runs work on other threads, such as one model call per document, with [SignedInTasks](../../src/prerna/util/SignedInTasks.java). `SignedInTasks.newVirtualThreadExecutor()` returns an `ExecutorService` whose tasks run on virtual threads, and each task runs as the user signed in on the reactor's thread, so its engine calls go through with that user's permission or the app's, exactly as the reactor's own calls do:
+
+```java
+try (ExecutorService llmExecutor = SignedInTasks.newVirtualThreadExecutor()) {
+    List<Future<ResponseMessage>> docCalls = new ArrayList<>();
+    for (JsonObject doc : documents) {
+        Room docRoom = RoomUtils.createRoomForStatelessAsk(docRoomKey, this.insight, modelEngine, "");
+        InputMessage msg = InputMessage.builder(docRoom) /* prompt + the document */ .build();
+        docCalls.add(llmExecutor.submit(() -> docRoom.ask(msg, modelEngine, null, false)));
+    }
+    for (Future<ResponseMessage> call : docCalls) {
+        ResponseMessage response = call.get(timeout, TimeUnit.SECONDS);
+        // merge the answers
+    }
+}
+```
+
+-   **Who a task runs as**: The user signed in on the thread that submits it, with the request's insight and job, its log context and, with `CHROOT_ENABLE` on, the user's folder for the files it opens. A thread from `Executors`, a parallel stream or `CompletableFuture` has no signed in user, so the engine refuses its calls.
+-   **Closing**: Closing the executor, as the `try` does, waits for every task. A `get` that times out leaves its task running; to stop the rest when one answer fails, call `llmExecutor.shutdownNow()` before leaving the `try`. It interrupts the running tasks and cancels the waiting ones.
+-   **Virtual or platform threads**: A virtual thread executor suits many tasks that spend their time waiting, such as model calls and web requests: it runs up to `SignedInTasks.VIRTUAL_PARALLEL` (256) of its tasks at once, and the server runs up to `SignedInTasks.VIRTUAL_THREADS` (4096) across every reactor. `SignedInTasks.newExecutor()` runs tasks on platform threads the server shares, for work that keeps a processor busy: up to `SignedInTasks.PLATFORM_PARALLEL` (16) at once, and up to `SignedInTasks.PLATFORM_THREADS` (64) across the server.
+-   **How many wait**: Either executor holds the tasks past the ones it runs, up to `SignedInTasks.MOST_WAITING` (1024), and starts them in the order they were submitted. A task past these limits makes `submit` throw `RejectedExecutionException`.
+-   **Failures**: A task's exception comes back from `get` as the cause of an `ExecutionException`.
+
 ## Best Practices
 
 -   **Clear Naming**: Use descriptive class names. The class name without `Reactor` is the reactor's Pixel name and its MCP tool name.
@@ -327,7 +378,7 @@ This guide provides a foundational understanding of creating custom Reactors in 
 Reactors can encapsulate complex database interactions, such as Create, Read, Update, and Delete (CRUD) operations, providing a clean API for your Pixel scripts. This approach promotes reusability and separates Java database logic from your Pixel workflows.
 
 For instance, you might create reactors like `AddMovieReactor`, `UpdateGenreReactor`, or `DeleteMovieReactor`. These reactors would internally handle:
-- Connecting to the appropriate database engine.
+- Connecting to the appropriate database engine, with the user's `EDIT` permission on it or one the engine gave the app (see [using engines](#using-engines)).
 - Constructing and executing SQL `INSERT`, `UPDATE`, or `DELETE` statements (often using `PreparedStatement` for security and efficiency).
 - Managing database transactions (e.g., `setAutoCommit(false)`, `commit()`, `rollback()`) if multiple operations need to be atomic.
 - Performing necessary data validation before database operations.

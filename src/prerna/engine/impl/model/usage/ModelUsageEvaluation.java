@@ -302,8 +302,9 @@ final class ModelUsageEvaluation {
 	 * Works out whose use a rule counts, from the step's limit type and the rule's
 	 * counts: the model for the Model Total, the person on the model for a Direct
 	 * Limit, the team or each member for a Team Limit, the team for its Team Total,
-	 * public use or the person for the Public Use Limit, and the person across all
-	 * models for the User's Total Model Limit and the General Platform Limit.
+	 * public use or the person for the Public Use Limit, the app or engine or each
+	 * person in it for an App Limit or an Engine Limit, and the person across all models for the User's Total
+	 * Model Limit and the General Platform Limit.
 	 *
 	 * @param path      the person's path
 	 * @param step      a step
@@ -337,6 +338,14 @@ final class ModelUsageEvaluation {
 				return ModelUsageCounterScope.publicShared(engineId);
 			}
 			return ModelUsageCounterScope.personModel(engineId, userId, userType);
+		case APP:
+		case ENGINE:
+			if (rule.getCounts() == Counts.SHARED) {
+				return ModelUsageCounterScope.granteeShared(engineId, step.getKey().subjectId(),
+						step.getKey().subjectType());
+			}
+			return ModelUsageCounterScope.granteeMember(engineId, step.getKey().subjectId(),
+					step.getKey().subjectType(), userId, userType);
 		case ALL_MODELS:
 		case PLATFORM:
 			return ModelUsageCounterScope.personAllModels(userId, userType);

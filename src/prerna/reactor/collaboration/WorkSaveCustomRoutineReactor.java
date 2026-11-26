@@ -146,7 +146,7 @@ public class WorkSaveCustomRoutineReactor extends AbstractCollaborationReactor {
 				.key(SKILLS, key -> key.type(List.class).description(
 						"Ids of the skills the agent loads: the owner's own from ListMySkills, or other skills they can use. "
 								+ "Optional."))
-				.key(AGENT_ID, "Agent to run it, when the owner names one; blank uses their assistant's agent.")
+				.key(AGENT_ID, "Agent to run it, when the owner names one; blank uses their Digital Twin's agent.")
 				.key(TOOLS, key -> key.type(List.class).description(
 						"Tools and knowledge bases the owner added to the routine in Routines, as {id, name, type}. Leave "
 								+ "out to keep them."))

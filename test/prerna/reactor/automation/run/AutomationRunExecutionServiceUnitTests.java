@@ -76,28 +76,22 @@ import prerna.util.Utility;
 public class AutomationRunExecutionServiceUnitTests {
 
 	private static final List<Map<String, Object>> NOUL_ROUTES = List.of(
-			Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "approve",
-					AutomationConstants.CONFIG_DESCRIPTION, "Continue automatically",
-					AutomationConstants.CONFIG_ANSWER, true),
-			Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "review",
-					AutomationConstants.CONFIG_DESCRIPTION, "Send for review",
-					AutomationConstants.CONFIG_ANSWER, false));
+			Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "approve", AutomationConstants.CONFIG_DESCRIPTION,
+					"Continue automatically", AutomationConstants.CONFIG_ANSWER, true),
+			Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "review", AutomationConstants.CONFIG_DESCRIPTION,
+					"Send for review", AutomationConstants.CONFIG_ANSWER, false));
 
 	private static TypeSafeModelEngineResponse response(Map<String, Object> routeAnswer) {
-		return TypeSafeModelEngineResponse.fromObject(Map.of("model", "jev-latest",
-				"usage", Map.of("input_tokens", 1, "output_tokens", 1), "answers",
-				Map.of("route", routeAnswer)));
+		return TypeSafeModelEngineResponse.fromObject(Map.of("model", "jev-latest", "usage",
+				Map.of("input_tokens", 1, "output_tokens", 1), "answers", Map.of("route", routeAnswer)));
 	}
 
 	@Test
 	void reactorResultDoesNotExposeLiveFrameInternals() {
 		ITableDataFrame frame = mock(ITableDataFrame.class);
-		Map<String, Object> summary = Map.of(
-				"dataType", "table",
-				"rowCount", 3L,
-				"columnCount", 2);
-		AutomationFrameOutput.RegisteredFrame registeredFrame =
-				new AutomationFrameOutput.RegisteredFrame("heroes", frame, summary, "PY");
+		Map<String, Object> summary = Map.of("dataType", "table", "rowCount", 3L, "columnCount", 2);
+		AutomationFrameOutput.RegisteredFrame registeredFrame = new AutomationFrameOutput.RegisteredFrame("heroes",
+				frame, summary, "PY");
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("scope", Map.of("heroes", registeredFrame, "message", "complete"));
 		result.put(AutomationConstants.RESULT_GLOBALS, Map.of("region", "east"));
@@ -112,13 +106,13 @@ public class AutomationRunExecutionServiceUnitTests {
 	}
 
 	private static TypeSafeModelEngineResponse mixedResponse(double urgentProbability) {
-		return TypeSafeModelEngineResponse.fromObject(Map.of("model", "jev-1.13.0",
-				"usage", Map.of("input_tokens", 10, "output_tokens", 4), "answers",
-				Map.of("department",
-						Map.of("type", "choice", "choice", "billing", "confidence", 0.95, "probabilities",
-								Map.of("billing", 0.95, "technical", 0.05)),
-						"frustration", Map.of("type", "score", "score", 0.7, "confidence", 0.9),
-						"urgent", Map.of("type", "noul", "noul", urgentProbability))));
+		return TypeSafeModelEngineResponse.fromObject(
+				Map.of("model", "jev-1.13.0", "usage", Map.of("input_tokens", 10, "output_tokens", 4), "answers",
+						Map.of("department",
+								Map.of("type", "choice", "choice", "billing", "confidence", 0.95, "probabilities",
+										Map.of("billing", 0.95, "technical", 0.05)),
+								"frustration", Map.of("type", "score", "score", 0.7, "confidence", 0.9), "urgent",
+								Map.of("type", "noul", "noul", urgentProbability))));
 	}
 
 	private static Map<String, Object> mixedConfig() {
@@ -130,17 +124,13 @@ public class AutomationRunExecutionServiceUnitTests {
 
 	private static List<Map<String, Object>> mixedRoutes() {
 		return List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "urgent_billing",
-				AutomationConstants.CONFIG_DESCRIPTION, "Urgent billing",
-				AutomationConstants.CONFIG_MATCH, AutomationConstants.JEV_ROUTE_MATCH_ALL,
-				AutomationConstants.CONFIG_CONDITIONS,
-				List.of(
-						Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "department",
-								AutomationConstants.CONFIG_FIELD, AutomationConstants.JEV_FIELD_CHOICE,
-								AutomationConstants.CONFIG_OPERATOR, AutomationConstants.JEV_OPERATOR_EQUALS,
-								AutomationConstants.CONFIG_VALUE, "billing"),
-						Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "urgent",
-								AutomationConstants.CONFIG_FIELD, AutomationConstants.JEV_FIELD_NOUL,
-								AutomationConstants.CONFIG_OPERATOR,
+				AutomationConstants.CONFIG_DESCRIPTION, "Urgent billing", AutomationConstants.CONFIG_MATCH,
+				AutomationConstants.JEV_ROUTE_MATCH_ALL, AutomationConstants.CONFIG_CONDITIONS,
+				List.of(Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "department", AutomationConstants.CONFIG_FIELD,
+						AutomationConstants.JEV_FIELD_CHOICE, AutomationConstants.CONFIG_OPERATOR,
+						AutomationConstants.JEV_OPERATOR_EQUALS, AutomationConstants.CONFIG_VALUE, "billing"),
+						Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "urgent", AutomationConstants.CONFIG_FIELD,
+								AutomationConstants.JEV_FIELD_NOUL, AutomationConstants.CONFIG_OPERATOR,
 								AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL,
 								AutomationConstants.CONFIG_VALUE, 0.8))));
 	}
@@ -148,16 +138,15 @@ public class AutomationRunExecutionServiceUnitTests {
 	@Test
 	void mapsNoulYesAndNoAnswersToExplicitStableRouteIds() {
 		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_QUESTION_TYPE,
-				AutomationConstants.JEV_QUESTION_TYPE_NOUL,
-				AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 0.7);
+				AutomationConstants.JEV_QUESTION_TYPE_NOUL, AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 0.7);
 
-		Map<String, Object> yes = AutomationRunExecutionService.jevDecision(
-				response(Map.of("type", "noul", "noul", 0.92)), NOUL_ROUTES, config);
+		Map<String, Object> yes = AutomationRunExecutionService
+				.jevDecision(response(Map.of("type", "noul", "noul", 0.92)), NOUL_ROUTES, config);
 		assertEquals("case:approve", yes.get("branch"));
 		assertEquals(true, yes.get("answer"));
 
-		Map<String, Object> no = AutomationRunExecutionService.jevDecision(
-				response(Map.of("type", "noul", "noul", 0.08)), NOUL_ROUTES, config);
+		Map<String, Object> no = AutomationRunExecutionService
+				.jevDecision(response(Map.of("type", "noul", "noul", 0.08)), NOUL_ROUTES, config);
 		assertEquals("case:review", no.get("branch"));
 		assertEquals(false, no.get("answer"));
 	}
@@ -165,19 +154,17 @@ public class AutomationRunExecutionServiceUnitTests {
 	@Test
 	void sendsAnUncertainNoulAnswerToFallback() {
 		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_QUESTION_TYPE,
-				AutomationConstants.JEV_QUESTION_TYPE_NOUL,
-				AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 0.8);
-		Map<String, Object> decision = AutomationRunExecutionService.jevDecision(
-				response(Map.of("type", "noul", "noul", 0.55)), NOUL_ROUTES, config);
+				AutomationConstants.JEV_QUESTION_TYPE_NOUL, AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 0.8);
+		Map<String, Object> decision = AutomationRunExecutionService
+				.jevDecision(response(Map.of("type", "noul", "noul", 0.55)), NOUL_ROUTES, config);
 		assertEquals(AutomationConstants.CONTROL_PORT_ELSE, decision.get("branch"));
 		assertEquals(0.55, decision.get("confidence"));
 	}
 
 	@Test
 	void preservesChoiceRoutingForExistingDefinitions() {
-		List<Map<String, Object>> routes = List.of(
-				Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "research",
-						AutomationConstants.CONFIG_DESCRIPTION, "Research"));
+		List<Map<String, Object>> routes = List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "research",
+				AutomationConstants.CONFIG_DESCRIPTION, "Research"));
 		Map<String, Object> decision = AutomationRunExecutionService.jevDecision(
 				response(Map.of("type", "choice", "choice", "research", "confidence", 0.9)), routes,
 				Map.of(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 0.6));
@@ -199,16 +186,13 @@ public class AutomationRunExecutionServiceUnitTests {
 	@Test
 	void buildsTheNativeMultiQuestionJevRequestWithoutFlatteningCriteria() {
 		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_QUESTIONS,
-				List.of(
-						Map.of(AutomationConstants.CONFIG_KEY, "department",
-								AutomationConstants.CONFIG_TYPE, AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
-								AutomationConstants.CONFIG_INSTRUCTIONS, "Choose a team",
-								AutomationConstants.CONFIG_CRITERIA,
-								Map.of("billing", "Payments", "technical", "Bugs")),
-						Map.of(AutomationConstants.CONFIG_KEY, "urgent",
-								AutomationConstants.CONFIG_TYPE, AutomationConstants.JEV_QUESTION_TYPE_NOUL,
-								AutomationConstants.CONFIG_INSTRUCTIONS, "${instruction}",
-								AutomationConstants.CONFIG_CRITERIA,
+				List.of(Map.of(AutomationConstants.CONFIG_KEY, "department", AutomationConstants.CONFIG_TYPE,
+						AutomationConstants.JEV_QUESTION_TYPE_CHOICE, AutomationConstants.CONFIG_INSTRUCTIONS,
+						"Choose a team", AutomationConstants.CONFIG_CRITERIA,
+						Map.of("billing", "Payments", "technical", "Bugs")),
+						Map.of(AutomationConstants.CONFIG_KEY, "urgent", AutomationConstants.CONFIG_TYPE,
+								AutomationConstants.JEV_QUESTION_TYPE_NOUL, AutomationConstants.CONFIG_INSTRUCTIONS,
+								"${instruction}", AutomationConstants.CONFIG_CRITERIA,
 								Map.of("true", "Today", "false", "Later"))));
 		Map<String, Object> questions = AutomationRunExecutionService.jevQuestions(config,
 				Map.of("instruction", "Does this require action today?"));
@@ -269,8 +253,7 @@ public class AutomationRunExecutionServiceUnitTests {
 		ThreadStore.remove();
 		try (var utility = mockStatic(Utility.class)) {
 			utility.when(() -> Utility.getProject(projectId)).thenReturn(null);
-			AutomationRunExecutionService.ExecutionInsightLease lease =
-					service.openExecutionInsight(projectId, runId);
+			AutomationRunExecutionService.ExecutionInsightLease lease = service.openExecutionInsight(projectId, runId);
 
 			assertFalse(lease.cleanupOnCompletion());
 			assertEquals(executionInsightId, lease.insight().getInsightId());
@@ -283,8 +266,8 @@ public class AutomationRunExecutionServiceUnitTests {
 	}
 
 	@Test
-	void retainsInteractiveRunInsightUsingTheLoggedSessionContext() {
-		String sessionId = "session-from-log-context";
+	void retainsInteractiveRunInsightUnderTheThreadsSession() {
+		String sessionId = "session-on-the-thread";
 		String projectId = "project-automation-test";
 		String runId = UUID.randomUUID().toString();
 		String executionInsightId = "automation-" + runId;
@@ -293,18 +276,43 @@ public class AutomationRunExecutionServiceUnitTests {
 		requestInsight.setSchedulerMode(false);
 
 		ThreadStore.remove();
-		ThreadContext.put(SemossLogUtils.SESSION_ID, sessionId);
+		ThreadStore.setSessionId(sessionId);
 		AutomationRunExecutionService service = new AutomationRunExecutionService(requestInsight, null);
-		ThreadContext.remove(SemossLogUtils.SESSION_ID);
+		ThreadStore.remove();
 		try (var utility = mockStatic(Utility.class)) {
 			utility.when(() -> Utility.getProject(projectId)).thenReturn(null);
-			AutomationRunExecutionService.ExecutionInsightLease lease =
-					service.openExecutionInsight(projectId, runId);
+			AutomationRunExecutionService.ExecutionInsightLease lease = service.openExecutionInsight(projectId, runId);
 
 			assertFalse(lease.cleanupOnCompletion());
 			assertTrue(InsightStore.getInstance().getInsightIDsForSession(sessionId).contains(executionInsightId));
 		} finally {
 			InsightStore.getInstance().removeFromSessionHash(sessionId, executionInsightId);
+			InsightStore.getInstance().remove(executionInsightId);
+			ThreadStore.remove();
+		}
+	}
+
+	@Test
+	void theSessionHashInTheLogContextIsNeverTakenAsTheSession() {
+		String sessionHash = "hash-in-the-log-context";
+		String projectId = "project-automation-test";
+		String runId = UUID.randomUUID().toString();
+		String executionInsightId = "automation-" + runId;
+		Insight requestInsight = new Insight();
+		requestInsight.setUser(mock(User.class));
+		requestInsight.setSchedulerMode(false);
+
+		ThreadStore.remove();
+		ThreadContext.put(SemossLogUtils.SESSION_ID, sessionHash);
+		AutomationRunExecutionService service = new AutomationRunExecutionService(requestInsight, null);
+		ThreadContext.remove(SemossLogUtils.SESSION_ID);
+		try (var utility = mockStatic(Utility.class)) {
+			utility.when(() -> Utility.getProject(projectId)).thenReturn(null);
+			AutomationRunExecutionService.ExecutionInsightLease lease = service.openExecutionInsight(projectId, runId);
+
+			assertTrue(lease.cleanupOnCompletion());
+			assertNull(InsightStore.getInstance().getInsightIDsForSession(sessionHash));
+		} finally {
 			InsightStore.getInstance().remove(executionInsightId);
 			ThreadContext.remove(SemossLogUtils.SESSION_ID);
 			ThreadStore.remove();
@@ -387,10 +395,9 @@ public class AutomationRunExecutionServiceUnitTests {
 	@Test
 	void replacesLiveFramesBeforeSerializingLoopResults() {
 		Map<String, Object> summary = Map.of("dataType", "table", "rowCount", 1L, "columnCount", 1);
-		AutomationFrameOutput.RegisteredFrame frame =
-				new AutomationFrameOutput.RegisteredFrame("query_result", null, summary, "PY");
-		Map<String, Object> outputs = Map.of("query_result", frame,
-				"nested", List.of(Map.of("frame", frame)));
+		AutomationFrameOutput.RegisteredFrame frame = new AutomationFrameOutput.RegisteredFrame("query_result", null,
+				summary, "PY");
+		Map<String, Object> outputs = Map.of("query_result", frame, "nested", List.of(Map.of("frame", frame)));
 
 		Object normalized = AutomationRunExecutionService.persistableValue(outputs);
 
@@ -407,8 +414,7 @@ public class AutomationRunExecutionServiceUnitTests {
 		output.put(AutomationConstants.NODE_ID, "query");
 		output.put(AutomationConstants.OUTPUT_VAR_NAME, "query_result");
 		output.put(AutomationConstants.OUTPUT_KIND, AutomationConstants.OUTPUT_KIND_TABLE);
-		output.put(AutomationConstants.OUTPUT_VALUE,
-				"{\"dataType\":\"table\",\"rowCount\":1,\"columnCount\":2}");
+		output.put(AutomationConstants.OUTPUT_VALUE, "{\"dataType\":\"table\",\"rowCount\":1,\"columnCount\":2}");
 		Insight insight = new Insight();
 		insight.setInsightId("automation-" + runId);
 		ITableDataFrame frame = mock(ITableDataFrame.class);
@@ -420,11 +426,11 @@ public class AutomationRunExecutionServiceUnitTests {
 			store.when(() -> AutomationRunStore.getRunInputs(runId)).thenReturn(Map.of());
 			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(output));
 
-			AutomationRunExecutionService.ReconstructedScope reconstructed =
-					AutomationRunExecutionService.reconstructScope(runId, insight, "trigger");
+			AutomationRunExecutionService.ReconstructedScope reconstructed = AutomationRunExecutionService
+					.reconstructScope(runId, insight, "trigger");
 
-			AutomationFrameOutput.RegisteredFrame frameOutput =
-					(AutomationFrameOutput.RegisteredFrame) reconstructed.scope().get("query_result");
+			AutomationFrameOutput.RegisteredFrame frameOutput = (AutomationFrameOutput.RegisteredFrame) reconstructed
+					.scope().get("query_result");
 			assertEquals(1L, frameOutput.rowCount());
 			assertEquals(DataFrameTypeEnum.PYTHON.getTypeAsString(), frameOutput.backend());
 			insight.getVarStore().remove("query_result");
@@ -470,11 +476,13 @@ public class AutomationRunExecutionServiceUnitTests {
 
 	@Test
 	void anAgentNodesToolsBecomeItsRoomsMcpOption() {
-		Map<String, Object> options = AutomationRunExecutionService.generatedAgentRoomOptions(Map.of(
-				AutomationConstants.CONFIG_MCPS, List.of(Map.of("id", " engine-1 ", "name", "Sales DB", "type", "DATABASE"),
-						Map.of("id", "", "name", "Blank", "type", "PROJECT"), "project-1")));
+		Map<String, Object> options = AutomationRunExecutionService
+				.generatedAgentRoomOptions(Map.of(AutomationConstants.CONFIG_MCPS,
+						List.of(Map.of("id", " engine-1 ", "name", "Sales DB", "type", "DATABASE"),
+								Map.of("id", "", "name", "Blank", "type", "PROJECT"), "project-1")));
 		assertEquals(Map.of("mcp", List.of(Map.of("id", "engine-1", "name", "Sales DB", "type", "DATABASE"))), options);
-		assertNull(AutomationRunExecutionService.generatedAgentRoomOptions(Map.of(AutomationConstants.CONFIG_MCPS, List.of())));
+		assertNull(AutomationRunExecutionService
+				.generatedAgentRoomOptions(Map.of(AutomationConstants.CONFIG_MCPS, List.of())));
 	}
 
 	@Test

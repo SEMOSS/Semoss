@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.storage.StorageSyncStatus;
 import prerna.logging.IgnoreEngineLogging;
 
@@ -45,7 +46,20 @@ public interface IStorageEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	StorageTypeEnum getStorageType();
+
+	/**
+	 * The bucket the storage keeps its files in, for the kinds of storage that
+	 * have one, such as S3 or Google Cloud Storage.
+	 *
+	 * @return the bucket name, or null when the storage has no bucket
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getBucketName() {
+		return null;
+	}
 
 	/**
 	 * 
@@ -53,6 +67,7 @@ public interface IStorageEngine extends IEngine {
 	 * @return
 	 * @throws Exception
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<String> list(String path) throws Exception;
 
 	/**
@@ -62,6 +77,7 @@ public interface IStorageEngine extends IEngine {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<Map<String, Object>> listDetails(String path) throws Exception;
 
 	/**
@@ -72,6 +88,7 @@ public interface IStorageEngine extends IEngine {
 	 * @return a list of version details (versionId, lastModified, size, isLatest)
 	 * @throws Exception if listing fails
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default List<Map<String, Object>> listVersions(String storagePath) throws Exception {
 		throw new UnsupportedOperationException("Object versioning is not supported by this storage engine");
 	}
@@ -88,6 +105,7 @@ public interface IStorageEngine extends IEngine {
 	 *         file lists are per engine
 	 * @throws Exception
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
 			throws Exception;
 
@@ -97,6 +115,7 @@ public interface IStorageEngine extends IEngine {
 	 * @param localPath
 	 * @throws Exception
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	void syncStorageToLocal(String storagePath, String localPath) throws Exception;
 
 	/**
@@ -110,6 +129,7 @@ public interface IStorageEngine extends IEngine {
 	 * @return the version identifier or null if not available
 	 * @throws Exception if the upload fails
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata) throws Exception;
 
 	/**
@@ -118,6 +138,7 @@ public interface IStorageEngine extends IEngine {
 	 * @param localFolderPath
 	 * @throws Exception
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
 		copyToLocal(storageFilePath, localFolderPath, null);
 	}
@@ -130,6 +151,7 @@ public interface IStorageEngine extends IEngine {
 	 * @param versionId       the version identifier used by the storage system
 	 * @throws Exception if the operation is not supported or fails
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception;
 
 	/**
@@ -140,6 +162,7 @@ public interface IStorageEngine extends IEngine {
 	 * @param storagePath object key or folder to delete
 	 * @throws Exception
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	default void deleteFromStorage(String storagePath) throws Exception {
 		deleteFromStorage(storagePath, false);
 	}
@@ -150,6 +173,7 @@ public interface IStorageEngine extends IEngine {
 	 * @param leaveFolderStructure
 	 * @throws Exception
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void deleteFromStorage(String storagePath, boolean leaveFolderStructure) throws Exception;
 
 	/**
@@ -157,6 +181,7 @@ public interface IStorageEngine extends IEngine {
 	 * @param storageFolderPath
 	 * @throws Exception
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	void deleteFolderFromStorage(String storageFolderPath) throws Exception;
 
 	/**
@@ -166,6 +191,7 @@ public interface IStorageEngine extends IEngine {
 	 * @return the file contents as a byte array
 	 * @throws Exception if the operation is not supported or fails
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default byte[] readBlobToMemory(String storagePath) throws Exception {
 		throw new UnsupportedOperationException("readBlobToMemory is not supported by this storage engine");
 	}
@@ -177,6 +203,7 @@ public interface IStorageEngine extends IEngine {
 	 * @param metadata    the metadata to add to the blob/file
 	 * @throws Exception if the operation is not supported or fails
 	 */
+	@EngineAccess(AccessPermissionEnum.EDIT)
 	default void updateBlobMetadata(String storagePath, Map<String, Object> metadata) throws Exception {
 		throw new UnsupportedOperationException("updateBlobMetadata is not supported by this storage engine");
 	}
@@ -192,6 +219,7 @@ public interface IStorageEngine extends IEngine {
 	 * @return the external URI for that path
 	 * @throws Exception if the operation is not supported or fails
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	default String toExternalUri(String storagePath) throws Exception {
 		throw new UnsupportedOperationException("toExternalUri is not supported by this storage engine");
 	}

@@ -46,6 +46,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
@@ -434,10 +435,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	@Override
 	public List<Map<String, Object>> searchDirectory(User user, String query, int max) {
-		// $search matches word prefixes in any order, so "ryan weiler" finds "Weiler, Ryan"
-		String text = query.replace("\"", " ").replace("\\", " ").trim();
-		String field = text.contains("@") ? "mail" : "displayName";
-		String url = BASE + "/users?$search=" + encode("\"" + field + ":" + text + "\"") + "&$select=" + USER_SELECT
+		String url = BASE + "/users?$search=" + userSearch(query) + "&$select=" + USER_SELECT
 				+ "&$top=" + Math.min(max * 2, 50);
 		List<Map<String, Object>> out = new ArrayList<>();
 		try {
@@ -469,6 +467,13 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		return out;
 	}
 
+	static String userSearch(String query) {
+		// $search matches word prefixes in any order, so "ryan weiler" finds "Weiler, Ryan"
+		String text = query.replace("\"", " ").replace("\\", " ").trim();
+		String field = text.contains("@") ? "mail" : "displayName";
+		return encode("\"" + field + ":" + text + "\"");
+	}
+
 	@Override
 	public Map<String, String> orgChart(User user, String managerId) {
 		Map<String, String> out = new LinkedHashMap<>();
@@ -498,7 +503,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	@Override
 	public byte[] photo(User user, String path) throws Exception {
 		// User.Read covers the owner's own photo, anyone else's needs User.ReadBasic.All or more; 404 when none is set
-		return HttpHelperUtility.getRequestBytes(BASE + path,
+		return HttpHelperUtility.getRequestBytes(
+				ConnectorGuards.requireUnder(BASE + path, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
 				MicrosoftLoginUtils.getBearerHeader(MicrosoftLoginUtils.getValidAccessToken(user)), null, null, null);
 	}
 
@@ -608,11 +614,13 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	private static Map<String, Object> get(String token, String url) throws Exception {
-		return CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url,
+		// a nextLink comes back in the response, and the request carries the token
+		return CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(
+				ConnectorGuards.requireUnder(url, MicrosoftTokenFiller.MS_GRAPH_BASE_API),
 				MicrosoftLoginUtils.getBearerHeader(token), null, null, null, TIMEOUT));
 	}
 
-	private static String encode(String value) {
+	static String encode(String value) {
 		return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
 	}
 }

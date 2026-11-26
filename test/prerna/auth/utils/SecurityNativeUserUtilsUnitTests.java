@@ -53,7 +53,7 @@ import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
+import prerna.util.InternalUtility;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -77,7 +77,7 @@ public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitT
 		// quicker than deleting and recreating
 		tables = UnitTestSecurityAuthUtils.clearSecurityDB(securityDb, tables);
 		// This is here to clean up after a specific test
-		DIHelper.getInstance().putProperty(Constants.MAX_USER_LIMIT, "1000");
+		InternalUtility.setDIHelperProperty(Constants.MAX_USER_LIMIT, "1000");
 	}
 
 	///
@@ -107,7 +107,7 @@ public class SecurityNativeUserUtilsUnitTests extends AbstractSecurityUtilsUnitT
 
 	@Test
 	void testAddNativeUser_OverLimitOfUsers() {
-		DIHelper.getInstance().putProperty(Constants.MAX_USER_LIMIT, "1");
+		InternalUtility.setDIHelperProperty(Constants.MAX_USER_LIMIT, "1");
 		AccessToken newUser = UnitTestSecurityAuthUtils.createAccessToken("test");
 		SecurityNativeUserUtils.addNativeUser(newUser, "Test123!");
 		AccessToken newUser2 = UnitTestSecurityAuthUtils.createAccessToken("test");

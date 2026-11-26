@@ -47,12 +47,14 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.impl.pipeline.PlatformOperation;
+import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.rdbms.RDBMSNativeEngine;
 import prerna.security.HttpHelperUtility;
 import prerna.util.BeanFiller;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.InternalUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -60,6 +62,8 @@ import prerna.util.sql.RdbmsTypeEnum;
 public class ExternalAuthorizationHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(ExternalAuthorizationHelper.class);
+
+	private static final String EXTERNAL_PERMISSION_SYNC = "external permission sync";
 
 	/**
 	 * 
@@ -79,7 +83,10 @@ public class ExternalAuthorizationHelper {
 			List<Map<String, Object>> enginePermissions = transformApiResponse(user, apiResponse);
 
 			//Update permissions for engine
-			List<Map<String, Object>> newEngines = SecurityEngineUtils.updateEngineUserPermissions(user, enginePermissions);
+			List<Map<String, Object>> newEngines;
+			try (PlatformOperation operation = PlatformOperation.begin(EXTERNAL_PERMISSION_SYNC)) {
+				newEngines = SecurityEngineUtils.updateEngineUserPermissions(user, enginePermissions);
+			}
 			classLogger.info("Engine permissions update for userid = " + User.getSingleLogginName(user));
 			
 			//Create SMSS for this engine
@@ -88,36 +95,56 @@ public class ExternalAuthorizationHelper {
 				String engineName = (String) newE.get("engineName");
 				IEngine.CATALOG_TYPE engineType = (IEngine.CATALOG_TYPE) newE.get("engineType");
 				String engineSubType = (String) newE.get("engineSubType");
-				Map<String, Object> properties = null;
 
-				// TODO: need to expand on logic for the class to initialize
-				String engineClass = null;
-				if(engineType == IEngine.CATALOG_TYPE.DATABASE) {
-					engineClass = RDBMSNativeEngine.class.getName();
-				
-					properties = new HashMap<>();
-					properties.put(Constants.RDBMS_TYPE, engineSubType);
-					properties.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+engineName+"_OWL.OWL");
+				// the id and name make up file and folder names below
+				if (!Utility.isSafePathSegment(engineId) || !Utility.isSafePathSegment(engineName)) {
+					classLogger.warn("Skipping the external engine '{}' ('{}') because its id or name is not a safe file name",
+							Utility.cleanLogString(engineId), Utility.cleanLogString(engineName));
+					continue;
 				}
-				
-				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-				File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
-				FileUtils.copyFile(tempSmss, smssFile);
-				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
-				tempSmss.delete();
-				
-				// also make the folder to persist... even if empty
-				String engineFolder = EngineUtility.getSpecificEngineBaseFolder(engineType, engineId, engineName);
-				File eFolder = new File(engineFolder);
-				eFolder.mkdir();
-				
-				ClusterUtil.pushEngine(engineId);
+
+				// one engine that cannot be written (e.g. a name the file system refuses) does not stop the others
+				try {
+					createExternalEngine(engineId, engineName, engineType, engineSubType);
+				} catch (IllegalArgumentException e) {
+					classLogger.warn("Skipping the external engine '{}' ('{}'): {}", Utility.cleanLogString(engineId),
+							Utility.cleanLogString(engineName), Utility.cleanLogString(e.getMessage()));
+				}
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw e;
 		}
+	}
+
+	// writes the smss and folder of an engine the external API granted, then pushes it
+	private static void createExternalEngine(String engineId, String engineName, IEngine.CATALOG_TYPE engineType,
+			String engineSubType) throws Exception {
+		Map<String, Object> properties = null;
+		// TODO: need to expand on logic for the class to initialize
+		String engineClass = null;
+		if(engineType == IEngine.CATALOG_TYPE.DATABASE) {
+			engineClass = RDBMSNativeEngine.class.getName();
+
+			properties = new HashMap<>();
+			properties.put(Constants.RDBMS_TYPE, engineSubType);
+			properties.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+engineName+"_OWL.OWL");
+		}
+
+		File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
+		InternalUtility.setEngineSmssPath(engineId, tempSmss.getAbsolutePath());
+		File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+		FileUtils.copyFile(tempSmss, smssFile);
+		InternalUtility.setEngineSmssPath(engineId, smssFile.getAbsolutePath());
+		tempSmss.delete();
+
+		// also make the folder to persist... even if empty
+		String engineFolder = Utility.childPath(EngineUtility.getLocalEngineBaseDirectory(engineType),
+				SmssUtilities.getUniqueName(engineName, engineId), "engine folder");
+		File eFolder = new File(engineFolder);
+		eFolder.mkdir();
+
+		ClusterUtil.pushEngine(engineId);
 	}
 	
 	/**
@@ -192,9 +219,17 @@ public class ExternalAuthorizationHelper {
 			for (JsonNode detail : parsedJsonNode) {
 				Map<String, Object> permissionMap = new HashMap<>();
 				
-				// these are mandatory
-				permissionMap.put("engineId", detail.path(ENGINEID_KEY).asText());
-				permissionMap.put("engineName", detail.path(ENGINENAME_KEY).asText());
+				// these are mandatory, and become file and folder names
+				String detailEngineId = detail.path(ENGINEID_KEY).asText();
+				String detailEngineName = detail.path(ENGINENAME_KEY).asText();
+				if (!Utility.isSafePathSegment(detailEngineId) || !Utility.isSafePathSegment(detailEngineName)) {
+					classLogger.warn("Ignoring an external engine for user {} whose id or name is not a safe file name: {} ('{}')",
+							User.getSingleLogginName(user), Utility.cleanLogString(detailEngineId),
+							Utility.cleanLogString(detailEngineName));
+					continue;
+				}
+				permissionMap.put("engineId", detailEngineId);
+				permissionMap.put("engineName", detailEngineName);
 				
 				IEngine.CATALOG_TYPE engineType = null;
 				if(ENGINETYPE_KEY != null && !ENGINETYPE_KEY.isEmpty() && detail.has(ENGINETYPE_KEY)) {

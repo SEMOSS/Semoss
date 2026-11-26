@@ -34,7 +34,6 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.auth.utils.SecurityQueryUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.GenRowStruct;
@@ -62,8 +61,6 @@ public class AdminEngineInfoReactor extends AbstractReactor {
 		if (engineId == null || engineId.isEmpty()) {
 			throw new IllegalArgumentException("Must input an engine id");
 		}
-		engineId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), engineId);
-
 		List<Map<String, Object>> baseInfo = adminUtils.getAllEngineSettings(Arrays.asList(engineId), null, null, null,
 				null, null);
 		if (baseInfo == null || baseInfo.isEmpty()) {
@@ -102,11 +99,11 @@ public class AdminEngineInfoReactor extends AbstractReactor {
 
 								Returns a single map (ENGINE_INFO/CUSTOM_DATA_STRUCTURE) containing:
 								  Core engine fields: engine_id, engine_name, engine_display_name, engine_type, engine_subtype,
-								    engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by,
-								    engine_created_by_type, engine_date_created, low_engine_name.
+								    engine_cost, engine_discoverable, engine_global, engine_created_by, engine_created_by_type,
+								    engine_date_created, low_engine_name.
 								  Legacy aliases (deprecated, kept for backwards compatibility - prefer the engine_* fields above):
-								    database_id, database_name, database_tool_app, database_global, low_database_name,
-								    app_id, app_name, app_display_name, app_global, tool_app.
+								    database_id, database_name, database_global, low_database_name,
+								    app_id, app_name, app_display_name, app_global.
 								  Metadata: one entry per metadata tag (e.g. tag, domain, etc.); a tag with multiple values is returned as a list.
 								""")
 				.key(ReactorKeysEnum.ENGINE, "Id of the engine to look up").key(ReactorKeysEnum.META_KEYS,

@@ -66,8 +66,8 @@ import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 import prerna.util.Utility;
 
 public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
@@ -107,10 +107,8 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
 			) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -155,10 +153,8 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -182,7 +178,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testAddEmbeddings() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 		
 		Properties testProps = new Properties();
@@ -207,10 +203,8 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
 				) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -232,7 +226,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				Properties embedderProps = new Properties();
 				embedderProps.setProperty(Constants.MODEL, embedderModel);
 				embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-				when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);			
+				EmbedderStubs.answerFrom(modelEmbedder, embedderProps);			
 				engine.verifyModelProps();
 				// used in addEmbeddings()
 				VectorDatabaseCSVTable vectorCsvTableMock = mock();
@@ -261,7 +255,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void testAddEmbeddingsNoInsight() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 		
 		Properties testProps = new Properties();
@@ -286,10 +280,8 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -315,7 +307,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 	@Test
 	void removeDocument() throws Exception {
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 		String indexClass = "default";
 		
@@ -348,10 +340,8 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Files.createFile(newFilePath);
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
 			) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -373,7 +363,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 					engine.verifyModelProps();
 					
 					hhu.when(() -> HttpHelperUtility.getRequest(any(String.class), any(Map.class),
@@ -392,7 +382,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Number limit = 1;
 		String searchStatement = "searchStatement";
 		String embedderModel = "embedder_model";
-		String embedderModelType = "embedder_model_type";
+		String embedderModelType = "OPEN_AI";
 		String testEmbedderId = "123-456-789";
 		
 		Properties testProps = new Properties();
@@ -417,10 +407,8 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)
 			) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -442,7 +430,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 					Properties embedderProps = new Properties();
 					embedderProps.setProperty(Constants.MODEL, embedderModel);
 					embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-					when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);
+					EmbedderStubs.answerFrom(modelEmbedder, embedderProps);
 					engine.verifyModelProps();
 					
 					EmbeddingsModelEngineResponse embResMock = mock();
@@ -551,10 +539,8 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			Files.createFile(newFilePath);
 		}
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class);) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
@@ -647,10 +633,8 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class);
 				 MockedStatic<HttpHelperUtility> hhu = Mockito.mockStatic(HttpHelperUtility.class)) {
 
@@ -741,7 +725,7 @@ public class PineConeVectorDatabaseEngineUnitTests extends SemossUnitTest {
 			Properties embedderProps = new Properties();
 			embedderProps.setProperty(Constants.MODEL, embedderModel);
 			embedderProps.setProperty(IModelEngine.MODEL_TYPE, embedderModelType);
-			when(modelEmbedder.getSmssProp()).thenReturn(embedderProps);			
+			EmbedderStubs.answerFrom(modelEmbedder, embedderProps);			
 			engine.verifyModelProps();
 		}
 	}

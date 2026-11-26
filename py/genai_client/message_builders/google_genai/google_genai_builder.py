@@ -42,11 +42,11 @@ class GoogleGenAIMessageBuilder:
 
         pending_tool_responses = []
         expected_tool_count = 0
+        tool_id_to_name = {}
         self._blob_seq = 0
 
         for i, message in enumerate(semoss_messages):
             if message.parts:
-                tool_id_to_name = {}
                 parts = []
                 for p in message.parts:
                     if p.type == SEMOSSMessagePartType.TEXT:
@@ -65,33 +65,27 @@ class GoogleGenAIMessageBuilder:
                         ts_bytes = None
                         if p.tool_call.thought_signature:
                             ts_bytes = base64.b64decode(p.tool_call.thought_signature)
-                        if ts_bytes:
-                            fc_part = types.Part(
+                        parts.append(
+                            types.Part(
                                 function_call=types.FunctionCall(
+                                    id=p.tool_call.id,
                                     name=p.tool_call.function.name,
                                     args=p.tool_call.function.parameters,
                                 ),
                                 thought_signature=ts_bytes,
                             )
-                        else:
-                            fc_part = Part.from_function_call(
-                                name=p.tool_call.function.name,
-                                args=p.tool_call.function.parameters,
-                            )
-                        parts.append(fc_part)
+                        )
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
                         output = p.tool_result.output or "Tool executed successfully."
                         blocks = parse_multimodal_tool_response(output)
-                        parts.append(
-                            self._build_function_response_part(
-                                name=tool_id_to_name.get(
-                                    p.tool_result.id, "unknown_tool"
-                                ),
-                                output=output,
-                                blocks=blocks,
-                            )
+                        result_part = self._build_function_response_part(
+                            name=tool_id_to_name.get(p.tool_result.id, "unknown_tool"),
+                            output=output,
+                            blocks=blocks,
                         )
+                        result_part.function_response.id = p.tool_result.id
+                        parts.append(result_part)
 
                     elif p.type == SEMOSSMessagePartType.THINKING:
                         thinking_dict = {
@@ -101,6 +95,15 @@ class GoogleGenAIMessageBuilder:
                         if self.thinking_signature:
                             thinking_dict["signature"] = self.thinking_signature
                         parts.append(thinking_dict)
+
+                if message.io == "INPUT":
+                    tool_parts = [p for p in parts if p.function_response]
+                    if tool_parts and len(tool_parts) != len(parts):
+                        # Gemini rejects runtime text mixed into a function-response turn.
+                        google_messages.append(
+                            Content(role=GoogleRoles.USER.value, parts=tool_parts)
+                        )
+                        parts = [p for p in parts if not p.function_response]
 
                 google_messages.append(
                     Content(
@@ -230,7 +233,7 @@ class GoogleGenAIMessageBuilder:
             "stream": stream,
         }
 
-    # Canonical effort -> Gemini 3 ThinkingLevel. The SDK enum only has
+    # Canonical effort -> Gemini ThinkingLevel. The SDK enum only has
     # MINIMAL/LOW/MEDIUM/HIGH, so xhigh/max collapse to HIGH and none->MINIMAL.
     _GEMINI_THINKING_LEVEL = {
         "none": types.ThinkingLevel.MINIMAL,
@@ -247,20 +250,26 @@ class GoogleGenAIMessageBuilder:
     ) -> types.ThinkingConfig:
         """
         Honor the thinking/effort keys passed in the param map first, then fall
-        back to SMSS. Gemini 3.x uses `thinking_level`; Gemini 2.5/2.0 uses
-        `thinking_budget` (setting both on a Gemini 3 model returns a 400).
+        back to SMSS. Gemini 3.x/4.x uses `thinking_level`; Gemini 2.5/2.0 uses
+        `thinking_budget`. Level-based models must not receive a budget.
         """
         resolved = normalize_reasoning(param_map, self.model_settings)
         if resolved is None:
             return types.ThinkingConfig(include_thoughts=False)
 
         model_name = (self.model_settings.model_name or "").lower()
-        if "gemini-3" in model_name and "gemini-3-pro-image" not in model_name:
+        if "gemini-4" in model_name or (
+            "gemini-3" in model_name and "gemini-3-pro-image" not in model_name
+        ):
+            level = self._GEMINI_THINKING_LEVEL.get(
+                resolved.effort, types.ThinkingLevel.HIGH
+            )
+            # Gemini 4 does not support MINIMAL; LOW is its smallest level.
+            if "gemini-4" in model_name and level == types.ThinkingLevel.MINIMAL:
+                level = types.ThinkingLevel.LOW
             return types.ThinkingConfig(
                 include_thoughts=True,
-                thinking_level=self._GEMINI_THINKING_LEVEL.get(
-                    resolved.effort, types.ThinkingLevel.HIGH
-                ),
+                thinking_level=level,
             )
         return types.ThinkingConfig(
             include_thoughts=True, thinking_budget=resolved.budget

@@ -28,8 +28,6 @@
 package prerna.engine.impl.rdf;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.URI;
@@ -58,8 +56,8 @@ import prerna.engine.api.IRDFDatabase;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.MockedDIHelper;
 
 public class RdfUploadReactorUtilityUnitTests extends SemossUnitTest {
 
@@ -102,10 +100,8 @@ public class RdfUploadReactorUtilityUnitTests extends SemossUnitTest {
 		Path engineAssetFolder = engineFolder.resolve("assets");
 		Path engineVersionFolder = engineFolder.resolve("version");
 
-		try (MockedStatic<DIHelper> dh = Mockito.mockStatic(DIHelper.class);) {
-			DIHelper diMock = mock(DIHelper.class);
-			dh.when(() -> DIHelper.getInstance()).thenReturn(diMock);
-			when(diMock.getProperty(Constants.BASE_FOLDER)).thenReturn(engineFolder.toString());
+		try (MockedDIHelper dh = MockedDIHelper.start();) {
+			dh.withProperty(Constants.BASE_FOLDER, engineFolder.toString());
 			try (MockedStatic<EngineUtility> eu = Mockito.mockStatic(EngineUtility.class)) {
 				eu.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.VECTOR, engineNameAndId))
 						.thenReturn(engineFolder.toString());

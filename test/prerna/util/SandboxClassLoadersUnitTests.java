@@ -296,7 +296,10 @@ class SandboxClassLoadersUnitTests {
 	@ParameterizedTest
 	@ValueSource(strings = { "prerna/util/SandboxedJavaExecution", "prerna/util/SandboxedXml",
 			"prerna/util/SemossClassLoader", "prerna/util/SemossProjectJarClassLoader",
-			"prerna/util/SemossJarClassLoader", "prerna/util/SandboxedClassLoader" })
+			"prerna/util/SemossJarClassLoader", "prerna/util/SandboxedClassLoader", "prerna/util/SandboxedClassLoading",
+			"prerna/util/SandboxedPdfBox", "prerna/util/SandboxedHikari", "prerna/util/SandboxedJackson",
+			"prerna/util/SandboxedJackson3", "prerna/util/SandboxedGson", "prerna/util/SandboxedLog4j",
+			"prerna/util/SandboxedPoi", "prerna/util/SandboxedMail" })
 	void customCodeCannotNameTheSandboxClasses(String sandboxClass) {
 		byte[] calls = new SandboxProbe().method("run",
 				SandboxProbe.call(Opcodes.INVOKESTATIC, sandboxClass, "clearSandboxRootForCurrentThread", "()V"))

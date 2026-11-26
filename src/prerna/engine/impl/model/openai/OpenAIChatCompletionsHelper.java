@@ -328,6 +328,12 @@ public final class OpenAIChatCompletionsHelper {
 				usage.put("prompt_tokens", promptTokens);
 			}
 		}
+		if (llmResponse.getNumberOfCacheReadTokens() != null) {
+			usage.put("prompt_tokens_details", Map.of("cached_tokens", llmResponse.getNumberOfCacheReadTokens()));
+		}
+		if (llmResponse.getNumberOfThinkingTokens() != null) {
+			usage.put("completion_tokens_details", Map.of("reasoning_tokens", llmResponse.getNumberOfThinkingTokens()));
+		}
 		llmResponseMap.put("usage", usage);
 
 		// now we have to add the chat or the tool
@@ -417,19 +423,7 @@ public final class OpenAIChatCompletionsHelper {
 			Writer writer) throws IOException {
 		OpenAIChatCompletionsStream stream = new OpenAIChatCompletionsStream(engineId, messageId, creationTimestamp,
 				jobId);
-		try {
-			while (!stream.drain(writer)) {
-				// small delay
-				try {
-					Thread.sleep(ModelPixelInvoker.STREAM_POLL_INTERVAL_MS);
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					break;
-				}
-			}
-		} finally {
-			stream.close();
-		}
+		stream.streamToWriter(writer);
 	}
 
 	private OpenAIChatCompletionsHelper() {

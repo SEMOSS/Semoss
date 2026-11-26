@@ -29,7 +29,9 @@ package prerna.engine.api;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.logging.IgnoreEngineLogging;
 
@@ -50,6 +52,7 @@ public interface IFunctionEngine extends IEngine {
 	 * @param args
 	 * @return
 	 */
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	Object execute(Map<String, Object> parameterValues);
 
 	/**
@@ -58,12 +61,14 @@ public interface IFunctionEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getFunctionName();
 
 	/**
 	 * 
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setFunctionName(String functionName);
 
 	/**
@@ -72,13 +77,27 @@ public interface IFunctionEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	String getFunctionDescription();
+
+	/**
+	 * The function's type, its {@link #FUNCTION_TYPE} setting.
+	 *
+	 * @return the function type, or null when its settings name none
+	 */
+	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
+	default String getFunctionType() {
+		Properties smssProp = getSmssProp();
+		return smssProp == null ? null : smssProp.getProperty(FUNCTION_TYPE);
+	}
 
 	/**
 	 * 
 	 * @param description
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setFunctionDescription(String description);
 
 	/**
@@ -86,6 +105,7 @@ public interface IFunctionEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<FunctionParameter> getParameters();
 
 	/**
@@ -93,6 +113,7 @@ public interface IFunctionEngine extends IEngine {
 	 * @param parameters
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setParameters(List<FunctionParameter> parameters);
 
 	/**
@@ -100,6 +121,7 @@ public interface IFunctionEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	List<String> getRequiredParameters();
 
 	/**
@@ -107,6 +129,7 @@ public interface IFunctionEngine extends IEngine {
 	 * @param requiredParameters
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.OWNER)
 	void setRequiredParameters(List<String> requiredParameters);
 
 	/**
@@ -114,6 +137,7 @@ public interface IFunctionEngine extends IEngine {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@EngineAccess(AccessPermissionEnum.READ_ONLY)
 	org.json.JSONObject getFunctionDefintionJson();
 
 }

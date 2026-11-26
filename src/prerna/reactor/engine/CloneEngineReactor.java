@@ -55,7 +55,8 @@ import prerna.util.Utility;
  * Clones an engine of any type into a new private engine owned by the user,
  * with a copy of every asset the source keeps on the server. See
  * {@link EngineCloneUtility} for what is copied. The user must own the source
- * engine, or be an admin, and be allowed to add an engine of its type.
+ * engine and be allowed to add an engine of its type. An admin clones any
+ * engine with {@code AdminCloneEngine}.
  */
 public class CloneEngineReactor extends AbstractReactor {
 
@@ -86,7 +87,7 @@ public class CloneEngineReactor extends AbstractReactor {
 
 		String engineId = this.keyValue.get(ENGINE_ID_KEY);
 		boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
-		if (!isAdmin && !SecurityEngineUtils.userIsOwner(user, engineId)) {
+		if (!SecurityEngineUtils.userIsOwner(user, engineId)) {
 			throw new IllegalArgumentException("Engine " + engineId
 					+ " does not exist or user does not have permissions to clone the engine. User must be the owner to perform this function.");
 		}
@@ -142,7 +143,8 @@ public class CloneEngineReactor extends AbstractReactor {
 				of everything the engine keeps on the server: its folder (database file, OWL, vector indexes, \
 				python files, virtual environment, version history), its smss file and secrets, its metadata, \
 				and its image. Connection settings are copied as they are, so a clone of an engine backed by an \
-				external system uses the same external data. The user must own the engine.""")
+				external system uses the same external data. The user must own the engine. An admin clones \
+				any engine with AdminCloneEngine.""")
 				.key(ENGINE_ID_KEY, "The id of the engine to clone")
 				.key(ReactorKeysEnum.CATALOG_NAME, "The name of the clone. Defaults to the engine name followed by \""
 						+ DEFAULT_NAME_SUFFIX.trim() + "\"");

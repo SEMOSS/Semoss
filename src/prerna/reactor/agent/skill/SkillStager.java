@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -43,6 +44,10 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
+
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.impl.pipeline.AgentRunOperation;
 
 /**
  * Materializes attached skills into a working directory so Claude Code's
@@ -82,25 +87,49 @@ public final class SkillStager {
 	private static final String CLAUDE_DIR = ".claude";
 	private static final String SKILLS_DIR = "skills";
 	private static final String SKILL_META_FILE = ".skill-meta";
+	/**
+	 * Why a skill the person cannot open, and the agent was not given, is left out
+	 */
+	static final String NO_ACCESS = "You cannot open this skill and the agent was not given access to it, so this "
+			+ "run does not have it. An owner of the skill can give this agent access on the skill's Access Control "
+			+ "tab.";
+	/** Why a skill with no SKILL.md is left out */
+	static final String NO_CONTENT = "This skill has no SKILL.md to load.";
+	/** Why a skill that could not be copied is left out */
+	static final String NOT_COPIED = "This skill could not be copied into the run.";
 
 	private SkillStager() {
 	}
 
 	/**
+	 * A skill attached to the run that staging left out, and why.
+	 *
+	 * @param skillId the skill
+	 * @param reason  why it was left out, for the person running the agent
+	 */
+	public record SkillNotLoaded(String skillId, String reason) {
+	}
+
+	/**
 	 * Stage every skill ref in {@code skillRefs} under
-	 * {@code <workingDir>/.claude/skills/}. Skipped silently when
-	 * {@code workingDir} is blank or {@code skillRefs} is empty.
+	 * {@code <workingDir>/.claude/skills/}. Nothing is staged when
+	 * {@code workingDir} is blank or {@code skillRefs} is empty. A skill is staged
+	 * only when the person can view it or the agent whose run this is was given it
+	 * ({@code AgentRunOperation}); that is checked before the skill is loaded.
 	 *
 	 * @param workingDir agent's working directory
 	 * @param skillRefs  merged skill references: each map should contain
 	 *                   {@code skill_id} (required)
+	 * @param user       the person the run is for, or null
+	 * @return the skills left out, with why, so the run can show them
 	 */
-	public static void stage(String workingDir, List<Map<String, String>> skillRefs) {
+	public static List<SkillNotLoaded> stage(String workingDir, List<Map<String, String>> skillRefs, User user) {
+		List<SkillNotLoaded> notLoaded = new ArrayList<>();
 		if (workingDir == null || workingDir.trim().isEmpty()) {
-			return;
+			return notLoaded;
 		}
 		if (skillRefs == null || skillRefs.isEmpty()) {
-			return;
+			return notLoaded;
 		}
 
 		Path skillsRoot = Paths.get(workingDir, CLAUDE_DIR, SKILLS_DIR);
@@ -108,7 +137,7 @@ public final class SkillStager {
 			Files.createDirectories(skillsRoot);
 		} catch (IOException e) {
 			logger.warn("SkillStager: failed to create skills root '{}': {}", skillsRoot, e.getMessage());
-			return;
+			return notLoaded;
 		}
 
 		int staged = 0;
@@ -127,9 +156,17 @@ public final class SkillStager {
 				continue;
 			}
 			try {
+				if (!canOpen(user, skillId)) {
+					logger.warn("SkillStager: skill '{}' cannot be opened by the person or the agent; skipping",
+							skillId);
+					notLoaded.add(new SkillNotLoaded(skillId, NO_ACCESS));
+					failed++;
+					continue;
+				}
 				SkillProjects.SkillInfo info = SkillProjects.resolve(skillId);
 				if (info.skillDir == null) {
 					logger.warn("SkillStager: skill '{}' has no skill content folder; skipping", skillId);
+					notLoaded.add(new SkillNotLoaded(skillId, NO_CONTENT));
 					failed++;
 					continue;
 				}
@@ -147,15 +184,31 @@ public final class SkillStager {
 				} else if (outcome == StageOutcome.CACHED) {
 					skipped++;
 				} else {
+					notLoaded.add(new SkillNotLoaded(skillId, NOT_COPIED));
 					failed++;
 				}
 			} catch (Exception e) {
 				logger.warn("SkillStager: failed to stage skill '{}': {}", skillId, e.getMessage(), e);
+				notLoaded.add(new SkillNotLoaded(skillId, NOT_COPIED));
 				failed++;
 			}
 		}
 		logger.info("SkillStager: workingDir='{}' total={} staged={} cached={} duplicates={} failed={}", workingDir,
 				skillRefs.size(), staged, skipped, duplicates, failed);
+		return notLoaded;
+	}
+
+	/**
+	 * Whether the run may load a skill: the person can view it, or the agent whose
+	 * run this is was given it.
+	 *
+	 * @param user    the person the run is for, or null
+	 * @param skillId the skill
+	 * @return whether the skill may be staged
+	 */
+	private static boolean canOpen(User user, String skillId) {
+		return (user != null && SecurityProjectUtils.userCanViewProject(user, skillId))
+				|| AgentRunOperation.runningAgentCanUse(skillId, true);
 	}
 
 	private enum StageOutcome {

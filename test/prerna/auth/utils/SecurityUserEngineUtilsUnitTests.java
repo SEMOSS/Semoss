@@ -400,28 +400,6 @@ public class SecurityUserEngineUtilsUnitTests extends AbstractSecurityUtilsUnitT
 	}
 
 	///
-	/// enginePermissionIsExpired
-	///
-
-	@Test
-	void testEnginePermissionIsExpired_NotExpired() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("eid1", "ename1", user);
-
-		String userId = user.getAccessToken(AuthProvider.NATIVE).getId();
-		// Owner permission typically has no end date
-		assertFalse(SecurityUserEngineUtils.enginePermissionIsExpired(userId, "eid1"));
-	}
-
-	@Test
-	void testEnginePermissionIsExpired_NoPermission() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("eid1", "ename1", user);
-
-		assertFalse(SecurityUserEngineUtils.enginePermissionIsExpired("nonexistent", "eid1"));
-	}
-
-	///
 	/// checkUserHasAccessToEngine
 	///
 
@@ -446,7 +424,7 @@ public class SecurityUserEngineUtilsUnitTests extends AbstractSecurityUtilsUnitT
 	}
 
 	@Test
-	void testCheckUserHasAccessToEngine_RemovesAnExpiredGrantAndItsLimit() throws Exception {
+	void testCheckUserHasAccessToEngine_FalseOnceAnEndedGrantIsRemoved() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createEngine("eid1", "ename1", user);
 		User user2 = UnitTestSecurityAuthUtils.createUser("notadmin", false);
@@ -464,11 +442,9 @@ public class SecurityUserEngineUtilsUnitTests extends AbstractSecurityUtilsUnitT
 					});
 			return null;
 		});
-		assertTrue(SecurityUserEngineUtils.enginePermissionIsExpired(user2Id, "eid1"));
+		ExpiredAccessRemoval.removeAllEndedAccess();
 
 		assertFalse(SecurityUserEngineUtils.checkUserHasAccessToEngine("eid1", user2Id));
-		// the expired grant is taken off the engine, and its usage limit with it
-		assertFalse(SecurityUserEngineUtils.enginePermissionIsExpired(user2Id, "eid1"));
 		assertNull(SecurityModelUsageLimitUtils.getLimit(direct));
 	}
 
