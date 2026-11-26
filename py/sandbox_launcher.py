@@ -60,6 +60,7 @@ Run modes:
 """
 import argparse
 import ctypes
+import errno
 import os
 import platform
 import shutil
@@ -78,6 +79,12 @@ CLONE_NEWUSER = 0x10000000
 CLONE_NEWNET = 0x40000000
 
 MS_RDONLY = 1
+MS_NOSUID = 2
+MS_NODEV = 4
+MS_NOEXEC = 8
+MS_NOATIME = 1024
+MS_NODIRATIME = 2048
+MS_RELATIME = 1 << 21
 MS_BIND = 0x1000
 MS_REMOUNT = 0x20
 MS_REC = 0x4000
@@ -199,16 +206,53 @@ DEFAULT_RO_PATHS = [
 DEV_NODES = ["null", "zero", "full", "random", "urandom", "tty"]
 
 
-def _bind(src, tgt, ro):
+# statvfs flag -> mount flag, for the per-mount flags a user namespace locks
+_LOCKABLE_FLAGS = [
+    (getattr(os, "ST_NOSUID", 2), MS_NOSUID),
+    (getattr(os, "ST_NODEV", 4), MS_NODEV),
+    (getattr(os, "ST_NOEXEC", 8), MS_NOEXEC),
+    (getattr(os, "ST_NOATIME", 1024), MS_NOATIME),
+    (getattr(os, "ST_NODIRATIME", 2048), MS_NODIRATIME),
+    (getattr(os, "ST_RELATIME", 4096), MS_RELATIME),
+]
+
+
+def _is_read_only(path):
+    return bool(os.statvfs(path).f_flag & getattr(os, "ST_RDONLY", 1))
+
+
+def _locked_flags(path):
+    """The mount flags `path` already carries. A remount inside a user
+    namespace that drops one of them (nosuid, nodev, ...) is refused with
+    EPERM, so a read-only remount has to repeat them."""
+    f_flag = os.statvfs(path).f_flag
+    flags = 0
+    for st, ms in _LOCKABLE_FLAGS:
+        if f_flag & st:
+            flags |= ms
+    return flags
+
+
+def _bind(src, tgt, ro, strict=False):
     os.makedirs(tgt, exist_ok=True)
     _chk(_mount(src, tgt, "", MS_BIND | MS_REC), "bind %s" % src)
     if ro:
-        # best-effort recursive read-only remount; failure is non-fatal (the
-        # interpreter is unprivileged on the host either way).
-        _mount("none", tgt, "", MS_BIND | MS_REMOUNT | MS_REC | MS_RDONLY | MS_BIND)
+        remount = MS_BIND | MS_REMOUNT | MS_REC | MS_RDONLY
+        _mount("none", tgt, "", remount)
+        if not _is_read_only(tgt):
+            # refused, most likely for dropping a locked flag: repeat them
+            _mount("none", tgt, "", remount | _locked_flags(tgt))
+        if strict and not _is_read_only(tgt):
+            # the interpreter could write here, and for a strict path (the
+            # worker code every python on the server runs) that is an escape
+            raise OSError(errno.EROFS,
+                          "read-only bind of %s could not be made read-only; "
+                          "refusing to start the sandbox" % src)
+        # a non-strict path stays best-effort: the interpreter is
+        # unprivileged on the host either way
 
 
-def build_jail(jail, ro_paths, rw_paths, inject_roots):
+def build_jail(jail, ro_paths, rw_paths, inject_roots, strict_ro_paths=()):
     """Construct the interpreter's minimal root under `jail` (runs in the
     supervisor, before the fork).
 
@@ -234,7 +278,7 @@ def build_jail(jail, ro_paths, rw_paths, inject_roots):
 
     for p in ro_paths:
         if os.path.exists(p):
-            _bind(p, jail + p, ro=True)
+            _bind(p, jail + p, ro=True, strict=p in strict_ro_paths)
 
     # tmpfs /tmp (writable scratch)
     tmp = os.path.join(jail, "tmp")
@@ -479,7 +523,14 @@ def _self_test():
 
     jail = os.path.join(work, "jail")
     inject_roots = ["/projects"]
+    code = os.path.join(work, "code")
+    os.makedirs(code)
+    with open(os.path.join(code, "worker.py"), "w") as f:
+        f.write("ORIGINAL")
     build_jail(jail, DEFAULT_RO_PATHS, rw_paths=[], inject_roots=inject_roots)
+    # strict read-only, as the real worker code is; at /sbx-code because the
+    # jail's own /tmp would hide anything bound under the host /tmp
+    _bind(code, jail + "/sbx-code", ro=True, strict=True)
 
     c2p_r, c2p_w = os.pipe()
     p2c_r, p2c_w = os.pipe()
@@ -526,6 +577,14 @@ def _self_test():
                     emit("READ_OK %s=%s" % (p, body[:200]))
                 except Exception as ex:
                     emit("READ_FAIL %s (%s)" % (p, type(ex).__name__))
+            elif line.startswith("WRITE "):
+                p = line[6:]
+                try:
+                    with open(p, "w") as f:
+                        f.write("CHANGED")
+                    emit("WRITE_OK %s" % p)
+                except Exception as ex:
+                    emit("WRITE_FAIL %s (%s)" % (p, type(ex).__name__))
             elif line == "EGRESS":
                 # AF_INET socket must be refused by seccomp (EACCES); even if it
                 # were not, the empty netns has no route.
@@ -596,6 +655,14 @@ def _self_test():
     r = recv()
     P(r.startswith("UNSHARE rc=-1") and "errno=1" in r,
       "unshare() blocked by seccomp (EPERM) -- cannot escape the jail")
+
+    print("--- worker code is read-only ---")
+    send("READ /sbx-code/worker.py")
+    P(recv() == "READ_OK /sbx-code/worker.py=ORIGINAL", "worker code is visible")
+    send("WRITE /sbx-code/worker.py")
+    P(recv().startswith("WRITE_FAIL"), "interpreter cannot change the worker code")
+    with open(os.path.join(code, "worker.py")) as f:
+        P(f.read() == "ORIGINAL", "worker code unchanged on the host")
 
     print("--- isolation: backing store & other users are invisible ---")
     send("READ /projects/projectB/data.csv")
@@ -812,7 +879,10 @@ def _real_mode(args):
     # later remove) a throwaway tmpdir ourselves.
     own_jail = not args.jail_root
     jail = args.jail_root or tempfile.mkdtemp(prefix="sbx-jail-")
-    build_jail(jail, ro, rw, inject_roots)
+    # the worker code must really be read-only: every python on the server
+    # runs it, so a writable copy here is an escape (see _bind)
+    strict_ro = [os.path.abspath(args.py_folder)] if args.py_folder else []
+    build_jail(jail, ro, rw, inject_roots, strict_ro_paths=strict_ro)
 
     # pass-through args for the gaas server; argparse.REMAINDER keeps the "--"
     # separator, so drop a leading one.
