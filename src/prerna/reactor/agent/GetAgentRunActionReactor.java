@@ -31,6 +31,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
+import prerna.collaboration.ApprovalContext;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.ReactorDefinition;
 import prerna.reactor.agent.run.AgentRunActionStore;
@@ -73,6 +74,10 @@ public class GetAgentRunActionReactor extends AbstractReactor {
 		action.put("toolArgs", parseJson(action.get("toolArgs")));
 		action.put("toolMeta", parseJson(action.get("toolMeta")));
 		action.put("editedArgs", parseJson(action.get("editedArgs")));
+		Map<String, Object> approvalContext = ApprovalContext.build(this.insight.getUser(), action);
+		if (approvalContext != null) {
+			action.put(ApprovalContext.KEY, approvalContext);
+		}
 		return new NounMetadata(action, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
@@ -90,7 +95,9 @@ public class GetAgentRunActionReactor extends AbstractReactor {
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Look up a single pending HITL agent action by actionId (scoped to the logged-in user) so a portal can prefill its approve/decline form.")
+				"Look up a single pending HITL agent action by actionId (scoped to the logged-in user) so a portal can prefill its approve/decline form. "
+						+ "When the run read content from outside the owner, or the action sends email, the action carries approvalContext: "
+						+ "{untrusted, sources, recipients (each known or new), hasNewRecipient, resolved}.")
 				.key(ACTION_ID_KEY, "The AGENT_RUN_ACTION id to look up.");
 	}
 }

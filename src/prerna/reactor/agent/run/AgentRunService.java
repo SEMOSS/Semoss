@@ -49,6 +49,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.auth.utils.SecurityUserUtils;
+import prerna.collaboration.ApprovalContext;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
@@ -342,7 +343,7 @@ public final class AgentRunService {
 		if (run == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
-		populatePendingActions(run, runId);
+		populatePendingActions(run, runId, insight == null ? null : insight.getUser());
 		return run;
 	}
 
@@ -375,7 +376,7 @@ public final class AgentRunService {
 		if (run == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
-		populatePendingActions(run, runId);
+		populatePendingActions(run, runId, null);
 		if (includeMessages) {
 			attachMessages(run, runId, ValueUtils.trimToNull(run.get("userId")));
 		}
@@ -403,7 +404,7 @@ public final class AgentRunService {
 		if (run == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + trimmed);
 		}
-		populatePendingActions(run, trimmed);
+		populatePendingActions(run, trimmed, null);
 		if (includeMessages) {
 			attachMessages(run, trimmed, ValueUtils.trimToNull(run.get("userId")));
 		}
@@ -740,7 +741,8 @@ public final class AgentRunService {
 		List<Map<String, Object>> pendingActions = new ArrayList<>();
 		if (AgentRunStatus.INPUT_REQUIRED.name().equals(String.valueOf(run.get("status")))) {
 			try {
-				pendingActions = normalizePendingActions(AgentRunActionStore.getPendingActions(runId));
+				pendingActions = normalizePendingActions(AgentRunActionStore.getPendingActions(runId),
+						insight == null ? null : insight.getUser());
 			} catch (Exception e) {
 				// best-effort - snapshot still carries the run status
 			}
@@ -771,7 +773,8 @@ public final class AgentRunService {
 		}
 	}
 
-	private static List<Map<String, Object>> normalizePendingActions(List<Map<String, Object>> actions) {
+	/** {@code owner} is the user the run belongs to, or null when the caller is not the owner. */
+	private static List<Map<String, Object>> normalizePendingActions(List<Map<String, Object>> actions, User owner) {
 		if (actions == null) {
 			return new ArrayList<>();
 		}
@@ -780,16 +783,17 @@ public final class AgentRunService {
 			normalizeJsonField(action, "toolMeta");
 			normalizeJsonField(action, "editedArgs");
 		}
+		ApprovalContext.attach(owner, actions);
 		return actions;
 	}
 
-	private static void populatePendingActions(Map<String, Object> run, String runId) {
+	private static void populatePendingActions(Map<String, Object> run, String runId, User owner) {
 		run.put("pendingActions", new ArrayList<>());
 		if (!AgentRunStatus.INPUT_REQUIRED.name().equals(String.valueOf(run.get("status")))) {
 			return;
 		}
 		try {
-			run.put("pendingActions", normalizePendingActions(AgentRunActionStore.getPendingActions(runId)));
+			run.put("pendingActions", normalizePendingActions(AgentRunActionStore.getPendingActions(runId), owner));
 		} catch (Exception e) {
 			// Pending-action enrichment is best-effort.
 		}
