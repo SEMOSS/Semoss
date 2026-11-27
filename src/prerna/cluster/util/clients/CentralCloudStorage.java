@@ -53,6 +53,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.storage.AbstractStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
@@ -586,6 +587,8 @@ public final class CentralCloudStorage implements ICloudClient {
 			classLogger.warn("Engine id '{}' is being requested but does not exist", engineId);
 			return;
 		}
+		// the id makes up the local folder name below
+		Utility.requireSafePathSegment(engineId, "engine id");
 
 		// We need to pull the folder alias__databaseId and the file
 		// alias__databaseId.smss
@@ -601,6 +604,9 @@ public final class CentralCloudStorage implements ICloudClient {
 		String localEngineFolder = localEngineBaseFolder + FILE_SEPARATOR + aliasAndEngineId;
 		String localSmssFileName = aliasAndEngineId + ".smss";
 		String localSmssFilePath = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + localSmssFileName);
+		// the stored alias and the id are normalized into these names, so check the final paths
+		requireInsideFolder(localEngineBaseFolder, localEngineFolder);
+		requireInsideFolder(localEngineBaseFolder, localSmssFilePath);
 
 		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
 		String cloudEngineFolder = cloudContainerPrefix + engineId;
@@ -683,6 +689,7 @@ public final class CentralCloudStorage implements ICloudClient {
 		String localSmssFileName = SmssUtilities.getUniqueName(engineName, engineId) + ".smss";
 		String localEngineBaseFolder = EngineUtility.getLocalEngineBaseDirectory(engineType);
 		String localSmssFilePath = Utility.normalizePath(localEngineBaseFolder + FILE_SEPARATOR + localSmssFileName);
+		requireInsideFolder(localEngineBaseFolder, localSmssFilePath);
 
 		String cloudContainerPrefix = getCloudPrefixForEngine(engineType);
 		String cloudSmssFolder = cloudContainerPrefix + engineId + SMSS_POSTFIX;
@@ -1854,6 +1861,16 @@ public final class CentralCloudStorage implements ICloudClient {
 		}
 	}
 
+	// the path has to be below the base folder, never the base folder itself or outside it
+	private static void requireInsideFolder(String baseFolder, String path) {
+		Path base = Paths.get(Utility.normalizePath(baseFolder)).toAbsolutePath().normalize();
+		Path target = Paths.get(Utility.normalizePath(path)).toAbsolutePath().normalize();
+		if (!target.startsWith(base) || target.equals(base)) {
+			classLogger.warn("Refused an engine path outside {}: {}", base, Utility.cleanLogString(path));
+			throw new IllegalArgumentException("The engine folder is outside the engine base folder");
+		}
+	}
+
 	/**
 	 * Rooms
 	 */
@@ -1865,8 +1882,7 @@ public final class CentralCloudStorage implements ICloudClient {
 	 * @throws InterruptedException
 	 */
 	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
-		String localFolderPath = Utility.getBaseFolder() + File.separator + Constants.ROOM_FOLDER + File.separator
-				+ roomId;
+		String localFolderPath = Room.roomFolderPath(roomId);
 		// copy, not sync - a sync deletes local files that are missing on the cloud
 		// side, which wipes in-flight session state mid turn when the cloud is empty.
 		storageCopyToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);
@@ -1879,8 +1895,7 @@ public final class CentralCloudStorage implements ICloudClient {
 	 * @throws InterruptedException
 	 */
 	public void pushRoomFolderToCloud(String roomId) throws IOException, InterruptedException {
-		String localFolderPath = Utility.getBaseFolder() + File.separator + Constants.ROOM_FOLDER + File.separator
-				+ roomId;
+		String localFolderPath = Room.roomFolderPath(roomId);
 
 		if (Utility.folderIsNotEmpty(localFolderPath)) {
 			storageSyncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX + roomId);
