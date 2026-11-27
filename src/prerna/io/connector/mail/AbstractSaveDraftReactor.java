@@ -117,7 +117,7 @@ public abstract class AbstractSaveDraftReactor extends AbstractComposeMailReacto
 		// to and cc passed with replyTo replace the recipients the reply would have on its own
 		MailRecipients recipients = to.isEmpty() && cc.isEmpty() ? null : new MailRecipients(to, cc);
 		return new AbstractReplyMailReactor.ReplyMailRequest(id, body, readBoolean(HTML, false),
-				readBoolean(REPLY_ALL, false), recipients, readInsightFiles(ATTACHMENTS));
+				readBoolean(REPLY_ALL, false), recipients, readInsightFiles(ATTACHMENTS), readString(SUBJECT));
 	}
 
 	/**

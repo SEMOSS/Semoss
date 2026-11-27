@@ -601,6 +601,50 @@ public class MicrosoftOutlookMailHelper {
 				validatedCc);
 	}
 
+	/**
+	 * Give a draft a subject of its own, keeping everything else on it. A draft whose
+	 * subject cannot be changed is deleted, since it could still be sent with the
+	 * wrong one and every retry would leave another.
+	 *
+	 * @param accessToken the token to write with
+	 * @param draft       the draft as Graph created it
+	 * @param subject     the subject to give it, or null to leave it as it is
+	 * @return the draft, carrying the new subject
+	 */
+	public Map<String, Object> setSubject(String accessToken, Map<String, Object> draft, String subject) {
+		if (subject == null || subject.isBlank() || draft == null) {
+			return draft;
+		}
+		String id = draft.get("id") instanceof String value ? value : null;
+		if (id == null || id.isBlank()) {
+			throw new IllegalStateException("The reply draft could not be confirmed. Check Outlook before retrying.");
+		}
+		if (subject.equals(draft.get("subject"))) {
+			return draft;
+		}
+		boolean changed = false;
+		try {
+			String response = HttpHelperUtility.patchRequestStringBody(userPath(null) + "/messages/" + encode(id),
+					headers(accessToken), GSON.toJson(Map.of("subject", subject)), ContentType.APPLICATION_JSON, null,
+					null, null);
+			throwOnError(response, "change the draft subject");
+			Map<String, Object> updated = readMap(response);
+			if (updated == null || !id.equals(updated.get("id"))) {
+				throw new IllegalStateException(
+						"The draft subject could not be confirmed. Check Outlook before retrying.");
+			}
+			if (!updated.containsKey("webLink") && draft.get("webLink") instanceof String link) {
+				updated.put("webLink", link);
+			}
+			changed = true;
+			return updated;
+		} finally {
+			if (!changed) {
+				deleteQuietly(accessToken, null, id);
+			}
+		}
+	}
+
 	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html) {
 		return fillHtmlDraft(accessToken, draft, html, null, null);
 	}

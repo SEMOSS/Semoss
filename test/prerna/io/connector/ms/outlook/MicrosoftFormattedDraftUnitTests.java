@@ -173,6 +173,52 @@ class MicrosoftFormattedDraftUnitTests {
 	}
 
 	@Test
+	void aReplyWithASubjectGivesItsDraftThatSubject() throws Exception {
+		List<String> calls = new ArrayList<>();
+		try (MockedStatic<MicrosoftLoginUtils> login = mockStatic(MicrosoftLoginUtils.class);
+				MockedStatic<HttpHelperUtility> http = mockStatic(HttpHelperUtility.class, invocation -> {
+					String url = invocation.getArgument(0);
+					calls.add(invocation.getMethod().getName() + " " + url);
+					if (url.endsWith("/createReply")) {
+						return "{\"id\":\"draft-1\",\"subject\":\"RE: Budget\"}";
+					}
+					if (invocation.getMethod().getName().equals("patchRequestStringBody")) {
+						assertTrue(invocation.<String>getArgument(2).contains("\"subject\":\"testing draft\""));
+						return "{\"id\":\"draft-1\",\"subject\":\"testing draft\"}";
+					}
+					return "";
+				})) {
+			login.when(() -> MicrosoftLoginUtils.getValidAccessToken(any())).thenReturn("token");
+			ReplyMailRequest request = new ReplyMailRequest("source", "Here you go", false, false, null, List.of(),
+					"testing draft");
+
+			new MicrosoftOutlookReplyMailReactor().draftReply(mock(User.class), request);
+
+			assertTrue(calls.stream().anyMatch(c -> c.matches("patchRequestStringBody .*/messages/draft-1")),
+					calls::toString);
+			assertFalse(calls.stream().anyMatch(c -> c.startsWith("deleteRequestStringBody")), calls::toString);
+		}
+	}
+
+	@Test
+	void aReplyWithoutASubjectKeepsTheOneItAnswers() throws Exception {
+		List<String> calls = new ArrayList<>();
+		try (MockedStatic<MicrosoftLoginUtils> login = mockStatic(MicrosoftLoginUtils.class);
+				MockedStatic<HttpHelperUtility> http = mockStatic(HttpHelperUtility.class, invocation -> {
+					String url = invocation.getArgument(0);
+					calls.add(invocation.getMethod().getName() + " " + url);
+					return url.endsWith("/createReply") ? "{\"id\":\"draft-1\",\"subject\":\"RE: Budget\"}" : "";
+				})) {
+			login.when(() -> MicrosoftLoginUtils.getValidAccessToken(any())).thenReturn("token");
+			ReplyMailRequest request = new ReplyMailRequest("source", "Here you go", false, false, null, List.of());
+
+			new MicrosoftOutlookReplyMailReactor().draftReply(mock(User.class), request);
+
+			assertFalse(calls.stream().anyMatch(c -> c.startsWith("patchRequestStringBody")), calls::toString);
+		}
+	}
+
+	@Test
 	void newDraftKeepsHtmlAndNeverSends() {
 		List<String> calls = new ArrayList<>();
 		try (MockedStatic<HttpHelperUtility> http = mockStatic(HttpHelperUtility.class, invocation -> {
