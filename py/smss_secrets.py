@@ -5,8 +5,8 @@ hands each to the user's sandbox when the project is loaded:
 
 - OpenShell: code only ever holds a placeholder. OpenShell's supervisor swaps it for the value in
   requests to the secret's declared hosts (headers, query string) and refuses it anywhere else.
-- fakechroot and namespace jails: code gets the value itself, from a file only that user's jail
-  sees. The declared hosts are not enforced there.
+- fakechroot and namespace jails: code gets the value itself, from a file in that user's jail.
+  The declared hosts are not enforced there.
 
     from smss_secrets import secret
     key = secret("OPENWEATHER_API_KEY")
@@ -21,8 +21,9 @@ import json
 import os
 import re
 
-# written by prerna.util.sandbox.JailSecrets when a jail loads the project: the SEMOSS home is the
-# folder this module's py folder is in, and the file is under it as the jail sees it
+# written by prerna.util.sandbox.JailSecrets: the SEMOSS home is the folder this module's py folder
+# is in, and the file is under it as the jail sees it. SEMOSS makes the folder when it sets up a
+# fakechroot or namespace jail, before any project is loaded, so the folder marks a jail.
 _JAIL_SECRETS = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sandbox-secrets", "secrets.json"
 )
@@ -35,15 +36,15 @@ def _project_key(project_id):
 
 
 def _load():
-    # The jail's own file first: in a jail the OpenShell path is in the insight cache, which other
-    # users can write to.
-    for path in (_JAIL_SECRETS, _PLACEHOLDERS):
-        try:
-            with open(path) as f:
-                return json.load(f)
-        except FileNotFoundError:
-            continue
-    return None
+    # In a jail, read only the jail's own file. The OpenShell file is in the shared insight cache,
+    # which other users can write to, so a jail never falls back to it.
+    in_jail = os.path.isdir(os.path.dirname(_JAIL_SECRETS))
+    path = _JAIL_SECRETS if in_jail else _PLACEHOLDERS
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return None
 
 
 def secret(name, project=None):

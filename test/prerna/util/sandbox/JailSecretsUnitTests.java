@@ -132,6 +132,20 @@ class JailSecretsUnitTests {
 	}
 
 	@Test
+	void theFolderThatMarksAJailIsOwnerOnlyAndKeepsItsFile() throws IOException {
+		Path secrets = this.folder.resolve("sandbox-secrets");
+
+		JailSecrets.createFolder(secrets);
+		assertTrue(Files.isDirectory(secrets));
+		assertEquals("rwx------", PosixFilePermissions.toString(Files.getPosixFilePermissions(secrets)));
+
+		JailSecrets.write(secrets, PROJECT, Map.of("A", "1"));
+		JailSecrets.createFolder(secrets);
+		assertEquals(Map.of(OpenShellSecrets.projectKey(PROJECT), Map.of("A", "1")),
+				JailSecrets.read(secrets.resolve(JailSecrets.FILE)));
+	}
+
+	@Test
 	void anUnreadableFileIsReplaced() throws IOException {
 		Path secrets = Files.createDirectories(this.folder.resolve("sandbox-secrets"));
 		Files.writeString(secrets.resolve(JailSecrets.FILE), "{broken", StandardCharsets.UTF_8);

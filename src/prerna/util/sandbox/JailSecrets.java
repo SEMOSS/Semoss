@@ -122,13 +122,31 @@ public final class JailSecrets {
 	}
 
 	/**
+	 * Makes the user's secrets folder, owner-only, before any project is loaded. Its presence is
+	 * how {@code py/smss_secrets.py} knows it runs in a jail: there it reads only this folder and
+	 * never the OpenShell placeholder file, which is in the shared insight cache.
+	 *
+	 * @param userChrootFolder the user's chroot folder
+	 * @return the host folder, or null when it could not be made
+	 */
+	public static Path ensureFolder(String userChrootFolder) {
+		Path folder = hostFolder(userChrootFolder, Utility.getBaseFolder());
+		try {
+			createFolder(folder);
+			return folder;
+		} catch (IOException | RuntimeException e) {
+			classLogger.warn("Could not make the sandbox secrets folder {}", folder, e);
+			return null;
+		}
+	}
+
+	/**
 	 * Writes the project's declared secrets into the user's secrets folder, in place of the ones
 	 * written for it before.
 	 *
 	 * @param userChrootFolder the user's chroot folder
 	 * @param projectId        the project, which the user may load
-	 * @return the host folder, or null when the project could not be read or no project has
-	 *         written one for this user
+	 * @return the host folder, or null when the project could not be read or the folder is missing
 	 */
 	public static Path ensureForProject(String userChrootFolder, String projectId) {
 		IProject project = Utility.getProject(projectId);
@@ -193,8 +211,7 @@ public final class JailSecrets {
 		} else {
 			byProject.put(key, new LinkedHashMap<>(values));
 		}
-		Files.createDirectories(folder);
-		setPermissions(folder, FOLDER_PERMISSIONS);
+		createFolder(folder);
 		Path staged = Files.createTempFile(folder, FILE, ".tmp");
 		try {
 			setPermissions(staged, FILE_PERMISSIONS);
@@ -229,6 +246,12 @@ public final class JailSecrets {
 			byProject.clear();
 		}
 		return byProject;
+	}
+
+	/** Makes the folder if it is missing, and sets it owner-only either way. */
+	static void createFolder(Path folder) throws IOException {
+		Files.createDirectories(folder);
+		setPermissions(folder, FOLDER_PERMISSIONS);
 	}
 
 	private static void setPermissions(Path path, Set<PosixFilePermission> permissions) throws IOException {

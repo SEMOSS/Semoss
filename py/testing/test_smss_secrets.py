@@ -39,7 +39,15 @@ class SecretTests(unittest.TestCase):
 
         self.assertEqual("Basic c3ZjOnB3", smss_secrets.secret("DCTM_AUTH"))
 
-    def test_openshell_placeholders_are_read_when_there_is_no_jail_file(self):
+    def test_a_jail_never_reads_the_openshell_file(self):
+        # the jail's folder is there before any project with secrets is loaded
+        os.makedirs(self.jail.parent)
+        self.write(self.openshell, {"1234abcd": {"DCTM_AUTH": "planted"}})
+
+        with self.assertRaisesRegex(KeyError, "no sandbox secrets are available"):
+            smss_secrets.secret("DCTM_AUTH")
+
+    def test_openshell_placeholders_are_read_outside_a_jail(self):
         self.write(self.openshell, {"1234abcd": {"DCTM_AUTH": "openshell:resolve:env:v1_x"}})
 
         self.assertEqual("openshell:resolve:env:v1_x", smss_secrets.secret("DCTM_AUTH"))

@@ -408,6 +408,10 @@ public class SymlinkHelper {
 			}
 		});
 
+		if (sandboxMode != SandboxSettings.Mode.OPENSHELL) {
+			timed("sandbox secrets folder", () -> mountSandboxSecrets(JailSecrets.ensureFolder(userChrootFolder)));
+		}
+
 		timed("/root + /home/default", () -> {
 			createChrootDirectory("/root");
 			createChrootDirectory("/home/default");
@@ -735,7 +739,17 @@ public class SymlinkHelper {
 	 * @param projectId the project being placed
 	 */
 	private void placeSandboxSecrets(String projectId) {
-		Path folder = JailSecrets.ensureForProject(userChrootFolder, projectId);
+		mountSandboxSecrets(JailSecrets.ensureForProject(userChrootFolder, projectId));
+	}
+
+	/**
+	 * In the namespace sandbox, mounts the user's secrets folder read-only where the jail looks for
+	 * it. The chroot setup mounts it before any project loads, so {@code py/smss_secrets.py} knows it
+	 * is in a jail from the start; asking again for the same mount does nothing.
+	 *
+	 * @param folder the host folder, or null when there is none
+	 */
+	private void mountSandboxSecrets(Path folder) {
 		if (folder != null && injectMode) {
 			enqueueOrInject(JailSecrets.jailFolder(Utility.getBaseFolder()).toString(), folder.toString(), false);
 		}

@@ -330,16 +330,22 @@ difference: **the code gets the value itself**. Those jails have no supervisor i
 so nothing can swap a placeholder or hold the value to its hosts. The hosts are still required and
 checked for form, so the project moves to OpenShell unchanged, but they are not enforced.
 
-- When a user's jail loads the project ([JailSecrets](../../src/prerna/util/sandbox/JailSecrets.java),
+- When SEMOSS sets up a user's jail it makes `<user chroot>/<BaseFolder>/sandbox-secrets`
+  (`0700`). When the jail loads a project ([JailSecrets](../../src/prerna/util/sandbox/JailSecrets.java),
   called from `SymlinkHelper` where OpenShell's transporter would broker them), its secrets are
-  written to `<user chroot>/<BaseFolder>/sandbox-secrets/secrets.json`, by project key, owner-only
-  (`0700` folder, `0600` file). A project with no secrets writes nothing.
-- fakechroot: the file is at `<BaseFolder>/sandbox-secrets/secrets.json` inside the user's chroot.
-  namespace: the launcher mounts that folder read-only at the same path; other users' chroot
-  folders are not in the jail.
-- `secret()` reads that file first (the SEMOSS home is the folder its `py` folder is in) and
-  OpenShell's placeholder file after it. In a jail the OpenShell path is in the shared insight
-  cache, which other users can write to, so it never takes precedence.
+  written to `secrets.json` in that folder (`0600`), by project key. A project with no secrets
+  writes nothing.
+- fakechroot: the folder is at `<BaseFolder>/sandbox-secrets` inside the user's chroot.
+  namespace: the launcher mounts it read-only at the same path; other users' chroot folders are
+  not in the jail.
+- `secret()` looks for that folder (the SEMOSS home is the folder its `py` folder is in). When it
+  is there, the code is in a jail and reads only `secrets.json`. Otherwise it reads OpenShell's
+  placeholder file. A jail never falls back to the OpenShell path: it is in the shared insight
+  cache, which other users can write to.
+- The file permissions do not keep users apart in fakechroot. Every user's Python runs as the
+  same host user as SEMOSS, and fakechroot only rewrites paths (`LD_PRELOAD`), so code that makes
+  system calls directly can read other users' chroot folders, and the project's `.smss` itself.
+  The namespace jail keeps users apart: other users' folders are not mounted in it.
 - Every user who can load the app can read its secret values from Python, and use them anywhere
   the jail's network reaches. Use OpenShell where that matters.
 - A changed value is written on the next load of the project and reaches code already running,
