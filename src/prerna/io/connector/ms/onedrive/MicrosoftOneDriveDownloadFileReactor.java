@@ -90,6 +90,50 @@ public class MicrosoftOneDriveDownloadFileReactor extends AbstractMicrosoftOneDr
 
 		try {
 			User user = this.insight.getUser();
+			
+			// Check for fixture mode first
+			String fixturePath = MicrosoftOneDriveHelper.fixturePath();
+			if (fixturePath != null && driveId != null && itemId != null) {
+				try {
+					String content = MicrosoftOneDriveHelper.getFileContentFixture(driveId, itemId);
+					Map<String, Object> item = MicrosoftOneDriveHelper.getItemFixture(driveId, itemId);
+					
+					// Create insight folder
+					String insightFolder = this.insight.getInsightFolder();
+					File insightFolderFile = new File(insightFolder);
+					if (!insightFolderFile.exists() && !insightFolderFile.mkdirs()) {
+						throw new SemossPixelException("Unable to create the insight folder at: " + insightFolder);
+					}
+					
+					// Use provided file name or extract from item
+					String resolvedFileName = fileName;
+					if (resolvedFileName == null && item.get("name") != null) {
+						resolvedFileName = toBaseName(item.get("name").toString());
+					}
+					if (resolvedFileName == null) {
+						resolvedFileName = "downloaded_file.txt";
+					}
+					
+					// Write fixture content to file
+					File targetFile = new File(insightFolder, resolvedFileName);
+					java.nio.file.Files.write(targetFile.toPath(), content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+					
+					// Return result similar to real download
+					Map<String, Object> result = new java.util.HashMap<>();
+					result.put("filePath", targetFile.getAbsolutePath());
+					result.put("name", resolvedFileName);
+					result.put("size", content.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+					result.put("lastModifiedDateTime", item.get("lastModifiedDateTime"));
+					result.put("lastModifiedBy", item.get("lastModifiedBy"));
+					result.put("source", "fixture");
+					
+					return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
+				} catch (Exception e) {
+					classLogger.debug("Fixture mode download failed, trying real download", e);
+					// Fall through to real download
+				}
+			}
+			
 			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			// create it up front: for an unsaved insight the folder may not exist yet, and

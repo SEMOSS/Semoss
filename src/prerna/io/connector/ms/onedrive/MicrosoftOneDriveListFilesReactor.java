@@ -88,6 +88,16 @@ public class MicrosoftOneDriveListFilesReactor extends AbstractMicrosoftOneDrive
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), DEFAULT_LIMIT, MAX_LIMIT);
 
 		try {
+			String fixturePath = MicrosoftOneDriveHelper.fixturePath();
+			if (fixturePath != null) {
+				List<Map<String, Object>> files = MicrosoftOneDriveHelper.listFilesFixture(driveId, itemId, path,
+						limit);
+				Map<String, Object> output = new LinkedHashMap<>();
+				output.put("count", files.size());
+				output.put("files", files);
+				return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
+			}
+
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> files = MicrosoftOneDriveHelper.listFiles(accessToken, driveId, itemId, path,

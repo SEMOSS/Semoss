@@ -31,6 +31,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.io.Reader;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -51,6 +52,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.util.Timeout;
@@ -66,6 +68,7 @@ import prerna.io.connector.ConnectorGuards;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
+import prerna.util.Utility;
 import prerna.util.ValueUtils;
 
 /**
@@ -193,11 +196,111 @@ public class MicrosoftOneDriveHelper {
 	 */
 	private static final String MATCH_EVERYTHING = "*";
 
+	private static final String FIXTURE_SETTING = "COLLABORATION_FIXTURE_MAIL";
+
 	/**
 	 * Utility class constructor intentionally hidden.
 	 */
 	private MicrosoftOneDriveHelper() {
 
+	}
+
+	public static String fixturePath() {
+		try {
+			String fixture = Utility.getDIHelperProperty(FIXTURE_SETTING);
+			if (fixture == null || fixture.isBlank()) {
+				fixture = System.getenv(FIXTURE_SETTING);
+			}
+			if (fixture == null || fixture.isBlank()) {
+				classLogger.debug("No fixture setting found for COLLABORATION_FIXTURE_MAIL");
+				return null;
+			}
+			fixture = fixture.trim();
+			classLogger.debug("Found fixture mail path: {}", fixture);
+			Path mailPath = Path.of(fixture);
+			Path onedriveM365Path = mailPath.resolveSibling("onedrive-m365.json");
+			classLogger.debug("Looking for OneDrive M365 fixture at: {}", onedriveM365Path);
+			if (Files.exists(onedriveM365Path)) {
+				classLogger.debug("OneDrive M365 fixture found, using fixture mode");
+				return onedriveM365Path.toString();
+			} else {
+				classLogger.debug("OneDrive M365 fixture not found at: {}", onedriveM365Path);
+				return null;
+			}
+		} catch (Exception e) {
+			classLogger.error("Error checking for OneDrive fixture", e);
+			return null;
+		}
+	}
+
+	static class OneDriveFixtureSource {
+		private static final Map<String, Object> LOADED = new ConcurrentHashMap<>();
+		private final List<Map<String, Object>> drives = new ArrayList<>();
+		private final List<Map<String, Object>> items = new ArrayList<>();
+
+		@SuppressWarnings("unchecked")
+		private OneDriveFixtureSource(String path) {
+			try (Reader reader = Files.newBufferedReader(Path.of(path), StandardCharsets.UTF_8)) {
+				Map<String, Object> fixture = new Gson().fromJson(reader, Map.class);
+				if (fixture.get("drives") instanceof List<?> drivesList) {
+					for (Object item : drivesList) {
+						drives.add((Map<String, Object>) item);
+					}
+				}
+				if (fixture.get("items") instanceof List<?> itemsList) {
+					for (Object item : itemsList) {
+						items.add((Map<String, Object>) item);
+					}
+				}
+			} catch (Exception e) {
+				throw new IllegalStateException("Cannot read the " + FIXTURE_SETTING + " file at " + path, e);
+			}
+		}
+
+		static OneDriveFixtureSource of(String path) {
+			return (OneDriveFixtureSource) LOADED.computeIfAbsent(path, p -> new OneDriveFixtureSource(p));
+		}
+
+		List<Map<String, Object>> listFiles(String driveId, String itemId, String path, int limit) {
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (Map<String, Object> item : items) {
+				Object itemDriveId = item.get("driveId");
+				Object itemParentId = item.get("parentId");
+				boolean matchesDrive = driveId == null || (itemDriveId != null && itemDriveId.equals(driveId));
+				boolean matchesParent = itemId == null || (itemParentId != null && itemParentId.equals(itemId));
+				if (matchesDrive && matchesParent) {
+					result.add(item);
+					if (limit > 0 && result.size() >= limit) {
+						break;
+					}
+				}
+			}
+			return result;
+		}
+
+		Map<String, Object> getItem(String driveId, String itemId) {
+			for (Map<String, Object> item : items) {
+				Object itemDriveId = item.get("driveId");
+				Object itemItemId = item.get("id");
+				if (itemItemId != null && itemItemId.equals(itemId)
+						&& (driveId == null || (itemDriveId != null && itemDriveId.equals(driveId)))) {
+					return item;
+				}
+			}
+			return null;
+		}
+
+		String getFileContent(String driveId, String itemId) {
+			Map<String, Object> item = getItem(driveId, itemId);
+			if (item == null) {
+				return null;
+			}
+			Object content = item.get("content");
+			if (content instanceof String) {
+				return (String) content;
+			}
+			return null;
+		}
 	}
 
 	/**
@@ -459,8 +562,8 @@ public class MicrosoftOneDriveHelper {
 			}
 
 			List<Map<String, Object>> recent = new ArrayList<>(files.values());
-			recent.sort(Comparator.comparing((Map<String, Object> file) -> instantOf(file.get(LAST_MODIFIED)))
-					.reversed());
+			recent.sort(
+					Comparator.comparing((Map<String, Object> file) -> instantOf(file.get(LAST_MODIFIED))).reversed());
 			if (limit > 0 && recent.size() > limit) {
 				return new ArrayList<>(recent.subList(0, limit));
 			}
@@ -642,8 +745,8 @@ public class MicrosoftOneDriveHelper {
 	 *
 	 * <p>
 	 * Where the copy came from is recorded beside it (see
-	 * {@link MicrosoftOneDriveSources}). A copy of the same file that is already
-	 * in the destination, and that nobody changed there, is the one brought up to
+	 * {@link MicrosoftOneDriveSources}). A copy of the same file that is already in
+	 * the destination, and that nobody changed there, is the one brought up to
 	 * date: it is fetched again only when OneDrive holds a newer version, and no
 	 * second copy is written under another name. A copy that was changed there is
 	 * never written over unless the caller names it: a download that names no file
@@ -762,12 +865,12 @@ public class MicrosoftOneDriveHelper {
 	 * </p>
 	 *
 	 * <p>
-	 * An upload that replaces is the one that can lose somebody's work, so when
-	 * the local file is a copy a download recorded, and the upload is aimed at the
-	 * file it was copied from, it goes through {@link #saveBack} instead, as a save
-	 * the owner asked for. Aimed nowhere in particular (no drive, folder or other
-	 * name) it goes back to that file too, wherever it lives, rather than to the
-	 * drive root.
+	 * An upload that replaces is the one that can lose somebody's work, so when the
+	 * local file is a copy a download recorded, and the upload is aimed at the file
+	 * it was copied from, it goes through {@link #saveBack} instead, as a save the
+	 * owner asked for. Aimed nowhere in particular (no drive, folder or other name)
+	 * it goes back to that file too, wherever it lives, rather than to the drive
+	 * root.
 	 * </p>
 	 *
 	 * @param accessToken      Microsoft Graph access token for the user
@@ -868,9 +971,9 @@ public class MicrosoftOneDriveHelper {
 	 * {@link MicrosoftOneDriveSources}), and the original has to still hold the
 	 * version the copy was taken from. When somebody changed the original in the
 	 * meantime nothing is uploaded, since writing the copy over it would discard
-	 * their change without anybody having seen it. That refusal is recorded, and
-	 * an owner who was told of the change and asks again gets their way: the
-	 * second informed save writes the copy over it.
+	 * their change without anybody having seen it. That refusal is recorded, and an
+	 * owner who was told of the change and asks again gets their way: the second
+	 * informed save writes the copy over it.
 	 * </p>
 	 *
 	 * <p>
@@ -880,9 +983,9 @@ public class MicrosoftOneDriveHelper {
 	 *
 	 * @param accessToken Microsoft Graph access token for the user
 	 * @param copy        the local copy to upload
-	 * @param informed    whether the owner asked for this save themselves, which
-	 *                    is what lets it write over a change they were already
-	 *                    told about; a save nobody asked for never does
+	 * @param informed    whether the owner asked for this save themselves, which is
+	 *                    what lets it write over a change they were already told
+	 *                    about; a save nobody asked for never does
 	 * @return the file as OneDrive now holds it
 	 * @throws SaveBackRefused if the file is not a recorded copy, or its original
 	 *                         is gone or has changed
@@ -1238,8 +1341,8 @@ public class MicrosoftOneDriveHelper {
 	 * </p>
 	 *
 	 * @param url     what to fetch
-	 * @param headers the request headers, or null for a url that is pre-authenticated,
-	 *                which a failure then does not quote
+	 * @param headers the request headers, or null for a url that is
+	 *                pre-authenticated, which a failure then does not quote
 	 * @param file    where the bytes go, in a folder that exists
 	 * @param name    what a refusal calls the file
 	 * @return how many bytes were written; the file is left as it was when there
@@ -1370,11 +1473,11 @@ public class MicrosoftOneDriveHelper {
 
 	/**
 	 * Sends a file to an upload session in pieces, for whichever helper opened the
-	 * session. A session whose upload fails is cancelled: while one is open OneDrive
-	 * answers every other upload of the same file with a 409, "currently being
-	 * uploaded", for a quarter of an hour or so, which is how one refusal of a file
-	 * open in Office became many. The failure does not quote the session's url,
-	 * which is what signs its requests.
+	 * session. A session whose upload fails is cancelled: while one is open
+	 * OneDrive answers every other upload of the same file with a 409, "currently
+	 * being uploaded", for a quarter of an hour or so, which is how one refusal of
+	 * a file open in Office became many. The failure does not quote the session's
+	 * url, which is what signs its requests.
 	 *
 	 * @param uploadUrl the url the session answered with
 	 * @param file      the file to send
@@ -1413,7 +1516,8 @@ public class MicrosoftOneDriveHelper {
 			try {
 				HttpHelperUtility.deleteRequestStringBody(uploadUrl, null, null, null, null);
 			} catch (Exception notCancelled) {
-				// the url is what signs the request, so the failure, which quotes it, is not logged
+				// the url is what signs the request, so the failure, which quotes it, is not
+				// logged
 				classLogger.warn("Could not cancel the upload session of {}; Graph refuses another upload of that "
 						+ "file until the session expires", fileName);
 			}
@@ -1432,8 +1536,10 @@ public class MicrosoftOneDriveHelper {
 	 * @return the failure itself when it does not quote the url, or one that says
 	 *         the same without it
 	 */
-	// shortcut: HttpHelperUtility logs the url itself when the connection drops, before it throws;
-	// have it leave query strings out of its own lines once that has to be closed too
+	// shortcut: HttpHelperUtility logs the url itself when the connection drops,
+	// before it throws;
+	// have it leave query strings out of its own lines once that has to be closed
+	// too
 	private static Exception withoutUrl(Exception e, String url, String what) {
 		String why = e.getMessage();
 		if (why == null || !why.contains(url)) {
@@ -1510,11 +1616,11 @@ public class MicrosoftOneDriveHelper {
 	 * @param itemId     the folder the upload names, or null
 	 * @param folderPath the folder path the upload names, or null
 	 * @param fileName   the name the upload gives the file
-	 * @return true when the local file is a recorded copy and the upload names
-	 *         its original, or names nowhere else to go
+	 * @return true when the local file is a recorded copy and the upload names its
+	 *         original, or names nowhere else to go
 	 */
-	private static boolean isOriginal(String accessToken, File copy, String driveId, String itemId,
-			String folderPath, String fileName) throws Exception {
+	private static boolean isOriginal(String accessToken, File copy, String driveId, String itemId, String folderPath,
+			String fileName) throws Exception {
 		MicrosoftOneDriveSources.Source source = MicrosoftOneDriveSources.read(copy);
 		if (source == null) {
 			return false;
@@ -1892,4 +1998,48 @@ public class MicrosoftOneDriveHelper {
 		}
 	}
 
+	public static List<Map<String, Object>> listFilesFixture(String driveId, String itemId, String path, int limit)
+			throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING
+					+ " environment variable or DI property and ensure onedrive-m365.json exists next to mail.json.");
+		}
+		OneDriveFixtureSource source = OneDriveFixtureSource.of(fixturePath);
+		List<Map<String, Object>> items = new ArrayList<>();
+		for (Map<String, Object> item : source.listFiles(driveId, itemId, path, limit)) {
+			items.add(MicrosoftOneDriveItemMapper.toDriveItem(item, driveId));
+		}
+		return items;
+	}
+
+	public static Map<String, Object> getItemFixture(String driveId, String itemId) throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING
+					+ " environment variable or DI property and ensure onedrive-m365.json exists next to mail.json.");
+		}
+		OneDriveFixtureSource source = OneDriveFixtureSource.of(fixturePath);
+		Map<String, Object> item = source.getItem(driveId, itemId);
+		if (item == null) {
+			throw new IllegalStateException("Microsoft Graph returned no OneDrive item for drive = " + driveId
+					+ ", item = " + itemId + " in fixture data");
+		}
+		return MicrosoftOneDriveItemMapper.toDriveItem(item, driveId);
+	}
+
+	public static String getFileContentFixture(String driveId, String itemId) throws Exception {
+		String fixturePath = fixturePath();
+		if (fixturePath == null) {
+			throw new IllegalStateException("Fixture mode is not enabled. Set " + FIXTURE_SETTING
+					+ " environment variable or DI property and ensure onedrive-m365.json exists next to mail.json.");
+		}
+		OneDriveFixtureSource source = OneDriveFixtureSource.of(fixturePath);
+		String content = source.getFileContent(driveId, itemId);
+		if (content == null) {
+			throw new IllegalStateException(
+					"No content found for item in fixture data for drive = " + driveId + ", item = " + itemId);
+		}
+		return content;
+	}
 }
