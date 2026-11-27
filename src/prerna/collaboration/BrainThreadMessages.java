@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -55,7 +56,8 @@ public final class BrainThreadMessages {
 	private static final int DEFAULT_LIMIT = 20;
 	private static final int MAX_LIMIT = 100;
 
-	private record Row(String messageKey, String graphId, String personId, String folder, String at, String decision) {
+	private record Row(String messageKey, String graphId, String personId, String folder, String at, String decision,
+			String ruleId) {
 	}
 
 	// one message that today's rules still show, as the source returned it
@@ -175,6 +177,7 @@ public final class BrainThreadMessages {
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
 		List<String> topicIds = topicIdsOf(ownerId, ownerType, threadId);
 		Map<String, Boolean> included = includedOf(ownerId, ownerType, threadId);
+		Map<String, Set<String>> ruleOverrides = ruleOverridesOf(ownerId, ownerType, threadId);
 		Map<String, List<String>> addresses = addresses(ownerId, ownerType, rows);
 
 		int start = pageStart(rows, threadId, cursor);
@@ -241,7 +244,7 @@ public final class BrainThreadMessages {
 					hidden++;
 					continue;
 				}
-				Map<String, Object> entry = entry(row, clean, sender, rules, topicIds, source, included);
+				Map<String, Object> entry = entry(row, clean, sender, rules, topicIds, source, included, ruleOverrides);
 				if (includeDisplayBody) {
 					entry.put("displayBody", MicrosoftMessageDisplay.body(message, (String) clean.get("body")));
 				}
@@ -256,6 +259,21 @@ public final class BrainThreadMessages {
 				}
 				if (includeAttachments && "email".equals(source) && Boolean.TRUE.equals(message.get("hasAttachments"))) {
 					withAttachments.add(row.graphId());
+				}
+				if (includeAttachments && "teams".equals(source) && message.get("attachments") instanceof List<?> list) {
+					List<Map<String, Object>> attachments = new ArrayList<>();
+					for (Object item : list) {
+						if (item instanceof Map<?, ?> attachment) {
+							Map<String, Object> described = new LinkedHashMap<>();
+							described.put("id", attachment.get("id"));
+							described.put("name", attachment.get("name"));
+							described.put("contentType", attachment.get("contentType"));
+							attachments.add(described);
+						}
+					}
+					if (!attachments.isEmpty()) {
+						entry.put("attachments", attachments);
+					}
 				}
 				out.add(entry);
 			}
@@ -348,11 +366,12 @@ public final class BrainThreadMessages {
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
 		List<String> topicIds = topicIdsOf(ownerId, ownerType, threadId);
 		Map<String, Boolean> included = includedOf(ownerId, ownerType, threadId);
+		Map<String, Set<String>> ruleOverrides = ruleOverridesOf(ownerId, ownerType, threadId);
 		Map<String, List<String>> addresses = addresses(ownerId, ownerType, rows);
 		List<Shown> out = new ArrayList<>();
 		for (Row row : rows) {
 			if (row.graphId() != null && !isHidden(rules, addresses, row)
-					&& !isExcluded(row, rules, topicIds, source, included)) {
+					&& !isExcluded(row, rules, topicIds, source, included, ruleOverrides)) {
 				out.add(new Shown(row.graphId(), row.at()));
 			}
 		}
@@ -471,12 +490,12 @@ public final class BrainThreadMessages {
 	// the thread's messages, newest first
 	private static List<Row> rows(String ownerId, String ownerType, String threadId) {
 		return CollaborationDbUtils.query(
-				"SELECT MESSAGE_KEY, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION "
+				"SELECT MESSAGE_KEY, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION, RULE_ID "
 						+ "FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? "
 						+ "ORDER BY RECEIVED_AT DESC, MESSAGE_KEY",
 				rs -> new Row(rs.getString("MESSAGE_KEY"), rs.getString("GRAPH_ID"), rs.getString("SENDER_PERSON_ID"),
 						rs.getString("FOLDER"), CollaborationDbUtils.getTimestamp(rs, "RECEIVED_AT"),
-						rs.getString("DECISION")),
+						rs.getString("DECISION"), rs.getString("RULE_ID")),
 				ownerId, ownerType, threadId);
 	}
 
@@ -496,6 +515,17 @@ public final class BrainThreadMessages {
 		return included;
 	}
 
+	private static Map<String, Set<String>> ruleOverridesOf(String ownerId, String ownerType, String threadId) {
+		Map<String, Set<String>> overrides = new HashMap<>();
+		CollaborationDbUtils.query(
+				"SELECT PERSON_ID, RULE_ID FROM BRAIN_THREAD_RULE_OVERRIDE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND THREAD_ID = ?",
+				rs -> overrides.computeIfAbsent(rs.getString("PERSON_ID"), k -> new HashSet<>())
+						.add(rs.getString("RULE_ID")),
+				ownerId, ownerType, threadId);
+		return overrides;
+	}
+
 	// never-ingest or off, decided without fetching the message
 	private static boolean isHidden(List<BrainRulesGate.Rule> rules, Map<String, List<String>> addresses, Row row) {
 		return BrainRulesGate.NEVER.equals(row.decision()) || BrainRulesGate.OFF.equals(row.decision())
@@ -503,9 +533,11 @@ public final class BrainThreadMessages {
 	}
 
 	private static boolean isExcluded(Row row, List<BrainRulesGate.Rule> rules, List<String> topicIds, String source,
-			Map<String, Boolean> included) {
-		return BrainRulesGate.EXCLUDED.equals(row.decision()) || Boolean.FALSE.equals(included.get(row.personId()))
-				|| BrainRulesGate.exclusionRule(rules, topicIds, source, row.personId()) != null;
+			Map<String, Boolean> included, Map<String, Set<String>> ruleOverrides) {
+		Set<String> overrides = ruleOverrides.getOrDefault(row.personId(), Set.of());
+		boolean storedExclusion = BrainRulesGate.EXCLUDED.equals(row.decision()) && row.ruleId() == null;
+		return storedExclusion || Boolean.FALSE.equals(included.get(row.personId()))
+				|| BrainRulesGate.exclusionRule(rules, topicIds, source, row.personId(), overrides) != null;
 	}
 
 	private static boolean isNever(List<BrainRulesGate.Rule> rules, List<String> known, Row row) {
@@ -540,10 +572,11 @@ public final class BrainThreadMessages {
 	}
 
 	private static Map<String, Object> entry(Row row, Map<String, Object> clean, Map<String, Object> sender,
-			List<BrainRulesGate.Rule> rules, List<String> topicIds, String source, Map<String, Boolean> included) {
+			List<BrainRulesGate.Rule> rules, List<String> topicIds, String source, Map<String, Boolean> included,
+			Map<String, Set<String>> ruleOverrides) {
 		// excluded and muted people are still read, only flagged: exclusion is about
 		// attention, not privacy
-		boolean excluded = isExcluded(row, rules, topicIds, source, included);
+		boolean excluded = isExcluded(row, rules, topicIds, source, included, ruleOverrides);
 		Map<String, Object> entry = new LinkedHashMap<>();
 		entry.put("id", row.graphId());
 		if ("email".equals(source)) {

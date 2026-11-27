@@ -232,9 +232,87 @@ public final class BrainRuleUtils {
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ? AND DISABLED_AT IS NULL",
 					now, ownerId, ownerType, ruleId);
 			reinclude(conn, ownerId, ownerType, ruleId);
+			CollaborationDbUtils.update(conn,
+					"DELETE FROM BRAIN_THREAD_RULE_OVERRIDE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ?",
+					ownerId, ownerType, ruleId);
 		});
 		WorkItemUtils.reopenForRule(ownerId, ownerType, ruleId);
 		WorkThreadInsights.markStale(ownerId, ownerType, null);
+	}
+
+	static Set<String> threadRuleOverrides(String ownerId, String ownerType, String threadId, String personId) {
+		return new LinkedHashSet<>(CollaborationDbUtils.query(
+				"SELECT RULE_ID FROM BRAIN_THREAD_RULE_OVERRIDE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND THREAD_ID = ? AND PERSON_ID = ?",
+				rs -> rs.getString(1), ownerId, ownerType, threadId, personId));
+	}
+
+	static void overrideTopicRulesForThread(String ownerId, String ownerType, String threadId) {
+		List<String[]> matches = CollaborationDbUtils.query(
+				"SELECT tp.PERSON_ID, r.RULE_ID FROM BRAIN_THREAD_PARTICIPANT tp "
+						+ "JOIN BRAIN_THREAD_TOPIC tt ON tt.OWNER_ID = tp.OWNER_ID "
+						+ "AND tt.OWNER_TYPE = tp.OWNER_TYPE AND tt.THREAD_ID = tp.THREAD_ID "
+						+ "JOIN BRAIN_RULE r "
+						+ "ON r.OWNER_ID = tp.OWNER_ID AND r.OWNER_TYPE = tp.OWNER_TYPE "
+						+ "AND r.PERSON_ID = tp.PERSON_ID AND r.KIND = ? AND r.TOPIC_ID = tt.TOPIC_ID "
+						+ "AND r.DISABLED_AT IS NULL WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? "
+						+ "AND tp.THREAD_ID = ? AND ((tp.INCLUDED IS NULL OR tp.INCLUDED = ?) "
+						+ "OR (tp.INCLUDED = ? AND tp.EXCLUDED_BY = ? AND EXISTS (SELECT 1 FROM BRAIN_RULE blocked "
+						+ "JOIN BRAIN_THREAD_TOPIC blockedTopic ON blockedTopic.OWNER_ID = blocked.OWNER_ID "
+						+ "AND blockedTopic.OWNER_TYPE = blocked.OWNER_TYPE AND blockedTopic.TOPIC_ID = blocked.TOPIC_ID "
+						+ "AND blockedTopic.THREAD_ID = tp.THREAD_ID WHERE blocked.OWNER_ID = tp.OWNER_ID "
+						+ "AND blocked.OWNER_TYPE = tp.OWNER_TYPE "
+						+ "AND blocked.RULE_ID = tp.EXCLUDED_RULE_ID AND blocked.KIND = ? "
+						+ "AND blocked.DISABLED_AT IS NULL)))",
+				rs -> new String[] { rs.getString(1), rs.getString(2) }, EXCLUDE_TOPIC, ownerId, ownerType,
+				threadId, true, false, BrainThreadUtils.RULE, EXCLUDE_TOPIC);
+		CollaborationDbUtils.inTransaction(conn -> {
+			for (String[] match : matches) {
+				addThreadRuleOverride(conn, ownerId, ownerType, threadId, match[0], match[1]);
+				CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_THREAD_PARTICIPANT SET INCLUDED = ?, EXCLUDED_BY = NULL, "
+								+ "EXCLUDED_RULE_ID = NULL, EXCLUDED_AT = NULL WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+								+ "AND THREAD_ID = ? AND PERSON_ID = ? AND INCLUDED = ? AND EXCLUDED_BY = ? "
+								+ "AND EXCLUDED_RULE_ID = ?",
+						true, ownerId, ownerType, threadId, match[0], false, BrainThreadUtils.RULE, match[1]);
+			}
+		});
+		if (!matches.isEmpty()) {
+			WorkThreadInsights.markStale(ownerId, ownerType, threadId);
+		}
+	}
+
+	static List<String> activeTopicRulesForPerson(String ownerId, String ownerType, String threadId, String personId) {
+		return CollaborationDbUtils.query(
+				"SELECT r.RULE_ID FROM BRAIN_RULE r JOIN BRAIN_THREAD_TOPIC tt ON tt.OWNER_ID = r.OWNER_ID "
+						+ "AND tt.OWNER_TYPE = r.OWNER_TYPE AND tt.TOPIC_ID = r.TOPIC_ID "
+						+ "WHERE r.OWNER_ID = ? AND r.OWNER_TYPE = ? AND tt.THREAD_ID = ? AND r.PERSON_ID = ? "
+						+ "AND r.KIND = ? AND r.DISABLED_AT IS NULL",
+				rs -> rs.getString(1), ownerId, ownerType, threadId, personId, EXCLUDE_TOPIC);
+	}
+
+	static boolean isActiveTopicRule(String ownerId, String ownerType, String ruleId) {
+		return CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_RULE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				+ "AND RULE_ID = ? AND KIND = ? AND DISABLED_AT IS NULL", ownerId, ownerType, ruleId, EXCLUDE_TOPIC);
+	}
+
+	static void addThreadRuleOverride(String ownerId, String ownerType, String threadId, String personId,
+			String ruleId) {
+		CollaborationDbUtils.inTransaction(conn -> addThreadRuleOverride(conn, ownerId, ownerType, threadId, personId,
+				ruleId));
+	}
+
+	private static void addThreadRuleOverride(java.sql.Connection conn, String ownerId, String ownerType,
+			String threadId, String personId, String ruleId) throws java.sql.SQLException {
+		if (CollaborationDbUtils.query(conn, "SELECT 1 FROM BRAIN_THREAD_RULE_OVERRIDE WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND THREAD_ID = ? AND PERSON_ID = ? AND RULE_ID = ?",
+				rs -> Boolean.TRUE, ownerId, ownerType, threadId, personId, ruleId).isEmpty()) {
+			CollaborationDbUtils.update(conn,
+					"INSERT INTO BRAIN_THREAD_RULE_OVERRIDE (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID, RULE_ID, "
+							+ "CREATED_BY, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)",
+					ownerId, ownerType, threadId, personId, ruleId, BrainProfileUtils.YOU,
+					CollaborationDbUtils.now());
+		}
 	}
 
 	private static void reinclude(Connection conn, String ownerId, String ownerType, String ruleId)

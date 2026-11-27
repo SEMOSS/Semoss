@@ -211,6 +211,28 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	@Override
+	public Map<String, Object> chatMessage(User user, String chatId, String messageId) throws Exception {
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		String selfId = (String) get(token, BASE + "/me?$select=id").get("id");
+		String path = BASE + "/chats/" + encode(chatId);
+		Map<String, Object> chat = get(token, path);
+		Map<String, Map<String, Object>> members = new LinkedHashMap<>();
+		for (Map<String, Object> member : values(get(token, path + "/members"))) {
+			if (member.get("userId") instanceof String id && member.get("email") instanceof String email
+					&& !email.isBlank()) {
+				members.put(id, Map.of("emailAddress", Map.of("name", String.valueOf(member.get("displayName")),
+						"address", email.trim().toLowerCase(java.util.Locale.ROOT))));
+			}
+		}
+		Map<String, Object> header = chatHeader(chatId, chatSubject(chat, members, selfId), members,
+				get(token, path + "/messages/" + encode(messageId)), Instant.EPOCH);
+		if (header != null) {
+			header.put("chatType", chat.get("chatType"));
+		}
+		return header;
+	}
+
+	@Override
 	public ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
 		return importChats(user, since, maxChats, maxPerChat, (done, total) -> {
 		});

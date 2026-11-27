@@ -454,6 +454,14 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("CLASSIFIER_VERSION", VARCHAR_50),
 				Pair.with("CHANGED_BY", VARCHAR_255),
 				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// an explicit owner inclusion of one person on one thread, overriding only the named topic rule
+		addTable("BRAIN_THREAD_RULE_OVERRIDE", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("PERSON_ID", VARCHAR_50),
+				Pair.with("RULE_ID", VARCHAR_50),
+				Pair.with("CREATED_BY", VARCHAR_255),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// a topic the owner said a thread does not belong to, one row per thread and topic. The
 		// classifier and a re-sort never file the thread there again, and a rejected thread left
 		// with no topic is one of the classifier's examples of mail with no topic

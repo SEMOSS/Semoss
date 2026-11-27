@@ -39,6 +39,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.om.Insight;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 
 /**
  * What the owner's assistant can change in Brain: one call per topic, one per thread. Each step is the
@@ -80,7 +81,7 @@ public final class BrainAgentEdits {
 			removes.add(person(ownerId, ownerType, ref));
 		}
 		// and every email, so one that cannot be added stops the call before the topic changes
-		List<String> threads = threads(user, ownerId, ownerType, clean(addEmails));
+		List<String> threads = threads(user, ownerId, ownerType, clean(addEmails), true);
 
 		List<String> changes = new ArrayList<>();
 		try {
@@ -125,6 +126,7 @@ public final class BrainAgentEdits {
 			}
 			for (String thread : threads) {
 				BrainThreadUtils.linkThreadTopic(user, thread, topic, false, false);
+				BrainRuleUtils.overrideTopicRulesForThread(ownerId, ownerType, thread);
 			}
 			if (!threads.isEmpty()) {
 				changes.add("added " + threads.size() + (threads.size() == 1 ? " conversation" : " conversations"));
@@ -176,7 +178,7 @@ public final class BrainAgentEdits {
 		if (!isSet(threadId)) {
 			throw new IllegalArgumentException("Must pass a threadId");
 		}
-		threadId = threads(user, ownerId, ownerType, List.of(threadId.trim())).get(0);
+		threadId = threads(user, ownerId, ownerType, List.of(threadId.trim()), false).get(0);
 
 		List<String> changes = new ArrayList<>();
 		Map<String, Object> out = new LinkedHashMap<>();
@@ -185,6 +187,7 @@ public final class BrainAgentEdits {
 				String topic = topic(ownerId, ownerType, addTopic);
 				out.put("topicLinks", BrainThreadUtils.linkThreadTopic(user, threadId, topic,
 						Boolean.TRUE.equals(makePrimary), false));
+				BrainRuleUtils.overrideTopicRulesForThread(ownerId, ownerType, threadId);
 				changes.add("tagged with " + topicName(ownerId, ownerType, topic));
 			}
 			if (isSet(removeTopic)) {
@@ -230,11 +233,15 @@ public final class BrainAgentEdits {
 
 	// each a thread id, an emailRef (email:...), or an email's Outlook id, as the thread it is on; mail Brain does not
 	// hold yet is imported as a sync imports new mail, so the owner's rules and folders still decide
-	private static List<String> threads(User user, String ownerId, String ownerType, List<String> refs) {
+	private static List<String> threads(User user, String ownerId, String ownerType, List<String> refs,
+			boolean checkNever) {
 		Set<String> found = new LinkedHashSet<>();
 		Map<String, Map<String, Object>> fetched = new LinkedHashMap<>();
 		BrainMailHeaderSource source = null;
 		for (String ref : refs) {
+			if (checkNever) {
+				checkHeldEmail(ownerId, ownerType, ref);
+			}
 			String threadId = heldThread(ownerId, ownerType, ref);
 			if (threadId != null) {
 				found.add(threadId);
@@ -254,6 +261,9 @@ public final class BrainAgentEdits {
 			}
 			if (header == null) {
 				throw new IllegalArgumentException("No email has the id " + ref);
+			}
+			if (checkNever) {
+				checkHeader(ownerId, ownerType, header);
 			}
 			fetched.put(ref, header);
 		}
@@ -279,6 +289,78 @@ public final class BrainAgentEdits {
 			found.add(threadId);
 		}
 		return new ArrayList<>(found);
+	}
+
+	private static void checkHeldEmail(String ownerId, String ownerType, String ref) {
+		boolean emailRef = ref.startsWith("email:");
+		String id = emailRef ? ref.substring("email:".length()) : ref;
+		String[] row = CollaborationDbUtils.queryOne("SELECT DECISION, SENDER_PERSON_ID, FOLDER, RULE_ID FROM BRAIN_MESSAGE "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND " + (emailRef ? "MESSAGE_KEY" : "GRAPH_ID") + " = ?",
+				rs -> new String[] { rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4) }, ownerId,
+				ownerType, id);
+		if (row == null) {
+			return;
+		}
+		if (BrainRulesGate.NEVER.equals(row[0])) {
+			if (row[3] == null) {
+				throw new IllegalArgumentException("This email cannot be added because it was not ingested into Brain.");
+			}
+			throw neverIngest();
+		}
+		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
+		List<String> addresses = new ArrayList<>();
+		if (row[1] != null) {
+			addresses.addAll(CollaborationDbUtils.query("SELECT VALUE_NORM FROM BRAIN_PERSON_ADDRESS WHERE "
+					+ "OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", rs -> rs.getString(1), ownerId, ownerType,
+					row[1]));
+			String primary = CollaborationDbUtils.queryOne("SELECT EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND PERSON_ID = ?", rs -> rs.getString(1), ownerId, ownerType, row[1]);
+			if (primary != null) {
+				addresses.add(primary);
+			}
+		}
+		boolean missingAddress = addresses.isEmpty();
+		if (missingAddress) {
+			addresses.add("");
+		}
+		for (String address : addresses) {
+			String normalized = BrainRulesGate.norm(address);
+			if (BrainRulesGate.neverRule(rules, normalized == null ? "" : normalized, row[1], row[2]) != null) {
+				throw neverIngest();
+			}
+		}
+		if (missingAddress && rules.stream().anyMatch(rule -> BrainRuleUtils.NEVER_SENDER.equals(rule.kind())
+				|| BrainRuleUtils.NEVER_DOMAIN.equals(rule.kind())
+				|| (row[1] == null && BrainRuleUtils.EXCLUDE_EVERYWHERE.equals(rule.kind())))) {
+			throw new IllegalArgumentException("This email cannot be added because its sender cannot be checked "
+					+ "against the global never-ingest rules.");
+		}
+		if (row[2] == null && rules.stream().anyMatch(rule -> BrainRuleUtils.NEVER_FOLDER.equals(rule.kind()))) {
+			throw new IllegalArgumentException("This email cannot be added because its folder cannot be checked "
+					+ "against the global never-ingest rules.");
+		}
+	}
+
+	private static void checkHeader(String ownerId, String ownerType, Map<String, Object> header) {
+		String from = BrainMailImport.address(header.get("from"));
+		if (from == null) {
+			throw new IllegalArgumentException("Cannot check this email's rules because its sender is unavailable");
+		}
+		String person = BrainRulesGate.findPerson(ownerId, ownerType, from);
+		String folder = CollaborationDbUtils.asString(header.get("parentFolderId"));
+		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
+		if (BrainRulesGate.neverRule(rules, from, person, folder) != null) {
+			throw neverIngest();
+		}
+		if (folder == null && rules.stream().anyMatch(rule -> BrainRuleUtils.NEVER_FOLDER.equals(rule.kind()))) {
+			throw new IllegalArgumentException("This email cannot be added because its folder cannot be checked "
+					+ "against the global never-ingest rules.");
+		}
+	}
+
+	private static SemossPixelException neverIngest() {
+		String message = "This email cannot be added because it is or was blocked by a global never-ingest rule.";
+		return new SemossPixelException(message, Map.of("code", "NEVER_INGEST", "message", message));
 	}
 
 	// the thread Brain holds by that id, an emailRef's message key, or the Outlook id it read an email with

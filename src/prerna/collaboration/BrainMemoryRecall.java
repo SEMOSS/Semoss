@@ -193,10 +193,11 @@ public final class BrainMemoryRecall {
 						rs.getString("EMAIL_NORM"), rs.getString("ACCOUNT_ID") },
 				ownerId, ownerType, threadId)) {
 			String personId = row[0];
+			Set<String> ruleOverrides = BrainRuleUtils.threadRuleOverrides(ownerId, ownerType, threadId, personId);
 			// kept out as the gate keeps them out; a VIP standing changes nothing here
 			boolean keep = !keptOut && Boolean.parseBoolean(row[1]) && !neverIngest.contains(personId)
 					&& !BrainRulesGate.standing(rules, row[2] == null ? "" : row[2], personId, null, source, allTopics,
-							Set.of(), false).keptOut();
+							Set.of(), false, ruleOverrides).keptOut();
 			if (keep) {
 				people.add(personId);
 				if (row[3] != null) {

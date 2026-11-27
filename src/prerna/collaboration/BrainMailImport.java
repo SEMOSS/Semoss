@@ -167,7 +167,7 @@ public final class BrainMailImport {
 	private static final int MAX_CHATS = 300;
 	private static final int MAX_PER_CHAT = 200;
 	// which source a header came from; mail headers carry none
-	private static final String SOURCE_KEY = "_source";
+	static final String SOURCE_KEY = "_source";
 	// reply and forward prefixes, after any tags a mail gateway puts in front ("[EXT] Re: ..."), which stay
 	private static final Pattern REPLY_PREFIX = Pattern.compile("^(\\s*(\\[[^\\]]*\\]\\s*)*)((re|fw|fwd|aw|wg)\\s*:\\s*)+",
 			Pattern.CASE_INSENSITIVE);
@@ -559,6 +559,7 @@ public final class BrainMailImport {
 		// threads with mail the owner moved to another folder since it was read
 		final Set<String> refiled = new LinkedHashSet<>();
 		final Map<String, Set<String>> participants = new HashMap<>();
+		final Map<String, Set<String>> ruleOverrides = new HashMap<>();
 		// the gate's lookups per source; only whether the source is on differs
 		final Map<String, BrainRulesGate.Known> known = new HashMap<>();
 		final Set<String> threads = new LinkedHashSet<>();
@@ -608,6 +609,7 @@ public final class BrainMailImport {
 			messages.clear();
 			mailbox.clear();
 			participants.clear();
+			ruleOverrides.clear();
 			known.clear();
 			CollaborationDbUtils.query(
 					"SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
@@ -657,6 +659,11 @@ public final class BrainMailImport {
 						}
 						return participants.put(rs.getString(1) + "|" + rs.getString(2), roles);
 					}, ownerId, ownerType);
+			CollaborationDbUtils.query("SELECT THREAD_ID, PERSON_ID, RULE_ID FROM BRAIN_THREAD_RULE_OVERRIDE "
+					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+					rs -> ruleOverrides.computeIfAbsent(rs.getString(1) + "|" + rs.getString(2), k -> new HashSet<>())
+							.add(rs.getString(3)),
+					ownerId, ownerType);
 		}
 
 		/**
@@ -767,7 +774,8 @@ public final class BrainMailImport {
 								+ "AND OWNER_TYPE = ? AND SOURCE = ?",
 						rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"), ownerId, ownerType, s);
 				return new BrainRulesGate.Known(rules, Boolean.TRUE.equals(enabled), messages::get, people::get,
-						threadsByKey::get);
+						threadsByKey::get, (threadId, personId) -> ruleOverrides.getOrDefault(
+								threadId + "|" + personId, Set.of()));
 			});
 		}
 

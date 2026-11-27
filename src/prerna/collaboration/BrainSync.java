@@ -545,7 +545,7 @@ public final class BrainSync {
 	}
 
 	// mail is connected, the onboarding import has finished, and none is running
-	private static boolean canIngest(String ownerId, String ownerType) {
+	static boolean canIngest(String ownerId, String ownerType) {
 		if (!Boolean.TRUE.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(EMAIL))) {
 			return false;
 		}

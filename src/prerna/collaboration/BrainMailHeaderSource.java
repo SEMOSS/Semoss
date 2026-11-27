@@ -121,6 +121,11 @@ public interface BrainMailHeaderSource {
 		return null;
 	}
 
+	// One exact Teams chat message, converted to the import header shape.
+	default Map<String, Object> chatMessage(User user, String chatId, String messageId) throws Exception {
+		return null;
+	}
+
 	/**
 	 * Teams chat messages sent at or after since, in the header shape: id (the
 	 * message), internetMessageId (chat and message), conversationId (the chat),

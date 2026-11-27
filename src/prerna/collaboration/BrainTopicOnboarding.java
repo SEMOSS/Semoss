@@ -334,6 +334,12 @@ final class BrainTopicOnboarding {
 				"SELECT THREAD_ID, TOPIC_ID FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> topicIds.computeIfAbsent(rs.getString(1), k -> new ArrayList<>()).add(rs.getString(2)), ownerId,
 				ownerType);
+		Map<String, Set<String>> ruleOverrides = new HashMap<>();
+		CollaborationDbUtils.query("SELECT THREAD_ID, PERSON_ID, RULE_ID FROM BRAIN_THREAD_RULE_OVERRIDE "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				rs -> ruleOverrides.computeIfAbsent(rs.getString(1) + "|" + rs.getString(2), k -> new HashSet<>())
+						.add(rs.getString(3)),
+				ownerId, ownerType);
 		Set<String> vipEmails = new HashSet<>();
 		vips.forEach(p -> {
 			if (emails.get(p) != null) {
@@ -351,24 +357,36 @@ final class BrainTopicOnboarding {
 		Map<String, String> folderPaths = new HashMap<>();
 		Map<String, Set<String>> folderThreads = new HashMap<>();
 		Map<String, Set<String>> folderWrote = new HashMap<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT, BULK, FOLDER, CATEGORIES_JSON, MEETING FROM BRAIN_MESSAGE "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DECISION = ? AND RECEIVED_AT >= ? AND RECEIVED_AT <= ? "
+		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, RECEIVED_AT, BULK, FOLDER, CATEGORIES_JSON, "
+				+ "MEETING, DECISION, RULE_ID FROM BRAIN_MESSAGE "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DECISION IN (?, ?) AND RECEIVED_AT >= ? AND RECEIVED_AT <= ? "
 				+ "ORDER BY RECEIVED_AT", rs -> {
 					String thread = rs.getString(1);
+					String sender = rs.getString(2);
+					String decision = rs.getString("DECISION");
+					String ruleId = rs.getString("RULE_ID");
+					Set<String> overrides = ruleOverrides.getOrDefault(thread + "|" + sender, Set.of());
+					if (BrainRulesGate.EXCLUDED.equals(decision)
+							&& (ruleId == null || (rules.stream().anyMatch(rule -> rule.id().equals(ruleId))
+									&& !overrides.contains(ruleId)))) {
+						return null;
+					}
 					String source = sources.get(thread);
 					Timestamp at = rs.getTimestamp(3);
 					if (source == null || at == null) {
 						return null;
 					}
 					String folder = rs.getString(5);
-					String from = permitted(rs.getString(2), thread, folder, source, emails, included, topicIds, rules);
+					String from = permitted(sender, thread, folder, source, emails, included, topicIds, rules,
+							ruleOverrides);
 					if (from == null) {
 						return null;
 					}
 					List<String> to = new ArrayList<>();
 					for (String person : included.getOrDefault(thread, Set.of())) {
 						String address = person.equals(rs.getString(2)) ? null
-								: permitted(person, thread, folder, source, emails, included, topicIds, rules);
+								: permitted(person, thread, folder, source, emails, included, topicIds, rules,
+										ruleOverrides);
 						if (address != null) {
 							to.add(address);
 						}
@@ -395,7 +413,7 @@ final class BrainTopicOnboarding {
 									path == null ? null : folder, CollaborationDbUtils.toStringList(CollaborationDbUtils
 											.parseList(CollaborationDbUtils.getString(rs, "CATEGORIES_JSON")))));
 					return null;
-				}, ownerId, ownerType, BrainRulesGate.INGESTED,
+				}, ownerId, ownerType, BrainRulesGate.INGESTED, BrainRulesGate.EXCLUDED,
 				Timestamp.valueOf(LocalDateTime.ofInstant(since, ZoneOffset.UTC)), end);
 		notes.put("messages", read[0]);
 		notes.put("chats", byThread.keySet().stream().filter(t -> "teams".equals(sources.get(t))).count());
@@ -478,12 +496,12 @@ final class BrainTopicOnboarding {
 	// the person's address when they are an included participant no keep-out rule covers here
 	private static String permitted(String person, String thread, String folder, String source,
 			Map<String, String> emails, Map<String, Set<String>> included, Map<String, List<String>> topicIds,
-			List<BrainRulesGate.Rule> rules) {
+			List<BrainRulesGate.Rule> rules, Map<String, Set<String>> ruleOverrides) {
 		String address = person == null ? null : emails.get(person);
 		if (address == null || !included.getOrDefault(thread, Set.of()).contains(person)
 				|| BrainRulesGate.neverRule(rules, address, person, folder) != null
 				|| BrainRulesGate.exclusionRule(rules, topicIds.getOrDefault(thread, List.of()), source,
-						person) != null) {
+						person, ruleOverrides.getOrDefault(thread + "|" + person, Set.of())) != null) {
 			return null;
 		}
 		return address;

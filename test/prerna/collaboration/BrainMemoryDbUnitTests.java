@@ -589,6 +589,14 @@ class BrainMemoryDbUnitTests {
 		assertEquals(List.of(), ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", null, 4000)));
 		assertEquals(List.of(aboutPriya), ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-2", null, 4000)));
 		assertEquals(0, BrainMemoryUtils.search(user, "Mark contracts", null, null).get("total"));
+
+		BrainThreadUtils.setThreadParticipant(user, "th-1", "p-priya", true);
+		assertEquals(List.of(aboutPriya), ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", null, 4000)));
+		assertEquals(List.of(aboutPriya), ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-2", null, 4000)));
+		assertEquals(1, count("BRAIN_THREAD_RULE_OVERRIDE"));
+
+		BrainRuleUtils.saveRule(user, Map.of("kind", "never_sender", "personId", "p-priya"));
+		assertEquals(List.of(), ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", null, 4000)));
 	}
 
 	@Test
@@ -903,6 +911,35 @@ class BrainMemoryDbUnitTests {
 		assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, null, null, "Lyft", null,
 				null, null, null, null, null, List.of("th-missing")));
 		assertEquals(1, count("BRAIN_TOPIC"));
+	}
+
+	@Test
+	void explicitlyAddingAnEmailToATopicOverridesOnlyThatTopicsRule() throws Exception {
+		topic("t-acme", "Acme");
+		sql("INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, KIND, VALUE_NORM) "
+				+ "VALUES (?, ?, 'p-priya', 'email', 'priya@example.com')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE) "
+				+ "VALUES (?, ?, 'th-1', 'email:conversation-1', 'email')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID, INCLUDED, EXCLUDED_BY, "
+				+ "EXCLUDED_RULE_ID) VALUES (?, ?, 'th-1', 'p-priya', FALSE, 'rule', 'r-topic')", ownerId, ownerType);
+		sql("INSERT INTO BRAIN_MESSAGE (OWNER_ID, OWNER_TYPE, MESSAGE_KEY, THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, "
+				+ "DECISION, RULE_ID) VALUES (?, ?, 'key-1', 'th-1', 'graph-1', 'p-priya', 'excluded', 'r-topic')",
+				ownerId, ownerType);
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, TOPIC_ID, PERSON_ID, CREATED_AT) "
+				+ "VALUES (?, ?, 'r-topic', 'exclude_topic', 't-acme', 'p-priya', CURRENT_TIMESTAMP)", ownerId,
+				ownerType);
+
+		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, List.of("graph-1"));
+
+		assertEquals(1, count("BRAIN_THREAD_RULE_OVERRIDE"));
+		assertEquals(true, value("SELECT INCLUDED FROM BRAIN_THREAD_PARTICIPANT WHERE THREAD_ID = 'th-1' "
+				+ "AND PERSON_ID = 'p-priya'"));
+		assertEquals(1, count("BRAIN_RULE"));
+		assertTrue(topicThreads("t-acme").contains("th-1"));
+		BrainTopicBodySearch.Context context = BrainTopicBodySearch.context(ownerId, ownerType, List.of("th-1"),
+				BrainThreadFinder.Privacy.load(ownerId, ownerType, List.of("th-1")));
+		assertTrue(context.gate().allows("th-1", context.byGraphId().get("graph-1"),
+				listed("priya@example.com", "inbox", false)));
 	}
 
 	@Test

@@ -59,8 +59,10 @@ public class BrainSetThreadParticipantReactor extends AbstractCollaborationReact
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Excludes or includes a person on one Brain thread; an excluded person's messages make no items or alerts")
+				"Excludes or includes a person on one Brain thread; explicit inclusion overrides topic rules on this "
+						+ "thread only, while global never-ingest rules still apply")
 				.key(THREAD_ID, "Thread id").key(PERSON_ID, "Person id of a participant on the thread")
-				.key(INCLUDED, "false excludes the person on this thread, true includes them again");
+				.key(INCLUDED, "false excludes the person on this thread; true includes them and overrides topic rules "
+						+ "on this thread only");
 	}
 }

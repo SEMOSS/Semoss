@@ -116,6 +116,11 @@ final class BrainFixtureHeaderSource implements BrainMailHeaderSource {
 	}
 
 	@Override
+	public Map<String, Object> message(User user, String messageId) {
+		return messages.stream().filter(message -> messageId.equals(message.get("id"))).findFirst().orElse(null);
+	}
+
+	@Override
 	public List<Map<String, Object>> list(User user, String folder, Instant since, int max) {
 		List<Map<String, Object>> out = new ArrayList<>();
 		for (Map<String, Object> m : messages) {
@@ -164,6 +169,13 @@ final class BrainFixtureHeaderSource implements BrainMailHeaderSource {
 			}
 		}
 		return out;
+	}
+
+	@Override
+	public Map<String, Object> chatMessage(User user, String chatId, String messageId) {
+		return chats(user, Instant.EPOCH, Integer.MAX_VALUE, Integer.MAX_VALUE).stream()
+				.filter(header -> chatId.equals(header.get("conversationId")) && messageId.equals(header.get("id")))
+				.findFirst().orElse(null);
 	}
 
 	// fixture folder ids end in the folder name, for example AAMkAD-fld-sentitems

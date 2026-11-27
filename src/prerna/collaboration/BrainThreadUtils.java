@@ -247,8 +247,8 @@ public final class BrainThreadUtils {
 		return getLinks(ownerId, ownerType, threadId);
 	}
 
-	// excluding is by hand; a rule-driven exclusion is undone by changing the rule,
-	// not here
+	// A user's explicit inclusion can override topic rules on this thread only;
+	// global never-ingest rules still apply.
 	public static Map<String, Object> setThreadParticipant(User user, String threadId, String personId,
 			boolean included) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -269,10 +269,25 @@ public final class BrainThreadUtils {
 		}
 
 		boolean wasIncluded = (Boolean) current.get("included");
+		String excludedRuleId = (String) current.get("ruleId");
 		if (included && !wasIncluded && RULE.equals(current.get("excludedBy"))
-				&& isActiveRule(ownerId, ownerType, (String) current.get("ruleId"))) {
+				&& isActiveRule(ownerId, ownerType, excludedRuleId)
+				&& !BrainRuleUtils.isActiveTopicRule(ownerId, ownerType, excludedRuleId)) {
 			throw new IllegalArgumentException(
-					"Excluded by rule " + current.get("ruleId") + "; change the rule to include this person");
+					"Excluded by rule " + excludedRuleId + "; change the rule to include this person");
+		}
+		if (included) {
+			List<String> activeTopicRules = BrainRuleUtils.activeTopicRulesForPerson(ownerId, ownerType, threadId,
+					personId);
+			for (String ruleId : activeTopicRules) {
+				BrainRuleUtils.addThreadRuleOverride(ownerId, ownerType, threadId, personId, ruleId);
+			}
+			if (!activeTopicRules.isEmpty()) {
+				WorkThreadInsights.markStale(ownerId, ownerType, threadId);
+			}
+		} else {
+			CollaborationDbUtils.update("DELETE FROM BRAIN_THREAD_RULE_OVERRIDE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND THREAD_ID = ? AND PERSON_ID = ?", ownerId, ownerType, threadId, personId);
 		}
 		if (included != wasIncluded) {
 			CollaborationDbUtils.update(

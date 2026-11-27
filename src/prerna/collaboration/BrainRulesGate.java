@@ -40,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -84,7 +85,8 @@ public final class BrainRulesGate {
 	 * keeps them current as it writes.
 	 */
 	record Known(List<Rule> rules, boolean enabled, Function<String, Map<String, Object>> replay,
-			Function<String, String> person, Function<String, String[]> thread) {
+			Function<String, String> person, Function<String, String[]> thread,
+			BiFunction<String, String, Set<String>> ruleOverrides) {
 	}
 
 	// headers: source, messageId, graphId, conversationId, folderId, from,
@@ -144,12 +146,16 @@ public final class BrainRulesGate {
 								ownerId, ownerType, source + ":" + conversationId);
 		String threadId = thread == null ? null : thread[0];
 		List<Rule> rules = known != null ? known.rules() : activeRules(ownerId, ownerType);
+		Set<String> ruleOverrides = threadId == null || personId == null ? Set.of()
+				: known != null ? known.ruleOverrides().apply(threadId, personId)
+						: BrainRuleUtils.threadRuleOverrides(ownerId, ownerType, threadId, personId);
 		List<String> topicIds = personId == null || threadId == null ? List.of()
 				: CollaborationDbUtils.query(
 						"SELECT TOPIC_ID FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
 						rs -> rs.getString("TOPIC_ID"), ownerId, ownerType, threadId);
 		// VIPs only raise attention once a message is in, so the gate passes none
-		Standing standing = standing(rules, from, personId, folderId, source, topicIds, Set.of(), false);
+		Standing standing = standing(rules, from, personId, folderId, source, topicIds, Set.of(), false,
+				ruleOverrides);
 
 		// never-ingest: counted, not listed, so no thread on the row
 		if (NEVER.equals(standing.level())) {
@@ -302,11 +308,16 @@ public final class BrainRulesGate {
 	 */
 	static Standing standing(List<Rule> rules, String from, String personId, String folderId, String source,
 			Collection<String> topicIds, Collection<String> vipTopics, boolean vip) {
+		return standing(rules, from, personId, folderId, source, topicIds, vipTopics, vip, Set.of());
+	}
+
+	static Standing standing(List<Rule> rules, String from, String personId, String folderId, String source,
+			Collection<String> topicIds, Collection<String> vipTopics, boolean vip, Set<String> ruleOverrides) {
 		Rule never = neverRule(rules, from, personId, folderId);
 		if (never != null) {
 			return new Standing(NEVER, never);
 		}
-		Rule exclusion = exclusionRule(rules, topicIds, source, personId);
+		Rule exclusion = exclusionRule(rules, topicIds, source, personId, ruleOverrides);
 		if (exclusion != null) {
 			return new Standing(EXCLUDED, exclusion);
 		}
@@ -318,7 +329,15 @@ public final class BrainRulesGate {
 
 	// an exclude_topic or exclude_channel rule covering this person on a thread
 	static Rule exclusionRule(List<Rule> rules, Collection<String> topicIds, String source, String personId) {
+		return exclusionRule(rules, topicIds, source, personId, Set.of());
+	}
+
+	static Rule exclusionRule(List<Rule> rules, Collection<String> topicIds, String source, String personId,
+			Set<String> ruleOverrides) {
 		for (Rule rule : rules) {
+			if ("exclude_topic".equals(rule.kind()) && ruleOverrides.contains(rule.id())) {
+				continue;
+			}
 			boolean onTopic = "exclude_topic".equals(rule.kind()) && rule.topicId() != null
 					&& topicIds.contains(rule.topicId());
 			boolean onChannel = "exclude_channel".equals(rule.kind()) && source.equals(rule.channel());

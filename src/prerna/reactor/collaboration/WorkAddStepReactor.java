@@ -30,6 +30,7 @@ package prerna.reactor.collaboration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import prerna.collaboration.BrainExplicitSource;
 import prerna.collaboration.WorkTaskUtils;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -42,10 +43,14 @@ public class WorkAddStepReactor extends AbstractWorkTaskReactor {
 	private static final String THREAD_ID = "threadId";
 	private static final String DUE = "due";
 	private static final String ASSIGNEE_ID = "assigneeId";
+	private static final String EMAIL_ID = "emailId";
+	private static final String CHAT_ID = "chatId";
+	private static final String MESSAGE_ID = "messageId";
 
 	public WorkAddStepReactor() {
-		this.keysToGet = new String[] { TEXT, TASK_ID, TOPIC_ID, THREAD_ID, DUE, ASSIGNEE_ID };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { TEXT, TASK_ID, TOPIC_ID, THREAD_ID, DUE, ASSIGNEE_ID, EMAIL_ID, CHAT_ID,
+				MESSAGE_ID };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -55,10 +60,13 @@ public class WorkAddStepReactor extends AbstractWorkTaskReactor {
 		args.put("taskId", getString(TASK_ID));
 		args.put("topicId", getString(TOPIC_ID));
 		String thread = getString(THREAD_ID);
-		args.put("threadId", thread != null ? thread : chatThreadId());
+		boolean explicitSource = getString(EMAIL_ID) != null || getString(CHAT_ID) != null
+				|| getString(MESSAGE_ID) != null;
+		args.put("threadId", thread != null ? thread : explicitSource ? null : chatThreadId());
 		args.put("due", getString(DUE));
 		args.put("assigneeId", getString(ASSIGNEE_ID));
-		return mapResult(WorkTaskUtils.addStep(getUser(), args, origin()));
+		return mapResult(BrainExplicitSource.save(getUser(), args, origin(), true, getString(EMAIL_ID),
+				getString(CHAT_ID), getString(MESSAGE_ID)));
 	}
 
 	@Override
@@ -72,6 +80,9 @@ public class WorkAddStepReactor extends AbstractWorkTaskReactor {
 				.key(TASK_ID, "The work item it serves, from ListMyWork")
 				.key(TOPIC_ID, "The topic it belongs to when it has no work item")
 				.key(THREAD_ID, "The thread it came from; defaults to this chat's thread").key(DUE, "YYYY-MM-DD")
-				.key(ASSIGNEE_ID, "Person id when someone else has to do it; leave out for the owner");
+				.key(ASSIGNEE_ID, "Person id when someone else has to do it; leave out for the owner")
+				.key(EMAIL_ID, "An email id or emailRef the owner explicitly selected as the source")
+				.key(CHAT_ID, "The Teams chat id when the owner explicitly selected a Teams message")
+				.key(MESSAGE_ID, "The selected Teams message id; pass with chatId. Global never-ingest rules still apply.");
 	}
 }

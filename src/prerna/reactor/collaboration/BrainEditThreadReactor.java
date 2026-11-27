@@ -74,7 +74,8 @@ public class BrainEditThreadReactor extends AbstractCollaborationReactor {
 						+ "or the current thread, or pass an email's id from ListM365Mail")
 				.key(THREAD_ID,
 						"Thread id from SearchMail or ReadThread, or an email's id from ListM365Mail for its thread")
-				.key(ADD_TOPIC, "Topic to tag the thread with: its id or its name")
+				.key(ADD_TOPIC, "Topic to tag the thread with: its id or its name; adding it explicitly overrides "
+						+ "topic-level person rules on this thread only, not global never-ingest rules")
 				.key(REMOVE_TOPIC, "Topic to untag the thread from: its id or its name; the thread is not deleted")
 				.key(MAKE_PRIMARY,
 						key -> key.type(Boolean.class).description("true makes addTopic the thread's one main topic"))

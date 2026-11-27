@@ -92,7 +92,8 @@ final class BrainTopicBodySearch {
 		}
 	}
 
-	record Row(String threadId, String graphId, String personId, String folder, Timestamp at, String decision) {
+	record Row(String threadId, String graphId, String personId, String folder, Timestamp at, String decision,
+			String ruleId) {
 	}
 
 	/** The topic's stored messages and what the rules need, loaded once for a search. */
@@ -102,10 +103,10 @@ final class BrainTopicBodySearch {
 	static Context context(String ownerId, String ownerType, Collection<String> threadIds,
 			BrainThreadFinder.Privacy privacy) {
 		List<Row> rows = new ArrayList<>();
-		BrainThreadFinder.byIds("SELECT THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION FROM "
+		BrainThreadFinder.byIds("SELECT THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION, RULE_ID FROM "
 				+ "BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN (", ")", threadIds, rs -> {
 					rows.add(new Row(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
-							rs.getTimestamp(5), rs.getString(6)));
+							rs.getTimestamp(5), rs.getString(6), rs.getString(7)));
 					return null;
 				}, ownerId, ownerType);
 		Map<String, Row> byGraphId = new HashMap<>();
@@ -124,10 +125,10 @@ final class BrainTopicBodySearch {
 			return new Result(Map.of(), SEARCHED, "");
 		}
 		List<Row> rows = new ArrayList<>();
-		BrainThreadFinder.byIds("SELECT THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION FROM "
+		BrainThreadFinder.byIds("SELECT THREAD_ID, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION, RULE_ID FROM "
 				+ "BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN (", ")", threadIds, rs -> {
 					rows.add(new Row(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4),
-							rs.getTimestamp(5), rs.getString(6)));
+							rs.getTimestamp(5), rs.getString(6), rs.getString(7)));
 					return null;
 				}, ownerId, ownerType);
 		Map<String, String> byConversation = conversations(ownerId, ownerType, threadIds);
@@ -264,6 +265,7 @@ final class BrainTopicBodySearch {
 		private final Map<String, String> personByAddress = new HashMap<>();
 		// thread|person the owner dropped from that thread
 		private final Set<String> excluded = new HashSet<>();
+		private final Map<String, Set<String>> ruleOverrides = new HashMap<>();
 		// the topics each thread is filed under, for the owner's topic-wide ignore rules
 		private final Map<String, List<String>> topicsOf = new HashMap<>();
 
@@ -285,6 +287,13 @@ final class BrainTopicBodySearch {
 						}
 						return null;
 					}, ownerId, ownerType);
+			BrainThreadFinder.byIds("SELECT THREAD_ID, PERSON_ID, RULE_ID FROM BRAIN_THREAD_RULE_OVERRIDE WHERE "
+					+ "OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN (", ")", threadIds, rs -> {
+						gate.ruleOverrides.computeIfAbsent(rs.getString(1) + "|" + rs.getString(2),
+								k -> new HashSet<>()).add(rs.getString(3));
+						return null;
+					},
+					ownerId, ownerType);
 			BrainThreadFinder.byIds("SELECT THREAD_ID, TOPIC_ID FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND "
 					+ "OWNER_TYPE = ? AND THREAD_ID IN (", ")", threadIds, rs -> {
 						gate.topicsOf.computeIfAbsent(rs.getString(1), k -> new ArrayList<>()).add(rs.getString(2));
@@ -306,8 +315,10 @@ final class BrainTopicBodySearch {
 			}
 			String norm = BrainRulesGate.norm(address(message));
 			String person = row != null && row.personId() != null ? row.personId() : norm == null ? null : person(norm);
+			Set<String> overrides = person == null ? Set.of()
+					: ruleOverrides.getOrDefault(threadId + "|" + person, Set.of());
 			if (row != null && (BrainRulesGate.NEVER.equals(row.decision()) || BrainRulesGate.OFF.equals(row.decision())
-					|| BrainRulesGate.EXCLUDED.equals(row.decision()))) {
+					|| (BrainRulesGate.EXCLUDED.equals(row.decision()) && row.ruleId() == null))) {
 				return false;
 			}
 			if (person != null && (privacy.hiddenPerson(person) || excluded.contains(threadId + "|" + person))) {
@@ -315,7 +326,7 @@ final class BrainTopicBodySearch {
 			}
 			String where = row != null && row.folder() != null ? row.folder() : folder;
 			return !BrainRulesGate.standing(rules, norm == null ? "" : norm, person, where, "email",
-					topicsOf.getOrDefault(threadId, List.of()), Set.of(), false).keptOut();
+					topicsOf.getOrDefault(threadId, List.of()), Set.of(), false, overrides).keptOut();
 		}
 
 		// Among all of the owner's people, as the import's gate finds a sender: a person blocked in People is a rule

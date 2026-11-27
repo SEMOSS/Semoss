@@ -125,7 +125,8 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 				.key(DELETE_NOTE_ID, "Id of a note to delete, from ListTopics")
 				.key(ADD_EMAILS, key -> key.type(List.class).description(
 						"Emails to put in the topic: a list of plain strings, each a threadId from SearchMail or ReadThread, "
-								+ "an emailRef from ReadThread, or an email's id from ListM365Mail. Any email in the owner's "
-								+ "mailbox can be added, with its whole conversation"));
+								+ "an emailRef from ReadThread, or an email's id from ListM365Mail. "
+								+ "Adding them explicitly overrides topic-level person rules on those threads only; "
+								+ "global never-ingest rules still apply."));
 	}
 }

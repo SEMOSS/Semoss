@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.collaboration.BrainExplicitSource;
 import prerna.collaboration.WorkTaskUtils;
 import prerna.reactor.ReactorDefinition;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -51,11 +52,14 @@ public class WorkSaveWorkReactor extends AbstractWorkTaskReactor {
 	private static final String THREAD_IDS = "threadIds";
 	private static final String NOTE = "note";
 	private static final String ACCEPT = "accept";
+	private static final String EMAIL_ID = "emailId";
+	private static final String CHAT_ID = "chatId";
+	private static final String MESSAGE_ID = "messageId";
 
 	public WorkSaveWorkReactor() {
 		this.keysToGet = new String[] { TASK_ID, TITLE, DESCRIPTION, STATUS, NEXT_STEP, WAITING_ON, DUE, PRIORITY,
-				ONGOING, TOPIC_IDS, REMOVE_TOPIC_IDS, THREAD_IDS, NOTE, ACCEPT };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				ONGOING, TOPIC_IDS, REMOVE_TOPIC_IDS, THREAD_IDS, NOTE, ACCEPT, EMAIL_ID, CHAT_ID, MESSAGE_ID };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -78,11 +82,13 @@ public class WorkSaveWorkReactor extends AbstractWorkTaskReactor {
 		java.util.List<String> threads = strings(THREAD_IDS);
 		// a new work item made in a thread's chat is about that thread
 		String chatThread = chatThreadId();
-		if (getString(TASK_ID) == null && threads.isEmpty() && chatThread != null) {
+		if (getString(TASK_ID) == null && threads.isEmpty() && chatThread != null
+				&& getString(EMAIL_ID) == null && getString(CHAT_ID) == null && getString(MESSAGE_ID) == null) {
 			threads.add(chatThread);
 		}
 		args.put(THREAD_IDS, threads);
-		return mapResult(WorkTaskUtils.saveWork(getUser(), args, origin()));
+		return mapResult(BrainExplicitSource.save(getUser(), args, origin(), false, getString(EMAIL_ID),
+				getString(CHAT_ID), getString(MESSAGE_ID)));
 	}
 
 	@Override
@@ -108,6 +114,9 @@ public class WorkSaveWorkReactor extends AbstractWorkTaskReactor {
 								"Topic ids to take it off, when it is not about them; pass topicIds too to move it to another topic"))
 				.key(THREAD_IDS, key -> key.type(List.class).description("Thread ids that move it"))
 				.key(NOTE, "A line for its timeline, e.g. a decision or an update")
-				.key(ACCEPT, key -> key.type(Boolean.class).description("True to accept one Brain proposed"));
+				.key(ACCEPT, key -> key.type(Boolean.class).description("True to accept one Brain proposed"))
+				.key(EMAIL_ID, "An email id or emailRef the owner explicitly selected as the source")
+				.key(CHAT_ID, "The Teams chat id when the owner explicitly selected a Teams message")
+				.key(MESSAGE_ID, "The selected Teams message id; pass with chatId. Global never-ingest rules still apply.");
 	}
 }

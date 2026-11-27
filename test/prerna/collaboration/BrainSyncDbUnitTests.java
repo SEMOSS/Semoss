@@ -942,6 +942,130 @@ class BrainSyncDbUnitTests {
 	}
 
 	@Test
+	void explicitSourcesIngestMailAndTeamsWithTheirWork() throws Exception {
+		sql("INSERT INTO SOURCE_CONNECTION (OWNER_ID, OWNER_TYPE, SOURCE, ENABLED) VALUES (?, ?, 'teams', TRUE)",
+				ownerId, ownerType);
+		Map<String, Object> teams = email("T1", "chat-1", "Chat", "dana@test.com", "owner@test.com");
+		teams.put("internetMessageId", "teams:chat-1:T1");
+		teams.remove("parentFolderId");
+		BrainMailHeaderSource source = explicitSource(mailbox.get(0), teams);
+		BrainMessageSource body = (u, kind, conversation, id) -> Map.of("body",
+				Map.of("contentType", "text", "content", "Allowed message"));
+
+		Map<String, Object> step = BrainExplicitSource.save(user, Map.of("text", "Reply"), "you", true, "G1", null,
+				null, source, body);
+		Map<String, Object> work = BrainExplicitSource.save(user, Map.of("title", "Follow up"), "you", false, null,
+				"chat-1", "T1", source, body);
+		assertTrue(step.get("threadId") != null);
+		assertTrue(work.get("id") != null);
+		assertEquals(2, count("BRAIN_MESSAGE"));
+		assertEquals(1, count("WORK_THREAD_STEP"));
+		assertEquals(1, count("WORK_TASK"));
+		assertEquals(1, ((Number) value("SELECT COUNT(*) FROM BRAIN_THREAD WHERE SOURCE = 'teams'")).intValue());
+	}
+
+	@Test
+	void explicitSourcesRejectNeverRulesAndRollBackFailedWork() throws Exception {
+		Map<String, Object> mail = mailbox.get(0);
+		BrainMailHeaderSource source = explicitSource(mail, null);
+		BrainMessageSource body = (u, kind, conversation, id) -> Map.of("body",
+				Map.of("contentType", "text", "content", "secret project"));
+		BrainRuleUtils.saveRule(user, Map.of("kind", "never_keyword", "value", "secret"));
+		assertThrows(RuntimeException.class, () -> BrainExplicitSource.save(user, Map.of("text", "Reply"), "you",
+				true, "G1", null, null, source, body));
+		assertEquals(0, count("BRAIN_MESSAGE"));
+		assertEquals(0, count("WORK_THREAD_STEP"));
+		sql("UPDATE BRAIN_RULE SET DISABLED_AT = CURRENT_TIMESTAMP WHERE KIND = 'never_keyword'");
+		BrainRuleUtils.saveRule(user, Map.of("kind", "never_sender", "value", "mes@test.com"));
+		assertThrows(RuntimeException.class, () -> BrainExplicitSource.save(user, Map.of("title", "Follow up"), "you",
+				false, "G1", null, null, source, body));
+		assertEquals(0, count("BRAIN_MESSAGE"));
+		assertEquals(0, count("WORK_TASK"));
+		sql("UPDATE BRAIN_RULE SET DISABLED_AT = CURRENT_TIMESTAMP WHERE KIND = 'never_sender'");
+		assertThrows(IllegalArgumentException.class, () -> BrainExplicitSource.save(user, Map.of(), "you", false,
+				"G1", null, null, source, body));
+		assertEquals(0, count("BRAIN_MESSAGE"));
+		assertEquals(0, count("BRAIN_THREAD"));
+	}
+
+	@Test
+	void explicitSourceOverridesOnlyThatThreadsTopicRule() throws Exception {
+		Map<String, Object> first = email("P1", "same", "Topic", "dana@test.com", "owner@test.com");
+		Map<String, Object> selected = email("P2", "same", "Topic", "dana@test.com", "owner@test.com");
+		BrainSync.importHeaders(user, ownerId, ownerType, headers, List.of(first));
+		String thread = (String) value("SELECT THREAD_ID FROM BRAIN_THREAD WHERE THREAD_KEY = 'email:same'");
+		String person = (String) value("SELECT PERSON_ID FROM BRAIN_PERSON WHERE EMAIL_NORM = 'dana@test.com'");
+		sql("INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME) VALUES (?, ?, 'topic-1', 'Topic')",
+				ownerId, ownerType);
+		sql("INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, SOURCE) "
+				+ "VALUES (?, ?, ?, 'topic-1', 'you')", ownerId, ownerType, thread);
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, TOPIC_ID, PERSON_ID, CREATED_AT) "
+				+ "VALUES (?, ?, 'topic-rule', 'exclude_topic', 'topic-1', ?, CURRENT_TIMESTAMP)", ownerId, ownerType,
+				person);
+		BrainMailHeaderSource source = explicitSource(selected, null);
+		BrainMessageSource body = (u, kind, conversation, id) -> Map.of("body",
+				Map.of("contentType", "text", "content", "Allowed"));
+		Map<String, Object> result = BrainExplicitSource.save(user, Map.of("text", "Follow up"), "you", true, "P2",
+				null, null, source, body);
+		assertEquals(thread, result.get("threadId"));
+		assertEquals(1, count("BRAIN_THREAD_RULE_OVERRIDE"));
+		assertEquals(Boolean.TRUE, value("SELECT INCLUDED FROM BRAIN_THREAD_PARTICIPANT WHERE PERSON_ID = '" + person + "'"));
+		assertEquals(1, count("BRAIN_RULE"));
+		Map<String, Object> read = BrainThreadMessages.read(user, ownerId, ownerType, thread, 10, body);
+		for (Object item : (List<?>) read.get("messages")) {
+			assertEquals(false, ((Map<?, ?>) item).get("excluded"));
+		}
+	}
+
+	@Test
+	void teamsAttachmentMetadataIsReturnedWhenReadingAnExplicitMessage() throws Exception {
+		sql("INSERT INTO SOURCE_CONNECTION (OWNER_ID, OWNER_TYPE, SOURCE, ENABLED) VALUES (?, ?, 'teams', TRUE)",
+				ownerId, ownerType);
+		Map<String, Object> teams = email("T1", "chat-1", "Chat", "dana@test.com", "owner@test.com");
+		teams.put("internetMessageId", "teams:chat-1:T1");
+		teams.remove("parentFolderId");
+		BrainMessageSource body = (u, kind, conversation, id) -> Map.of("body",
+				Map.of("contentType", "text", "content", "See file"), "attachments",
+				List.of(Map.of("id", "file-1", "name", "report.pdf", "contentType", "reference")));
+		Map<String, Object> step = BrainExplicitSource.save(user, Map.of("text", "Read file"), "you", true, null,
+				"chat-1", "T1", explicitSource(null, teams), body);
+		Map<String, Object> read = BrainThreadMessages.read(user, ownerId, ownerType, (String) step.get("threadId"),
+				10, body, false, null, true);
+		Map<?, ?> entry = (Map<?, ?>) ((List<?>) read.get("messages")).get(0);
+		assertEquals("file-1", ((Map<?, ?>) ((List<?>) entry.get("attachments")).get(0)).get("id"));
+	}
+
+	private BrainMailHeaderSource explicitSource(Map<String, Object> mail, Map<String, Object> teams) {
+		return new BrainMailHeaderSource() {
+			@Override
+			public Map<String, Object> me(User u) throws Exception {
+				return headers.me(u);
+			}
+
+			@Override
+			public Map<String, Object> manager(User u) {
+				return null;
+			}
+
+			@Override
+			public List<Map<String, Object>> list(User u, String folder, Instant since, int max) {
+				return List.of();
+			}
+
+			@Override
+			public Map<String, Object> message(User u, String id) {
+				return mail != null && id.equals(mail.get("id")) ? mail : null;
+			}
+
+			@Override
+			public Map<String, Object> chatMessage(User u, String chatId, String id) {
+				return teams != null && id.equals(teams.get("id")) && chatId.equals(teams.get("conversationId"))
+						? teams : null;
+			}
+		};
+	}
+
+	@Test
 	void anOwnerWhoseSignInExpiredIsSkippedAndNotReportedAsSynced() throws Exception {
 		try (MockedStatic<MicrosoftGraphCredentialStore> credentials = mockStatic(MicrosoftGraphCredentialStore.class);
 				MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class)) {
