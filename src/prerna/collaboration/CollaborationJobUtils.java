@@ -49,6 +49,7 @@ public final class CollaborationJobUtils {
 	public static final String RUNNING = "running";
 	public static final String DONE = "done";
 	public static final String FAILED = "failed";
+	private static final long TICK_MS = 2000;
 	private static final String COLUMNS = "JOB_ID, KIND, STATUS, STEP, PROGRESS, PARAMS_JSON, COUNTS_JSON, ERROR, "
 			+ "STARTED_AT, FINISHED_AT";
 
@@ -69,6 +70,7 @@ public final class CollaborationJobUtils {
 		private final String ownerType;
 		private final String jobId;
 		private final Map<String, Object> counts = new LinkedHashMap<>();
+		private long savedAt;
 
 		private Job(String ownerId, String ownerType, String jobId) {
 			this.ownerId = ownerId;
@@ -84,7 +86,8 @@ public final class CollaborationJobUtils {
 			return ownerType;
 		}
 
-		public void step(String step, int progress) {
+		public synchronized void step(String step, int progress) {
+			savedAt = System.currentTimeMillis();
 			CollaborationDbUtils.update(
 					"UPDATE COLLAB_JOB SET STEP = ?, PROGRESS = ?, COUNTS_JSON = ? "
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND JOB_ID = ?",
@@ -92,8 +95,15 @@ public final class CollaborationJobUtils {
 					jobId);
 		}
 
-		public void count(String key, Object value) {
+		public synchronized void count(String key, Object value) {
 			counts.put(key, value);
+		}
+
+		// a step update from busy work, saved at most every couple of seconds
+		public synchronized void tick(String step, int progress) {
+			if (System.currentTimeMillis() - savedAt >= TICK_MS) {
+				step(step, progress);
+			}
 		}
 	}
 

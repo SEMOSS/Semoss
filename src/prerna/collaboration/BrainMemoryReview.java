@@ -95,7 +95,6 @@ public final class BrainMemoryReview {
 	static final int MAX_SUGGESTIONS = 5;
 	// evidence shorter than this matches too easily to prove anything
 	static final int MIN_EVIDENCE = 8;
-	private static final int MAX_TOKENS = 1500;
 	private static final int ATTEMPTS = 2;
 
 	static final String OWNER = "owner";
@@ -436,7 +435,6 @@ public final class BrainMemoryReview {
 		String prompt = CollaborationDbUtils.toJson(input);
 		Map<String, Object> params = new LinkedHashMap<>();
 		params.put("temperature", 0);
-		params.put("max_tokens", MAX_TOKENS);
 		params.put("schema", SCHEMA);
 		for (int attempt = 1;; attempt++) {
 			// an insight of its own: nothing goes through the thread's room

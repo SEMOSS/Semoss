@@ -84,7 +84,6 @@ public final class WorkTwinIndex {
 	private static final int PDF_PAGES = 5;
 	// a document larger than this is not opened to be read
 	private static final long MAX_DOCUMENT_BYTES = 50L * 1024 * 1024;
-	private static final int MAX_TOKENS = 200;
 	private static final int ATTEMPTS = 2;
 
 	private static final String INSTRUCTIONS = """
@@ -289,7 +288,6 @@ public final class WorkTwinIndex {
 			for (int attempt = 0; attempt < ATTEMPTS; attempt++) {
 				Map<String, Object> params = new LinkedHashMap<>();
 				params.put("temperature", 0);
-				params.put("max_tokens", MAX_TOKENS);
 				params.put("schema", SCHEMA);
 				// an insight of its own: nothing goes through a room
 				Insight insight = new Insight();

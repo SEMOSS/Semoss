@@ -81,7 +81,6 @@ public final class WorkThreadInsights {
 	private static final int HISTORY_CHARS = 6000;
 	private static final int BUDGET_CHARS = 40000;
 	private static final int SUMMARY_CHARS = 1500;
-	private static final int MAX_TOKENS = 3000;
 	private static final int ATTEMPTS = 2;
 	// share of words two items have in common to count as the same item
 	private static final double SAME_ITEM = 0.75;
@@ -342,7 +341,6 @@ public final class WorkThreadInsights {
 		String prompt = CollaborationDbUtils.toJson(input);
 		Map<String, Object> params = new LinkedHashMap<>();
 		params.put("temperature", 0);
-		params.put("max_tokens", MAX_TOKENS);
 		params.put("schema", SCHEMA);
 		for (int attempt = 1;; attempt++) {
 			// an insight of its own: nothing goes through the thread's room

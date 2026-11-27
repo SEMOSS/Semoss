@@ -1143,7 +1143,7 @@ final class BrainTopicJudge {
 				input.put("question", question == null ? "" : question);
 				input.put("searched", searched);
 				Map<String, Object> answer = call(EXPAND_INSTRUCTIONS, CollaborationDbUtils.toJson(input),
-						EXPAND_SCHEMA, 200, "terms");
+						EXPAND_SCHEMA, "terms");
 				List<String> out = new ArrayList<>();
 				if (answer != null && answer.get("terms") instanceof List<?> list) {
 					for (Object item : list) {
@@ -1178,7 +1178,7 @@ final class BrainTopicJudge {
 			prompt.put("passages", input);
 			try {
 				Map<String, Object> answer = call(SCREEN_INSTRUCTIONS, CollaborationDbUtils.toJson(prompt),
-						SCREEN_SCHEMA, 400, "keep");
+						SCREEN_SCHEMA, "keep");
 				if (answer == null || !(answer.get("keep") instanceof List<?> keep)) {
 					lastError = "its screening answer could not be read as the expected JSON";
 					return null;
@@ -1214,7 +1214,7 @@ final class BrainTopicJudge {
 			prompt.put("passages", input);
 			Map<String, Object> answer;
 			try {
-				answer = call(JUDGE_INSTRUCTIONS, CollaborationDbUtils.toJson(prompt), JUDGE_SCHEMA, 1800, "results");
+				answer = call(JUDGE_INSTRUCTIONS, CollaborationDbUtils.toJson(prompt), JUDGE_SCHEMA, "results");
 			} catch (RuntimeException e) {
 				classLogger.warn("The relevance model {} failed on a batch", engine, e);
 				lastError = e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage());
@@ -1236,11 +1236,10 @@ final class BrainTopicJudge {
 			return verdicts;
 		}
 
-		private Map<String, Object> call(String instructions, String prompt, Map<String, Object> schema, int maxTokens,
+		private Map<String, Object> call(String instructions, String prompt, Map<String, Object> schema,
 				String requiredKey) {
 			Map<String, Object> params = new LinkedHashMap<>();
 			params.put("temperature", 0);
-			params.put("max_tokens", maxTokens);
 			params.put("schema", schema);
 			// On a thread of its own. Model calls are logged against the room of the thread that makes them, so a call
 			// from the assistant's tool thread would put its raw JSON into the owner's chat and into the assistant's own

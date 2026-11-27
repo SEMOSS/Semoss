@@ -1106,6 +1106,8 @@ public class Constants {
 	public static final String COLLAB_WORK_EXTRACT_PARALLEL = "COLLAB_WORK_EXTRACT_PARALLEL";
 	// reasoning effort sent with Work's model calls (low, medium, high); unset sends none
 	public static final String COLLAB_WORK_REASONING_EFFORT = "COLLAB_WORK_REASONING_EFFORT";
+	// reasoning effort for grouping candidates into work items; unset uses COLLAB_WORK_REASONING_EFFORT
+	public static final String COLLAB_WORK_GROUP_EFFORT = "COLLAB_WORK_GROUP_EFFORT";
 	// "false" keeps a done claim to steps of its own thread; otherwise it may finish a step on another thread of the
 	// topic when it names the same thing
 	public static final String COLLAB_WORK_CLOSE_ACROSS = "COLLAB_WORK_CLOSE_ACROSS";

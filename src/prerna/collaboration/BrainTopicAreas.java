@@ -97,7 +97,7 @@ final class BrainTopicAreas {
 			}
 			cards.add(card);
 		}
-		Map<String, Object> params = Map.of("temperature", 0, "schema", schema(ids), "max_tokens", 3000);
+		Map<String, Object> params = Map.of("temperature", 0, "schema", schema(ids));
 		try {
 			List<Area> areas = validate(caller.ask(new Gson().toJson(Map.of("topics", cards)), INSTRUCTIONS, params),
 					ids, topics);

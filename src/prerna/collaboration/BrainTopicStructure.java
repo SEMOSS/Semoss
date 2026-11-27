@@ -79,11 +79,11 @@ public final class BrainTopicStructure {
 	// the owner took part in; for a pool
 	// the classifier has already cleared of automated mail
 	public record Settings(int pool, int seeds, int topics, double mergeCut, double floor, int votes, int dropAt,
-			int attempts, int spareVotes, int maxTokens, boolean wide) {
+			int attempts, int spareVotes, boolean wide) {
 		public Settings {
 			if (pool < 1 || pool > 1000 || seeds < 1 || topics < 1 || topics > 40 || votes < 1 || votes > 9
 					|| dropAt < 1 || dropAt > votes || attempts < 1 || attempts > 2 || spareVotes < 0 || spareVotes > 1
-					|| mergeCut < 0 || mergeCut > 1 || floor < 0 || floor > 1 || maxTokens < 1 || maxTokens > 8000) {
+					|| mergeCut < 0 || mergeCut > 1 || floor < 0 || floor > 1) {
 				throw new IllegalArgumentException("Invalid topic onboarding settings");
 			}
 		}
@@ -91,10 +91,10 @@ public final class BrainTopicStructure {
 
 	// Before a completed sort, require owner engagement; after sort, WIDE trusts
 	// the non-automated pool.
-	public static final Settings A1 = new Settings(300, 40, 25, 0.6, 0.1, 3, 2, 2, 1, 4000, false);
+	public static final Settings A1 = new Settings(300, 40, 25, 0.6, 0.1, 3, 2, 2, 1, false);
 	// after a sort: every real thread, and a longer list for the owner to narrow
 	// down
-	public static final Settings WIDE = new Settings(1000, 60, 40, 0.6, 0.1, 3, 2, 2, 1, 6000, true);
+	public static final Settings WIDE = new Settings(1000, 60, 40, 0.6, 0.1, 3, 2, 2, 1, true);
 	private static final Pattern PREFIX = Pattern.compile("^((\\[EXTERNAL\\] )?(RE|FW|Fwd): )*",
 			Pattern.CASE_INSENSITIVE);
 	private static final Pattern WORD = Pattern.compile("(?U)\\b\\w\\w+\\b");

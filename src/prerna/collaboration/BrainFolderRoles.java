@@ -103,7 +103,7 @@ final class BrainFolderRoles {
 		for (int start = 0; start < cards.size(); start += PER_CALL) {
 			List<Map<String, Object>> part = cards.subList(start, Math.min(cards.size(), start + PER_CALL));
 			List<String> ids = part.stream().map(c -> (String) c.get("id")).toList();
-			Map<String, Object> params = Map.of("temperature", 0, "schema", schema(ids), "max_tokens", 2000);
+			Map<String, Object> params = Map.of("temperature", 0, "schema", schema(ids));
 			String prompt = new Gson().toJson(Map.of("folders", part));
 			for (int attempt = 0; attempt < 2; attempt++) {
 				try {

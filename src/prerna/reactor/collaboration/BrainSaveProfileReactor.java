@@ -58,6 +58,6 @@ public class BrainSaveProfileReactor extends AbstractCollaborationReactor {
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition()
 				.description("Updates the signed-in user's Brain profile; only the fields passed are changed").key(KEY,
-						"Partial profile: name, email, org, timezone, workingHours, role {value, note}, style {summary, confirmed, examples}, vips (person ids)");
+						"Partial profile: name, email, org, timezone, workingHours, role {value, note}, style {summary, confirmed, examples}, vips (person ids), workContext (the owner's work areas, one per line)");
 	}
 }

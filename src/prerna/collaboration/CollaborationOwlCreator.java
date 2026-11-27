@@ -159,6 +159,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// the learned proposal waiting for the owner's review; never used when drafting
 				Pair.with("STYLE_PENDING_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("STYLE_LEARNED_AT", TIMESTAMP_DATATYPE_NAME),
+				// what the owner wrote about their work at onboarding, one area per line; it seeds their topics
+				Pair.with("WORK_CONTEXT", CLOB_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// the owner's Brain settings, made on first read. Brain files a thread under its best topic
 		// at FILE_AT confidence or more and asks the owner at ASK_AT or more (0 to 100, defaults 85
@@ -816,6 +818,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ASSIGNEE", VARCHAR_50),
 				Pair.with("ASKED_BY", VARCHAR_50),
 				Pair.with("ADDRESSING_JSON", CLOB_DATATYPE_NAME),
+				// only to attend a meeting, call or event on DUE_AT: nothing to do once that day has passed
+				Pair.with("ATTEND", BOOLEAN_DATATYPE_NAME),
 				Pair.with("TOPIC_ID", VARCHAR_50),
 				// evidence, new_step, new_task, closes, waiting_on, update or drop, and what it pointed at
 				Pair.with("RESULT", VARCHAR_20),

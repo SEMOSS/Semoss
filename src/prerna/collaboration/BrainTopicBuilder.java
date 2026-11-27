@@ -42,6 +42,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
@@ -345,13 +349,22 @@ final class BrainTopicBuilder {
         Map<String, String[]> verdicts = new LinkedHashMap<>();
 		int unchecked = 0;
 		String engineId = BrainTopicModel.engine(user);
-		for (int from = 0; from < ids.size(); from += CHUNK) {
-			List<String> chunk = ids.subList(from, Math.min(ids.size(), from + CHUNK));
-			try {
+		// every chunk is judged at once; the answers are read in order
+		List<List<String>> chunks = new ArrayList<>();
+		for (int from = 0; from < ids.size(); from += CHUNK) chunks.add(ids.subList(from, Math.min(ids.size(), from + CHUNK)));
+		ExecutorService judges = Executors.newFixedThreadPool(Math.max(1, chunks.size()));
+		try {
+			List<Future<Map<String, Object>>> answers = new ArrayList<>();
+			for (List<String> chunk : chunks) {
 				Map<String, Object> context = Map.of("topic", topic, "otherTopics", others, "conversations", chunk.stream().map(id ->
-                            Map.of("threadId", id, "subject", threads.get(id).get("subject"), "summary", threads.get(id).get("summary"),
-                                    "people", strings(threads.get(id).get("people")).stream().limit(8).toList())).toList());
-				Map<String, Object> answer = ask(user, engineId, CollaborationDbUtils.toJson(context), JUDGE, judgeSchema(chunk, others.keySet()));
+						Map.of("threadId", id, "subject", threads.get(id).get("subject"), "summary", threads.get(id).get("summary"),
+								"people", strings(threads.get(id).get("people")).stream().limit(8).toList())).toList());
+				answers.add(judges.submit(() -> ask(user, engineId, CollaborationDbUtils.toJson(context), JUDGE, judgeSchema(chunk, others.keySet()))));
+			}
+		for (int n = 0; n < chunks.size(); n++) {
+			List<String> chunk = chunks.get(n);
+			try {
+				Map<String, Object> answer = answers.get(n).get();
 				for (Map<String, Object> verdict : maps(answer.get("verdicts"))) {
 					String id = Objects.toString(verdict.get("threadId"), "");
 					String fits = Objects.toString(verdict.get("fits"), "");
@@ -372,11 +385,15 @@ final class BrainTopicBuilder {
                     subjectClues.put(id, textList(verdict.get("subjectClues")).stream().map(c -> display(c, 100))
                             .filter(c -> !c.isBlank() && subject.contains(c.toLowerCase(Locale.ROOT))).distinct().limit(3).toList());
 				}
-			} catch (RuntimeException e) {
+			} catch (InterruptedException | ExecutionException | RuntimeException e) {
+				if (e instanceof InterruptedException) Thread.currentThread().interrupt();
 				classLogger.warn("Could not judge {} conversations for a topic being set up", chunk.size(), e);
 				unchecked += chunk.size();
 				chunk.forEach(id -> verdicts.putIfAbsent(id, new String[] { "maybe", "Not checked" }));
 			}
+		}
+		} finally {
+			judges.shutdownNow();
 		}
 		List<Map<String, Object>> rows = new ArrayList<>();
 		for (String id : ids) {

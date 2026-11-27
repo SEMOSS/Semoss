@@ -35,6 +35,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -102,7 +104,7 @@ public final class BrainProfileUtils {
 				.queryOne(
 						"SELECT DISPLAY_NAME, EMAIL, ORG, ROLE, ROLE_STATE, ROLE_NOTE, TIMEZONE, WORKING_HOURS_JSON, "
 								+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON, STYLE_VARIANTS_JSON, STYLE_PENDING_JSON, "
-								+ "STYLE_LEARNED_AT FROM BRAIN_PROFILE "
+								+ "STYLE_LEARNED_AT, WORK_CONTEXT FROM BRAIN_PROFILE "
 								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 						BrainProfileUtils::mapProfile, ownerId, ownerType);
 		if (profile != null) {
@@ -235,6 +237,9 @@ public final class BrainProfileUtils {
 				CollaborationDbUtils.addSet(sets, params, "STYLE_PENDING_JSON", null);
 			}
 		}
+		if (changes.containsKey("workContext")) {
+			CollaborationDbUtils.addSet(sets, params, "WORK_CONTEXT", cleanWorkContext(changes.get("workContext")));
+		}
 		List<String> vips = changes.get("vips") instanceof List
 				? CollaborationDbUtils.toStringList((List<Object>) changes.get("vips"))
 				: null;
@@ -259,6 +264,25 @@ public final class BrainProfileUtils {
 			}
 		});
 		return getProfile(ownerId, ownerType);
+	}
+
+	static final int MAX_WORK_CONTEXT_CHARS = 6000;
+
+	// trimmed lines, blank ones dropped; empty means the owner left it to the assistant
+	private static String cleanWorkContext(Object value) {
+		String text = value == null ? "" : value.toString().lines().map(String::strip).filter(line -> !line.isEmpty())
+				.collect(Collectors.joining("\n"));
+		if (text.length() > MAX_WORK_CONTEXT_CHARS) {
+			throw new IllegalArgumentException("Keep what you write about your work under " + MAX_WORK_CONTEXT_CHARS + " characters");
+		}
+		return text.isEmpty() ? null : text;
+	}
+
+	/** What the owner wrote about their work, or empty. */
+	static String workContext(String ownerId, String ownerType) {
+		String text = CollaborationDbUtils.queryOne("SELECT WORK_CONTEXT FROM BRAIN_PROFILE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				rs -> CollaborationDbUtils.getString(rs, "WORK_CONTEXT"), ownerId, ownerType);
+		return text == null ? "" : text.strip();
 	}
 
 	private static void ensureProfile(String ownerId, String ownerType, User user) {
@@ -316,6 +340,7 @@ public final class BrainProfileUtils {
 		profile.put("timezone", CollaborationDbUtils.getString(rs, "TIMEZONE"));
 		profile.put("workingHours", CollaborationDbUtils.getString(rs, "WORKING_HOURS_JSON"));
 		profile.put("style", style);
+		profile.put("workContext", Objects.toString(CollaborationDbUtils.getString(rs, "WORK_CONTEXT"), ""));
 		return profile;
 	}
 
