@@ -294,6 +294,7 @@ public final class AutomationDefinitionValidator {
 		}
 		case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
 		case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
+		case EXPORT_TEMPLATE_PPTX -> validateTemplatePptxConfig(nodeId, config);
 		case AGENT_RUN -> {
 			validateOptionalConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
 			requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
@@ -342,6 +343,82 @@ public final class AutomationDefinitionValidator {
 		case TRIGGER_START, DEVELOPER_PYTHON -> {
 			// These node types have no additional required configuration here.
 		}
+		}
+	}
+
+	private static void validateTemplatePptxConfig(String nodeId, Map<String, Object> config) {
+		requireConfigString(nodeId, config, "templateFile");
+		Object replacements = config.get("replacements");
+		if (replacements == null) {
+			return;
+		}
+		if (!(replacements instanceof List<?> list)) {
+			throw new IllegalArgumentException("Node '" + nodeId + "' config.replacements must be a list.");
+		}
+		for (int index = 0; index < list.size(); index++) {
+			String field = "config.replacements[" + index + "]";
+			if (!(list.get(index) instanceof Map<?, ?> replacement)) {
+				throw new IllegalArgumentException("Node '" + nodeId + "' " + field + " must be an object.");
+			}
+			requireTemplatePptxString(nodeId, replacement, field, "shapeName", false);
+			Object type = replacement.get("type");
+			if ("text".equals(type) || "image".equals(type)) {
+				requireTemplatePptxString(nodeId, replacement, field, "value", true);
+			} else if ("chart".equals(type)) {
+				validateTemplatePptxChart(nodeId, replacement, field);
+			} else {
+				throw new IllegalArgumentException(
+						"Node '" + nodeId + "' " + field + ".type must be text, image, or chart.");
+			}
+		}
+	}
+
+	private static void validateTemplatePptxChart(String nodeId, Map<?, ?> replacement, String field) {
+		Object categories = replacement.get("categories");
+		if (!isScopePlaceholderValue(categories)
+				&& !(categories instanceof List<?> list && list.stream().allMatch(String.class::isInstance))) {
+			throw new IllegalArgumentException("Node '" + nodeId + "' " + field
+					+ ".categories must be a list of strings or an exact ${upstream_list} reference.");
+		}
+		Object series = replacement.get("series");
+		if (isScopePlaceholderValue(series)) {
+			return;
+		}
+		if (!(series instanceof List<?> seriesList)) {
+			throw new IllegalArgumentException("Node '" + nodeId + "' " + field
+					+ ".series must be a list or an exact ${upstream_list} reference.");
+		}
+		for (int index = 0; index < seriesList.size(); index++) {
+			String seriesField = field + ".series[" + index + "]";
+			if (!(seriesList.get(index) instanceof Map<?, ?> entry)) {
+				throw new IllegalArgumentException("Node '" + nodeId + "' " + seriesField + " must be an object.");
+			}
+			requireTemplatePptxString(nodeId, entry, seriesField, "name", false);
+			Object values = entry.get("values");
+			if (isScopePlaceholderValue(values)) {
+				continue;
+			}
+			if (!(values instanceof List<?> valueList) || !valueList.stream()
+					.allMatch(value -> value instanceof Number number && Double.isFinite(number.doubleValue()))) {
+				throw new IllegalArgumentException("Node '" + nodeId + "' " + seriesField
+						+ ".values must be a list of numbers or an exact ${upstream_list} reference.");
+			}
+			if (categories instanceof List<?> categoryList && valueList.size() != categoryList.size()) {
+				throw new IllegalArgumentException("Node '" + nodeId + "' " + seriesField
+						+ ".values must have one number per category.");
+			}
+		}
+	}
+
+	private static boolean isScopePlaceholderValue(Object value) {
+		return value instanceof String string && isScopePlaceholder(string.trim());
+	}
+
+	private static void requireTemplatePptxString(String nodeId, Map<?, ?> object, String field, String key,
+			boolean allowBlank) {
+		if (!(object.get(key) instanceof String string) || !allowBlank && string.isBlank()) {
+			throw new IllegalArgumentException("Node '" + nodeId + "' " + field + "." + key
+					+ (allowBlank ? " must be a string." : " must be a nonblank string."));
 		}
 	}
 
