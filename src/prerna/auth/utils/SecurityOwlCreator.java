@@ -160,7 +160,8 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
-				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME),
+				Pair.with("USERDISCOVERABLE", BOOLEAN_DATATYPE_NAME)));
 
 		// model usage limits: the tokens, cost and compute time calls to a model may use.
 		// ModelUsageGuard checks them on each call, every read and write goes through
@@ -253,7 +254,8 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("USERID", VARCHAR_255),
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("FAVORITE", BOOLEAN_DATATYPE_NAME),
-				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("VISIBILITY", BOOLEAN_DATATYPE_NAME),
+				Pair.with("USERDISCOVERABLE", BOOLEAN_DATATYPE_NAME)));
 
 		// the metadata values set on a project, such as its description, markdown and tags, one row
 		// per value; the metadata reactors accept only the keys in PROJECTMETAKEYS. The server-only
