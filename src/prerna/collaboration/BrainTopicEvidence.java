@@ -193,7 +193,8 @@ final class BrainTopicEvidence {
 			}
 			described.add(subjects.isEmpty() ? topic
 					: new BrainClassifier.TopicOption(topic.id(), topic.name(),
-							(text + LABEL + String.join("; ", subjects) + ".").trim()));
+							(text + LABEL + String.join("; ", subjects) + ".").trim(),
+							topic.keywords(), topic.personIds()));
 		}
 		return described;
 	}
