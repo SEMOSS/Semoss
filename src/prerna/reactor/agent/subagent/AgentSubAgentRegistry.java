@@ -82,6 +82,7 @@ public final class AgentSubAgentRegistry {
 	private static final Logger logger = LogManager.getLogger(AgentSubAgentRegistry.class);
 
 	private static final String DEFAULT_HARNESS_TYPE = "semoss";
+	static final int MAX_SUBAGENT_LABEL_LENGTH = 80;
 	private static final String ROOM_OPTION_INSTRUCTIONS = "instructions";
 	/**
 	 * The room option every sub-agent's room carries: the room of the run that
@@ -163,6 +164,7 @@ public final class AgentSubAgentRegistry {
 		if (req.parentRoomId == null || req.parentRoomId.trim().isEmpty()) {
 			throw new IllegalArgumentException("parentRoomId is required");
 		}
+		String label = resolveLabel(req.label, req.prompt);
 
 		Insight callerInsight = req.callerInsight;
 		Room parentRoom = RoomUtils.getOrLoadRoom(req.parentRoomId, callerInsight);
@@ -326,8 +328,8 @@ public final class AgentSubAgentRegistry {
 			// 6. Record metadata before submitting the child run. AgentRunner resolves
 			// ctx.spawnDepth from this registry using ThreadStore.getJobId(), so the
 			// child must be able to find its metadata as soon as RunAgent begins.
-			SubAgentMeta meta = new SubAgentMeta(childRunId, req.parentJobId, req.alias, req.workspaceId, childRoomId,
-					System.currentTimeMillis(), childDepth);
+			SubAgentMeta meta = new SubAgentMeta(childRunId, req.parentJobId, req.alias, label, req.workspaceId,
+					childRoomId, System.currentTimeMillis(), childDepth);
 			byJobId.put(childRunId, meta);
 			if (rootCtx != null) {
 				rootCtxByChildJobId.put(childRunId, rootCtx);
@@ -341,6 +343,7 @@ public final class AgentSubAgentRegistry {
 					req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS,
 					childParamMap, null, null, null, childInsight).withParentRunId(req.parentJobId);
 			runRequest = runRequest.withCompletionMode(req.completionMode);
+			runRequest = runRequest.withLabel(label);
 			AgentRunHandle runHandle = AgentRunService.get().runWithId(childRunId, runRequest);
 			childStarted = true;
 
@@ -350,13 +353,14 @@ public final class AgentSubAgentRegistry {
 						? prerna.reactor.agent.run.AgentRunStatus.SUBMITTED.name()
 						: runHandle.status().name();
 				prerna.reactor.agent.stream.AgentRunStreamService.get().publishSubagentStarted(req.parentJobId,
-						prerna.reactor.agent.stream.AgentStreamItems.subagentItem(childRunId, req.alias, childRoomId,
-								req.workspaceId, childStatus));
+						prerna.reactor.agent.stream.AgentStreamItems.subagentItem(childRunId, req.alias, label,
+								childRoomId, req.workspaceId, childStatus));
 				Map<String, Object> data = new LinkedHashMap<>();
 				data.put("kind", "subagent-spawned");
 				data.put("jobId", childRunId);
 				data.put("runId", childRunId);
 				data.put("alias", req.alias);
+				data.put("label", label);
 				data.put("workspaceId", req.workspaceId);
 				data.put("roomId", childRoomId);
 				data.put("spawnedAt", meta.getSpawnedAt());
@@ -379,7 +383,7 @@ public final class AgentSubAgentRegistry {
 			logger.info(
 					"AgentSubAgentRegistry: spawned subagent jobId={} parentJobId={} alias={} workspaceId={} roomId={}",
 					childRunId, req.parentJobId, req.alias, req.workspaceId, childRoomId);
-			return new SpawnResult(childRunId, childRoomId, req.alias, runHandle.status());
+			return new SpawnResult(childRunId, childRoomId, req.alias, label, runHandle.status());
 		} catch (RuntimeException | Error e) {
 			if (!childStarted && childJobIdForCleanup != null) {
 				byJobId.remove(childJobIdForCleanup);
@@ -391,6 +395,30 @@ public final class AgentSubAgentRegistry {
 			}
 			throw e;
 		}
+	}
+
+	static String resolveLabel(String requestedLabel, String prompt) {
+		String label = firstNonBlankLine(requestedLabel);
+		if (label == null) {
+			label = firstNonBlankLine(prompt);
+		}
+		if (label == null || label.length() <= MAX_SUBAGENT_LABEL_LENGTH) {
+			return label;
+		}
+		return label.substring(0, MAX_SUBAGENT_LABEL_LENGTH - 3).trim() + "...";
+	}
+
+	private static String firstNonBlankLine(String value) {
+		if (value == null) {
+			return null;
+		}
+		for (String line : value.split("\\R")) {
+			String candidate = line.trim();
+			if (!candidate.isEmpty()) {
+				return candidate;
+			}
+		}
+		return null;
 	}
 
 	/**
