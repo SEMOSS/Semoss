@@ -64,7 +64,12 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 	@Override
 	public ReactorDefinition getReactorDefinition() {
 		return super.getReactorDefinition().description(
-				"Reads a Brain thread's latest messages as clean text, fetched live; never-ingest senders are left out. "
+				"Reads a Brain thread's latest messages as clean text from email or Teams chat, fetched live; never-ingest senders are left out. "
+					+ "Result includes lastSyncedAt (when this source was last imported into Brain) for staleness detection: "
+					+ "compare the newest message timestamp against lastSyncedAt to see if newer messages exist on the live service. "
+					+ "For email threads, pass refresh=true to check the mailbox for newer messages after the last sync. "
+					+ "If refresh=true didn't pull expected messages (messages older than lastSyncedAt), use ListM365Mail as a fallback to read Outlook directly. "
+					+ "For Teams chats, use ListChatMessages as a fallback if messages are newer than lastSyncedAt, or if lastSyncedAt is missing (Teams never synced). "
 						+ "In the owner's assistant chat, pass the chosen email's emailRef to ComposeEmail for replies or forwards. "
 						+ "Delegation rooms must use selected or an exact native email id included in their context.")
 				.key(THREAD_ID, "Thread id").key(LIMIT, "Most recent N messages, default 20, at most 100")
@@ -74,7 +79,9 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 				.key("includeAttachments",
 						"List each email's attachments by name and id, without their bytes; defaults to false.")
 				.key(REFRESH,
-						"true first reads the mailbox for mail Brain does not hold yet (at most every 25 seconds); "
-								+ "defaults to false.");
+					"true pulls the mailbox for messages Brain has not held yet, allowing up to one refresh every 25 seconds (email threads only). "
+					+ "Check result.lastSyncedAt: if messages are newer than this, newer items exist on the live service. "
+					+ "For email: if refresh=true didn't bring new messages (older than lastSyncedAt), use ListM365Mail. "
+					+ "For Teams: use ListChatMessages if messages are newer than lastSyncedAt, or if lastSyncedAt field is missing (Teams was never synced to Brain).");
 	}
 }
