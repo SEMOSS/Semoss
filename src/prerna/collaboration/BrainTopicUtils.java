@@ -102,9 +102,10 @@ public final class BrainTopicUtils {
 
 		Map<String, Integer> threads = countThreadsByTopic(ownerId, ownerType);
 		Map<String, Integer> openItems = WorkTaskUtils.openByTopic(ownerId, ownerType);
+		Map<String, Integer> chats = countChatsByTopic(ownerId, ownerType);
 		List<Map<String, Object>> items = CollaborationDbUtils.query(CollaborationDbUtils.page(
 				"SELECT " + SUMMARY_COLUMNS + " FROM BRAIN_TOPIC" + where + " ORDER BY NAME, TOPIC_ID", limit, offset),
-				rs -> mapSummary(rs, threads, openItems), params.toArray());
+				rs -> mapSummary(rs, threads, openItems, chats), params.toArray());
 
 		Map<String, Object> page = new LinkedHashMap<>();
 		page.put("items", items);
@@ -134,11 +135,12 @@ public final class BrainTopicUtils {
 	public static Map<String, Object> getTopic(String ownerId, String ownerType, String topicId) {
 		Map<String, Integer> threads = Map.of(topicId, countThreads(ownerId, ownerType, topicId));
 		Map<String, Integer> openItems = WorkTaskUtils.openByTopic(ownerId, ownerType);
+		Map<String, Integer> chats = Map.of(topicId, countChats(ownerId, ownerType, topicId));
 		Map<String, Object> topic = CollaborationDbUtils.queryOne(
 				"SELECT " + SUMMARY_COLUMNS + ", DESCRIPTION, KEYWORDS_JSON, CALENDAR_SERIES_JSON FROM BRAIN_TOPIC "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
 				rs -> {
-					Map<String, Object> row = mapSummary(rs, threads, openItems);
+					Map<String, Object> row = mapSummary(rs, threads, openItems, chats);
 					row.put("description", CollaborationDbUtils.getString(rs, "DESCRIPTION"));
 					row.put("keywords",
 							CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "KEYWORDS_JSON")));
@@ -692,6 +694,20 @@ public final class BrainTopicUtils {
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? GROUP BY TOPIC_ID", ownerId, ownerType);
 	}
 
+	// chats (rooms) linked to the topic, including AI-suggested ones
+	private static int countChats(String ownerId, String ownerType, String topicId) {
+		return CollaborationDbUtils.count(
+				"SELECT COUNT(DISTINCT ROOM_ID) FROM BRAIN_TOPIC_ROOM "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND STATE IN (?, ?)",
+				ownerId, ownerType, topicId, BrainTopicRoomUtils.LINKED, BrainTopicRoomUtils.SUGGESTED);
+	}
+
+	private static Map<String, Integer> countChatsByTopic(String ownerId, String ownerType) {
+		return countByTopic("SELECT TOPIC_ID, COUNT(DISTINCT ROOM_ID) FROM BRAIN_TOPIC_ROOM "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND STATE IN (?, ?) GROUP BY TOPIC_ID",
+				ownerId, ownerType, BrainTopicRoomUtils.LINKED, BrainTopicRoomUtils.SUGGESTED);
+	}
+
 	private static Map<String, Integer> countByTopic(String sql, Object... params) {
 		Map<String, Integer> counts = new HashMap<>();
 		for (Pair<String, Integer> row : CollaborationDbUtils.query(sql, rs -> Pair.with(rs.getString(1), rs.getInt(2)),
@@ -704,11 +720,12 @@ public final class BrainTopicUtils {
 	// ---- mapping ----
 
 	private static Map<String, Object> mapSummary(ResultSet rs, Map<String, Integer> threads,
-			Map<String, Integer> openItems) throws SQLException {
+			Map<String, Integer> openItems, Map<String, Integer> chats) throws SQLException {
 		String topicId = CollaborationDbUtils.getString(rs, "TOPIC_ID");
 		Map<String, Object> stats = new LinkedHashMap<>();
 		stats.put("threads", threads.getOrDefault(topicId, 0));
 		stats.put("openItems", openItems.getOrDefault(topicId, 0));
+		stats.put("chats", chats.getOrDefault(topicId, 0));
 		stats.put("lastActivity", CollaborationDbUtils.getTimestamp(rs, "LAST_ACTIVITY_AT"));
 
 		Map<String, Object> row = new LinkedHashMap<>();
