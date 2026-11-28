@@ -59,6 +59,7 @@ import org.mockito.Mockito;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.util.sandbox.SandboxInjector;
 import prerna.util.sandbox.SandboxTransporter;
 
 /**
@@ -400,6 +401,50 @@ class SymlinkHelperUnitTests {
 			assertFalse(sent.contains(cache.toString()), "the whole insight cache was sent");
 			assertFalse(sent.contains(base.toString()), "a folder that holds the insight cache was sent");
 			assertTrue(sent.contains(insightFolder.toString()), "a granted insight folder was not sent");
+		} finally {
+			DIHelper.getInstance().setCoreProp(saved);
+		}
+	}
+
+	@Test
+	void theSharedPythonFolderAndInsightCacheAreNeverMountedIntoANamespaceJail() throws IOException {
+		Path base = Files.createDirectories(this.folder.toRealPath().resolve("semosshome"));
+		Path cache = Files.createDirectories(base.resolve("InsightCache"));
+		Path insightFolder = Files.createDirectories(cache.resolve("session-id/insight-id"));
+		Path pyFolder = Files.createDirectories(base.resolve(Constants.PY_BASE_FOLDER));
+		Path pyInside = Files.createDirectories(pyFolder.resolve("genai_client"));
+		Path roomFolder = Files.createDirectories(base.resolve("room/room-id"));
+		Path chroot = this.folder.toRealPath().resolve("chroot-user");
+		Properties saved = DIHelper.getInstance().getCoreProp();
+		Properties settings = new Properties();
+		settings.setProperty(Constants.BASE_FOLDER, base.toString());
+		settings.setProperty(Constants.INSIGHT_CACHE_DIR, cache.toString());
+		settings.setProperty(Constants.SANDBOX_MODE, "NAMESPACE");
+		DIHelper.getInstance().setCoreProp(settings);
+		List<String> mounted = new ArrayList<>();
+		try (MockedStatic<ChrootTemplate> template = Mockito.mockStatic(ChrootTemplate.class)) {
+			// the helper asks for the python folder and the insight cache as it is made
+			SymlinkHelper helper = new SymlinkHelper(chroot.toString(), new User());
+			helper.symlinkFolder(base.toString());
+			helper.symlinkFolder(pyInside.toString());
+			helper.symlinkFolder(insightFolder.toString());
+			helper.symlinkFolder(roomFolder.toString());
+			// folders asked for before the worker exists are mounted when it starts
+			helper.setInjector(new SandboxInjector("unused") {
+				@Override
+				public boolean inject(String absPath, String sourcePath, boolean readWrite) {
+					return mounted.add(absPath);
+				}
+			});
+
+			assertFalse(mounted.contains(pyFolder.toString()), "the python folder was mounted");
+			assertFalse(mounted.contains(pyInside.toString()), "a folder inside the python folder was mounted");
+			assertFalse(mounted.contains(cache.toString()), "the whole insight cache was mounted");
+			assertFalse(mounted.contains(base.toString()), "a folder that holds both was mounted");
+			assertTrue(mounted.contains(insightFolder.toString()), "a granted insight folder was not mounted");
+			assertTrue(mounted.contains(roomFolder.toString()), "a granted room folder was not mounted");
+			// fakechroot still links the python folder; only the namespace mount is refused
+			assertTrue(Files.isSymbolicLink(chroot.resolve(pyFolder.toString().substring(1))));
 		} finally {
 			DIHelper.getInstance().setCoreProp(saved);
 		}

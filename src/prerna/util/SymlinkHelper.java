@@ -335,6 +335,12 @@ public class SymlinkHelper {
 			classLogger.warn("Skipping namespace injection for path outside SEMOSS home: {}", absPath);
 			return;
 		}
+		String shared = sharedFolderCoveredBy(absPath);
+		if (shared != null) {
+			classLogger.warn("Skipping namespace injection of {}: it would expose {}, which every worker shares",
+					absPath, shared);
+			return;
+		}
 		Mount wanted = new Mount(source, readWrite);
 		Mount existing = activeInjects.put(absPath, wanted);
 		if (injector != null) {
@@ -346,6 +352,54 @@ public class SymlinkHelper {
 			} catch (RuntimeException e) {
 				classLogger.warn("Skipping namespace injection for {}", absPath, e);
 			}
+		}
+	}
+
+	/**
+	 * Which shared folder a namespace mount at this path would expose, or null when it exposes
+	 * none. Two folders under the SEMOSS home are shared by every worker on this server and are
+	 * never mounted into a user's jail:
+	 * <ul>
+	 * <li>The python code folder, at, above or inside it. The launcher already binds it
+	 * read-only; a mount here would make it writable, and code written there runs in every
+	 * other python worker, the unjailed engine workers included.</li>
+	 * <li>The insight cache, at or above it. It holds every user's session folders; each
+	 * insight folder inside it is mounted on its own when it is granted.</li>
+	 * </ul>
+	 *
+	 * @param absPath the path asked for
+	 * @return a description of the shared folder, or null
+	 */
+	private static String sharedFolderCoveredBy(String absPath) {
+		Path path = realOrNormalized(absPath);
+		if (path == null) {
+			return null;
+		}
+		Path pyFolder = realOrNormalized(Utility.getBaseFolder() + "/" + Constants.PY_BASE_FOLDER);
+		if (pyFolder != null && (pyFolder.startsWith(path) || path.startsWith(pyFolder))) {
+			return "the python code folder " + pyFolder;
+		}
+		Path insightCache = realOrNormalized(Utility.getInsightCacheDir());
+		if (insightCache != null && insightCache.startsWith(path)) {
+			return "the insight cache " + insightCache;
+		}
+		return null;
+	}
+
+	/** The path with links resolved when it exists, otherwise normalized; null when unusable. */
+	private static Path realOrNormalized(String absPath) {
+		if (absPath == null || absPath.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			Path path = Paths.get(Utility.normalizePath(absPath)).toAbsolutePath().normalize();
+			try {
+				return Files.exists(path) ? path.toRealPath() : path;
+			} catch (IOException e) {
+				return path;
+			}
+		} catch (RuntimeException e) {
+			return null;
 		}
 	}
 
