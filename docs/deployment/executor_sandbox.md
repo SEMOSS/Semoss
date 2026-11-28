@@ -319,6 +319,38 @@ requests.get(url, params={"appid": secret("OPENWEATHER_API_KEY")})
 - The value property can later come from the secret store, which overlays the same properties.
 - All code in one user's sandbox runs as that user, so any app the user has loaded can use the
   placeholders of another app they have loaded, at that app's hosts. Isolation is per user.
+- Pass the value whole, as a header or query value. A value the code transforms first, such as a
+  password given to `requests`' `auth=(user, password)`, is base64 encoded before it leaves and
+  the supervisor never sees the placeholder; store the whole `Basic ...` header value instead.
+
+### In the fakechroot and namespace jails
+
+The same `.smss` and the same `secret()` call work in the other sandbox modes, with one
+difference: **the code gets the value itself**. Those jails have no supervisor in the request path,
+so nothing can swap a placeholder or hold the value to its hosts. The hosts are still required and
+checked for form, so the project moves to OpenShell unchanged, but they are not enforced.
+
+- When SEMOSS sets up a user's jail it makes `<user chroot>/<BaseFolder>/sandbox-secrets`
+  (`0700`). When the jail loads a project ([JailSecrets](../../src/prerna/util/sandbox/JailSecrets.java),
+  called from `SymlinkHelper` where OpenShell's transporter would broker them), its secrets are
+  written to `secrets.json` in that folder (`0600`), by project key. A project with no secrets
+  writes nothing.
+- fakechroot: the folder is at `<BaseFolder>/sandbox-secrets` inside the user's chroot.
+  namespace: the launcher mounts it read-only at the same path; other users' chroot folders are
+  not in the jail.
+- `secret()` looks for that folder (the SEMOSS home is the folder its `py` folder is in). When it
+  is there, the code is in a jail and reads only `secrets.json`. Otherwise it reads OpenShell's
+  placeholder file. A jail never falls back to the OpenShell path: it is in the shared insight
+  cache, which other users can write to.
+- The file permissions do not keep users apart in fakechroot. Every user's Python runs as the
+  same host user as SEMOSS, and fakechroot only rewrites paths (`LD_PRELOAD`), so code that makes
+  system calls directly can read other users' chroot folders, and the project's `.smss` itself.
+  The namespace jail keeps users apart: other users' folders are not mounted in it.
+- Every user who can load the app can read its secret values from Python, and use them anywhere
+  the jail's network reaches. Use OpenShell where that matters.
+- A changed value is written on the next load of the project and reaches code already running,
+  since `secret()` re-reads the file. A user who loses access keeps the values in their chroot
+  folder until it is removed, as OpenShell keeps a provider attached until the sandbox goes.
 
 ## Workstations (BaseFolder is not /opt/semosshome)
 

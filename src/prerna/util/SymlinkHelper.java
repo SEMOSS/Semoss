@@ -57,6 +57,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.UserAssetUtils;
 import prerna.project.api.IProject;
+import prerna.util.sandbox.JailSecrets;
 import prerna.util.sandbox.SandboxInjector;
 import prerna.util.sandbox.SandboxSettings;
 import prerna.util.sandbox.SandboxTransporter;
@@ -407,6 +408,10 @@ public class SymlinkHelper {
 			}
 		});
 
+		if (sandboxMode != SandboxSettings.Mode.OPENSHELL) {
+			timed("sandbox secrets folder", () -> mountSandboxSecrets(JailSecrets.ensureFolder(userChrootFolder)));
+		}
+
 		timed("/root + /home/default", () -> {
 			createChrootDirectory("/root");
 			createChrootDirectory("/home/default");
@@ -701,6 +706,8 @@ public class SymlinkHelper {
 			// user's edit permission separately. The local placement below still runs, because
 			// the Java worker has no OpenShell sandbox and runs in the local fakechroot.
 			transport(appRoot, !SecurityProjectUtils.userCanEditProject(user, projectId));
+		} else {
+			placeSandboxSecrets(projectId);
 		}
 		Path inChroot = Paths.get(userChrootFolder).resolve(appRoot.substring(1));
 		try {
@@ -720,6 +727,31 @@ public class SymlinkHelper {
 			}
 		} catch (IOException e) {
 			throw new UncheckedIOException("Unable to put project " + projectId + " in the user's folder", e);
+		}
+	}
+
+	/**
+	 * Gives the jail the project's sandbox secrets ({@link JailSecrets}): writes them to the user's
+	 * secrets folder and, in the namespace sandbox, mounts that folder read-only where the jail looks
+	 * for it. In fakechroot the folder is already at that path inside the chroot. OpenShell brokers
+	 * the secrets itself and never gets here.
+	 *
+	 * @param projectId the project being placed
+	 */
+	private void placeSandboxSecrets(String projectId) {
+		mountSandboxSecrets(JailSecrets.ensureForProject(userChrootFolder, projectId));
+	}
+
+	/**
+	 * In the namespace sandbox, mounts the user's secrets folder read-only where the jail looks for
+	 * it. The chroot setup mounts it before any project loads, so {@code py/smss_secrets.py} knows it
+	 * is in a jail from the start; asking again for the same mount does nothing.
+	 *
+	 * @param folder the host folder, or null when there is none
+	 */
+	private void mountSandboxSecrets(Path folder) {
+		if (folder != null && injectMode) {
+			enqueueOrInject(JailSecrets.jailFolder(Utility.getBaseFolder()).toString(), folder.toString(), false);
 		}
 	}
 

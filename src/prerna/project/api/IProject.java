@@ -481,8 +481,10 @@ public interface IProject extends IEngine, IMCP {
 	 * The project's sandbox secrets: its {@link OpenShellSecrets#SECRETS_PROP}
 	 * declaration and each {@link OpenShellSecrets#VALUE_PROP_PREFIX} value, and no
 	 * other setting. The platform hands them to the project's sandbox for everyone
-	 * who can open the project; a project's custom code reads them only for its
-	 * owners, as it does the rest of its settings.
+	 * who can open the project, as placeholders on OpenShell and as values in the
+	 * fakechroot and namespace jails ({@link prerna.util.sandbox.JailSecrets}); a
+	 * project's custom code reads them only for its owners, as it does the rest of
+	 * its settings.
 	 *
 	 * @return a copy holding only the sandbox secret settings, empty when there are
 	 *         none
