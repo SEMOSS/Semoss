@@ -307,7 +307,12 @@ public final class AgentRunStore {
 			if (!rs.next()) {
 				return null;
 			}
-			return runMapFromRow(rs);
+			Map<String, Object> run = runMapFromRow(rs);
+			// Issue 3857: the inspector reads a single run; give it the same executor
+			// and sub-agent-name fields the child-card list gets, so the side panel
+			// shows the real name and never a bare "Agent run".
+			applyExecutorFields(run, rs.getString("REQUEST_JSON"));
+			return run;
 		} catch (Exception e) {
 			if (e instanceof SecurityException) {
 				throw (SecurityException) e;
@@ -526,11 +531,7 @@ public final class AgentRunStore {
 			List<Map<String, Object>> runs = new ArrayList<>();
 			while (rs.next()) {
 				Map<String, Object> run = runMapFromRow(rs);
-				// Lets child cards tell a person's task from an agent's.
-				AgentRunRequest request = requestFromJson(rs.getString("REQUEST_JSON"));
-				boolean human = request != null && request.isHumanExecutor();
-				run.put("executorType", human ? "HUMAN" : "AGENT");
-				run.put("executorLabel", human ? request.getHumanExecutorLabel() : null);
+				applyExecutorFields(run, rs.getString("REQUEST_JSON"));
 				runs.add(run);
 			}
 			return runs;
@@ -1625,6 +1626,24 @@ public final class AgentRunStore {
 		addDeliveryMetadata(map);
 		map.put("taskOutcome", AgentTaskOutcome.fromRun(map));
 		return map;
+	}
+
+	/**
+	 * Add the executor and sub-agent-name fields a run card reads, parsed from the
+	 * run's persisted request. Keeps every read path consistent: lets a card tell a
+	 * person's task from an agent's, and (Issue 3857) surfaces the spawn-time job
+	 * label as {@code workspaceName} so the UI shows a real name
+	 * ("Read NIH mail from this week") instead of a generic "Agent run".
+	 *
+	 * @param run         the run map being built for the frontend
+	 * @param requestJson the row's {@code REQUEST_JSON}, or null when unavailable
+	 */
+	private static void applyExecutorFields(Map<String, Object> run, String requestJson) {
+		AgentRunRequest request = requestFromJson(requestJson);
+		boolean human = request != null && request.isHumanExecutor();
+		run.put("executorType", human ? "HUMAN" : "AGENT");
+		run.put("executorLabel", human ? request.getHumanExecutorLabel() : null);
+		run.put("workspaceName", request == null ? null : request.getLabel());
 	}
 
 	/**
