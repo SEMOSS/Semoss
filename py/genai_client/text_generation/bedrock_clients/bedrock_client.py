@@ -199,6 +199,14 @@ class BedrockClient(AbstractTextGenerationClient):
                 fields[key] = {**reasoning, "budget_tokens": budget}
             request["additionalModelRequestFields"] = fields
 
+    def count_request_tokens(self, semoss_messages) -> Optional[PromptCount]:
+        """Count the request these messages build, with the same counter as the usage ceiling."""
+        copies = [message.model_copy(deep=True) for message in semoss_messages]
+        request = BedrockMessageBuilder().build_messages(copies)
+        if getattr(self.model_settings, "global_param_override", None):
+            request.update(self.model_settings.global_param_override)
+        return self._count_prompt_tokens(request)
+
     def _count_prompt_tokens(self, request: Dict[str, Any]) -> PromptCount:
         """Count the prompt with the Bedrock CountTokens API where the model
         supports it, and estimate it otherwise or when the count fails."""

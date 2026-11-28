@@ -144,7 +144,14 @@ class AbstractTextGenerationClient(ABC):
             model_settings,
             source_messages=message_json,
             input_modalities=input_modalities,
+            count_request_tokens=self.count_request_tokens,
         )
+
+    def count_request_tokens(
+        self, semoss_messages: List[SEMOSSMessage]
+    ) -> Optional[PromptCount]:
+        """Count the provider request these messages build; None means estimate."""
+        return None
 
     def get_template(self, template_name=None, **kwargs):
         if template_name in self.templates.keys():

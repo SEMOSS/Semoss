@@ -343,7 +343,7 @@ def test_total_extraction_and_context_limits_do_not_truncate():
     processor._convert = Mock(return_value=ExtractedDocument("a" * 1000))
     original = messages()
     with pytest.raises(DocumentInputError, match="text budget"):
-        processor.prepare(original, settings(context_window=1200, max_tokens=500))
+        processor.prepare(original, settings(context_window=800, max_tokens=500))
     assert original[0].parts[1].type == "MEDIA"
 
 
@@ -356,7 +356,7 @@ def test_context_budget_includes_history_system_tools_and_output_override():
     with pytest.raises(DocumentInputError, match="text budget"):
         processor.prepare(
             original,
-            settings(context_window=3000, global_param_override={"max_tokens": 2000}),
+            settings(context_window=2500, global_param_override={"max_tokens": 2000}),
         )
 
 
