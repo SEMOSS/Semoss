@@ -90,6 +90,16 @@ public final class PlatformAgentTools {
 		return resolved;
 	}
 
+	/**
+	 * Whether the deployment replaces the built-in default tools with a toolbox
+	 * ({@code AGENT_DEFAULT_TOOLS_MCP_ID}). The harness then leaves out its prompt
+	 * blocks about the built-in tools: that toolbox's tools are described by their
+	 * own definitions, even where a name matches.
+	 */
+	static boolean defaultToolsReplaced() {
+		return getDefaultToolsMcpId() != null;
+	}
+
 	static ToolExecutionResult policyDenialResult(String toolName, AgentRunContext ctx) {
 		if (toolName == null || toolName.trim().isEmpty() || ctx == null) {
 			return null;
